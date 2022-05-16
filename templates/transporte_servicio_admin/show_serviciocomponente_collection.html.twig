@@ -1,0 +1,69 @@
+{#% if admin.isGranted('SHOW', object) and admin.hasRoute('show') %#}
+    {% block field %}
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>
+                    Hora
+                </th>
+                <th>
+                    Origen
+                </th>
+                <th>
+                    Destino
+                </th>
+                <th>
+                    Nombre
+                </th>
+                <th>
+                    Código
+                </th>
+                <th>
+                    Num Adl
+                </th>
+                <th>
+                    Num Chd
+                </th>
+                <th>
+                    Nota
+                </th>
+            </tr>
+
+            </thead>
+            <tbody class="sonata-ba-tbody">
+            {% for serviciocomponente in value %}
+                <tr>
+                    <td>
+                        {{ serviciocomponente.hora|date('H:i') }}
+                    </td>
+                    <td>
+                        {{ serviciocomponente.origen}}
+                    </td>
+                    <td>
+                        {{ serviciocomponente.destino}}
+                    </td>
+                    <td>
+                        {{ serviciocomponente.nombre}}
+                    </td>
+                    <td>
+                        {{ serviciocomponente.codigo}}
+                    </td>
+                    <td>
+                        {{ serviciocomponente.numadl}}
+                    </td>
+                    <td>
+                        {{ serviciocomponente.numchd}}
+                    </td>
+                    <td>
+                        {{ serviciocomponente.nota}}
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td>No hay files</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endblock %}
+
+{#% endif %#}
+

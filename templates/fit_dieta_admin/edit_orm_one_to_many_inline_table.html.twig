@@ -1,0 +1,154 @@
+{#
+
+This file is part of the Sonata package.
+
+(c) Thomas Rabaix <thomas.rabaix@sonata-project.org>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+
+#}
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            {% for field_name, nested_field in form.children|first.children %}
+                {% if field_name == '_delete' %}
+                    <th>{{ 'action_delete'|trans({}, 'SonataAdminBundle') }}</th>
+                {% elseif field_name != 'dietaalimentos'%}
+                    <th
+                        {% if nested_field.vars['required'] %}
+                            class="required"
+                        {% endif %}
+                        {% if (nested_field.vars['attr']['hidden'] is defined) and (nested_field.vars['attr']['hidden']) %}
+                            style="display:none;"
+                        {% endif %}
+                    >
+                        {{ nested_field.vars.label|trans({}, nested_field.vars['sonata_admin'].admin.translationDomain
+                            |default(nested_field.vars.translation_domain)
+                        ) }}
+                    </th>
+                {% endif %}
+
+                {% if field_name == 'alimento' %}
+                    <th>Medida</th>
+                    <th>Grasa</th>
+                    <th>Carbo</th>
+                    <th>Prot</th>
+                    <th>Grasa Total</th>
+                    <th>Carbo Total</th>
+                    <th>Prot Total</th>
+                    <th>Prot Alto</th>
+                    <th>Cal Grasa</th>
+                    <th>Cal Carbo</th>
+                    <th>Cal Prot</th>
+                    <th>Cal total</th>
+                    <th>Cal energ</th>
+                {% endif %}
+
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody class="sonata-ba-tbody">
+        {% for nested_group_field_name, nested_group_field in form.children %}
+
+            <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}">
+                {% for field_name, nested_field in nested_group_field.children %}
+                    {% if field_name != 'dietaalimentos' %} {# no rendea dietaalimento como campo en tabla, lo rendeara en otra fila #}
+                    <td class="
+                        sonata-ba-td-{{ id }}-{{ field_name }}
+                        control-group campo-{{ field_name }}
+                        {% if nested_field.vars.errors|length > 0 %} error sonata-ba-field-error{% endif %}
+                        "
+                        {% if (nested_field.vars['attr']['hidden'] is defined) and (nested_field.vars['attr']['hidden']) %}
+                            style="display:none;"
+                        {% endif %}
+                    >
+                        {% if sonata_admin.field_description.associationadmin.formfielddescriptions[field_name] is defined %}
+                            {{ form_widget(nested_field) }}
+
+                            {% set dummy = nested_group_field.setrendered %}
+                        {% else %}
+                            {% if field_name == '_delete' %}
+                                {{ form_widget(nested_field, { label: false }) }}
+                            {% else %}
+                                {{ form_widget(nested_field) }}
+                            {% endif %}
+                        {% endif %}
+                        {% if nested_field.vars.errors|length > 0 %}
+                            <div class="help-inline sonata-ba-field-error-messages">
+                                {{ form_errors(nested_field) }}
+                            </div>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                    {# {% if field_name == 'alimento' %}#}
+
+                    {% set anchomedida, anchovalor = '120', '70' %}
+                    {% set grasacolor1, grasacolor2, grasacolor3 = '#FFEBE6', '#FFCABE', '#FF6B4B' %}
+                    {% set carbocolor1, carbocolor2, carbocolor3 = '#FFFFE1', '#FFFEBE', '#FFFC3C'  %}
+                    {% set protcolor1, protcolor2, protcolor3 = '#DCFDF9', '#BEFFF8', '#2AFFE8' %}
+
+                    {% if field_name == 'alimento' and nested_field.vars.sonata_admin_code == 'gopro_fit.admin.dietaalimento' %}
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchomedida }}px" type="text" class="campo_medidacantidad form-control" id="{{ nested_field.parent.vars.id }}_medidacantidad" value="{{ nested_field.parent.vars.value.MedidaCantidadAlimento }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px; background-color: {{ grasacolor1 }}" type="text" class="campo_grasa form-control" id="{{ nested_field.parent.vars.id }}_grasa" value="{{ nested_field.parent.vars.value.Grasa }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px; background-color: {{ carbocolor1 }}" type="text" class="campo_carbohidrato form-control" id="{{ nested_field.parent.vars.id }}_carbohidrato" value="{{ nested_field.parent.vars.value.Carbohidrato }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px; background-color: {{ protcolor1 }}" type="text" class="campo_proteina form-control" id="{{ nested_field.parent.vars.id }}_proteina" value="{{ nested_field.parent.vars.value.Proteina }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px; background-color: {{ grasacolor2 }}" type="text" class="campo_grasatotal form-control" id="{{ nested_field.parent.vars.id }}_grasatotal" value="{{ nested_field.parent.vars.value.GrasaTotal }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px; background-color: {{ carbocolor2 }}" type="text" class="campo_carbohidratototal form-control" id="{{ nested_field.parent.vars.id }}_carbohidratototal" value="{{ nested_field.parent.vars.value.CarbohidratoTotal }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px; background-color: {{ protcolor2 }}" type="text" class="campo_proteinatotal form-control" id="{{ nested_field.parent.vars.id }}_proteinatotal" value="{{ nested_field.parent.vars.value.ProteinaTotal }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px; background-color: {{ protcolor2 }}" type="text" class="campo_proteinatotalalto form-control" id="{{ nested_field.parent.vars.id }}_proteinatotalalto" value="{{ nested_field.parent.vars.value.ProteinaTotalAlto }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px; background-color: {{ grasacolor3 }}" type="text" class="campo_grasacalorias form-control" id="{{ nested_field.parent.vars.id }}_grasacalorias" value="{{ nested_field.parent.vars.value.GrasaCalorias }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px; background-color: {{ carbocolor3 }}" type="text" class="campo_carbohidratocalorias form-control" id="{{ nested_field.parent.vars.id }}_carbohidratocalorias" value="{{ nested_field.parent.vars.value.CarbohidratoCalorias }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px; background-color: {{ protcolor3 }}" type="text" class="campo_proteinacalorias form-control" id="{{ nested_field.parent.vars.id }}_proteinacalorias" value="{{ nested_field.parent.vars.value.ProteinaCalorias }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px;" type="text" class="campo_totalcalorias form-control" id="{{ nested_field.parent.vars.id }}_totalcalorias" value="{{ nested_field.parent.vars.value.TotalCalorias }}">
+                        </td>
+                        <td>
+                            <input readonly style="text-align: right; width: {{ anchovalor }}px;" type="text" class="campo_energiacalorias form-control" id="{{ nested_field.parent.vars.id }}_energiacalorias" value="{{ nested_field.parent.vars.value.EnergiaCalorias }}">
+                        </td>
+
+                    {% endif %}
+
+                {% endfor %}
+            </tr>
+
+            {% if nested_group_field.children['dietaalimentos'] is defined %} {# rendea en una nueva fila el campo #}
+
+                <tr class="splitted">
+                    <td style="vertical-align: bottom; padding-bottom: 35px;"><strong>Alimentos</strong></td>
+                    <td class="
+                        sonata-ba-td-{{ nested_group_field.children['dietaalimentos'].vars.id }}
+                        control-group campo-{{ nested_group_field.children['dietaalimentos'].vars.name }}"
+                        colspan="{{ nested_group_field.children|length - 2 }}">
+                        {{ form_widget(nested_group_field.children['dietaalimentos']) }}
+                        {# resumen en el archivo padre#}
+                    </td>
+                </tr>
+
+            {%  endif %}
+
+        {% endfor %}
+    </tbody>
+</table>

@@ -1,0 +1,105 @@
+{#
+
+This file is part of the Sonata package.
+
+(c) Thomas Rabaix <thomas.rabaix@sonata-project.org>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+
+#}
+
+{% extends '@SonataAdmin/CRUD/base_show.html.twig' %}
+
+{% block show %}
+
+
+<div class="sonata-ba-view">
+
+    {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
+
+    <div class="row">
+        <div class="col-md-12 ">
+            <div class="box box-primary">
+                <div class="box-body table-responsive no-padding">
+                    <table class="table">
+                        <tbody>
+                        <tr class="sonata-ba-view-container">
+                            <th>Nombre</th>
+                            <td>{{ object.nombre }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>Placa</th>
+                            <td>{{ object.placa }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>Abreviatura</th>
+                            <td>{{ object.abreviatura }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>Color</th>
+                            <td>{{ object.color }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% if object.unidadbitacoras is defined %}
+                <div class="panel-group box box-primary" id="accordion">
+                    {% if object.unidadbitacoras is defined and object.unidadbitacoras|length > 0 %}
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h5 class="panel-title">
+                                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse1">
+                                        Bitácora de servicios
+                                    </a>
+                                </h5>
+                            </div>
+                            <div id="collapse1" class="panel-collapse collapse in">
+                                <div class="panel-body table-responsive no-padding">
+                                    <table class="table table-bordered table-striped sonata-ba-list">
+                                        <thead>
+                                        <tr class="sonata-ba-list-field-header">
+                                            <th>
+                                                Fecha
+                                            </th>
+                                            <th>
+                                                Kilometraje
+                                            </th>
+                                            <th>
+                                                Contenido
+                                            </th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for unidadbitacora in object.unidadbitacoras %}
+                                            <tr>
+                                                <td>
+                                                    {{ unidadbitacora.fecha|date('Y-m-d') }}
+                                                </td>
+                                                <td>
+                                                    {{ unidadbitacora.kilometraje }}
+                                                </td>
+                                                <td>
+                                                    {{ unidadbitacora.contenido }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+
+        </div>
+    </div>
+
+</div>
+
+    {{ sonata_block_render_event('sonata.admin.show.bottom', { 'admin': admin, 'object': object }) }}
+{% endblock %}

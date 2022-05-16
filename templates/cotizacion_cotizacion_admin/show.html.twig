@@ -1,0 +1,549 @@
+{#
+
+This file is part of the Sonata package.
+
+(c) Thomas Rabaix <thomas.rabaix@sonata-project.org>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+
+#}
+
+{% extends '@SonataAdmin/CRUD/base_show.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+
+    <style type="text/css">
+
+        div.encabezado td {white-space: normal !important;}
+
+        @media print
+        {
+            .locale_switcher
+            {
+                display: none !important;
+            }
+            .tab-content > .tab-pane {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block show %}
+
+
+<div class="sonata-ba-view">
+
+    {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
+
+    <div class="row">
+        <div class="col-md-12 ">
+            <div class="encabezado box box-primary">
+                <div class="box-header">
+                    <h4 class="box-title">
+                        {{ cotizacion.file.nombre }} ({{ cotizacion.file.paisnombre }})
+                    </h4>
+                </div>
+                <div class="box-body table-responsive no-padding">
+                    <table class="table">
+                        <tbody>
+                        <tr class="sonata-ba-view-container">
+                            <th>Nombre</th>
+                            <td>{{ cotizacion.cotizacion.nombre }}</td>
+
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>Cotización</th>
+                            <td>{{ cotizacion.cotizacion.titulo }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>Número de pasajeros</th>
+                            <td>{{ cotizacion.cotizacion.numeropasajeros }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Comisión</th>
+                            <td>{{ cotizacion.cotizacion.comision|number_format(2, '.', '')}}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+            {% if cotizacion.pasajeros is defined or cotizacion.archivos is defined %}
+                <div class="panel-group box box-primary" id="accordion">
+                    {% if cotizacion.pasajeros is defined and cotizacion.pasajeros|length > 0 %}
+                        <div class="panel panel-default hidden-print">
+                            <div class="panel-heading">
+                                <h5 class="panel-title">
+                                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse1">
+                                        Relación de pasajeros
+                                    </a>
+                                </h5>
+                            </div>
+                            <div id="collapse1" class="panel-collapse collapse {% if cotizacion.archivos is not defined %} in {% endif %}">
+                                <div class="panel-body table-responsive no-padding">
+                                    <table class="table table-bordered table-striped sonata-ba-list">
+                                        <thead>
+                                        <tr class="sonata-ba-list-field-header">
+                                            <th>
+                                                Nombres
+                                            </th>
+                                            <th>
+                                                Apellidos
+                                            </th>
+                                            <th>
+                                                Pais
+                                            </th>
+                                            <th>
+                                                Sexo
+                                            </th>
+                                            <th>
+                                                Tipo doc.
+                                            </th>
+                                            <th>
+                                                Número doc.
+                                            </th>
+                                            <th>
+                                                Fecha nacimiento
+                                            </th>
+                                            <th>
+                                                Edad
+                                            </th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for pasajero in cotizacion.pasajeros %}
+                                            <tr>
+                                                <td>
+                                                    {{ pasajero.nombre }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.apellido }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.pais }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.sexo }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.tipodocumento }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.numerodocumento }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.fechanacimiento|date('Y-m-d') }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.edad }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if cotizacion.archivos is defined and cotizacion.archivos|length > 0 %}
+                        <div class="panel panel-default hidden-print">
+                            <div class="panel-heading">
+                                <h5 class="panel-title">
+                                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse2">
+                                        Documentos
+                                    </a>
+                                </h5>
+                            </div>
+                            <div id="collapse2" class="panel-collapse collapse in">
+                                <div class="panel-body">
+                                    <div class="container-fluid">
+                                        {% for archivo in cotizacion.archivos %}
+                                            {% if loop.index0 % 6 == 0 %}
+                                                <div class="row">
+                                            {% endif %}
+                                            {% if loop.index0 % 3 == 0 and loop.index0 % 6 != 0 %}
+                                                <div class="clearfix visible-xs"></div>
+                                            {% endif %}
+                                            <div class="col-xs-4 col-sm-2">
+                                                <div class="thumbnail">
+                                                    <a href="{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}"{% if archivo.inModal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
+                                                        <img src="{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}" alt="{{ archivo.nombre }}" style="width:100%">
+                                                        <div class="caption">
+                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.nombre }}</p>
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            {% if loop.index % 6 == 0 or loop.last %}
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <div class="nav-tabs-custom">
+                <ul class="nav nav-tabs hidden-print" role="tablist">
+                    {% for name, contenido in tabs %}
+                        <li{% if loop.first %} class="active"{% endif %}>
+                            <a href="#tab_{{ admin.uniqid }}_{{ loop.index }}" data-toggle="tab">
+                                <i class="fa fa-exclamation-circle has-errors hide" aria-hidden="true"></i>
+                                {{ contenido.nombre }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                <div class="tab-content">
+                    {% for name, contenido in tabs %}
+                        <div
+                                class="tab-pane fade{% if loop.first %} in active{% endif %}"
+                                id="tab_{{ admin.uniqid }}_{{ loop.index }}"
+                        >
+                            <div class="box-body container-fluid">
+                                <div class="sonata-ba-collapsed-fields">
+
+                                    {% if name == 'tarifas' %}
+                                        <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                        <h4><strong>Resumen General</strong></h4>
+                                        <div class="box-body table-responsive no-padding">
+                                            <table class="table table-bordered table-striped sonata-ba-list">
+                                                <thead>
+                                                <tr class="sonata-ba-list-field-header">
+                                                    <th>
+                                                        Nombre
+                                                    </th>
+                                                    <th>
+                                                        Título
+                                                    </th>
+                                                    <th class="text-right">
+                                                        Costo Soles
+                                                    </th>
+                                                    <th class="text-right">
+                                                        Costo Dolares
+                                                    </th>
+                                                    <th class="text-right">
+                                                        Venta soles
+                                                    </th>
+                                                    <th class="text-right">
+                                                        Venta dolares
+                                                    </th>
+                                                    <th class="text-right">
+                                                        Ganancia soles
+                                                    </th>
+                                                    <th class="text-right">
+                                                        Ganancia dolares
+                                                    </th>
+                                                </tr>
+                                                </thead>
+                                                <tbody>
+                                                {%  for resumenitem in contenido.resumen %}
+                                                <tr>
+                                                    <td>
+                                                        {{ resumenitem.nombre }}
+                                                    </td>
+                                                    <td>
+                                                        {{ resumenitem.titulo }}
+                                                    </td>
+                                                    <td class="text-right">
+                                                        {{ resumenitem.montosoles }}
+                                                    </td>
+                                                    <td class="text-right">
+                                                        {{ resumenitem.montodolares }}
+                                                    </td>
+                                                    <td class="text-right">
+                                                        {{ resumenitem.ventasoles }}
+                                                    </td>
+                                                    <td class="text-right">
+                                                        {{ resumenitem.ventadolares }}
+                                                    </td>
+                                                    <td class="text-right">
+                                                        {{ resumenitem.gananciasoles }}
+                                                    </td>
+                                                    <td class="text-right">
+                                                        {{ resumenitem.gananciadolares }}
+                                                    </td>
+                                                    {% endfor %}
+                                                </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <br />
+                                        <h4><strong>Por tipo de pasajero</strong></h4>
+                                        {% for rango in contenido.rangos %}
+                                            <h4>
+                                                {{ rango.tipoPaxNombre }} <strong>x {{ rango.cantidad }}</strong>
+                                            </h4>
+                                            {% if rango.edadMin is defined or rango.edadMax is defined%}
+                                            <p>
+                                                {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
+                                                    de {{ rango.edadMin }} años
+                                                    {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                                        &nbsp;<br />(con carné de estudiante válido y vigente)
+                                                    {% endif %}
+
+                                                {% else %}
+                                                    {% if rango.edadMin is defined %}
+                                                        desde {{ rango.edadMin }} años
+                                                    {% endif %}
+
+                                                    {% if rango.edadMax is defined %}
+                                                        hasta {{ rango.edadMax }} años
+                                                        {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                                            <br />(con carné de estudiante válido y vigente)
+                                                        {% endif %}
+                                                    {% endif %}
+
+                                                {% endif %}
+
+                                            </p>
+                                            {% endif %}
+
+                                            {% if rango.nombrePersistente is defined %}
+                                                <h5>{{ rango.nombrePersistente }}</h5>
+                                            {% endif %}
+                                            <div style="margin-left: 15px;" class="box-body table-responsive no-padding">
+                                                <table class="table table-bordered table-striped sonata-ba-list">
+                                                    <thead>
+                                                    <tr class="sonata-ba-list-field-header">
+                                                        <th>
+                                                            Servicio
+                                                        </th>
+                                                        <th>
+                                                            Componente
+                                                        </th>
+                                                        <th>
+                                                            Tarifa
+                                                        </th>
+                                                        <th class="text-right">
+                                                            Costo Soles
+                                                        </th>
+                                                        <th class="text-right">
+                                                            Costo Dolares
+                                                        </th>
+                                                        <th class="text-right">
+                                                            Venta soles
+                                                        </th>
+                                                        <th class="text-right">
+                                                            Venta dolares
+                                                        </th>
+                                                        <th>
+                                                            Tipo
+                                                        </th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {%  for tarifadetalle in rango.tarifa %}
+                                                    <tr>
+                                                        <td>
+                                                            {{ tarifadetalle.nombreServicio }}
+                                                        </td>
+                                                        <td>
+                                                            {{ tarifadetalle.nombreComponente }}
+                                                        </td>
+                                                        <td>
+                                                            {{ tarifadetalle.nombre }}
+                                                        </td>
+                                                        <td class="text-right">
+                                                            {{ tarifadetalle.montosoles }}
+                                                        </td>
+                                                        <td class="text-right">
+                                                            {{ tarifadetalle.montodolares }}
+                                                        </td>
+                                                        <td class="text-right">
+                                                            {{ tarifadetalle.ventasoles }}
+                                                        </td>
+                                                        <td class="text-right">
+                                                            {{ tarifadetalle.ventadolares }}
+                                                        </td>
+                                                        <td>
+                                                            {{ tarifadetalle.tipoTarNombre }}
+                                                        </td>
+                                                        {% endfor %}
+                                                    </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <br />
+                                            <div style="margin-left: 30px;" class="box-body table-responsive no-padding">
+                                                <table class="table table-bordered table-striped sonata-ba-list">
+                                                    <thead>
+                                                    <tr class="sonata-ba-list-field-header">
+                                                        <th>
+                                                            Tipo
+                                                        </th>
+                                                        <th>
+                                                            Título
+                                                        </th>
+                                                        <th class="text-right">
+                                                            Costo Soles
+                                                        </th>
+                                                        <th class="text-right">
+                                                            Costo Dolares
+                                                        </th>
+                                                        <th class="text-right">
+                                                            Venta soles
+                                                        </th>
+                                                        <th class="text-right">
+                                                            Venta dolares
+                                                        </th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {%  for tarifaresumen in rango.resumen %}
+                                                    <tr>
+                                                        <td>
+                                                            {{ tarifaresumen.tipoTarNombre }}
+                                                        </td>
+                                                        <td>
+                                                            {{ tarifaresumen.tipoTarTitulo }}
+                                                        </td>
+                                                        <td class="text-right">
+                                                            {{ tarifaresumen.montosoles }}
+                                                        </td>
+                                                        <td class="text-right">
+                                                            {{ tarifaresumen.montodolares }}
+                                                        </td>
+                                                        <td class="text-right">
+                                                            {{ tarifaresumen.ventasoles }}
+                                                        </td>
+                                                        <td class="text-right">
+                                                            {{ tarifaresumen.ventadolares }}
+                                                        </td>
+                                                        {% endfor %}
+                                                    </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <br />
+                                        {% endfor %}
+
+                                    {% elseif name == 'politica' %}
+                                        <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                        {{ contenido.contenido|raw }}
+                                    {% elseif name == 'itinerario' %}
+                                        <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                        {% if contenido.itinerarios is defined and contenido.itinerarios|length > 0 %}
+                                            {% for itinerario in contenido.itinerarios %}
+                                                <h4><strong>{{ itinerario.fecha }}</strong></h4>
+                                                {% for item in itinerario.fechaitems %}
+                                                    <h4>{{ item.titulo }}</h4>
+                                                    {{ item.descripcion|raw }}
+                                                    <div class="container-fluid hidden-print">
+                                                        {% for archivo in item.archivos %}
+                                                            {% if loop.index0 % 4 == 0 %}
+                                                                <div class="row">
+                                                            {% endif %}
+                                                            {% if loop.index0 % 2 == 0 and loop.index0 % 4 != 0 %}
+                                                                <div class="clearfix visible-xs"></div>
+                                                            {% endif %}
+                                                            <div class="col-xs-6 col-sm-3">
+                                                                <div class="thumbnail">
+                                                                    <a href="{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.titulo }}"{% else %} target="_blank" {% endif %}>
+                                                                        <img src="{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}" alt="{{ archivo.titulo }}" style="width:100%">
+                                                                        <div class="caption">
+                                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
+                                                                        </div>
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                            {% if loop.index % 4 == 0 or loop.last %}
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endfor %}
+                                            {% endfor %}
+                                        {% endif %}
+                                        {% if contenido.notas is defined and contenido.notas|length > 0 %}
+                                            <h4>Notas:</h4>
+                                            {% for nota in contenido.notas %}
+                                                <h5><strong>{{ nota.titulo }}</strong></h5>
+                                                {{ nota.contenido|raw }}
+                                            {% endfor %}
+                                        {% endif %}
+
+                                    {% elseif name == 'incluye' %}
+                                        <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                        {% if contenido.tipos is defined %}
+                                            {% for tipo in contenido.tipos %}
+                                                <h4>{{ tipo.titulo }}:</h4>
+                                                <ul>
+                                                    {% for componente in tipo.componentes %}
+                                                        <li>{{ componente.titulo }} {% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %} {% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}
+                                                            {% if componente.tarifas is defined %}
+                                                                <ul>
+                                                                    {% for tarifa in componente.tarifas %}
+                                                                        <li>{{ tarifa.titulo }} x {{ tarifa.cantidad }}</li>
+                                                                    {% endfor %}
+                                                                </ul>
+                                                            {% endif %}
+
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endfor %}
+                                        {% endif %}
+
+                                    {% elseif name == 'agenda' %}
+
+                                        <div class="box-body table-responsive no-padding">
+                                            <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                            <table class="table table-bordered table-striped sonata-ba-list">
+                                                <thead>
+                                                <tr class="sonata-ba-list-field-header">
+                                                    <th>
+                                                        Inicio
+                                                    </th>
+                                                    <th>
+                                                        Nombre
+                                                    </th>
+                                                    <th>
+                                                        Fin
+                                                    </th>
+                                                </tr>
+                                                </thead>
+                                                <tbody>
+                                                {% for componente in contenido.componentes | filter(componente => componente.fechahorainicio != componente.fechahorafin and componente.titulo is not null) %}
+                                                    <tr>
+                                                        <td>
+                                                            {{ componente.fechahorainicio|date('Y/m/d H:i') }}
+                                                        </td>
+                                                        <td>
+                                                            {{ componente.titulo }} {% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %}
+                                                        </td>
+                                                        <td>
+                                                            {{ componente.fechahorafin|date('Y/m/d H:i') }}
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% endif %}
+
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+    {{ sonata_block_render_event('sonata.admin.show.bottom', { 'admin': admin, 'object': object }) }}
+{% endblock %}

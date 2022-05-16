@@ -1,0 +1,16 @@
+sonata_translation:
+    locales: ['en', 'fr', 'it', 'nl', 'es']
+    default_locale: 'es'
+    locale_switcher: true
+    # change default behavior for translated field filtering.
+    default_filter_mode: 'gedmo' # must be either 'gedmo' or 'knplabs', default: gedmo
+    # here enable the types you need
+    gedmo:
+        enabled: true
+        # when using gedmo/doctrine-extensions, you have to register a translatable listener
+        # service or if you are using a bundle that integrates the library, it will be registered
+        # by the bundle (e.g. "stof_doctrine_extensions.listener.translatable" for "stof/doctrine-extensions-bundle").
+        # here you can provide a custom translatable listener service name.
+        #translatable_listener_service: Gedmo\Translatable\TranslatableListener
+    knplabs:
+        enabled: true

@@ -1,0 +1,30 @@
+{% extends '@SonataAdmin/CRUD/base_list.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style type="text/css">
+
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script type="text/javascript">
+        $( document ).ready(function() {
+        });
+    </script>
+{% endblock %}
+
+{% block sonata_admin_content %}
+
+    {% if admin.listmode == 'mosaic' %}
+        {% block notice %}
+            {% include '@SonataTwig/FlashMessage/render.html.twig' %}
+        {% endblock notice %}
+        {{ fullcalendar({'Aceptado' : 'cotizacion_componente_aceptado', 'Aceptado y efectuado' : 'cotizacion_componente_aceptado_efectuado'}, 'month', {1 : 'agendaDay', 2 : 'timelineThreeDays', 3 : 'agendaWeek', 4 : 'month', 5 : 'listMonth'}) }}
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+
+{% endblock %}

@@ -1,0 +1,33 @@
+{#% if admin.isGranted('SHOW', object) and admin.hasRoute('show') %#}
+    {% block field %}
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>
+                    Titulo
+                </th>
+                <th>
+                    Contenido
+                </th>
+            </tr>
+
+            </thead>
+            <tbody class="sonata-ba-tbody">
+            {% for serviciooperativo in value %}
+                <tr>
+                    <td>
+                        {{ serviciooperativo.tiposeroperativo.nombre}}
+                    </td>
+                    <td>
+                        {{ serviciooperativo.texto}}
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td>No hay files</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endblock %}
+
+{#% endif %#}
+

@@ -1,0 +1,300 @@
+{% extends 'base_sonata_admin/edit.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+
+    <style type="text/css">
+        tr.row-dietacomidas td.campo-numerocomida{background-color: palegreen}
+        tr.row-dietaalimentos td.campo-cantidad{background-color: lightblue}
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script type="text/javascript">
+        (function ($) {
+
+            $.fn.cambiovalor = function () {
+
+                var methods = {
+                    init: function () {
+
+                        console.log('Llamado a cambiovalor.methods.init en: ' + $(this).attr("id"));
+                        var $this = $(this);
+                        //colocando attributo para no duplicar el metodo
+                        if($this.attr('methodCambiovalorSeleccionar') === 'true'){
+                            console.log('On change no necesario: ' + $(this).attr("id"));
+                            return $this;
+                        }else{
+                            console.log('Seteando valor, methodCambiovalorSeleccionar variable: ' + $this.attr('methodCambiovalorSeleccionar') + ' en :' + $(this).attr("id"));
+                            $this.attr('methodcambiovalorseleccionar', 'true');
+                            $this.off("change", methods.seleccionar).on("change", methods.seleccionar);
+                            $this.off("input", methods.seleccionar).on("input", methods.seleccionar);
+                            return $this;
+                        }
+
+                    },
+                    seleccionar: function (event) {
+
+                        var alimentoregex = /dietacomidas_\d*_dietaalimentos_\d*_alimento_autocomplete_input_v4$/g;
+                        var cantidadregex = /dietacomidas_\d*_dietaalimentos_\d*_cantidad$/g;
+
+                        if(alimentoregex.test($(this).attr("id")) === true) {
+                            return methods.procesaralimento.call(this, event);
+                        }
+                        if(cantidadregex.test($(this).attr("id")) === true) {
+                            return methods.procesarcantidad.call(this, event);
+                        }
+                    },
+                    procesarcantidad: function (event) {
+
+                        var baseId = $(this).attr("id").replace(/cantidad$/g, '');
+                        var alimentoId = baseId + 'alimento_autocomplete_input_v4';
+                        var inputval = $('select#' + alimentoId).val();
+                        if(!$.isNumeric(inputval)){
+                            return $this;
+                        }
+
+                        var cantidadId = $(this).attr("id");
+                        var cantidad = $(this).val();
+
+                        if(!$.isNumeric(cantidad)){
+                            return;
+                            //$(this).val(1)
+                            //cantidad = 1;
+                        }
+
+                        var grasaId = baseId + 'grasa';
+                        var carbohidratoId = baseId + 'carbohidrato';
+                        var proteinaId = baseId + 'proteina';
+
+                        return methods.completarvalores.call(this, baseId, cantidad, $('input#' + cantidadId).attr('data-medidaalimento'), $('input#' + cantidadId).attr('data-cantidadalimento'), $('input#' + grasaId).val(), $('input#' + carbohidratoId).val(), $('input#' + proteinaId).val(), $('input#' + cantidadId).attr('data-proteinaaltovalor'), $('input#' + cantidadId).data('tipoalimento'));
+
+                    },
+                    procesaralimento: function (event) {
+
+                        var baseId = $(this).attr("id").replace(/alimento_autocomplete_input_v4$/g, '');
+                        var alimentoId = $(this).attr("id");
+                        var inputval = $('select#' + alimentoId).val();
+                        if(!$.isNumeric(inputval)){
+                            return $this;
+                        }
+
+                        var url = "{{ path(admin.vars.dietaalimentos.alimentopath) }}" + '/' + inputval;
+
+                        return methods.makeajaxcall.call(this, event, url, baseId);
+
+                    },
+                    makeajaxcall: function (event, url, baseId) {
+                        $.ajax({
+                            url:  url,
+                            context: $(this),
+                            success: function(result){
+                                var cantidadId = baseId + 'cantidad';
+                                var cantidad = $('input#' + cantidadId).val();
+                                //console.log(cantidad);
+                                if(!$.isNumeric(cantidad)){
+                                    $('input#' + cantidadId).val(1)
+                                    cantidad = 1;
+                                }
+
+                                var grasaId = baseId + 'grasa';
+                                var carbohidratoId = baseId + 'carbohidrato';
+                                var proteinaId = baseId + 'proteina';
+
+                                if(result.id) {
+
+                                    var resultgrasa = parseFloat(result.grasa);
+                                    var resultcarbohidrato = parseFloat(result.carbohidrato);
+                                    var resultproteina = parseFloat(result.proteina);
+                                    var resultcantidadalimento = parseFloat(result.cantidad);
+                                    var resultmedidaalimento = result.medidaalimento;
+                                    var resultproteinaaltovalor = result.proteinaaltovalor;
+                                    var resultipoalimento = result.tipoalimento;
+
+                                    $('input#' + cantidadId).attr('data-cantidadalimento', resultcantidadalimento).attr('data-medidaalimento', resultmedidaalimento).attr('data-tipoalimento', resultipoalimento).attr('data-proteinaaltovalor', resultproteinaaltovalor);
+
+                                    $('input#' + grasaId).val(resultgrasa).trigger('input');
+                                    $('input#' + carbohidratoId).val(resultcarbohidrato).trigger('input');
+                                    $('input#' + proteinaId).val(resultproteina).trigger('input');
+
+                                    return methods.completarvalores.call(this, baseId, cantidad, $('input#' + cantidadId).attr('data-medidaalimento'), $('input#' + cantidadId).attr('data-cantidadalimento'), $('input#' + grasaId).val(), $('input#' + carbohidratoId).val(), $('input#' + proteinaId).val(), $('input#' + cantidadId).attr('data-proteinaaltovalor'), $('input#' + cantidadId).data('tipoalimento'));
+                                }
+
+                            }}
+                        );
+                    },
+
+                    completarvalores: function (baseId, cantidad, medidaalimento, cantidadalimento, grasa, carbohidrato, proteina, proteinaaltovalor, tipoalimento) {
+
+                        var medidacantidadId = baseId + 'medidacantidad';
+                        var grasaTotalId = baseId + 'grasatotal';
+                        var carbohidratoTotalId = baseId +'carbohidratototal';
+                        var proteinaTotalId = baseId + 'proteinatotal';
+                        var proteinaTotalAltoId = baseId + 'proteinatotalalto';
+
+                        var grasaCaloriasId = baseId + 'grasacalorias';
+                        var carbohidratoCaloriasId = baseId + 'carbohidratocalorias';
+                        var proteinaCaloriasId = baseId + 'proteinacalorias';
+
+                        var totalCaloriasId = baseId + 'totalcalorias';
+                        var energiaCaloriasId = baseId + 'energiacalorias';
+
+                        cantidad = parseFloat(cantidad);
+                        cantidadalimento = parseFloat(cantidadalimento);
+                        grasa = parseFloat(grasa);
+                        carbohidrato = parseFloat(carbohidrato);
+                        proteina = parseFloat(proteina);
+
+                        $('input#' + medidacantidadId).val(cantidadalimento * cantidad + ' ' + medidaalimento).trigger('input');
+                        $('input#' + grasaTotalId).val((grasa * cantidad).toFixed(2)).trigger('input');
+                        $('input#' + carbohidratoTotalId).val((carbohidrato * cantidad).toFixed(2)).trigger('input');
+                        $('input#' + proteinaTotalId).val((proteina * cantidad).toFixed(2)).trigger('input');
+
+                        if(proteinaaltovalor === 'true'){
+                            $('input#' + proteinaTotalAltoId).val((proteina * cantidad).toFixed(2)).trigger('input');
+                        }else{
+                            $('input#' + proteinaTotalAltoId).val(parseFloat(0).toFixed(2)).trigger('input')
+                        }
+
+                        $('input#' + grasaCaloriasId).val((grasa * cantidad * 9).toFixed(2)).trigger('input');
+                        $('input#' + carbohidratoCaloriasId).val((carbohidrato * cantidad * 4).toFixed(2)).trigger('input');
+                        $('input#' + proteinaCaloriasId).val((proteina * cantidad * 4).toFixed(2)).trigger('input');
+
+                        $('input#' + totalCaloriasId).val(((grasa * 9 + carbohidrato * 4 + proteina * 4) * cantidad).toFixed(2)).trigger('input');
+                        $('input#' + energiaCaloriasId).val(((grasa * 9 + carbohidrato * 4) * cantidad).toFixed(2)).trigger('input');
+
+                        hacerresumen.resumenDietaalimentos();
+                        hacerresumen.resumenDietacomidas();
+                    }
+                };
+
+                return $(this).each(function (i, element) {
+                    methods.init.apply($(element));
+                });
+            };
+
+        })(jQuery);
+
+        var hacerresumen = {
+            resumenDietaalimentos: function () {
+                $('.campo-dietaalimentos').each(function(){
+
+                    var baseIdDietaalimentos = $(this).children(":first").attr('id').replace('field_container_','');
+
+                    var contenedor = $(this);
+
+                    $.each(['grasatotal', 'carbohidratototal', 'proteinatotal', 'proteinatotalalto', 'grasacalorias', 'carbohidratocalorias', 'proteinacalorias', 'totalcalorias', 'energiacalorias'], function( index, value ) {
+
+                        var cantidad = 0;
+                        contenedor.find('.campo_' + value).each(function(){
+                            cantidad = cantidad + parseFloat($(this).val());
+                        });
+
+                        var unidades = '';
+
+                        if (value.indexOf("calorias") < 1){
+                            unidades = ' g';
+                        }
+
+                        $('#' + baseIdDietaalimentos + '_resumen_' + value ).val(cantidad.toFixed(2) + unidades);
+
+                    });
+
+                    $.each(['grasacalorias', 'carbohidratocalorias', 'proteinacalorias'], function( index, value ) {
+                        var resultado = parseFloat($('#' + baseIdDietaalimentos + '_resumen_' + value).val()) / parseFloat($('#' + baseIdDietaalimentos + '_resumen_totalcalorias').val()) * 100;
+                        $('#' + baseIdDietaalimentos + '_resumen_' + value + 'porcentaje' ).val(resultado.toFixed(2) + ' %');
+                    });
+
+
+                });
+            },
+            resumenDietacomidas: function () {
+
+                var baseIdDietacomidas = $('.field-container-dietacomidas').attr('id').replace('field_container_','');
+                var idPeso = baseIdDietacomidas.replace('dietacomidas', 'peso');
+                var idIndicedegrasa = baseIdDietacomidas.replace('dietacomidas', 'indicedegrasa');
+
+                var peso = parseFloat($('#' + idPeso).val());
+                var indicedegrasa = parseFloat($('#' + idIndicedegrasa).val());
+                var pesomagro = peso - (peso * indicedegrasa / 100);
+
+                $.each(['grasatotal', 'carbohidratototal', 'proteinatotal', 'proteinatotalalto', 'grasacalorias', 'carbohidratocalorias', 'proteinacalorias', 'totalcalorias', 'energiacalorias'], function( index, value ) {
+
+                    var cantidad = 0;
+                    $('.resumen_' + value).each(function(){
+                        cantidad = cantidad + parseFloat($(this).val());
+                    });
+
+                    var unidades = '';
+
+                    if (value.indexOf("calorias") < 1){
+                        unidades = ' g';
+                    }
+
+                    $('#' + baseIdDietacomidas + '_total_' + value ).val(cantidad.toFixed(2) + unidades);
+
+                });
+
+                $.each(['grasacalorias', 'carbohidratocalorias', 'proteinacalorias'], function( index, value ) {
+                    var resultado = parseFloat($('#' + baseIdDietacomidas + '_total_' + value).val()) / parseFloat($('#' + baseIdDietacomidas + '_total_totalcalorias').val()) * 100;
+                    $('#' + baseIdDietacomidas + '_total_' + value + 'porcentaje' ).val(resultado.toFixed(2) + ' %');
+                });
+
+                $.each(['grasatotal', 'carbohidratototal', 'proteinatotal', 'proteinatotalalto'], function( index, value ) {
+                    var resultado = parseFloat($('#' + baseIdDietacomidas + '_total_' + value).val()) / pesomagro;
+                    $('#' + baseIdDietacomidas + '_total_' + value + 'porkilogramo' ).val(resultado.toFixed(2) + ' g');
+                });
+            }
+
+        };
+
+        $(document).ready(function(){
+            console.log('Documento cargado.');
+            console.log('Ejecutando cambiovalor para select.');
+            $('select').cambiovalor();
+            console.log('Ejecutando cambiovalor para input.');
+            $('.campo-cantidad input').cambiovalor();
+
+            console.log('Haciendo resumen.');
+            hacerresumen.resumenDietaalimentos();
+            hacerresumen.resumenDietacomidas();
+
+            console.log('Configurando on input para campo peso, o campo indice de grasa.');
+            $('.campo-peso, .campo-indicedegrasa').on('input', function() {
+                console.log('Modificado campo peso, o campo indice de grasa, haciendo resumen.');
+                hacerresumen.resumenDietaalimentos();
+                hacerresumen.resumenDietacomidas();
+            });
+
+            console.log('Configurando on rowdeleted para table.');
+            $('.table').on('table:rowdeleted', function() {
+                console.log('Eliminada fila de table, haciendo resumen.');
+                hacerresumen.resumenDietaalimentos();
+                hacerresumen.resumenDietacomidas();
+                $(this).attr('rowdeletedmethod', 'true');
+            });
+
+            $('body').on('sonata.add_element', function() {
+                console.log('Agregadas filas.');
+                console.log('Ejecutando cambiovalor para select.');
+                $('select').cambiovalor();
+                console.log('Ejecutando cambiovalor para select.');
+                $('.campo-cantidad input').cambiovalor();
+                if($('.table').attr('rowdeletedmethod') === 'true'){
+                    console.log('No necesaria la configuracion de rowdeleted para la tabla: ' + $('.table').attr('id'));
+                }else{
+                    console.log('Configurando on rowdeleted para table.');
+                    $('.table').on('table:rowdeleted', function() {
+                        hacerresumen.resumenDietaalimentos();
+                        hacerresumen.resumenDietacomidas();
+                    });
+                }
+
+            });
+
+        });
+
+    </script>
+{% endblock %}

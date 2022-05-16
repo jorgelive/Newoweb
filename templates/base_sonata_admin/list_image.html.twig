@@ -1,0 +1,26 @@
+{#
+
+This file is part of the Sonata package.
+
+(c) Thomas Rabaix <thomas.rabaix@sonata-project.org>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+
+#}
+
+{% extends '@SonataAdmin/CRUD/base_list_field.html.twig' %}
+
+{% block field %}
+    {%- if value is empty -%}
+
+    {%- else -%}
+        <div class="thumbnail" style="width:120px; margin-bottom: 5px;">
+            <a href="{{ app.request.getSchemeAndHttpHost() ~ object.webPath|raw }}"{% if object.inmodal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
+                <img src="{{ app.request.getSchemeAndHttpHost() ~ value|raw }}" alt="{{ object.titulo }}" style="width:120px;">
+            </a>
+        </div>
+
+    {%- endif -%}
+
+{% endblock %}

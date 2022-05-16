@@ -1,0 +1,34 @@
+{% if admin.isGranted('EDIT', object) and admin.hasRoute('emitir') %}
+    <a href="#"
+       class="btn btn-sm btn-info edit_link"
+       data-toggle="modal"
+       data-target="#generarcopiaModal-{{ object.id }}">
+        <i class="fa fa-copy" aria-hidden="true"></i>
+        Generar Copia
+    </a>
+
+    <div class="modal fade" id="generarcopiaModal-{{ object.id }}" tabindex="-1" role="dialog" aria-labelledby="generarcopiaLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="generarcopiaLabel">Emitir</h4>
+                </div>
+                <div class="modal-body">
+                    Esta seguro que desea generar una nota de crédito?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
+                        No
+                    </button>
+                    <a href="{{ admin.generateObjectUrl('generarcopia', object) }}"
+                       class="btn btn-info"
+                       title="Generar">
+                        Generar Copia
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+

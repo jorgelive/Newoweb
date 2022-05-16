@@ -1,0 +1,251 @@
+{#
+
+This file is part of the Sonata package.
+
+(c) Thomas Rabaix <thomas.rabaix@sonata-project.org>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+
+#}
+
+{% extends '@SonataAdmin/CRUD/base_show.html.twig' %}
+
+{% block show %}
+
+
+<div class="sonata-ba-view">
+
+    {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
+
+    <div class="row">
+        <div class="col-md-12 ">
+            <div class="box box-primary">
+                <div class="box-body table-responsive no-padding">
+                    <table class="table">
+                        <tbody>
+                        <tr class="sonata-ba-view-container">
+                            <th>Nombre</th>
+                            <td>{{ object.nombre }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>Pais</th>
+                            <td>{{ object.pais.nombre }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>Idioma</th>
+                            <td>{{ object.idioma.nombre }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>Pauta</th>
+                            <td>{{ object.pauta }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% if object.filepasajeros is defined or object.filedocumentos is defined or object.cotizaciones is defined %}
+                <div class="panel-group box box-primary" id="accordion">
+                    {% if object.filepasajeros is defined and object.filepasajeros|length > 0 %}
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h5 class="panel-title">
+                                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse1">
+                                        Relación de pasajeros
+                                    </a>
+                                </h5>
+                            </div>
+                            <div id="collapse1" class="panel-collapse collapse">
+                                <div class="panel-body table-responsive no-padding">
+                                    <table class="table table-bordered table-striped sonata-ba-list">
+                                        <thead>
+                                        <tr class="sonata-ba-list-field-header">
+                                            <th>
+                                                Nombres
+                                            </th>
+                                            <th>
+                                                Apellidos
+                                            </th>
+                                            <th>
+                                                Pais
+                                            </th>
+                                            <th>
+                                                Sexo
+                                            </th>
+                                            <th>
+                                                Tipo doc.
+                                            </th>
+                                            <th>
+                                                Número doc.
+                                            </th>
+                                            <th>
+                                                Fecha nacimiento
+                                            </th>
+                                            <th>
+                                                Edad
+                                            </th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for pasajero in object.filepasajeros %}
+                                            <tr>
+                                                <td>
+                                                    {{ pasajero.nombre }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.apellido }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.pais }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.sexo }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.tipodocumento }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.numerodocumento }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.fechanacimiento|date('Y-m-d') }}
+                                                </td>
+                                                <td>
+                                                    {{ pasajero.edad }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if object.filedocumentos is defined and object.filedocumentos|length > 0 %}
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h5 class="panel-title">
+                                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse2">
+                                        Documentos
+                                    </a>
+                                </h5>
+                            </div>
+                            <div id="collapse2" class="panel-collapse collapse">
+                                <div class="panel-body">
+                                    <div class="container-fluid">
+                                        {% for archivo in object.filedocumentos %}
+                                            {% if loop.index0 % 6 == 0 %}
+                                                <div class="row">
+                                            {% endif %}
+                                            {% if loop.index0 % 3 == 0 and loop.index0 % 6 != 0 %}
+                                                <div class="clearfix visible-xs"></div>
+                                            {% endif %}
+                                            <div class="col-xs-4 col-sm-2">
+                                                <div class="thumbnail">
+                                                    <a href="{{ app.request.getSchemeAndHttpHost() ~ archivo.webpath|raw }}"{% if archivo.inmodal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
+                                                        <img src="{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}" alt="{{ archivo.nombre }}" style="width:100%">
+                                                        <div class="caption">
+                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.nombre }}</p>
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            {% if loop.index % 6 == 0 or loop.last %}
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if object.cotizaciones is defined and object.cotizaciones|length > 0 %}
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h5 class="panel-title">
+                                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse3">
+                                        Cotizaciones
+                                    </a>
+                                </h5>
+                            </div>
+                            <div id="collapse3" class="panel-collapse collapse in">
+                                <div class="panel-body table-responsive no-padding">
+                                    <table class="table table-bordered table-striped sonata-ba-list">
+                                        <thead>
+                                        <tr class="sonata-ba-list-field-header">
+                                            <th>
+                                                Nombres
+                                            </th>
+                                            <th>
+                                                Titulo
+                                            </th>
+                                            <th>
+                                                Cantidad de pasajeros
+                                            </th>
+                                            <th>
+                                                Comisión
+                                            </th>
+                                            <th>
+                                                Estado
+                                            </th>
+                                            <th>
+                                                Acciones
+                                            </th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for cotizacion in object.cotizaciones %}
+                                            <tr>
+                                                <td>
+                                                    {{ cotizacion.nombre }}
+                                                </td>
+                                                <td>
+                                                    {{ cotizacion.titulo }}
+                                                </td>
+                                                <td>
+                                                    {{ cotizacion.numeropasajeros }}
+                                                </td>
+                                                <td>
+                                                    {{ cotizacion.comision }}
+                                                </td>
+                                                <td>
+                                                    {{ cotizacion.estadocotizacion.nombre }}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id}) }}">
+                                                            <i class="fa fa-info" aria-hidden="true"></i>
+                                                            Resumen
+                                                        </a>
+
+                                                        <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_show', {'id': cotizacion.id}) }}">
+                                                            <i class="fa fa-eye" aria-hidden="true"></i>
+                                                            Mostrar
+                                                        </a>
+
+                                                        <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_edit', {'id': cotizacion.id}) }}">
+                                                            <i class="fa fa-pencil" aria-hidden="true"></i>
+                                                            Editar
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+
+        </div>
+    </div>
+
+</div>
+
+    {{ sonata_block_render_event('sonata.admin.show.bottom', { 'admin': admin, 'object': object }) }}
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends '@SonataAdmin/CRUD/base_list.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+
+    <style>
+        .debesoles {color: blue;}
+        .habersoles {color: red;}
+        #filter_fechahora_value div {margin-bottom: 5px;}
+    </style>
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script type="text/javascript">
+
+        (function ($) {
+
+            $.fn.ingresoegreso = function () {
+
+                var methods = {
+                    init: function () {
+                        var $this = $(this);
+                        if($('#resumen').length === 0) {
+                            $this.parent().prepend('<div id="resumen"><table class="table table-bordered"><thead><tr><th>Ingreso</th><th>Egreso</th><th>Balance</th></tr></thead><tbody class="sonata-ba-tbody"><tr><td class="valoringreso">0.00</td><td class="valoregreso">0.00</td><td class="valorbalance">0.00</td></tr></tbody></table></div>');
+                        }
+                        methods.procesar.call($this, event);
+                        return $this;
+                    },
+                    procesar: function (event) {
+                        var totalIngreso = 0;
+                        var totalEgreso = 0;
+                        var balance = 0;
+                        this.find(".debesoles").each(function(index) {
+                            var temp = parseFloat($(this).text());
+                            if (!isNaN(temp)) {
+                                totalIngreso += temp;
+                            }
+                        });
+                        this.find(".habersoles").each(function(index) {
+                            var temp = parseFloat($(this).text());
+                            if (!isNaN(temp)) {
+                                totalEgreso += temp;
+                            }
+                        });
+
+                        balance = totalIngreso - totalEgreso;
+                        $('.valoringreso').text(totalIngreso.toFixed(2));
+                        $('.valoregreso').text(totalEgreso.toFixed(2));
+                        $('.valorbalance').text(balance.toFixed(2));
+                    }
+                };
+
+                return $(this).each(function (i, element) {
+                    methods.init.apply($(element));
+                });
+            };
+
+        })(jQuery);
+
+        $(document).ready(function(){
+            $('.sonata-ba-list').ingresoegreso();
+        });
+
+    </script>
+
+{% endblock %}

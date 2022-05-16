@@ -1,0 +1,631 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    locale: 'es'
+    facturacion_ruta_prueba: 'https://www.nubefact.com/api/v1/f76cbd70-fbe8-4a66-96a9-a92d21c0a3ea'
+    facturacion_token_prueba: d9adc9d8b62e412188c8663fe902555acd00e83b2b1b47759367f4bd1ee0c1bc
+    facturacion_ruta_produccion: 'https://www.nubefact.com/api/v1/b576e284-665a-41cb-9ceb-859de41e8ba7'
+    facturacion_token_produccion: 63d704aff2d34345b87d0ea77398cbea149690b8010e4c31b339536d07d94d7e
+    facturacion_igv_porcentaje: '18.00'
+    facturacion_detraccion_monto: '700.00'
+    facturacion_detraccion_texto: 'OPERACIÓN SUJETA AL SISTEMA DE PAGO DE OBLIGACIONES TRIBUTARIAS CON EL GOBIERNO CENTRAL'
+    facturacion_detraccion_cuenta: '00-173-030533'
+
+    calendars:
+        cotizacion_componente_aceptado:
+            entity: 'App:CotizacionCotcomponente'
+            repositorymethod: 'findCalendarAceptado'
+            resource:
+                id: 'cotservicio.cotizacion.id'
+                title: 'cotservicio.cotizacion.resumen'
+
+            parameters:
+                title: 'componente.nombre'
+                start: 'fechahorainicio'
+                end: 'fechahorafin'
+                color: 'estadocotcomponente.color'
+                url:
+                    id: 'cotservicio.cotizacion.id'
+                    show:
+                        route: 'admin_app_cotizacioncotizacion_show'
+                        role: 'ROLE_USER'
+                    edit:
+                        route: 'admin_app_cotizacioncotizacion_edit'
+                        role: 'ROLE_RESERVAS_EDITOR'
+
+        cotizacion_componente_aceptado_efectuado:
+            entity: 'App:CotizacionCotcomponente'
+            repositorymethod: 'findCalendarAceptadoEfectuado'
+            resource:
+                id: 'cotservicio.cotizacion.id'
+                title: 'cotservicio.cotizacion.resumen'
+            parameters:
+                title: 'componente.nombre'
+                start: 'fechahorainicio'
+                end: 'fechahorafin'
+                color: 'estadocotcomponente.color'
+                url:
+                    id: 'cotservicio.cotizacion.id'
+                    show:
+                        route: 'admin_app_cotizacioncotizacion_show'
+                        role: 'ROLE_USER'
+                    edit:
+                        route: 'admin_app_cotizacioncotizacion_edit'
+                        role: 'ROLE_RESERVAS_EDITOR'
+
+        transporte_servicio_conductor:
+            entity: 'App:TransporteServicio'
+            repositorymethod: 'findCalendarConductorColored'
+            resource:
+                id: 'conductor.id'
+                title: 'conductor.nombre'
+            filters: #por ahora solo implemetado sobre user
+                - { field: 'conductor', value: 'conductor.id', exception: ~ }
+                - { field: 'dependencia', value: 'dependencia.id', exception: 1 }
+            parameters:
+                title: 'resumen'
+                start: 'fechahorainicio'
+                end: 'fechahorafin'
+                color: 'conductor.color'
+                url:
+                    id: 'id'
+                    show:
+                        route: 'admin_gopro_transporte_servicio_show'
+                        role: 'ROLE_USER'
+                    edit:
+                        route: 'admin_gopro_transporte_servicio_edit'
+                        role: 'ROLE_TRANSPORTES_EDITOR'
+
+        transporte_servicio_unidad:
+            entity: 'App:TransporteServicio'
+            repositorymethod: 'findCalendarUnidadColored'
+            resource:
+                id: 'unidad.id'
+                title: 'unidad.nombre'
+            parameters:
+                title: 'resumen'
+                start: 'fechahorainicio'
+                end: 'fechahorafin'
+                color: 'unidad.color'
+                url:
+                    id: 'id'
+                    show:
+                        route: 'admin_gopro_transporte_servicio_show'
+                        role: 'ROLE_USER'
+                    edit:
+                        route: 'admin_gopro_transporte_servicio_edit'
+                        role: 'ROLE_TRANSPORTES_EDITOR'
+
+        transporte_servicio_cliente:
+            entity: 'App:TransporteServicio'
+            repositorymethod: 'findCalendarClienteColored'
+            resource:
+                id: 'conductor.id'
+                title: 'conductor.nombre'
+            parameters:
+                title: 'resumen'
+                start: 'fechahorainicio'
+                end: 'fechahorafin'
+                color: 'dependencia.color'
+                url:
+                    id: 'id'
+                    show:
+                        route: 'admin_gopro_transporte_servicio_show'
+                        role: 'ROLE_USER'
+                    edit:
+                        route: 'admin_gopro_transporte_servicio_edit'
+                        role: 'ROLE_TRANSPORTES_EDITOR'
+
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+
+    App\Service\FullcalendarEventsfinder:
+        calls:
+             - [ setContainer, [ '@service_container' ] ]
+
+    App\Service\MainArchivoexcel:
+        calls:
+             - [ setContainer, [ '@service_container' ] ]
+             - [ setVariableproceso, [ App\Service\MainVariableproceso ] ]
+
+    app.eventlistener.mainasignacionusuario_listener:
+        class: App\EventListener\MainAsignacionusuarioListener
+        arguments: ["@security.token_storage"]
+        tags:
+            - { name: doctrine.event_listener, event: prePersist }
+
+    app.admin.comprobantecomprobante:
+        class: App\Admin\ComprobanteComprobanteAdmin
+        arguments: [~, App\Entity\ComprobanteComprobante, App\Controller\ComprobanteComprobanteAdminController ]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Documento"}
+        calls:
+            - [ setTemplate, [edit, comprobante_comprobante_admin/edit.html.twig]]
+        public: true
+
+    app.admin.comprobantecomprobanteitem:
+        class: App\Admin\ComprobanteComprobanteitemAdmin
+        arguments: [~, App\Entity\ComprobanteComprobanteitem, App\Controller\ComprobanteComprobanteitemAdminController ]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Item"}
+        public: true
+
+    app.admin.comprobantemensaje:
+        class: App\Admin\ComprobanteMensajeAdmin
+        arguments: [~, App\Entity\ComprobanteMensaje, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Comprobante, label: "Mensajes de emisión"}
+        public: true
+
+    app.admin.comprobantetipo:
+        class: App\Admin\ComprobanteTipoAdmin
+        arguments: [~, App\Entity\ComprobanteTipo, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Tipo de documento"}
+        public: true
+
+    app.admin.comprobanteproductoservicio:
+        class: App\Admin\ComprobanteProductoservicioAdmin
+        arguments: [~, App\Entity\ComprobanteProductoservicio, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Productos y servicios"}
+        public: true
+
+    app.admin.comprobantetipoproductoservicio:
+        class: App\Admin\ComprobanteTipoproductoservicioAdmin
+        arguments: [~, App\Entity\ComprobanteTipoproductoservicio, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Tipo de producto"}
+        public: true
+
+    app.admin.comprobanteestado:
+        class: App\Admin\ComprobanteEstadoAdmin
+        arguments: [~, App\Entity\ComprobanteEstado, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Estado"}
+        public: true
+
+
+    app.admin.cotizacionfile:
+        class: App\Admin\CotizacionFileAdmin
+        arguments: [~, App\Entity\CotizacionFile, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Cotizacion, label: Files}
+        calls:
+            - [ setTemplate, [show, cotizacion_file_admin/show.html.twig]]
+        public: true
+
+    app.admin.cotizacionestadocotizacion:
+        class: App\Admin\CotizacionEstadocotizacionAdmin
+        arguments: [~, App\Entity\CotizacionEstadocotizacion, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Cotizacion Maestro, label: Estado de cotización }
+        public: true
+
+    app.admin.cotizacionestadocotcomponente:
+        class: App\Admin\CotizacionEstadocotcomponenteAdmin
+        arguments: [~, App\Entity\CotizacionEstadocotcomponente, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Cotizacion Maestro, label: Estado de componente }
+        public: true
+
+    app.admin.cotizacionfilepasajero:
+        class: App\Admin\CotizacionFilepasajeroAdmin
+        arguments: [~, App\Entity\CotizacionFilepasajero, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Cotizacion, label: Name List }
+        public: true
+
+    app.admin.cotizacioncotizacion:
+        class: App\Admin\CotizacionCotizacionAdmin
+        arguments: [~, App\Entity\CotizacionCotizacion, App\Controller\CotizacionCotizacionAdminController]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Cotizacion, label: Cotizaciones }
+        calls:
+            - [ setTemplate, [edit, cotizacion_cotizacion_admin\edit.html.twig]]
+            - [ setTemplate, [list, cotizacion_cotizacion_admin\list.html.twig]]
+        public: true
+
+    app.admin.cotizacioncotservicio:
+        class: App\Admin\CotizacionCotservicioAdmin
+        arguments: [~, App\Entity\CotizacionCotservicio, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Cotizacion, label: Servicios }
+        public: true
+
+    app.admin.cotizacioncotcomponente:
+        class: App\Admin\CotizacionCotcomponenteAdmin
+        arguments: [~, App\Entity\CotizacionCotcomponente, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Cotizacion, label: Componentes }
+        public: true
+
+    app.admin.cotizacioncottarifa:
+        class: App\Admin\CotizacionCottarifaAdmin
+        arguments: [~, App\Entity\CotizacionCottarifa, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Cotizacion, label: Tarifa }
+        public: true
+
+    app.admin.cotizaciontipofiledocumento:
+        class: App\Admin\CotizacionTipofiledocumentoAdmin
+        arguments: [~, App\Entity\CotizacionTipofiledocumento, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Cotizacion Maestro, label: Tipo de documento }
+        public: true
+
+    app.admin.cotizacionfiledocumento:
+        class: App\Admin\CotizacionFiledocumentoAdmin
+        arguments: [~, App\Entity\CotizacionFiledocumento, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Cotizacion, label: Documento }
+        public: true
+
+    app.admin.cotizacioncotpolitica:
+        class: App\Admin\CotizacionCotpoliticaAdmin
+        arguments: [~, App\Entity\CotizacionCotpolitica, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Cotizacion Maestro, label: Politicas }
+        public: true
+
+    app.admin.cotizacioncotnota:
+        class: App\Admin\CotizacionCotnotaAdmin
+        arguments: [~, App\Entity\CotizacionCotnota, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Cotizacion Maestro, label: Notas }
+        public: true
+
+    app.admin.cuentacuenta:
+        class: App\Admin\CuentaCuentaAdmin
+        arguments: [~, App\Entity\CuentaCuenta, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: admin, label: Cuenta }
+        public: true
+
+    app.admin.cuentamovimiento:
+        class: App\Admin\CuentaMovimientoAdmin
+        arguments: [~, App\Entity\CuentaMovimiento, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: admin, label: Movimiento }
+        calls:
+            - [ setTemplate, [list, cuenta_movimiento_admin/list.html.twig]]
+        public: true
+
+    app.admin.cuentaclase:
+        class: App\Admin\CuentaClaseAdmin
+        arguments: [~, App\Entity\CuentaClase, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: admin, label: Clase }
+        public: true
+
+    app.admin.cuentacentro:
+        class: App\Admin\CuentaCentroAdmin
+        arguments: [~, App\Entity\CuentaCentro, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: admin, label: Centro }
+        public: true
+
+    app.admin.cuentaperiodo:
+        class: App\Admin\CuentaPeriodoAdmin
+        arguments: [~, App\Entity\CuentaPeriodo, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: admin, label: Periodo }
+        calls:
+            - [ setTemplate, [edit, cuenta_periodo_admin/edit.html.twig]]
+        public: true
+
+    app.admin.cuentatipo:
+        class: App\Admin\CuentaTipoAdmin
+        arguments: [~, App\Entity\CuentaTipo, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: admin, label: Tipo }
+        public: true
+
+
+    app.admin.fitdieta:
+        class: App\Admin\FitDietaAdmin
+        arguments: [~, App\Entity\FitDieta, App\Controller\FitDietaAdminController]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Fit, label: Dieta }
+        calls:
+            - [ setTemplate, [edit, fit_dieta_admin/edit.html.twig]]
+            - [ setTemplate, [list, fit_dieta_admin/list.html.twig]]
+            - [ setTemplate, [show, fit_dieta_admin/show.html.twig]]
+        public: true
+
+    app.admin.fitdietacomida:
+        class: App\Admin\FitDietacomidaAdmin
+        arguments: [~, App\Entity\FitDietacomida, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Fit, label: Componentes }
+        public: true
+
+    app.admin.fitdietaalimento:
+        class: App\Admin\FitDietaalimentoAdmin
+        arguments: [~, App\Entity\FitDietaalimento, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Fit, label: Tarifa }
+        public: true
+
+    app.admin.fittipodieta:
+        class: App\Admin\FitTipodietaAdmin
+        arguments: [~, App\Entity\FitTipodieta, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Fit, label: Tipo de dieta }
+        public: true
+
+    app.admin.fitalimento:
+        class: App\Admin\FitAlimentoAdmin
+        arguments: [~, App\Entity\FitAlimento, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Fit, label: Alimento }
+        public: true
+
+    app.admin.fittipoalimento:
+        class: App\Admin\FitTipoalimentoAdmin
+        arguments: [~, App\Entity\FitTipoalimento, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Fit, label: Tipo de alimento }
+        public: true
+
+    app.admin.fitmedidaalimento:
+        class: App\Admin\FitMedidaalimentoAdmin
+        arguments: [~, App\Entity\FitMedidaalimento, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Fit, label: Medida de alimento }
+        public: true
+
+
+    app.admin.maestrosexo:
+        class: App\Admin\MaestroSexoAdmin
+        arguments: [~, App\Entity\MaestroSexo, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Maestros, label: Sexo}
+        public: true
+
+    app.admin.maestrotipodocumento:
+        class: App\Admin\MaestroTipodocumentoAdmin
+        arguments: [~, App\Entity\MaestroTipodocumento, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Maestros, label: Tipo de documento}
+        public: true
+
+    app.admin.maestromoneda:
+        class: App\Admin\MaestroMonedaAdmin
+        arguments: [~, App\Entity\MaestroMoneda, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Maestros, label: Monedas}
+        public: true
+
+    app.admin.maestrotipocambio:
+        class: App\Admin\MaestroTipocambioAdmin
+        arguments: [~, App\Entity\MaestroTipocambio, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Maestros, label: Tipo de cambio}
+        public: true
+
+    app.admin.maestropais:
+        class: App\Admin\MaestroPaisAdmin
+        arguments: [~, App\Entity\MaestroPais, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Maestros, label: Pais }
+        public: true
+
+    app.admin.maestroidioma:
+        class: App\Admin\MaestroIdiomaAdmin
+        arguments: [~, App\Entity\MaestroIdioma, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Maestros, label: Idioma }
+        public: true
+
+    app.admin.maestrotipopax:
+        class: App\Admin\MaestroTipopaxAdmin
+        arguments: [~, App\Entity\MaestroTipopax, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Maestros, label: Tipo pax }
+        public: true
+
+    app.admin.maestrocategoriatour:
+        class: App\Admin\MaestroCategoriatourAdmin
+        arguments: [~, App\Entity\MaestroCategoriatour, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Maestros, label: Categoria de tour }
+        public: true
+
+    app.admin.maestromedio:
+        class: App\Admin\MaestroMedioAdmin
+        arguments: [~, App\Entity\MaestroMedio, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Maestros, label: Multimedia }
+        public: true
+
+    app.admin.maestroclasemedio:
+        class: App\Admin\MaestroClasemedioAdmin
+        arguments: [~, App\Entity\MaestroClasemedio, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Maestros, label: Clase Multimedia }
+        public: true
+
+
+
+    app.admin.servicioservicio:
+        class: App\Admin\ServicioServicioAdmin
+        arguments: [~, App\Entity\ServicioServicio, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Servicio, label: Servicio }
+        public: true
+
+    app.admin.servicioitinerario:
+        class: App\Admin\ServicioItinerarioAdmin
+        arguments: [~, App\Entity\ServicioItinerario, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Servicio, label: Itinerario }
+        public: true
+
+    app.admin.serviciocomponente:
+        class: App\Admin\ServicioComponenteAdmin
+        arguments: [~, App\Entity\ServicioComponente, App\Controller\ServicioComponenteAdminController]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Servicio, label: Componente }
+        public: true
+
+    app.admin.serviciotipocomponente:
+        class: App\Admin\ServicioTipocomponenteAdmin
+        arguments: [~, App\Entity\ServicioTipocomponente, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Servicio Maestro, label: Tipo de componente }
+        public: true
+
+    app.admin.serviciotarifa:
+        class: App\Admin\ServicioTarifaAdmin
+        arguments: [~, App\Entity\ServicioTarifa, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Servicio, label: Tarifa }
+        public: true
+
+    app.admin.servicioitinerariodia:
+        class: App\Admin\ServicioItinerariodiaAdmin
+        arguments: [~, App\Entity\ServicioItinerariodia, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Servicio, label: Dias de itinerario }
+        public: true
+
+    app.admin.servicioitidiaarchivo:
+        class: App\Admin\ServicioItidiaarchivoAdmin
+        arguments: [~, App\Entity\ServicioItidiaarchivo, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Servicio, label: Archivos del itinerario }
+        public: true
+
+    app.admin.serviciotipotarifa:
+        class: App\Admin\ServicioTipotarifaAdmin
+        arguments: [~, App\Entity\ServicioTipotarifa, ~]
+        tags:
+            - { name: sonata.admin, manager_type: orm, group: Servicio Maestro, label: Tipo de tarifa cotizada }
+        public: true
+
+
+
+    app.admin.transporteservicio:
+        class: App\Admin\TransporteServicioAdmin
+        arguments: [~, App\Entity\TransporteServicio, App\Controller\TransporteServicioAdminController]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Servicios}
+        calls:
+            - [setTokenStorage, ["@security.token_storage"]]
+            - [ setTemplate, [list, transporte_servicio_admin/list.html.twig]]
+            - [ setTemplate, [edit, transporte_servicio_admin/edit.html.twig]]
+        public: true
+
+    app.admin.transporteserviciooperativo:
+        class: App\Admin\TransporteServiciooperativoAdmin
+        arguments: [~, App\Entity\TransporteServiciooperativo, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Información operativa}
+        public: true
+
+    app.admin.transporteserviciocontable:
+        class: App\Admin\TransporteServiciocontableAdmin
+        arguments: [~, App\Entity\TransporteServiciocontable, App\Controller\TransporteServiciocontableAdminController ]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Contables}
+        calls:
+            - [ setTemplate, [edit, transporte_serviciocontable_admin/edit.html.twig]]
+        public: true
+
+    app.admin.transporteserviciocomponente:
+        class: App\Admin\TransporteServiciocomponenteAdmin
+        arguments: [~, App\Entity\TransporteServiciocomponente, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Transporte, label: Files}
+        public: true
+
+    app.admin.transporteconductor:
+        class: App\Admin\TransporteConductorAdmin
+        arguments: [~, App\Entity\TransporteConductor, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Conductores}
+        public: true
+
+    app.admin.transporteunidad:
+        class: App\Admin\TransporteUnidadAdmin
+        arguments: [~, App\Entity\TransporteUnidad, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Unidades}
+        calls:
+            - [ setTemplate, [show, transporte_unidad_admin/show.html.twig]]
+        public: true
+
+    app.admin.transportetiposeroperativo:
+        class: App\Admin\TransporteTiposeroperativoAdmin
+        arguments: [~, App\Entity\TransporteTiposeroperativo, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Tipo operativo}
+        public: true
+
+    app.admin.transportetipounibit:
+        class: App\Admin\TransporteTipounibitAdmin
+        arguments: [~, App\Entity\TransporteTipounibit, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Tipo de bitácora}
+        public: true
+
+    app.admin.transporteunidadbitacora:
+        class: App\Admin\TransporteUnidadbitacoraAdmin
+        arguments: [~, App\Entity\TransporteUnidadbitacora, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Bitácoras}
+        public: true
+
+
+    app.admin.userorganizacion:
+        class: App\Admin\UserOrganizacionAdmin
+        arguments: [~, App\Entity\UserOrganizacion, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: organizacion, label: Organizaciones}
+
+    app.admin.userdependencia:
+        class: App\Admin\UserDependenciaAdmin
+        arguments: [~,  App\Entity\UserDependencia, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: organizacion, label: Dependencias}
+
+    app.admin.userarea:
+        class: App\Admin\UserAreaAdmin
+        arguments: [~,  App\Entity\UserArea, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: oganizacion, label: Areas}
+
+    app.admin.usercuenta:
+        class: App\Admin\UserCuentaAdmin
+        arguments: [~,  App\Entity\UserCuenta, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: 'Cuentas de usuario', label: 'Cuenta de usuario'}
+
+    app.admin.usercuentatipo:
+        class: App\Admin\UserCuentatipoAdmin
+        arguments: [~,  App\Entity\UserCuentatipo, ~]
+        tags:
+            - {name: sonata.admin, manager_type: orm, group: 'Cuentas de usuario', label: "Tipos de cuentas"}
+
+
+

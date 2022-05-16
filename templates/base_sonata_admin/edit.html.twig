@@ -1,0 +1,184 @@
+{% extends '@SonataAdmin/CRUD/base_edit.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+
+    <style type="text/css">
+        .field-container {overflow-x: auto; padding-bottom: 20px;}
+        .input-group .fecha {width: 95px;}
+        .input-group .fechahora {width: 130px;}
+        .nav-tabs-custom{ margin-top: 30px; padding-top: 8px; margin-bottom: 10px; border-top: #3c8dbc solid 2px;}
+        .nav-tabs-custom:first-of-type{ margin-top: 10px;}
+        .select2-container{min-width: 140px;}
+        .horadropdown{display: inline-flex; vertical-align: top;}
+        .horadropdown .select2-container{min-width: 70px;}
+        .inputwarning{border-color: #ce563f;
+        }
+        .inputwarning:focus{border-color: #DD1144;
+            -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+            box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+        }
+    </style>
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ckeditor5/34.0.0/ckeditor.js"></script>
+
+    <script type="text/javascript">
+
+        (function ($) {
+
+            $.fn.autoFit = function () {
+
+                var methods = {
+                    init: function () {
+                        var $this = $(this);
+
+                        $this.off("input", methods.fit).on("input", methods.fit);
+                        //methods.fit.call(this, null);
+                        return $this;
+                    },
+                    initdatetime: function () {
+                        var $this = $(this);
+
+                        $this.off("dp.change", methods.fitdatetime).on("dp.change", methods.fitdatetime);
+                        return $this;
+                    },
+                    fitdatetime: function (event){
+                        return methods.resizelement.call($(this).find("input").first());
+                    },
+                    fit: function (event) {
+                        return methods.resizelement.call($(this))
+                    },
+                    resizelement : function () {
+                        $this = this;
+                        val = $this.val().replace(' ', '-');
+
+                        var fontSize = $this.css('font-size');
+                        var elemento = $('<span style="font-size: ' + fontSize + '; padding: 0; display: inline-block; position: absolute; ">' + val + '</span>').appendTo('body');
+
+                        var contentWidth = elemento.outerWidth();
+
+                        $this.width((contentWidth) + 'px');
+
+                        elemento.remove();
+                        return $this;
+                    }
+                };
+
+                return $(this).each(function (i, element) {
+                    methods.init.apply($(element));
+                    methods.initdatetime.apply($(element).parent());
+                });
+            };
+
+            $.fn.checkDelete = function () {
+
+                var methods = {
+                    init: function () {
+                        var $this = $(this);
+
+                        $this.off().on("ifChecked", methods.borrar); //ifcheched no funcion en off
+                        return $this;
+                    },
+                    borrar : function () {
+                        var checkbox = $(this);
+                        var fila = $(this).closest('tr');
+                        var siguienteFila  = fila.next('tr');
+                        var subSiguienteFila  = siguienteFila.next('tr');
+                        var tbody  = fila.closest('tbody');
+                        bootbox.confirm({
+                            message: "¿Estas seguro que quieres eliminar el registro?",
+                            buttons: {
+                                confirm: {
+                                    label: 'Si',
+                                    className: 'btn-danger'
+                                },
+                                cancel: {
+                                    label: 'No',
+                                    className: 'btn-success'
+                                }
+                            },
+                            callback: function (result) {
+                                if (result === true) {
+                                    if (subSiguienteFila.hasClass('splitted2')){
+                                        subSiguienteFila.remove();
+                                    }
+                                    if (siguienteFila.hasClass('splitted')){
+                                        siguienteFila.remove();
+                                    }
+                                    fila.remove();
+                                    tbody.closest('table').trigger('table:rowdeleted');
+
+                                    if(tbody.children('tr').length === 0){
+                                        tbody.closest('table').remove();
+                                    }
+                                }else{
+                                    checkbox.iCheck('uncheck');
+                                }
+                            }
+                        });
+                        return $(this);
+                    }
+                };
+
+                return $(this).each(function (i, element) {
+                    methods.init.apply($(element));
+                });
+            };
+
+        })( jQuery );
+
+        $(document).on('sonata.add_element', function() {
+            //$('table input.form-control').not('.fechahora, .fecha').autoFit();
+            //$('table textarea.form-control').autoFit();
+            $('input.readonly').attr('readonly', 'readonly');
+            $('input.disabled').attr('disabled', 'disabled');
+            $('input.paralelo').closest('tr').addClass('paralelo');
+
+            $("[id$='_delete']").checkDelete();
+
+            $('.ckeditor').each(function() {
+                if(!$(this).hasClass('ckrendered')){
+                    ClassicEditor.create(this);
+                    $(this).addClass('ckrendered');
+                }
+
+            });
+
+        });
+
+        $(document).ready(function() {
+
+            $("[id$='_delete']").checkDelete();
+            //$('table input.form-control').not('.fechahora, .fecha').autoFit();
+            //$('table textarea.form-control').autoFit();
+            $('input.readonly').attr('readonly', 'readonly');
+            $('input.disabled').attr('disabled', 'disabled');
+            $('input.paralelo').closest('tr').addClass('paralelo');
+
+            $('.ckeditor').each(function (index, value) {
+                ClassicEditor.create(this, {
+                    toolbar: {
+                        items: [
+                            'heading', '|',
+                            'bold', 'italic', '|',
+                            'link', '|',
+                            'outdent', 'indent', '|',
+                            'bulletedList', 'numberedList', '|',
+                            'insertTable', '|',
+                            'undo', 'redo'
+                        ],
+                        shouldNotGroupWhenFull: true
+                    }
+                });
+                $(this).addClass('ckrendered');
+            });
+        });
+
+    </script>
+
+{% endblock %}
+

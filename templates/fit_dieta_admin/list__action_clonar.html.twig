@@ -1,0 +1,36 @@
+{% if admin.isGranted('EDIT', object) and admin.hasRoute('clonar') %}
+    <a href="#"
+       class="btn btn-sm btn-warning edit_link"
+       data-toggle="modal"
+       data-target="#clonarModal-{{ object.id }}">
+        <i class="fa fa-clone" aria-hidden="true"></i>
+        Clonar
+    </a>
+
+    <div class="modal fade" id="clonarModal-{{ object.id }}" tabindex="-1" role="dialog" aria-labelledby="clonarLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel">Clonar</h4>
+                </div>
+                <div class="modal-body">
+                    Esta seguro que desea clonar esta dieta?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
+                        No
+                    </button>
+                    <a href="{{ admin.generateObjectUrl('clonar', object) }}"
+                       class="btn btn-danger"
+                       title="Clonar">
+                        Clonar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+
+

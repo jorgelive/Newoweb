@@ -1,0 +1,9 @@
+{% extends '@SonataAdmin/CRUD/base_list_field.html.twig' %}
+
+{% block field %}
+    {%- if value is empty -%}
+        &nbsp;
+    {%- else -%}
+        <div class="habersoles">{{ value }}</div>
+    {%- endif -%}
+{% endblock %}

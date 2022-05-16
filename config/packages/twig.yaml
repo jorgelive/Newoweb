@@ -1,0 +1,10 @@
+twig:
+    default_path: '%kernel.project_dir%/templates'
+    globals:
+        facturacion_igv_porcentaje: "%facturacion_igv_porcentaje%"
+    form_themes:
+        - '@SonataForm/Form/datepicker.html.twig'
+
+when@test:
+    twig:
+        strict_variables: true

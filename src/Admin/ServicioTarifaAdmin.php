@@ -1,0 +1,320 @@
+<?php
+
+namespace App\Admin;
+
+use Sonata\AdminBundle\Admin\AbstractAdmin;
+use Sonata\AdminBundle\Datagrid\DatagridMapper;
+use Sonata\AdminBundle\Datagrid\ListMapper;
+use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Show\ShowMapper;
+use Sonata\Form\Type\DatePickerType;
+use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
+
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
+
+class ServicioTarifaAdmin extends AbstractAdmin
+{
+
+    protected $datagridValues = [
+        '_page' => 1,
+        '_sort_order' => 'ASC',
+        '_sort_by' => 'componente',
+    ];
+
+    /**
+     * @param DatagridMapper $datagridMapper
+     */
+    protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
+    {
+        $datagridMapper
+            ->add('id')
+            ->add('componente')
+            ->add('nombre')
+            ->add('titulo', TranslationFieldFilter::class, [
+                'label' => 'Título'
+            ])
+            ->add('moneda')
+            ->add('monto')
+            ->add('validezinicio', null, [
+                'label' => 'Inicio'
+            ])
+            ->add('validezfin', null, [
+                'label' => 'Fin'
+            ])
+            ->add('prorrateado')
+            ->add('tipopax', null, [
+                'label' => 'Tipo de paaajero'
+            ])
+            ->add('tipotarifa', null, [
+                'label' => 'Típo de tarifa'
+            ])
+            ->add('capacidadmin', null, [
+                'label' => 'Cantidad min'
+            ])
+            ->add('capacidadmax', null, [
+                'label' => 'Cantidad max'
+            ])
+            ->add('edadmin', null, [
+                'label' => 'Edad min'
+            ])
+            ->add('edadmax', null, [
+                'label' => 'Edad max'
+            ])
+            ->add('categoriatour', null, [
+                'label' => 'Categoria de tour'
+            ])
+        ;
+    }
+
+    /**
+     * @param ListMapper $listMapper
+     */
+    protected function configureListFields(ListMapper $listMapper): void
+    {
+        $listMapper
+            ->add('id')
+            ->add('componente', null, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'componente']]
+            ])
+            ->add('nombre', null, [
+                'editable' => true
+            ])
+            ->add('titulo', null, [
+                'label' => 'Título',
+                'editable' => true
+            ])
+            ->add('componente.titulo', null, [
+                'label' => 'Título del Componente',
+                'editable' => true
+            ])
+            ->add('moneda', null, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'moneda']]
+            ])
+            ->add('monto', null, [
+                'editable' => true
+            ])
+            ->add('validezinicio', null, [
+                'label' => 'Inicio'
+            ])
+            ->add('validezfin', null, [
+                'label' => 'Fin'
+            ])
+            ->add('prorrateado', null, [
+                'editable' => true
+            ])
+            ->add('tipopax', null, [
+                'label' => 'Tipo de pasajero',
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'tipopax']]
+            ])
+            ->add('tipotarifa', null, [
+                'label' => 'Tipo de tarifa',
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'tipotarifa']]
+            ])
+            ->add('capacidadmin', null, [
+                'label' => 'Cantidad min',
+                'editable' => true
+            ])
+            ->add('capacidadmax', null, [
+                'label' => 'Cantidad max',
+                'editable' => true
+            ])
+            ->add('edadmin', null, [
+                'label' => 'Edad min',
+                'editable' => true
+            ])
+            ->add('edadmax', null, [
+                'label' => 'Edad max',
+                'editable' => true
+            ])
+            ->add('categoriatour', null, [
+                'label' => 'Categoria de tour'
+            ])
+            ->add(ListMapper::NAME_ACTIONS, null, [
+                'label' => 'Acciones',
+                'actions' => [
+                    'show' => [],
+                    'edit' => [],
+                    'delete' => [],
+                ],
+            ])
+        ;
+    }
+
+    /**
+     * @param FormMapper $formMapper
+     */
+    protected function configureFormFields(FormMapper $formMapper): void
+    {
+        if ($this->getRoot()->getClass() != 'App\Entity\ServicioServicio'
+            && $this->getRoot()->getClass() != 'App\Entity\ServicioComponente'
+        ){
+            $formMapper->add('componente');
+        }
+
+        $formMapper
+            ->add('nombre')
+            ->add('titulo', null, [
+                'label' => 'Título'
+            ])
+            ->add('moneda')
+            ->add('monto')
+            ->add('prorrateado')
+            ->add('tipotarifa', null, [
+                'label' => 'Tipo de tarifa'
+            ])
+            ->add('tipopax', null, [
+                'label' => 'Tipo de pasajero'
+            ])
+            ->add('capacidadmin', null, [
+                'label' => 'Cantidad min'
+            ])
+            ->add('capacidadmax', null, [
+                'label' => 'Cantidad max'
+            ])
+            ->add('edadmin', null, [
+                'label' => 'Edad min'
+            ])
+            ->add('edadmax', null, [
+                'label' => 'Edad max'
+            ])
+            ->add('validezinicio', DatePickerType::class, [
+                'label' => 'Inicio',
+                'dp_use_current' => true,
+                'dp_show_today' => true,
+                'format'=> 'yyyy/MM/dd',
+                'attr' => [
+                    'class' => 'fecha'
+                ]
+            ])
+            ->add('validezfin', DatePickerType::class, [
+                'label' => 'Fin',
+                'dp_use_current' => true,
+                'dp_show_today' => true,
+                'format'=> 'yyyy/MM/dd',
+                'attr' => [
+                    'class' => 'fecha'
+                ]
+            ])
+            ->add('categoriatour', null, [
+                'label' => 'Categoria de tour'
+            ])
+        ;
+
+        $widthModifier = function (FormInterface $form) {
+
+            $form
+                ->add('nombre', null, [
+                    'label' => 'Nombre',
+                    'attr' => [
+                        'style' => 'width: 200px;'
+                    ]
+                ])
+                ->add('titulo', null, [
+                    'label' => 'Título',
+                    'attr' => [
+                        'style' => 'width: 200px;'
+                    ]
+                ])
+                ->add('monto', null, [
+                    'label' => 'Monto',
+                    'attr' => [
+                        'style' => 'width: 80px; text-align: right;'
+                    ]
+                ])
+                ->add('capacidadmin', null, [
+                    'label' => 'Cantidad min',
+                    'attr' => [
+                        'style' => 'width: 80px; text-align: right;'
+                    ]
+                ])
+                ->add('capacidadmax', null, [
+                    'label' => 'Cantidad max',
+                    'attr' => [
+                        'style' => 'width: 80px; text-align: right;'
+                    ]
+                ])
+                ->add('edadmin', null, [
+                    'label' => 'Edad min',
+                    'attr' => [
+                        'style' => 'width: 80px; text-align: right;'
+                    ]
+                ])
+                ->add('edadmax', null, [
+                    'label' => 'Edad max',
+                    'attr' => [
+                        'style' => 'width: 80px; text-align: right;'
+                    ]
+                ])
+            ;
+        };
+
+        $formBuilder = $formMapper->getFormBuilder();
+        $formBuilder->addEventListener(
+            FormEvents::PRE_SET_DATA,
+            function (FormEvent $event) use ($widthModifier) {
+                if($event->getData()
+                    && $this->getRoot()->getClass() == 'App\Entity\ServicioComponente'
+                ){
+                    $widthModifier($event->getForm());
+                }
+            }
+        );
+
+    }
+
+    /**
+     * @param ShowMapper $showMapper
+     */
+    protected function configureShowFields(ShowMapper $showMapper): void
+    {
+        $showMapper
+            ->add('id')
+            ->add('componente')
+            ->add('nombre')
+            ->add('titulo', null, [
+                'label' => 'Título'
+            ])
+            ->add('moneda')
+            ->add('monto')
+            ->add('validezinicio', null, [
+                'label' => 'Inicio'
+            ])
+            ->add('validezfin', null, [
+                'label' => 'Fin'
+            ])
+            ->add('prorrateado')
+            ->add('tipopax', null, [
+                'label' => 'Típo de pasajero'
+            ])
+            ->add('tipotarifa', null, [
+                'label' => 'Tipo de tarifa'
+            ])
+            ->add('capacidadmin', null, [
+                'label' => 'Cantidad min'
+            ])
+            ->add('capacidadmax', null, [
+                'label' => 'Cantidad max'
+            ])
+            ->add('edadmin', null, [
+                'label' => 'Edad min'
+            ])
+            ->add('edadmax', null, [
+                'label' => 'Edad max'
+            ])
+
+            ->add('categoriatour', null, [
+                'label' => 'Categoria de tour'
+            ])
+        ;
+    }
+}

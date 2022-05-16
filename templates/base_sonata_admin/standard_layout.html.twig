@@ -1,0 +1,75 @@
+{% extends '@SonataAdmin/standard_layout.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link href="{{ asset('/bundles/sonataform/app.css') }}" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.css" rel="stylesheet" />
+    <link href="{{ asset('/app/fullcalendar/css/fullcalendar.min.css') }}" rel="stylesheet" />
+    <link href="{{ asset('/app/fullcalendar/css/fullcalendar.print.min.css') }}" rel="stylesheet" media="print" />
+    <link href="{{ asset('/app/fullcalendar/css/scheduler.min.css') }}" rel="stylesheet" />
+
+    <style type="text/css">
+        @media (max-width: 767px) {
+            .skin-black .main-header > .logo {
+                background-color: #ffffff;
+                color: #222222;
+                border-bottom: 1px solid #222222;
+
+            }
+            .skin-black .main-header > .logo:hover {
+                background-color: #ffffff;
+                color: #222222;
+                border-bottom: 1px solid #222222;
+            }
+
+            .skin-black .main-header > .logo span {
+                color: #222222;
+                font-size: 80%;
+                margin-top: 10px;
+                font-weight: bold;
+
+            }
+        }
+        .main-header {height: 100px;}
+        .main-header .logo {height: 100px;}
+        .main-header .logo img {max-width: unset;}
+        .main-sidebar, .left-side {padding-top: 100px;}
+        .fc-toolbar h2 {font-size: 20px; padding-top: 10px;}
+        /*.select2-results__option.loading-results,
+        .select2-results__option.select2-results__option--load-more { display: none; }
+        .select2-container--bootstrap .select2-selection--single .select2-selection__rendered{ padding-top: 3px;}*/
+        ul.listaordenada {  list-style: none; /* Remove HTML bullets */
+            padding: 0;
+            margin: 0;}
+        ul.listaordenada li { padding-left: 16px; position: relative;}
+        ul.listaordenada li::before { content:"\25CF"; color:#F68A39; font-weight:bold; font-size:18px; text-align:right; padding-right:6px; width:10px; position: absolute; left: 0; top: -0.2em;
+        }
+        ul.listaordenada li a {white-space: nowrap; padding-bottom: 5px; display: block;}
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+
+    {{ parent() }}
+    <script src="{{ asset('/bundles/sonataform/app.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.3/bootbox.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.min.js"></script>
+    <script src="{{ asset('/app/fullcalendar/js/fullcalendar.min.js') }}"></script>
+    <script src="{{ asset('/app/fullcalendar/js/locale-all.js') }}"></script>
+    <script src="{{ asset('/app/fullcalendar/js/scheduler.min.js') }}"></script>
+
+    <script>
+        $(document).ready(function() {
+            $(document).on('click', '[data-toggle="lightbox"]', function(event) {
+                event.preventDefault();
+                $(this).ekkoLightbox();
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block side_bar_after_nav %}
+    {{ parent() }}
+    <div class="btn-group btn-group-justified">
+    </div>
+{% endblock %}
