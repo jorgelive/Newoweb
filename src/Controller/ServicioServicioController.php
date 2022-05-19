@@ -44,7 +44,8 @@ class ServicioServicioController extends AbstractController
         $paginator  = $this->container->get('knp_paginator');
         $pagination = $paginator->paginate(
             $servicios->getQuery(),
-            $request->get('_page'),
+            //el dropdown estandar no lleva pagina
+            !is_null($request->get('_page')) ? $request->get('_page') : 1 ,
             $request->get('_per_page')
         );
 
