@@ -1,6 +1,7 @@
 sonata_admin:
     title:      Extranet
     title_logo: /app/images/logo_title.png
+    persist_filters: true
     security:
         handler: sonata.admin.security.handler.role
 
