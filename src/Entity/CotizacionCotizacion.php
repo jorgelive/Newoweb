@@ -51,9 +51,17 @@ class CotizacionCotizacion implements Translatable
     /**
      * @var string
      *
-     * @ORM\Column(name="monto", type="decimal", precision=5, scale=2, nullable=false)
+     * @ORM\Column(name="comision", type="decimal", precision=5, scale=2, nullable=false)
      */
     private $comision = '20.00';
+
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="adelanto", type="decimal", precision=5, scale=2, nullable=false)
+     */
+    private $adelanto = '50.00';
 
     /**
      * @var \App\Entity\CotizacionEstadocotizacion
@@ -394,6 +402,32 @@ class CotizacionCotizacion implements Translatable
     public function getComision()
     {
         return $this->comision;
+    }
+
+
+
+    /**
+     * Set adelanto.
+     *
+     * @param string $adelanto
+     *
+     * @return CotizacionCotizacion
+     */
+    public function setAdelanto($adelanto)
+    {
+        $this->adelanto = $adelanto;
+
+        return $this;
+    }
+
+    /**
+     * Get adelanto.
+     *
+     * @return string
+     */
+    public function getAdelanto()
+    {
+        return $this->adelanto;
     }
 
     /**
