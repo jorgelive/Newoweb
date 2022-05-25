@@ -50,9 +50,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ->add('numeropasajeros', null, [
                 'label' => 'Cantidad de pasajeros'
             ])
-            ->add('comision', null, [
-                'label' => 'Comisión'
-            ])
             ->add('estadocotizacion', null, [
                 'label' => 'Estado'
             ])
@@ -95,6 +92,11 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'editable' => true,
                 'row_align' => 'right',
                 'label' => 'Comisión'
+            ])
+            ->add('adelanto', 'decimal', [
+                'editable' => true,
+                'row_align' => 'right',
+                'label' => 'Adelanto'
             ])
             ->add('estadocotizacion', 'choice', [
                 'sortable' => true,
@@ -161,6 +163,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ])
             ->add('comision', null, [
                 'label' => 'Comisión'
+            ])
+            ->add('adelanto', null, [
+                'label' => 'Adelanto'
             ])
             ->add('estadocotizacion', null, [
                 'label' => 'Estado'
