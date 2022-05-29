@@ -64,11 +64,6 @@ file that was distributed with this source code.
                             <th>Número de pasajeros</th>
                             <td>{{ cotizacion.cotizacion.numeropasajeros }}</td>
                         </tr>
-
-                        <tr>
-                            <th>Comisión</th>
-                            <td>{{ cotizacion.cotizacion.comision|number_format(2, '.', '')}}</td>
-                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -86,7 +81,7 @@ file that was distributed with this source code.
                                     </a>
                                 </h5>
                             </div>
-                            <div id="collapse1" class="panel-collapse collapse {% if cotizacion.archivos is not defined %} in {% endif %}">
+                            <div id="collapse1" class="panel-collapse collapse {# {% if cotizacion.archivos is not defined %} in {% endif %}#}">
                                 <div class="panel-body table-responsive no-padding">
                                     <table class="table table-bordered table-striped sonata-ba-list">
                                         <thead>
@@ -154,14 +149,14 @@ file that was distributed with this source code.
                     {% endif %}
                     {% if cotizacion.archivos is defined and cotizacion.archivos|length > 0 %}
                         <div class="panel panel-default hidden-print">
-                            <div class="panel-heading">
+                            <div style="background-color: rgba(0,172,214,0.18);" class="panel-heading">
                                 <h5 class="panel-title">
-                                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse2">
-                                        Documentos
+                                    <a style="font-weight: bold;" data-toggle="collapse" data-parent="#accordion" href="#collapse2">
+                                        Tickets y documentos
                                     </a>
                                 </h5>
                             </div>
-                            <div id="collapse2" class="panel-collapse collapse in">
+                            <div id="collapse2" class="panel-collapse collapse">
                                 <div class="panel-body">
                                     <div class="container-fluid">
                                         {% for archivo in cotizacion.archivos %}
@@ -216,218 +211,429 @@ file that was distributed with this source code.
 
                                     {% if name == 'tarifas' %}
                                         <h3 class="visible-print">{{ contenido.nombre}}</h3>
-                                        <h4><strong>Resumen General</strong></h4>
-                                        <div class="box-body table-responsive no-padding">
-                                            <table class="table table-bordered table-striped sonata-ba-list">
-                                                <thead>
-                                                <tr class="sonata-ba-list-field-header">
-                                                    <th>
-                                                        Nombre
-                                                    </th>
-                                                    <th>
-                                                        Título
-                                                    </th>
-                                                    <th class="text-right">
-                                                        Costo Soles
-                                                    </th>
-                                                    <th class="text-right">
-                                                        Costo Dolares
-                                                    </th>
-                                                    <th class="text-right">
-                                                        Venta soles
-                                                    </th>
-                                                    <th class="text-right">
-                                                        Venta dolares
-                                                    </th>
-                                                    <th class="text-right">
-                                                        Ganancia soles
-                                                    </th>
-                                                    <th class="text-right">
-                                                        Ganancia dolares
-                                                    </th>
-                                                </tr>
-                                                </thead>
-                                                <tbody>
-                                                {%  for resumenitem in contenido.resumen %}
-                                                <tr>
-                                                    <td>
-                                                        {{ resumenitem.nombre }}
-                                                    </td>
-                                                    <td>
-                                                        {{ resumenitem.titulo }}
-                                                    </td>
-                                                    <td class="text-right">
-                                                        {{ resumenitem.montosoles }}
-                                                    </td>
-                                                    <td class="text-right">
-                                                        {{ resumenitem.montodolares }}
-                                                    </td>
-                                                    <td class="text-right">
-                                                        {{ resumenitem.ventasoles }}
-                                                    </td>
-                                                    <td class="text-right">
-                                                        {{ resumenitem.ventadolares }}
-                                                    </td>
-                                                    <td class="text-right">
-                                                        {{ resumenitem.gananciasoles }}
-                                                    </td>
-                                                    <td class="text-right">
-                                                        {{ resumenitem.gananciadolares }}
-                                                    </td>
-                                                    {% endfor %}
-                                                </tr>
-                                                </tbody>
-                                            </table>
+                                        <div class="panel-group box box-primary" id="accordiontarifas">
+
+                                            <div class="panel panel-default hidden-print">
+                                                <div class="panel-heading">
+                                                    <h5 class="panel-title">
+                                                        <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas1">
+                                                            Precio de venta
+                                                        </a>
+                                                    </h5>
+                                                </div>
+                                                <div id="collapsetarifas1" class="panel-collapse collapse in">
+                                                    <div class="panel-body table-responsive">
+                                                        <h3 class="visible-print">Precio de Venta</h3>
+
+                                                        <h4>Precio por pasajero:</h4>
+                                                        <ul style="list-style-type: none; padding-left: 18px">
+
+                                                            {% for rango in contenido.rangos %}
+                                                                <li>
+                                                                    <p>
+                                                                        {{ rango.tipoPaxNombre }}
+                                                                        {% if rango.tituloPersistente is defined %}
+                                                                            &nbsp;&nbsp;{{ rango.tituloPersistente }}
+                                                                        {% endif %}
+
+                                                                        <span style="font-size: 0.9em;">
+                                                                            {% if rango.edadMin is defined or rango.edadMax is defined %}
+
+                                                                                {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
+                                                                                    de {{ rango.edadMin }} años
+                                                                                    {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                                                                        &nbsp;(con carné de estudiante válido y vigente)
+                                                                                    {% endif %}
+
+                                                                                {% else %}
+
+                                                                                    {% if rango.edadMin is defined %}
+                                                                                        desde {{ rango.edadMin }} años
+                                                                                    {% endif %}
+
+                                                                                    {% if rango.edadMax is defined %}
+                                                                                        hasta {{ rango.edadMax }} años
+                                                                                        {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                                                                            &nbsp;(con carné de estudiante válido y vigente)
+                                                                                        {% endif %}
+                                                                                    {% endif %}
+
+                                                                                {% endif %}
+
+                                                                            {% endif %}
+                                                                        </span>
+                                                                        <strong>x{{ rango.cantidad }}</strong>
+                                                                    </p>
+
+                                                                    <ul style="list-style-type: none; padding-left: 18px;">
+                                                                        {% for tarifaresumen in rango.resumen | filter(tarifaresumen => tarifaresumen.ventasoles > 0 and tarifaresumen.tipoTarOculto == false) %}
+                                                                            <li>
+                                                                                <p>
+                                                                                    {{ tarifaresumen.tipoTarTitulo }}:
+                                                                                    <span style="font-weight: bold; color: #00a65a;">
+                                                                                        US$ {{ tarifaresumen.ventadolares }}
+                                                                                    </span>
+                                                                                    {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #00a65a;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
+                                                                                </p>
+                                                                            </li>
+                                                                        {% endfor %}
+                                                                    </ul>
+                                                                </li>
+                                                            {% endfor %}
+                                                        </ul>
+
+                                                        <h4 style="margin-top: 15px;">Total </h4>
+
+                                                        <ul style="list-style-type: none; padding-left: 18px;">
+                                                            {%  for resumenitem in contenido.resumen | filter (resumenitem => resumenitem.oculto is same as (false)) %}
+                                                            <li>
+                                                                <p>
+                                                                    {{ resumenitem.titulo }}:
+                                                                    <span style="font-weight: bold; color: #00a65a;">
+                                                                        US$ {{ resumenitem.ventadolares }}
+                                                                    </span>
+                                                                        {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #00a65a;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
+
+                                                                        , reserve con el {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
+                                                                        {% if cotizacion.file.paisid == 117 %}
+                                                                            o S/.{{ resumenitem.adelantosoles }}
+                                                                        {% endif %}
+                                                                        )
+
+                                                                </p>
+                                                            </li>
+                                                        {% endfor %}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="panel panel-default hidden-print">
+                                                <div class="panel-heading">
+                                                    <h5 class="panel-title">
+                                                        <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas2">
+                                                            Servicios incluidos
+                                                        </a>
+                                                    </h5>
+                                                </div>
+                                                <div id="collapsetarifas2" class="panel-collapse collapse">
+                                                    <div class="panel-body table-responsive">
+                                                        <h3 class="visible-print">Servicios incluidos</h3>
+                                                        {% for incluido in contenido.incluidos %}
+                                                            <h4 style="font-weight: bold;">{{ incluido.tituloItinerario }}:</h4>
+                                                            <ul class="list-unstyled">
+                                                                {% for tipotarifa in incluido.tipotarifas %}
+                                                                    <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
+                                                                        <ul class="fa-ul">
+                                                                            {% for componente in tipotarifa.componentes %}
+                                                                                <li><span class="fa-li"><i style="color: {{ componente.listacolor }};" class="fas {{ componente.listaclase }}"></i></span>{% if componente.cantidadComponente > 1 %} <strong>{{ componente.cantidadComponente }} x</strong>{% endif %} {{ componente.titulo }}  ({{ componente.fecha }})
+                                                                                    {% if componente.tarifas is defined %}
+                                                                                        <ul style="list-style: none; padding-left: 20px;">
+                                                                                            {% for tarifa in componente.tarifas %}
+                                                                                                <li>{{ tarifa.titulo }} {% if tarifa.cantidad > 1 %} <strong>x {{ tarifa.cantidad }}</strong> {% endif %}
+                                                                                                    {% if tarifa.detalles is defined %}
+                                                                                                        (
+                                                                                                        {% for detalle in tarifa.detalles %}
+                                                                                                            {% if not loop.first %}
+                                                                                                                &nbsp;
+                                                                                                            {% endif %}
+                                                                                                            {% if detalle.tipoId == 4 %}
+                                                                                                                <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
+                                                                                                            {% else %}
+                                                                                                                <span>{{ detalle.contenido }}</span>
+                                                                                                            {% endif %}
+                                                                                                        {% endfor %}
+                                                                                                        )
+                                                                                                    {% endif %}
+                                                                                                </li>
+                                                                                            {% endfor %}
+                                                                                        </ul>
+                                                                                    {% endif %}
+                                                                                </li>
+                                                                            {% endfor %}
+                                                                        </ul>
+                                                                    </li>
+                                                                {% endfor %}
+                                                            </ul>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {% if action == 'show' %}
+                                                <div class="panel panel-default hidden-print">
+                                                    <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
+                                                        <h5 class="panel-title">
+                                                            <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas3">
+                                                                Interno: Servicios incluidos
+                                                            </a>
+                                                        </h5>
+                                                    </div>
+                                                    <div id="collapsetarifas3" class="panel-collapse collapse">
+                                                        <div class="panel-body table-responsive">
+                                                            <h3 class="visible-print">Interno: Servicios incluidos</h3>
+                                                            {% for internoIncluido in contenido.internoIncluidos %}
+                                                                <h4 style="font-weight: bold;">{{ internoIncluido.tituloItinerario }}:</h4>
+                                                                <ul class="list-unstyled">
+                                                                    {% for tipotarifa in internoIncluido.tipotarifas %}
+                                                                        <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
+                                                                            <ul class="fa-ul">
+                                                                                {% for componente in tipotarifa.componentes %}
+                                                                                    <li><span class="fa-li"><i style="color: {{ componente.listacolor }};" class="fas {{ componente.listaclase }}"></i></span>{% if componente.cantidadComponente > 1 %} <strong>{{ componente.cantidadComponente }} x</strong>{% endif %} {{ componente.nombre }}  ({{ componente.fecha }})
+                                                                                        {% if componente.tarifas is defined %}
+                                                                                            <ul style="list-style: none; padding-left: 20px;">
+                                                                                                {% for tarifa in componente.tarifas %}
+                                                                                                    <li>{{ tarifa.nombre }} {% if tarifa.cantidad > 1 %} <strong>x {{ tarifa.cantidad }}</strong> {% endif %}
+                                                                                                        {% if tarifa.detalles is defined %}
+                                                                                                            <ul style="list-style: none; padding-left: 20px;">
+                                                                                                            {% for detalle in tarifa.detalles %}
+                                                                                                                <li>
+                                                                                                                {% if detalle.tipoId == 4 %}
+                                                                                                                    <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
+                                                                                                                {% else %}
+                                                                                                                    {{ detalle.contenido }}
+                                                                                                                {% endif %}
+                                                                                                                </li>
+                                                                                                            {% endfor %}
+                                                                                                            </ul>
+                                                                                                        {% endif %}
+                                                                                                    </li>
+                                                                                                {% endfor %}
+                                                                                            </ul>
+                                                                                        {% endif %}
+                                                                                    </li>
+                                                                                {% endfor %}
+                                                                            </ul>
+                                                                        </li>
+                                                                    {% endfor %}
+                                                                </ul>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="panel panel-default hidden-print">
+                                                    <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
+                                                        <h5 class="panel-title">
+                                                            <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas4">
+                                                                Interno: Valores
+                                                            </a>
+                                                        </h5>
+                                                    </div>
+                                                    <div id="collapsetarifas4" class="panel-collapse collapse">
+                                                        <div class="panel-body table-responsive">
+                                                            <h3 class="visible-print">Valores</h3>
+                                                            <h4><strong>Resumen General</strong> al <span style="font-size: 0.7em;"> {{ cotizacion.cotizacion.comision|number_format(2, '.', '')}}% </span></h4>
+                                                            <div class="box-body table-responsive no-padding">
+                                                                <table class="table table-bordered table-striped sonata-ba-list">
+                                                                    <thead>
+                                                                    <tr class="sonata-ba-list-field-header">
+                                                                        <th class="text-center">
+                                                                            Ganancia<br />S/.
+                                                                        </th>
+                                                                        <th class="text-center">
+                                                                            Ganancia<br />$
+                                                                        </th>
+                                                                        <th class="text-center">
+                                                                            Típo
+                                                                        </th>
+                                                                        <th class="text-center">
+                                                                            Costo<br />S/.
+                                                                        </th>
+                                                                        <th class="text-center">
+                                                                            Costo<br />$
+                                                                        </th>
+                                                                        <th class="text-center">
+                                                                            Venta<br />S/.
+                                                                        </th>
+                                                                        <th class="text-center">
+                                                                            Venta<br />$
+                                                                        </th>
+                                                                    </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                    {%  for resumenitem in contenido.resumen %}
+                                                                    <tr>
+                                                                        <td class="text-right" style="font-weight: bold; color: #00a65a;">
+                                                                            {{ resumenitem.gananciasoles }}
+                                                                        </td>
+                                                                        <td class="text-right" style="font-weight: bold; color: #00a65a;">
+                                                                            {{ resumenitem.gananciadolares }}
+                                                                        </td>
+                                                                        <td>
+                                                                            {{ resumenitem.titulo }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ resumenitem.montosoles }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ resumenitem.montodolares }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ resumenitem.ventasoles }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ resumenitem.ventadolares }}
+                                                                        </td>
+
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                            <br />
+                                                            <h4><strong>Por tipo de pasajero</strong></h4>
+                                                            {% for rango in contenido.rangos %}
+                                                                <h4>
+                                                                    {{ rango.tipoPaxNombre }} <strong>x {{ rango.cantidad }}</strong>
+                                                                </h4>
+                                                                {% if rango.edadMin is defined or rango.edadMax is defined%}
+                                                                    <p>
+                                                                        {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
+                                                                            de {{ rango.edadMin }} años
+                                                                            {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                                                                &nbsp;<br />(con carné de estudiante válido y vigente)
+                                                                            {% endif %}
+
+                                                                        {% else %}
+                                                                            {% if rango.edadMin is defined %}
+                                                                                desde {{ rango.edadMin }} años
+                                                                            {% endif %}
+
+                                                                            {% if rango.edadMax is defined %}
+                                                                                hasta {{ rango.edadMax }} años
+                                                                                {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                                                                    <br />(con carné de estudiante válido y vigente)
+                                                                                {% endif %}
+                                                                            {% endif %}
+
+                                                                        {% endif %}
+
+                                                                    </p>
+                                                                {% endif %}
+
+                                                                {% if rango.tituloPersistente is defined %}
+                                                                    <h5>{{ rango.tituloPersistente }}</h5>
+                                                                {% endif %}
+                                                                <div style="margin-left: 15px;" class="box-body table-responsive no-padding">
+                                                                    <table class="table table-bordered table-striped sonata-ba-list">
+                                                                        <thead>
+                                                                        <tr class="sonata-ba-list-field-header">
+                                                                            <th>
+                                                                                Monto Cotizado
+                                                                            </th>
+                                                                            <th>
+                                                                                Tipo
+                                                                            </th>
+                                                                            <th>
+                                                                                Componente (Tarifa)
+                                                                            </th>
+                                                                            <th>
+                                                                                Servicio
+                                                                            </th>
+                                                                            <th class="text-right">
+                                                                                Venta soles
+                                                                            </th>
+                                                                            <th class="text-right">
+                                                                                Venta dolares
+                                                                            </th>
+                                                                        </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                        {%  for tarifadetalle in rango.tarifas %}
+                                                                        <tr>
+                                                                            <td style="font-weight: bold;  color: #00a65a;">
+                                                                                {% if tarifadetalle.cantidadComponente > 1 %}
+                                                                                    {{ tarifadetalle.cantidadComponente }} x&nbsp;
+                                                                                {% endif %}
+                                                                                {{ tarifadetalle.montoOriginal }}&nbsp;{{ tarifadetalle.monedaOriginal }}
+                                                                                {% if tarifadetalle.prorrateado %}
+                                                                                    &nbsp;(P)
+                                                                                {% else %}
+                                                                                    &nbsp;(U)
+                                                                                {% endif %}
+                                                                            </td>
+                                                                            <td>
+                                                                                {{ tarifadetalle.tipoTarTitulo }}
+                                                                            </td>
+                                                                            <td>
+                                                                                {{ tarifadetalle.nombreComponente }} ({{ tarifadetalle.nombre }})
+                                                                            </td>
+                                                                            <td>
+                                                                                {{ tarifadetalle.nombreServicio }}
+                                                                            </td>
+                                                                            <td class="text-right">
+                                                                                {{ tarifadetalle.ventasoles }}
+                                                                            </td>
+                                                                            <td class="text-right">
+                                                                                {{ tarifadetalle.ventadolares }}
+                                                                            </td>
+
+                                                                            {% endfor %}
+                                                                        </tr>
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                                <br />
+                                                                <div style="margin-left: 30px;" class="box-body table-responsive no-padding">
+                                                                    <table class="table table-bordered table-striped sonata-ba-list">
+                                                                        <thead>
+                                                                        <tr class="sonata-ba-list-field-header">
+                                                                            <th>
+                                                                                Tipo
+                                                                            </th>
+                                                                            <th>
+                                                                                Título
+                                                                            </th>
+                                                                            <th class="text-right">
+                                                                                Costo Soles
+                                                                            </th>
+                                                                            <th class="text-right">
+                                                                                Costo Dolares
+                                                                            </th>
+                                                                            <th class="text-right">
+                                                                                Venta soles
+                                                                            </th>
+                                                                            <th class="text-right">
+                                                                                Venta dolares
+                                                                            </th>
+                                                                        </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                        {%  for tarifaresumen in rango.resumen %}
+                                                                        <tr>
+                                                                            <td>
+                                                                                {{ tarifaresumen.tipoTarNombre }}
+                                                                            </td>
+                                                                            <td>
+                                                                                {{ tarifaresumen.tipoTarTitulo }}
+                                                                            </td>
+                                                                            <td class="text-right">
+                                                                                {{ tarifaresumen.montosoles }}
+                                                                            </td>
+                                                                            <td class="text-right">
+                                                                                {{ tarifaresumen.montodolares }}
+                                                                            </td>
+                                                                            <td class="text-right">
+                                                                                {{ tarifaresumen.ventasoles }}
+                                                                            </td>
+                                                                            <td class="text-right">
+                                                                                {{ tarifaresumen.ventadolares }}
+                                                                            </td>
+                                                                            {% endfor %}
+                                                                        </tr>
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                                <br />
+                                                            {% endfor %}
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+
                                         </div>
-                                        <br />
-                                        <h4><strong>Por tipo de pasajero</strong></h4>
-                                        {% for rango in contenido.rangos %}
-                                            <h4>
-                                                {{ rango.tipoPaxNombre }} <strong>x {{ rango.cantidad }}</strong>
-                                            </h4>
-                                            {% if rango.edadMin is defined or rango.edadMax is defined%}
-                                            <p>
-                                                {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
-                                                    de {{ rango.edadMin }} años
-                                                    {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                                        &nbsp;<br />(con carné de estudiante válido y vigente)
-                                                    {% endif %}
 
-                                                {% else %}
-                                                    {% if rango.edadMin is defined %}
-                                                        desde {{ rango.edadMin }} años
-                                                    {% endif %}
 
-                                                    {% if rango.edadMax is defined %}
-                                                        hasta {{ rango.edadMax }} años
-                                                        {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                                            <br />(con carné de estudiante válido y vigente)
-                                                        {% endif %}
-                                                    {% endif %}
-
-                                                {% endif %}
-
-                                            </p>
-                                            {% endif %}
-
-                                            {% if rango.nombrePersistente is defined %}
-                                                <h5>{{ rango.nombrePersistente }}</h5>
-                                            {% endif %}
-                                            <div style="margin-left: 15px;" class="box-body table-responsive no-padding">
-                                                <table class="table table-bordered table-striped sonata-ba-list">
-                                                    <thead>
-                                                    <tr class="sonata-ba-list-field-header">
-                                                        <th>
-                                                            Servicio
-                                                        </th>
-                                                        <th>
-                                                            Componente
-                                                        </th>
-                                                        <th>
-                                                            Tarifa
-                                                        </th>
-                                                        <th class="text-right">
-                                                            Costo Soles
-                                                        </th>
-                                                        <th class="text-right">
-                                                            Costo Dolares
-                                                        </th>
-                                                        <th class="text-right">
-                                                            Venta soles
-                                                        </th>
-                                                        <th class="text-right">
-                                                            Venta dolares
-                                                        </th>
-                                                        <th>
-                                                            Tipo
-                                                        </th>
-                                                    </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                    {%  for tarifadetalle in rango.tarifa %}
-                                                    <tr>
-                                                        <td>
-                                                            {{ tarifadetalle.nombreServicio }}
-                                                        </td>
-                                                        <td>
-                                                            {{ tarifadetalle.nombreComponente }}
-                                                        </td>
-                                                        <td>
-                                                            {{ tarifadetalle.nombre }}
-                                                        </td>
-                                                        <td class="text-right">
-                                                            {{ tarifadetalle.montosoles }}
-                                                        </td>
-                                                        <td class="text-right">
-                                                            {{ tarifadetalle.montodolares }}
-                                                        </td>
-                                                        <td class="text-right">
-                                                            {{ tarifadetalle.ventasoles }}
-                                                        </td>
-                                                        <td class="text-right">
-                                                            {{ tarifadetalle.ventadolares }}
-                                                        </td>
-                                                        <td>
-                                                            {{ tarifadetalle.tipoTarNombre }}
-                                                        </td>
-                                                        {% endfor %}
-                                                    </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <br />
-                                            <div style="margin-left: 30px;" class="box-body table-responsive no-padding">
-                                                <table class="table table-bordered table-striped sonata-ba-list">
-                                                    <thead>
-                                                    <tr class="sonata-ba-list-field-header">
-                                                        <th>
-                                                            Tipo
-                                                        </th>
-                                                        <th>
-                                                            Título
-                                                        </th>
-                                                        <th class="text-right">
-                                                            Costo Soles
-                                                        </th>
-                                                        <th class="text-right">
-                                                            Costo Dolares
-                                                        </th>
-                                                        <th class="text-right">
-                                                            Venta soles
-                                                        </th>
-                                                        <th class="text-right">
-                                                            Venta dolares
-                                                        </th>
-                                                    </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                    {%  for tarifaresumen in rango.resumen %}
-                                                    <tr>
-                                                        <td>
-                                                            {{ tarifaresumen.tipoTarNombre }}
-                                                        </td>
-                                                        <td>
-                                                            {{ tarifaresumen.tipoTarTitulo }}
-                                                        </td>
-                                                        <td class="text-right">
-                                                            {{ tarifaresumen.montosoles }}
-                                                        </td>
-                                                        <td class="text-right">
-                                                            {{ tarifaresumen.montodolares }}
-                                                        </td>
-                                                        <td class="text-right">
-                                                            {{ tarifaresumen.ventasoles }}
-                                                        </td>
-                                                        <td class="text-right">
-                                                            {{ tarifaresumen.ventadolares }}
-                                                        </td>
-                                                        {% endfor %}
-                                                    </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <br />
-                                        {% endfor %}
 
                                     {% elseif name == 'politica' %}
                                         <h3 class="visible-print">{{ contenido.nombre}}</h3>
@@ -507,21 +713,15 @@ file that was distributed with this source code.
                                                         Inicio
                                                     </th>
                                                     <th>
-                                                        Nombre
-                                                    </th>
-                                                    <th>
                                                         Fin
                                                     </th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
-                                                {% for componente in contenido.componentes | filter(componente => componente.fechahorainicio != componente.fechahorafin and componente.titulo is not null) %}
+                                                {% for componente in contenido.componentes | filter(componente => componente.fechahorainicio != componente.fechahorafin ) %}
                                                     <tr>
                                                         <td>
                                                             {{ componente.fechahorainicio|date('Y/m/d H:i') }}
-                                                        </td>
-                                                        <td>
-                                                            {{ componente.titulo }} {% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %}
                                                         </td>
                                                         <td>
                                                             {{ componente.fechahorafin|date('Y/m/d H:i') }}

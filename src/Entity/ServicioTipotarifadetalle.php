@@ -8,13 +8,13 @@ use Gedmo\Mapping\Annotation as Gedmo;
 use Gedmo\Translatable\Translatable;
 
 /**
- * ServicioTipotarifa
+ * ServicioTipotarifadetalle
  *
- * @ORM\Table(name="ser_tipotarifa")
+ * @ORM\Table(name="ser_tipotarifadetalle")
  * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioTipotarifaTranslation")
+ * @Gedmo\TranslationEntity(class="App\Entity\ServicioTipotarifadetalleTranslation")
  */
-class ServicioTipotarifa implements Translatable
+class ServicioTipotarifadetalle implements Translatable
 {
 
     /**
@@ -37,37 +37,17 @@ class ServicioTipotarifa implements Translatable
      * @var string
      *
      * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=100, nullable=false)
+     * @ORM\Column(name="titulo", type="string", length=100, nullable=true)
      */
     private $titulo;
 
     /**
      * @var bool
      *
-     * @ORM\Column(name="comisionable", type="boolean", options={"default": 1})
+     * @ORM\Column(name="interno", type="boolean", options={"default": 1})
      */
-    private $comisionable = true;
+    private $interno = true;
 
-    /**
-     * @var bool
-     *
-     * @ORM\Column(name="oculto", type="boolean", options={"default": 0})
-     */
-    private $oculto = false;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="listacolor", type="string", length=30, nullable=true)
-     */
-    private $listacolor;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="listaclase", type="string", length=30, nullable=true)
-     */
-    private $listaclase;
 
     /**
      * @var \DateTime $creado
@@ -116,7 +96,7 @@ class ServicioTipotarifa implements Translatable
      *
      * @param string $nombre
      *
-     * @return ServicioTipotarifa
+     * @return ServicioTipotarifadetalle
      */
     public function setNombre($nombre)
     {
@@ -136,60 +116,11 @@ class ServicioTipotarifa implements Translatable
     }
 
     /**
-     * Set listacolor
-     *
-     * @param string $listacolor
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setListacolor($listacolor)
-    {
-        $this->listacolor = $listacolor;
-
-        return $this;
-    }
-
-    /**
-     * Get listacolor
-     *
-     * @return string
-     */
-    public function getListacolor()
-    {
-        return $this->listacolor;
-    }
-
-    /**
-     * Set listaclase
-     *
-     * @param string $listaclase
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setListaclase($listaclase)
-    {
-        $this->listaclase = $listaclase;
-
-        return $this;
-    }
-
-    /**
-     * Get listacolor
-     *
-     * @return string
-     */
-    public function getListaclase()
-    {
-        return $this->listaclase;
-    }
-
-
-    /**
      * Set creado
      *
      * @param \DateTime $creado
      *
-     * @return ServicioTipotarifa
+     * @return ServicioTipotarifadetalle
      */
     public function setCreado($creado)
     {
@@ -213,7 +144,7 @@ class ServicioTipotarifa implements Translatable
      *
      * @param \DateTime $modificado
      *
-     * @return ServicioTipotarifa
+     * @return ServicioTipotarifadetalle
      */
     public function setModificado($modificado)
     {
@@ -237,7 +168,7 @@ class ServicioTipotarifa implements Translatable
      *
      * @param string|null $titulo
      *
-     * @return ServicioTipotarifa
+     * @return ServicioTipotarifadetalle
      */
     public function setTitulo($titulo = null)
     {
@@ -257,50 +188,27 @@ class ServicioTipotarifa implements Translatable
     }
 
     /**
-     * Set comisionable.
+     * Set interno.
      *
-     * @param bool $comisionable
+     * @param bool $interno
      *
-     * @return ServicioTipotarifa
+     * @return ServicioTipotarifadetalle
      */
-    public function setComisionable($comisionable)
+    public function setInterno($interno)
     {
-        $this->comisionable = $comisionable;
+        $this->interno = $interno;
     
         return $this;
     }
 
     /**
-     * Get comisionable.
+     * Get interno.
      *
      * @return bool
      */
-    public function getComisionable()
+    public function getInterno()
     {
-        return $this->comisionable;
+        return $this->interno;
     }
 
-    /**
-     * Set oculto.
-     *
-     * @param bool $oculto
-     *
-     * @return ServicioTipotarifa
-     */
-    public function seOculto($oculto)
-    {
-        $this->oculto = $oculto;
-
-        return $this;
-    }
-
-    /**
-     * Get oculto.
-     *
-     * @return bool
-     */
-    public function getOculto()
-    {
-        return $this->oculto;
-    }
 }

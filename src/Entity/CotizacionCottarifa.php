@@ -5,6 +5,7 @@ namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
+use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * CotizacionCottarifa
@@ -70,6 +71,14 @@ class CotizacionCottarifa
     protected $tipotarifa;
 
     /**
+     * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCottarifadetalle", mappedBy="cottarifa", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OrderBy({"tipotarifadetalle" = "ASC"})
+     */
+    private $cottarifadetalles;
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -98,11 +107,27 @@ class CotizacionCottarifa
     }
 
     public function __clone() {
+
         if ($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
+            $newCottarifadetalles = new ArrayCollection();
+            foreach ($this->cottarifadetalles as $cottarifadetalle) {
+                $newCottarifadetalle = clone $cottarifadetalle;
+                $newCottarifadetalle->setCottarifa($this);
+                $newCottarifadetalles->add($newCottarifadetalle);
+            }
+            $this->cottarifadetalles = $newCottarifadetalles;
         }
+    }
+
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->cottarifadetalles = new ArrayCollection();
     }
 
     /**
@@ -306,4 +331,41 @@ class CotizacionCottarifa
     {
         return $this->tipotarifa;
     }
+
+    /**
+     * Add cottarifadetalle
+     *
+     * @param \App\Entity\CotizacionCottarifadetalle $cottarifadetalle
+     *
+     * @return CotizacionCottarifa
+     */
+    public function addCottarifadetalle(\App\Entity\CotizacionCottarifadetalle $cottarifadetalle)
+    {
+        $cottarifadetalle->setCotTarifa($this);
+
+        $this->cottarifadetalles[] = $cottarifadetalle;
+
+        return $this;
+    }
+
+    /**
+     * Remove cottarifadetalle
+     *
+     * @param \App\Entity\CotizacionCottarifadetalle $cottarifadetalle
+     */
+    public function removeCottarifadetalle(\App\Entity\CotizacionCottarifadetalle $cottarifadetalle)
+    {
+        $this->cottarifadetalles->removeElement($cottarifadetalle);
+    }
+
+    /**
+     * Get cottarifadetalles
+     *
+     * @return \Doctrine\Common\Collections\Collection
+     */
+    public function getCottarifadetalles()
+    {
+        return $this->cottarifadetalles;
+    }
+
 }

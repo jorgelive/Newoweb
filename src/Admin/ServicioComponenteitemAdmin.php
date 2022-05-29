@@ -9,8 +9,13 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
-class ServicioTipotarifaAdmin extends AbstractAdmin
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
+
+class ServicioComponenteitemAdmin extends AbstractAdmin
 {
+
     /**
      * @param DatagridMapper $datagridMapper
      */
@@ -18,18 +23,9 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
     {
         $datagridMapper
             ->add('id')
-            ->add('nombre')
             ->add('titulo', TranslationFieldFilter::class, [
                 'label' => 'Título'
             ])
-            ->add('listacolor', null, [
-                'label' => 'Color'
-            ])
-            ->add('listaclase', null, [
-                'label' => 'Clase'
-            ])
-            ->add('comisionable')
-            ->add('oculto')
         ;
     }
 
@@ -40,25 +36,13 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('nombre', null, [
-                'editable' => true
+            ->add('tarifa', null, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'tarifa']]
             ])
             ->add('titulo', null, [
                 'label' => 'Título',
-                'editable' => true
-            ])
-            ->add('listacolor', null, [
-                'label' => 'Color',
-                'editable' => true
-            ])
-            ->add('listaclase', null, [
-                'label' => 'Clase',
-                'editable' => true
-            ])
-            ->add('comisionable', null, [
-                'editable' => true
-            ])
-            ->add('oculto', null, [
                 'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
@@ -77,20 +61,44 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
+        if ($this->getRoot()->getClass() != 'App\Entity\ServicioComponente'
+        ){
+            $formMapper->add('componente');
+        }
+
         $formMapper
-            ->add('nombre')
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
-            ->add('listacolor', null, [
-                'label' => 'Color'
+            ->add('nomostrartarifa', null, [
+                'label' => 'No mostrar tarifa'
             ])
-            ->add('listaclase', null, [
-                'label' => 'Clase'
-            ])
-            ->add('comisionable')
-            ->add('oculto')
         ;
+
+        $widthModifier = function (FormInterface $form) {
+
+            $form
+                ->add('titulo', null, [
+                    'label' => 'Título',
+                    'attr' => [
+                        'style' => 'width: 300px;'
+                    ]
+                ])
+            ;
+        };
+
+        $formBuilder = $formMapper->getFormBuilder();
+        $formBuilder->addEventListener(
+            FormEvents::PRE_SET_DATA,
+            function (FormEvent $event) use ($widthModifier) {
+                if($event->getData()
+                    && $this->getRoot()->getClass() == 'App\Entity\ServicioComponente'
+                ){
+                    $widthModifier($event->getForm());
+                }
+            }
+        );
+
     }
 
     /**
@@ -100,18 +108,10 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
     {
         $showMapper
             ->add('id')
-            ->add('nombre')
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
-            ->add('listacolor', null, [
-                'label' => 'Color'
-            ])
-            ->add('listaclase', null, [
-                'label' => 'Clase'
-            ])
-            ->add('comisionable')
-            ->add('oculto')
+
         ;
     }
 }

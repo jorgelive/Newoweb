@@ -10,14 +10,17 @@ use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
+use Sonata\AdminBundle\Datagrid\DatagridInterface;
 
 class ServicioComponenteAdmin extends AbstractAdmin
 {
-    protected $datagridValues = [
-        '_page' => 1,
-        '_sort_order' => 'ASC',
-        '_sort_by' => 'nombre',
-    ];
+
+    protected function configureDefaultSortValues(array &$sortValues): void
+    {
+        $sortValues[DatagridInterface::PAGE] = 1;
+        $sortValues[DatagridInterface::SORT_ORDER] = 'ASC';
+        $sortValues[DatagridInterface::SORT_BY] = 'nombre';
+    }
 
     /**
      * @param DatagridMapper $datagridMapper
@@ -27,9 +30,6 @@ class ServicioComponenteAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
-            ->add('titulo', TranslationFieldFilter::class, [
-                'label' => 'Título'
-            ])
             ->add('tipocomponente', null, [
                 'label' => 'Tipo'
             ])
@@ -50,9 +50,8 @@ class ServicioComponenteAdmin extends AbstractAdmin
             ->add('nombre', null, [
                 'editable' => true
             ])
-            ->add('titulo', null, [
-                'label' => 'Título',
-                'editable' => true
+            ->add('componenteitems', null, [
+                'label' => 'Items'
             ])
             ->add('tipocomponente', null, [
                 'label' => 'Tipo',
@@ -87,8 +86,12 @@ class ServicioComponenteAdmin extends AbstractAdmin
     {
         $formMapper
             ->add('nombre')
-            ->add('titulo', null, [
-                'label' => 'Título'
+            ->add('componenteitems', CollectionType::class , [
+                'by_reference' => false,
+                'label' => 'Items'
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table'
             ])
             ->add('tipocomponente', null, [
                 'label' => 'Tipo'
@@ -117,8 +120,8 @@ class ServicioComponenteAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
-            ->add('titulo', null, [
-                'label' => 'Título'
+            ->add('componenteitems', null, [
+                'label' => 'Items'
             ])
             ->add('tipocomponente', null, [
                 'label' => 'Tipo'

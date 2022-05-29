@@ -9,6 +9,7 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
+use Sonata\AdminBundle\Datagrid\DatagridInterface;
 
 class CotizacionCotizacionAdmin extends AbstractAdmin
 {
@@ -20,17 +21,21 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         $this->setFormTheme([0 => 'cotizacion_cotizacion_admin/form_admin_fields.html.twig']);
     }
 
-    protected $datagridValues = [
-        '_page' => 1,
-        '_sort_order' => 'DESC',
-        '_sort_by' => 'modificado'
-    ];
+    protected function configureDefaultSortValues(array &$sortValues): void
+    {
+        $sortValues[DatagridInterface::PAGE] = 1;
+        $sortValues[DatagridInterface::SORT_ORDER] = 'DESC';
+        $sortValues[DatagridInterface::SORT_BY] = 'modificado';
+    }
 
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
-        $buttonList['resumen'] = ['template' => 'cotizacion_cotizacion_admin/resumen_button.html.twig'];
-
+        if($action == 'resumen'){
+            $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/adminview_button.html.twig'];
+        }else{
+            $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/resumen_button.html.twig'];
+        }
         return $buttonList;
     }
 
@@ -93,11 +98,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'row_align' => 'right',
                 'label' => 'Comisión'
             ])
-            ->add('adelanto', 'decimal', [
-                'editable' => true,
-                'row_align' => 'right',
-                'label' => 'Adelanto'
-            ])
             ->add('estadocotizacion', 'choice', [
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
@@ -115,17 +115,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ])
             ->add('file.filedocumentos', null, [
                 'label' => 'Documentos'
-            ])
-            ->add('cotpolitica', null, [
-                'label' => 'Política'
-            ])
-            ->add('cotnotas',  null, [
-                'label' => 'Notas'
-            ])
-            ->add('modificado',  null, [
-                'label' => 'Modificación',
-                'format' => 'Y/m/d H:i'
-
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',

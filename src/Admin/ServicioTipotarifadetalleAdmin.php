@@ -9,7 +9,7 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
-class ServicioTipotarifaAdmin extends AbstractAdmin
+class ServicioTipotarifadetalleAdmin extends AbstractAdmin
 {
     /**
      * @param DatagridMapper $datagridMapper
@@ -22,14 +22,7 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
             ->add('titulo', TranslationFieldFilter::class, [
                 'label' => 'Título'
             ])
-            ->add('listacolor', null, [
-                'label' => 'Color'
-            ])
-            ->add('listaclase', null, [
-                'label' => 'Clase'
-            ])
-            ->add('comisionable')
-            ->add('oculto')
+            ->add('interno')
         ;
     }
 
@@ -47,18 +40,7 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
                 'label' => 'Título',
                 'editable' => true
             ])
-            ->add('listacolor', null, [
-                'label' => 'Color',
-                'editable' => true
-            ])
-            ->add('listaclase', null, [
-                'label' => 'Clase',
-                'editable' => true
-            ])
-            ->add('comisionable', null, [
-                'editable' => true
-            ])
-            ->add('oculto', null, [
+            ->add('interno', null, [
                 'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
@@ -82,14 +64,7 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
-            ->add('listacolor', null, [
-                'label' => 'Color'
-            ])
-            ->add('listaclase', null, [
-                'label' => 'Clase'
-            ])
-            ->add('comisionable')
-            ->add('oculto')
+            ->add('interno')
         ;
     }
 
@@ -104,14 +79,7 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
-            ->add('listacolor', null, [
-                'label' => 'Color'
-            ])
-            ->add('listaclase', null, [
-                'label' => 'Clase'
-            ])
-            ->add('comisionable')
-            ->add('oculto')
+            ->add('interno')
         ;
     }
 }

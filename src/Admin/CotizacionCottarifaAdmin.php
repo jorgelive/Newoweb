@@ -11,6 +11,7 @@ use Sonata\AdminBundle\Show\ShowMapper;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
+use Sonata\Form\Type\CollectionType;
 
 class CotizacionCottarifaAdmin extends AbstractAdmin
 {
@@ -93,6 +94,13 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
             ->add('monto')
             ->add('tipotarifa',  null, [
                 'label' => 'Tipo'
+            ])
+            ->add('cottarifadetalles', CollectionType::class , [
+                'by_reference' => false,
+                'label' => 'Detalles'
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table'
             ])
         ;
 

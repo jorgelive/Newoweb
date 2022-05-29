@@ -6,6 +6,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Gedmo\Translatable\Translatable;
+use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * ServicioTarifa
@@ -163,7 +164,9 @@ class ServicioTarifa implements Translatable
             $this->setCreado(null);
             $this->setModificado(null);
         }
+
     }
+
 
     /**
      * @return string
@@ -599,12 +602,15 @@ class ServicioTarifa implements Translatable
     }
 
     /**
-     * Get tipotarifa.
+     * Get tipotarifa
      *
-     * @return \App\Entity\MaestroTipotarifa|null
+     * @return \App\Entity\ServicioTipotarifa|null
      */
     public function getTipotarifa()
     {
         return $this->tipotarifa;
     }
+
+
+
 }

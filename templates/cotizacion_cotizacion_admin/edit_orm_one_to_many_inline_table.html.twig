@@ -14,7 +14,7 @@ file that was distributed with this source code.
             {% for field_name, nested_field in form.children|first.children %}
                 {% if field_name == '_delete' %}
                     <th>{{ 'action_delete'|trans({}, 'SonataAdminBundle') }}</th>
-                {% elseif field_name != 'cotservicios' and field_name != 'cotcomponentes' and field_name != 'cottarifas'%}
+                {% elseif field_name != 'cotcomponentes' and field_name != 'cottarifas' and field_name != 'cottarifadetalles'%}
                     <th
                         {% if nested_field.vars['required'] %}
                             class="required"
@@ -35,7 +35,7 @@ file that was distributed with this source code.
         {% for nested_group_field_name, nested_group_field in form.children %}
             <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}">
                 {% for field_name, nested_field in nested_group_field.children %}
-                    {% if field_name != 'cotservicios' and field_name != 'cotcomponentes' and field_name != 'cottarifas' %}
+                    {% if field_name != 'cotcomponentes' and field_name != 'cottarifas' and field_name != 'cottarifadetalles' %}
                     <td class="
                         sonata-ba-td-{{ id }}-{{ field_name }}
                         control-group campo-{{ field_name }}
@@ -68,19 +68,19 @@ file that was distributed with this source code.
                 {% endfor %}
             </tr>
 
-            {% if nested_group_field.children['cotservicios'] is defined %}
-                <tr class="splitted">
-                    <td style="vertical-align: bottom; padding-bottom: 35px;"><strong>Serv</strong></td><td colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cotservicios']) }}</td>
-                </tr>
-            {%  endif %}
             {% if nested_group_field.children['cotcomponentes'] is defined %}
-                <tr class="splitted">
-                    <td style="vertical-align: bottom; padding-bottom: 35px;"><strong>Comp</strong></td><td colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cotcomponentes']) }}</td>
+                <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
+                    <td style="vertical-align: bottom; padding-bottom: 35px;"><strong>Comp</strong></td><td style="background-color: rgba(0,172,214,0.18);" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cotcomponentes']) }}</td>
                 </tr>
             {%  endif %}
             {% if nested_group_field.children['cottarifas'] is defined %}
-                <tr class="splitted">
-                    <td style="vertical-align: bottom; padding-bottom: 35px;"><strong>Tar</strong></td><td colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cottarifas']) }}</td>
+                <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
+                    <td style="vertical-align: bottom; padding-bottom: 35px;"><strong>Tar</strong></td><td style="background-color: rgba(219,144,8,0.22);" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cottarifas']) }}</td>
+                </tr>
+            {%  endif %}
+            {% if nested_group_field.children['cottarifadetalles'] is defined %}
+                <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
+                    <td style="vertical-align: bottom; padding-bottom: 35px;"><strong>Det</strong></td><td style="background-color: rgba(22, 157, 28, 0.25);" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cottarifadetalles']) }}</td>
                 </tr>
             {%  endif %}
 

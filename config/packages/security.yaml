@@ -48,6 +48,7 @@ security:
     # Note: Only the *first* access control that matches will be used
 
     access_control:
+
         - { path: ^/app/cotizacioncotizacion/\d*/resumen$, role: PUBLIC_ACCESS }
         - { path: ^/app/fitdieta/\d*/show$, role: PUBLIC_ACCESS }
 

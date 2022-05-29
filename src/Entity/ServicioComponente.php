@@ -36,12 +36,12 @@ class ServicioComponente implements Translatable
     private $nombre;
 
     /**
-     * @var string
+     * @var \Doctrine\Common\Collections\Collection
      *
-     * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=150, nullable=true)
+     * @ORM\OneToMany(targetEntity="App\Entity\ServicioComponenteitem", mappedBy="componente", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OrderBy({"titulo" = "ASC"})
      */
-    private $titulo;
+    private $componenteitems;
 
     /**
      * @var \App\Entity\ServicioServicio
@@ -107,6 +107,7 @@ class ServicioComponente implements Translatable
     {
         $this->tarifas = new ArrayCollection();
         $this->servicios = new ArrayCollection();
+        $this->componenteitems = new ArrayCollection();
     }
 
     public function __clone() {
@@ -128,6 +129,14 @@ class ServicioComponente implements Translatable
                 $newServicios->add($newServicio);
             }
             $this->servicios = $newServicios;
+
+            $newComponenteitems = new ArrayCollection();
+            foreach ($this->componenteitems as $componenteitem) {
+                $newComponenteitem = clone $componenteitem;
+                $newComponenteitem->setComponente($this);
+                $newComponenteitems->add($newComponenteitem);
+            }
+            $this->componenteitems = $newComponenteitems;
         }
     }
 
@@ -172,30 +181,6 @@ class ServicioComponente implements Translatable
     public function getNombre()
     {
         return $this->nombre;
-    }
-
-    /**
-     * Set titulo
-     *
-     * @param string $titulo
-     *
-     * @return ServicioComponente
-     */
-    public function setTitulo($titulo)
-    {
-        $this->titulo = $titulo;
-    
-        return $this;
-    }
-
-    /**
-     * Get titulo
-     *
-     * @return string
-     */
-    public function getTitulo()
-    {
-        return $this->titulo;
     }
 
     /**
@@ -365,5 +350,41 @@ class ServicioComponente implements Translatable
     public function getDuracion()
     {
         return $this->duracion;
+    }
+
+    /**
+     * Add componenteitem
+     *
+     * @param \App\Entity\ServicioComponenteitem $tarifa
+     *
+     * @return ServicioComponente
+     */
+    public function addComponenteitem(\App\Entity\ServicioComponenteitem $componenteitem)
+    {
+        $componenteitem->setComponente($this);
+
+        $this->componenteitems[] = $componenteitem;
+
+        return $this;
+    }
+
+    /**
+     * Remove componenteitem
+     *
+     * @param \App\Entity\ServicioComponenteitem $componenteitem
+     */
+    public function removeComponenteitem(\App\Entity\ServicioComponenteitem $componenteitem)
+    {
+        $this->componenteitems->removeElement($componenteitem);
+    }
+
+    /**
+     * Get componenteitems
+     *
+     * @return \Doctrine\Common\Collections\Collection
+     */
+    public function getComponenteitems()
+    {
+        return $this->componenteitems;
     }
 }

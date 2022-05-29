@@ -37,22 +37,9 @@ class MainTipocambio implements ContainerAwareInterface{
         if ($enDB){
             return $enDB;
         }
-
-        $dia = str_pad($fecha->format('d'), 2, '0', STR_PAD_LEFT);
-        $mes = str_pad($fecha->format('m'), 2, '0', STR_PAD_LEFT);;
-        $ano = $fecha->format('Y');
-
         $valores = $this->leerPagina($fecha);
 
-        $tiposDelMes = $this->ordenarValoresJson($valores, $mes, $ano);
-
-        for ($i = (int)$dia; $i > 0; --$i) {
-            if(isset($tiposDelMes[$ano . '-' . $mes .  '-' . str_pad($i, 2, '0', STR_PAD_LEFT)])) {
-                return $this->insertTipo($tiposDelMes[$ano . '-' . $mes .  '-' . str_pad($i, 2, '0', STR_PAD_LEFT)], $fecha);
-            }
-        }
-
-        return $this->insertTipo(end($tiposDelMes), $fecha);
+        return $this->insertTipo(end($this->formatearValoresJson($valores)), $fecha);
 
     }
 
@@ -127,7 +114,7 @@ class MainTipocambio implements ContainerAwareInterface{
     }
 
 
-    private function ordenarValoresJson($json, $mes, $ano){
+    private function formatearValoresJson($json){
         $result = [];
 
         foreach ($json as $index => $valor) {

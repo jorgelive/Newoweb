@@ -9,6 +9,7 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\Form\Type\DatePickerType;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
+use Sonata\Form\Type\CollectionType;
 
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
@@ -215,6 +216,12 @@ class ServicioTarifaAdmin extends AbstractAdmin
             $form
                 ->add('nombre', null, [
                     'label' => 'Nombre',
+                    'attr' => [
+                        'style' => 'width: 200px;'
+                    ]
+                ])
+                ->add('titulo', null, [
+                    'label' => 'Título',
                     'attr' => [
                         'style' => 'width: 200px;'
                     ]

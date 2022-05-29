@@ -60,16 +60,13 @@ class CotizacionCotizacionAdminController extends CRUDController
 
     }
 
-    public function showAction($id = null, Request $request = null):\Symfony\Component\HttpFoundation\Response
+    public function showAction(Request $request = null):\Symfony\Component\HttpFoundation\Response
     {
 
-        $id = $request->get($this->admin->getIdParameter());
+        $object = $this->assertObjectExists($request, true);
+        \assert(null !== $object);
 
-        $object = $this->admin->getObject($id);
-
-        if (!$object) {
-            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
-        }
+        $this->checkParentChildAssociation($request, $object);
 
         $this->admin->checkAccess('show', $object);
 
@@ -80,13 +77,17 @@ class CotizacionCotizacionAdminController extends CRUDController
 
         $this->admin->setSubject($object);
 
+        $fields = $this->admin->getShow();
+
+        $template = 'cotizacion_cotizacion_admin/show.html.twig';
+
         if($this->container->get('App\Service\CotizacionResumen')->setTl($request->get('tl'))->procesar($object->getId())){
-            return $this->renderWithExtraParams('cotizacion_cotizacion_admin/show.html.twig',
+            return $this->renderWithExtraParams($template,
                 ['cotizacion' => $this->container->get('App\Service\CotizacionResumen')->getDatosCotizacion(),
                     'tabs' => $this->container->get('App\Service\CotizacionResumen')->getDatosTabs(),
                     'object' => $object,
                     'action' => 'show',
-                    'elements' => $this->admin->getShow()
+                    'elements' => $fields
 
                 ], null);
         }else{
@@ -96,17 +97,13 @@ class CotizacionCotizacionAdminController extends CRUDController
 
     }
 
-    function resumenAction($id = null, Request $request = null)
+    function resumenAction(Request $request = null):\Symfony\Component\HttpFoundation\Response
     {
 
-        //$request = $this->getRequest();
-        $id = $request->get($this->admin->getIdParameter());
+        $object = $this->assertObjectExists($request, true);
+        \assert(null !== $object);
 
-        $object = $this->admin->getObject($id);
-
-        if (!$object) {
-            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
-        }
+        $this->checkParentChildAssociation($request, $object);
 
         //$this->admin->checkAccess('show', $object);
 
@@ -117,13 +114,17 @@ class CotizacionCotizacionAdminController extends CRUDController
 
         $this->admin->setSubject($object);
 
+        $fields = $this->admin->getShow();
+
+        $template = 'cotizacion_cotizacion_admin/show.html.twig';
+
         if($this->container->get('App\Service\CotizacionResumen')->setTl($request->get('tl'))->procesar($object->getId())){
-            return $this->renderWithExtraParams('cotizacion_cotizacion_admin/resumen.html.twig',
+            return $this->renderWithExtraParams($template,
                 ['cotizacion' => $this->container->get('App\Service\CotizacionResumen')->getDatosCotizacion(),
                     'tabs' => $this->container->get('App\Service\CotizacionResumen')->getDatosTabs(),
                     'object' => $object,
                     'action' => 'resumen',
-                    'elements' => $this->admin->getShow(),
+                    'elements' => $fields,
 
                 ], null);
         }else{
