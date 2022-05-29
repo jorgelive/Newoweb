@@ -38,6 +38,38 @@ sonata_admin:
                     - app.admin.serviciotipotarifa
                     - app.admin.serviciotipotarifadetalle
 
+            app.admin.group.maestro:
+                label: 'Maestros'
+                icon: '<i class="fa fa-puzzle-piece"></i>'
+                items:
+                    - app.admin.maestrotipocambio
+                    - app.admin.maestromedio
+                    - app.admin.maestroclasemedio
+                    - app.admin.maestrocategoriatour
+                    - app.admin.maestrotipopax
+                    - app.admin.maestroidioma
+                    - app.admin.maestropais
+                    - app.admin.maestromoneda
+                    - app.admin.maestrotipodocumento
+                    - app.admin.maestrosexo
+
+            app.admin.group.usuario:
+                label: 'Usuario'
+                icon: '<i class="fa fa-user-circle"></i>'
+                items:
+                    - sonata.user.admin.user
+#                    - sonata.user.admin.group
+                    - app.admin.usercuenta
+                    - app.admin.usercuentatipo
+
+            app.admin.group.organizacion:
+                label: 'Empresa'
+                icon: '<i class="fa fa-institution"></i>'
+                items:
+                    - app.admin.userorganizacion
+                    - app.admin.userdependencia
+                    - app.admin.userarea
+
             app.admin.group.fit:
                 label: 'Fit'
                 icon: '<i class="fa fa-bar-chart"></i>'
@@ -71,38 +103,6 @@ sonata_admin:
                     - app.admin.comprobanteestado
                     - app.admin.comprobanteproductoservicio
                     - app.admin.comprobantetipoproductoservicio
-
-            app.admin.group.maestro:
-                label: 'Maestros'
-                icon: '<i class="fa fa-puzzle-piece"></i>'
-                items:
-                    - app.admin.maestrotipocambio
-                    - app.admin.maestromedio
-                    - app.admin.maestroclasemedio
-                    - app.admin.maestrocategoriatour
-                    - app.admin.maestrotipopax
-                    - app.admin.maestroidioma
-                    - app.admin.maestropais
-                    - app.admin.maestromoneda
-                    - app.admin.maestrotipodocumento
-                    - app.admin.maestrosexo
-
-            app.admin.group.usuario:
-                label: 'Usuario'
-                icon: '<i class="fa fa-user-circle"></i>'
-                items:
-                    - sonata.user.admin.user
-#                    - sonata.user.admin.group
-                    - app.admin.usercuenta
-                    - app.admin.usercuentatipo
-
-            app.admin.group.organizacion:
-                label: 'Empresa'
-                icon: '<i class="fa fa-institution"></i>'
-                items:
-                    - app.admin.userorganizacion
-                    - app.admin.userdependencia
-                    - app.admin.userarea
 
             goprosonata.admin.group.cuenta:
                 label: 'Cuentas'
