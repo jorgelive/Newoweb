@@ -38,6 +38,14 @@ class ServicioTipocomponente
     private $dependeduracion;
 
     /**
+     * @var bool
+     *
+     * @ORM\Column(name="agendable", type="boolean", options={"default": 0})
+     */
+    private $agendable;
+
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -167,5 +175,30 @@ class ServicioTipocomponente
     public function getDependeduracion()
     {
         return $this->dependeduracion;
+    }
+
+
+    /**
+     * Set agendable
+     *
+     * @param boolean $agendable
+     *
+     * @return ServicioTipocomponente
+     */
+    public function setAgendable($agendable)
+    {
+        $this->agendable = $agendable;
+
+        return $this;
+    }
+
+    /**
+     * Get agendable
+     *
+     * @return boolean
+     */
+    public function getAgendable()
+    {
+        return $this->agendable;
     }
 }

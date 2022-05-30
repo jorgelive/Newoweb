@@ -325,7 +325,7 @@ file that was distributed with this source code.
                                                                     <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
                                                                         <ul class="fa-ul">
                                                                             {% for componente in tipotarifa.componentes %}
-                                                                                <li><span class="fa-li"><i style="color: {{ componente.listacolor }};" class="fas {{ componente.listaclase }}"></i></span>{% if componente.cantidadComponente > 1 %} <strong>{{ componente.cantidadComponente }} x</strong>{% endif %} {{ componente.titulo }}  ({{ componente.fecha }})
+                                                                                <li><span class="fa-li"><i style="color: {{ componente.listacolor }};" class="fa {{ componente.listaclase }}"></i></span>{% if componente.cantidadComponente > 1 %} <strong>{{ componente.cantidadComponente }} x</strong>{% endif %} {{ componente.titulo }}  ({{ componente.fecha }})
                                                                                     {% if componente.tarifas is defined %}
                                                                                         <ul style="list-style: none; padding-left: 20px;">
                                                                                             {% for tarifa in componente.tarifas %}
@@ -378,7 +378,7 @@ file that was distributed with this source code.
                                                                         <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
                                                                             <ul class="fa-ul">
                                                                                 {% for componente in tipotarifa.componentes %}
-                                                                                    <li><span class="fa-li"><i style="color: {{ componente.listacolor }};" class="fas {{ componente.listaclase }}"></i></span>{% if componente.cantidadComponente > 1 %} <strong>{{ componente.cantidadComponente }} x</strong>{% endif %} {{ componente.nombre }}  ({{ componente.fecha }})
+                                                                                    <li><span class="fa-li"><i style="color: {{ componente.listacolor }};" class="fa {{ componente.listaclase }}"></i></span>{% if componente.cantidadComponente > 1 %} <strong>{{ componente.cantidadComponente }} x</strong>{% endif %} {{ componente.nombre }}  ({{ componente.fecha }})
                                                                                         {% if componente.tarifas is defined %}
                                                                                             <ul style="list-style: none; padding-left: 20px;">
                                                                                                 {% for tarifa in componente.tarifas %}
@@ -706,30 +706,26 @@ file that was distributed with this source code.
 
                                         <div class="box-body table-responsive no-padding">
                                             <h3 class="visible-print">{{ contenido.nombre}}</h3>
-                                            <table class="table table-bordered table-striped sonata-ba-list">
-                                                <thead>
-                                                <tr class="sonata-ba-list-field-header">
-                                                    <th>
-                                                        Inicio
-                                                    </th>
-                                                    <th>
-                                                        Fin
-                                                    </th>
-                                                </tr>
-                                                </thead>
-                                                <tbody>
+                                            <ul class="fa-ul">
                                                 {% for componente in contenido.componentes | filter(componente => componente.fechahorainicio != componente.fechahorafin ) %}
-                                                    <tr>
-                                                        <td>
-                                                            {{ componente.fechahorainicio|date('Y/m/d H:i') }}
-                                                        </td>
-                                                        <td>
-                                                            {{ componente.fechahorafin|date('Y/m/d H:i') }}
-                                                        </td>
-                                                    </tr>
+                                                    <li>
+                                                        <span class="fa-li"><i class="fa fa-map"></i></span>
+                                                        {{ componente.titulo }} en {{ componente.tituloItinerario }}
+                                                        <ul class="fa-ul">
+                                                            <li>
+                                                                <span class="fa-li"><i class="fa fa-calendar"></i></span>
+                                                                Inicio: <span style="font-weight: bold">{{ componente.fechahorainicio|date('H:i Y/m/d') }}</span>
+                                                            </li>
+                                                            <li>
+                                                                <span class="fa-li"><i class="fa fa-calendar-check-o"></i></span>
+                                                                Fin: <span style="font-weight: bold">{{ componente.fechahorafin|date('H:i Y/m/d') }}</span>
+                                                            </li>
+
+                                                        </ul>
+
+                                                    </li>
                                                 {% endfor %}
-                                                </tbody>
-                                            </table>
+                                            </ul>
                                         </div>
                                     {% endif %}
 

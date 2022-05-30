@@ -21,6 +21,9 @@ class ServicioTipocomponenteAdmin extends AbstractAdmin
             ->add('dependeduracion', null, [
                 'label' => 'Depende de duración'
             ])
+            ->add('agendable', null, [
+                'label' => 'Mostrar en agenda'
+            ])
         ;
     }
 
@@ -37,6 +40,10 @@ class ServicioTipocomponenteAdmin extends AbstractAdmin
             ->add('dependeduracion', null, [
                 'editable' => true,
                 'label' => 'Depende de duración'
+            ])
+            ->add('agendable', null, [
+                'editable' => true,
+                'label' => 'Mostrar en agenda'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -59,6 +66,9 @@ class ServicioTipocomponenteAdmin extends AbstractAdmin
             ->add('dependeduracion', null, [
                 'label' => 'Depende de duración'
             ])
+            ->add('agendable', null, [
+                'label' => 'Mostrar en agenda'
+            ])
         ;
     }
 
@@ -72,6 +82,9 @@ class ServicioTipocomponenteAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('dependeduracion', null, [
                 'label' => 'Depende de duración'
+            ])
+            ->add('agendable', null, [
+                'label' => 'Mostrar en agenda'
             ])
         ;
     }

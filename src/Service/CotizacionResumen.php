@@ -2,25 +2,23 @@
 
 namespace App\Service;
 
-use \Symfony\Component\Filesystem\Filesystem;
-use \Symfony\Component\Filesystem\Exception\IOExceptionInterface;
-use \Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use \Symfony\Component\DependencyInjection\ContainerAwareTrait;
-use \App\Service\MainTipocambio;
-use \Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
+use App\Service\MainTipocambio;
+use Doctrine\ORM\EntityManagerInterface;
 
 class CotizacionResumen implements ContainerAwareInterface
 {
 
     use ContainerAwareTrait;
 
-    private $tl = 'es';
-    private $doctrine;
+    private string $tl = 'es';
+    private EntityManagerInterface $doctrine;
 
-    private $edadMin = 0;
-    private $edadMax = 120;
+    private int $edadMin = 0;
+    private int $edadMax = 120;
 
-    private $datosTabs;
+    private array $datosTabs;
     private $datosCotizacion;
 
     private $clasificacionTarifas = [];
@@ -30,11 +28,13 @@ class CotizacionResumen implements ContainerAwareInterface
 
     private $tipocambio;
 
-    function getDoctrine(){
+    function getDoctrine(): EntityManagerInterface
+    {
         return $this->doctrine;
     }
 
-    function setTl($tl){
+    function setTl($tl): CotizacionResumen
+    {
         $this->tl = $tl;
         return $this;
     }
@@ -45,7 +45,8 @@ class CotizacionResumen implements ContainerAwareInterface
         $this->tipocambio = $tipocambio;
     }
 
-    function getTituloItinerario(\DateTime $fecha, $itinerarioFechaAux) : string {
+    function getTituloItinerario(\DateTime $fecha, $itinerarioFechaAux) : string
+    {
         if(!empty($itinerarioFechaAux)){
 
             $diaAnterior = clone ($fecha);
@@ -64,7 +65,7 @@ class CotizacionResumen implements ContainerAwareInterface
             }
         }
 
-        return null;
+        return '';
 
     }
 
@@ -222,6 +223,19 @@ class CotizacionResumen implements ContainerAwareInterface
                             $tempArrayComponente['fechahorainicio'] = $componente->getFechahorainicio();
                             $tempArrayComponente['fechahorafin'] = $componente->getFechahorafin();
 
+
+//la presencia del titulo sera un indicador para mostrarlo o no en agenda ya que el tem array componente es interno para los demas procesos
+                            $tempArrayItem=[];
+                            if ($componente->getComponente()->getTipocomponente()->getAgendable() === true && $componente->getComponente()->getComponenteitems()->count() > 0) {
+                                foreach ($componente->getComponente()->getComponenteitems() as $item) {
+                                    if($item->getNomostrartarifa() !== true){
+                                        $tempArrayItem[] = $item->getTitulo();
+
+                                    }
+
+                                }
+                                $tempArrayComponente['titulo'] = implode(', ',  $tempArrayItem);
+                            }
 
 //3N bucle de tarifas
                             foreach ($componente->getCottarifas() as $tarifa):
@@ -490,7 +504,12 @@ class CotizacionResumen implements ContainerAwareInterface
                             if(!empty($this->mensaje)){
                                 return false;
                             }
-                            $datosTabs['agenda']['componentes'][] = $tempArrayComponente;
+
+//solo si tiene titulo lo pongo en agenda
+                            if(isset($tempArrayComponente['titulo'])){
+                                $datosTabs['agenda']['componentes'][] = $tempArrayComponente;
+                            }
+
                             unset($tempArrayComponente);
 
                             //no he sumado prorrateados puede ir en blanco para el caso de que solo exista prorrateado y cuadre con la cantidad de pasajeros
@@ -568,8 +587,8 @@ class CotizacionResumen implements ContainerAwareInterface
     public function orderResumenTarifas(){
 
         usort($this->clasificacionTarifas, function($a, $b) {
-            if (!isset($b['edadMin'])){ $b['edadMin'] = $this->edadMin; };
-            if (!isset($b['edadMax'])){ $b['edadMax'] = $this->edadMax; };
+            if (!isset($b['edadMin'])){ $b['edadMin'] = $this->edadMin; }
+            if (!isset($b['edadMax'])){ $b['edadMax'] = $this->edadMax; }
             return $b['edadMin'] <=> $a['edadMin']; //inverso
         });
 
@@ -978,7 +997,7 @@ class CotizacionResumen implements ContainerAwareInterface
         return array_search(max($voter), $voter);
     }
 
-    public function getFormatedDate($FechaStamp)
+    public function getFormatedDate($FechaStamp): string
     {
 
         if($this->tl != 'es' && $this->tl != 'en'){
