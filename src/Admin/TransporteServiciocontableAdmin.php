@@ -11,17 +11,20 @@ use Sonata\AdminBundle\Route\RouteCollection;
 use Sonata\Form\Type\DatePickerType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
-
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
+use Sonata\AdminBundle\Datagrid\DatagridInterface;
 
 class TransporteServiciocontableAdmin extends AbstractAdmin
 {
-    protected $datagridValues = [
-        '_sort_order' => 'ASC',
-        '_sort_by' => 'servicio.fechahorainicio',
-    ];
+
+    protected function configureDefaultSortValues(array &$sortValues): void
+    {
+        $sortValues[DatagridInterface::PAGE] = 1;
+        $sortValues[DatagridInterface::SORT_ORDER] = 'ASC';
+        $sortValues[DatagridInterface::SORT_BY] = 'servicio.fechahorainicio';
+    }
 
     /**
      * @param DatagridMapper $datagridMapper

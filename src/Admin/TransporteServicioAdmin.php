@@ -15,6 +15,7 @@ use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Symfony\Component\Security\Csrf\TokenStorage\TokenStorageInterface;
+use Sonata\AdminBundle\Datagrid\DatagridInterface;
 
 class TransporteServicioAdmin extends AbstractAdmin
 {
@@ -25,10 +26,13 @@ class TransporteServicioAdmin extends AbstractAdmin
      */
     private $tokenStorage;
 
-    protected $datagridValues = [
-        '_sort_order' => 'ASC',
-        '_sort_by' => 'fechahorainicio',
-    ];
+    protected function configureDefaultSortValues(array &$sortValues): void
+    {
+        $sortValues[DatagridInterface::PAGE] = 1;
+        $sortValues[DatagridInterface::SORT_ORDER] = 'ASC';
+        $sortValues[DatagridInterface::SORT_BY] = 'fechahorainicio';
+    }
+
 
 /*    public function getFilterParameters(){
 

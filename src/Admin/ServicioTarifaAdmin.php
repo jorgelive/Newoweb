@@ -10,19 +10,20 @@ use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\Form\Type\DatePickerType;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Sonata\Form\Type\CollectionType;
-
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
+use Sonata\AdminBundle\Datagrid\DatagridInterface;
 
 class ServicioTarifaAdmin extends AbstractAdmin
 {
 
-    protected $datagridValues = [
-        '_page' => 1,
-        '_sort_order' => 'ASC',
-        '_sort_by' => 'componente',
-    ];
+    protected function configureDefaultSortValues(array &$sortValues): void
+    {
+        $sortValues[DatagridInterface::PAGE] = 1;
+        $sortValues[DatagridInterface::SORT_ORDER] = 'ASC';
+        $sortValues[DatagridInterface::SORT_BY] = 'componente';
+    }
 
     /**
      * @param DatagridMapper $datagridMapper
@@ -86,10 +87,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ])
             ->add('titulo', null, [
                 'label' => 'Título',
-                'editable' => true
-            ])
-            ->add('componente.titulo', null, [
-                'label' => 'Título del Componente',
                 'editable' => true
             ])
             ->add('moneda', null, [
