@@ -273,10 +273,10 @@ file that was distributed with this source code.
                                                                         <li>
                                                                             <p>
                                                                                 {{ tarifaresumen.tipoTarTitulo }}:
-                                                                                <span style="font-weight: bold; color: #00a65a;">
+                                                                                <span style="font-weight: bold; color: #1B6129;">
                                                                                         US$ {{ tarifaresumen.ventadolares }}
                                                                                     </span>
-                                                                                {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #00a65a;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
+                                                                                {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
                                                                             </p>
                                                                         </li>
                                                                     {% endfor %}
@@ -292,10 +292,10 @@ file that was distributed with this source code.
                                                             <li>
                                                                 <p>
                                                                     {{ resumenitem.titulo }}:
-                                                                    <span style="font-weight: bold; color: #00a65a;">
+                                                                    <span style="font-weight: bold; color: #1B6129;">
                                                                         US$ {{ resumenitem.ventadolares }}
                                                                     </span>
-                                                                    {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #00a65a;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
+                                                                    {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
 
                                                                     , reserve con el {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
                                                                     {% if cotizacion.file.paisid == 117 %}
@@ -316,11 +316,11 @@ file that was distributed with this source code.
                                                                 </span>
                                                             </p>
                                                             <p>Tarifa en soles al tipo de cambio referencial de
-                                                                <span style="font-weight: bold; color: #00a65a;">
+                                                                <span style="font-weight: bold; color: #1B6129;">
                                                                     {{ cotizacion.cotizacion.tipocambioventa }}
                                                                 </span>
                                                                 del dia
-                                                                <span style="font-weight: bold; color: #00a65a;">
+                                                                <span style="font-weight: bold; color: #1B6129;">
                                                                     {{ cotizacion.cotizacion.fechacotizacion }}
                                                                 </span>
                                                             </p>
@@ -375,10 +375,10 @@ file that was distributed with this source code.
                                                                 <tbody>
                                                                 {%  for resumenitem in contenido.resumen %}
                                                                     <tr>
-                                                                        <td class="text-right" style="font-weight: bold; color: #00a65a;">
+                                                                        <td class="text-right" style="font-weight: bold; color: #1B6129;">
                                                                             {{ resumenitem.gananciasoles }}
                                                                         </td>
-                                                                        <td class="text-right" style="font-weight: bold; color: #00a65a;">
+                                                                        <td class="text-right" style="font-weight: bold; color: #1B6129;">
                                                                             {{ resumenitem.gananciadolares }}
                                                                         </td>
                                                                         <td>
@@ -463,7 +463,7 @@ file that was distributed with this source code.
                                                                     <tbody>
                                                                     {%  for tarifadetalle in rango.tarifas %}
                                                                     <tr>
-                                                                        <td style="font-weight: bold;  color: #00a65a;">
+                                                                        <td style="font-weight: bold;  color: #1B6129;">
                                                                             {% if tarifadetalle.cantidadComponente > 1 %}
                                                                                 {{ tarifadetalle.cantidadComponente }} x&nbsp;
                                                                             {% endif %}
