@@ -209,34 +209,37 @@ file that was distributed with this source code.
                             <div class="box-body container-fluid">
                                 <div class="sonata-ba-collapsed-fields">
 
+
                                     {% if name == 'tarifas' %}
-                                        <h3 class="visible-print">{{ contenido.nombre}}</h3>
-                                        <div class="panel-group box box-primary" id="accordiontarifas">
+                                    <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                    {% if action == 'show' %}
+                                    <div class="panel-group box box-primary" id="accordiontarifas">
+                                        <div class="panel panel-default hidden-print">
+                                            <div class="panel-heading">
+                                                <h5 class="panel-title">
+                                                    <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas1">
+                                                        Precio de venta
+                                                    </a>
+                                                </h5>
+                                            </div>
+                                            <div id="collapsetarifas1" class="panel-collapse collapse in">
+                                    {% endif %}
+                                                <div class="panel-body table-responsive">
 
-                                            <div class="panel panel-default hidden-print">
-                                                <div class="panel-heading">
-                                                    <h5 class="panel-title">
-                                                        <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas1">
-                                                            Precio de venta
-                                                        </a>
-                                                    </h5>
-                                                </div>
-                                                <div id="collapsetarifas1" class="panel-collapse collapse in">
-                                                    <div class="panel-body table-responsive">
-                                                        <h3 class="visible-print">Precio de Venta</h3>
+                                                    <h3 class="visible-print">Precio de Venta</h3>
 
-                                                        <h4>Precio por pasajero:</h4>
-                                                        <ul style="list-style-type: none; padding-left: 18px">
+                                                    <h4>Precio por pasajero:</h4>
+                                                    <ul style="list-style-type: none; padding-left: 18px">
 
-                                                            {% for rango in contenido.rangos %}
-                                                                <li>
-                                                                    <p>
-                                                                        {{ rango.tipoPaxNombre }}
-                                                                        {% if rango.tituloPersistente is defined %}
-                                                                            &nbsp;&nbsp;{{ rango.tituloPersistente }}
-                                                                        {% endif %}
+                                                        {% for rango in contenido.rangos %}
+                                                            <li>
+                                                                <p>
+                                                                    {{ rango.tipoPaxNombre }}
+                                                                    {% if rango.tituloPersistente is defined %}
+                                                                        &nbsp;&nbsp;{{ rango.tituloPersistente }}
+                                                                    {% endif %}
 
-                                                                        <span style="font-size: 0.9em;">
+                                                                    <span style="font-size: 0.9em;">
                                                                             {% if rango.edadMin is defined or rango.edadMax is defined %}
 
                                                                                 {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
@@ -262,60 +265,313 @@ file that was distributed with this source code.
 
                                                                             {% endif %}
                                                                         </span>
-                                                                        <strong>x{{ rango.cantidad }}</strong>
-                                                                    </p>
+                                                                    <strong>x{{ rango.cantidad }}</strong>
+                                                                </p>
 
-                                                                    <ul style="list-style-type: none; padding-left: 18px;">
-                                                                        {% for tarifaresumen in rango.resumen | filter(tarifaresumen => tarifaresumen.ventasoles > 0 and tarifaresumen.tipoTarOculto == false) %}
-                                                                            <li>
-                                                                                <p>
-                                                                                    {{ tarifaresumen.tipoTarTitulo }}:
-                                                                                    <span style="font-weight: bold; color: #00a65a;">
+                                                                <ul style="list-style-type: none; padding-left: 18px;">
+                                                                    {% for tarifaresumen in rango.resumen | filter(tarifaresumen => tarifaresumen.ventasoles > 0 and tarifaresumen.tipoTarOculto == false) %}
+                                                                        <li>
+                                                                            <p>
+                                                                                {{ tarifaresumen.tipoTarTitulo }}:
+                                                                                <span style="font-weight: bold; color: #00a65a;">
                                                                                         US$ {{ tarifaresumen.ventadolares }}
                                                                                     </span>
-                                                                                    {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #00a65a;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
-                                                                                </p>
-                                                                            </li>
-                                                                        {% endfor %}
-                                                                    </ul>
-                                                                </li>
-                                                            {% endfor %}
-                                                        </ul>
+                                                                                {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #00a65a;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
+                                                                            </p>
+                                                                        </li>
+                                                                    {% endfor %}
+                                                                </ul>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
 
-                                                        <h4 style="margin-top: 15px;">Total </h4>
+                                                    <h4 style="margin-top: 15px;">Total </h4>
 
-                                                        <ul style="list-style-type: none; padding-left: 18px;">
-                                                            {%  for resumenitem in contenido.resumen | filter (resumenitem => resumenitem.oculto is same as (false)) %}
+                                                    <ul style="list-style-type: none; padding-left: 18px;">
+                                                        {%  for resumenitem in contenido.resumen | filter (resumenitem => resumenitem.oculto is same as (false)) %}
                                                             <li>
                                                                 <p>
                                                                     {{ resumenitem.titulo }}:
                                                                     <span style="font-weight: bold; color: #00a65a;">
                                                                         US$ {{ resumenitem.ventadolares }}
                                                                     </span>
-                                                                        {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #00a65a;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
+                                                                    {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #00a65a;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
 
-                                                                        , reserve con el {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
-                                                                        {% if cotizacion.file.paisid == 117 %}
-                                                                            o S/.{{ resumenitem.adelantosoles }}
-                                                                        {% endif %}
-                                                                        )
+                                                                    , reserve con el {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
+                                                                    {% if cotizacion.file.paisid == 117 %}
+                                                                        o S/.{{ resumenitem.adelantosoles }}
+                                                                    {% endif %}
+                                                                    )
 
                                                                 </p>
                                                             </li>
                                                         {% endfor %}
-                                                        </ul>
-                                                    </div>
+                                                    </ul>
+                                                    {% if cotizacion.file.paisid == 117 %}
+                                                        <h4 style="margin-top: 15px;">Nota: </h4>
+                                                        <div>
+                                                            <p>Tarifa base:
+                                                                <span style="font-weight: bold;">
+                                                                    DOLARES
+                                                                </span>
+                                                            </p>
+                                                            <p>Tarifa en soles al tipo de cambio referencial de
+                                                                <span style="font-weight: bold; color: #00a65a;">
+                                                                    {{ cotizacion.cotizacion.tipocambioventa }}
+                                                                </span>
+                                                                del dia
+                                                                <span style="font-weight: bold; color: #00a65a;">
+                                                                    {{ cotizacion.cotizacion.fechacotizacion }}
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    {% endif %}
                                                 </div>
+                                    {% if action == 'show' %}
                                             </div>
+                                        </div>
+                                    {% endif %}
+
+                                        {% if action == 'show' %}
                                             <div class="panel panel-default hidden-print">
-                                                <div class="panel-heading">
+                                                <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
                                                     <h5 class="panel-title">
                                                         <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas2">
-                                                            Servicios incluidos
+                                                            Interno: Valores
                                                         </a>
                                                     </h5>
                                                 </div>
                                                 <div id="collapsetarifas2" class="panel-collapse collapse">
+                                                    <div class="panel-body table-responsive">
+                                                        <h3 class="visible-print">Valores</h3>
+                                                        <h4><strong>Resumen General</strong> al <span style="font-size: 0.7em;"> {{ cotizacion.cotizacion.comision|number_format(2, '.', '')}}% </span></h4>
+                                                        <div class="box-body table-responsive no-padding">
+                                                            <table class="table table-bordered table-striped sonata-ba-list">
+                                                                <thead>
+                                                                <tr class="sonata-ba-list-field-header">
+                                                                    <th class="text-center">
+                                                                        Ganancia<br />S/.
+                                                                    </th>
+                                                                    <th class="text-center">
+                                                                        Ganancia<br />$
+                                                                    </th>
+                                                                    <th class="text-center">
+                                                                        Típo
+                                                                    </th>
+                                                                    <th class="text-center">
+                                                                        Costo<br />S/.
+                                                                    </th>
+                                                                    <th class="text-center">
+                                                                        Costo<br />$
+                                                                    </th>
+                                                                    <th class="text-center">
+                                                                        Venta<br />S/.
+                                                                    </th>
+                                                                    <th class="text-center">
+                                                                        Venta<br />$
+                                                                    </th>
+                                                                </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                {%  for resumenitem in contenido.resumen %}
+                                                                    <tr>
+                                                                        <td class="text-right" style="font-weight: bold; color: #00a65a;">
+                                                                            {{ resumenitem.gananciasoles }}
+                                                                        </td>
+                                                                        <td class="text-right" style="font-weight: bold; color: #00a65a;">
+                                                                            {{ resumenitem.gananciadolares }}
+                                                                        </td>
+                                                                        <td>
+                                                                            {{ resumenitem.titulo }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ resumenitem.montosoles }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ resumenitem.montodolares }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ resumenitem.ventasoles }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ resumenitem.ventadolares }}
+                                                                        </td>
+
+                                                                    </tr>
+                                                                {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                        <br />
+                                                        <h4><strong>Por tipo de pasajero</strong></h4>
+                                                        {% for rango in contenido.rangos %}
+                                                            <h4>
+                                                                {{ rango.tipoPaxNombre }} <strong>x {{ rango.cantidad }}</strong>
+                                                            </h4>
+                                                            {% if rango.edadMin is defined or rango.edadMax is defined%}
+                                                                <p>
+                                                                    {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
+                                                                        de {{ rango.edadMin }} años
+                                                                        {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                                                            &nbsp;<br />(con carné de estudiante válido y vigente)
+                                                                        {% endif %}
+
+                                                                    {% else %}
+                                                                        {% if rango.edadMin is defined %}
+                                                                            desde {{ rango.edadMin }} años
+                                                                        {% endif %}
+
+                                                                        {% if rango.edadMax is defined %}
+                                                                            hasta {{ rango.edadMax }} años
+                                                                            {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                                                                <br />(con carné de estudiante válido y vigente)
+                                                                            {% endif %}
+                                                                        {% endif %}
+
+                                                                    {% endif %}
+
+                                                                </p>
+                                                            {% endif %}
+
+                                                            {% if rango.tituloPersistente is defined %}
+                                                                <h5>{{ rango.tituloPersistente }}</h5>
+                                                            {% endif %}
+                                                            <div style="margin-left: 15px;" class="box-body table-responsive no-padding">
+                                                                <table class="table table-bordered table-striped sonata-ba-list">
+                                                                    <thead>
+                                                                    <tr class="sonata-ba-list-field-header">
+                                                                        <th>
+                                                                            Monto Cotizado
+                                                                        </th>
+                                                                        <th>
+                                                                            Tipo
+                                                                        </th>
+                                                                        <th>
+                                                                            Componente (Tarifa)
+                                                                        </th>
+                                                                        <th>
+                                                                            Servicio
+                                                                        </th>
+                                                                        <th class="text-right">
+                                                                            Venta soles
+                                                                        </th>
+                                                                        <th class="text-right">
+                                                                            Venta dolares
+                                                                        </th>
+                                                                    </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                    {%  for tarifadetalle in rango.tarifas %}
+                                                                    <tr>
+                                                                        <td style="font-weight: bold;  color: #00a65a;">
+                                                                            {% if tarifadetalle.cantidadComponente > 1 %}
+                                                                                {{ tarifadetalle.cantidadComponente }} x&nbsp;
+                                                                            {% endif %}
+                                                                            {{ tarifadetalle.montoOriginal }}&nbsp;{{ tarifadetalle.monedaOriginal }}
+                                                                            {% if tarifadetalle.prorrateado %}
+                                                                                &nbsp;(P)
+                                                                            {% else %}
+                                                                                &nbsp;(U)
+                                                                            {% endif %}
+                                                                        </td>
+                                                                        <td>
+                                                                            {{ tarifadetalle.tipoTarTitulo }}
+                                                                        </td>
+                                                                        <td>
+                                                                            {{ tarifadetalle.nombreComponente }} ({{ tarifadetalle.nombre }})
+                                                                        </td>
+                                                                        <td>
+                                                                            {{ tarifadetalle.nombreServicio }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ tarifadetalle.ventasoles }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ tarifadetalle.ventadolares }}
+                                                                        </td>
+
+                                                                        {% endfor %}
+                                                                    </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                            <br />
+                                                            <div style="margin-left: 30px;" class="box-body table-responsive no-padding">
+                                                                <table class="table table-bordered table-striped sonata-ba-list">
+                                                                    <thead>
+                                                                    <tr class="sonata-ba-list-field-header">
+                                                                        <th>
+                                                                            Tipo
+                                                                        </th>
+                                                                        <th>
+                                                                            Título
+                                                                        </th>
+                                                                        <th class="text-right">
+                                                                            Costo Soles
+                                                                        </th>
+                                                                        <th class="text-right">
+                                                                            Costo Dolares
+                                                                        </th>
+                                                                        <th class="text-right">
+                                                                            Venta soles
+                                                                        </th>
+                                                                        <th class="text-right">
+                                                                            Venta dolares
+                                                                        </th>
+                                                                    </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                    {%  for tarifaresumen in rango.resumen %}
+                                                                    <tr>
+                                                                        <td>
+                                                                            {{ tarifaresumen.tipoTarNombre }}
+                                                                        </td>
+                                                                        <td>
+                                                                            {{ tarifaresumen.tipoTarTitulo }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ tarifaresumen.montosoles }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ tarifaresumen.montodolares }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ tarifaresumen.ventasoles }}
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            {{ tarifaresumen.ventadolares }}
+                                                                        </td>
+                                                                        {% endfor %}
+                                                                    </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                            <br />
+                                                        {% endfor %}
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% if action == 'show' %}
+                                    </div>
+                                    {% endif %}
+
+
+                                    {% elseif name == 'incluye' %}
+                                        <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                        {% if action == 'show' %}
+                                        <div class="panel-group box box-primary" id="accordionincluye">
+                                            <div class="panel panel-default hidden-print">
+                                                <div class="panel-heading">
+                                                    <h5 class="panel-title">
+                                                        <a data-toggle="collapse" data-parent="#accordionincluye" href="#collapseincluye1">
+                                                            Publico: Servicios incluidos
+                                                        </a>
+                                                    </h5>
+                                                </div>
+                                                <div id="collapseincluye1" class="panel-collapse collapse in">
+                                        {% endif%}
                                                     <div class="panel-body table-responsive">
                                                         <h3 class="visible-print">Servicios incluidos</h3>
                                                         {% for incluido in contenido.incluidos %}
@@ -356,19 +612,21 @@ file that was distributed with this source code.
                                                             </ul>
                                                         {% endfor %}
                                                     </div>
+                                        {% if action == 'show' %}
                                                 </div>
                                             </div>
+                                        {% endif %}
 
                                             {% if action == 'show' %}
                                                 <div class="panel panel-default hidden-print">
                                                     <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
                                                         <h5 class="panel-title">
-                                                            <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas3">
+                                                            <a data-toggle="collapse" data-parent="#accordionincluye" href="#collapseincluye2">
                                                                 Interno: Servicios incluidos
                                                             </a>
                                                         </h5>
                                                     </div>
-                                                    <div id="collapsetarifas3" class="panel-collapse collapse">
+                                                    <div id="collapseincluye2" class="panel-collapse collapse">
                                                         <div class="panel-body table-responsive">
                                                             <h3 class="visible-print">Interno: Servicios incluidos</h3>
                                                             {% for internoIncluido in contenido.internoIncluidos %}
@@ -410,230 +668,10 @@ file that was distributed with this source code.
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="panel panel-default hidden-print">
-                                                    <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
-                                                        <h5 class="panel-title">
-                                                            <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas4">
-                                                                Interno: Valores
-                                                            </a>
-                                                        </h5>
-                                                    </div>
-                                                    <div id="collapsetarifas4" class="panel-collapse collapse">
-                                                        <div class="panel-body table-responsive">
-                                                            <h3 class="visible-print">Valores</h3>
-                                                            <h4><strong>Resumen General</strong> al <span style="font-size: 0.7em;"> {{ cotizacion.cotizacion.comision|number_format(2, '.', '')}}% </span></h4>
-                                                            <div class="box-body table-responsive no-padding">
-                                                                <table class="table table-bordered table-striped sonata-ba-list">
-                                                                    <thead>
-                                                                    <tr class="sonata-ba-list-field-header">
-                                                                        <th class="text-center">
-                                                                            Ganancia<br />S/.
-                                                                        </th>
-                                                                        <th class="text-center">
-                                                                            Ganancia<br />$
-                                                                        </th>
-                                                                        <th class="text-center">
-                                                                            Típo
-                                                                        </th>
-                                                                        <th class="text-center">
-                                                                            Costo<br />S/.
-                                                                        </th>
-                                                                        <th class="text-center">
-                                                                            Costo<br />$
-                                                                        </th>
-                                                                        <th class="text-center">
-                                                                            Venta<br />S/.
-                                                                        </th>
-                                                                        <th class="text-center">
-                                                                            Venta<br />$
-                                                                        </th>
-                                                                    </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                    {%  for resumenitem in contenido.resumen %}
-                                                                    <tr>
-                                                                        <td class="text-right" style="font-weight: bold; color: #00a65a;">
-                                                                            {{ resumenitem.gananciasoles }}
-                                                                        </td>
-                                                                        <td class="text-right" style="font-weight: bold; color: #00a65a;">
-                                                                            {{ resumenitem.gananciadolares }}
-                                                                        </td>
-                                                                        <td>
-                                                                            {{ resumenitem.titulo }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ resumenitem.montosoles }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ resumenitem.montodolares }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ resumenitem.ventasoles }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ resumenitem.ventadolares }}
-                                                                        </td>
-
-                                                                    </tr>
-                                                                    {% endfor %}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                            <br />
-                                                            <h4><strong>Por tipo de pasajero</strong></h4>
-                                                            {% for rango in contenido.rangos %}
-                                                                <h4>
-                                                                    {{ rango.tipoPaxNombre }} <strong>x {{ rango.cantidad }}</strong>
-                                                                </h4>
-                                                                {% if rango.edadMin is defined or rango.edadMax is defined%}
-                                                                    <p>
-                                                                        {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
-                                                                            de {{ rango.edadMin }} años
-                                                                            {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                                                                &nbsp;<br />(con carné de estudiante válido y vigente)
-                                                                            {% endif %}
-
-                                                                        {% else %}
-                                                                            {% if rango.edadMin is defined %}
-                                                                                desde {{ rango.edadMin }} años
-                                                                            {% endif %}
-
-                                                                            {% if rango.edadMax is defined %}
-                                                                                hasta {{ rango.edadMax }} años
-                                                                                {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                                                                    <br />(con carné de estudiante válido y vigente)
-                                                                                {% endif %}
-                                                                            {% endif %}
-
-                                                                        {% endif %}
-
-                                                                    </p>
-                                                                {% endif %}
-
-                                                                {% if rango.tituloPersistente is defined %}
-                                                                    <h5>{{ rango.tituloPersistente }}</h5>
-                                                                {% endif %}
-                                                                <div style="margin-left: 15px;" class="box-body table-responsive no-padding">
-                                                                    <table class="table table-bordered table-striped sonata-ba-list">
-                                                                        <thead>
-                                                                        <tr class="sonata-ba-list-field-header">
-                                                                            <th>
-                                                                                Monto Cotizado
-                                                                            </th>
-                                                                            <th>
-                                                                                Tipo
-                                                                            </th>
-                                                                            <th>
-                                                                                Componente (Tarifa)
-                                                                            </th>
-                                                                            <th>
-                                                                                Servicio
-                                                                            </th>
-                                                                            <th class="text-right">
-                                                                                Venta soles
-                                                                            </th>
-                                                                            <th class="text-right">
-                                                                                Venta dolares
-                                                                            </th>
-                                                                        </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                        {%  for tarifadetalle in rango.tarifas %}
-                                                                        <tr>
-                                                                            <td style="font-weight: bold;  color: #00a65a;">
-                                                                                {% if tarifadetalle.cantidadComponente > 1 %}
-                                                                                    {{ tarifadetalle.cantidadComponente }} x&nbsp;
-                                                                                {% endif %}
-                                                                                {{ tarifadetalle.montoOriginal }}&nbsp;{{ tarifadetalle.monedaOriginal }}
-                                                                                {% if tarifadetalle.prorrateado %}
-                                                                                    &nbsp;(P)
-                                                                                {% else %}
-                                                                                    &nbsp;(U)
-                                                                                {% endif %}
-                                                                            </td>
-                                                                            <td>
-                                                                                {{ tarifadetalle.tipoTarTitulo }}
-                                                                            </td>
-                                                                            <td>
-                                                                                {{ tarifadetalle.nombreComponente }} ({{ tarifadetalle.nombre }})
-                                                                            </td>
-                                                                            <td>
-                                                                                {{ tarifadetalle.nombreServicio }}
-                                                                            </td>
-                                                                            <td class="text-right">
-                                                                                {{ tarifadetalle.ventasoles }}
-                                                                            </td>
-                                                                            <td class="text-right">
-                                                                                {{ tarifadetalle.ventadolares }}
-                                                                            </td>
-
-                                                                            {% endfor %}
-                                                                        </tr>
-                                                                        </tbody>
-                                                                    </table>
-                                                                </div>
-                                                                <br />
-                                                                <div style="margin-left: 30px;" class="box-body table-responsive no-padding">
-                                                                    <table class="table table-bordered table-striped sonata-ba-list">
-                                                                        <thead>
-                                                                        <tr class="sonata-ba-list-field-header">
-                                                                            <th>
-                                                                                Tipo
-                                                                            </th>
-                                                                            <th>
-                                                                                Título
-                                                                            </th>
-                                                                            <th class="text-right">
-                                                                                Costo Soles
-                                                                            </th>
-                                                                            <th class="text-right">
-                                                                                Costo Dolares
-                                                                            </th>
-                                                                            <th class="text-right">
-                                                                                Venta soles
-                                                                            </th>
-                                                                            <th class="text-right">
-                                                                                Venta dolares
-                                                                            </th>
-                                                                        </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                        {%  for tarifaresumen in rango.resumen %}
-                                                                        <tr>
-                                                                            <td>
-                                                                                {{ tarifaresumen.tipoTarNombre }}
-                                                                            </td>
-                                                                            <td>
-                                                                                {{ tarifaresumen.tipoTarTitulo }}
-                                                                            </td>
-                                                                            <td class="text-right">
-                                                                                {{ tarifaresumen.montosoles }}
-                                                                            </td>
-                                                                            <td class="text-right">
-                                                                                {{ tarifaresumen.montodolares }}
-                                                                            </td>
-                                                                            <td class="text-right">
-                                                                                {{ tarifaresumen.ventasoles }}
-                                                                            </td>
-                                                                            <td class="text-right">
-                                                                                {{ tarifaresumen.ventadolares }}
-                                                                            </td>
-                                                                            {% endfor %}
-                                                                        </tr>
-                                                                        </tbody>
-                                                                    </table>
-                                                                </div>
-                                                                <br />
-                                                            {% endfor %}
-
-                                                        </div>
-                                                    </div>
-                                                </div>
                                             {% endif %}
-
+                                        {% if action == 'show' %}
                                         </div>
-
-
+                                        {% endif %}
 
                                     {% elseif name == 'politica' %}
                                         <h3 class="visible-print">{{ contenido.nombre}}</h3>

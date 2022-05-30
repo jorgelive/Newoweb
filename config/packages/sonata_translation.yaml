@@ -1,5 +1,5 @@
 sonata_translation:
-    locales: ['en', 'fr', 'it', 'nl', 'es']
+    locales: ['en', 'es']
     default_locale: 'es'
     locale_switcher: true
     # change default behavior for translated field filtering.

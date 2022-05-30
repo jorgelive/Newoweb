@@ -91,7 +91,8 @@ class CotizacionResumen implements ContainerAwareInterface
 
 //para mostrar primero el itinerario
         $datosTabs['itinerario']['nombre'] = 'Itinerario';
-        $datosTabs['tarifas']['nombre'] = 'Detalle';
+        $datosTabs['tarifas']['nombre'] = 'Precio';
+        $datosTabs['incluye']['nombre'] = 'Incluidos';
         $datosTabs['agenda']['nombre'] = 'Agenda';
         $datosTabs['politica']['nombre'] = $cotizacion->getCotpolitica()->getTitulo();
         $datosTabs['politica']['contenido'] = $cotizacion->getCotpolitica()->getContenido();
@@ -105,6 +106,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
         $datosCotizacion['cotizacion']['tipocambiocompra'] = $tipoCambio->getCompra();
         $datosCotizacion['cotizacion']['tipocambioventa'] = $tipoCambio->getVenta();
+        $datosCotizacion['cotizacion']['fechacotizacion'] = $cotizacion->getCreado()->format('Y-m-d');
         $datosCotizacion['cotizacion']['comision'] = $cotizacion->getComision();
         $datosCotizacion['cotizacion']['adelanto'] = $cotizacion->getAdelanto();
         $datosCotizacion['cotizacion']['nombre'] = $cotizacion->getNombre();
@@ -210,7 +212,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
                             $cantidadComponente = 0;
 //$tempArrayComponente y $tempArrayTarifa son para clasificacion por rangos
-//$tempArrayIncluye solo sirve para la muestra de "incluye" al cliente se deposita en $datosTabs['tarifas']['servicios']
+//$tempArrayIncluye solo sirve para la muestra de "incluye" al cliente se deposita en $datosTabs['incluye']['servicios']
                             $tempArrayComponente = [];
 
                             if (!empty($itinerarioFechaAux)) {
@@ -246,14 +248,14 @@ class CotizacionResumen implements ContainerAwareInterface
 //Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
                                 if (isset($tempArrayComponente['tituloItinerario']) && !empty($tempArrayComponente['tituloItinerario'])) {
                                     $servicioId = $servicio->getId();
-                                    $datosTabs['tarifas']['internoIncluidos'][$servicioId]['tituloItinerario'] = $tempArrayComponente['tituloItinerario'];
+                                    $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = $tempArrayComponente['tituloItinerario'];
 
                                 } else {
                                     $servicioId = -1;
-                                    $datosTabs['tarifas']['internoIncluidos'][$servicioId]['tituloItinerario'] = 'Varios';
+                                    $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = 'Varios';
                                 }
 
-                                $datosTabs['tarifas']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
+                                $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
 //Agrupo las tarifas incluidas para manejo interno
                                 $tempArrayInternoIncluye['nombre'] = $tarifa->getTarifa()->getNombre();
                                 $tempArrayInternoIncluye['cantidad'] = (int)($tarifa->getCantidad());
@@ -298,22 +300,22 @@ class CotizacionResumen implements ContainerAwareInterface
                                     $tempArrayInternoIncluye['detalles'] = $tempArrayDetalle;
                                 }
 
-                                $datosTabs['tarifas']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['cantidadComponente'] = $componente->getCantidad();
+                                $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['cantidadComponente'] = $componente->getCantidad();
 
-                                $datosTabs['tarifas']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['nombre'] = $componente->getComponente()->getNombre();
+                                $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['nombre'] = $componente->getComponente()->getNombre();
 
-                                $datosTabs['tarifas']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['listaclase'] = $tarifa->getTipotarifa()->getListaclase();
-                                $datosTabs['tarifas']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
+                                $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['listaclase'] = $tarifa->getTipotarifa()->getListaclase();
+                                $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
 
                                 if (!empty($componente->getFechahorainicio())) {
-                                    $datosTabs['tarifas']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['fecha'] = $componente->getFechahorainicio()->format('Y-m-d');
+                                    $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['fecha'] = $componente->getFechahorainicio()->format('Y-m-d');
                                 }
 
-                                $datosTabs['tarifas']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['tarifas'][] = $tempArrayInternoIncluye;
+                                $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['tarifas'][] = $tempArrayInternoIncluye;
 
                                 unset($tempArrayInternoIncluye);
 
-                                ksort($datosTabs['tarifas']['internoIncluidos'][$servicioId]['tipotarifas']);
+                                ksort($datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas']);
 
 //Agrupo las tarifas incluidas para mostrar al cliente
 
@@ -322,8 +324,8 @@ class CotizacionResumen implements ContainerAwareInterface
                                 if ($componente->getComponente()->getComponenteitems()->count() > 0) {
 //Pongo el titulo del itinerario que ya defini para los internos
 
-                                    $datosTabs['tarifas']['incluidos'][$servicioId]['tituloItinerario'] = $datosTabs['tarifas']['internoIncluidos'][$servicioId]['tituloItinerario'];
-                                    $datosTabs['tarifas']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
+                                    $datosTabs['incluye']['incluidos'][$servicioId]['tituloItinerario'] = $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'];
+                                    $datosTabs['incluye']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
 
 //4N bucle de items, para cada item pongo la tarifa
                                     foreach ($componente->getComponente()->getComponenteitems() as $item) {
@@ -373,25 +375,25 @@ class CotizacionResumen implements ContainerAwareInterface
                                             }
                                         }
 
-                                        $datosTabs['tarifas']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['cantidadComponente'] = $componente->getCantidad();
+                                        $datosTabs['incluye']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['cantidadComponente'] = $componente->getCantidad();
 
-                                        $datosTabs['tarifas']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
+                                        $datosTabs['incluye']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
 
-                                        $datosTabs['tarifas']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listaclase'] = $tarifa->getTipotarifa()->getListaclase();
-                                        $datosTabs['tarifas']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
+                                        $datosTabs['incluye']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listaclase'] = $tarifa->getTipotarifa()->getListaclase();
+                                        $datosTabs['incluye']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
 
                                         if (!empty($componente->getFechahorainicio())) {
-                                            $datosTabs['tarifas']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['fecha'] = $componente->getFechahorainicio()->format('Y-m-d');
+                                            $datosTabs['incluye']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['fecha'] = $componente->getFechahorainicio()->format('Y-m-d');
                                         }
 
                                         if (!empty($tempArrayIncluye)) {
-                                            $datosTabs['tarifas']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['tarifas'][] = $tempArrayIncluye;
+                                            $datosTabs['incluye']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['tarifas'][] = $tempArrayIncluye;
                                             unset($tempArrayIncluye);
                                         }
 
                                     }
 
-                                    ksort($datosTabs['tarifas']['incluidos'][$servicioId]['tipotarifas']);
+                                    ksort($datosTabs['incluye']['incluidos'][$servicioId]['tipotarifas']);
                                 }
 
 //Tarifa por rango y el resumen por rango usa los temporales $tempArrayComponente['tarifas'][] = $tempArrayTarifa genera las variables $this->clasificacionTarifas y $this->resumendeClasificado; procesando los temporales
@@ -533,15 +535,11 @@ class CotizacionResumen implements ContainerAwareInterface
             endforeach;
 
 //Ordenamos el varios al final
-            if(isset($datosTabs['tarifas']['incluidos'][-1])){
-                $datosTabs['tarifas']['incluidos'][] = $datosTabs['tarifas']['incluidos'][-1];
-                unset($datosTabs['tarifas']['incluidos'][-1]);
+            if(isset($datosTabs['incluye']['incluidos'][-1])){
+                $datosTabs['incluye']['incluidos'][] = $datosTabs['incluye']['incluidos'][-1];
+                unset($datosTabs['incluye']['incluidos'][-1]);
             }
 
-            if(isset($datosTabs['tarifas']['internoIncluidos'][-1])){
-                $datosTabs['tarifas']['internoIncluidos'][] = $datosTabs['tarifas']['internoIncluidos'][-1];
-                unset($datosTabs['tarifas']['internoIncluidos'][-1]);
-            }
 
         }else{
             $this->mensaje = 'El la cotización no tiene servicios.';
