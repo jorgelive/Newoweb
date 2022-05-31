@@ -20,7 +20,6 @@ class CotizacionCotpoliticaAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
-            ->add('titulo', TranslationFieldFilter::class)
             ->add('contenido', TranslationFieldFilter::class)
         ;
     }
@@ -33,7 +32,6 @@ class CotizacionCotpoliticaAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('nombre')
-            ->add('titulo')
             ->add('contenido')
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -53,7 +51,6 @@ class CotizacionCotpoliticaAdmin extends AbstractAdmin
     {
         $formMapper
             ->add('nombre')
-            ->add('titulo')
             ->add('contenido', null, [
                 'required' => false,
                 'attr' => ['class' => 'ckeditor']
@@ -69,7 +66,6 @@ class CotizacionCotpoliticaAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
-            ->add('titulo')
             ->add('contenido')
         ;
     }

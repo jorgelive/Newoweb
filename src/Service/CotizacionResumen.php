@@ -91,10 +91,15 @@ class CotizacionResumen implements ContainerAwareInterface
 
 //para mostrar primero el itinerario
         $datosTabs['itinerario']['nombre'] = 'Itinerario';
+        $datosTabs['itinerario']['icono'] = 'fa-map';
         $datosTabs['tarifas']['nombre'] = 'Precio';
+        $datosTabs['tarifas']['icono'] = 'fa-dollar-sign';
         $datosTabs['incluye']['nombre'] = 'Incluidos';
+        $datosTabs['incluye']['icono'] = 'fa-check';
         $datosTabs['agenda']['nombre'] = 'Agenda';
-        $datosTabs['politica']['nombre'] = $cotizacion->getCotpolitica()->getTitulo();
+        $datosTabs['agenda']['icono'] = 'fa-calendar';
+        $datosTabs['politica']['nombre'] = 'Términos';
+        $datosTabs['politica']['icono'] = 'fa-exclamation';
         $datosTabs['politica']['contenido'] = $cotizacion->getCotpolitica()->getContenido();
 
 //datos generales del encabezado
@@ -221,10 +226,8 @@ class CotizacionResumen implements ContainerAwareInterface
 
                             $tempArrayComponente['nombre'] = $componente->getComponente()->getNombre();
                             $tempArrayComponente['tipoComponente'] = $componente->getComponente()->getTipocomponente()->getNombre();
-                            //todo manejo interno no utilizo titilo?
                             $tempArrayComponente['fechahorainicio'] = $componente->getFechahorainicio();
                             $tempArrayComponente['fechahorafin'] = $componente->getFechahorafin();
-
 
 //la presencia del titulo sera un indicador para mostrarlo o no en agenda ya que el tem array componente es interno para los demas procesos
                             $tempArrayItem=[];

@@ -77,7 +77,7 @@ file that was distributed with this source code.
                             <div class="panel-heading">
                                 <h5 class="panel-title">
                                     <a data-toggle="collapse" data-parent="#accordion" href="#collapse1">
-                                        Relación de pasajeros
+                                        <i class="fas fa-users"></i> Relación de pasajeros
                                     </a>
                                 </h5>
                             </div>
@@ -152,7 +152,7 @@ file that was distributed with this source code.
                             <div style="background-color: rgba(0,172,214,0.18);" class="panel-heading">
                                 <h5 class="panel-title">
                                     <a style="font-weight: bold;" data-toggle="collapse" data-parent="#accordion" href="#collapse2">
-                                        Tickets y documentos
+                                        <i class="fas fa-file"></i> Tickets y documentos
                                     </a>
                                 </h5>
                             </div>
@@ -193,8 +193,8 @@ file that was distributed with this source code.
                     {% for name, contenido in tabs %}
                         <li{% if loop.first %} class="active"{% endif %}>
                             <a href="#tab_{{ admin.uniqid }}_{{ loop.index }}" data-toggle="tab">
-                                <i class="fa fa-exclamation-circle has-errors hide" aria-hidden="true"></i>
-                                {{ contenido.nombre }}
+                                <i class="fas {{ contenido.icono }}" aria-hidden="true"></i>
+                                <span style="font-size: 1.2em">{{ contenido.nombre }}</span>
                             </a>
                         </li>
                     {% endfor %}
@@ -581,7 +581,7 @@ file that was distributed with this source code.
                                                                     <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
                                                                         <ul class="fa-ul">
                                                                             {% for componente in tipotarifa.componentes %}
-                                                                                <li><span class="fa-li"><i style="color: {{ componente.listacolor }};" class="fa {{ componente.listaclase }}"></i></span>{% if componente.cantidadComponente > 1 %} <strong>{{ componente.cantidadComponente }} x</strong>{% endif %} {{ componente.titulo }}  ({{ componente.fecha }})
+                                                                                <li><i style="color: {{ componente.listacolor }};" class="fa-li fas {{ componente.listaclase }}"></i>{% if componente.cantidadComponente > 1 %} <span style="font-weight: bold;">{{ componente.cantidadComponente }} x</span>{% endif %} {{ componente.titulo }}  ({{ componente.fecha }})
                                                                                     {% if componente.tarifas is defined %}
                                                                                         <ul style="list-style: none; padding-left: 20px;">
                                                                                             {% for tarifa in componente.tarifas %}
@@ -636,11 +636,11 @@ file that was distributed with this source code.
                                                                         <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
                                                                             <ul class="fa-ul">
                                                                                 {% for componente in tipotarifa.componentes %}
-                                                                                    <li><span class="fa-li"><i style="color: {{ componente.listacolor }};" class="fa {{ componente.listaclase }}"></i></span>{% if componente.cantidadComponente > 1 %} <strong>{{ componente.cantidadComponente }} x</strong>{% endif %} {{ componente.nombre }}  ({{ componente.fecha }})
+                                                                                    <li><i style="color: {{ componente.listacolor }};" class="fa-li fas {{ componente.listaclase }}"></i>{% if componente.cantidadComponente > 1 %} <span style="font-weight: bold;">{{ componente.cantidadComponente }} x</span>{% endif %} {{ componente.nombre }}  ({{ componente.fecha }})
                                                                                         {% if componente.tarifas is defined %}
                                                                                             <ul style="list-style: none; padding-left: 20px;">
                                                                                                 {% for tarifa in componente.tarifas %}
-                                                                                                    <li>{{ tarifa.nombre }} {% if tarifa.cantidad > 1 %} <strong>x {{ tarifa.cantidad }}</strong> {% endif %}
+                                                                                                    <li>{{ tarifa.nombre }} {% if tarifa.cantidad > 1 %} <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span> {% endif %}
                                                                                                         {% if tarifa.detalles is defined %}
                                                                                                             <ul style="list-style: none; padding-left: 20px;">
                                                                                                             {% for detalle in tarifa.detalles %}
@@ -747,15 +747,15 @@ file that was distributed with this source code.
                                             <ul class="fa-ul">
                                                 {% for componente in contenido.componentes | filter(componente => componente.fechahorainicio != componente.fechahorafin ) %}
                                                     <li>
-                                                        <span class="fa-li"><i class="fa fa-map"></i></span>
+                                                        <i class="fa-li fas fa-map"></i>
                                                         {{ componente.titulo }} en {{ componente.tituloItinerario }}
                                                         <ul class="fa-ul">
                                                             <li>
-                                                                <span class="fa-li"><i class="fa fa-calendar"></i></span>
+                                                                <i class="fa-li fas fa-calendar"></i>
                                                                 Inicio: <span style="font-weight: bold">{{ componente.fechahorainicio|date('H:i Y/m/d') }}</span>
                                                             </li>
                                                             <li>
-                                                                <span class="fa-li"><i class="fa fa-calendar-check-o"></i></span>
+                                                                <i class="fa-li fas fa-calendar-check"></i>
                                                                 Fin: <span style="font-weight: bold">{{ componente.fechahorafin|date('H:i Y/m/d') }}</span>
                                                             </li>
 

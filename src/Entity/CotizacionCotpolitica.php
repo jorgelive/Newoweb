@@ -34,13 +34,6 @@ class CotizacionCotpolitica implements Translatable
      */
     private $nombre;
 
-    /**
-     * @var string
-     *
-     * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=100)
-     */
-    private $titulo;
 
     /**
      * @var string
@@ -231,31 +224,6 @@ class CotizacionCotpolitica implements Translatable
     public function getCotizaciones()
     {
         return $this->cotizaciones;
-    }
-
-
-    /**
-     * Set titulo.
-     *
-     * @param string $titulo
-     *
-     * @return CotizacionCotpolitica
-     */
-    public function setTitulo($titulo)
-    {
-        $this->titulo = $titulo;
-    
-        return $this;
-    }
-
-    /**
-     * Get titulo.
-     *
-     * @return string
-     */
-    public function getTitulo()
-    {
-        return $this->titulo;
     }
 
     /**
