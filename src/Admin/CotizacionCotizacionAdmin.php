@@ -110,7 +110,8 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                     2 => 'Archivado',
                     3 => 'Aceptado',
                     4 => 'Operado',
-                    5 => 'Cancelado'
+                    5 => 'Cancelado',
+                    6 => 'Plantilla'
                 ]
             ])
             ->add('file.filedocumentos', null, [

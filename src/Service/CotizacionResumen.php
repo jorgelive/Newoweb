@@ -170,20 +170,31 @@ class CotizacionResumen implements ContainerAwareInterface
             }
 
 //1N bucle de servicios
-
-            foreach ($cotizacion->getCotservicios() as $servicio):
+            $primeraFecha = 0;
+            foreach ($cotizacion->getCotservicios() as $keyServicio => $servicio):
 
                 //Itinerarios $datosTabs['itinerario']['itinerarios'][FECHA]
                 $itinerarioFechaAux = [];
+
                 if($servicio->getItinerario()->getItinerariodias()->count() > 0){
 
 //2N bucle de dias de itinerario
-                    foreach ($servicio->getItinerario()->getItinerariodias() as $dia):
+                    foreach ($servicio->getItinerario()->getItinerariodias() as $keyItinerariodia => $dia):
 
                         $fecha = clone($servicio->getFechahorainicio());
                         $fecha->add(new \DateInterval('P' . ($dia->getDia() - 1) . 'D'));
+                        //Las claves son numericas y empiezan en 0
+                        if($keyServicio == 0 && $keyItinerariodia == 0){
+                            $nroDia = 1;
+                            $primeraFecha = strtotime($fecha->format('Y-m-d'));
+                        }else{
+                            $nroDia = (strtotime($fecha->format('Y-m-d')) - $primeraFecha) / (60 * 60 * 24) + 1;
 
+                        }
+
+                        //se sobreescriben en cada iteracion
                         $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['fecha'] = $this->getFormatedDate(strtotime($fecha->format('Y-m-d')));
+                        $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['nroDia'] = $nroDia;
                         $archivosTempArray = [];
                         if($dia->getItidiaarchivos()->count() > 0){
                             foreach ($dia->getItidiaarchivos() as $archivo):
@@ -198,7 +209,7 @@ class CotizacionResumen implements ContainerAwareInterface
                         $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['fechaitems'][] = ['titulo' => $dia->getTitulo(), 'descripcion' => $dia->getContenido(), 'archivos' => $archivosTempArray];
                         unset($archivosTempArray);
 
-                        //Auxiliar de titulos de itinerario para componentes
+                        //Auxiliar de titulos de itinerario por dia en caso de que sean los importantes
                         //para uso en agenda e incluye.
                         if($dia->getImportante() === true){
                             $itinerarioFechaAux[$fecha->format('ymd')] = $dia->getTitulo();
@@ -206,7 +217,6 @@ class CotizacionResumen implements ContainerAwareInterface
 
                     endforeach;
                 }
-
 
                 if($servicio->getCotcomponentes()->count() > 0){
 
@@ -1014,12 +1024,12 @@ class CotizacionResumen implements ContainerAwareInterface
             $diassemanaN = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
             $mesesN = [1 => 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-            return $diassemanaN[$diasemana] . ', ' . $dia . ' de ' . $mesesN[$mes] . ' de ' . $ano . '.';
+            return $diassemanaN[$diasemana] . ', ' . $dia . ' de ' . $mesesN[$mes] . ' de ' . $ano;
         }elseif($this->tl == 'en'){
             $diassemanaN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             $mesesN = [1 => 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-            return $diassemanaN[$diasemana] . ' ' . $mesesN[$mes] . ' ' . $dia . ', ' . $ano . '.';
+            return $diassemanaN[$diasemana] . ' ' . $mesesN[$mes] . ' ' . $dia . ', ' . $ano;
 
         }else{
             return 'Idioma no soportado aun.';
