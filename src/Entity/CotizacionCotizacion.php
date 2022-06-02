@@ -174,10 +174,12 @@ class CotizacionCotizacion implements Translatable
         }
 
         //como es publico retorno el titulo
-        return sprintf("%s : %s.", $this->getFile()->getNombre(), $this->getTitulo()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        return sprintf("%s - %s.", $this->getTitulo(), $this->getFile()->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
     /**
+     * Get resumen
+     *
      * @return string
      */
     public function getResumen()
@@ -186,7 +188,6 @@ class CotizacionCotizacion implements Translatable
             return $this->getTitulo() ?? sprintf("Id: %s.", $this->getId()) ?? '';
         }
 
-        //como es interno retorno el nombre
         return sprintf("%s : %s.", $this->getFile()->getNombre(), $this->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 

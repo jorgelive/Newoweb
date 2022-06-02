@@ -72,6 +72,8 @@ class TransporteServiciooperativo
     }
 
     /**
+     * Get resumen
+     *
      * @return string
      */
     public function getResumen()

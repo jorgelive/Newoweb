@@ -206,7 +206,7 @@ class TransporteServiciocomponente
     }
 
     /**
-     * Get hora
+     * Get resumen
      *
      * @return \string
      */
