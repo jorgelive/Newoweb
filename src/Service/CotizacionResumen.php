@@ -353,6 +353,13 @@ class CotizacionResumen implements ContainerAwareInterface
                                                 $tempArrayIncluye['validezFin'] = $tarifa->getTarifa()->getValidezFin();
                                             }
 
+                                            $tempArrayIncluye['mostrarcostoincluye'] = false;
+                                            if ($tarifa->getTipotarifa()->getMostrarcostoincluye() ===true && !empty($tarifa->getTarifa()->getMonto()) && !empty($tarifa->getTarifa()->getMoneda())) {
+                                                $tempArrayIncluye['mostrarcostoincluye'] = true;
+                                                $tempArrayIncluye['simboloMoneda'] = $tarifa->getTarifa()->getMoneda()->getSimbolo();
+                                                $tempArrayIncluye['costo'] = $tarifa->getTarifa()->getMonto();
+                                            }
+
                                             if (!empty($tarifa->getTarifa()->getCapacidadmin())) {
                                                 $tempArrayIncluye['capacidadMin'] = $tarifa->getTarifa()->getCapacidadmin();
                                             }

@@ -18,6 +18,9 @@ class MaestroMonedaAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
+            ->add('simbolo', null, [
+                'label' => 'Símbolo'
+            ])
             ->add('codigo', null, [
                 'label' => 'Código'
             ])
@@ -36,6 +39,10 @@ class MaestroMonedaAdmin extends AbstractAdmin
             ->add('id')
             ->add('nombre', null, [
                 'editable' => true
+            ])
+            ->add('simbolo', null, [
+                'editable' => true,
+                'label' => 'Símbolo'
             ])
             ->add('codigo', null, [
                 'editable' => true,
@@ -63,6 +70,9 @@ class MaestroMonedaAdmin extends AbstractAdmin
     {
         $formMapper
             ->add('nombre')
+            ->add('simbolo', null, [
+                'label' => 'Símbolo'
+            ])
             ->add('codigo', null, [
                 'label' => 'Código'
             ])
@@ -80,6 +90,9 @@ class MaestroMonedaAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
+            ->add('simbolo', null, [
+                'label' => 'Símbolo'
+            ])
             ->add('codigo', null, [
                 'label' => 'Código'
             ])

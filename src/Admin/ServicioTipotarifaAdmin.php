@@ -30,6 +30,9 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
             ])
             ->add('comisionable')
             ->add('oculto')
+            ->add('mostrarcostoincluye', null, [
+                'label' => 'Costo en incluye'
+            ])
         ;
     }
 
@@ -61,6 +64,10 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
             ->add('oculto', null, [
                 'editable' => true
             ])
+            ->add('mostrarcostoincluye', null, [
+                'editable' => true,
+                'label' => 'Costo en incluye'
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -90,6 +97,9 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
             ])
             ->add('comisionable')
             ->add('oculto')
+            ->add('mostrarcostoincluye', null, [
+                'label' => 'Costo en incluye'
+            ])
         ;
     }
 
@@ -112,6 +122,9 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
             ])
             ->add('comisionable')
             ->add('oculto')
+            ->add('mostrarcostoincluye', null, [
+                'label' => 'Costo en incluye'
+            ])
         ;
     }
 }

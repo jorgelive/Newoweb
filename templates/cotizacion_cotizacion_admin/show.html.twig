@@ -18,7 +18,7 @@ file that was distributed with this source code.
 {% block stylesheets %}
     {{ parent() }}
 
-    <style type="text/css">
+    <style>
 
         div.encabezado td {white-space: normal !important;}
 
@@ -579,7 +579,7 @@ file that was distributed with this source code.
                                                                                     {% if componente.tarifas is defined %}
                                                                                         <ul style="list-style: none; padding-left: 20px;">
                                                                                             {% for tarifa in componente.tarifas %}
-                                                                                                <li>{{ tarifa.titulo }} {% if tarifa.cantidad > 1 %} <strong>x {{ tarifa.cantidad }}</strong> {% endif %}
+                                                                                                <li>{{ tarifa.titulo }} {% if tarifa.cantidad > 1 %} <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span> {% endif %}{% if tarifa.mostrarcostoincluye == true %}({{ tarifa.simboloMoneda }} {{ tarifa.costo }}){% endif %}
                                                                                                     {% if tarifa.detalles is defined %}
                                                                                                         (
                                                                                                         {% for detalle in tarifa.detalles %}
@@ -721,28 +721,6 @@ file that was distributed with this source code.
                                             {% for nota in contenido.notas %}
                                                 <h5><strong>{{ nota.titulo }}</strong></h5>
                                                 {{ nota.contenido|raw }}
-                                            {% endfor %}
-                                        {% endif %}
-
-                                    {% elseif name == 'incluye' %}
-                                        <h3 class="visible-print">{{ contenido.nombre}}</h3>
-                                        {% if contenido.tipos is defined %}
-                                            {% for tipo in contenido.tipos %}
-                                                <h4>{{ tipo.titulo }}:</h4>
-                                                <ul>
-                                                    {% for componente in tipo.componentes %}
-                                                        <li>{{ componente.titulo }} {% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %} {% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}
-                                                            {% if componente.tarifas is defined %}
-                                                                <ul>
-                                                                    {% for tarifa in componente.tarifas %}
-                                                                        <li>{{ tarifa.titulo }} x {{ tarifa.cantidad }}</li>
-                                                                    {% endfor %}
-                                                                </ul>
-                                                            {% endif %}
-
-                                                        </li>
-                                                    {% endfor %}
-                                                </ul>
                                             {% endfor %}
                                         {% endif %}
 

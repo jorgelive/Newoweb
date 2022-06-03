@@ -25,6 +25,11 @@ class MaestroMoneda
     private $nombre;
 
     /**
+     * @ORM\Column(type="string", length=10)
+     */
+    private $simbolo;
+
+    /**
      * @ORM\Column(type="string", length=3)
      */
     private $codigo;
@@ -102,6 +107,30 @@ class MaestroMoneda
     {
         return $this->nombre;
     }
+
+    /**
+     * Set simbolo
+     *
+     * @param string $simbolo
+     * @return MaestroMoneda
+     */
+    public function setSimbolo($simbolo)
+    {
+        $this->simbolo = $simbolo;
+
+        return $this;
+    }
+
+    /**
+     * Get simbolo
+     *
+     * @return string
+     */
+    public function getSimbolo()
+    {
+        return $this->simbolo;
+    }
+
 
     /**
      * Set codigo

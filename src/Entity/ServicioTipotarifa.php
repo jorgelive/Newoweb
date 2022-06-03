@@ -56,6 +56,13 @@ class ServicioTipotarifa implements Translatable
     private $oculto = false;
 
     /**
+     * @var bool
+     *
+     * @ORM\Column(name="mostrarcostoincluye", type="boolean", options={"default": 0})
+     */
+    private $mostrarcostoincluye = false;
+
+    /**
      * @var string
      *
      * @ORM\Column(name="listacolor", type="string", length=30, nullable=true)
@@ -287,7 +294,7 @@ class ServicioTipotarifa implements Translatable
      *
      * @return ServicioTipotarifa
      */
-    public function seOculto($oculto)
+    public function setOculto($oculto)
     {
         $this->oculto = $oculto;
 
@@ -303,4 +310,29 @@ class ServicioTipotarifa implements Translatable
     {
         return $this->oculto;
     }
+
+    /**
+     * Set mostrarcostoincluye.
+     *
+     * @param bool $mostrarcostoincluye
+     *
+     * @return ServicioTipotarifa
+     */
+    public function setMostrarcostoincluye($mostrarcostoincluye)
+    {
+        $this->mostrarcostoincluye = $mostrarcostoincluye;
+
+        return $this;
+    }
+
+    /**
+     * Get mostrarcostoincluye.
+     *
+     * @return bool
+     */
+    public function getMostrarcostoincluye()
+    {
+        return $this->mostrarcostoincluye;
+    }
+
 }
