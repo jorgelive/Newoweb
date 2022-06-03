@@ -173,8 +173,16 @@ class CotizacionCotizacion implements Translatable
             return $this->getTitulo() ?? sprintf("Id: %s.", $this->getId()) ?? '';
         }
 
-        //como es publico retorno el titulo
-        return sprintf("%s - %s.", $this->getTitulo(), $this->getFile()->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        if($this->getEstadocotizacion()->getId() == 6){
+            //como es publico retorno el titulo
+            return sprintf("%s", $this->getTitulo()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+
+        }else{
+            //como es publico retorno el titulo
+            return sprintf("%s : %s.", $this->getFile()->getNombre(), $this->getTitulo()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+
+        }
+
     }
 
     /**
