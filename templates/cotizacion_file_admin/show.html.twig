@@ -135,12 +135,6 @@ file that was distributed with this source code.
                                 <div class="panel-body">
                                     <div class="container-fluid">
                                         {% for archivo in object.filedocumentos %}
-                                            {% if loop.index0 % 6 == 0 %}
-                                                <div class="row">
-                                            {% endif %}
-                                            {% if loop.index0 % 3 == 0 and loop.index0 % 6 != 0 %}
-                                                <div class="clearfix visible-xs"></div>
-                                            {% endif %}
                                             <div class="col-xs-4 col-sm-2">
                                                 <div class="thumbnail">
                                                     <a href="{{ app.request.getSchemeAndHttpHost() ~ archivo.webpath|raw }}"{% if archivo.inmodal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
@@ -151,9 +145,6 @@ file that was distributed with this source code.
                                                     </a>
                                                 </div>
                                             </div>
-                                            {% if loop.index % 6 == 0 or loop.last %}
-                                                </div>
-                                            {% endif %}
                                         {% endfor %}
                                     </div>
                                 </div>

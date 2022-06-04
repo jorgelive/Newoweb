@@ -689,13 +689,7 @@ file that was distributed with this source code.
                                                     {{ item.descripcion|raw }}
                                                     <div class="container-fluid hidden-print">
                                                         {% for archivo in item.archivos %}
-                                                            {% if loop.index0 % 4 == 0 %}
-                                                                <div class="row">
-                                                            {% endif %}
-                                                            {% if loop.index0 % 2 == 0 and loop.index0 % 4 != 0 %}
-                                                                <div class="clearfix visible-xs"></div>
-                                                            {% endif %}
-                                                            <div class="col-xs-6 col-sm-3">
+                                                            <div class="col-xs-12 col-sm-6">
                                                                 <div class="thumbnail">
                                                                     <a href="{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.titulo }}"{% else %} target="_blank" {% endif %}>
                                                                         <img src="{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}" alt="{{ archivo.titulo }}" style="width:100%">
@@ -705,9 +699,6 @@ file that was distributed with this source code.
                                                                     </a>
                                                                 </div>
                                                             </div>
-                                                            {% if loop.index % 4 == 0 or loop.last %}
-                                                                </div>
-                                                            {% endif %}
                                                         {% endfor %}
                                                     </div>
                                                 {% endfor %}

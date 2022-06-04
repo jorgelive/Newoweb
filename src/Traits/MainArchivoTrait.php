@@ -183,8 +183,8 @@ trait MainArchivoTrait
 
         if(in_array($this->getArchivo()->getMimeType(), $imageTypes )){
             //debe ir antes ta que la imagen sera movida
-            $this->generarThumb($this->getArchivo(), $this->getInternalFullThumbDir(), 200, 200);
-            $this->generarThumb($this->getArchivo(), $this->getInternalFullDir(), 800, 800);
+            $this->generarImagen($this->getArchivo(), $this->getInternalFullThumbDir(), 400, 400);
+            $this->generarImagen($this->getArchivo(), $this->getInternalFullDir(), 800, 800);
             unlink($this->getArchivo()->getPathname());
         }else{
             $this->getArchivo()->move($this->getInternalFullDir(), $this->id . '.' . $this->extension);
@@ -194,7 +194,7 @@ trait MainArchivoTrait
     }
 
 
-    public function generarThumb($image, $path, $ancho, $alto){
+    public function generarImagen($image, $path, $ancho, $alto){
         // Create Imagick object
 
         $im = new \Imagick();

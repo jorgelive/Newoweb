@@ -98,10 +98,12 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'editable' => true
             ])
             ->add('validezinicio', null, [
-                'label' => 'Inicio'
+                'label' => 'Inicio',
+                'format' => 'Y/m/d H:i'
             ])
             ->add('validezfin', null, [
-                'label' => 'Fin'
+                'label' => 'Fin',
+                'format' => 'Y/m/d H:i'
             ])
             ->add('prorrateado', null, [
                 'editable' => true
