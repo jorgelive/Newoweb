@@ -18,6 +18,8 @@ sonata_admin:
                 items:
                     - app.admin.cotizacionfile
                     - app.admin.cotizacioncotizacion
+                    - app.admin.cotizacioncotservicio
+                    - app.admin.cotizacioncotcomponente
                     - app.admin.cotizacionfilepasajero
                     - app.admin.cotizacionfiledocumento
                     - app.admin.cotizacionestadocotizacion

@@ -173,6 +173,6 @@ class FullcalendarExtension extends AbstractExtension
 
 JS;
 
-        return "<script>" . $script . "</script><div class='box box-primary'><div id='calendar'></div></div>";
+        return "<script>" . $script . "</script><div style='overflow: scroll;' class='box box-primary'><div style='min-width: 600px; margin: 10px;' id='calendar'></div></div>";
     }
 }

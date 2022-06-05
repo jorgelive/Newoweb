@@ -33,16 +33,17 @@ class TransporteServicioAdmin extends AbstractAdmin
         $sortValues[DatagridInterface::SORT_BY] = 'fechahorainicio';
     }
 
+    protected function configureFilterParameters(array $parameters): array
+    {
+        if(!isset($parameters['fechahorainicio'])){
+            $fecha = new \DateTime();
 
-/*    public function getFilterParameters(){
-
-        $fecha = new \DateTime();
-
-        $this->datagridValues = array_merge([
-            'fechahorainicio' => [
-                'value' => $fecha->format('Y/m/d')
-            ]
-        ], $this->datagridValues);
+            $parameters = array_merge([
+                'fechahorainicio' => [
+                    'value' => $fecha->format('Y/m/d')
+                ]
+            ], $parameters);
+        }
 
 //        $user = $this->getConfigurationPool()->getContainer()->get('security.token_storage')->getToken()->getUser();
 //        if(!is_null($user) && !is_null($user->getConductor())){
@@ -53,8 +54,9 @@ class TransporteServicioAdmin extends AbstractAdmin
 //            ], $this->datagridValues);
 //        }
 
-        return parent::getFilterParameters();
-    }*/
+        return $parameters;
+    }
+
 
     /**
      * @param TokenStorageInterface $tokenStorage
@@ -73,35 +75,36 @@ class TransporteServicioAdmin extends AbstractAdmin
             ->add('id')
             ->add('fechahorainicio', CallbackFilter::class,[
                 'label' => 'Fecha de inicio',
-                'callback' => function($queryBuilder, $alias, $field, $value) {
+                'callback' => function($queryBuilder, $alias, $field, $filterData) {
 
-                    if (!$value['value'] || !($value['value'] instanceof \DateTime)) {
+                    $valor = $filterData->getValue();
+                    if (!$valor|| !($valor instanceof \DateTime)) {
                         return false;
                     }
-                    $fechaMasUno = clone ($value['value']);
+                    $fechaMasUno = clone ($valor);
                     $fechaMasUno->add(new \DateInterval('P1D'));
 
-                    if(empty($value['type'])){
+                    if(empty($filterData->getType())){
                         $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
                         $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
-                        $queryBuilder->setParameter('fechahora', $value['value']);
+                        $queryBuilder->setParameter('fechahora', $valor);
                         $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
                         return true;
-                    } elseif($value['type'] == 1){
+                    } elseif($filterData->getType() == 1){
                         $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
-                        $queryBuilder->setParameter('fechahora', $value['value']);
+                        $queryBuilder->setParameter('fechahora', $valor);
                         return true;
-                    } elseif($value['type'] == 2){
+                    } elseif($filterData->getType() == 2){
                         $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
                         $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
                         return true;
-                    } elseif($value['type'] == 3){
+                    } elseif($filterData->getType() == 3){
                         $queryBuilder->andWhere("DATE($alias.$field) >= :fechahoraMasUno");
                         $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
                         return true;
-                    } elseif($value['type'] == 4){
+                    } elseif($filterData->getType() == 4){
                         $queryBuilder->andWhere("DATE($alias.$field) < :fechahora");
-                        $queryBuilder->setParameter('fechahora', $value['value']);
+                        $queryBuilder->setParameter('fechahora', $valor);
                         return true;
                     }
 

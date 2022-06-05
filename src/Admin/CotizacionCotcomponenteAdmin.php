@@ -7,17 +7,49 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Form\Type\ModelAutocompleteType;
 use Sonata\AdminBundle\Show\ShowMapper;
 
+use Sonata\Form\Type\DatePickerType;
 use Sonata\Form\Type\DateTimePickerType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
 
 class CotizacionCotcomponenteAdmin extends AbstractAdmin
 {
+
+    public function configure(): void
+    {
+        $this->setFormTheme([0 => 'cotizacion_cotcomponente_admin/form_admin_fields.html.twig']);
+    }
+
+    protected function configureFilterParameters(array $parameters): array
+    {
+        if(!isset($parameters['fechahorainicio'])){
+            $fecha = new \DateTime();
+
+            $parameters = array_merge([
+                'fechahorainicio' => [
+                    'value' => $fecha->format('Y/m/d')
+                ]
+            ], $parameters);
+        }
+
+        if(!isset($parameters['cotservicio__cotizacion__estadocotizacion'])){
+            $parameters = array_merge([
+                'cotservicio__cotizacion__estadocotizacion' => [
+                    'value' => 3
+                ]
+            ], $parameters);
+        }
+
+        return $parameters;
+    }
+
     /**
      * @param DatagridMapper $datagridMapper
      */
@@ -29,14 +61,117 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                 'label' => 'Servicio'
             ])
             ->add('componente')
+            ->add('cotservicio.cotizacion.estadocotizacion')
             ->add('cantidad')
-            ->add('fechahorainicio', null, [
-                'label' => 'Inicio',
-                'format' => 'Y/m/d H:i'
+            ->add('fechahorainicio', CallbackFilter::class,[
+                'label' => 'Fecha de inicio',
+                'callback' => function($queryBuilder, $alias, $field, $filterData) {
+
+                    $valor = $filterData->getValue();
+                    if (!$valor|| !($valor instanceof \DateTime)) {
+                        return false;
+                    }
+                    $fechaMasUno = clone ($valor);
+                    $fechaMasUno->add(new \DateInterval('P1D'));
+
+                    if(empty($filterData->getType())){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahora', $valor);
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
+                        return true;
+                    } elseif($filterData->getType() == 1){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
+                        $queryBuilder->setParameter('fechahora', $valor);
+                        return true;
+                    } elseif($filterData->getType() == 2){
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
+                        return true;
+                    } elseif($filterData->getType() == 3){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
+                        return true;
+                    } elseif($filterData->getType() == 4){
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahora");
+                        $queryBuilder->setParameter('fechahora', $valor);
+                        return true;
+                    }
+
+                    return true;
+
+                },
+                'field_type' => DatePickerType::class,
+                'field_options' => [
+                    'dp_use_current' => true,
+                    'dp_show_today' => true,
+                    'format'=> 'yyyy/MM/dd'
+                ],
+                'operator_type' => ChoiceType::class,
+                'operator_options' => [
+                    'choices' => [
+                        'Igual a' => 0,
+                        'Mayor o igual a' => 1,
+                        'Menor o igual a' => 2,
+                        'Mayor a' => 3,
+                        'Menor a' => 4
+                    ]
+                ]
             ])
-            ->add('fechahorafin', null, [
-                'label' => 'Inicio',
-                'format' => 'Y/m/d H:i'
+            ->add('fechahorafin', CallbackFilter::class,[
+                'label' => 'Fecha de fin',
+                'callback' => function($queryBuilder, $alias, $field, $filterData) {
+
+                    $valor = $filterData->getValue();
+                    if (!$valor|| !($valor instanceof \DateTime)) {
+                        return false;
+                    }
+                    $fechaMasUno = clone ($valor);
+                    $fechaMasUno->add(new \DateInterval('P1D'));
+
+                    if(empty($filterData->getType())){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahora', $valor);
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
+                        return true;
+                    } elseif($filterData->getType() == 1){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
+                        $queryBuilder->setParameter('fechahora', $valor);
+                        return true;
+                    } elseif($filterData->getType() == 2){
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
+                        return true;
+                    } elseif($filterData->getType() == 3){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
+                        return true;
+                    } elseif($filterData->getType() == 4){
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahora");
+                        $queryBuilder->setParameter('fechahora', $valor);
+                        return true;
+                    }
+
+                    return true;
+
+                },
+                'field_type' => DatePickerType::class,
+                'field_options' => [
+                    'dp_use_current' => true,
+                    'dp_show_today' => true,
+                    'format'=> 'yyyy/MM/dd'
+                ],
+                'operator_type' => ChoiceType::class,
+                'operator_options' => [
+                    'choices' => [
+                        'Igual a' => 0,
+                        'Mayor o igual a' => 1,
+                        'Menor o igual a' => 2,
+                        'Mayor a' => 3,
+                        'Menor a' => 4
+                    ]
+                ]
             ])
             ->add('estadocotcomponente', null, [
                 'label' => 'Estado'
@@ -51,17 +186,22 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
+            ->add('fechahorainicio', null, [
+                'label' => 'Inicio',
+                'format' => 'H:i d/m/Y '
+            ])
+            ->add('cotservicio.cotizacion.file.nombre', null, [
+                'label' => 'file'
+            ])
+
             ->add('cotservicio', null, [
                 'label' => 'Servicio'
             ])
             ->add('componente')
             ->add('cantidad')
-            ->add('fechahorainicio', null, [
-                'label' => 'Inicio',
-                'format' => 'Y/m/d H:i'
-            ])
+
             ->add('fechahorafin', null, [
-                'label' => 'Inicio',
+                'label' => 'Fin',
                 'format' => 'Y/m/d H:i'
             ])
             ->add('estadocotcomponente', null, [
@@ -83,31 +223,42 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
+
+
         if ($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'
             && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotizacion'
             && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotservicio'
+            && !($this->isCurrentRoute('edit') && $this->getRoot()->getClass() == 'App\Entity\CotizacionCotcomponente')
         ){
             $formMapper->add('cotservicio', null, [
                 'label' => 'Servicio'
             ]);
         }
+        //oculto en la edicion el componente y la cantidad
+        if(!($this->isCurrentRoute('edit') && $this->getRoot()->getClass() == 'App\Entity\CotizacionCotcomponente')
+        ){
+            $formMapper
+
+                ->add('componente', ModelAutocompleteType::class, [
+                    'property' => 'nombre',
+                    'template' => 'form/ajax_dropdown_type.html.twig',
+                    'route' => ['name' => 'app_servicio_componente_porserviciodropdown', 'parameters' => []],
+                    'placeholder' => '',
+                    'context' => '/\[cotcomponentes\]\[\d\]\[componente\]$/g, "[servicio]"',
+                    'minimum_input_length' => 0,
+                    'dropdown_auto_width' => false,
+                    'btn_add' => false
+                ])
+                ->add('cantidad', null, [
+                        'required' => false,
+                        'attr' => ['class' => 'readonly']
+                    ]
+                )
+            ;
+        }
 
         $formMapper
-            ->add('componente', ModelAutocompleteType::class, [
-                'property' => 'nombre',
-                'template' => 'form/ajax_dropdown_type.html.twig',
-                'route' => ['name' => 'app_servicio_componente_porserviciodropdown', 'parameters' => []],
-                'placeholder' => '',
-                'context' => '/\[cotcomponentes\]\[\d\]\[componente\]$/g, "[servicio]"',
-                'minimum_input_length' => 0,
-                'dropdown_auto_width' => false,
-                'btn_add' => false
-            ])
-            ->add('cantidad', null, [
-                    'required' => false,
-                    'attr' => ['class' => 'readonly']
-                ]
-            )
+
             ->add('fechahorainicio', DateTimePickerType::class, [
                 'label' => 'Inicio',
                 'dp_show_today' => true,

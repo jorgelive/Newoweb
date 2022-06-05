@@ -15,7 +15,7 @@ parameters:
     facturacion_detraccion_cuenta: '00-173-030533'
 
     calendars:
-        cotizacion_componente_aceptado:
+        cotizacion_componente_aceptado_link_cotizacion:
             entity: 'App:CotizacionCotcomponente'
             repositorymethod: 'findCalendarAceptado'
             resource:
@@ -36,7 +36,7 @@ parameters:
                         route: 'admin_app_cotizacioncotizacion_edit'
                         role: 'ROLE_RESERVAS_EDITOR'
 
-        cotizacion_componente_aceptado_efectuado:
+        cotizacion_componente_aceptado_efectuado_link_cotizacion:
             entity: 'App:CotizacionCotcomponente'
             repositorymethod: 'findCalendarAceptadoEfectuado'
             resource:
@@ -55,6 +55,48 @@ parameters:
                     edit:
                         route: 'admin_app_cotizacioncotizacion_edit'
                         role: 'ROLE_RESERVAS_EDITOR'
+
+        cotizacion_componente_aceptado:
+            entity: 'App:CotizacionCotcomponente'
+            repositorymethod: 'findCalendarAceptado'
+            resource:
+                id: 'cotservicio.cotizacion.id'
+                title: 'cotservicio.cotizacion.resumen'
+
+            parameters:
+                title: 'componente.nombre'
+                start: 'fechahorainicio'
+                end: 'fechahorafin'
+                color: 'estadocotcomponente.color'
+                url:
+                    id: 'id'
+                    show:
+                        route: 'admin_app_cotizacioncotcomponente_show'
+                        role: 'ROLE_USER'
+                    edit:
+                        route: 'admin_app_cotizacioncotcomponente_edit'
+                        role: 'ROLE_RESERVAS_EDITOR'
+
+        cotizacion_componente_aceptado_efectuado:
+            entity: 'App:CotizacionCotcomponente'
+            repositorymethod: 'findCalendarAceptadoEfectuado'
+            resource:
+                id: 'cotservicio.cotizacion.id'
+                title: 'cotservicio.cotizacion.resumen'
+            parameters:
+                title: 'componente.nombre'
+                start: 'fechahorainicio'
+                end: 'fechahorafin'
+                color: 'estadocotcomponente.color'
+                url:
+                    id: 'id'
+                    show:
+                        route: 'admin_app_cotizacioncotcomponente_show'
+                        role: 'ROLE_USER'
+                    edit:
+                        route: 'admin_app_cotizacioncotcomponente_edit'
+                        role: 'ROLE_RESERVAS_EDITOR'
+
 
         transporte_servicio_conductor:
             entity: 'App:TransporteServicio'
@@ -223,23 +265,36 @@ services:
 
     app.admin.cotizacionestadocotcomponente:
         class: App\Admin\CotizacionEstadocotcomponenteAdmin
-        arguments: [~, App\Entity\CotizacionEstadocotcomponente, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Cotizacion Maestro, label: Estado de componente }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionEstadocotcomponente
+                manager_type: orm
+                group: Cotizacion Maestro
+                label: Estado de componente
         public: true
 
     app.admin.cotizacionfilepasajero:
         class: App\Admin\CotizacionFilepasajeroAdmin
-        arguments: [~, App\Entity\CotizacionFilepasajero, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Cotizacion, label: Name List }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionFilepasajero
+                manager_type: orm
+                group: Cotizacion
+                label: Name List
         public: true
 
     app.admin.cotizacioncotizacion:
         class: App\Admin\CotizacionCotizacionAdmin
-        arguments: [~, App\Entity\CotizacionCotizacion, App\Controller\CotizacionCotizacionAdminController]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Cotizacion, label: Cotizaciones }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionCotizacion
+                controller: App\Controller\CotizacionCotizacionAdminController
+                manager_type: orm
+                group: Cotizacion
+                label: Cotizaciones
         calls:
             - [ setTemplate, [edit, cotizacion_cotizacion_admin\edit.html.twig]]
             - [ setTemplate, [list, cotizacion_cotizacion_admin\list.html.twig]]
@@ -247,28 +302,42 @@ services:
 
     app.admin.cotizacioncotservicio:
         class: App\Admin\CotizacionCotservicioAdmin
-        arguments: [~, App\Entity\CotizacionCotservicio, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Cotizacion, label: Servicios }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionCotservicio
+                manager_type: orm
+                group: Cotizacion
+                label: Servicios
+                show_mosaic_button: false
         public: true
 
     app.admin.cotizacioncotcomponente:
         class: App\Admin\CotizacionCotcomponenteAdmin
-        arguments: [~, App\Entity\CotizacionCotcomponente, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Cotizacion, label: Componentes }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionCotcomponente
+                manager_type: orm
+                group: Cotizacion
+                label: Componentes
+        calls:
+            - [ setTemplate, [ list, cotizacion_cotcomponente_admin\list.html.twig ] ]
         public: true
 
     app.admin.cotizacioncottarifa:
         class: App\Admin\CotizacionCottarifaAdmin
-        arguments: [~, App\Entity\CotizacionCottarifa, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Cotizacion, label: Tarifa }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionCottarifa
+                manager_type: orm
+                group: Cotizacion
+                label: Tarifa
         public: true
 
     app.admin.cotizacioncottarifadetalle:
         class: App\Admin\CotizacionCottarifadetalleAdmin
-        arguments: [~, App\Entity\CotizacionCottarifadetalle, ~]
         tags:
             -
                 name: sonata.admin
