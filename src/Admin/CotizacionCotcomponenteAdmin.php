@@ -18,6 +18,7 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
+use Sonata\AdminBundle\Form\Type\ModelHiddenType;
 
 class CotizacionCotcomponenteAdmin extends AbstractAdmin
 {
@@ -238,7 +239,6 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
         if(!($this->isCurrentRoute('edit') && $this->getRoot()->getClass() == 'App\Entity\CotizacionCotcomponente')
         ){
             $formMapper
-
                 ->add('componente', ModelAutocompleteType::class, [
                     'property' => 'nombre',
                     'template' => 'form/ajax_dropdown_type.html.twig',
@@ -255,6 +255,9 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                     ]
                 )
             ;
+        } else {
+            $formMapper
+            ->add('componente', ModelHiddenType::class);
         }
 
         $formMapper
