@@ -11,7 +11,6 @@ sonata_admin:
         blocks:
             - { type: sonata.admin.block.admin_list, position: left }
         groups:
-
             app.admin.group.cotizacion:
                 label: 'Cotizaciones'
                 icon: '<i class="fa fa-calendar"></i>'
@@ -60,7 +59,6 @@ sonata_admin:
                 icon: '<i class="fa fa-user-circle"></i>'
                 items:
                     - sonata.user.admin.user
-#                    - sonata.user.admin.group
                     - app.admin.usercuenta
                     - app.admin.usercuentatipo
 

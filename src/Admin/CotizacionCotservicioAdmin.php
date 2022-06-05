@@ -18,6 +18,12 @@ use Symfony\Component\Form\FormInterface;
 class CotizacionCotservicioAdmin extends AbstractAdmin
 {
 
+
+    public function configure(): void
+    {
+        $this->setFormTheme([0 => 'cotizacion_cotservicio_admin/form_admin_fields.html.twig']);
+    }
+
     /**
      * @param DatagridMapper $datagridMapper
      */

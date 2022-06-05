@@ -97,7 +97,6 @@ parameters:
                         route: 'admin_app_cotizacioncotcomponente_edit'
                         role: 'ROLE_RESERVAS_EDITOR'
 
-
         transporte_servicio_conductor:
             entity: 'App:TransporteServicio'
             repositorymethod: 'findCalendarConductorColored'
@@ -197,70 +196,117 @@ services:
 
     app.admin.comprobantecomprobante:
         class: App\Admin\ComprobanteComprobanteAdmin
-        arguments: [~, App\Entity\ComprobanteComprobante, App\Controller\ComprobanteComprobanteAdminController ]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Documento"}
+            -
+                name: sonata.admin
+                model_class: App\Entity\ComprobanteComprobante
+                controller: App\Controller\ComprobanteComprobanteAdminController
+                manager_type: orm
+                group: Comprobante
+                label: Documento
+                show_mosaic_button: false
         calls:
             - [ setTemplate, [edit, comprobante_comprobante_admin/edit.html.twig]]
         public: true
 
     app.admin.comprobantecomprobanteitem:
         class: App\Admin\ComprobanteComprobanteitemAdmin
-        arguments: [~, App\Entity\ComprobanteComprobanteitem, App\Controller\ComprobanteComprobanteitemAdminController ]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Item"}
+            -
+                name: sonata.admin
+                model_class: App\Entity\ComprobanteComprobanteitem
+                controller: App\Controller\ComprobanteComprobanteitemAdminController
+                manager_type: orm
+                group: Comprobante
+                label: Item
+                show_mosaic_button: false
         public: true
 
     app.admin.comprobantemensaje:
         class: App\Admin\ComprobanteMensajeAdmin
-        arguments: [~, App\Entity\ComprobanteMensaje, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Comprobante, label: "Mensajes de emisión"}
+            -
+                name: sonata.admin
+                model_class: App\Entity\ComprobanteMensaje
+                manager_type: orm
+                group: Comprobante
+                label: 'Mensajes de emisión'
+                show_mosaic_button: false
         public: true
 
     app.admin.comprobantetipo:
         class: App\Admin\ComprobanteTipoAdmin
-        arguments: [~, App\Entity\ComprobanteTipo, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Tipo de documento"}
+            -
+                name: sonata.admin
+                model_class: App\Entity\ComprobanteTipo
+                manager_type: orm
+                group: Comprobante
+                label: Tipo de documento
+                show_mosaic_button: false
         public: true
 
     app.admin.comprobanteproductoservicio:
         class: App\Admin\ComprobanteProductoservicioAdmin
-        arguments: [~, App\Entity\ComprobanteProductoservicio, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Productos y servicios"}
+            -
+                name: sonata.admin
+                model_class: App\Entity\ComprobanteProductoservicio
+                manager_type: orm
+                group: Comprobante
+                label: Productos y servicios
+                show_mosaic_button: false
         public: true
 
     app.admin.comprobantetipoproductoservicio:
         class: App\Admin\ComprobanteTipoproductoservicioAdmin
-        arguments: [~, App\Entity\ComprobanteTipoproductoservicio, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Tipo de producto"}
+            -
+                name: sonata.admin
+                model_class: App\Entity\ComprobanteTipoproductoservicio
+                manager_type: orm
+                group: Comprobante
+                label: Tipo de producto
+                show_mosaic_button: false
         public: true
 
     app.admin.comprobanteestado:
         class: App\Admin\ComprobanteEstadoAdmin
-        arguments: [~, App\Entity\ComprobanteEstado, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Comprobante, label: "Estado"}
+            -
+                name: sonata.admin
+                model_class: App\Entity\ComprobanteEstado
+                manager_type: orm
+                group: Comprobante
+                label: Estado de domprobante
+                show_mosaic_button: false
         public: true
 
 
     app.admin.cotizacionfile:
         class: App\Admin\CotizacionFileAdmin
-        arguments: [~, App\Entity\CotizacionFile, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Cotizacion, label: Files}
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionFile
+                manager_type: orm
+                group: 'Cotización'
+                label: Files
+                show_mosaic_button: false
         calls:
             - [ setTemplate, [show, cotizacion_file_admin/show.html.twig]]
         public: true
 
     app.admin.cotizacionestadocotizacion:
         class: App\Admin\CotizacionEstadocotizacionAdmin
-        arguments: [~, App\Entity\CotizacionEstadocotizacion, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Cotizacion Maestro, label: Estado de cotización }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionEstadocotizacion
+                manager_type: orm
+                group: 'Cotización'
+                label: 'Estado de cotización'
+                show_mosaic_button: false
         public: true
 
     app.admin.cotizacionestadocotcomponente:
@@ -270,7 +316,7 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\CotizacionEstadocotcomponente
                 manager_type: orm
-                group: Cotizacion Maestro
+                group: 'Cotización'
                 label: Estado de componente
         public: true
 
@@ -281,7 +327,7 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\CotizacionFilepasajero
                 manager_type: orm
-                group: Cotizacion
+                group: 'Cotización'
                 label: Name List
         public: true
 
@@ -309,7 +355,9 @@ services:
                 manager_type: orm
                 group: Cotizacion
                 label: Servicios
-                show_mosaic_button: false
+#                show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ list, cotizacion_cotservicio_admin\list.html.twig ] ]
         public: true
 
     app.admin.cotizacioncotcomponente:
@@ -344,82 +392,132 @@ services:
                 model_class: App\Entity\CotizacionCottarifadetalle
                 manager_type: orm
                 show_in_dashboard: false
-                group: Cotización
+                group: 'Cotización'
                 label: Tarifa
         public: true
 
     app.admin.cotizaciontipofiledocumento:
         class: App\Admin\CotizacionTipofiledocumentoAdmin
-        arguments: [~, App\Entity\CotizacionTipofiledocumento, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Cotizacion Maestro, label: Tipo de documento }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionTipofiledocumento
+                manager_type: orm
+                group: 'Cotización'
+                label: Tipo de documento
+                show_mosaic_button: false
         public: true
 
     app.admin.cotizacionfiledocumento:
         class: App\Admin\CotizacionFiledocumentoAdmin
-        arguments: [~, App\Entity\CotizacionFiledocumento, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Cotizacion, label: Documento }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionFiledocumento
+                manager_type: orm
+                group: Cotizacion
+                label: Documento
+                show_mosaic_button: false
         public: true
 
     app.admin.cotizacioncotpolitica:
         class: App\Admin\CotizacionCotpoliticaAdmin
-        arguments: [~, App\Entity\CotizacionCotpolitica, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Cotizacion Maestro, label: Politicas }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionCotpolitica
+                manager_type: orm
+                group: Cotizacion Maestro
+                label: Politicas
+                show_mosaic_button: false
         public: true
 
     app.admin.cotizacioncotnota:
         class: App\Admin\CotizacionCotnotaAdmin
-        arguments: [~, App\Entity\CotizacionCotnota, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Cotizacion Maestro, label: Notas }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionCotnota
+                manager_type: orm
+                group: Cotizacion Maestro
+                label: Notas
+                show_mosaic_button: false
         public: true
 
     app.admin.cuentacuenta:
         class: App\Admin\CuentaCuentaAdmin
-        arguments: [~, App\Entity\CuentaCuenta, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: admin, label: Cuenta }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CuentaCuenta
+                manager_type: orm
+                group: Cuenta
+                label: Cuenta
+                show_mosaic_button: false
         public: true
 
     app.admin.cuentamovimiento:
         class: App\Admin\CuentaMovimientoAdmin
-        arguments: [~, App\Entity\CuentaMovimiento, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: admin, label: Movimiento }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CuentaMovimiento
+                manager_type: orm
+                group: Cuenta
+                label: Movimiento
+                show_mosaic_button: false
         calls:
             - [ setTemplate, [list, cuenta_movimiento_admin/list.html.twig]]
         public: true
 
     app.admin.cuentaclase:
         class: App\Admin\CuentaClaseAdmin
-        arguments: [~, App\Entity\CuentaClase, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: admin, label: Clase }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CuentaClase
+                manager_type: orm
+                group: Cuenta
+                label: Clase
+                show_mosaic_button: false
         public: true
 
     app.admin.cuentacentro:
         class: App\Admin\CuentaCentroAdmin
-        arguments: [~, App\Entity\CuentaCentro, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: admin, label: Centro }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CuentaCentro
+                manager_type: orm
+                group: Cuenta
+                label: Centro
+                show_mosaic_button: false
         public: true
 
     app.admin.cuentaperiodo:
         class: App\Admin\CuentaPeriodoAdmin
-        arguments: [~, App\Entity\CuentaPeriodo, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: admin, label: Periodo }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CuentaPeriodo
+                manager_type: orm
+                group: Cuenta
+                label: Periodo
+                show_mosaic_button: false
         calls:
             - [ setTemplate, [edit, cuenta_periodo_admin/edit.html.twig]]
         public: true
 
     app.admin.cuentatipo:
         class: App\Admin\CuentaTipoAdmin
-        arguments: [~, App\Entity\CuentaTipo, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: admin, label: Tipo }
+            -
+                name: sonata.admin
+                model_class: App\Entity\CuentaTipo
+                manager_type: orm
+                group: Cuenta
+                label: Tipo
+                show_mosaic_button: false
         public: true
 
 
@@ -441,73 +539,123 @@ services:
 
     app.admin.fitdietacomida:
         class: App\Admin\FitDietacomidaAdmin
-        arguments: [~, App\Entity\FitDietacomida, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Fit, label: Componentes }
+            -
+                name: sonata.admin
+                model_class: App\Entity\FitDietacomida
+                manager_type: orm
+                group: Fit
+                label: Comidas
+                show_mosaic_button: false
         public: true
 
     app.admin.fitdietaalimento:
         class: App\Admin\FitDietaalimentoAdmin
-        arguments: [~, App\Entity\FitDietaalimento, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Fit, label: Tarifa }
+            -
+                name: sonata.admin
+                model_class: App\Entity\FitDietaalimento
+                manager_type: orm
+                group: Fit
+                label: Alimentos
+                show_mosaic_button: false
         public: true
 
     app.admin.fittipodieta:
         class: App\Admin\FitTipodietaAdmin
-        arguments: [~, App\Entity\FitTipodieta, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Fit, label: Tipo de dieta }
+            -
+                name: sonata.admin
+                model_class: App\Entity\FitTipodieta
+                manager_type: orm
+                group: Fit
+                label: Tipo de dietas
+                show_mosaic_button: false
         public: true
 
     app.admin.fitalimento:
         class: App\Admin\FitAlimentoAdmin
-        arguments: [~, App\Entity\FitAlimento, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Fit, label: Alimento }
+            -
+                name: sonata.admin
+                model_class: App\Entity\FitAlimento
+                manager_type: orm
+                group: Fit
+                label: Alimentos
+                show_mosaic_button: false
         public: true
 
     app.admin.fittipoalimento:
         class: App\Admin\FitTipoalimentoAdmin
-        arguments: [~, App\Entity\FitTipoalimento, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Fit, label: Tipo de alimento }
+            -
+                name: sonata.admin
+                model_class: App\Entity\FitTipoalimento
+                manager_type: orm
+                group: Fit
+                label: Tipo de alimento
+                show_mosaic_button: false
         public: true
 
     app.admin.fitmedidaalimento:
         class: App\Admin\FitMedidaalimentoAdmin
-        arguments: [~, App\Entity\FitMedidaalimento, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Fit, label: Medida de alimento }
+            -
+                name: sonata.admin
+                model_class: App\Entity\FitMedidaalimento
+                manager_type: orm
+                group: Fit
+                label: Medida de alimento
+                show_mosaic_button: false
         public: true
 
 
     app.admin.maestrosexo:
         class: App\Admin\MaestroSexoAdmin
-        arguments: [~, App\Entity\MaestroSexo, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Maestros, label: Sexo}
+            -
+                name: sonata.admin
+                model_class: App\Entity\MaestroSexo
+                manager_type: orm
+                group: Maestros
+                label: Sexo
+                show_mosaic_button: false
         public: true
 
     app.admin.maestrotipodocumento:
         class: App\Admin\MaestroTipodocumentoAdmin
-        arguments: [~, App\Entity\MaestroTipodocumento, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Maestros, label: Tipo de documento}
+            -
+                name: sonata.admin
+                model_class: App\Entity\MaestroTipodocumento
+                manager_type: orm
+                group: Maestros
+                label: Tipo de documento
+                show_mosaic_button: false
         public: true
 
     app.admin.maestromoneda:
         class: App\Admin\MaestroMonedaAdmin
-        arguments: [~, App\Entity\MaestroMoneda, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Maestros, label: Monedas}
+            -
+                name: sonata.admin
+                model_class: App\Entity\MaestroMoneda
+                manager_type: orm
+                group: Maestros
+                label: Monedas
+                show_mosaic_button: false
         public: true
 
     app.admin.maestrotipocambio:
         class: App\Admin\MaestroTipocambioAdmin
-        arguments: [~, App\Entity\MaestroTipocambio, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Maestros, label: Tipo de cambio}
+            -
+                name: sonata.admin
+                model_class: App\Entity\MaestroTipocambio
+                manager_type: orm
+                group: Maestros
+                label: Tipo de cambio
+                show_mosaic_button: false
         public: true
 
     app.admin.maestropais:
@@ -519,6 +667,7 @@ services:
                 manager_type: orm
                 group: Maestros
                 label: Pais
+                show_mosaic_button: false
         public: true
 
     app.admin.maestroidioma:
@@ -545,88 +694,149 @@ services:
 
     app.admin.maestrocategoriatour:
         class: App\Admin\MaestroCategoriatourAdmin
-        arguments: [~, App\Entity\MaestroCategoriatour, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Maestros, label: Categoria de tour }
+            -
+                name: sonata.admin
+                model_class: App\Entity\MaestroCategoriatour
+                manager_type: orm
+                group: Maestros
+                label: Categoria de tour
+                show_mosaic_button: false
         public: true
 
     app.admin.maestromedio:
         class: App\Admin\MaestroMedioAdmin
-        arguments: [~, App\Entity\MaestroMedio, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Maestros, label: Multimedia }
+            -
+                name: sonata.admin
+                model_class: App\Entity\MaestroMedio
+                manager_type: orm
+                group: Maestros
+                label: Multimedia
+                show_mosaic_button: false
         public: true
 
     app.admin.maestroclasemedio:
         class: App\Admin\MaestroClasemedioAdmin
-        arguments: [~, App\Entity\MaestroClasemedio, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Maestros, label: Clase Multimedia }
+            -
+                name: sonata.admin
+                model_class: App\Entity\MaestroClasemedio
+                manager_type: orm
+                group: Maestros
+                label: Clase Multimedia
+                show_mosaic_button: false
         public: true
 
 
 
     app.admin.servicioservicio:
         class: App\Admin\ServicioServicioAdmin
-        arguments: [~, App\Entity\ServicioServicio, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Servicio, label: Servicio }
+            -
+                name: sonata.admin
+                model_class: App\Entity\ServicioServicio
+                manager_type: orm
+                group: Servicio
+                label: Servicio
+                show_mosaic_button: false
         public: true
 
     app.admin.servicioitinerario:
         class: App\Admin\ServicioItinerarioAdmin
-        arguments: [~, App\Entity\ServicioItinerario, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Servicio, label: Itinerario }
+            -
+                name: sonata.admin
+                model_class: App\Entity\ServicioItinerario
+                manager_type: orm
+                group: Servicio
+                label: Itinerario
+                show_mosaic_button: false
         public: true
 
     app.admin.serviciocomponente:
         class: App\Admin\ServicioComponenteAdmin
-        arguments: [~, App\Entity\ServicioComponente, App\Controller\ServicioComponenteAdminController]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Servicio, label: Componente }
+            -
+                name: sonata.admin
+                model_class: App\Entity\ServicioComponente
+                controller: App\Controller\ServicioComponenteAdminController
+                manager_type: orm
+                group: Servicio
+                label: Componente
+                show_mosaic_button: false
         public: true
 
     app.admin.serviciocomponenteitem:
         class: App\Admin\ServicioComponenteitemAdmin
-        arguments: [~, App\Entity\ServicioComponenteitem, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Servicio, label: Componente Item }
+            -
+                name: sonata.admin
+                model_class: App\Entity\ServicioComponenteitem
+                manager_type: orm
+                group: Servicio
+                label: Componente Item
+                show_mosaic_button: false
         public: true
 
     app.admin.serviciotipocomponente:
         class: App\Admin\ServicioTipocomponenteAdmin
-        arguments: [~, App\Entity\ServicioTipocomponente, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Servicio Maestro, label: Tipo de componente }
+            -
+                name: sonata.admin
+                model_class: App\Entity\ServicioTipocomponente
+                manager_type: orm
+                group: Servicio
+                label: Tipo de componente
+                show_mosaic_button: false
         public: true
 
     app.admin.serviciotarifa:
         class: App\Admin\ServicioTarifaAdmin
-        arguments: [~, App\Entity\ServicioTarifa, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Servicio, label: Tarifa }
+            -
+                name: sonata.admin
+                model_class: App\Entity\ServicioTarifa
+                manager_type: orm
+                group: Servicio
+                label: Tarifa
+                show_mosaic_button: false
         public: true
 
     app.admin.servicioitinerariodia:
         class: App\Admin\ServicioItinerariodiaAdmin
-        arguments: [~, App\Entity\ServicioItinerariodia, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Servicio, label: Dias de itinerario }
+            -
+                name: sonata.admin
+                model_class: App\Entity\ServicioItinerariodia
+                manager_type: orm
+                group: Servicio
+                label: Dias de itinerario
+                show_mosaic_button: false
         public: true
 
     app.admin.servicioitidiaarchivo:
         class: App\Admin\ServicioItidiaarchivoAdmin
-        arguments: [~, App\Entity\ServicioItidiaarchivo, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Servicio, label: Archivos del itinerario }
+            -
+                name: sonata.admin
+                model_class: App\Entity\ServicioItidiaarchivo
+                manager_type: orm
+                group: Servicio
+                label: Archivo del itinerario
+                show_mosaic_button: false
         public: true
 
     app.admin.serviciotipotarifa:
         class: App\Admin\ServicioTipotarifaAdmin
-        arguments: [~, App\Entity\ServicioTipotarifa, ~]
         tags:
-            - { name: sonata.admin, manager_type: orm, group: Servicio Maestro, label: Tipo de tarifa cotizada }
+            -
+                name: sonata.admin
+                model_class: App\Entity\ServicioTipotarifa
+                manager_type: orm
+                group: Servicio
+                label: Tipo de tarifa cotizada
+                show_mosaic_button: false
         public: true
 
     app.admin.serviciotipotarifadetalle:
@@ -640,11 +850,18 @@ services:
                 label: Tipo de detalle de tarifa
         public: true
 
+
     app.admin.transporteservicio:
         class: App\Admin\TransporteServicioAdmin
-        arguments: [~, App\Entity\TransporteServicio, App\Controller\TransporteServicioAdminController]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Servicios}
+            -
+                name: sonata.admin
+                model_class: App\Entity\TranporteServicio
+                controller: App\Controller\TransporteServicioAdminController
+                manager_type: orm
+                group: Transporte
+                label: Servicios
+                show_mosaic_button: false
         calls:
             - [ setTokenStorage, ["@security.token_storage"]]
             - [ setTemplate, [list, transporte_servicio_admin/list.html.twig]]
@@ -653,91 +870,163 @@ services:
 
     app.admin.transporteserviciooperativo:
         class: App\Admin\TransporteServiciooperativoAdmin
-        arguments: [~, App\Entity\TransporteServiciooperativo, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Información operativa}
+            -
+                name: sonata.admin
+                model_class: App\Entity\TranporteServiciooperativo
+                manager_type: orm
+                group: Transporte
+                label: 'Información Operativa'
+                show_mosaic_button: false
         public: true
 
     app.admin.transporteserviciocontable:
         class: App\Admin\TransporteServiciocontableAdmin
-        arguments: [~, App\Entity\TransporteServiciocontable, App\Controller\TransporteServiciocontableAdminController ]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Contables}
+            -
+                name: sonata.admin
+                model_class: App\Entity\TranporteServiciocontable
+                controller: App\Controller\TransporteServiciocontableAdminController
+                manager_type: orm
+                group: Transporte
+                label: Contables
+                show_mosaic_button: false
         calls:
             - [ setTemplate, [edit, transporte_serviciocontable_admin/edit.html.twig]]
         public: true
 
     app.admin.transporteserviciocomponente:
         class: App\Admin\TransporteServiciocomponenteAdmin
-        arguments: [~, App\Entity\TransporteServiciocomponente, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, show_in_dashboard: false, group: Transporte, label: Files}
+            -
+                name: sonata.admin
+                model_class: App\Entity\TranporteServiciocomponente
+                controller: App\Controller\TransporteServiciocomponenteAdminController
+                manager_type: orm
+                group: Transporte
+                label: Files
+                show_mosaic_button: false
         public: true
 
     app.admin.transporteconductor:
         class: App\Admin\TransporteConductorAdmin
-        arguments: [~, App\Entity\TransporteConductor, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Conductores}
+            -
+                name: sonata.admin
+                model_class: App\Entity\TranporteConductor
+                manager_type: orm
+                group: Transporte
+                label: Conductores
+                show_mosaic_button: false
         public: true
 
     app.admin.transporteunidad:
         class: App\Admin\TransporteUnidadAdmin
-        arguments: [~, App\Entity\TransporteUnidad, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Unidades}
+            -
+                name: sonata.admin
+                model_class: App\Entity\TranporteUnidad
+                manager_type: orm
+                group: Transporte
+                label: Unidades
+                show_mosaic_button: false
         calls:
             - [ setTemplate, [show, transporte_unidad_admin/show.html.twig]]
         public: true
 
     app.admin.transportetiposeroperativo:
         class: App\Admin\TransporteTiposeroperativoAdmin
-        arguments: [~, App\Entity\TransporteTiposeroperativo, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Tipo operativo}
+            -
+                name: sonata.admin
+                model_class: App\Entity\TranporteTiposeroperativo
+                manager_type: orm
+                group: Transporte
+                label: Tipo operativo
+                show_mosaic_button: false
         public: true
 
     app.admin.transportetipounibit:
         class: App\Admin\TransporteTipounibitAdmin
-        arguments: [~, App\Entity\TransporteTipounibit, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Tipo de bitácora}
+            -
+                name: sonata.admin
+                model_class: App\Entity\TranporteTipounibit
+                manager_type: orm
+                group: Transporte
+                label: 'Tipo de bitácora'
+                show_mosaic_button: false
         public: true
 
     app.admin.transporteunidadbitacora:
         class: App\Admin\TransporteUnidadbitacoraAdmin
-        arguments: [~, App\Entity\TransporteUnidadbitacora, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: Transporte, label: Bitácoras}
+            -
+                name: sonata.admin
+                model_class: App\Entity\TranporteUnidadbitacora
+                manager_type: orm
+                group: Transporte
+                label: 'Bitácoras'
+                show_mosaic_button: false
         public: true
 
 
     app.admin.userorganizacion:
         class: App\Admin\UserOrganizacionAdmin
-        arguments: [~, App\Entity\UserOrganizacion, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: organizacion, label: Organizaciones}
+            -
+                name: sonata.admin
+                model_class: App\Entity\UserOrganizacion
+                manager_type: orm
+                group: 'Organización'
+                label: Organizaciones
+                show_mosaic_button: false
+        public: true
 
     app.admin.userdependencia:
         class: App\Admin\UserDependenciaAdmin
-        arguments: [~,  App\Entity\UserDependencia, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: organizacion, label: Dependencias}
+            -
+                name: sonata.admin
+                model_class: App\Entity\UserDependencia
+                manager_type: orm
+                group: Organizacion
+                label: Dependencias
+                show_mosaic_button: false
+        public: true
 
     app.admin.userarea:
         class: App\Admin\UserAreaAdmin
-        arguments: [~,  App\Entity\UserArea, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: oganizacion, label: Areas}
+            -
+                name: sonata.admin
+                model_class: App\Entity\UserArea
+                manager_type: orm
+                group: Organizacion
+                label: Areas
+                show_mosaic_button: false
+        public: true
 
     app.admin.usercuenta:
         class: App\Admin\UserCuentaAdmin
-        arguments: [~,  App\Entity\UserCuenta, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: 'Cuentas de usuario', label: 'Cuenta de usuario'}
+            -
+                name: sonata.admin
+                model_class: App\Entity\UserDependencia
+                manager_type: orm
+                group: Organizacion
+                label: Cuentas de usuario
+                show_mosaic_button: false
+        public: true
 
     app.admin.usercuentatipo:
         class: App\Admin\UserCuentatipoAdmin
-        arguments: [~,  App\Entity\UserCuentatipo, ~]
         tags:
-            - {name: sonata.admin, manager_type: orm, group: 'Cuentas de usuario', label: "Tipos de cuentas"}
+            -
+                name: sonata.admin
+                model_class: App\Entity\UserCuentatipo
+                manager_type: orm
+                group: Organizacion
+                label: Tipos de cuentas
+                show_mosaic_button: false
+        public: true

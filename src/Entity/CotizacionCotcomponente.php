@@ -124,7 +124,12 @@ class CotizacionCotcomponente
         if(empty($this->getComponente())){
             return sprintf('id: %s', $this->getId());
         }
-        return sprintf('%s x%s: %s', $this->getCotservicio()->getCotizacion()->getFile()->getNombre(),$this->getCotservicio()->getCotizacion()->getNumeropasajeros(), $this->getComponente()->getNombre());
+        if($this->getCantidad() > 1){
+            $infocomponente = sprintf('%s x%s', $this->getComponente()->getNombre(), $this->getCantidad());
+        }else{
+            $infocomponente = $this->getComponente()->getNombre();
+        }
+        return sprintf('%s x%s: %s', $this->getCotservicio()->getCotizacion()->getFile()->getNombre(), $this->getCotservicio()->getCotizacion()->getNumeropasajeros(), $infocomponente);
     }
 
     /**
