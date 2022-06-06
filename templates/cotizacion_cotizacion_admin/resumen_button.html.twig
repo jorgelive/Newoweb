@@ -1,6 +1,6 @@
 {% if object is defined and admin.hasRoute('resumen') and object.id is not null %}
     <li>
-        <a class="sonata-action-element" href="{{ admin.generateObjectUrl('resumen', object) }}">
+        <a class="sonata-action-element" href="{{ admin.generateObjectUrl('resumen', object, {'token': object.token}) }}">
             <i class="fa fa-bars" aria-hidden="true"></i>
             Resumen
         </a>

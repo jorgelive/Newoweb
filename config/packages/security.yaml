@@ -48,8 +48,9 @@ security:
     # Note: Only the *first* access control that matches will be used
 
     access_control:
-
+        #todo eliminar el fallback a cotizacion antigua
         - { path: ^/app/cotizacioncotizacion/\d*/resumen$, role: PUBLIC_ACCESS }
+        - { path: ^/app/cotizacioncotizacion/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
         - { path: ^/app/fitdieta/\d*/show$, role: PUBLIC_ACCESS }
 
         # Admin login page needs to be accessed without credential

@@ -103,6 +103,14 @@ class CotizacionCotizacionAdminController extends CRUDController
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
 
+//todo eliminar el acceso sin token el 2022/07/05
+        if($object->getId() >= 440){
+            if($request->get('token') != $object->getToken()){
+                $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
+                return new RedirectResponse($this->admin->generateUrl('list'));
+            }
+        }
+
         $this->checkParentChildAssociation($request, $object);
 
         //$this->admin->checkAccess('show', $object);

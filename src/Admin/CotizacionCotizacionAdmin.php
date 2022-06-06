@@ -215,7 +215,8 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
 
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
-        $collection->add('resumen', $this->getRouterIdParameter() . '/resumen');
+
+        $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
         $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
     }
 }

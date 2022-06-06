@@ -194,6 +194,11 @@ services:
         tags:
             - { name: doctrine.event_listener, event: prePersist }
 
+    app.eventlistener.cotizaciontoken_listener:
+        class: App\EventListener\CotizacionCotizacionTokenListener
+        tags:
+            - { name: doctrine.event_listener, event: prePersist }
+
     app.admin.comprobantecomprobante:
         class: App\Admin\ComprobanteComprobanteAdmin
         tags:
@@ -990,7 +995,7 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\UserDependencia
                 manager_type: orm
-                group: Organizacion
+                group: 'Organización'
                 label: Dependencias
                 show_mosaic_button: false
         public: true
@@ -1002,7 +1007,7 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\UserArea
                 manager_type: orm
-                group: Organizacion
+                group: 'Organización'
                 label: Areas
                 show_mosaic_button: false
         public: true
@@ -1014,7 +1019,7 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\UserDependencia
                 manager_type: orm
-                group: Organizacion
+                group: 'Organización'
                 label: Cuentas de usuario
                 show_mosaic_button: false
         public: true
@@ -1026,7 +1031,7 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\UserCuentatipo
                 manager_type: orm
-                group: Organizacion
+                group: 'Organización'
                 label: Tipos de cuentas
                 show_mosaic_button: false
         public: true
