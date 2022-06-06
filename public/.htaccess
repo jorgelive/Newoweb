@@ -2,7 +2,7 @@
     RewriteEngine On
 
     RewriteRule admin/gopro/cotizacion/cotizacion/(.*)/resumen /app/cotizacioncotizacion/$1/resumen?tl=es [R=301,L]
-
+    RewriteRule app/cotizacioncotizacion/(.*)/resumen$ /app/cotizacioncotizacion/$1/resumen/12345?tl=es [R=301,L]
     # Send would-be 404 requests to Craft
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
