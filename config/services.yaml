@@ -396,7 +396,6 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCottarifadetalle
                 manager_type: orm
-                show_in_dashboard: false
                 group: 'Cotización'
                 label: Tarifa
         public: true
