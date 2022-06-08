@@ -108,7 +108,7 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
                 }
 
                 //$query->getAllAliases() obtiene la lista de aloas de las entidades usamos la primera
-                //todo averiguar si siepre es la primera
+                //todo averiguar si siempre es la primera
                 if($valor !== false && !empty($query->getAllAliases()) && is_array($query->getAllAliases())) {
                     $query->andWhere($query->getAllAliases()[0] . '.' . $filter['field'] . ' = :filter' . $i)
                         ->setParameter('filter' . $i, $valor);
@@ -181,7 +181,7 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
         //var_dump($elements); die;
         foreach ($elements as $element) {
             foreach ($this->options['parameters'] as $key => $parameter){
-                if($key == 'url'){ // el parametro url es array porceso el subparametro id
+                if($key == 'url'){ // el parametro url es array proceso el subparametro id
                     $subject = $parameter['id'];
                 }else{
                     $subject = $parameter;

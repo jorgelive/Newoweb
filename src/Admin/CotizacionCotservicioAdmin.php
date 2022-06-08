@@ -6,11 +6,14 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\AdminBundle\Form\Type\ModelAutocompleteType;
 
+use Sonata\Form\Type\DatePickerType;
 use Sonata\Form\Type\DateTimePickerType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
@@ -31,13 +34,62 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
     {
         $datagridMapper
             ->add('id')
-            ->add('fechahorainicio', null, [
-                'label' => 'Inicio'
+            ->add('fechahorainicio', CallbackFilter::class,[
+                'label' => 'Fecha de inicio',
+                'callback' => function($queryBuilder, $alias, $field, $filterData) {
+
+                    $valor = $filterData->getValue();
+                    if (!$valor|| !($valor instanceof \DateTime)) {
+                        return false;
+                    }
+                    $fechaMasUno = clone ($valor);
+                    $fechaMasUno->add(new \DateInterval('P1D'));
+
+                    if(empty($filterData->getType())){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahora', $valor);
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
+                        return true;
+                    } elseif($filterData->getType() == 1){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
+                        $queryBuilder->setParameter('fechahora', $valor);
+                        return true;
+                    } elseif($filterData->getType() == 2){
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
+                        return true;
+                    } elseif($filterData->getType() == 3){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
+                        return true;
+                    } elseif($filterData->getType() == 4){
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahora");
+                        $queryBuilder->setParameter('fechahora', $valor);
+                        return true;
+                    }
+
+                    return true;
+
+                },
+                'field_type' => DatePickerType::class,
+                'field_options' => [
+                    'dp_use_current' => true,
+                    'dp_show_today' => true,
+                    'format'=> 'yyyy/MM/dd'
+                ],
+                'operator_type' => ChoiceType::class,
+                'operator_options' => [
+                    'choices' => [
+                        'Igual a' => 0,
+                        'Mayor o igual a' => 1,
+                        'Menor o igual a' => 2,
+                        'Mayor a' => 3,
+                        'Menor a' => 4
+                    ]
+                ]
             ])
             ->add('servicio')
-            ->add('fechahorafin', null, [
-                'label' => 'Fin'
-            ])
             ->add('cotizacion', null, [
                 'label' => 'Cotización'
             ])
@@ -57,12 +109,15 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
                 'format' => 'Y/m/d H:i'
             ])
             ->add('servicio')
-            ->add('fechahorafin', null, [
-                'label' => 'Inicio',
-                'format' => 'Y/m/d H:i'
+            ->add('cotizacion.file.nombre', null, [
+                'label' => 'File'
             ])
-            ->add('cotizacion', null, [
-                'label' => 'Cotización'
+            ->add('cotcomponentes', null, [
+                'label' => 'Componentes',
+                'associated_property' => 'nombre',
+                'sort_field_mapping' => [
+                    'fieldName' => 'fechahorainicio',
+                ]
             ])
             ->add('itinerario')
             ->add(ListMapper::NAME_ACTIONS, null, [

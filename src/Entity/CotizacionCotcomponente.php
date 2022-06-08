@@ -142,6 +142,11 @@ class CotizacionCotcomponente
         return $this->id;
     }
 
+    public function getNombre()
+    {
+        return $this->getComponente()->getNombre();
+    }
+
     /**
      * Set creado
      *

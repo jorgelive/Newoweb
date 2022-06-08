@@ -11,7 +11,7 @@ use Doctrine\Common\Collections\ArrayCollection;
  * CotizacionCotservicio
  *
  * @ORM\Table(name="cot_cotservicio")
- * @ORM\Entity
+ * @ORM\Entity(repositoryClass="App\Repository\CotizacionCotservicioRepository")
  */
 class CotizacionCotservicio
 {
@@ -118,7 +118,8 @@ class CotizacionCotservicio
         if(empty($this->getServicio())){
             return sprintf("Id: %s.", $this->getId()) ?? '';
         }
-        return $this->getServicio()->getNombre();
+        return sprintf('%s x%s: %s', $this->getCotizacion()->getFile()->getNombre(), $this->getCotizacion()->getNumeropasajeros(), $this->getServicio()->getNombre());
+
     }
 
 
@@ -131,6 +132,16 @@ class CotizacionCotservicio
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * Get resumen
+     *
+     * @return string
+     */
+    public function getResumen()
+    {
+        return sprintf('%s: %s', $this->getServicio()->getNombre(), $this->getCotizacion()->getFile()->getNombre());
     }
 
     /**
