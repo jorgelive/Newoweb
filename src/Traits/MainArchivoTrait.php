@@ -553,7 +553,7 @@ trait MainArchivoTrait
 
 
 
-    public function refreshModificado(): \DateTime
+    public function refreshModificado(): void
     {
         $this->setModificado(new \DateTime());
     }
