@@ -473,7 +473,7 @@ trait MainArchivoTrait
             return '';
         }
 
-        return $this->getInternalDir() . '/' . $this->id . '.' . $this->extension;
+        return $this->getInternalDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
     }
 
     //acceso desde twig
@@ -516,7 +516,7 @@ trait MainArchivoTrait
         if($this->extension === null){
             return '';
         }elseif(in_array($this->extension, $this->resizableTypes)){
-            return $this->getWebThumbDir() . '/' . $this->id . '.' . $this->extension;
+            return $this->getWebThumbDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
         }elseif(in_array($this->getExtension(), $this->externalTypes)){
             return $this->getEnlacethumburl() ?? '';
         }else{
