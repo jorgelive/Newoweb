@@ -126,6 +126,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
                 $archivosAux['webPath'] = $documento->getWebPath();     //$this->get('request')->getSchemeAndHttpHost();
                 $archivosAux['nombre'] = $documento->getNombre();
+                $archivosAux['tipo'] = $documento->getTipo();
                 $archivosAux['webThumbPath'] = $documento->getWebThumbPath();
                 $archivosAux['webPath'] = $documento->getWebPath();
                 $archivosAux['inModal'] = $documento->getInModal();
@@ -200,6 +201,7 @@ class CotizacionResumen implements ContainerAwareInterface
                             foreach ($dia->getItidiaarchivos() as $archivo):
                                 $archivoTemp['nombre'] = $archivo->getMedio()->getNombre();
                                 $archivoTemp['titulo'] = $archivo->getMedio()->getTitulo();
+                                $archivoTemp['tipo'] = $archivo->getMedio()->getTipo();
                                 $archivoTemp['webThumbPath'] = $archivo->getMedio()->getWebThumbPath();
                                 $archivoTemp['webPath'] = $archivo->getMedio()->getWebPath();
                                 $archivoTemp['inModal'] = $archivo->getMedio()->getInModal();

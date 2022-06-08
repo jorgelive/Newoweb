@@ -28,6 +28,7 @@ class MaestroMedioAdmin extends AbstractAdmin
             ->add('titulo', TranslationFieldFilter::class, [
                 'label' => 'Título'
             ])
+            ->add('enlace')
         ;
     }
 
@@ -82,6 +83,7 @@ class MaestroMedioAdmin extends AbstractAdmin
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
+            ->add('enlace')
             ->add('archivo', FileType::class, [
                 'required' => false
             ])
@@ -99,6 +101,7 @@ class MaestroMedioAdmin extends AbstractAdmin
                     'label' => 'Archivo'
                 ]
             )
+            ->add('enlace')
             ->add('clasemedio', null, [
                     'label' => 'Clase'
                 ]

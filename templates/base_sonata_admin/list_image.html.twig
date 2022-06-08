@@ -16,8 +16,8 @@ file that was distributed with this source code.
 
     {%- else -%}
         <div class="thumbnail" style="width:120px; margin-bottom: 5px;">
-            <a href="{{ app.request.getSchemeAndHttpHost() ~ object.webPath|raw }}"{% if object.inmodal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
-                <img src="{{ app.request.getSchemeAndHttpHost() ~ value|raw }}" alt="{{ object.titulo }}" style="width:120px;">
+            <a href="{% if object.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ object.webPath|raw }}{% else %}{{ object.webPath|raw }}{% endif %}"{% if object.inmodal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
+                <img src="{% if object.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ value|raw }}{% else %}{{ value|raw }}{% endif %}" alt="{{ object.titulo }}" style="width:120px;">
             </a>
         </div>
 
