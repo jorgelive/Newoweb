@@ -247,7 +247,7 @@ services:
                 model_class: App\Entity\ComprobanteTipo
                 manager_type: orm
                 group: Comprobante
-                label: Tipo de documento
+                label: Tipo de documento contable
                 show_mosaic_button: false
         public: true
 
@@ -296,7 +296,7 @@ services:
                 model_class: App\Entity\CotizacionFile
                 manager_type: orm
                 group: 'Cotización'
-                label: Files
+                label: 'Files de Cotización'
                 show_mosaic_button: false
         calls:
             - [ setTemplate, [show, cotizacion_file_admin/show.html.twig]]
@@ -359,7 +359,7 @@ services:
                 model_class: App\Entity\CotizacionCotservicio
                 manager_type: orm
                 group: Cotizacion
-                label: Servicios
+                label: Servicios cotizados
 #                show_mosaic_button: false
         calls:
             - [ setTemplate, [ list, cotizacion_cotservicio_admin\list.html.twig ] ]
@@ -386,7 +386,7 @@ services:
                 model_class: App\Entity\CotizacionCottarifa
                 manager_type: orm
                 group: Cotizacion
-                label: Tarifa
+                label: Tarifa cotizada
         public: true
 
     app.admin.cotizacioncottarifadetalle:
@@ -397,7 +397,7 @@ services:
                 model_class: App\Entity\CotizacionCottarifadetalle
                 manager_type: orm
                 group: 'Cotización'
-                label: Tarifa
+                label: Detalle de tarifa cotizada
         public: true
 
     app.admin.cotizaciontipofiledocumento:
@@ -408,7 +408,7 @@ services:
                 model_class: App\Entity\CotizacionTipofiledocumento
                 manager_type: orm
                 group: 'Cotización'
-                label: Tipo de documento
+                label: Tipo de archivo adjunto
                 show_mosaic_button: false
         public: true
 
@@ -419,8 +419,8 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\CotizacionFiledocumento
                 manager_type: orm
-                group: Cotizacion
-                label: Documento
+                group: 'Cotización'
+                label: Archivos adjuntos
                 show_mosaic_button: false
         public: true
 
@@ -431,8 +431,8 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCotpolitica
                 manager_type: orm
-                group: Cotizacion Maestro
-                label: Politicas
+                group: 'Cotización'
+                label: 'Políticas'
                 show_mosaic_button: false
         public: true
 
@@ -443,8 +443,8 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCotnota
                 manager_type: orm
-                group: Cotizacion Maestro
-                label: Notas
+                group: 'Cotización'
+                label: Notas operativas
                 show_mosaic_button: false
         public: true
 
@@ -455,7 +455,7 @@ services:
                 name: sonata.admin
                 model_class: App\Entity\CuentaCuenta
                 manager_type: orm
-                group: Cuenta
+                group: Cuentas y cajas
                 label: Cuenta
                 show_mosaic_button: false
         public: true
@@ -482,7 +482,7 @@ services:
                 model_class: App\Entity\CuentaClase
                 manager_type: orm
                 group: Cuenta
-                label: Clase
+                label: Clase de movimiento
                 show_mosaic_button: false
         public: true
 
@@ -494,7 +494,7 @@ services:
                 model_class: App\Entity\CuentaCentro
                 manager_type: orm
                 group: Cuenta
-                label: Centro
+                label: Centro de costo
                 show_mosaic_button: false
         public: true
 
@@ -520,7 +520,7 @@ services:
                 model_class: App\Entity\CuentaTipo
                 manager_type: orm
                 group: Cuenta
-                label: Tipo
+                label: Tipo de movimiento
                 show_mosaic_button: false
         public: true
 
@@ -561,7 +561,7 @@ services:
                 model_class: App\Entity\FitDietaalimento
                 manager_type: orm
                 group: Fit
-                label: Alimentos
+                label: Alimentos de la dieta
                 show_mosaic_button: false
         public: true
 
@@ -585,7 +585,7 @@ services:
                 model_class: App\Entity\FitAlimento
                 manager_type: orm
                 group: Fit
-                label: Alimentos
+                label: Lista de alimentos
                 show_mosaic_button: false
         public: true
 
@@ -634,7 +634,7 @@ services:
                 model_class: App\Entity\MaestroTipodocumento
                 manager_type: orm
                 group: Maestros
-                label: Tipo de documento
+                label: Tipo de documento de identidad
                 show_mosaic_button: false
         public: true
 
@@ -693,7 +693,7 @@ services:
                 model_class: App\Entity\MaestroTipopax
                 manager_type: orm
                 group: Maestros
-                label: Tipo pax
+                label: Tipo de pasajero
         public: true
 
     app.admin.maestrocategoriatour:
@@ -732,8 +732,6 @@ services:
                 show_mosaic_button: false
         public: true
 
-
-
     app.admin.servicioservicio:
         class: App\Admin\ServicioServicioAdmin
         tags:
@@ -742,7 +740,7 @@ services:
                 model_class: App\Entity\ServicioServicio
                 manager_type: orm
                 group: Servicio
-                label: Servicio
+                label: Servicio para cotizar
                 show_mosaic_button: false
         public: true
 
@@ -779,7 +777,7 @@ services:
                 model_class: App\Entity\ServicioComponenteitem
                 manager_type: orm
                 group: Servicio
-                label: Componente Item
+                label: Componente item
                 show_mosaic_button: false
         public: true
 
@@ -803,7 +801,7 @@ services:
                 model_class: App\Entity\ServicioTarifa
                 manager_type: orm
                 group: Servicio
-                label: Tarifa
+                label: Tarifa para cotizar
                 show_mosaic_button: false
         public: true
 
@@ -864,7 +862,7 @@ services:
                 controller: App\Controller\TransporteServicioAdminController
                 manager_type: orm
                 group: Transporte
-                label: Servicios
+                label: Servicios de transporte
                 show_mosaic_button: false
         calls:
             - [ setTokenStorage, ["@security.token_storage"]]
@@ -908,7 +906,7 @@ services:
                 controller: App\Controller\TransporteServiciocomponenteAdminController
                 manager_type: orm
                 group: Transporte
-                label: Files
+                label: Files de Transporte
                 show_mosaic_button: false
         public: true
 
