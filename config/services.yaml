@@ -19,14 +19,13 @@ parameters:
             entity: 'App:CotizacionCotservicio'
             repositorymethod: 'findCalendarAceptado'
             resource:
-                id: 'cotizacion.id'
-                title: 'cotizacion.resumen'
-
+                id: 'cotizacion.file.id'
+                title: 'cotizacion.file.nombre'
             parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                color: 'cotizacion.color'
+                color: 'cotizacion.file.color'
                 url:
                     id: 'id'
                     show:
@@ -40,13 +39,13 @@ parameters:
             entity: 'App:CotizacionCotservicio'
             repositorymethod: 'findCalendarAceptadoEfectuado'
             resource:
-                id: 'cotizacion.id'
-                title: 'cotizacion.resumen'
+                id: 'cotizacion.file.id'
+                title: 'cotizacion.file.nombre'
             parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                color: 'cotizacion.color'
+                color: 'cotizacion.file.color'
                 url:
                     id: 'id'
                     show:

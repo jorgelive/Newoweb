@@ -12,9 +12,17 @@ use Doctrine\Common\Collections\ArrayCollection;
  *
  * @ORM\Table(name="cot_file")
  * @ORM\Entity
+ * @ORM\HasLifecycleCallbacks
  */
 class CotizacionFile
 {
+
+    /**
+     * @var string
+     *
+     */
+    private $color;
+
     /**
      * @var int
      *
@@ -104,6 +112,14 @@ class CotizacionFile
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
+    /**
+     * @ORM\PostLoad
+     */
+    public function init()
+    {
+        $this->color = sprintf("#%02x%02x%02x", mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa));
+    }
+
 
     /**
      * Get id
@@ -113,6 +129,15 @@ class CotizacionFile
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * Get color
+     *
+     * @return string
+     */
+    public function getColor(){
+        return $this->color;
     }
 
     /**

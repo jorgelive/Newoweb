@@ -14,16 +14,9 @@ use Gedmo\Translatable\Translatable;
  * @ORM\Table(name="cot_cotizacion")
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="App\Entity\CotizacionCotizacionTranslation")
- * @ORM\HasLifecycleCallbacks
  */
 class CotizacionCotizacion implements Translatable
 {
-
-    /**
-     * @var string
-     *
-     */
-    private $color;
 
     /**
      * @var int
@@ -182,14 +175,6 @@ class CotizacionCotizacion implements Translatable
     }
 
     /**
-     * @ORM\PostLoad
-     */
-    public function init()
-    {
-        $this->color = sprintf("#%02x%02x%02x", mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa));
-    }
-
-    /**
      * Get nombre
      *
      * @return string
@@ -217,9 +202,6 @@ class CotizacionCotizacion implements Translatable
         return sprintf("%s : %s.", $this->getFile()->getNombre(), $this->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
-    public function getColor(){
-        return $this->color;
-    }
 
     /**
      * Get id
