@@ -146,6 +146,7 @@ class CotizacionCotizacion implements Translatable
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
+            $this->setToken(mt_rand());
             $newCotservicios = new ArrayCollection();
             foreach ($this->cotservicios as $cotservicio) {
                 $newCotservicio = clone $cotservicio;

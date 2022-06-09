@@ -53,11 +53,11 @@ class FullcalendarExtension extends AbstractExtension
     public function fullcalendar($calendars, $defaultView = null, $views = [], $allDaySlot = false)
     {
         if (empty($views)){
-            $views = ['agendaDay', 'agendaTwoDays', 'agendaWeek', 'month', 'listMonth'];
+            $views = ['resourceTimeGridDay', 'timeGridWeek', 'dayGridMonth', 'listMonth', 'resourceTimelineTwoDays'];
         }
 
         if (empty($defaultView)){
-            $defaultView = 'agendaWeek';
+            $defaultView = 'listMonth';
         }
 
         if (!is_array($calendars) && is_string($calendars)){
@@ -68,7 +68,7 @@ class FullcalendarExtension extends AbstractExtension
             $views[] = $views;
         }
 
-        $views = implode(', ', $views);
+        $views = implode(' ', $views);
 
         foreach ($calendars as $key => $calendar){
             $calendarsUrls[] = [
@@ -92,22 +92,23 @@ class FullcalendarExtension extends AbstractExtension
         }
 
         $script = <<<JS
-    $(document).ready(function() {
-        
-        var resourceUrl = '$defaultResourceUrl';
-        
-        var data = $calendarsUrls;
 
+
+    $(document).ready(function() {
+
+        var resourceUrl = '$defaultResourceUrl';
         var s = $("<select style=\"margin-top: 10px; margin-left: 10px;\" id=\"calendarSelector\" />");
         
         s.change(function() {
-            $('#calendar').fullCalendar('removeEventSources');
-            $('#calendar').fullCalendar('addEventSource', data[s.val()]['event'] )
+            calendar.removeAllEvents();
+            calendar.addEventSource(data[s.val()]['event']);
             resourceUrl = data[s.val()]['resource'];
-            $('#calendar').fullCalendar('option','resourceLabelText',data[s.val()]['nombre']);
+            calendar.setOption('resourceAreaHeaderContent', data[s.val()]['nombre']);
         })
         
         var renderDropdown = false;
+        
+        var data = $calendarsUrls;
         
         for(var val in data) {
             $("<option />", {text: data[val]['nombre'], value: val}).appendTo(s);
@@ -121,7 +122,7 @@ class FullcalendarExtension extends AbstractExtension
         }
         
         function getResources(start, end, timezone, handleData) {
-            var params = { start: start.format("YYYY-MM-DD"), end: end.format("YYYY-MM-DD") };
+            var params = { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
             var strParams = jQuery.param( params );
             
             $.ajax({
@@ -132,47 +133,46 @@ class FullcalendarExtension extends AbstractExtension
             });
         }
         
-        $('#calendar').fullCalendar({
-            resourceAreaWidth: 100,
-            aspectRatio: 1,
-            scrollTime: '00:00',
-            header: {
-                left: 'promptResource today prev,next',
+        
+        
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            timeZone: 'UTC',
+            headerToolbar: {
+                left: 'today prev,next',
                 center: 'title',
                 right: '$views'
             },
-            defaultView: '$defaultView',
-            refetchResourcesOnNavigate: true,
+            initialView: '$defaultView',
             views: {
-                timelineThreeDays: {
-                    type: 'timeline',
-                    duration: { days: 3 }
-                },
-                agendaTwoDays: {
-                    type: 'agenda',
+                resourceTimelineTwoDays: {
+                    type: 'resourceTimeline',
                     duration: { days: 2 },
-                    groupByResource: true
+                    buttonText: '2 Dias'
                 }
             },
-            schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
-            resourceLabelText: '$defaultLabel',
+            resourceAreaHeaderContent: '$defaultLabel',
             allDaySlot: $allDaySlot,
             locale: 'es',
             nowIndicator: true,
             navLinks: true,
             editable: false,
-            eventLimit: true,
-            resources: function(callback, start, end, timezone) {
-                getResources(start, end, timezone, function(resourceObjects) {
-                    callback(resourceObjects);
+            dayMaxEventRows: true,
+            refetchResourcesOnNavigate: true,
+            resources: function(fetchInfo, successCallback, failureCallback) {
+                getResources(fetchInfo.start, fetchInfo.end, fetchInfo.timezone, function(resources) {
+                    successCallback(resources);
                 });
             },
             events: '$defaultEventUrl'
         });
+        calendar.render();
+ 
     });
 
 JS;
 
-        return "<script>" . $script . "</script><div style='overflow: scroll;' class='box box-primary'><div style='min-width: 600px; margin: 10px;' id='calendar'></div></div>";
+        return "<script>" . $script . "</script><div style='overflow: scroll;' class='box box-primary'><div style='min-width: 800px; margin: 10px;' id='calendar'></div></div>";
     }
 }

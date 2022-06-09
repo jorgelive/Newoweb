@@ -32,13 +32,13 @@ class FullcalendarLoadController extends AbstractController
         $eventsfinder->setCalendar($calendar);
 
         $events = $eventsfinder->getEvents($data);
-        $status = empty($events) ? Response::HTTP_NO_CONTENT : Response::HTTP_OK;
+
         $jsonContent = $eventsfinder->serialize($events);
 
         $response = new Response();
         $response->headers->set('Content-Type', 'application/json');
         $response->setContent($jsonContent);
-        $response->setStatusCode($status);
+        $response->setStatusCode(Response::HTTP_OK);
         return $response;
     }
 
@@ -55,14 +55,13 @@ class FullcalendarLoadController extends AbstractController
         $eventsfinder->setCalendar($calendar);
 
         $events = $eventsfinder->getEvents($data);
-        $status = empty($events) ? Response::HTTP_NO_CONTENT : Response::HTTP_OK;
 
         $jsonContent = $eventsfinder->serializeResources($events);
 
         $response = new Response();
         $response->headers->set('Content-Type', 'application/json');
         $response->setContent($jsonContent);
-        $response->setStatusCode($status);
+        $response->setStatusCode(Response::HTTP_OK);
 
         return $response;
     }
