@@ -14,9 +14,16 @@ use Gedmo\Translatable\Translatable;
  * @ORM\Table(name="cot_cotizacion")
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="App\Entity\CotizacionCotizacionTranslation")
+ * @ORM\HasLifecycleCallbacks
  */
 class CotizacionCotizacion implements Translatable
 {
+
+    /**
+     * @var string
+     *
+     */
+    private $color;
 
     /**
      * @var int
@@ -157,21 +164,6 @@ class CotizacionCotizacion implements Translatable
     }
 
     /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getPrimerCotservicioFecha()
-    {
-        if($this->getCotservicios()->count() < 1){
-            return null;
-        }
-
-        return $this->getCotservicios()->first()->getFechaHoraInicio();
-    }
-
-
-    /**
      * @return string
      */
     public function __toString()
@@ -186,9 +178,29 @@ class CotizacionCotizacion implements Translatable
         }else{
             //como es publico retorno el titulo
             return sprintf("%s x%s : %s.", $this->getFile()->getNombre(), $this->getNumeropasajeros(), $this->getTitulo()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        }
+    }
 
+    /**
+     * @ORM\PostLoad
+     */
+    public function init()
+    {
+        $this->color = sprintf("#%02x%02x%02x", mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa));
+    }
+
+    /**
+     * Get nombre
+     *
+     * @return string
+     */
+    public function getPrimerCotservicioFecha()
+    {
+        if($this->getCotservicios()->count() < 1){
+            return null;
         }
 
+        return $this->getCotservicios()->first()->getFechaHoraInicio();
     }
 
     /**
@@ -203,6 +215,10 @@ class CotizacionCotizacion implements Translatable
         }
 
         return sprintf("%s : %s.", $this->getFile()->getNombre(), $this->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+    }
+
+    public function getColor(){
+        return $this->color;
     }
 
     /**

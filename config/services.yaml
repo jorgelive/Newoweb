@@ -26,7 +26,7 @@ parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                #color: 'estadocotcomponente.color'
+                color: 'cotizacion.color'
                 url:
                     id: 'id'
                     show:
@@ -46,7 +46,7 @@ parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                #color: 'estadocotcomponente.color'
+                color: 'cotizacion.color'
                 url:
                     id: 'id'
                     show:
