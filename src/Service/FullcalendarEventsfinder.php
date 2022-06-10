@@ -202,10 +202,12 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
                 if($key == 'start' || $key == 'end'){
                     $result[$i][$key] = $copiedElement->format("Y-m-d\TH:i:sP");
                 }elseif($key == 'url'){
+//todo recibir locale y generalo como link
                     if(isset($parameter['edit']) && true === $this->authorizationChecker->isGranted($parameter['edit']['role'])){
-                        $result[$i]['url'] = $this->container->get('router')->generate($parameter['edit']['route'], ['id' => $copiedElement]);
-                    }elseif(isset($parameter['show']) && true === $this->authorizationChecker->isGranted($parameter['show']['role'])){
-                        //$result[$i]['url'] = $this->container->get('router')->generate($parameter['show']['route'], ['id' => $copiedElement]);
+                        $result[$i]['urledit'] = $this->container->get('router')->generate($parameter['edit']['route'], ['id' => $copiedElement, 'tl' => 'es']);
+                    }
+                    if(isset($parameter['show']) && true === $this->authorizationChecker->isGranted($parameter['show']['role'])){
+                        $result[$i]['urlshow'] = $this->container->get('router')->generate($parameter['show']['route'], ['id' => $copiedElement, 'tl' => 'es']);
                     }
                 }else{
                     $result[$i][$key] = $copiedElement;

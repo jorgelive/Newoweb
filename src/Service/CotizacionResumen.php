@@ -35,6 +35,9 @@ class CotizacionResumen implements ContainerAwareInterface
 
     function setTl($tl): CotizacionResumen
     {
+        if(is_null($tl)){
+            $tl = 'es';
+        }
         $this->tl = $tl;
         return $this;
     }

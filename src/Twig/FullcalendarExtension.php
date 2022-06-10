@@ -53,11 +53,11 @@ class FullcalendarExtension extends AbstractExtension
     public function fullcalendar($calendars, $defaultView = null, $views = [], $allDaySlot = false)
     {
         if (empty($views)){
-            $views = ['resourceTimeGridDay', 'timeGridWeek', 'dayGridMonth', 'listMonth', 'resourceTimelineTwoDays'];
+            $views = ['timeGridWeek', 'dayGridMonth', 'listMonth', 'resourceTimelineOneDay'];
         }
 
         if (empty($defaultView)){
-            $defaultView = 'listMonth';
+            $defaultView = 'dayGridMonth';
         }
 
         if (!is_array($calendars) && is_string($calendars)){
@@ -133,12 +133,11 @@ class FullcalendarExtension extends AbstractExtension
             });
         }
         
-        
+        let clickCnt = 0;
         
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
-            timeZone: 'UTC',
             headerToolbar: {
                 left: 'today prev,next',
                 center: 'title',
@@ -146,19 +145,38 @@ class FullcalendarExtension extends AbstractExtension
             },
             initialView: '$defaultView',
             views: {
-                resourceTimelineTwoDays: {
+                resourceTimelineOneDay: {
                     type: 'resourceTimeline',
-                    duration: { days: 2 },
-                    buttonText: '2 Dias'
+                    duration: { days: 1 },
+                    buttonText: 'Dia'
                 }
             },
+            dateClick: function(info) {
+                calendar.changeView('resourceTimelineOneDay');
+                calendar.gotoDate(info.date)
+            },
+            eventClick: function(info) {
+                clickCnt++;         
+                if (clickCnt === 1) {
+                    oneClickTimer = setTimeout(function() {
+                        clickCnt = 0;
+                        if (typeof info.event.extendedProps.urlshow !== 'undefined') {
+                            window.location.href = info.event.extendedProps.urlshow;
+                        }
+                    }, 400);
+                } else if (clickCnt === 2) {
+                    clearTimeout(oneClickTimer);
+                    clickCnt = 0;
+                    if (typeof info.event.extendedProps.urledit !== 'undefined') {
+                        window.location.href = info.event.extendedProps.urledit;
+                    }
+                }     
+            },
             resourceAreaHeaderContent: '$defaultLabel',
-            allDaySlot: $allDaySlot,
             locale: 'es',
             nowIndicator: true,
-            navLinks: true,
+            contentHeight: 800,
             editable: false,
-            dayMaxEventRows: true,
             refetchResourcesOnNavigate: true,
             resources: function(fetchInfo, successCallback, failureCallback) {
                 getResources(fetchInfo.start, fetchInfo.end, fetchInfo.timezone, function(resources) {

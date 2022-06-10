@@ -22,7 +22,7 @@
         {% block notice %}
             {% include '@SonataTwig/FlashMessage/render.html.twig' %}
         {% endblock notice %}
-        {{ fullcalendar({'Aceptado' : 'cotizacion_componente_aceptado', 'Aceptado y efectuado' : 'cotizacion_componente_aceptado_efectuado'}, 'dayGridMonth', {1 : 'resourceTimeGridDay', 2 : 'timeGridWeek', 3 : 'dayGridMonth', 4 : 'listMonth', 5 : 'resourceTimelineTwoDays'}) }}
+        {{ fullcalendar({'Aceptado' : 'cotizacion_componente_aceptado', 'Aceptado y efectuado' : 'cotizacion_componente_aceptado_efectuado'}, 'dayGridMonth', {1 : 'timeGridWeek', 2 : 'dayGridMonth', 3 : 'listMonth', 4 : 'resourceTimelineOneDay'}) }}
     {% else %}
         {{ parent() }}
     {% endif %}
