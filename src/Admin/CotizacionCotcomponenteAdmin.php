@@ -13,6 +13,7 @@ use Sonata\AdminBundle\Form\Type\ModelAutocompleteType;
 use Sonata\AdminBundle\Show\ShowMapper;
 
 use Sonata\Form\Type\DatePickerType;
+use Sonata\Form\Type\DateRangePickerType;
 use Sonata\Form\Type\DateTimePickerType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormEvent;
@@ -35,7 +36,10 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
 
             $parameters = array_merge([
                 'fechahorainicio' => [
-                    'value' => $fecha->format('Y/m/d')
+                    'value' => [
+                        'start' => $fecha->format('Y/m/d'),
+                        'end' => $fecha->format('Y/m/d')
+                    ]
                 ]
             ], $parameters);
         }
@@ -62,120 +66,53 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                 'label' => 'Servicio'
             ])
             ->add('componente')
-            ->add('cotservicio.cotizacion.estadocotizacion')
+            ->add('cotservicio.cotizacion.estadocotizacion',  null, [
+                'label' => 'Estado cotización'
+            ])
             ->add('cantidad')
             ->add('fechahorainicio', CallbackFilter::class,[
                 'label' => 'Fecha de inicio',
                 'callback' => function($queryBuilder, $alias, $field, $filterData) {
 
                     $valor = $filterData->getValue();
-                    if (!$valor|| !($valor instanceof \DateTime)) {
+                    if (!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
                         return false;
                     }
-                    $fechaMasUno = clone ($valor);
+                    $fechaMasUno = clone ($valor['end']);
                     $fechaMasUno->add(new \DateInterval('P1D'));
 
                     if(empty($filterData->getType())){
                         $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
                         $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
-                        $queryBuilder->setParameter('fechahora', $valor);
-                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
+                        $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
                         return true;
-                    } elseif($filterData->getType() == 1){
-                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
-                        $queryBuilder->setParameter('fechahora', $valor);
-                        return true;
-                    } elseif($filterData->getType() == 2){
-                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
-                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
-                        return true;
-                    } elseif($filterData->getType() == 3){
-                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahoraMasUno");
-                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
-                        return true;
-                    } elseif($filterData->getType() == 4){
-                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahora");
-                        $queryBuilder->setParameter('fechahora', $valor);
-                        return true;
+                    } else{
+                        return false;
                     }
-
-                    return true;
-
                 },
-                'field_type' => DatePickerType::class,
+                'field_type' => DateRangePickerType::class,
                 'field_options' => [
-                    'dp_use_current' => true,
-                    'dp_show_today' => true,
-                    'format'=> 'yyyy/MM/dd'
-                ],
-                'operator_type' => ChoiceType::class,
-                'operator_options' => [
-                    'choices' => [
-                        'Igual a' => 0,
-                        'Mayor o igual a' => 1,
-                        'Menor o igual a' => 2,
-                        'Mayor a' => 3,
-                        'Menor a' => 4
+                    'field_options_start' => [
+                        'dp_use_current' => true,
+                        'dp_show_today' => true,
+                        'format'=> 'yyyy/MM/dd'
+                    ],
+                    'field_options_end' => [
+                        'dp_use_current' => true,
+                        'dp_show_today' => true,
+                        'format'=> 'yyyy/MM/dd'
                     ]
-                ]
-            ])
-            ->add('fechahorafin', CallbackFilter::class,[
-                'label' => 'Fecha de fin',
-                'callback' => function($queryBuilder, $alias, $field, $filterData) {
-
-                    $valor = $filterData->getValue();
-                    if (!$valor|| !($valor instanceof \DateTime)) {
-                        return false;
-                    }
-                    $fechaMasUno = clone ($valor);
-                    $fechaMasUno->add(new \DateInterval('P1D'));
-
-                    if(empty($filterData->getType())){
-                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
-                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
-                        $queryBuilder->setParameter('fechahora', $valor);
-                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
-                        return true;
-                    } elseif($filterData->getType() == 1){
-                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
-                        $queryBuilder->setParameter('fechahora', $valor);
-                        return true;
-                    } elseif($filterData->getType() == 2){
-                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
-                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
-                        return true;
-                    } elseif($filterData->getType() == 3){
-                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahoraMasUno");
-                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno);
-                        return true;
-                    } elseif($filterData->getType() == 4){
-                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahora");
-                        $queryBuilder->setParameter('fechahora', $valor);
-                        return true;
-                    }
-
-                    return true;
-
-                },
-                'field_type' => DatePickerType::class,
-                'field_options' => [
-                    'dp_use_current' => true,
-                    'dp_show_today' => true,
-                    'format'=> 'yyyy/MM/dd'
                 ],
                 'operator_type' => ChoiceType::class,
                 'operator_options' => [
                     'choices' => [
-                        'Igual a' => 0,
-                        'Mayor o igual a' => 1,
-                        'Menor o igual a' => 2,
-                        'Mayor a' => 3,
-                        'Menor a' => 4
+                        'Igual a' => 0
                     ]
                 ]
             ])
             ->add('estadocotcomponente', null, [
-                'label' => 'Estado'
+                'label' => 'Estado del componente'
             ])
         ;
     }
