@@ -406,7 +406,8 @@ services:
                 label: Servicios cotizados
 #                show_mosaic_button: false
         calls:
-            - [ setTemplate, [ list, cotizacion_cotservicio_admin\list.html.twig ] ]
+            - [ setTemplate, [edit, cotizacion_cotservicio_admin\edit.html.twig]]
+            - [ setTemplate, [list, cotizacion_cotservicio_admin\list.html.twig ]]
         public: true
 
     app.admin.cotizacioncotcomponente:
@@ -419,7 +420,7 @@ services:
                 group: Cotizacion
                 label: Componentes
         calls:
-            - [ setTemplate, [ list, cotizacion_cotcomponente_admin\list.html.twig ] ]
+            - [ setTemplate, [list, cotizacion_cotcomponente_admin\list.html.twig]]
         public: true
 
     app.admin.cotizacioncottarifa:

@@ -191,32 +191,33 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                         'attr' => ['class' => 'readonly']
                     ]
                 )
+                ->add('fechahorainicio', DateTimePickerType::class, [
+
+                    'label' => 'Inicio',
+                    'dp_show_today' => true,
+                    'format'=> 'yyyy/MM/dd HH:mm',
+                    'attr' => [
+                        'class' => 'fechahora componenteinicio',
+                        'horariodependiente' => false
+                    ]
+                ])
+                ->add('fechahorafin', DateTimePickerType::class, [
+                    'label' => 'Fin',
+                    'dp_show_today' => true,
+                    'format'=> 'yyyy/MM/dd HH:mm',
+                    'attr' => [
+                        'class' => 'fechahora componentefin',
+                        'horariodependiente' => false
+                    ]
+                ])
             ;
         } else {
+            //muestro como oculto ya que las tarifas dependen de los componentes
             $formMapper
             ->add('componente', ModelHiddenType::class);
         }
 
         $formMapper
-
-            ->add('fechahorainicio', DateTimePickerType::class, [
-                'label' => 'Inicio',
-                'dp_show_today' => true,
-                'format'=> 'yyyy/MM/dd HH:mm',
-                'attr' => [
-                    'class' => 'fechahora componenteinicio',
-                    'horariodependiente' => false
-                ]
-            ])
-            ->add('fechahorafin', DateTimePickerType::class, [
-                'label' => 'Fin',
-                'dp_show_today' => true,
-                'format'=> 'yyyy/MM/dd HH:mm',
-                'attr' => [
-                    'class' => 'fechahora componentefin',
-                    'horariodependiente' => false
-                ]
-            ])
             ->add('estadocotcomponente', null, [
                 'label' => 'Estado'
             ])

@@ -2,13 +2,11 @@
 
 namespace App\Controller;
 
-use Sonata\AdminBundle\Controller\CRUDController;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 
-class TransporteServicioAdminController extends CRUDController
+class TransporteServicioAdminController extends CRUDAdminController
 {
 
     public static function getSubscribedServices(): array

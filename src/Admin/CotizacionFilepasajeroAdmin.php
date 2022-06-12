@@ -10,6 +10,9 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\AdminBundle\Route\RouteCollection;
 use Sonata\Form\Type\DatePickerType;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
 
 class CotizacionFilepasajeroAdmin extends AbstractAdmin
 {
@@ -106,15 +109,60 @@ class CotizacionFilepasajeroAdmin extends AbstractAdmin
                 'label' => 'Tipo de documento'
             ])
             ->add('numerodocumento', null, [
-                'label' => 'Número de Documento'
+                'label' => 'Número de documento'
             ])
             ->add('fechanacimiento', DatePickerType::class, [
-                'label' => 'Fecha de nacimieto',
+                'label' => 'Fecha de nacimiento',
                 'dp_use_current' => true,
                 'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd'
             ])
         ;
+
+        $widthModifier = function (FormInterface $form) {
+
+            $form
+                ->add('nombre', null, [
+                    'label' => 'Nombre',
+                    'attr' => [
+                        'style' => 'width: 150px;'
+                    ]
+                ])
+                ->add('apellido', null, [
+                    'label' => 'Apellido',
+                    'attr' => [
+                        'style' => 'width: 150px;'
+                    ]
+                ])
+                ->add('numerodocumento', null, [
+                    'label' => 'Número de documento',
+                    'attr' => [
+                        'style' => 'width: 100px;'
+                    ]
+                ])
+                ->add('fechanacimiento', DatePickerType::class, [
+                    'label' => 'Fecha de nacimiento',
+                    'dp_use_current' => true,
+                    'dp_show_today' => true,
+                    'format'=> 'yyyy/MM/dd',
+                    'attr' => [
+                        'style' => 'width: 100px;'
+                    ]
+                ])
+            ;
+        };
+
+        $formBuilder = $formMapper->getFormBuilder();
+        $formBuilder->addEventListener(
+            FormEvents::PRE_SET_DATA,
+            function (FormEvent $event) use ($widthModifier) {
+                if($event->getData()
+                    && $this->getRoot()->getClass() == 'App\Entity\CotizacionFile'
+                ){
+                    $widthModifier($event->getForm());
+                }
+            }
+        );
     }
 
     /**

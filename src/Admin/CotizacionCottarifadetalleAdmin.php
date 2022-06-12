@@ -22,10 +22,10 @@ class CotizacionCottarifadetalleAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('cottatifa')
-            ->add('detalle')
             ->add('tipotarifadetalle',  null, [
                 'label' => 'Tipo'
             ])
+            ->add('detalle')
         ;
     }
 
@@ -37,10 +37,10 @@ class CotizacionCottarifadetalleAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('cottatifa')
-            ->add('detalle')
             ->add('tipotarifadetalle',  null, [
                 'label' => 'Tipo'
             ])
+            ->add('detalle')
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -69,11 +69,10 @@ class CotizacionCottarifadetalleAdmin extends AbstractAdmin
         }
 
         $formMapper
-
-            ->add('detalle')
             ->add('tipotarifadetalle',  null, [
                 'label' => 'Tipo'
             ])
+            ->add('detalle')
         ;
 
 

@@ -155,6 +155,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
     {
         if ($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'
             && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotizacion'
+            && !($this->isCurrentRoute('edit') && $this->getRoot()->getClass() == 'App\Entity\CotizacionCotservicio')
         ){
             $formMapper->add('cotizacion');
         }
@@ -246,6 +247,11 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
 
             }
         );
+
+        $this->vars['cotservicios']['serviciopath'] = 'app_servicio_servicio_ajaxinfo';
+        $this->vars['cotcomponentes']['componentepath'] = 'app_servicio_componente_ajaxinfo';
+        $this->vars['cotservicios']['itinerariopath'] = 'app_servicio_itinerario_ajaxinfo';
+        $this->vars['cottarifas']['tarifapath'] = 'app_servicio_tarifa_ajaxinfo';
     }
 
     /**

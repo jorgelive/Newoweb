@@ -2,9 +2,6 @@
 
 namespace App\Controller;
 
-
-use App\Entity\ComprobanteMensaje;
-use Sonata\AdminBundle\Controller\CRUDController;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,7 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Service\MainVariableproceso;
 use App\Service\MainTipocambio;
 
-class ComprobanteComprobanteAdminController extends CRUDController
+class ComprobanteComprobanteAdminController extends CRUDAdminController
 {
     public static function getSubscribedServices(): array
     {

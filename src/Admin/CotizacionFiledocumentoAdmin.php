@@ -19,6 +19,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
     {
         $datagridMapper
             ->add('id')
+            ->add('file')
             ->add('nombre')
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento'
@@ -34,6 +35,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
+            ->add('file')
             ->add('nombre')
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento',
@@ -41,6 +43,11 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
                 'sort_parent_association_mappings' => [['fieldName' => 'tipofiledocumento']],
             ])
+            ->add('webThumbPath', 'string', [
+                    'label' => 'Archivo',
+                    'template' => 'base_sonata_admin/list_image.html.twig'
+                ]
+            )
             ->add('prioridad', null, [
                 'editable' => true
             ])
@@ -85,11 +92,17 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
     {
         $showMapper
             ->add('id')
+            ->add('file')
             ->add('nombre')
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento'
             ])
             ->add('prioridad')
+            ->add('webThumbPath', 'string', [
+                    'label' => 'Archivo',
+                    'template' => 'base_sonata_admin/show_image.html.twig'
+                ]
+            )
         ;
     }
 

@@ -2,15 +2,12 @@
 
 namespace App\Controller;
 
-
-use Sonata\AdminBundle\Controller\CRUDController;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use App\Service\CotizacionResumen;
 use Doctrine\ORM\EntityManagerInterface;
 
-class CotizacionCotizacionAdminController extends CRUDController
+class CotizacionCotizacionAdminController extends CRUDAdminController
 {
 
     var $clasificacionTarifas = [];
