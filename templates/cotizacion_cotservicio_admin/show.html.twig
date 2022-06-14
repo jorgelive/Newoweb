@@ -37,8 +37,8 @@ file that was distributed with this source code.
 
                 <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ object.servicio.nombre }}</div></div>
                 <div class="celda"><div class="titulo">Itinerario</div><div class="contenido">{{ object.itinerario.nombre|length > 30 ? object.itinerario.nombre|slice(0, 30) ~ '...' : object.itinerario.nombre }}</div></div>
-                <div class="celda"><div class="titulo">Inicio</div><div class="contenido">{{ object.fechahorainicio|date("H:m Y-m-d") }}</div></div>
-                <div class="celda"><div class="titulo">Fin</div><div class="contenido">{{ object.fechahorafin|date("H:m Y-m-d") }}</div></div>
+                <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ object.fechahorainicio|date("H:i") }}</span> <span>{{ object.fechahorainicio|date("Y-m-d") }}</span></div></div>
+                <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ object.fechahorafin|date("H:i") }}</span> <span>{{ object.fechahorafin|date("Y-m-d") }}</span></div></div>
             </div>
             {% if object.cotcomponentes is defined and object.cotcomponentes|length > 0%}
                 <ul class="fila componente">
@@ -48,8 +48,8 @@ file that was distributed with this source code.
                             <div class="celda">
                                 <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ componente.componente.nombre }}</div></div>
                                 <div class="celda"><div class="titulo">#</div><div class="contenido">{{ componente.cantidad }}</div></div>
-                                <div class="celda"><div class="titulo">Inicio</div><div class="contenido">{{ componente.fechahorainicio|date("H:m Y-m-d") }}</div></div>
-                                <div class="celda"><div class="titulo">Fin</div><div class="contenido">{{ componente.fechahorafin|date("H:m Y-m-d") }}</div></div>
+                                <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ componente.fechahorainicio|date("H:i") }}</span> <span>{{ componente.fechahorainicio|date("Y-m-d") }}</span></div></div>
+                                <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ componenete.fechahorafin|date("H:i") }}</span> <span>{{ componente.fechahorafin|date("Y-m-d") }}</span></div></div>
                                 <div class="celda"><div class="titulo">Estado</div><div class="contenido estadocomponente" style="color: {{ componente.estadocotcomponente.color }};">{{ componente.estadocotcomponente.nombre }}</div></div>
 
                                 {% if componente.componente.componenteitems is defined and componente.componente.componenteitems|length > 0%}

@@ -757,8 +757,8 @@ file that was distributed with this source code.
                                                                         <div class="celda">
                                                                             <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ servicio.servicio.nombre }}</div></div>
                                                                             <div class="celda"><div class="titulo">Itinerario</div><div class="contenido">{{ servicio.itinerario.nombre|length > 30 ? servicio.itinerario.nombre|slice(0, 30) ~ '...' : servicio.itinerario.nombre }}</div></div>
-                                                                            <div class="celda"><div class="titulo">Inicio</div><div class="contenido">{{ servicio.fechahorainicio|date("H:m Y-m-d") }}</div></div>
-                                                                            <div class="celda"><div class="titulo">Fin</div><div class="contenido">{{ servicio.fechahorafin|date("H:m Y-m-d") }}</div></div>
+                                                                            <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ servicio.fechahorainicio|date("H:i") }}</span> <span>{{ servicio.fechahorainicio|date("Y-m-d") }}</span></div></div>
+                                                                            <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ servicio.fechahorafin|date("H:i") }}</span> <span>{{ servicio.fechahorafin|date("Y-m-d") }}</span></div></div>
                                                                         </div>
                                                                         {% if servicio.cotcomponentes is defined and servicio.cotcomponentes|length > 0%}
                                                                             <ul class="fila componente">
@@ -768,8 +768,8 @@ file that was distributed with this source code.
                                                                                         <div class="celda">
                                                                                             <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ componente.componente.nombre }}</div></div>
                                                                                             <div class="celda"><div class="titulo">#</div><div class="contenido">{{ componente.cantidad }}</div></div>
-                                                                                            <div class="celda"><div class="titulo">Inicio</div><div class="contenido">{{ componente.fechahorainicio|date("H:m Y-m-d") }}</div></div>
-                                                                                            <div class="celda"><div class="titulo">Fin</div><div class="contenido">{{ componente.fechahorafin|date("H:m Y-m-d") }}</div></div>
+                                                                                            <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ componente.fechahorainicio|date("H:i") }}</span> <span>{{ componente.fechahorainicio|date("Y-m-d") }}</span></div></div>
+                                                                                            <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ componente.fechahorafin|date("H:i") }}</span> <span>{{ componente.fechahorafin|date("Y-m-d") }}</span></div></div>
                                                                                             <div class="celda"><div class="titulo">Estado</div><div class="contenido estadocomponente" style="color: {{ componente.estadocotcomponente.color }};">{{ componente.estadocotcomponente.nombre }}</div></div>
                                                                                             {% if componente.componente.componenteitems is defined and componente.componente.componenteitems|length > 0%}
                                                                                                 <div class="celda">
