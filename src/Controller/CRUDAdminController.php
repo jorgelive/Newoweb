@@ -21,7 +21,7 @@ class CRUDAdminController extends BaseController
             $session = $this->container->get('request_stack')->getSession();
             $last_list = $session->get('last_list');
 
-            if(strstr($last_list['route'], $current_admin)) {
+            if(strstr($last_list['route'], $current_admin) || empty($last_list['route'])) {
                 $parameters = [];
 
                 $filter = $this->admin->getFilterParameters();

@@ -36,6 +36,11 @@ class CotizacionEstadocotcomponente
     private $color;
 
     /**
+     * @ORM\Column(type="string", length=10)
+     */
+    private $colorcalendar;
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -116,6 +121,30 @@ class CotizacionEstadocotcomponente
     public function getColor()
     {
         return $this->color;
+    }
+
+    /**
+     * Set colorcalendar
+     *
+     * @param string $colorcalendar
+     *
+     * @return CotizacionEstadocotcomponente
+     */
+    public function setColorcalendar($colorcalendar)
+    {
+        $this->colorcalendar = $colorcalendar;
+
+        return $this;
+    }
+
+    /**
+     * Get colorcalendar
+     *
+     * @return string
+     */
+    public function getColorcalendar()
+    {
+        return $this->colorcalendar;
     }
 
     /**

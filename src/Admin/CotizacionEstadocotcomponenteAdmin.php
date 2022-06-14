@@ -19,6 +19,10 @@ class CotizacionEstadocotcomponenteAdmin extends AbstractAdmin
             ->add('id')
             ->add('nombre')
             ->add('color')
+            ->add('colorcalendar', null, [
+                    'label' => 'Color calendario'
+                ]
+            )
         ;
     }
 
@@ -35,13 +39,18 @@ class CotizacionEstadocotcomponenteAdmin extends AbstractAdmin
             ->add('color', null, [
                 'editable' => true
             ])
+            ->add('colorcalendar', null, [
+                    'label' => 'Color calendario',
+                    'editable' => true
+                ]
+            )
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
-                ],
+                ]
             ])
         ;
     }
@@ -54,6 +63,10 @@ class CotizacionEstadocotcomponenteAdmin extends AbstractAdmin
         $formMapper
             ->add('nombre')
             ->add('color')
+            ->add('colorcalendar', null, [
+                    'label' => 'Color calendario'
+                ]
+            )
         ;
     }
 
@@ -66,6 +79,10 @@ class CotizacionEstadocotcomponenteAdmin extends AbstractAdmin
             ->add('id')
             ->add('nombre')
             ->add('color')
+            ->add('colorcalendar', null, [
+                    'label' => 'Color calendario'
+                ]
+            )
         ;
     }
 }

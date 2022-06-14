@@ -192,12 +192,14 @@ class CotizacionFilepasajeroAdmin extends AbstractAdmin
         ;
     }
 
-/*    public function getDataSourceIterator()
+/*
+    public function getDataSourceIterator()
         {
             $datasourceit = parent::getDataSourceIterator();
             $datasourceit->setDateTimeFormat('Y/m/d');
             return $datasourceit;
-        }*/
+        }
+*/
 
 
 

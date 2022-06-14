@@ -27,16 +27,16 @@ file that was distributed with this source code.
 
         @media print
         {
-            .locale_switcher
-            {
-                display: none !important;
-            }
-            .tab-content > .tab-pane {
-                display: block !important;
-                opacity: 1 !important;
-                visibility: visible !important;
-            }
+            .locale_switcher {display: none !important;}
+            .tab-content > .tab-pane {display: block !important; opacity: 1 !important; visibility: visible !important;}
         }
+
+        .fila{list-style: none;}
+        .fila.servicio{padding-inline-start: 0; color: black;}
+        .fila li {list-style: none; border: 1px solid gray; margin-bottom: 5px;}
+        .celda{display: inline-block; padding: 0 5px;}
+        .celda.heading{font-weight: bold; font-size: 0.8em; vertical-align: top;}
+        .titulo{font-size: 0.8em; font-weight: bold;}
     </style>
 {% endblock %}
 
@@ -378,7 +378,7 @@ file that was distributed with this source code.
                                                                         <td class="text-right" style="font-weight: bold; color: #1B6129;">
                                                                             {{ resumenitem.gananciadolares }}
                                                                         </td>
-                                                                        <td>
+                                                                        <td style="color: {{ resumenitem.listacolor }}">
                                                                             {{ resumenitem.titulo }}
                                                                         </td>
                                                                         <td class="text-right">
@@ -471,7 +471,7 @@ file that was distributed with this source code.
                                                                                 &nbsp;(U)
                                                                             {% endif %}
                                                                         </td>
-                                                                        <td>
+                                                                        <td style="color: {{ tarifadetalle.tipoTarListacolor }};">
                                                                             {{ tarifadetalle.tipoTarTitulo }}
                                                                         </td>
                                                                         <td>
@@ -501,7 +501,7 @@ file that was distributed with this source code.
                                                                             Tipo
                                                                         </th>
                                                                         <th>
-                                                                            Título
+                                                                            Tipo para Pax
                                                                         </th>
                                                                         <th class="text-right">
                                                                             Costo Soles
@@ -520,10 +520,10 @@ file that was distributed with this source code.
                                                                     <tbody>
                                                                     {%  for tarifaresumen in rango.resumen %}
                                                                     <tr>
-                                                                        <td>
+                                                                        <td style="color: {{ tarifaresumen.tipoTarListacolor }}">
                                                                             {{ tarifaresumen.tipoTarNombre }}
                                                                         </td>
-                                                                        <td>
+                                                                        <td style="color: {{ tarifaresumen.tipoTarListacolor }}">
                                                                             {{ tarifaresumen.tipoTarTitulo }}
                                                                         </td>
                                                                         <td class="text-right">
@@ -675,54 +675,160 @@ file that was distributed with this source code.
                                         {{ contenido.contenido|raw }}
                                     {% elseif name == 'itinerario' %}
                                         <h3 class="visible-print">{{ contenido.nombre}}</h3>
-                                        {% if contenido.itinerarios is defined and contenido.itinerarios|length > 0 %}
+                                        {% if action == 'show' %}
+                                        <div class="panel-group box box-primary" id="accordionitinerario">
+                                            <div class="panel panel-default hidden-print">
+                                                <div class="panel-heading">
+                                                    <h5 class="panel-title">
+                                                        <a data-toggle="collapse" data-parent="#accordionitinerario" href="#collapseitinerario1">
+                                                            Publico: Itinerario por dia
+                                                        </a>
+                                                    </h5>
+                                                </div>
+                                                <div id="collapseitinerario1" class="panel-collapse collapse in">
+                                        {% endif%}
+                                                    <div class="panel-body table-responsive">
+                                                        <h3 class="visible-print">Itinerario</h3>
+                                                        {% if contenido.itinerarios is defined and contenido.itinerarios|length > 0 %}
 
-                                            {% set diaCorrespondiente = 1 %}
+                                                            {% for itinerario in contenido.itinerarios %}
 
-                                            {% for itinerario in contenido.itinerarios %}
+                                                                <h4><span style="font-weight: bold;">{{ itinerario.fecha }}</span>&nbsp;-&nbsp;<span>Dia {{ itinerario.nroDia }}</span></h4>
+                                                                {% for item in itinerario.fechaitems %}
+                                                                    <h4>{{ item.titulo }}</h4>
+                                                                    {{ item.descripcion|raw }}
+                                                                    <div class="container-fluid hidden-print">
+                                                                        {% for archivo in item.archivos %}
+                                                                            {% if loop.index0 % 2 == 0 %}
+                                                                                <div class="row">
+                                                                            {% endif %}
+                                                                            <div class="col-xs-12 col-sm-6">
+                                                                                <div class="thumbnail">
+                                                                                    <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.titulo }}"{% else %} target="_blank" {% endif %}>
+                                                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" style="width:100%">
+                                                                                        <div class="caption">
+                                                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
+                                                                                        </div>
+                                                                                    </a>
+                                                                                </div>
+                                                                            </div>
+                                                                            {% if loop.index % 2 == 0 or loop.last %}
+                                                                                </div>
+                                                                            {% endif %}
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                {% endfor %}
 
-                                                {% if (diaCorrespondiente != itinerario.nroDia) %}
-
-
-                                                {% endif %}
-
-                                                <h4><span style="font-weight: bold;">{{ itinerario.fecha }}</span>&nbsp;-&nbsp;<span>Dia {{ itinerario.nroDia }}</span></h4>
-                                                {% for item in itinerario.fechaitems %}
-                                                    <h4>{{ item.titulo }}</h4>
-                                                    {{ item.descripcion|raw }}
-                                                    <div class="container-fluid hidden-print">
-                                                        {% for archivo in item.archivos %}
-                                                            {% if loop.index0 % 2 == 0 %}
-                                                                <div class="row">
-                                                            {% endif %}
-                                                            <div class="col-xs-12 col-sm-6">
-                                                                <div class="thumbnail">
-                                                                    <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.titulo }}"{% else %} target="_blank" {% endif %}>
-                                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" style="width:100%">
-                                                                        <div class="caption">
-                                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
-                                                                        </div>
-                                                                    </a>
-                                                                </div>
-                                                            </div>
-                                                            {% if loop.index % 2 == 0 or loop.last %}
-                                                                </div>
-                                                            {% endif %}
-                                                        {% endfor %}
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                        {% if contenido.notas is defined and contenido.notas|length > 0 %}
+                                                            <h4>Notas:</h4>
+                                                            {% for nota in contenido.notas %}
+                                                                <h5><strong>{{ nota.titulo }}</strong></h5>
+                                                                {{ nota.contenido|raw }}
+                                                            {% endfor %}
+                                                        {% endif %}
                                                     </div>
-                                                {% endfor %}
 
-                                                {% set diaCorrespondiente = diaCorrespondiente + 1 %}
+                                        {% if action == 'show' %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
 
-                                            {% endfor %}
+                                        {% if action == 'show' %}
+                                            <div class="panel panel-default hidden-print">
+                                                <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
+                                                    <h5 class="panel-title">
+                                                        <a data-toggle="collapse" data-parent="#accordionitinerario" href="#collapseitinerario2">
+                                                            Interno: Detalle de servicios
+                                                        </a>
+                                                    </h5>
+                                                </div>
+                                                <div id="collapseitinerario2" class="panel-collapse collapse">
+                                                    <div class="panel-body table-responsive">
+                                                        <h3 class="visible-print">Interno: Detalle de servicios</h3>
+                                                        {% if object.cotservicios is defined and object.cotservicios|length > 0%}
+
+                                                            <ul class="fila servicio">
+
+                                                                {% for servicio in object.cotservicios %}
+                                                                    <li>
+                                                                        <div class="celda heading">Ser</div>
+                                                                        <div class="celda">
+                                                                            <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ servicio.servicio.nombre }}</div></div>
+                                                                            <div class="celda"><div class="titulo">Itinerario</div><div class="contenido">{{ servicio.itinerario.nombre|length > 30 ? servicio.itinerario.nombre|slice(0, 30) ~ '...' : servicio.itinerario.nombre }}</div></div>
+                                                                            <div class="celda"><div class="titulo">Inicio</div><div class="contenido">{{ servicio.fechahorainicio|date("H:m Y-m-d") }}</div></div>
+                                                                            <div class="celda"><div class="titulo">Fin</div><div class="contenido">{{ servicio.fechahorafin|date("H:m Y-m-d") }}</div></div>
+                                                                        </div>
+                                                                        {% if servicio.cotcomponentes is defined and servicio.cotcomponentes|length > 0%}
+                                                                            <ul class="fila componente">
+                                                                                {% for componente in servicio.cotcomponentes %}
+                                                                                    <li>
+                                                                                        <div class="celda heading">Com</div>
+                                                                                        <div class="celda">
+                                                                                            <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ componente.componente.nombre }}</div></div>
+                                                                                            <div class="celda"><div class="titulo">#</div><div class="contenido">{{ componente.cantidad }}</div></div>
+                                                                                            <div class="celda"><div class="titulo">Inicio</div><div class="contenido">{{ componente.fechahorainicio|date("H:m Y-m-d") }}</div></div>
+                                                                                            <div class="celda"><div class="titulo">Fin</div><div class="contenido">{{ componente.fechahorafin|date("H:m Y-m-d") }}</div></div>
+                                                                                            <div class="celda"><div class="titulo">Estado</div><div class="contenido estadocomponente" style="color: {{ componente.estadocotcomponente.color }};">{{ componente.estadocotcomponente.nombre }}</div></div>
+                                                                                            {% if componente.componente.componenteitems is defined and componente.componente.componenteitems|length > 0%}
+                                                                                                <div class="celda">
+                                                                                                    <div class="titulo">Items</div>
+                                                                                                    <div class="contenido">
+                                                                                                        {% for item in componente.componente.componenteitems %}
+                                                                                                            {% if loop.first == false  %},{% endif%}
+                                                                                                            {{ item.titulo }}
+                                                                                                        {% endfor %}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            {% endif %}
+                                                                                        </div>
+                                                                                        {% if componente.cottarifas is defined and componente.cottarifas|length > 0%}
+                                                                                            <ul class="fila tarifa">
+                                                                                                {% for tarifa in componente.cottarifas %}
+                                                                                                    <li>
+                                                                                                        <div class="celda heading">Tar</div>
+                                                                                                        <div class="celda">
+                                                                                                            <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ tarifa.tarifa.nombre }}</div></div>
+                                                                                                            <div class="celda"><div class="titulo">#</div><div class="contenido">{{ tarifa.cantidad }}</div></div>
+                                                                                                            <div class="celda"><div class="titulo">Tipo</div><div class="contenido" style="color: {{ tarifa.tarifa.tipotarifa.listacolor }};">{{ tarifa.tarifa.tipotarifa.nombre }}</div></div>
+                                                                                                        </div>
+                                                                                                        {% if tarifa.cottarifadetalles is defined and tarifa.cottarifadetalles|length > 0%}
+                                                                                                            <ul class="fila detalle">
+                                                                                                                {% for detalle in tarifa.cottarifadetalles %}
+                                                                                                                    <li>
+                                                                                                                        <div class="celda heading">Det</div>
+                                                                                                                        <div class="celda">
+                                                                                                                            <div class="celda"><div class="titulo">Detalle</div><div class="contenido">{{ detalle.detalle }}</div></div>
+                                                                                                                            <div class="celda"><div class="titulo">Tipo</div><div class="contenido">{{ detalle.tipotarifadetalle.nombre }}</div></div>
+                                                                                                                        </div>
+                                                                                                                    </li>
+                                                                                                                {% endfor %}
+                                                                                                            </ul>
+                                                                                                        {% endif %}
+                                                                                                    </li>
+                                                                                                {% endfor %}
+                                                                                            </ul>
+                                                                                        {% endif %}
+                                                                                    </li>
+                                                                                {% endfor %}
+                                                                            </ul>
+                                                                        {% endif %}
+                                                                    </li>
+                                                                {% endfor %}
+                                                            </ul>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         {% endif %}
-                                        {% if contenido.notas is defined and contenido.notas|length > 0 %}
-                                            <h4>Notas:</h4>
-                                            {% for nota in contenido.notas %}
-                                                <h5><strong>{{ nota.titulo }}</strong></h5>
-                                                {{ nota.contenido|raw }}
-                                            {% endfor %}
+                                        {% if action == 'show' %}
+                                            </div>
                                         {% endif %}
+
+
+
+
 
                                     {% elseif name == 'agenda' %}
 

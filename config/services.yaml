@@ -67,7 +67,7 @@ parameters:
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
                 color: 'cotservicio.cotizacion.file.color'
-                textColor: 'estadocotcomponente.color'
+                textColor: 'estadocotcomponente.colorcalendar'
                 url:
                     id: 'cotservicio.cotizacion.id'
                     show:
@@ -88,7 +88,7 @@ parameters:
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
                 color: 'cotservicio.cotizacion.file.color'
-                textColor: 'estadocotcomponente.color'
+                textColor: 'estadocotcomponente.colorcalendar'
                 url:
                     id: 'cotservicio.cotizacion.id'
                     show:
@@ -104,13 +104,12 @@ parameters:
             resource:
                 id: 'cotservicio.cotizacion.id'
                 title: 'cotservicio.cotizacion.resumen'
-
             parameters:
                 title: 'componente.nombre'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
                 color: 'cotservicio.cotizacion.file.color'
-                textColor: 'estadocotcomponente.color'
+                textColor: 'estadocotcomponente.colorcalendar'
                 url:
                     id: 'id'
                     show:
@@ -131,7 +130,7 @@ parameters:
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
                 color: 'cotservicio.cotizacion.file.color'
-                textColor: 'estadocotcomponente.color'
+                textColor: 'estadocotcomponente.colorcalendar'
                 url:
                     id: 'id'
                     show:
@@ -407,7 +406,8 @@ services:
 #                show_mosaic_button: false
         calls:
             - [ setTemplate, [edit, cotizacion_cotservicio_admin\edit.html.twig]]
-            - [ setTemplate, [list, cotizacion_cotservicio_admin\list.html.twig ]]
+            - [ setTemplate, [list, cotizacion_cotservicio_admin\list.html.twig]]
+            - [ setTemplate, [show, cotizacion_cotservicio_admin\show.html.twig]]
         public: true
 
     app.admin.cotizacioncotcomponente:
@@ -421,6 +421,7 @@ services:
                 label: Componentes
         calls:
             - [ setTemplate, [list, cotizacion_cotcomponente_admin\list.html.twig]]
+            - [ setTemplate, [show, cotizacion_cotcomponente_admin\show.html.twig]]
         public: true
 
     app.admin.cotizacioncottarifa:

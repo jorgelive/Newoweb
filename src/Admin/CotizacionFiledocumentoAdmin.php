@@ -7,8 +7,10 @@ use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
-use Sonata\AdminBundle\Route\RouteCollection;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
 
 class CotizacionFiledocumentoAdmin extends AbstractAdmin
 {
@@ -83,6 +85,31 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
                 'required' => false
             ])
         ;
+
+        $widthModifier = function (FormInterface $form) {
+
+            $form
+                ->add('nombre', null, [
+                    'label' => 'Nombre',
+                    'attr' => [
+                        'style' => 'width: 150px;',
+                        'attr' => ['class' => 'uploadedimage']
+                    ]
+                ])
+            ;
+        };
+
+        $formBuilder = $formMapper->getFormBuilder();
+        $formBuilder->addEventListener(
+            FormEvents::PRE_SET_DATA,
+            function (FormEvent $event) use ($widthModifier) {
+                if($event->getData()
+                    && $this->getRoot()->getClass() == 'App\Entity\CotizacionFile'
+                ){
+                    $widthModifier($event->getForm());
+                }
+            }
+        );
     }
 
     /**
