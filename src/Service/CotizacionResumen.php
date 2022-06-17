@@ -84,10 +84,10 @@ class CotizacionResumen implements ContainerAwareInterface
             return false;
         }
 
-        $tipoCambio = $this->tipocambio->getTipodecambio($cotizacion->getCreado());
+        $tipoCambio = $this->tipocambio->getTipodecambio($cotizacion->getFecha());
 
         if(!$tipoCambio){
-            $this->mensaje = sprintf('No se puede obtener la el tipo de cambio del dia %s.',  $cotizacion->getCreado()->format('Y-m-d') );
+            $this->mensaje = sprintf('No se puede obtener la el tipo de cambio del dia %s.',  $cotizacion->getFecha()->format('Y-m-d') );
             return false;
         }
 
@@ -114,13 +114,13 @@ class CotizacionResumen implements ContainerAwareInterface
 
         $datosCotizacion['cotizacion']['tipocambiocompra'] = $tipoCambio->getCompra();
         $datosCotizacion['cotizacion']['tipocambioventa'] = $tipoCambio->getVenta();
-        $datosCotizacion['cotizacion']['fechacotizacion'] = $cotizacion->getCreado()->format('Y-m-d');
+        $datosCotizacion['cotizacion']['fechacotizacion'] = $cotizacion->getFecha();
         $datosCotizacion['cotizacion']['comision'] = $cotizacion->getComision();
         $datosCotizacion['cotizacion']['adelanto'] = $cotizacion->getAdelanto();
         $datosCotizacion['cotizacion']['nombre'] = $cotizacion->getNombre();
         $datosCotizacion['cotizacion']['titulo'] = $cotizacion->getTitulo();
         $datosCotizacion['cotizacion']['numeropasajeros'] = $cotizacion->getNumeropasajeros();
-        $datosCotizacion['cotizacion']['estadocotizacion'] = $cotizacion->getEstadocotizacion()->getNombre();
+        $datosCotizacion['cotizacion']['estadocotizacion'] = $cotizacion->getEstadocotizacion()->getId();
 
 //Archivos $datosCotizacion['archivos']
         if($cotizacion->getFile()->getFiledocumentos()->count() > 0) {

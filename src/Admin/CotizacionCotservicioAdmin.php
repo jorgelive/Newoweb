@@ -3,6 +3,7 @@
 namespace App\Admin;
 
 use Sonata\AdminBundle\Admin\AbstractAdmin;
+use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
@@ -27,6 +28,13 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
     public function configure(): void
     {
         $this->setFormTheme([0 => 'cotizacion_cotservicio_admin/form_admin_fields.html.twig']);
+    }
+
+    protected function configureDefaultSortValues(array &$sortValues): void
+    {
+        $sortValues[DatagridInterface::PAGE] = 1;
+        $sortValues[DatagridInterface::SORT_ORDER] = 'ASC';
+        $sortValues[DatagridInterface::SORT_BY] = 'fechahorainicio';
     }
 
     protected function configureFilterParameters(array $parameters): array

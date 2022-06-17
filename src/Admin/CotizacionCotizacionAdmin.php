@@ -6,10 +6,14 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
+use Sonata\Form\Type\DatePickerType;
+use Sonata\Form\Type\DateRangePickerType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 
 class CotizacionCotizacionAdmin extends AbstractAdmin
 {
@@ -48,6 +52,47 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('file')
+            ->add('fecha', CallbackFilter::class,[
+                'label' => 'Fecha cotización',
+                'callback' => function($queryBuilder, $alias, $field, $filterData) {
+
+                    $valor = $filterData->getValue();
+                    if (!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
+                        return false;
+                    }
+                    $fechaMasUno = clone ($valor['end']);
+                    $fechaMasUno->add(new \DateInterval('P1D'));
+
+                    if(empty($filterData->getType())){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
+                        return true;
+                    } else{
+                        return false;
+                    }
+                },
+                'field_type' => DateRangePickerType::class,
+                'field_options' => [
+                    'field_options_start' => [
+                        'dp_use_current' => true,
+                        'dp_show_today' => true,
+                        'format'=> 'yyyy/MM/dd'
+                    ],
+                    'field_options_end' => [
+                        'dp_use_current' => true,
+                        'dp_show_today' => true,
+                        'format'=> 'yyyy/MM/dd'
+                    ]
+                ],
+                'operator_type' => ChoiceType::class,
+                'operator_options' => [
+                    'choices' => [
+                        'Igual a' => 0
+                    ]
+                ]
+            ])
             ->add('nombre')
             ->add('titulo', null, [
                 'label' => 'Título'
@@ -76,12 +121,16 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ->add('id')
             ->add('primerCotservicioFecha', 'datetime', [
                 'label' => 'Fecha Inicio',
-                'format' => 'Y/m/d',
+                'format' => 'Y/m/d'
             ])
             ->add('file', null, [
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
                 'sort_parent_association_mappings' => [['fieldName' => 'file']]
+            ])
+            ->add('fecha', null, [
+                'label' => 'Fecha cotización',
+                'format' => 'Y/m/d'
             ])
             ->add('nombre', null, [
                 'editable' => true,
@@ -140,11 +189,19 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
     protected function configureFormFields(FormMapper $formMapper): void
     {
 
+        $hoy = new \DateTime('today');
+        $hoy = $hoy->format('Y/m/d');
         if ($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'){
             $formMapper->add('file');
         }
         $formMapper
             ->add('nombre')
+            ->add('fecha', DatePickerType::class, [
+                'label' => 'Fecha cotización',
+                'dp_default_date' => $hoy,
+                'dp_show_today' => true,
+                'format'=> 'yyyy/MM/dd'
+            ])
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
@@ -190,6 +247,10 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('file')
+            ->add('fecha', null, [
+                'label' => 'Fecha cotización',
+                'format' => 'Y/m/d'
+            ])
             ->add('nombre')
             ->add('titulo', null, [
                 'label' => 'Título'

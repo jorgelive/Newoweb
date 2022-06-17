@@ -230,11 +230,12 @@ file that was distributed with this source code.
 
                                                         {% for rango in contenido.rangos %}
                                                             <li>
-                                                                <p>
+                                                                <p style="margin-bottom: 0;">
                                                                     {{ rango.tipoPaxNombre }}
                                                                     {% if rango.tituloPersistente is defined %}
                                                                         &nbsp;&nbsp;{{ rango.tituloPersistente }}
                                                                     {% endif %}
+
 
                                                                     <span style="font-size: 0.9em;">
                                                                             {% if rango.edadMin is defined or rango.edadMax is defined %}
@@ -262,7 +263,7 @@ file that was distributed with this source code.
 
                                                                             {% endif %}
                                                                         </span>
-                                                                    <strong>x{{ rango.cantidad }}</strong>
+                                                                    <strong>x{{ rango.cantidad }}</strong>:
                                                                 </p>
 
                                                                 <ul style="list-style-type: none; padding-left: 18px;">
@@ -270,9 +271,9 @@ file that was distributed with this source code.
                                                                         <li>
                                                                             <p>
                                                                                 {{ tarifaresumen.tipoTarTitulo }}:
-                                                                                <span style="font-weight: bold; color: #1B6129;">
+                                                                                <span style="font-size: 1.2em; font-weight: bold; color: #1B6129;">
                                                                                         US$ {{ tarifaresumen.ventadolares }}
-                                                                                    </span>
+                                                                                </span>
                                                                                 {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
                                                                             </p>
                                                                         </li>
@@ -282,45 +283,61 @@ file that was distributed with this source code.
                                                         {% endfor %}
                                                     </ul>
 
-                                                    <h4 style="margin-top: 15px;">Total </h4>
+                                                    {% if cotizacion.cotizacion.estadocotizacion != 6 %}
 
-                                                    <ul style="list-style-type: none; padding-left: 18px;">
-                                                        {%  for resumenitem in contenido.resumen | filter (resumenitem => resumenitem.oculto is same as (false)) %}
-                                                            <li>
-                                                                <p>
-                                                                    {{ resumenitem.titulo }}:
-                                                                    <span style="font-weight: bold; color: #1B6129;">
-                                                                        US$ {{ resumenitem.ventadolares }}
-                                                                    </span>
-                                                                    {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
+                                                        <h4 style="margin-top: 15px;">Total </h4>
 
-                                                                    , reserve con el {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
-                                                                    {% if cotizacion.file.paisid == 117 %}
-                                                                        o S/.{{ resumenitem.adelantosoles }}
-                                                                    {% endif %}
-                                                                    )
+                                                        <ul style="list-style-type: none; padding-left: 18px;">
+                                                            {%  for resumenitem in contenido.resumen | filter (resumenitem => resumenitem.oculto is same as (false)) %}
+                                                                <li>
+                                                                    <p>
+                                                                        {{ resumenitem.titulo }}:
+                                                                        <span style="font-size: 1.2em; font-weight: bold; color: #1B6129;">
+                                                                            US$ {{ resumenitem.ventadolares }}
+                                                                        </span>
+                                                                        {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
 
-                                                                </p>
-                                                            </li>
-                                                        {% endfor %}
-                                                    </ul>
-                                                    {% if cotizacion.file.paisid == 117 %}
-                                                        <h4 style="margin-top: 15px;">Nota: </h4>
+                                                                        , reserve con el {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
+                                                                        {% if cotizacion.file.paisid == 117 %}
+                                                                            o S/.{{ resumenitem.adelantosoles }}
+                                                                        {% endif %}
+                                                                        )
+
+                                                                    </p>
+                                                                </li>
+                                                            {% endfor %}
+                                                        </ul>
+
+                                                    {% endif %}
+
+                                                    {% if cotizacion.cotizacion.estadocotizacion != 6 or cotizacion.file.paisid == 117 %}
+
+                                                        <h4 style="margin-top: 15px;">Notas: </h4>
                                                         <div>
-                                                            <p>Tarifa base:
-                                                                <span style="font-weight: bold;">
-                                                                    DOLARES
-                                                                </span>
-                                                            </p>
-                                                            <p>Tarifa en soles al tipo de cambio referencial de
-                                                                <span style="font-weight: bold; color: #1B6129;">
-                                                                    {{ cotizacion.cotizacion.tipocambioventa }}
-                                                                </span>
-                                                                del dia
-                                                                <span style="font-weight: bold; color: #1B6129;">
-                                                                    {{ cotizacion.cotizacion.fechacotizacion }}
-                                                                </span>
-                                                            </p>
+                                                            {% if cotizacion.cotizacion.estadocotizacion != 6 %}
+                                                                <p>La tarifa tiene una validez de 3 dias hasta el
+                                                                    <span style="font-weight: bold;">
+                                                                        {{ cotizacion.cotizacion.fechacotizacion|date_modify("+3 day")|date("d/m/Y") }}
+                                                                    </span>
+                                                                </p>
+                                                            {% endif %}
+
+                                                            {% if cotizacion.file.paisid == 117 %}
+                                                                <p>Tarifa base:
+                                                                    <span style="font-weight: bold;">
+                                                                        DOLARES
+                                                                    </span>
+                                                                </p>
+                                                                <p>Tarifa en soles al tipo de cambio referencial de
+                                                                    <span style="font-weight: bold; color: #1B6129;">
+                                                                        {{ cotizacion.cotizacion.tipocambioventa }}
+                                                                    </span>
+                                                                    del dia
+                                                                    <span style="font-weight: bold; color: #1B6129;">
+                                                                        {{ cotizacion.cotizacion.fechacotizacion | date("d/m/Y") }}
+                                                                    </span>
+                                                                </p>
+                                                            {% endif %}
                                                         </div>
                                                     {% endif %}
                                                 </div>

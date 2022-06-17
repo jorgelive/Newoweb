@@ -114,6 +114,13 @@ class CotizacionCotizacion implements Translatable
     private $cotservicios;
 
     /**
+     * @var \Date $fecha
+     *
+     * @ORM\Column(type="date")
+     */
+    private $fecha;
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -144,6 +151,7 @@ class CotizacionCotizacion implements Translatable
     public function __clone() {
         if ($this->id) {
             $this->id = null;
+            $this->setFecha(new \DateTime('today'));
             $this->setCreado(null);
             $this->setModificado(null);
             $this->setToken(mt_rand());
@@ -554,4 +562,30 @@ class CotizacionCotizacion implements Translatable
     {
         return $this->titulo;
     }
+
+    /**
+     * Set fecha.
+     *
+     * @param date $fecha
+     *
+     * @return CotizacionCotizacion
+     */
+    public function setFecha($fecha)
+    {
+
+        $this->fecha = $fecha;
+
+        return $this;
+    }
+
+    /**
+     * Get fecha.
+     *
+     * @return date|null
+     */
+    public function getFecha()
+    {
+        return $this->fecha;
+    }
+
 }
