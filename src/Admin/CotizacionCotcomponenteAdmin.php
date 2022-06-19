@@ -39,7 +39,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
 
     protected function configureFilterParameters(array $parameters): array
     {
-        if(!isset($parameters['fechahorainicio'])){
+        if(!isset($parameters['fechahorainicio']) && !isset($parameters['cotservicio__cotizacion'])){
             $fecha = new \DateTime();
 
             $parameters = array_merge([
@@ -52,7 +52,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
             ], $parameters);
         }
 
-        if(!isset($parameters['cotservicio__cotizacion__estadocotizacion'])){
+        if(!isset($parameters['cotservicio__cotizacion__estadocotizacion']) &&  !isset($parameters['cotservicio__cotizacion'])){
             $parameters = array_merge([
                 'cotservicio__cotizacion__estadocotizacion' => [
                     'value' => 3
@@ -70,12 +70,18 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
     {
         $datagridMapper
             ->add('id')
+            ->add('cotservicio.cotizacion',  null, [
+                'label' => 'Cotización'
+            ])
+            ->add('cotservicio.cotizacion.estadocotizacion',  null, [
+                'label' => 'Estado cotización'
+            ])
             ->add('cotservicio', null, [
                 'label' => 'Servicio'
             ])
             ->add('componente')
-            ->add('cotservicio.cotizacion.estadocotizacion',  null, [
-                'label' => 'Estado cotización'
+            ->add('estadocotcomponente', null, [
+                'label' => 'Estado del componente'
             ])
             ->add('cantidad')
             ->add('fechahorainicio', CallbackFilter::class,[
@@ -119,9 +125,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                     ]
                 ]
             ])
-            ->add('estadocotcomponente', null, [
-                'label' => 'Estado del componente'
-            ])
+
         ;
     }
 

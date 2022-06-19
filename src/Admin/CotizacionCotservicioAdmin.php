@@ -40,7 +40,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
 
     protected function configureFilterParameters(array $parameters): array
     {
-        if(!isset($parameters['fechahorainicio'])){
+        if(!isset($parameters['fechahorainicio']) && !isset($parameters['cotizacion'])){
             $fecha = new \DateTime();
 
             $parameters = array_merge([
@@ -53,7 +53,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
             ], $parameters);
         }
 
-        if(!isset($parameters['cotizacion__estadocotizacion'])){
+        if(!isset($parameters['cotizacion__estadocotizacion']) && !isset($parameters['cotizacion'])){
             $parameters = array_merge([
                 'cotizacion__estadocotizacion' => [
                     'value' => 3
@@ -71,6 +71,9 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
     {
         $datagridMapper
             ->add('id')
+            ->add('cotizacion', null, [
+                'label' => 'Cotización'
+            ])
             ->add('cotizacion.estadocotizacion',  null, [
                 'label' => 'Estado cotización'
             ])
@@ -116,9 +119,6 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
                 ]
             ])
             ->add('servicio')
-            ->add('cotizacion', null, [
-                'label' => 'Cotización'
-            ])
             ->add('itinerario')
         ;
     }
@@ -287,6 +287,11 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('ical', 'ical');
+    }
+
+    protected function configureExportFields(): array
+    {
+        return ['fechahorainicio', 'servicio.nombre', 'cotizacion.file.nombre', 'cotizacion.numeropasajeros'];
     }
 
 }
