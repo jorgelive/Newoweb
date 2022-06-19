@@ -22,12 +22,15 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
-    public function clonarAction($id = null, Request $request = null)
+    public function clonarAction(Request $request = null)
     {
 
-        $id = $request->get($this->admin->getIdParameter());
+        //$id = $request->get($this->admin->getIdParameter());
+        //$object = $this->admin->getObject($id);
 
-        $object = $this->admin->getObject($id);
+        $object = $this->assertObjectExists($request, true);
+        $id = $object->getId();
+
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 

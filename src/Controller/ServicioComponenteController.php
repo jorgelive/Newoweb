@@ -108,13 +108,13 @@ class ServicioComponenteController extends AbstractController
     }
 
 
-    function makeresponse($content, $status){
+    function makeresponse($content, $status): Response
+    {
         $response = new Response();
         $response->headers->set('Content-Type', 'application/json');
         $response->setContent(json_encode($content));
         $response->setStatusCode($status);
         return $response;
-
     }
 
 }
