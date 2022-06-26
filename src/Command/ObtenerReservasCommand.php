@@ -85,7 +85,7 @@ class ObtenerReservasCommand extends Command
 
                     if($canal == 2 && $event->summary != 'Airbnb (Not available)'){
 
-                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 1);
+                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 2);
                         $temp['nombre'] = 'Completar';
                         if($num_found = preg_match_all('~[a-z]+://\S+~', $event->description, $out))
                         {
@@ -93,7 +93,7 @@ class ObtenerReservasCommand extends Command
                         }
                         $insertar = true;
                     }elseif ($canal == 3){
-                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 2);
+                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 1);
                         $temp['nombre'] = ucfirst(strtolower(str_replace('CLOSED - ', '', $event->summary)));
                         $temp['enlace'] = '';
                         $insertar = true;

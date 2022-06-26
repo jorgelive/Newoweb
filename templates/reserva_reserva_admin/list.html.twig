@@ -1,0 +1,30 @@
+{% extends '@SonataAdmin/CRUD/base_list.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script type="text/javascript">
+        $( document ).ready(function() {
+        });
+    </script>
+{% endblock %}
+
+{% block sonata_admin_content %}
+
+    {% if admin.listmode == 'mosaic' %}
+        {% block notice %}
+            {% include '@SonataTwig/FlashMessage/render.html.twig' %}
+        {% endblock notice %}
+        {{ fullcalendar({'Todas' : 'reserva_reserva_todas'}, 'dayGridMonth', {1 : 'timeGridWeek', 2 : 'dayGridMonth', 3 : 'listMonth', 4 : 'resourceTimelineOneDay'}) }}
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+
+{% endblock %}

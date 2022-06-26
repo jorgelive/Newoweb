@@ -12,7 +12,7 @@ use Doctrine\Common\Collections\ArrayCollection;
  * ReservaReserva
  *
  * @ORM\Table(name="res_reserva")
- * @ORM\Entity
+ * @ORM\Entity(repositoryClass="App\Repository\ReservaReservaRepository")
  */
 class ReservaReserva
 {
