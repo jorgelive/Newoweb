@@ -263,11 +263,11 @@ class ComprobanteTipo
     }
 
     /**
-     * Get ennotacredito
+     * Is esnotacredito
      *
      * @return boolean
      */
-    public function getEsnotacredito()
+    public function isEsnotacredito(): ?bool
     {
         return $this->esnotacredito;
     }

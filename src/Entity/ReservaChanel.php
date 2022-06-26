@@ -1,0 +1,182 @@
+<?php
+
+namespace App\Entity;
+
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+use Gedmo\Mapping\Annotation as Gedmo;
+use Doctrine\Common\Collections\ArrayCollection;
+
+/**
+ * ReservaChanel
+ *
+ * @ORM\Table(name="res_chanel")
+ * @ORM\Entity
+ */
+class ReservaChanel
+{
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="id", type="integer")
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="AUTO")
+     */
+    private $id;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="nombre", type="string", length=255)
+     */
+    private $nombre;
+
+    /**
+     * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ReservaReserva", mappedBy="chanel", cascade={"persist","remove"}, orphanRemoval=true)
+     */
+    private $reservas;
+
+    /**
+     * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitnexo", mappedBy="chanel", cascade={"persist","remove"}, orphanRemoval=true)
+     */
+    private $unitnexos;
+
+    /**
+     * @var \DateTime $creado
+     *
+     * @Gedmo\Timestampable(on="create")
+     * @ORM\Column(type="datetime")
+     */
+    private $creado;
+
+    /**
+     * @var \DateTime $modificado
+     *r
+     * @Gedmo\Timestampable(on="update")
+     * @ORM\Column(type="datetime")
+     */
+    private $modificado;
+
+    public function __construct() {
+        $this->reservas = new ArrayCollection();
+        $this->unitnexos = new ArrayCollection();
+    }
+
+    /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getNombre(): ?string
+    {
+        return $this->nombre;
+    }
+
+    public function setNombre(string $nombre): self
+    {
+        $this->nombre = $nombre;
+
+        return $this;
+    }
+
+    public function getCreado(): ?\DateTimeInterface
+    {
+        return $this->creado;
+    }
+
+    public function setCreado(\DateTimeInterface $creado): self
+    {
+        $this->creado = $creado;
+
+        return $this;
+    }
+
+    public function getModificado(): ?\DateTimeInterface
+    {
+        return $this->modificado;
+    }
+
+    public function setModificado(\DateTimeInterface $modificado): self
+    {
+        $this->modificado = $modificado;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ReservaReserva>
+     */
+    public function getReservas(): Collection
+    {
+        return $this->reservas;
+    }
+
+    public function addReserva(ReservaReserva $reserva): self
+    {
+        if (!$this->reservas->contains($reserva)) {
+            $this->reservas[] = $reserva;
+            $reserva->setChanel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReserva(ReservaReserva $reserva): self
+    {
+        if ($this->reservas->removeElement($reserva)) {
+            // set the owning side to null (unless already changed)
+            if ($reserva->getChanel() === $this) {
+                $reserva->setChanel(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ReservaUnitnexo>
+     */
+    public function getUnitnexos(): Collection
+    {
+        return $this->unitnexos;
+    }
+
+    public function addUnitnexo(ReservaUnitnexo $unitnexo): self
+    {
+        if (!$this->unitnexos->contains($unitnexo)) {
+            $this->unitnexos[] = $unitnexo;
+            $unitnexo->setChanel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeUnitnexo(ReservaUnitnexo $unitnexo): self
+    {
+        if ($this->unitnexos->removeElement($unitnexo)) {
+            // set the owning side to null (unless already changed)
+            if ($unitnexo->getChanel() === $this) {
+                $unitnexo->setChanel(null);
+            }
+        }
+
+        return $this;
+    }
+
+
+
+}

@@ -243,7 +243,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
                 $paraleloClass = '';
                 if($event->getData()
                     && $event->getData()->getServicio()
-                    && $event->getData()->getServicio()->getParalelo()
+                    && $event->getData()->getServicio()->isParalelo()
                 ){
                     $paraleloClass = ' paralelo';
                 }

@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -185,6 +186,26 @@ class FitMedidaalimento
     public function getModificado()
     {
         return $this->modificado;
+    }
+
+    /**
+     * @return Collection<int, FitAlimento>
+     */
+    public function getAlimentos(): Collection
+    {
+        return $this->alimentos;
+    }
+
+    public function removeAlimento(FitAlimento $alimento): self
+    {
+        if ($this->alimentos->removeElement($alimento)) {
+            // set the owning side to null (unless already changed)
+            if ($alimento->getMedidaalimento() === $this) {
+                $alimento->setMedidaalimento(null);
+            }
+        }
+
+        return $this;
     }
 
 

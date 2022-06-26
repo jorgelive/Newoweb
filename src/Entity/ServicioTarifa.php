@@ -218,11 +218,11 @@ class ServicioTarifa implements Translatable
     }
 
     /**
-     * Get prorrateado
+     * Is prorrateado
      *
      * @return boolean
      */
-    public function getProrrateado()
+    public function isProrrateado(): ?bool
     {
         return $this->prorrateado;
     }
@@ -610,7 +610,6 @@ class ServicioTarifa implements Translatable
     {
         return $this->tipotarifa;
     }
-
 
 
 }

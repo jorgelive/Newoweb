@@ -109,9 +109,9 @@ class FitDietaalimentoAdmin extends AbstractAdmin
                     $attr['cantidadalimento'] = $event->getData()->getAlimento()->getCantidad();
                     $attr['medidaalimento'] = $event->getData()->getAlimento()->getMedidaalimento()->getNombre();
                     $attr['tipoalimento'] = $event->getData()->getAlimento()->getTipoalimento()->getNombre();
-                    $attr['proteinaaltovalor'] = $event->getData()->getAlimento()->getProteinaaltovalor() ? 'true' : 'false';
+                    $attr['proteinaaltovalor'] = $event->getData()->getAlimento()->isProteinaaltovalor() ? 'true' : 'false';
 
-                    //var_dump($event->getData()->getComponente()->getTipocomponente()->getDependeduracion());
+                    //var_dump($event->getData()->getComponente()->getTipocomponente()->isDependeduracion());
                     $cantidadModifier($event->getForm(), $attr);
                 }
             }

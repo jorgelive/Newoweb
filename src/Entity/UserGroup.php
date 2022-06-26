@@ -22,4 +22,9 @@ class UserGroup
      */
     protected $id;
 
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
 }

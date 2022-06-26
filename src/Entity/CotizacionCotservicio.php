@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -92,7 +93,6 @@ class CotizacionCotservicio
     public function __construct()
     {
         $this->cotcomponentes = new ArrayCollection();
-        //$this->fechahorainicio = new \DateTime('today');
     }
 
     public function __clone() {
@@ -347,4 +347,5 @@ class CotizacionCotservicio
     {
         return $this->cotcomponentes;
     }
+
 }

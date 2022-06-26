@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -70,6 +72,11 @@ class MaestroClasemedio implements Translatable
      * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
+
+    public function __construct()
+    {
+        $this->medios = new ArrayCollection();
+    }
 
 
     /**
@@ -222,6 +229,18 @@ class MaestroClasemedio implements Translatable
     public function getMedios()
     {
         return $this->medios;
+    }
+
+    public function removeMedio(MaestroMedio $medio): self
+    {
+        if ($this->medios->removeElement($medio)) {
+            // set the owning side to null (unless already changed)
+            if ($medio->getClasemedio() === $this) {
+                $medio->setClasemedio(null);
+            }
+        }
+
+        return $this;
     }
 
 }

@@ -99,7 +99,7 @@ class ServicioComponenteController extends AbstractController
 
         $content['id'] = $componente->getId();
         $content['duracion'] = $componente->getDuracion();
-        $content['dependeduracion'] = $componente->getTipocomponente()->getDependeduracion();
+        $content['dependeduracion'] = $componente->getTipocomponente()->isDependeduracion();
 
         $status = Response::HTTP_OK;
 

@@ -8,7 +8,7 @@ use App\Traits\MainArchivoTrait;
 
 
 /**
- * @ORM\Entity(repositoryClass="App\Repository\ArchivoRepository")
+ * @ORM\Entity
  * @ORM\Table(name="mai_archivo")
  * @ORM\HasLifecycleCallbacks
  */

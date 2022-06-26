@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -183,5 +184,17 @@ class UserCuentatipo
     public function getCuentas()
     {
         return $this->cuentas;
+    }
+
+    public function removeCuenta(UserCuenta $cuenta): self
+    {
+        if ($this->cuentas->removeElement($cuenta)) {
+            // set the owning side to null (unless already changed)
+            if ($cuenta->getCuentatipo() === $this) {
+                $cuenta->setCuentatipo(null);
+            }
+        }
+
+        return $this;
     }
 }

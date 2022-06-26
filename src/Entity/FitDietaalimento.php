@@ -197,7 +197,7 @@ class FitDietaalimento
 
     public function getProteinaTotalAlto()
     {
-        if (empty($this->getAlimento()) || $this->getAlimento()->getProteinaaltovalor() === false){
+        if (empty($this->getAlimento()) || $this->getAlimento()->isProteinaaltovalor() === false){
             return 0;
         }
         return $this->getProteina() * $this->getCantidad();

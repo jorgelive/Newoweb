@@ -168,11 +168,11 @@ class ServicioTipocomponente
     }
 
     /**
-     * Get dependeduracion
+     * Is dependeduracion
      *
      * @return boolean
      */
-    public function getDependeduracion()
+    public function isDependeduracion(): ?bool
     {
         return $this->dependeduracion;
     }
@@ -193,12 +193,16 @@ class ServicioTipocomponente
     }
 
     /**
-     * Get agendable
+     * Is agendable
      *
      * @return boolean
      */
-    public function getAgendable()
+    public function isAgendable(): ?bool
     {
         return $this->agendable;
     }
+
+
+
+
 }

@@ -134,7 +134,7 @@ class CotizacionResumen implements ContainerAwareInterface
                 $archivosAux['webPath'] = $documento->getWebPath();
                 $archivosAux['inModal'] = $documento->getInModal();
                 $archivosAux['tipo'] = $documento->getTipofiledocumento()->getNombre();
-                if($documento->getTipofiledocumento()->getInterno() === true){
+                if($documento->getTipofiledocumento()->isInterno() === true){
                     $archivosAux['interno'] = true;
                 }else{
                     $archivosAux['interno'] = false;
@@ -216,7 +216,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
                         //Auxiliar de titulos de itinerario por dia en caso de que sean los importantes
                         //para uso en agenda e incluye.
-                        if($dia->getImportante() === true){
+                        if($dia->isImportante() === true){
                             $itinerarioFechaAux[$fecha->format('ymd')] = $dia->getTitulo();
                         }
 
@@ -246,9 +246,9 @@ class CotizacionResumen implements ContainerAwareInterface
 
 //la presencia del titulo sera un indicador para mostrarlo o no en agenda ya que el tem array componente es interno para los demas procesos
                             $tempArrayItem=[];
-                            if ($componente->getComponente()->getTipocomponente()->getAgendable() === true && $componente->getComponente()->getComponenteitems()->count() > 0) {
+                            if ($componente->getComponente()->getTipocomponente()->isAgendable() === true && $componente->getComponente()->getComponenteitems()->count() > 0) {
                                 foreach ($componente->getComponente()->getComponenteitems() as $item) {
-                                    if($item->getNomostrartarifa() !== true){
+                                    if($item->isNomostrartarifa() !== true){
                                         $tempArrayItem[] = $item->getTitulo();
 
                                     }
@@ -347,7 +347,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
 //4N bucle de items, para cada item pongo la tarifa
                                     foreach ($componente->getComponente()->getComponenteitems() as $item) {
-                                        if (!empty($tarifa->getTarifa()->getTitulo()) && $item->getNomostrartarifa() !== true) {
+                                        if (!empty($tarifa->getTarifa()->getTitulo()) && $item->isNomostrartarifa() !== true) {
                                             $tempArrayIncluye['titulo'] = $tarifa->getTarifa()->getTitulo();
                                             $tempArrayIncluye['cantidad'] = (int)($tarifa->getCantidad());
                                             if (!empty($tarifa->getTarifa()->getValidezInicio())) {
@@ -359,7 +359,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                             }
 
                                             $tempArrayIncluye['mostrarcostoincluye'] = false;
-                                            if ($tarifa->getTipotarifa()->getMostrarcostoincluye() ===true && !empty($tarifa->getTarifa()->getMonto()) && !empty($tarifa->getTarifa()->getMoneda())) {
+                                            if ($tarifa->getTipotarifa()->isMostrarcostoincluye() ===true && !empty($tarifa->getTarifa()->getMonto()) && !empty($tarifa->getTarifa()->getMoneda())) {
                                                 $tempArrayIncluye['mostrarcostoincluye'] = true;
                                                 $tempArrayIncluye['simboloMoneda'] = $tarifa->getTarifa()->getMoneda()->getSimbolo();
                                                 $tempArrayIncluye['costo'] = $tarifa->getTarifa()->getMonto();
@@ -387,7 +387,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                             }
                                             $tempArrayDetalle = [];
                                             foreach($tarifa->getCottarifadetalles() as $id => $detalle):
-                                                if(!$detalle->getTipotarifadetalle()->getInterno()) {
+                                                if(!$detalle->getTipotarifadetalle()->isInterno()) {
                                                     $tempArrayDetalle[$id]['contenido'] = $detalle->getDetalle();
                                                     $tempArrayDetalle[$id]['tipoId'] = $detalle->getTipotarifadetalle()->getId();
                                                     $tempArrayDetalle[$id]['tipoNombre'] = $detalle->getTipotarifadetalle()->getNombre();
@@ -428,7 +428,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                 $tempArrayTarifa['cantidadComponente'] = $componente->getCantidad();
                                 $tempArrayTarifa['nombreComponente'] = $componente->getComponente()->getNombre();
                                 ////manejo interno no utilizo titulo
-                                if($tarifa->getTarifa()->getProrrateado() === true){
+                                if($tarifa->getTarifa()->isProrrateado() === true){
                                     $tempArrayTarifa['montounitario'] = number_format(
                                         (float)($tarifa->getMonto() * $tarifa->getCantidad() / $datosCotizacion['cotizacion']['numeropasajeros'] * $componente->getCantidad()
                                         ), 2, '.', '');
@@ -474,7 +474,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                 $tempArrayTarifa['montoOriginal'] = number_format((float)($tarifa->getMonto()), 2, '.', '');
 
                                 $factorComision = 1;
-                                if($tarifa->getTipotarifa()->getComisionable() == true){
+                                if($tarifa->getTipotarifa()->isComisionable() == true){
                                     $factorComision = 1 + ($cotizacion->getComision() / 100);
                                 }
 
@@ -519,7 +519,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                 $tempArrayTarifa['tipoTarTitulo'] = $tarifa->getTipotarifa()->getTitulo();
                                 $tempArrayTarifa['tipoTarListacolor'] = $tarifa->getTipotarifa()->getListacolor();
 //no muestra el precio al pasajero
-                                $tempArrayTarifa['tipoTarOculto'] = $tarifa->getTipotarifa()->getOculto();
+                                $tempArrayTarifa['tipoTarOculto'] = $tarifa->getTipotarifa()->isOculto();
 
                                 $tempArrayComponente['tarifas'][] = $tempArrayTarifa;
                                 unset($tempArrayTarifa);

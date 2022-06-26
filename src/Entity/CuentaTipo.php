@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -184,5 +185,27 @@ class CuentaTipo
     public function getClases()
     {
         return $this->clases;
+    }
+
+    public function addClas(CuentaClase $clas): self
+    {
+        if (!$this->clases->contains($clas)) {
+            $this->clases[] = $clas;
+            $clas->setTipo($this);
+        }
+
+        return $this;
+    }
+
+    public function removeClas(CuentaClase $clas): self
+    {
+        if ($this->clases->removeElement($clas)) {
+            // set the owning side to null (unless already changed)
+            if ($clas->getTipo() === $this) {
+                $clas->setTipo(null);
+            }
+        }
+
+        return $this;
     }
 }

@@ -22,4 +22,16 @@ class ServicioItinerarioTranslation extends AbstractPersonalTranslation
      * @ORM\JoinColumn(name="object_id", referencedColumnName="id", onDelete="CASCADE")
      */
     protected $object;
+
+    public function getObject()
+    {
+        return $this->object;
+    }
+
+    public function setObject($object)
+    {
+        $this->object = $object;
+
+        return $this;
+    }
 }

@@ -43,7 +43,7 @@ class ServicioTarifaController extends AbstractController
         $content['id'] = $tarifa->getId();
         $content['moneda'] = $tarifa->getMoneda() ? $tarifa->getMoneda()->getId() : null;
         $content['monto'] = $tarifa->getMonto();
-        $content['prorrateado'] = $tarifa->getProrrateado();
+        $content['prorrateado'] = $tarifa->isProrrateado();
         $content['capacidadmin'] = $tarifa->getCapacidadmin();
         $content['capacidadmax'] = $tarifa->getCapacidadmax();
         $content['tipotarifa'] = $tarifa->getTipotarifa()->getId();

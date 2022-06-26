@@ -40,6 +40,22 @@ sonata_admin:
                     - app.admin.serviciotipotarifa
                     - app.admin.serviciotipotarifadetalle
 
+            app.admin.group.reserva:
+                label: 'Reservas'
+                icon: '<i class="fa fa-map"></i>'
+                items:
+                    - app.admin.reservareserva
+                    - app.admin.reservachanel
+                    - app.admin.reservaestado
+                    - app.admin.reservadetalle
+                    - app.admin.reservatipodetalle
+                    - app.admin.reservaimporte
+                    - app.admin.reservatipoimporte
+                    - app.admin.reservapago
+                    - app.admin.reservaestablecimiento
+                    - app.admin.reservaunit
+                    - app.admin.reservaunitnexo
+
             app.admin.group.maestro:
                 label: 'Maestros'
                 icon: '<i class="fa fa-puzzle-piece"></i>'

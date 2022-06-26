@@ -108,11 +108,11 @@ class CotizacionTipofiledocumento
     }
 
     /**
-     * Get interno
+     * Is interno
      *
      * @return boolean
      */
-    public function getInterno()
+    public function isInterno(): ?bool
     {
         return $this->interno;
     }
@@ -164,5 +164,7 @@ class CotizacionTipofiledocumento
     {
         return $this->modificado;
     }
+
+
 
 }

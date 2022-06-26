@@ -278,11 +278,11 @@ class ServicioTipotarifa implements Translatable
     }
 
     /**
-     * Get comisionable.
+     * Is comisionable.
      *
      * @return bool
      */
-    public function getComisionable()
+    public function isComisionable(): ?bool
     {
         return $this->comisionable;
     }
@@ -302,11 +302,11 @@ class ServicioTipotarifa implements Translatable
     }
 
     /**
-     * Get oculto.
+     * Is oculto.
      *
      * @return bool
      */
-    public function getOculto()
+    public function isOculto(): ?bool
     {
         return $this->oculto;
     }
@@ -326,13 +326,15 @@ class ServicioTipotarifa implements Translatable
     }
 
     /**
-     * Get mostrarcostoincluye.
+     * Is mostrarcostoincluye.
      *
      * @return bool
      */
-    public function getMostrarcostoincluye()
+    public function isMostrarcostoincluye(): ?bool
     {
         return $this->mostrarcostoincluye;
     }
+
+
 
 }

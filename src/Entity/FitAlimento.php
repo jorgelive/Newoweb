@@ -137,11 +137,11 @@ class FitAlimento
     }
 
     /**
-     * Get proteinaaltovalor
+     * Is proteinaaltovalor
      *
      * @return boolean
      */
-    public function getProteinaaltovalor()
+    public function isProteinaaltovalor(): ?bool
     {
         return $this->proteinaaltovalor;
     }
@@ -361,6 +361,8 @@ class FitAlimento
     {
         return $this->medidaalimento;
     }
+
+
 
 
 }

@@ -116,11 +116,11 @@ class ServicioComponenteitem implements Translatable
     }
 
     /**
-     * Get nomostrartarifa
+     * Is nomostrartarifa
      *
      * @return boolean
      */
-    public function getNomostrartarifa()
+    public function isNomostrartarifa(): ?bool
     {
         return $this->nomostrartarifa;
     }

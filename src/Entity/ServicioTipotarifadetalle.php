@@ -202,11 +202,11 @@ class ServicioTipotarifadetalle implements Translatable
     }
 
     /**
-     * Get interno.
+     * Is interno.
      *
      * @return bool
      */
-    public function getInterno()
+    public function isInterno(): ?bool
     {
         return $this->interno;
     }

@@ -123,7 +123,7 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
 
                 if($event->getData()
                     && $event->getData()->getTarifa()
-                    && $event->getData()->getTarifa()->getProrrateado() === true
+                    && $event->getData()->getTarifa()->isProrrateado() === true
                 ){
                     if($event->getData()->getTarifa()->getCapacidadmax() == 1){
                         $clases = 'prorrateado inputwarning';
@@ -131,7 +131,7 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
                         $clases = 'prorrateado readonly';
                     }
 
-                    //var_dump($event->getData()->getComponente()->getTipocomponente()->getDependeduracion());
+                    //var_dump($event->getData()->getComponente()->getTipocomponente()->isDependeduracion());
                     $cantidadModifier($event->getForm(), $clases);
                 }
             }

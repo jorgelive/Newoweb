@@ -90,7 +90,7 @@ class ServicioServicioController extends AbstractController
         }
 
         $content['id'] = $servicio->getId();
-        $content['paralelo'] = $servicio->getParalelo();
+        $content['paralelo'] = $servicio->isParalelo();
 
         $status = Response::HTTP_OK;
 

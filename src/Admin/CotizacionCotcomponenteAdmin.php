@@ -288,7 +288,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                 if($event->getData()
                     && $event->getData()->getComponente()
                     && $event->getData()->getComponente()->getTipocomponente()
-                    && $event->getData()->getComponente()->getTipocomponente()->getDependeduracion() === true
+                    && $event->getData()->getComponente()->getTipocomponente()->isDependeduracion() === true
                 ){
                     $cantidadModifier($event->getForm());
                 }
@@ -308,7 +308,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                     $duracion = $event->getData()->getCotservicio()->getItinerario()->getDuracion();
                     $horarioDependiente = true;
                 }
-                //var_dump($event->getData()->getComponente()->getTipocomponente()->getDependeduracion());
+                //var_dump($event->getData()->getComponente()->getTipocomponente()->isDependeduracion());
                 if(!empty($duracion)){
                     $horarioModifier($event->getForm(), $duracion, $horarioDependiente);
                 }

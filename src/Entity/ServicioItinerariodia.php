@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -323,11 +324,11 @@ class ServicioItinerariodia implements Translatable
     }
 
     /**
-     * Get importante.
+     * Is importante.
      *
      * @return bool
      */
-    public function getImportante()
+    public function isImportante(): ?bool
     {
         return $this->importante;
     }

@@ -46,7 +46,7 @@ class FitAlimentoController extends AbstractController
         $content['proteina'] = $alimento->getProteina();
         $content['medidaalimento'] = $alimento->getMedidaalimento() ? $alimento->getMedidaalimento()->getNombre() : null;
         $content['cantidad'] = $alimento->getCantidad();
-        $content['proteinaaltovalor'] = $alimento->getProteinaaltovalor();
+        $content['proteinaaltovalor'] = $alimento->isProteinaaltovalor();
         $content['tipoalimento'] = $alimento->getTipoalimento() ? $alimento->getTipoalimento()->getNombre() : null;
 
         $status = Response::HTTP_OK;
