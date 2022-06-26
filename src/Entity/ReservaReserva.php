@@ -217,7 +217,7 @@ class ReservaReserva
         return $this->enlace;
     }
 
-    public function setEnlace(string $enlace): self
+    public function setEnlace(?string $enlace): self
     {
         $this->enlace = $enlace;
 
@@ -229,7 +229,7 @@ class ReservaReserva
         return $this->descripcion;
     }
 
-    public function setDescripcion(string $descripcion): self
+    public function setDescripcion(?string $descripcion): self
     {
         $this->descripcion = $descripcion;
 

@@ -127,7 +127,7 @@ class ReservaPago
         return $this->nota;
     }
 
-    public function setNota(string $nota): self
+    public function setNota(?string $nota): self
     {
         $this->nota = $nota;
 
