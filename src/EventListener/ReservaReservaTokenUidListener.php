@@ -14,7 +14,7 @@ class ReservaReservaTokenUidListener
             $entity->setToken(mt_rand());
         }
         if ($entity instanceof ReservaReserva && !$entity->getUid()) {
-            $entity->setUid(sprintf('%08d', $entity->getId()) . '_' . sprintf('%012d', mt_rand()) . '@openperu.pe');
+            $entity->setUid(sprintf('%06d', $entity->getUnit()->getId()) . '_' . sprintf('%06d', $entity->getChanel()->getId()) . '_' . sprintf('%012d', mt_rand()) . '@openperu.pe');
         }
     }
 }

@@ -12,8 +12,8 @@ use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
 use Sonata\Form\Type\DateRangePickerType;
 use Sonata\Form\Type\DateTimePickerType;
-use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 
 class ReservaReservaAdmin extends AbstractAdmin
 {
@@ -136,7 +136,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Fin',
                 'format' => 'Y/m/d H:i'
             ])
-            ->add('enlace')
+            ->add('enlace', FieldDescriptionInterface::TYPE_URL, [
+                'attributes' => ['target' => '_blank']
+            ])
             ->add('numeroadultos', null, [
                 'label' => 'Adultos'
             ])
@@ -159,8 +161,6 @@ class ReservaReservaAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-
-
         $formMapper
             ->add('unit', null, [
                 'label' => 'Alojamiento'
@@ -177,10 +177,6 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd HH:mm'
             ])
-            ->add('enlace')
-            ->add('descripcion', null, [
-                'label' => 'Descripción'
-            ])
             ->add('numeroadultos', null, [
                 'label' => 'Adultos'
             ])
@@ -190,7 +186,18 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('chanel', null, [
                 'label' => 'Canal'
             ])
+            ->add('enlace')
+            ->add('descripcion', null, [
+                'label' => 'Descripción'
+            ])
             ->add('importes', CollectionType::class, [
+                'by_reference' => false,
+                'label' => ''
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table'
+            ])
+            ->add('detalles', CollectionType::class, [
                 'by_reference' => false,
                 'label' => ''
             ], [
@@ -231,15 +238,17 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Fin',
                 'format' => 'Y/m/d H:i'
             ])
-            ->add('enlace')
-            ->add('descripcion', null, [
-                'label' => 'Descripción'
-            ])
             ->add('numeroadultos', null, [
                 'label' => 'Adultos'
             ])
             ->add('numeroninos', null, [
                 'label' => 'Niños'
+            ])
+            ->add('enlace', FieldDescriptionInterface::TYPE_URL, [
+                'attributes' => ['target' => '_blank']
+            ])
+            ->add('descripcion', null, [
+                'label' => 'Descripción'
             ])
 
         ;
