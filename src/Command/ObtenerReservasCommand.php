@@ -48,7 +48,7 @@ class ObtenerReservasCommand extends Command
             '',
         ]);
 
-        $nexos = $this->entityManager->getRepository("App:ReservaUnitnexo")->findAll();
+        $nexos = $this->entityManager->getRepository("App\Entity\ReservaUnitnexo")->findAll();
 
         foreach ($nexos as $nexo){
             if(!$nexo->isDeshabilitado()){
@@ -66,7 +66,7 @@ class ObtenerReservasCommand extends Command
                 foreach($ical->events() as $event){
                     $temp = [];
                     $insertar = false;
-                    $existente = $this->entityManager->getRepository("App:ReservaReserva")->findOneBy(['uid' => $event->uid]);
+                    $existente = $this->entityManager->getRepository("App\Entity\ReservaReserva")->findOneBy(['uid' => $event->uid]);
 
                     if(!is_null($existente)){
                         if($existente->getFechahorainicio()->format('Ymd') != $event->dtstart){
