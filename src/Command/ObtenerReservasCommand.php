@@ -9,10 +9,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use ICal\ICal;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\ReservaReserva;
-
 use Symfony\Component\HttpClient\HttpClient;
-use BenjaminFavre\OAuthHttpClient\OAuthHttpClient;
-use BenjaminFavre\OAuthHttpClient\GrantType\ClientCredentialsGrantType;
 
 
 
