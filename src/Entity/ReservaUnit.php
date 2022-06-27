@@ -82,12 +82,17 @@ class ReservaUnit
      */
     public function __toString()
     {
-        return $this->getNombre() . ' ' . $this->getEstablecimiento()->getNombre();
+        return sprintf('%s %s',$this->getNombre(), $this->getEstablecimiento()->getNombre());
     }
 
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getResumen(): ?string
+    {
+        return sprintf('%s %s', $this->getNombre(), $this->getEstablecimiento()->getNombre());
     }
 
     public function getNombre(): ?string

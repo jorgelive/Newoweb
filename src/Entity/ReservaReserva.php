@@ -200,6 +200,11 @@ class ReservaReserva
         return $this;
     }
 
+    public function getResumen(): ?string
+    {
+        return sprintf('%s %s: %s %s', substr($this->getChanel()->getNombre(), 0, 1), $this->getNombre(), $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
+    }
+
     public function getNombre(): ?string
     {
         return $this->nombre;

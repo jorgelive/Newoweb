@@ -3,16 +3,44 @@
 namespace App\Admin;
 
 use Sonata\AdminBundle\Admin\AbstractAdmin;
+use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
+use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
+use Sonata\Form\Type\DateRangePickerType;
 use Sonata\Form\Type\DateTimePickerType;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 
 class ReservaReservaAdmin extends AbstractAdmin
 {
+    protected function configureDefaultSortValues(array &$sortValues): void
+    {
+        $sortValues[DatagridInterface::PAGE] = 1;
+        $sortValues[DatagridInterface::SORT_ORDER] = 'ASC';
+        $sortValues[DatagridInterface::SORT_BY] = 'fechahorainicio';
+    }
+
+    protected function configureFilterParameters(array $parameters): array
+    {
+        if(!isset($parameters['fechahorainicio'])){
+            $fecha = new \DateTime();
+            $fechaFinal = new \DateTime('now +1 month');
+            $parameters = array_merge([
+                'fechahorainicio' => [
+                    'value' => [
+                        'start' => $fecha->format('Y/m/d'),
+                        'end' => $fechaFinal->format('Y/m/d')
+                    ]
+                ]
+            ], $parameters);
+        }
+
+        return $parameters;
+    }
 
     public function alterNewInstance($object): void
     {
@@ -41,13 +69,47 @@ class ReservaReservaAdmin extends AbstractAdmin
             ])
             ->add('estado')
             ->add('nombre')
-            ->add('fechahorainicio', null, [
-                'label' => 'Inicio',
+            ->add('fechahorainicio', CallbackFilter::class,[
+                'label' => 'Fecha de inicio',
+                'callback' => function($queryBuilder, $alias, $field, $filterData) {
+
+                    $valor = $filterData->getValue();
+                    if (!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
+                        return false;
+                    }
+                    $fechaMasUno = clone ($valor['end']);
+                    $fechaMasUno->add(new \DateInterval('P1D'));
+
+                    if(empty($filterData->getType())){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
+                        return true;
+                    } else{
+                        return false;
+                    }
+                },
+                'field_type' => DateRangePickerType::class,
+                'field_options' => [
+                    'field_options_start' => [
+                        'dp_use_current' => true,
+                        'dp_show_today' => true,
+                        'format'=> 'yyyy/MM/dd'
+                    ],
+                    'field_options_end' => [
+                        'dp_use_current' => true,
+                        'dp_show_today' => true,
+                        'format'=> 'yyyy/MM/dd'
+                    ]
+                ],
+                'operator_type' => ChoiceType::class,
+                'operator_options' => [
+                    'choices' => [
+                        'Igual a' => 0
+                    ]
+                ]
             ])
-            ->add('fechahorafin', null, [
-                'label' => 'Fin'
-            ])
-            ->add('descripcion')
         ;
     }
 
@@ -62,7 +124,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Alojamiento'
             ])
             ->add('estado')
-            ->add('uid')
+            ->add('chanel', null, [
+                'label' => 'Canal'
+            ])
             ->add('nombre')
             ->add('fechahorainicio', null, [
                 'label' => 'Inicio',
@@ -81,9 +145,6 @@ class ReservaReservaAdmin extends AbstractAdmin
             ])
             ->add('numeroninos', null, [
                 'label' => 'Niños'
-            ])
-            ->add('chanel', null, [
-                'label' => 'Canal'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -160,6 +221,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Alojamiento'
             ])
             ->add('uid')
+            ->add('chanel', null, [
+                'label' => 'Canal'
+            ])
             ->add('estado')
             ->add('nombre')
             ->add('fechahorainicio', null, [
@@ -180,9 +244,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('numeroninos', null, [
                 'label' => 'Niños'
             ])
-            ->add('chanel', null, [
-                'label' => 'Canal'
-            ])
+
         ;
     }
 }

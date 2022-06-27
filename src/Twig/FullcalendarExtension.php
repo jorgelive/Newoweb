@@ -148,7 +148,16 @@ class FullcalendarExtension extends AbstractExtension
                 resourceTimelineOneDay: {
                     type: 'resourceTimeline',
                     duration: { days: 1 },
-                    buttonText: 'Dia'
+                    buttonText: 'Dia',
+                    resourceAreaWidth: '150px'
+                },
+                resourceTimelineOneMonth: {
+                    type: 'resourceTimeline',
+                    duration: { months: 1 },
+                    buttonText: 'Mes Line',
+                    slotMinWidth: 35,
+                    slotDuration: '06:00:00',
+                    resourceAreaWidth: '150px'                   
                 }
             },
             dateClick: function(info) {

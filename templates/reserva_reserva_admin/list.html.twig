@@ -22,7 +22,7 @@
         {% block notice %}
             {% include '@SonataTwig/FlashMessage/render.html.twig' %}
         {% endblock notice %}
-        {{ fullcalendar({'Todas' : 'reserva_reserva_todas'}, 'dayGridMonth', {1 : 'timeGridWeek', 2 : 'dayGridMonth', 3 : 'listMonth', 4 : 'resourceTimelineOneDay'}) }}
+        {{ fullcalendar({'Todas' : 'reserva_reserva_todas'}, 'dayGridMonth', {1 : 'dayGridMonth', 2 : 'listMonth', 3 : 'resourceTimelineOneMonth'}) }}
     {% else %}
         {{ parent() }}
     {% endif %}

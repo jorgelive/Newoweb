@@ -21,9 +21,9 @@ parameters:
             repositorymethod: 'findCalendarTodas'
             resource:
                 id: 'unit.id'
-                title: 'unit.nombre'
+                title: 'unit.resumen'
             parameters:
-                title: 'nombre'
+                title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
                 color: 'estado.color'
