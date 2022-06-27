@@ -189,6 +189,14 @@ class FullcalendarExtension extends AbstractExtension
             refetchResourcesOnNavigate: true,
             resources: function(fetchInfo, successCallback, failureCallback) {
                 getResources(fetchInfo.start, fetchInfo.end, fetchInfo.timezone, function(resources) {
+                    setTimeout(function(){ // Timeout
+                        $(".fc-day-today").attr("id","scrollTo"); // Set an ID for the current day..
+                        if (typeof $("#scrollTo").position() != 'undefined'){
+                            $(".fc-scroller").animate({
+                                scrollLeft: $("#scrollTo").position().left // Scroll to this ID
+                            }, 2000);
+                        }
+                    }, 500);
                     successCallback(resources);
                 });
             },
