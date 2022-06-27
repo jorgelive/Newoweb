@@ -24,7 +24,7 @@ class ReservaReservaRepository extends \Doctrine\ORM\EntityRepository
             ->select('rr')
             ->from('App\Entity\ReservaReserva', 'rr')
             //->innerJoin('cs.cotizacion', 'cot')
-            ->where('rr.fechahorainicio BETWEEN :firstDate AND :lastDate');
+            ->where('rr.fechahorafin >= :firstDate AND rr.fechahorainicio <= :lastDate');
             //->andWhere('cot.estadocotizacion = 3');
 
 
