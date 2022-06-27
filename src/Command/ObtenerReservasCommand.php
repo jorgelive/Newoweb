@@ -55,15 +55,39 @@ class ObtenerReservasCommand extends Command
                     'defaultWeekStart'            => 'MO',  // Default value
                 ));
 
+
+                $ahora = new \DateTime('today');
+
+                $qb = $this->entityManager
+                    ->getRepository('App\Entity\ReservaReserva')
+                    ->createQueryBuilder('rr')
+                    ->select('rr')
+                    ->where('rr.chanel = :chanel')
+                    ->andWhere('rr.unit = :unit')
+                    ->andWhere('DATE(rr.fechahorainicio) >= :fechahorainicio')
+                    ->setParameter('chanel', $nexo->getChanel()->getId())
+                    ->setParameter('unit', $nexo->getUnit()->getId())
+                    ->setParameter('fechahorainicio', $ahora->format('Y-m-d'));
+
+                $currentReservas = $qb->getQuery()->getResult();
+
                 $ical->initUrl($nexo->getEnlace()); //cs3
 
                 $canal = $nexo->getChanel()->getId(); //2: Airbnb 3:Booking
                 $unidad = $nexo->getUnit();
                 $establecimiento = $nexo->getUnit()->getEstablecimiento();
+
+                //guarda los uids del bucle actual para despues omparar con las reservas existentes ycancelar las que ya no esten
+                $uidsArray = [];
+
                 foreach($ical->events() as $event){
                     $temp = [];
                     $insertar = false;
+
+                    //todo buscar en la coleccion de existentes
                     $existente = $this->entityManager->getRepository("App\Entity\ReservaReserva")->findOneBy(['uid' => $event->uid]);
+
+                    $uidsArray[] = $event->uid;
 
                     if(!is_null($existente)){
                         if($existente->getFechahorainicio()->format('Ymd') != $event->dtstart){
@@ -108,6 +132,19 @@ class ObtenerReservasCommand extends Command
                         $reserva->setFechahorafin($temp['fechahorafin']);
                         $output->writeln('Agregando: '. $event->uid);
                         $this->entityManager->persist($reserva);
+                    }
+                }
+
+                foreach ($currentReservas as &$currentReserva){
+                    if(!in_array($currentReserva->getUid(), $uidsArray)){
+                        $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 3));
+                    }elseif($currentReserva->getEstado()->getId() == 3){
+                        //reponemos si la desaparición fue temporal
+                        if($currentReserva->getChanel()->getId() == 2){
+                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 2));
+                        }elseif($currentReserva->getChanel()->getId() == 3){
+                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 1));
+                        }
                     }
                 }
 
