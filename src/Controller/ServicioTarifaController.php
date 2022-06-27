@@ -31,7 +31,7 @@ class ServicioTarifaController extends AbstractController
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
         $tarifa = $em
-            ->getRepository('App:ServicioTarifa')
+            ->getRepository('App\Entity\ServicioTarifa')
             ->find($id);
 
         if(!$tarifa){
@@ -60,7 +60,7 @@ class ServicioTarifaController extends AbstractController
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
         $tarifas = $em
-            ->getRepository('App:ServicioTarifa')->createQueryBuilder('t');
+            ->getRepository('App\Entity\ServicioTarifa')->createQueryBuilder('t');
         if($componente != 0){
             $tarifas->where('t.componente = :componente')
                 ->setParameter('componente', $componente);

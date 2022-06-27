@@ -12,14 +12,14 @@ class TransporteServicioRepository extends EntityRepository
     public function findCalendarConductorColored($data)
     {
 /*        if (!$data['user'] instanceof UserUser){
-            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App:Entity:UserUser.');
+            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
         }else{
             $user = $data['user'];
         }*/
 
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select('me')
-            ->from('App:TransporteServicio', 'me')
+            ->from('App\Entity\TransporteServicio', 'me')
             ->where('me.fechahorainicio BETWEEN :firstDate AND :lastDate');
 
 /*        if ($user && $user->getDependencia() && $user->getDependencia()->getId() != 1) {
@@ -40,7 +40,7 @@ class TransporteServicioRepository extends EntityRepository
 
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select('me')
-            ->from('App:TransporteServicio', 'me')
+            ->from('App\Entity\TransporteServicio', 'me')
             ->where('me.fechahorainicio BETWEEN :firstDate AND :lastDate');
 
         $qb->setParameter('firstDate', $data['from'])
@@ -57,7 +57,7 @@ class TransporteServicioRepository extends EntityRepository
 
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select('me')
-            ->from('App:TransporteServicio', 's')
+            ->from('App\Entity\TransporteServicio', 's')
             ->where('s.fechahorainicio BETWEEN :firstDate AND :lastDate');
 
 

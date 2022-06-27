@@ -32,7 +32,7 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
 
         $qb = $em->createQueryBuilder()
             ->select('cs')
-            ->from('App:CotizacionCotservicio', 'cs')
+            ->from('App\Entity\CotizacionCotservicio', 'cs')
             ->innerJoin('cs.cotizacion', 'c')
             ->innerJoin('c.estadocotizacion', 'ec')
             ->where('ec.id = :estado')

@@ -15,14 +15,14 @@ class CotizacionCotcomponenteRepository extends \Doctrine\ORM\EntityRepository
     public function findCalendarAceptado($data)
     {
         if (!$data['user'] instanceof UserUser) {
-            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App:Entity:UserUser.');
+            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
         } else {
             $user = $data['user'];
         }
 
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select('c')
-            ->from('App:CotizacionCotcomponente', 'c')
+            ->from('App\Entity\CotizacionCotcomponente', 'c')
             ->innerJoin('c.cotservicio', 'cs')
             ->innerJoin('cs.cotizacion', 'cot')
             ->where('c.fechahorainicio BETWEEN :firstDate AND :lastDate')
@@ -39,14 +39,14 @@ class CotizacionCotcomponenteRepository extends \Doctrine\ORM\EntityRepository
     public function findCalendarAceptadoEfectuado($data)
     {
         if (!$data['user'] instanceof UserUser) {
-            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App:Entity:UserUser.');
+            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
         } else {
             $user = $data['user'];
         }
 
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select('me')
-            ->from('App:CotizacionCotcomponente', 'me')
+            ->from('App\Entity\CotizacionCotcomponente', 'me')
             ->innerJoin('me.cotservicio', 'cs')
             ->innerJoin('cs.cotizacion', 'cot')
             ->where('me.fechahorainicio BETWEEN :firstDate AND :lastDate')

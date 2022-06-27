@@ -31,7 +31,7 @@ class FitAlimentoController extends AbstractController
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
         $alimento = $em
-            ->getRepository('App:FitAlimento')
+            ->getRepository('App\Entity\FitAlimento')
             ->find($id);
 
         if(!$alimento){

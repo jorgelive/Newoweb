@@ -31,7 +31,7 @@ class MainTipocambio implements ContainerAwareInterface{
     public function getTipodecambio(\DateTime $fecha)
     {
 
-        $enDB = $this->getDoctrine()->getRepository('App:MaestroTipocambio')
+        $enDB = $this->getDoctrine()->getRepository('App\Entity\MaestroTipocambio')
             ->findOneBy(['moneda' => 2, 'fecha' => $fecha]);
 
         if ($enDB){

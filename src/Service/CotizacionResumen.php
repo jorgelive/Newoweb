@@ -76,7 +76,7 @@ class CotizacionResumen implements ContainerAwareInterface
     {
 
         $cotizacion = $this->getDoctrine()
-            ->getRepository('App:CotizacionCotizacion')
+            ->getRepository('App\Entity\CotizacionCotizacion')
             ->find($id);
 
         if (!$cotizacion) {

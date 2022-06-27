@@ -15,14 +15,14 @@ class ReservaReservaRepository extends \Doctrine\ORM\EntityRepository
     public function findCalendartodas($data)
     {
         if (!$data['user'] instanceof UserUser) {
-            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App:Entity:UserUser.');
+            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
         } else {
             $user = $data['user'];
         }
 
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select('rr')
-            ->from('App:ReservaReserva', 'rr')
+            ->from('App\Entity\ReservaReserva', 'rr')
             //->innerJoin('cs.cotizacion', 'cot')
             ->where('rr.fechahorainicio BETWEEN :firstDate AND :lastDate');
             //->andWhere('cot.estadocotizacion = 3');

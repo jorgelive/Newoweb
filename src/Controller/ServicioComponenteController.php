@@ -31,7 +31,7 @@ class ServicioComponenteController extends AbstractController
     {
         //?q=&_per_page=10&_page=1&field=tarifa&_=1513629738031
         $em = $this->container->get('doctrine.orm.default_entity_manager');
-        $componentes = $em->getRepository('App:ServicioComponente')->createQueryBuilder('c');
+        $componentes = $em->getRepository('App\Entity\ServicioComponente')->createQueryBuilder('c');
         if($servicio != 0){
             $componentes
                 ->select('c')
@@ -88,7 +88,7 @@ class ServicioComponenteController extends AbstractController
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
         $componente=$em
-            ->getRepository('App:ServicioComponente')
+            ->getRepository('App\Entity\ServicioComponente')
             ->find($id);
 
         if(!$componente){

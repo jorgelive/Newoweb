@@ -32,7 +32,7 @@ class ServicioServicioController extends AbstractController
     public function alldropdownAction(Request $request): Response
     {
         $em = $this->container->get('doctrine.orm.default_entity_manager');
-        $servicios = $em->getRepository('App:ServicioServicio')->createQueryBuilder('s');
+        $servicios = $em->getRepository('App\Entity\ServicioServicio')->createQueryBuilder('s');
 
         if(!empty($request->get('q'))){
             $servicios->where('s.nombre like :cadena')
@@ -80,7 +80,7 @@ class ServicioServicioController extends AbstractController
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
         $servicio=$em
-            ->getRepository('App:ServicioServicio')
+            ->getRepository('App\Entity\ServicioServicio')
             ->find($id);
 
         if(!$servicio){
