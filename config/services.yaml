@@ -922,6 +922,7 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ReservaUnit
+              controller: App\Controller\ReservaUnitAdminController
               manager_type: orm
               group: Reserva
               label: Unidad

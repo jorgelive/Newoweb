@@ -190,14 +190,14 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('descripcion', null, [
                 'label' => 'Descripción'
             ])
-            ->add('importes', CollectionType::class, [
+            ->add('detalles', CollectionType::class, [
                 'by_reference' => false,
                 'label' => ''
             ], [
                 'edit' => 'inline',
                 'inline' => 'table'
             ])
-            ->add('detalles', CollectionType::class, [
+            ->add('importes', CollectionType::class, [
                 'by_reference' => false,
                 'label' => ''
             ], [

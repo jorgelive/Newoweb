@@ -51,6 +51,7 @@ security:
     access_control:
         #todo eliminar el fallback a cotizacion antigua
         - { path: ^/app/cotizacioncotservicio/ical$, role: PUBLIC_ACCESS }
+        - { path: ^/app/reservaunit/\d*/ical$, role: PUBLIC_ACCESS }
         - { path: ^/app/cotizacioncotizacion/\d*/resumen$, role: PUBLIC_ACCESS }
         - { path: ^/app/cotizacioncotizacion/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
         - { path: ^/app/fitdieta/\d*/show$, role: PUBLIC_ACCESS }

@@ -16,7 +16,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@5.11.0/main.min.css" rel="stylesheet" />
 
-    <style type="text/css">
+    <style>
         @media (max-width: 767px) {
             .skin-black .main-header > .logo {
                 background-color: #ffffff;
@@ -71,6 +71,9 @@
                 event.preventDefault();
                 $(this).ekkoLightbox();
             });
+            $(document).on("select2:open", () => {
+                document.querySelector(".select2-container--open .select2-search__field").focus()
+            })
         });
     </script>
 {% endblock %}

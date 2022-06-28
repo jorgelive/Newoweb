@@ -18,7 +18,12 @@ class ReservaDetalleAdmin extends AbstractAdmin
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
-            ->add('id')
+            ->add('tipodetalle', null, [
+                'label' => 'Tipo'
+            ])
+            ->add('user',  null, [
+                'label' => 'Personal'
+            ])
             ->add('contenido')
         ;
     }
@@ -30,6 +35,12 @@ class ReservaDetalleAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
+            ->add('tipodetalle', null, [
+                'label' => 'Tipo'
+            ])
+            ->add('user',  null, [
+                'label' => 'Personal'
+            ])
             ->add('contenido')
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -48,6 +59,12 @@ class ReservaDetalleAdmin extends AbstractAdmin
     protected function configureFormFields(FormMapper $formMapper): void
     {
         $formMapper
+            ->add('tipodetalle', null, [
+                'label' => 'Tipo'
+            ])
+            ->add('user',  null, [
+                'label' => 'Personal'
+            ])
             ->add('contenido')
         ;
     }
@@ -59,6 +76,12 @@ class ReservaDetalleAdmin extends AbstractAdmin
     {
         $showMapper
             ->add('id')
+            ->add('tipodetalle', null, [
+                'label' => 'Tipo'
+            ])
+            ->add('user',  null, [
+                'label' => 'Personal'
+            ])
             ->add('contenido')
         ;
     }

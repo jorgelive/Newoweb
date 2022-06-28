@@ -39,8 +39,9 @@ class ObtenerReservasCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         // outputs multiple lines to the console (adding "\n" at the end of each line)
+        $ahora = new \DateTime('now');
         $output->writeln([
-            'Procesando...',
+            sprintf('%s: Iniciando proceso...', $ahora->format('Y-m-d h:i')),
             '============',
             '',
         ]);
@@ -55,13 +56,10 @@ class ObtenerReservasCommand extends Command
                     'defaultWeekStart'            => 'MO',  // Default value
                 ));
 
-
-                $ahora = new \DateTime('today');
-
                 $qb = $this->entityManager
-                    ->getRepository('App\Entity\ReservaReserva')
                     ->createQueryBuilder('rr')
                     ->select('rr')
+                    ->from('App\Entity\ReservaReserva', 'rr')
                     ->where('rr.chanel = :chanel')
                     ->andWhere('rr.unit = :unit')
                     ->andWhere('DATE(rr.fechahorainicio) >= :fechahorainicio')
@@ -70,8 +68,12 @@ class ObtenerReservasCommand extends Command
                     ->setParameter('fechahorainicio', $ahora->format('Y-m-d'));
 
                 $currentReservas = $qb->getQuery()->getResult();
-
-                $ical->initUrl($nexo->getEnlace()); //cs3
+                try {
+                    $ical->initUrl($nexo->getEnlace()); //cs3
+                } catch (\Exception $e) {
+                    $output->writeln(sprintf('Excepción capturada: %s',  $e->getMessage()));
+                    return Command::FAILURE;
+                }
 
                 $canal = $nexo->getChanel()->getId(); //2: Airbnb 3:Booking
                 $unidad = $nexo->getUnit();
@@ -138,8 +140,10 @@ class ObtenerReservasCommand extends Command
                 foreach ($currentReservas as &$currentReserva){
                     if(!in_array($currentReserva->getUid(), $uidsArray)){
                         $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 3));
+                        $output->writeln(sprintf('Cancelando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
                     }elseif($currentReserva->getEstado()->getId() == 3){
                         //reponemos si la desaparición fue temporal
+                        $output->writeln(sprintf('Reactivando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
                         if($currentReserva->getChanel()->getId() == 2){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 2));
                         }elseif($currentReserva->getChanel()->getId() == 3){
@@ -153,13 +157,9 @@ class ObtenerReservasCommand extends Command
 
         $this->entityManager->flush();
 
-        //$output->writeln('Username: '.$input->getArgument('username'));
-
         $output->writeln('Se ha completado el proceso!');
 
         return Command::SUCCESS;
-
-        // return Command::FAILURE;
 
         // return Command::INVALID
     }
