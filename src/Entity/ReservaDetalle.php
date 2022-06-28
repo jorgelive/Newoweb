@@ -37,7 +37,7 @@ class ReservaDetalle
      * @var \App\Entity\ReservaTipodetallle
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaTipodetalle")
-     * @ORM\JoinColumn(name="reserva_id", referencedColumnName="id", nullable=false)
+     * @ORM\JoinColumn(name="tipodetalle_id", referencedColumnName="id", nullable=false)
      */
     protected $tipodetalle;
 
@@ -52,9 +52,9 @@ class ReservaDetalle
     /**
      * @var string
      *
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, nullable=true)
      */
-    private $contenido;
+    private $nota;
 
     /**
      * @var \DateTime $creado
@@ -84,14 +84,14 @@ class ReservaDetalle
         return $this->id;
     }
 
-    public function getContenido(): ?string
+    public function getNota(): ?string
     {
-        return $this->contenido;
+        return $this->nota;
     }
 
-    public function setContenido(string $contenido): self
+    public function setNota(?string $nota): self
     {
-        $this->contenido = $contenido;
+        $this->nota = $nota;
 
         return $this;
     }

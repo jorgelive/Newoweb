@@ -8,6 +8,9 @@ use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\Form\Type\DatePickerType;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
 
 class ReservaImporteAdmin extends AbstractAdmin
 {
@@ -56,7 +59,7 @@ class ReservaImporteAdmin extends AbstractAdmin
         $ahora = new \DateTime('now');
         $formMapper
             ->add('fecha', DatePickerType::class, [
-                'label' => 'Fin',
+                'label' => 'Fecha',
                 'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd',
                 'dp_default_date' => $ahora->format('Y-m-d')
@@ -68,6 +71,46 @@ class ReservaImporteAdmin extends AbstractAdmin
             ->add('monto')
             ->add('nota')
         ;
+
+        $widthModifier = function (FormInterface $form) {
+            $ahora = new \DateTime('now');
+
+            $form
+                ->add('fecha', DatePickerType::class, [
+                    'label' => 'Fecha',
+                    'dp_show_today' => true,
+                    'format'=> 'yyyy/MM/dd',
+                    'dp_default_date' => $ahora->format('Y-m-d'),
+                    'attr' => [
+                        'style' => 'min-width: 100px;'
+                    ]
+                ])
+                ->add('monto', null, [
+                    'label' => 'Monto',
+                    'attr' => [
+                        'style' => 'min-width: 100px;'
+                    ]
+                ])
+                ->add('nota', null, [
+                    'label' => 'Nota',
+                    'attr' => [
+                        'style' => 'min-width: 200px;'
+                    ]
+                ])
+            ;
+        };
+
+        $formBuilder = $formMapper->getFormBuilder();
+        $formBuilder->addEventListener(
+            FormEvents::PRE_SET_DATA,
+            function (FormEvent $event) use ($widthModifier) {
+                if($event->getData()
+                    && $this->getRoot()->getClass() == 'App\Entity\ReservaReserva'
+                ){
+                    $widthModifier($event->getForm());
+                }
+            }
+        );
     }
 
     /**

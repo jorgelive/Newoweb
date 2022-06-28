@@ -7,7 +7,11 @@ use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
+use Sonata\Form\Type\DatePickerType;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
 
 class ReservaDetalleAdmin extends AbstractAdmin
 {
@@ -24,7 +28,7 @@ class ReservaDetalleAdmin extends AbstractAdmin
             ->add('user',  null, [
                 'label' => 'Personal'
             ])
-            ->add('contenido')
+            ->add('nota')
         ;
     }
 
@@ -41,7 +45,7 @@ class ReservaDetalleAdmin extends AbstractAdmin
             ->add('user',  null, [
                 'label' => 'Personal'
             ])
-            ->add('contenido')
+            ->add('nota')
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -65,8 +69,33 @@ class ReservaDetalleAdmin extends AbstractAdmin
             ->add('user',  null, [
                 'label' => 'Personal'
             ])
-            ->add('contenido')
+            ->add('nota')
         ;
+
+        $widthModifier = function (FormInterface $form) {
+
+            $form
+                ->add('nota', null, [
+                    'label' => 'Nota',
+                    'attr' => [
+                        'style' => 'min-width: 200px;'
+                    ]
+                ])
+
+            ;
+        };
+
+        $formBuilder = $formMapper->getFormBuilder();
+        $formBuilder->addEventListener(
+            FormEvents::PRE_SET_DATA,
+            function (FormEvent $event) use ($widthModifier) {
+                if($event->getData()
+                    && $this->getRoot()->getClass() == 'App\Entity\ReservaReserva'
+                ){
+                    $widthModifier($event->getForm());
+                }
+            }
+        );
     }
 
     /**
@@ -82,7 +111,7 @@ class ReservaDetalleAdmin extends AbstractAdmin
             ->add('user',  null, [
                 'label' => 'Personal'
             ])
-            ->add('contenido')
+            ->add('nota')
         ;
     }
 }
