@@ -31,7 +31,7 @@ class ReservaReservaAdminController extends CRUDAdminController
             ->andWhere('DATE(rr.fechahorainicio) >= :fechahorainicio')
             ->orderBy('rr.fechahorainicio', 'ASC')
             ->setParameter('estado', 2)
-            ->setParameter('fechahorainicio', $ahora->format('Y-m-d'));
+            ->setParameter('fechahorainicio', $ahora->sub(new \DateInterval('P7D'))->format('Y-m-d'));
         ;
 
         $reservas = $qb->getQuery()->getResult();
@@ -47,7 +47,7 @@ class ReservaReservaAdminController extends CRUDAdminController
                 ->createCalendarEvent()
                 ->setStart($reserva->getFechahorainicio())
                 ->setEnd($fechainicioMasUno)
-                ->setSummary('Check In: ' . $reserva->getNombre())
+                ->setSummary(sprintf('Check In: %s %s %s', $reserva->getNombre(),  $reserva->getUnit()->getNombre(), $reserva->getUnit()->getEstablecimiento()->getNombre()))
                 ->setDescription($reserva->getEnlace())
                 ->setUid($reserva->getUid());
             $calendar->addEvent($tempEvent);
@@ -56,7 +56,7 @@ class ReservaReservaAdminController extends CRUDAdminController
                 ->createCalendarEvent()
                 ->setStart($reserva->getFechahorafin())
                 ->setEnd($fechafinMasUno)
-                ->setSummary('Check Out: ' . $reserva->getNombre())
+                ->setSummary(sprintf('Check Out: %s %s %s', $reserva->getNombre(),  $reserva->getUnit()->getNombre(), $reserva->getUnit()->getEstablecimiento()->getNombre()))
                 ->setDescription($reserva->getEnlace())
                 ->setUid($reserva->getUid());
             $calendar->addEvent($tempEvent);
