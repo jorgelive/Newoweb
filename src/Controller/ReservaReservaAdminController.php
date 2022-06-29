@@ -49,7 +49,7 @@ class ReservaReservaAdminController extends CRUDAdminController
                 ->setEnd($fechainicioMasUno)
                 ->setSummary(sprintf('Check In: %s %s %s', $reserva->getNombre(),  $reserva->getUnit()->getNombre(), $reserva->getUnit()->getEstablecimiento()->getNombre()))
                 ->setDescription($reserva->getEnlace())
-                ->setUid($reserva->getUid());
+                ->setUid('i_' . $reserva->getUid());
             $calendar->addEvent($tempEvent);
 
             $tempEvent = $this->container->get('App\Service\IcalGenerator')
@@ -58,7 +58,7 @@ class ReservaReservaAdminController extends CRUDAdminController
                 ->setEnd($fechafinMasUno)
                 ->setSummary(sprintf('Check Out: %s %s %s', $reserva->getNombre(),  $reserva->getUnit()->getNombre(), $reserva->getUnit()->getEstablecimiento()->getNombre()))
                 ->setDescription($reserva->getEnlace())
-                ->setUid($reserva->getUid());
+                ->setUid('o_' . $reserva->getUid());
             $calendar->addEvent($tempEvent);
         }
         $status = Response::HTTP_OK;
