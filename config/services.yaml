@@ -819,6 +819,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ReservaReserva
+                controller: App\Controller\ReservaReservaAdminController
                 manager_type: orm
                 group: Reserva
                 label: Reservas de alojamiento
