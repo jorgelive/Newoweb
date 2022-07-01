@@ -178,8 +178,10 @@ class CotizacionCotizacion implements Translatable
         if($this->getEstadocotizacion()->getId() == 6){
             return sprintf("%s", $this->getTitulo()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
 
+        }elseif($this->getEstadocotizacion()->getId() == 1){ //generalmente los pendientes se envian por whatsapp, no muestro el estado
+            return sprintf("%s x%s: %s.", $this->getFile()->getNombre(), $this->getNumeropasajeros(), $this->getTitulo()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+
         }else{
-            //como es publico retorno el titulo
             return sprintf("%s x%s (%s): %s.", $this->getFile()->getNombre(), $this->getNumeropasajeros(), $this->getEstadocotizacion()->getNombre(), $this->getTitulo()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
         }
     }
