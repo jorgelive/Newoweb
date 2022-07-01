@@ -253,21 +253,23 @@ services:
              - [ setContainer, [ '@service_container' ] ]
              - [ setVariableproceso, [ App\Service\MainVariableproceso ] ]
 
-    app.eventlistener.main_asignacionusuario_listener:
-        class: App\EventListener\MainAsignacionusuarioListener
-        arguments: ["@security.token_storage"]
+    app.eventlistener.cuenta_movimiento_doctrine_event_listener:
+        class: App\EventListener\CuentaMovimientoDoctrineEventListener
+        arguments: ['@security.token_storage']
         tags:
             - { name: doctrine.event_listener, event: prePersist }
 
-    app.eventlistener.cotizacion_cotizacion_token_listener:
-        class: App\EventListener\CotizacionCotizacionTokenListener
+    app.eventlistener.cotizacion_cotizacion_doctrine_event_listener:
+        class: App\EventListener\CotizacionCotizacionDoctrineEventListener
         tags:
             - { name: doctrine.event_listener, event: prePersist }
 
-    app.eventlistener.reserva_reserva_token_uid_listener:
-        class: App\EventListener\ReservaReservaTokenUidListener
+    app.eventlistener.reserva_reserva_doctrine_event_listener:
+        class: App\EventListener\ReservaReservaDoctrineEventListener
+        arguments: ['@App\Service\MainVariableproceso']
         tags:
             - { name: doctrine.event_listener, event: prePersist }
+            - { name: doctrine.event_listener, event: preUpdate }
 
     app.admin.comprobantecomprobante:
         class: App\Admin\ComprobanteComprobanteAdmin
