@@ -31,6 +31,13 @@ class CotizacionEstadocotizacion
     private $nombre;
 
     /**
+     * @var bool
+     *
+     * @ORM\Column(type="boolean", options={"default": 0})
+     */
+    private $ocultoresumen;
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -87,6 +94,30 @@ class CotizacionEstadocotizacion
     public function getNombre()
     {
         return $this->nombre;
+    }
+
+    /**
+     * Set ocultoresumen
+     *
+     * @param boolean $ocultoresumen
+     *
+     * @return CotizacionEstadocotizacion
+     */
+    public function setOcultoresumen($ocultoresumen)
+    {
+        $this->ocultoresumen = $ocultoresumen;
+
+        return $this;
+    }
+
+    /**
+     * Is ocultoresumen
+     *
+     * @return boolean
+     */
+    public function isOcultoresumen(): ?bool
+    {
+        return $this->ocultoresumen;
     }
 
     /**

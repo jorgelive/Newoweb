@@ -31,6 +31,10 @@ class CotizacionEstadocotizacionAdmin extends AbstractAdmin
             ->add('nombre', null, [
                 'editable' => true
             ])
+            ->add('ocultoresumen', null, [
+                'editable' => true,
+                'label' => 'Oculto en Resumen'
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -49,6 +53,9 @@ class CotizacionEstadocotizacionAdmin extends AbstractAdmin
     {
         $formMapper
             ->add('nombre')
+            ->add('ocultoresumen', null, [
+                'label' => 'Oculto en Resumen'
+            ])
         ;
     }
 
@@ -60,6 +67,9 @@ class CotizacionEstadocotizacionAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
+            ->add('ocultoresumen', null, [
+                'label' => 'Oculto en Resumen'
+            ])
         ;
     }
 }

@@ -109,6 +109,11 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
                 $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
                 return new RedirectResponse($this->admin->generateUrl('list'));
             }
+        }elseif($object->getEstadocotizacion()->isOcultoResumen()){
+
+                $this->addFlash('sonata_flash_error', 'El no se muestra en resumen, redirigido a "Mostrar"');
+                return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
+
         }
 
         $this->checkParentChildAssociation($request, $object);
