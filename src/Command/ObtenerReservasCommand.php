@@ -41,7 +41,7 @@ class ObtenerReservasCommand extends Command
         // outputs multiple lines to the console (adding "\n" at the end of each line)
         $ahora = new \DateTime('now');
         $output->writeln([
-            sprintf('%s: Iniciando proceso...', $ahora->format('Y-m-d h:i')),
+            sprintf('%s: Iniciando proceso...', $ahora->format('Y-m-d H:i')),
             '============'
         ]);
 
@@ -138,7 +138,7 @@ class ObtenerReservasCommand extends Command
 
                 foreach ($currentReservas as &$currentReserva){
                     if(!in_array($currentReserva->getUid(), $uidsArray)){
-                        if($currentReserva->getEstado() != 3){
+                        if($currentReserva->getEstado()->getId() != 3){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 3));
                             $output->writeln(sprintf('Cancelando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
                         }
