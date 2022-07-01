@@ -42,8 +42,7 @@ class ObtenerReservasCommand extends Command
         $ahora = new \DateTime('now');
         $output->writeln([
             sprintf('%s: Iniciando proceso...', $ahora->format('Y-m-d h:i')),
-            '============',
-            '',
+            '============'
         ]);
 
         $nexos = $this->entityManager->getRepository("App\Entity\ReservaUnitnexo")->findAll();
@@ -69,7 +68,7 @@ class ObtenerReservasCommand extends Command
 
                 $currentReservas = $qb->getQuery()->getResult();
                 try {
-                    $ical->initUrl($nexo->getEnlace()); //cs3
+                    $ical->initUrl($nexo->getEnlace());
                 } catch (\Exception $e) {
                     $output->writeln(sprintf('Excepción capturada: %s',  $e->getMessage()));
                     return Command::FAILURE;
@@ -139,8 +138,10 @@ class ObtenerReservasCommand extends Command
 
                 foreach ($currentReservas as &$currentReserva){
                     if(!in_array($currentReserva->getUid(), $uidsArray)){
-                        $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 3));
-                        $output->writeln(sprintf('Cancelando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
+                        if($currentReserva->getEstado() != 3){
+                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 3));
+                            $output->writeln(sprintf('Cancelando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
+                        }
                     }elseif($currentReserva->getEstado()->getId() == 3){
                         //reponemos si la desaparición fue temporal
                         $output->writeln(sprintf('Reactivando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
@@ -157,7 +158,11 @@ class ObtenerReservasCommand extends Command
 
         $this->entityManager->flush();
 
-        $output->writeln('Se ha completado el proceso!');
+        $output->writeln([
+            'Se ha completado el proceso!',
+            ''
+            ]
+        );
 
         return Command::SUCCESS;
 
