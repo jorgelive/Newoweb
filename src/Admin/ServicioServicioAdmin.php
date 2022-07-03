@@ -22,11 +22,6 @@ class ServicioServicioAdmin extends AbstractAdmin
         $sortValues[DatagridInterface::SORT_BY] = 'cuenta';
     }
 
-    public function configure(): void
-    {
-        $this->setFormTheme([0 => 'servicio_servicio_admin/form_admin_fields.html.twig']);
-    }
-
 
     /**
      * @param DatagridMapper $datagridMapper
@@ -88,13 +83,7 @@ class ServicioServicioAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('paralelo')
             ->add('componentes')
-            ->add('itinerarios', CollectionType::class, [
-                'by_reference' => false,
-                'label' => 'Itinerarios'
-            ], [
-                'edit' => 'inline',
-                'inline' => 'table'
-            ])
+            ->add('itinerarios')
         ;
     }
 
