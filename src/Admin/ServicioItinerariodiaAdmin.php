@@ -99,7 +99,13 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
                 'label' => 'Título'
             ])
             ->add('importante')
-            ->add('contenido')
+            ->add('contenido', null, [
+                'safe' => true
+            ])
+            ->add('itidiaarchivos', null, [
+                'label' => 'Multimedia',
+                'associated_property' => 'medio'
+            ])
         ;
     }
 }

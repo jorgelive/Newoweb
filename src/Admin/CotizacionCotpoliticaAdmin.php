@@ -32,7 +32,6 @@ class CotizacionCotpoliticaAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('nombre')
-            ->add('contenido')
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -66,7 +65,9 @@ class CotizacionCotpoliticaAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
-            ->add('contenido')
+            ->add('contenido', null, [
+                'safe' => true
+            ])
         ;
     }
 }

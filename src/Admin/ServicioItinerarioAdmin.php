@@ -69,6 +69,9 @@ class ServicioItinerarioAdmin extends AbstractAdmin
                 'label' => 'Duración',
                 'row_align' => 'right'
             ])
+            ->add('itinerariodias', null, [
+                'label' => 'Dias'
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [

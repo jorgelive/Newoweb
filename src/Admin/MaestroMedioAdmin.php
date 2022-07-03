@@ -98,7 +98,8 @@ class MaestroMedioAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('webThumbPath', null, [
-                    'label' => 'Archivo'
+                    'label' => 'Archivo',
+                    'template' => 'base_sonata_admin/show_image.html.twig'
                 ]
             )
             ->add('enlace')

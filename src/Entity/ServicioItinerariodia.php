@@ -112,7 +112,7 @@ class ServicioItinerariodia implements Translatable
      */
     public function __toString()
     {
-        return sprintf('%s dia %d', $this->getItinerario()->getNombre(), $this->getDia());
+        return sprintf('Dia %d: %s', $this->getDia(), $this->getItinerario()->getNombre());
     }
 
 
