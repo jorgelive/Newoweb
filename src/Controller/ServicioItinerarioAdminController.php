@@ -6,7 +6,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 
-class ServicioComponenteAdminController extends CRUDAdminController
+class ServicioItinerarioAdminController extends CRUDAdminController
 {
 
     public static function getSubscribedServices(): array
@@ -34,7 +34,7 @@ class ServicioComponenteAdminController extends CRUDAdminController
         $newObject->setNombre($object->getNombre() . ' (Clone)');
         $this->admin->create($newObject);
 
-        $this->addFlash('sonata_flash_success', 'Componente clonado correctamente');
+        $this->addFlash('sonata_flash_success', 'Itinerario clonado correctamente');
 
         return new RedirectResponse($this->admin->generateUrl('list'));
 

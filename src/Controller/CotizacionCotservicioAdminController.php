@@ -52,8 +52,6 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
                 $decripcion[] = $cotComponente->getEstadocotcomponente()->getNombre() . ' / ' . $cotComponente->getFechahorainicio()->format('h:i d-m-Y') . ' ' . $cotComponente->getComponente()->getNombre();
             }
 
-
-
             $tempEvent = $this->container->get('App\Service\IcalGenerator')
                 ->createCalendarEvent()
                 ->setStart($cotServicio->getFechahorainicio())

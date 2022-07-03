@@ -25,13 +25,8 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
     public function clonarAction(Request $request = null)
     {
 
-        //$id = $request->get($this->admin->getIdParameter());
-        //$object = $this->admin->getObject($id);
-
         $object = $this->assertObjectExists($request, true);
         $id = $object->getId();
-
-
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 
         if (!$object) {
@@ -41,9 +36,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $this->admin->checkAccess('edit', $object);
 
         $newObject = clone $object;
-
         $newObject->setNombre($object->getNombre().' (Clone)');
-
         $newObject->setEstadocotizacion($em->getReference('App\Entity\CotizacionEstadocotizacion', 1));
 
         foreach ($newObject->getCotservicios() as $cotservicio):
@@ -53,7 +46,6 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         endforeach;
 
         $this->admin->create($newObject);
-
         $this->addFlash('sonata_flash_success', 'Cotización clonada correctamente');
 
         return new RedirectResponse($this->admin->generateUrl('list'));

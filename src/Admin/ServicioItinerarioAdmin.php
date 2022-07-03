@@ -7,6 +7,7 @@ use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
 
@@ -78,7 +79,10 @@ class ServicioItinerarioAdmin extends AbstractAdmin
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
-                ],
+                    'clonar' => [
+                        'template' => 'servicio_itinerario_admin/list__action_clonar.html.twig'
+                    ]
+                ]
             ])
         ;
     }
@@ -129,5 +133,10 @@ class ServicioItinerarioAdmin extends AbstractAdmin
                 'label' => 'Dias'
             ])
         ;
+    }
+
+    protected function configureRoutes(RouteCollectionInterface $collection): void
+    {
+        $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
     }
 }

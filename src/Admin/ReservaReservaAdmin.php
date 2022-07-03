@@ -174,7 +174,10 @@ class ReservaReservaAdmin extends AbstractAdmin
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
-                ],
+                    'clonar' => [
+                        'template' => 'reserva_reserva_admin/list__action_clonar.html.twig'
+                    ]
+                ]
             ])
         ;
     }
@@ -277,21 +280,21 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Detalles',
                 'associated_property' => 'resumen',
                 'sort_field_mapping' => [
-                    'fieldName' => 'id',
+                    'fieldName' => 'id'
                 ]
             ])
             ->add('importes', null, [
                 'label' => 'Precios',
                 'associated_property' => 'resumen',
                 'sort_field_mapping' => [
-                    'fieldName' => 'fecha',
+                    'fieldName' => 'fecha'
                 ]
             ])
             ->add('pagos', null, [
                 'label' => 'Cobranzas',
                 'associated_property' => 'resumen',
                 'sort_field_mapping' => [
-                    'fieldName' => 'fecha',
+                    'fieldName' => 'fecha'
                 ]
             ])
 
@@ -301,6 +304,7 @@ class ReservaReservaAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('ical', 'ical');
+        $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
     }
 
 }

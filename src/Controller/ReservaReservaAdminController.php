@@ -19,6 +19,41 @@ class ReservaReservaAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
+    public function clonarAction(Request $request = null)
+    {
+
+        $object = $this->assertObjectExists($request, true);
+        $id = $object->getId();
+
+        $em = $this->container->get('doctrine.orm.default_entity_manager');
+
+        if (!$object) {
+            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
+        }
+
+        $this->admin->checkAccess('edit', $object);
+
+        $newObject = clone $object;
+
+        $nuevaFechaInicial = clone $object->getFechahorafin();
+        $nuevaFechaInicial->add(new \DateInterval('P1D'));
+        $nuevaFechaFinal = clone $object->getFechahorafin();
+        $nuevaFechaFinal->add(new \DateInterval('P2D'));
+
+        $newObject->setFechahorainicio($nuevaFechaInicial);
+        $newObject->setUid('ad-' . $object->getUid());
+        $newObject->setChanel($em->getReference('App\Entity\ReservaChanel', 1));
+        $newObject->setEstado($em->getReference('App\Entity\ReservaEstado', 2));
+        $newObject->setFechahorafin($nuevaFechaFinal);
+        $newObject->setNombre($object->getNombre() . ' (Adicional)');
+        $this->admin->create($newObject);
+
+        $this->addFlash('sonata_flash_success', 'Reserva clonada correctamente');
+
+        return new RedirectResponse($this->admin->generateUrl('list'));
+
+    }
+
     public function icalAction(Request $request = null): Response
     {
         $ahora = new \DateTime('now');

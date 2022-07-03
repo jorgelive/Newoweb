@@ -6,6 +6,7 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
@@ -66,7 +67,10 @@ class ServicioServicioAdmin extends AbstractAdmin
                 'actions' => [
                     'show' => [],
                     'edit' => [],
-                    'delete' => []
+                    'delete' => [],
+                    'clonar' => [
+                        'template' => 'servicio_servicio_admin/list__action_clonar.html.twig'
+                    ]
                 ],
             ])
         ;
@@ -109,5 +113,10 @@ class ServicioServicioAdmin extends AbstractAdmin
             ->add('componentes')
             ->add('itinerarios')
         ;
+    }
+
+    protected function configureRoutes(RouteCollectionInterface $collection): void
+    {
+        $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
     }
 }

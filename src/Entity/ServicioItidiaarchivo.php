@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -71,6 +72,7 @@ class ServicioItidiaarchivo
     {
         return $this->getMedio()->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
+
 
     /**
      * Get id

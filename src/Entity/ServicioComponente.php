@@ -116,6 +116,7 @@ class ServicioComponente implements Translatable
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
+
             $newTarifas = new ArrayCollection();
             foreach ($this->tarifas as $tarifa) {
                 $newTarifa = clone $tarifa;
@@ -123,6 +124,7 @@ class ServicioComponente implements Translatable
                 $newTarifas->add($newTarifa);
             }
             $this->tarifas = $newTarifas;
+
             $newServicios = new ArrayCollection();
             foreach ($this->servicios as $servicio) {
                 $newServicio = $servicio;

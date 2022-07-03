@@ -949,6 +949,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioServicio
+                controller: App\Controller\ServicioServicioAdminController
                 manager_type: orm
                 group: Servicio
                 label: Servicio para cotizar
@@ -961,6 +962,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioItinerario
+                controller: App\Controller\ServicioItinerarioAdminController
                 manager_type: orm
                 group: Servicio
                 label: Itinerario
@@ -1226,7 +1228,7 @@ services:
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\UserDependencia
+                model_class: App\Entity\UserCuenta
                 manager_type: orm
                 group: 'Organización'
                 label: Cuentas de usuario

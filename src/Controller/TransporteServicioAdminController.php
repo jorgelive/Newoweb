@@ -16,14 +16,11 @@ class TransporteServicioAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
-    public function clonarAction($id = null, Request $request = null)
+    public function clonarAction(Request $request = null)
     {
 
-        $id = $request->get($this->admin->getIdParameter());
-
-        $object = $this->admin->getObject($id);
-
-        //para implementar busqueda de referencia
+        $object = $this->assertObjectExists($request, true);
+        $id = $object->getId();
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 
         if (!$object) {
@@ -33,9 +30,7 @@ class TransporteServicioAdminController extends CRUDAdminController
         $this->admin->checkAccess('edit', $object);
 
         $newObject = clone $object;
-
         $newObject->setNombre($object->getNombre().' (Clone)');
-
         $this->admin->create($newObject);
 
         $this->addFlash('sonata_flash_success', 'Servicio clonado correctamente');

@@ -6,3 +6,7 @@ sonata_user:
         email:
             address: sonata@localhost
             sender_name: Sonata Admin
+
+    admin:
+        user:
+            class: App\Admin\UserUserAdmin

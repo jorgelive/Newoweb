@@ -163,6 +163,15 @@ class ReservaReserva
         $this->importes = new ArrayCollection();
     }
 
+    public function __clone() {
+        if ($this->id) {
+            $this->id = null;
+            $this->setCreado(null);
+            $this->setModificado(null);
+
+        }
+    }
+
     /**
      * @return string
      */
@@ -294,7 +303,7 @@ class ReservaReserva
         return $this->creado;
     }
 
-    public function setCreado(\DateTimeInterface $creado): self
+    public function setCreado(?\DateTimeInterface $creado): self
     {
         $this->creado = $creado;
 
@@ -306,7 +315,7 @@ class ReservaReserva
         return $this->modificado;
     }
 
-    public function setModificado(\DateTimeInterface $modificado): self
+    public function setModificado(?\DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
 

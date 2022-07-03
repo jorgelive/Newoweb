@@ -101,6 +101,22 @@ class ServicioServicio implements Translatable
         $this->itinerarios = new ArrayCollection();
     }
 
+    public function __clone() {
+        if ($this->id) {
+            $this->id = null;
+            $this->setCreado(null);
+            $this->setModificado(null);
+
+            $newComponentes = new ArrayCollection();
+            foreach ($this->componentes as $componente) {
+                $newComponente = $componente;
+                $newComponente->addServicio($this);
+                $newComponentes->add($newComponente);
+            }
+            $this->componentes = $newComponentes;
+        }
+    }
+
     /**
      * @return string
      */

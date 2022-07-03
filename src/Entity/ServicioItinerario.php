@@ -96,6 +96,23 @@ class ServicioItinerario implements Translatable
         $this->itinerariodias = new ArrayCollection();
     }
 
+    public function __clone() {
+        if ($this->id) {
+            $this->id = null;
+            $this->setCreado(null);
+            $this->setModificado(null);
+
+            $newItinerariodias = new ArrayCollection();
+            foreach ($this->itinerariodias as $itinerariodia) {
+                $newItinerariodia = clone $itinerariodia;
+                $newItinerariodia->setItinerario($this);
+                $newItinerariodias->add($newItinerariodia);
+            }
+            $this->itinerariodias = $newItinerariodias;
+
+        }
+    }
+
     /**
      * @return string
      */
