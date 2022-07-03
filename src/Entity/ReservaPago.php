@@ -93,6 +93,30 @@ class ReservaPago
     {
     }
 
+    public function __toString()
+    {
+        $contenido = [];
+        if(!empty($this->getUser())){
+            $contenido[] = $this->getUser()->getNombre();
+        }
+        if(!empty($this->getNota())){
+            $contenido[] = $this->getNota();
+        }
+        return (sprintf('Fecha: %s, Monto: %s %s, Nota: %s', $this->getFecha()->format('Y-m-d'), $this->getMoneda()->getSimbolo(), $this->getMonto(), implode(' ', $contenido)));
+    }
+
+    public function getResumen(): ?string
+    {
+        $contenido = [];
+        if(!empty($this->getUser())){
+            $contenido[] = $this->getUser()->getNombre();
+        }
+        if(!empty($this->getNota())){
+            $contenido[] = $this->getNota();
+        }
+        return (sprintf('Fecha: %s, Monto: %s %s, Nota: %s', $this->getFecha()->format('Y-m-d'), $this->getMoneda()->getSimbolo(), $this->getMonto(), implode(' ', $contenido)));
+    }
+
     public function getId(): ?int
     {
         return $this->id;

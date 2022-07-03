@@ -21,11 +21,11 @@ class CotizacionCotcomponenteRepository extends \Doctrine\ORM\EntityRepository
         }
 
         $qb = $this->getEntityManager()->createQueryBuilder()
-            ->select('c')
-            ->from('App\Entity\CotizacionCotcomponente', 'c')
-            ->innerJoin('c.cotservicio', 'cs')
+            ->select('cc')
+            ->from('App\Entity\CotizacionCotcomponente', 'cc')
+            ->innerJoin('cc.cotservicio', 'cs')
             ->innerJoin('cs.cotizacion', 'cot')
-            ->where('c.fechahorainicio BETWEEN :firstDate AND :lastDate')
+            ->where('cc.fechahorafin >= :firstDate AND cc.fechahorainicio <= :lastDate')
             ->andWhere('cot.estadocotizacion = 3');
 
 
@@ -45,11 +45,11 @@ class CotizacionCotcomponenteRepository extends \Doctrine\ORM\EntityRepository
         }
 
         $qb = $this->getEntityManager()->createQueryBuilder()
-            ->select('me')
-            ->from('App\Entity\CotizacionCotcomponente', 'me')
-            ->innerJoin('me.cotservicio', 'cs')
+            ->select('cc')
+            ->from('App\Entity\CotizacionCotcomponente', 'cc')
+            ->innerJoin('cc.cotservicio', 'cs')
             ->innerJoin('cs.cotizacion', 'cot')
-            ->where('me.fechahorainicio BETWEEN :firstDate AND :lastDate')
+            ->where('cc.fechahorafin >= :firstDate AND cc.fechahorainicio <= :lastDate')
             ->andWhere('cot.estadocotizacion IN (:estados)');
 
 

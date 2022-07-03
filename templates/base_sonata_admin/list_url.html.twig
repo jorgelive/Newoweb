@@ -1,0 +1,11 @@
+{% extends '@SonataAdmin/CRUD/base_list_field.html.twig' %}
+
+{% block field %}
+    {%- if value is empty -%}
+        &nbsp;
+    {%- elseif field_description.options.attributes.text is defined -%}
+        <a href="{{ value }}" {%- if field_description.options.attributes.target is defined -%} target="{{ field_description.options.attributes.target }}" {%- endif -%}>{{ field_description.options.attributes.text }}</a>
+    {%- else -%}
+        <a href="{{ value }}" {%- if field_description.options.attributes.target is defined -%} target="{{ field_description.options.attributes.target }}" {%- endif -%}>{{ field_description.fieldName[:1]|upper ~ field_description.fieldName[1:] }}</a>
+    {%- endif -%}
+{% endblock %}

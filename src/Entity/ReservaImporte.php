@@ -93,6 +93,19 @@ class ReservaImporte
     {
     }
 
+    /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return (sprintf('Fecha: %s, Tipo: %s, Monto: %s %s Nota: %s', $this->getFecha()->format('Y-m-d'), $this->getTipoimporte()->getNombre(), $this->getMoneda()->getSimbolo(), $this->getMonto(), $this->getNota() ?? ''));
+    }
+
+    public function getResumen(): ?string
+    {
+        return (sprintf('Fecha: %s, Tipo: %s, Monto: %s %s Nota: %s', $this->getFecha()->format('Y-m-d'), $this->getTipoimporte()->getNombre(), $this->getMoneda()->getSimbolo(), $this->getMonto(), $this->getNota() ?? ''));
+    }
+
     public function getId(): ?int
     {
         return $this->id;

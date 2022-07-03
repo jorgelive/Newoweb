@@ -24,7 +24,7 @@ class CotizacionCotservicioRepository extends \Doctrine\ORM\EntityRepository
             ->select('cs')
             ->from('App\Entity\CotizacionCotservicio', 'cs')
             ->innerJoin('cs.cotizacion', 'cot')
-            ->where('cs.fechahorainicio BETWEEN :firstDate AND :lastDate')
+            ->where('cs.fechahorafin >= :firstDate AND cs.fechahorainicio <= :lastDate')
             ->andWhere('cot.estadocotizacion = 3');
 
 
@@ -47,7 +47,7 @@ class CotizacionCotservicioRepository extends \Doctrine\ORM\EntityRepository
             ->select('cs')
             ->from('App\Entity\CotizacionCotservicio', 'cs')
             ->innerJoin('cs.cotizacion', 'cot')
-            ->where('cs.fechahorainicio BETWEEN :firstDate AND :lastDate')
+            ->where('cs.fechahorafin >= :firstDate AND cs.fechahorainicio <= :lastDate')
             ->andWhere('cot.estadocotizacion IN (:estados)');
 
 

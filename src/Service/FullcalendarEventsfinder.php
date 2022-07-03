@@ -77,7 +77,7 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
             $query = $this->manager->createQueryBuilder()
                 ->select('me')
                 ->from($this->options['entity'], 'me')
-                ->where('me.'. $this->options['parameters']['start'] . ' BETWEEN :firstDate AND :lastDate');
+                ->where('me.' . $this->options['parameters']['end'] . ' >= :firstDate AND me.'. $this->options['parameters']['start'] . ' <= :lastDate');
 
             $query->setParameter('firstDate', $data['from'])
                 ->setParameter('lastDate', $data['to'])
@@ -87,7 +87,7 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
         if(isset($this->options['filters']) && !empty($this->options['filters'])){
             foreach ($this->options['filters'] as $i => $filter):
                 $valor = false;
-                if(strpos($filter['value'],".") === false){
+                if(!str_contains($filter['value'], '.')){
                     $valor = $filter['value'];
                 }else{
 
@@ -107,7 +107,7 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
                     }
                 }
 
-                //$query->getAllAliases() obtiene la lista de aloas de las entidades usamos la primera
+                //$query->getAllAliases() obtiene la lista de alias de las entidades usamos la primera
                 //todo averiguar si siempre es la primera
                 if($valor !== false && !empty($query->getAllAliases()) && is_array($query->getAllAliases())) {
                     $query->andWhere($query->getAllAliases()[0] . '.' . $filter['field'] . ' = :filter' . $i)
@@ -166,8 +166,6 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
         }else{
             $result[] = ['id' => 'default', 'title' => 'Default'];
         }
-
-
 
         return json_encode($result);
     }

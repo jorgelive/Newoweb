@@ -27,6 +27,7 @@ class ReservaReservaAdmin extends AbstractAdmin
 
     protected function configureFilterParameters(array $parameters): array
     {
+
         if(!isset($parameters['fechahorainicio'])){
             $fecha = new \DateTime();
             $fechaFinal = new \DateTime('now +1 month');
@@ -35,7 +36,17 @@ class ReservaReservaAdmin extends AbstractAdmin
                     'value' => [
                         'start' => $fecha->format('Y/m/d'),
                         'end' => $fechaFinal->format('Y/m/d')
-                    ]
+                    ],
+                    'type' => 0
+                ]
+            ], $parameters);
+        }
+
+        if(!isset($parameters['estado'])){
+            $parameters = array_merge([
+                'estado' => [
+                    'value' => 3,
+                    'type' => 2
                 ]
             ], $parameters);
         }
@@ -67,6 +78,9 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('id')
             ->add('unit', null, [
                 'label' => 'Alojamiento'
+            ])
+            ->add('chanel', null, [
+                'label' => 'Canal'
             ])
             ->add('estado')
             ->add('nombre')
@@ -121,14 +135,6 @@ class ReservaReservaAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('unit', null, [
-                'label' => 'Alojamiento'
-            ])
-            ->add('estado')
-            ->add('chanel', null, [
-                'label' => 'Canal'
-            ])
-            ->add('nombre')
             ->add('fechahorainicio', null, [
                 'label' => 'Inicio',
                 'format' => 'Y/m/d H:i'
@@ -137,14 +143,30 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Fin',
                 'format' => 'Y/m/d H:i'
             ])
-            ->add('enlace', FieldDescriptionInterface::TYPE_URL, [
-                'attributes' => ['target' => '_blank']
+            ->add('unit', null, [
+                'label' => 'Alojamiento'
+            ])
+            ->add('estado')
+            ->add('chanel', null, [
+                'label' => 'Canal'
+            ])
+            ->add('nombre')
+            ->add('enlace', null, [
+                'attributes' => ['target' => '_blank', 'text' => 'Link'],
+                'template' => 'base_sonata_admin/list_url.html.twig'
+            ])
+            ->add('detalles', null, [
+                'label' => 'Detalles',
+                'associated_property' => 'resumen',
+                'sort_field_mapping' => [
+                    'fieldName' => 'id',
+                ]
             ])
             ->add('numeroadultos', null, [
-                'label' => 'Adultos'
+                'label' => 'Adl'
             ])
             ->add('numeroninos', null, [
-                'label' => 'Niños'
+                'label' => 'Ni'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -225,7 +247,6 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('unit', null, [
                 'label' => 'Alojamiento'
             ])
-            ->add('uid')
             ->add('chanel', null, [
                 'label' => 'Canal'
             ])
@@ -245,11 +266,33 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('numeroninos', null, [
                 'label' => 'Niños'
             ])
-            ->add('enlace', FieldDescriptionInterface::TYPE_URL, [
-                'attributes' => ['target' => '_blank']
+            ->add('enlace', null, [
+                'attributes' => ['target' => '_blank', 'text' => 'Link'],
+                'template' => 'base_sonata_admin/show_url.html.twig'
             ])
             ->add('descripcion', null, [
                 'label' => 'Descripción'
+            ])
+            ->add('detalles', null, [
+                'label' => 'Detalles',
+                'associated_property' => 'resumen',
+                'sort_field_mapping' => [
+                    'fieldName' => 'id',
+                ]
+            ])
+            ->add('importes', null, [
+                'label' => 'Precios',
+                'associated_property' => 'resumen',
+                'sort_field_mapping' => [
+                    'fieldName' => 'fecha',
+                ]
+            ])
+            ->add('pagos', null, [
+                'label' => 'Cobranzas',
+                'associated_property' => 'resumen',
+                'sort_field_mapping' => [
+                    'fieldName' => 'fecha',
+                ]
             ])
 
         ;

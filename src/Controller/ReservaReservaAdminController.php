@@ -28,10 +28,10 @@ class ReservaReservaAdminController extends CRUDAdminController
             ->select('rr')
             ->from('App\Entity\ReservaReserva', 'rr')
             ->where('rr.estado = :estado')
-            ->andWhere('DATE(rr.fechahorainicio) >= :fechahorainicio')
+            ->andWhere('DATE(rr.fechahorafin) >= :fechahorafin')
             ->orderBy('rr.fechahorainicio', 'ASC')
             ->setParameter('estado', 2)
-            ->setParameter('fechahorainicio', $ahora->sub(new \DateInterval('P7D'))->format('Y-m-d'));
+            ->setParameter('fechahorafin', $ahora->sub(new \DateInterval('P7D'))->format('Y-m-d'));
         ;
 
         $reservas = $qb->getQuery()->getResult();

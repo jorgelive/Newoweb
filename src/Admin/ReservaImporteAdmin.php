@@ -36,7 +36,9 @@ class ReservaImporteAdmin extends AbstractAdmin
             ->add('tipoimporte', null, [
                 'label' => 'Tipo de importe'
             ])
-            ->add('fecha')
+            ->add('fecha', null, [
+                'format' => 'Y-m-d'
+            ])
             ->add('moneda')
             ->add('monto')
             ->add('nota')
@@ -123,7 +125,9 @@ class ReservaImporteAdmin extends AbstractAdmin
             ->add('tipoimporte', null, [
                 'label' => 'Tipo de importe'
             ])
-            ->add('fecha')
+            ->add('fecha', null, [
+                'format' => 'Y-m-d'
+            ])
             ->add('moneda')
             ->add('monto')
             ->add('nota')

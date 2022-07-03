@@ -79,6 +79,18 @@ class ReservaDetalle
     {
     }
 
+    public function getResumen(): ?string
+    {
+        $contenido = [];
+        if(!empty($this->getUser())){
+            $contenido[] = $this->getUser()->getNombre();
+        }
+        if(!empty($this->getNota())){
+            $contenido[] = $this->getNota();
+        }
+        return (sprintf('%s %s', $this->getTipodetalle()->getNombre(), implode(' ', $contenido)));
+    }
+
     public function getId(): ?int
     {
         return $this->id;

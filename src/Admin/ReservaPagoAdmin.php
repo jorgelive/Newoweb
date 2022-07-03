@@ -39,7 +39,9 @@ class ReservaPagoAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('fecha')
+            ->add('fecha', null, [
+                'format' => 'Y-m-d'
+            ])
             ->add('moneda')
             ->add('monto')
             ->add('user', null, [
@@ -127,7 +129,9 @@ class ReservaPagoAdmin extends AbstractAdmin
     {
         $showMapper
             ->add('id')
-            ->add('fecha')
+            ->add('fecha', null, [
+                'format' => 'Y-m-d'
+            ])
             ->add('moneda')
             ->add('monto')
             ->add('user', null, [

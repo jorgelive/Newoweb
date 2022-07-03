@@ -11,16 +11,16 @@ class TransporteServicioRepository extends EntityRepository
 {
     public function findCalendarConductorColored($data)
     {
-/*        if (!$data['user'] instanceof UserUser){
+        if (!$data['user'] instanceof UserUser){
             throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
         }else{
             $user = $data['user'];
-        }*/
+        }
 
         $qb = $this->getEntityManager()->createQueryBuilder()
-            ->select('me')
-            ->from('App\Entity\TransporteServicio', 'me')
-            ->where('me.fechahorainicio BETWEEN :firstDate AND :lastDate');
+            ->select('s')
+            ->from('App\Entity\TransporteServicio', 's')
+            ->where('s.fechahorafin >= :firstDate AND s.fechahorainicio <= :lastDate');
 
 /*        if ($user && $user->getDependencia() && $user->getDependencia()->getId() != 1) {
             $qb->andWhere('me.dependencia = :dependencia')
@@ -39,9 +39,9 @@ class TransporteServicioRepository extends EntityRepository
     {
 
         $qb = $this->getEntityManager()->createQueryBuilder()
-            ->select('me')
-            ->from('App\Entity\TransporteServicio', 'me')
-            ->where('me.fechahorainicio BETWEEN :firstDate AND :lastDate');
+            ->select('s')
+            ->from('App\Entity\TransporteServicio', 's')
+            ->where('s.fechahorafin >= :firstDate AND s.fechahorainicio <= :lastDate');
 
         $qb->setParameter('firstDate', $data['from'])
             ->setParameter('lastDate', $data['to'])
@@ -56,9 +56,9 @@ class TransporteServicioRepository extends EntityRepository
     {
 
         $qb = $this->getEntityManager()->createQueryBuilder()
-            ->select('me')
+            ->select('s')
             ->from('App\Entity\TransporteServicio', 's')
-            ->where('s.fechahorainicio BETWEEN :firstDate AND :lastDate');
+            ->where('s.fechahorafin >= :firstDate AND s.fechahorainicio <= :lastDate');
 
 
         $qb->setParameter('firstDate', $data['from'])
