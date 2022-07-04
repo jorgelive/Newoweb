@@ -106,6 +106,7 @@ file that was distributed with this source code.
                 },
                 data: function (params) {
                     {% block sonata_type_model_autocomplete_ajax_request_parameters %}
+
                     return {
                         //search term
                         '{{ req_param_name_search }}': params.term,
@@ -114,8 +115,8 @@ file that was distributed with this source code.
                         '{{ req_param_name_items_per_page }}': {{ items_per_page }},
 
                         // page number
-                        //'{{ req_param_name_page_number }}': (params.page !== 'undefined' ? params.page : 1),
-                        '{{ req_param_name_page_number }}': 1,
+                        '{{ req_param_name_page_number }}': (typeof (params.page) !== 'undefined' ? params.page : 1),
+
                         // admin
                         {% if sonata_admin.admin %}
                         'uniqid': '{{ sonata_admin.admin.uniqid }}',
