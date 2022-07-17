@@ -4,7 +4,6 @@ namespace App\Service;
 
 use \Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use \Symfony\Component\DependencyInjection\ContainerAwareTrait;
-use Exception;
 use \Doctrine\ORM\EntityManagerInterface;
 
 
@@ -71,7 +70,7 @@ class MainTipocambio implements ContainerAwareInterface{
 
             // Check if initialization had gone wrong*
             if ($ch === false) {
-                throw new Exception('failed to initialize');
+                throw new \Exception('failed to initialize');
             }
 
             curl_setopt_array($ch, array(

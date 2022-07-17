@@ -16,7 +16,7 @@
 
 {% block stylesheets %}
     {{ parent() }}
-    <link rel="shortcut icon" href="https://oweb.openperu.pe/app/images/favicon.png">
+    <link rel="shortcut icon" href="app/images/favicon.png">
     <link href="{{ asset('/bundles/sonataform/app.css') }}" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@5.11.0/main.min.css" rel="stylesheet" />
@@ -48,9 +48,7 @@
         .main-header .logo img {max-width: unset;}
         .main-sidebar, .left-side {padding-top: 100px;}
         .fc-toolbar h2 {font-size: 20px; padding-top: 10px;}
-        /*.select2-results__option.loading-results,
-        .select2-results__option.select2-results__option--load-more { display: none; }
-        .select2-container--bootstrap .select2-selection--single .select2-selection__rendered{ padding-top: 3px;}*/
+
         ul.listaordenada, ul.sonata-ba-show-one-to-many { list-style: none; padding: 0; margin: 0;}
         ul.listaordenada li, ul.sonata-ba-show-one-to-many li{ padding-left: 16px; position: relative;}
         ul.listaordenada li::before, ul.sonata-ba-show-one-to-many li::before { content:"\25CF"; color:#F68A39; font-weight:bold; font-size:18px; text-align:right; padding-right:6px; width:10px; position: absolute; left: 0; top: -0.2em;}

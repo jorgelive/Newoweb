@@ -26,11 +26,22 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
     {
 
         $object = $this->assertObjectExists($request, true);
+
+        try {
+            $newFechaInicio = new \DateTime($request->query->get('fechainicio'));
+            $mensaje = 'Cotización clonada correctamente';
+            $mensajeTyoe = 'success';
+        } catch (\Exception $e) {
+            $newFechaInicio = new \DateTime('today');
+            $mensaje = 'Formato de fecha incorrecto, la cotización se ha clonado para la fecha de hoy';
+            $mensajeTyoe = 'info';
+        }
+
         $id = $object->getId();
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 
         if (!$object) {
-            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
+            throw $this->createNotFoundException(sprintf('Unable to find the object with id: %s', $id));
         }
 
         $this->admin->checkAccess('edit', $object);
@@ -40,13 +51,22 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $newObject->setEstadocotizacion($em->getReference('App\Entity\CotizacionEstadocotizacion', 1));
 
         foreach ($newObject->getCotservicios() as $cotservicio):
+            //en la primera iteracion coniderando que el orden es por fecha de inicio
+            if(!isset($oldFechaInicio)){
+                $oldFechaInicio = new \DateTime($cotservicio->getFechaHoraInicio()->format('Y-m-d'));
+                $interval = $oldFechaInicio->diff($newFechaInicio);
+            }
+            $cotservicio->getFechaHoraInicio()->add($interval);
+            $cotservicio->getFechaHoraFin()->add($interval);
             foreach ($cotservicio->getCotcomponentes() as $cotcomponente):
+                $cotcomponente->getFechaHoraInicio()->add($interval);
+                $cotcomponente->getFechaHoraFin()->add($interval);
                 $cotcomponente->setEstadocotcomponente($em->getReference('App\Entity\CotizacionEstadocotcomponente', 1));
             endforeach;
         endforeach;
 
         $this->admin->create($newObject);
-        $this->addFlash('sonata_flash_success', 'Cotización clonada correctamente');
+        $this->addFlash('sonata_flash_' . $mensajeTyoe, $mensaje);
 
         return new RedirectResponse($this->admin->generateUrl('list'));
 
