@@ -82,6 +82,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('chanel', null, [
                 'label' => 'Canal'
             ])
+            ->add('manual')
             ->add('estado')
             ->add('nombre')
             ->add('fechahorainicio', CallbackFilter::class,[
@@ -150,6 +151,9 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('chanel', null, [
                 'label' => 'Canal'
             ])
+            ->add('manual', null, [
+                'editable' => true
+            ])
             ->add('nombre')
             ->add('enlace', null, [
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],
@@ -212,6 +216,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('chanel', null, [
                 'label' => 'Canal'
             ])
+            ->add('manual')
             ->add('enlace')
             ->add('descripcion', null, [
                 'label' => 'Descripción'
@@ -273,6 +278,7 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],
                 'template' => 'base_sonata_admin/show_url.html.twig'
             ])
+            ->add('manual')
             ->add('descripcion', null, [
                 'label' => 'Descripción'
             ])

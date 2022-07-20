@@ -38,7 +38,7 @@ class ObtenerReservasCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // outputs multiple lines to the console (adding "\n" at the end of each line)
+
         $ahora = new \DateTime('now');
         $output->writeln([
             sprintf('%s: Iniciando proceso...', $ahora->format('Y-m-d H:i')),
@@ -78,7 +78,7 @@ class ObtenerReservasCommand extends Command
                 $unidad = $nexo->getUnit();
                 $establecimiento = $nexo->getUnit()->getEstablecimiento();
 
-                //guarda los uids del bucle actual para despues omparar con las reservas existentes ycancelar las que ya no esten
+                //guarda los uids del bucle actual para despues comparar con las reservas existentes y cancelar las que ya no esten
                 $uidsArray = [];
 
                 foreach($ical->events() as $event){
@@ -91,6 +91,10 @@ class ObtenerReservasCommand extends Command
                     $uidsArray[] = $event->uid;
 
                     if(!is_null($existente)){
+                        if($existente->isManual() === true){
+                            continue;
+                        }
+
                         if($existente->getFechahorainicio()->format('Ymd') != $event->dtstart){
                             $currentStartTime = $existente->getFechahorainicio()->format('H:i');
                             $existente->setFechahorainicio(new \DateTime($event->dtstart . ' ' . $currentStartTime));
@@ -99,6 +103,7 @@ class ObtenerReservasCommand extends Command
                             $currentEndTime = $existente->getFechahorafin()->format('H:i');
                             $existente->setFechahorafin(new \DateTime($event->dtend . ' ' . $currentEndTime));
                         }
+                        //solo actualizamos horas y salimos
                         continue;
                     }
 
@@ -116,7 +121,7 @@ class ObtenerReservasCommand extends Command
                         $insertar = true;
                     }elseif ($canal == 3){
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 1);
-                        $temp['nombre'] = ucfirst(strtolower(str_replace('CLOSED - ', '', $event->summary)));
+                        $temp['nombre'] = ucwords(strtolower(str_replace('CLOSED - ', '', $event->summary))) . '- Completar';
                         $temp['enlace'] = '';
                         $insertar = true;
                     }
@@ -126,6 +131,7 @@ class ObtenerReservasCommand extends Command
                         $reserva->setChanel($nexo->getChanel());
                         $reserva->setUnit($unidad);
                         $reserva->setEstado($temp['estado']);
+                        $reserva->setManual(false);
                         $reserva->setNombre($temp['nombre']);
                         $reserva->setEnlace($temp['enlace']);
                         $reserva->setUid($event->uid);
@@ -137,6 +143,9 @@ class ObtenerReservasCommand extends Command
                 }
 
                 foreach ($currentReservas as &$currentReserva){
+                    if($currentReserva->isManual()){
+                        continue;
+                    }
                     if(!in_array($currentReserva->getUid(), $uidsArray)){
                         if($currentReserva->getEstado()->getId() != 3){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 3));

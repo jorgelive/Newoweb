@@ -76,6 +76,11 @@ class ReservaReserva
     private $cantidadninos = 0;
 
     /**
+     * @ORM\Column(type="boolean")
+     */
+    private $manual = true;
+
+    /**
      * @var \App\Entity\ReservaChanel
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaChanel", inversedBy="reservas")
@@ -294,6 +299,18 @@ class ReservaReserva
     public function setFechahorafin(\DateTimeInterface $fechahorafin): self
     {
         $this->fechahorafin = $fechahorafin;
+
+        return $this;
+    }
+
+    public function isManual(): ?bool
+    {
+        return $this->manual;
+    }
+
+    public function setManual(bool $manual): self
+    {
+        $this->manual = $manual;
 
         return $this;
     }

@@ -31,6 +31,10 @@ class ReservaReservaDoctrineEventListener
                 $entity->setEnlace($this->cleanUrl($entity->getEnlace()));
             }
 
+            if($entity->getChanel()->getId() == 1){
+                $entity->setManual(true);
+            }
+
         }
     }
 
@@ -42,7 +46,12 @@ class ReservaReservaDoctrineEventListener
             if(!empty($entity->getEnlace())){
                 $entity->setEnlace($this->cleanUrl($entity->getEnlace()));
             }
+
+            if($entity->getChanel()->getId() == 1){
+                $entity->setManual(true);
+            }
         }
+
     }
 
     private function cleanUrl(String $enlace): String
@@ -60,6 +69,6 @@ class ReservaReservaDoctrineEventListener
         }
         $parsedUrl['query'] = implode('&', $params);
         return $this->mainVariableproceso->buildUrl($parsedUrl);
-
     }
+
 }
