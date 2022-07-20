@@ -533,7 +533,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                 return false;
                             }
 
-//solo si tiene titulo lo pongo en agenda
+//solo si tiene título lo pongo en agenda
                             if(isset($tempArrayComponente['titulo'])){
                                 $datosTabs['agenda']['componentes'][] = $tempArrayComponente;
                             }
@@ -566,9 +566,8 @@ class CotizacionResumen implements ContainerAwareInterface
                 unset($datosTabs['incluye']['incluidos'][-1]);
             }
 
-
         }else{
-            $this->mensaje = 'El la cotización no tiene servicios.';
+            $this->mensaje = 'La cotización no tiene servicios.';
             return false;
         }
 //Hacemos disponible los datos de la cotización para el resumen de las tarifas.
@@ -583,15 +582,6 @@ class CotizacionResumen implements ContainerAwareInterface
         }
 
         $this->datosTabs = $datosTabs;
-        //ini_set('xdebug.var_display_max_depth', 50);
-        //ini_set('xdebug.var_display_max_children', 50);
-        //ini_set('xdebug.var_display_max_data', 10240);
-
-        //var_dump($datosTabs['agenda']);
-        //var_dump($this->clasificacionTarifas);
-        //var_dump($this->resumendeClasificado);
-
-        //die;
 
         return true;
     }
@@ -752,7 +742,6 @@ class CotizacionResumen implements ContainerAwareInterface
 
             $temp['tipo'] = $tipo;
 
-
 //el titulo persistente es para mostrar el nombre de la tarifa en la clasificacion por rangos en caso por ejemplo de comunidad andina
             if(isset($tarifa['titulo'])){
                 $temp['tituloONombre'] = $tarifa['titulo'];
@@ -771,11 +760,11 @@ class CotizacionResumen implements ContainerAwareInterface
 
             $tiposAux[] = $tipo;
 
-
         endforeach;
 
         if(count($claseTarifas) > 0){
             $this->procesarTarifa($claseTarifas, 0, $cantidadTotalPasajeros);
+            //Al final de la ejecucion la cantidad restante sera la cantidad de la clase,
             $this->resetClasificacionTarifas();
 
         }
@@ -832,11 +821,10 @@ class CotizacionResumen implements ContainerAwareInterface
             if($clase['cantidad'] <= $cantidadTotalPasajeros) {
                 $voterIndex = $this->voter($clase, $cantidadTotalPasajeros);
 
-
                 if ($voterIndex !== false) {
 
                     //paso el array principal para adicionar elemento como esta por referencia
-                    $this->modificarClasificacion($clase, $voterIndex, $clase['tituloPersistente']);
+                    $this->modificarClasificacion($clase, $voterIndex);
                 }
 
             }
@@ -851,7 +839,7 @@ class CotizacionResumen implements ContainerAwareInterface
                 $voterIndex = $this->voter($clase, $cantidadTotalPasajeros);
 
                 if($voterIndex !== false){
-                    $this->match($clase, $voterIndex, $cantidadTotalPasajeros);
+                    $this->match($clase, $voterIndex, $clase['tituloPersistente']);
 
                     if($clase['cantidad'] < 1){
                         unset($claseTarifas[$keyClase]);
@@ -879,7 +867,7 @@ class CotizacionResumen implements ContainerAwareInterface
         }
     }
 
-    private function modificarClasificacion(&$clase, $voterIndex, $tituloPersistente = false){
+    private function modificarClasificacion(&$clase, $voterIndex){
 
         $temp = $this->clasificacionTarifas[$voterIndex];
         $edadMaxima = $this->edadMax;
@@ -909,10 +897,6 @@ class CotizacionResumen implements ContainerAwareInterface
         $temp['cantidad'] = $clase['cantidad'];
         $temp['cantidadRestante'] = $clase['cantidad'];
 
-        if($tituloPersistente === true){
-            $temp['tituloPersistente'] = $clase['tituloONombre'];
-        }
-
         if($clase['cantidad'] == $this->clasificacionTarifas[$voterIndex]['cantidad']){
             $this->clasificacionTarifas[$voterIndex] = $temp;
 
@@ -940,7 +924,17 @@ class CotizacionResumen implements ContainerAwareInterface
         }
     }
 
-    private function match(&$clase, $voterIndex, $cantidadTotalPasajeros){
+    private function match(&$clase, $voterIndex, $tituloPersistente = false){
+
+        if($tituloPersistente === true){
+            //si hubiera ya un titulo lo concatenamos
+            if(isset($this->clasificacionTarifas[$voterIndex]['tituloPersistente'])){
+                $this->clasificacionTarifas[$voterIndex]['tituloPersistente'] = sprintf('%s %s', $this->clasificacionTarifas[$voterIndex]['tituloPersistente'], $clase['tituloONombre']);
+            }else{
+                $this->clasificacionTarifas[$voterIndex]['tituloPersistente'] = $clase['tituloONombre'];
+            }
+        }
+
         if($clase['cantidad'] == $this->clasificacionTarifas[$voterIndex]['cantidadRestante']){
             $clase['cantidad'] = 0;
             $this->clasificacionTarifas[$voterIndex]['cantidadRestante'] = 0;
@@ -1000,13 +994,13 @@ class CotizacionResumen implements ContainerAwareInterface
                 if($clase['edadMin'] == $tarifaClasificada['edadMin']){
                     $voter[$keyTarifa] += 1.5;
                 }else{
-                    $voter[$keyTarifa] = 1 / abs($clase['edadMin'] - $tarifaClasificada['edadMin']);
+                    $voter[$keyTarifa] += 1 / abs($clase['edadMin'] - $tarifaClasificada['edadMin']);
                 }
 
                 if($clase['edadMax'] == $tarifaClasificada['edadMax']){
                     $voter[$keyTarifa] += 1.5;
                 }else{
-                    $voter[$keyTarifa] = 1 / abs($clase['edadMax'] - $tarifaClasificada['edadMax']);
+                    $voter[$keyTarifa] += 1 / abs($clase['edadMax'] - $tarifaClasificada['edadMax']);
                 }
 
                 if($tarifaClasificada['cantidad'] == $clase['cantidad']){
