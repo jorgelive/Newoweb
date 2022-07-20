@@ -66,14 +66,14 @@ class ReservaReserva
      *
      * @ORM\Column(type="integer")
      */
-    private $numeroadultos = 1;
+    private $cantidadadultos = 1;
 
     /**
      * @var int
      *
      * @ORM\Column(type="integer")
      */
-    private $numeroninos = 0;
+    private $cantidadninos = 0;
 
     /**
      * @var \App\Entity\ReservaChanel
@@ -250,26 +250,26 @@ class ReservaReserva
         return $this;
     }
 
-    public function getNumeroadultos(): ?int
+    public function getCantidadadultos(): ?int
     {
-        return $this->numeroadultos;
+        return $this->cantidadadultos;
     }
 
-    public function setNumeroadultos(int $numeroadultos): self
+    public function setCantidadadultos(int $cantidadadultos): self
     {
-        $this->numeroadultos = $numeroadultos;
+        $this->cantidadadultos = $cantidadadultos;
 
         return $this;
     }
 
-    public function getNumeroninos(): ?int
+    public function getCantidadninos(): ?int
     {
-        return $this->numeroninos;
+        return $this->cantidadninos;
     }
 
-    public function setNumeroninos(int $numeroninos): self
+    public function setCantidadninos(int $cantidadninos): self
     {
-        $this->numeroninos = $numeroninos;
+        $this->cantidadninos = $cantidadninos;
 
         return $this;
     }

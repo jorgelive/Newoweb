@@ -162,10 +162,10 @@ class ReservaReservaAdmin extends AbstractAdmin
                     'fieldName' => 'id',
                 ]
             ])
-            ->add('numeroadultos', null, [
+            ->add('cantidadadultos', null, [
                 'label' => 'Adl'
             ])
-            ->add('numeroninos', null, [
+            ->add('cantidadninos', null, [
                 'label' => 'Ni'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
@@ -203,10 +203,10 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd HH:mm'
             ])
-            ->add('numeroadultos', null, [
+            ->add('cantidadadultos', null, [
                 'label' => 'Adultos'
             ])
-            ->add('numeroninos', null, [
+            ->add('cantidadninos', null, [
                 'label' => 'Niños'
             ])
             ->add('chanel', null, [
@@ -263,10 +263,10 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Fin',
                 'format' => 'Y/m/d H:i'
             ])
-            ->add('numeroadultos', null, [
+            ->add('cantidadadultos', null, [
                 'label' => 'Adultos'
             ])
-            ->add('numeroninos', null, [
+            ->add('cantidadninos', null, [
                 'label' => 'Niños'
             ])
             ->add('enlace', null, [
