@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  */
 class ReservaReservaRepository extends \Doctrine\ORM\EntityRepository
 {
-    public function findCalendartodas($data)
+    public function findCalendarTodas($data)
     {
         if (!$data['user'] instanceof UserUser) {
             throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
@@ -26,6 +26,29 @@ class ReservaReservaRepository extends \Doctrine\ORM\EntityRepository
             //->innerJoin('cs.cotizacion', 'cot')
             ->where('rr.fechahorafin >= :firstDate AND rr.fechahorainicio <= :lastDate');
             //->andWhere('cot.estadocotizacion = 3');
+
+
+        $qb->setParameter('firstDate', $data['from'])
+            ->setParameter('lastDate', $data['to']);
+
+        return $qb;
+
+    }
+
+    public function findCalendarNoCanceladas($data)
+    {
+        if (!$data['user'] instanceof UserUser) {
+            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
+        } else {
+            $user = $data['user'];
+        }
+
+        $qb = $this->getEntityManager()->createQueryBuilder();
+        $qb->select('rr')
+            ->from('App\Entity\ReservaReserva', 'rr')
+            //->innerJoin('cs.cotizacion', 'cot')
+            ->where('rr.fechahorafin >= :firstDate AND rr.fechahorainicio <= :lastDate')
+            ->andWhere($qb->expr()->notIn('rr.estado', [3]));
 
 
         $qb->setParameter('firstDate', $data['from'])

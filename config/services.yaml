@@ -16,6 +16,26 @@ parameters:
 
     calendars:
 
+        reserva_reserva_no_canceladas:
+            entity: 'App\Entity\ReservaReserva'
+            repositorymethod: 'findCalendarNoCanceladas'
+            resource:
+                id: 'unit.id'
+                title: 'unit.resumen'
+            parameters:
+                title: 'resumen'
+                start: 'fechahorainicio'
+                end: 'fechahorafin'
+                color: 'estado.color'
+                url:
+                    id: 'id'
+                    show:
+                        route: 'admin_app_reservareserva_show'
+                        role: 'ROLE_USER'
+                    edit:
+                        route: 'admin_app_reservareserva_edit'
+                        role: 'ROLE_RESERVAS_EDITOR'
+
         reserva_reserva_todas:
             entity: 'App\Entity\ReservaReserva'
             repositorymethod: 'findCalendarTodas'

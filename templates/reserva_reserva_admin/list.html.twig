@@ -23,7 +23,7 @@
         {% block notice %}
             {% include '@SonataTwig/FlashMessage/render.html.twig' %}
         {% endblock notice %}
-        {{ fullcalendar({'Todas' : 'reserva_reserva_todas'}, 'resourceTimelineOneMonth', {1 : 'dayGridMonth', 2 : 'listMonth', 3 : 'resourceTimelineOneMonth'}) }}
+        {{ fullcalendar({'No canceladas' : 'reserva_reserva_no_canceladas', 'Todas' : 'reserva_reserva_todas'}, 'resourceTimelineOneMonth', {1 : 'dayGridMonth', 2 : 'listMonth', 3 : 'resourceTimelineOneMonth'}) }}
     {% else %}
         {{ parent() }}
     {% endif %}
