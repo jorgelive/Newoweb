@@ -188,10 +188,11 @@ class CotizacionResumen implements ContainerAwareInterface
                         $fecha->add(new \DateInterval('P' . ($dia->getDia() - 1) . 'D'));
                         //Las claves son numericas y empiezan en 0
                         if(!isset($primeraFecha)){
-                            $primeraFecha = $fecha;
+                            $primeraFecha = new \DateTime($fecha->format('Y-m-d'));
                         }
 
-                        $nroDia = (int)$primeraFecha->diff($fecha)->format('%d') + 1;
+                        $currentDate = new \DateTime($fecha->format('Y-m-d'));
+                        $nroDia = (int)$primeraFecha->diff($currentDate)->format('%d') + 1;
 
                         //se sobreescriben en cada iteracion
                         $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['fecha'] = $this->getFormatedDate(strtotime($fecha->format('Y-m-d')));
