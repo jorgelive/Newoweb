@@ -174,7 +174,6 @@ class CotizacionResumen implements ContainerAwareInterface
             }
 
 //1N bucle de servicios
-            $primeraFecha = 0;
             foreach ($cotizacion->getCotservicios() as $keyServicio => $servicio):
 
                 //Itinerarios $datosTabs['itinerario']['itinerarios'][FECHA]
@@ -188,13 +187,11 @@ class CotizacionResumen implements ContainerAwareInterface
                         $fecha = clone($servicio->getFechahorainicio());
                         $fecha->add(new \DateInterval('P' . ($dia->getDia() - 1) . 'D'));
                         //Las claves son numericas y empiezan en 0
-                        if($keyServicio == 0 && $keyItinerariodia == 0){
-                            $nroDia = 1;
-                            $primeraFecha = strtotime($fecha->format('Y-m-d'));
-                        }else{
-                            $nroDia = (strtotime($fecha->format('Y-m-d')) - $primeraFecha) / (60 * 60 * 24) + 1;
-
+                        if(!isset($primeraFecha)){
+                            $primeraFecha = $fecha;
                         }
+
+                        $nroDia = (int)$primeraFecha->diff($fecha)->format('%d') + 1;
 
                         //se sobreescriben en cada iteracion
                         $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['fecha'] = $this->getFormatedDate(strtotime($fecha->format('Y-m-d')));
