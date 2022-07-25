@@ -15,7 +15,7 @@
                     <h4 class="modal-title" id="myModalLabel">Clonar</h4>
                 </div>
                 <div class="modal-body">
-                    Esta seguro que desea clonar esta cotización?
+                    Esta seguro que desea clonar esta cotización? (Opcionalmente cambie la fecha de inicio de los servicios)
                 </div>
                 <div class="modal-footer">
 
@@ -27,7 +27,7 @@
 
                             <div class="input-group">
                                 <div class="input-group date" id="dp_fechainicio-{{ object.id }}">
-                                    <input type="text" id="fechainicio-{{ object.id }}" name="fechainicio" required="required" class="sonata-medium-date form-control" data-date-format="YYYY/MM/DD" value="{{ 'now'|date('Y/m/d') }}">
+                                    <input type="text" id="fechainicio-{{ object.id }}" name="fechainicio" class="sonata-medium-date form-control" data-date-format="YYYY/MM/DD">
                                     <span class="input-group-addon">
                                         <span class="fa-calendar fa"></span>
                                     </span>
@@ -35,7 +35,7 @@
                             </div>
                             <script type="text/javascript">
                                 jQuery(function ($) {
-                                    $('#dp_fechainicio-{{ object.id }}').datetimepicker({"pickTime":false,"pickDate":true,"useCurrent":true,"minDate":"{{ 'now'|date('Y/m/d')|escape('js') }}","maxDate":null,"language":"es","disabledDates":[],"enabledDates":[],"icons":{"time":"fa fa-clock-o","date":"fa fa-calendar","up":"fa fa-chevron-up","down":"fa fa-chevron-down"},"useStrict":false,"sideBySide":false,"daysOfWeekDisabled":[],"collapse":true,"calendarWeeks":false,"viewMode":"days","minViewMode":"days","showToday":true,"defaultDate":"{{ 'now'|date('Y/m/d')|escape('js') }}","useSeconds":false}).on('dp.change', function (ev) {
+                                    $('#dp_fechainicio-{{ object.id }}').datetimepicker({"pickTime":false,"pickDate":true,"useCurrent":true,"minDate":"{{ 'now'|date('Y/m/d')|escape('js') }}","maxDate":null,"language":"es","disabledDates":[],"enabledDates":[],"icons":{"time":"fa fa-clock-o","date":"fa fa-calendar","up":"fa fa-chevron-up","down":"fa fa-chevron-down"},"useStrict":false,"sideBySide":false,"daysOfWeekDisabled":[],"collapse":true,"calendarWeeks":false,"viewMode":"days","minViewMode":"days","showToday":true,"useSeconds":false}).on('dp.change', function (ev) {
                                         $('#fechainicio-{{ object.id }}').change();
                                     });
 
@@ -53,9 +53,6 @@
 
                                     const paramsString = $('#lk_fechainicio-{{ object.id }}').attr('href');
 
-                                    //evitar el doble encoding
-                                    $('#lk_fechainicio-{{ object.id }}').attr('href', replaceUrlParam(paramsString, 'fechainicio', '{{'now'|date('Y/m/d')|escape('url')}}' ));
-
                                     $('#fechainicio-{{ object.id }}').on('input change',function(e){
 
                                         $('#lk_fechainicio-{{ object.id }}').attr('href', replaceUrlParam(paramsString, 'fechainicio', encodeURIComponent($(this).val())));
@@ -69,7 +66,7 @@
                     </div>
 
                     <div class="form-group"> <!-- Submit button -->
-                        <a id="lk_fechainicio-{{ object.id }}" href="{{ admin.generateObjectUrl('clonar', object, {'fechainicio': 'now'|date('Y/m/d')|escape('url') }) }}"
+                        <a id="lk_fechainicio-{{ object.id }}" href="{{ admin.generateObjectUrl('clonar', object) }}"
                            class="btn btn-danger"
                            title="Clonar">
                             Clonar

@@ -27,14 +27,19 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
         $object = $this->assertObjectExists($request, true);
 
-        try {
-            $newFechaInicio = new \DateTime($request->query->get('fechainicio'));
-            $mensaje = 'Cotización clonada correctamente';
+        if(!empty($request->query->get('fechainicio'))){
+            try {
+                $newFechaInicio = new \DateTime($request->query->get('fechainicio'));
+                $mensaje = 'Cotización clonada correctamente, se ha cambiado la fecha de inicio de los servicios';
+                $mensajeTyoe = 'success';
+            } catch (\Exception $e) {
+                $newFechaInicio = new \DateTime('today');
+                $mensaje = 'Formato de fecha incorrecto, la cotización se ha clonado para la fecha de hoy';
+                $mensajeTyoe = 'info';
+            }
+        }else{
+            $mensaje = 'Cotización clonada correctamente, se ha mantenido la fecha de los servicios';
             $mensajeTyoe = 'success';
-        } catch (\Exception $e) {
-            $newFechaInicio = new \DateTime('today');
-            $mensaje = 'Formato de fecha incorrecto, la cotización se ha clonado para la fecha de hoy';
-            $mensajeTyoe = 'info';
         }
 
         $id = $object->getId();
@@ -51,16 +56,21 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $newObject->setEstadocotizacion($em->getReference('App\Entity\CotizacionEstadocotizacion', 1));
 
         foreach ($newObject->getCotservicios() as $cotservicio):
-            //en la primera iteracion coniderando que el orden es por fecha de inicio
+            //en la primera iteracion considerando que el orden es por fecha de inicio
             if(!isset($oldFechaInicio)){
                 $oldFechaInicio = new \DateTime($cotservicio->getFechaHoraInicio()->format('Y-m-d'));
-                $interval = $oldFechaInicio->diff($newFechaInicio);
             }
-            $cotservicio->getFechaHoraInicio()->add($interval);
-            $cotservicio->getFechaHoraFin()->add($interval);
+
+            if(isset($newFechaInicio)){
+                $interval = $oldFechaInicio->diff($newFechaInicio);
+                $cotservicio->getFechaHoraInicio()->add($interval);
+                $cotservicio->getFechaHoraFin()->add($interval);
+            }
             foreach ($cotservicio->getCotcomponentes() as $cotcomponente):
-                $cotcomponente->getFechaHoraInicio()->add($interval);
-                $cotcomponente->getFechaHoraFin()->add($interval);
+                if(isset($newFechaInicio) && isset($interval)) {
+                    $cotcomponente->getFechaHoraInicio()->add($interval);
+                    $cotcomponente->getFechaHoraFin()->add($interval);
+                }
                 $cotcomponente->setEstadocotcomponente($em->getReference('App\Entity\CotizacionEstadocotcomponente', 1));
             endforeach;
         endforeach;
