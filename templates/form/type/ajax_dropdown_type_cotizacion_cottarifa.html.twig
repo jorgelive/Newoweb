@@ -1,0 +1,10 @@
+{% extends '/form/type/ajax_dropdown_type_cotizacion_base.html.twig' %}
+
+{# change the default selection format #}
+{% block sonata_type_model_autocomplete_selection_format %}
+    '<span style="color: forestgreen;">'+item.label+'</span>'
+{% endblock %}
+
+{% block sonata_type_model_autocomplete_dropdown_item_format %}
+    '<div class="{{ dropdown_item_css_class }}"><div>'+item.label+'<\/div><div style="font-size: 0.8em;">'+item.costo+'<\/div><\/div>'
+{% endblock %}

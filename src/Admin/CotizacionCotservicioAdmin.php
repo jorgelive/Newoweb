@@ -180,7 +180,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
             ])
             ->add('itinerario', ModelAutocompleteType::class, [
                 'property' => 'nombre',
-                'template' => 'form/ajax_dropdown_type.html.twig',
+                'template' => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
                 'route' => ['name' => 'app_servicio_itinerario_porserviciodropdown', 'parameters' => []],
                 'placeholder' => '',
                 'context' => '/\[itinerario\]$/g, "[servicio]"',
