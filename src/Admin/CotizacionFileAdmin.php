@@ -85,33 +85,31 @@ class CotizacionFileAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
+        $temp = $this->getRequest()->get('pcode');
+
         $formMapper
             ->add('nombre')
             ->add('pais')
             ->add('idioma')
-            ->add('pauta')
-            ->add('filepasajeros', CollectionType::class, [
-                'by_reference' => false,
-                'label' => 'Name List'
-            ], [
-                'edit' => 'inline',
-                'inline' => 'table'
-            ])
-            ->add('filedocumentos', CollectionType::class, [
-                'by_reference' => false,
-                'label' => 'Documentos'
-            ], [
-                'edit' => 'inline',
-                'inline' => 'table'
-            ])
-            /*->add('cotizaciones', CollectionType::class, [
-                'by_reference' => false,
-                'label' => 'Cotizaciones'
-            ], [
-                'edit' => 'inline',
-                'inline' => 'table'
-            ])*/
-        ;
+            ->add('pauta');
+
+        if($this->getRequest()->get('pcode') != 'app.admin.cotizacioncotizacion'){
+            $formMapper
+                ->add('filepasajeros', CollectionType::class, [
+                    'by_reference' => false,
+                    'label' => 'Name List'
+                ], [
+                    'edit' => 'inline',
+                    'inline' => 'table'
+                ])
+                ->add('filedocumentos', CollectionType::class, [
+                    'by_reference' => false,
+                    'label' => 'Documentos'
+                ], [
+                    'edit' => 'inline',
+                    'inline' => 'table'
+                ]);
+        }
 
         $this->vars['cotservicios']['serviciopath'] = 'app_servicio_servicio_ajaxinfo';
         $this->vars['cotcomponentes']['componentepath'] = 'app_servicio_componente_ajaxinfo';

@@ -8,6 +8,7 @@ use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
+use Sonata\AdminBundle\Form\Type\ModelListType;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
@@ -193,7 +194,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         $hoy = new \DateTime('today');
         $hoy = $hoy->format('Y/m/d');
         if ($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'){
-            $formMapper->add('file');
+            $formMapper->add('file', ModelListType::class,[
+                'btn_delete' => false
+            ]);
         }
         $formMapper
             ->add('nombre')
