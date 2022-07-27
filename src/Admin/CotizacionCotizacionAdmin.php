@@ -38,7 +38,8 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         if($action == 'resumen'){
             $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/adminview_button.html.twig'];
         }else{
-            $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/resumen_button.html.twig'];
+            $buttonList['resumen'] = ['template' => 'cotizacion_cotizacion_admin/resumen_button.html.twig'];
+            $buttonList['fileedit'] = ['template' => 'cotizacion_cotizacion_admin/fileedit_button.html.twig'];
         }
         return $buttonList;
     }
