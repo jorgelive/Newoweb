@@ -16,11 +16,11 @@
 
 {% block stylesheets %}
     {{ parent() }}
-    <link rel="shortcut icon" href="{{ asset('app/images/favicon.png') }}">
-    <link href="{{ asset('/bundles/sonataform/app.css') }}" />
+    <link href="{{ asset('app/images/favicon.png') }}" rel="shortcut icon" />
+    <link href="{{ asset('/bundles/sonataform/app.css') }}" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@5.11.0/main.min.css" rel="stylesheet" />
-    <link href="{{ asset('/app/ckeditor/content-styles.css') }}">
+    <link href="{{ asset('/app/ckeditor/content-styles.css') }}" rel="stylesheet" />
     <style>
         @media (max-width: 767px) {
             .skin-black .main-header > .logo {
@@ -43,6 +43,7 @@
 
             }
         }
+
         .main-header {height: 100px;}
         .main-header .logo {height: 100px;}
         .main-header .logo img {max-width: unset;}
