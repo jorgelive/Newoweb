@@ -27,7 +27,6 @@
 
 {% block javascripts %}
     {{ parent() }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ckeditor5/34.0.0/ckeditor.js"></script>
 
     <script type="text/javascript">
 
@@ -145,7 +144,11 @@
 
             $('.ckeditor').each(function() {
                 if(!$(this).hasClass('ckrendered')){
-                    ClassicEditor.create(this);
+                    ClassicEditor.create(this, {
+                        toolbar: {
+                            shouldNotGroupWhenFull: true
+                        }
+                    });
                     $(this).addClass('ckrendered');
                 }
             });
@@ -163,15 +166,6 @@
             $('.ckeditor').each(function (index, value) {
                 ClassicEditor.create(this, {
                     toolbar: {
-                        items: [
-                            'heading', '|',
-                            'bold', 'italic', '|',
-                            'link', '|',
-                            'outdent', 'indent', '|',
-                            'bulletedList', 'numberedList', '|',
-                            'insertTable', '|',
-                            'undo', 'redo'
-                        ],
                         shouldNotGroupWhenFull: true
                     }
                 });
