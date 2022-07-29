@@ -43,7 +43,7 @@ file that was distributed with this source code.
 {% block show %}
 
 
-<div class="sonata-ba-view ck-content">
+<div class="sonata-ba-view">
 
     {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
 
@@ -689,7 +689,7 @@ file that was distributed with this source code.
 
                                     {% elseif name == 'politica' %}
                                         <h3 class="visible-print">{{ contenido.nombre}}</h3>
-                                        {{ contenido.contenido|raw }}
+                                        <div class="ck-content">{{ contenido.contenido|raw }}</div>
                                     {% elseif name == 'itinerario' %}
                                         <h3 class="visible-print">{{ contenido.nombre}}</h3>
                                         {% if action == 'show' %}
@@ -713,7 +713,7 @@ file that was distributed with this source code.
                                                                 <h4><span style="font-weight: bold;">{{ itinerario.fecha }}</span>&nbsp;-&nbsp;<span>Dia {{ itinerario.nroDia }}</span></h4>
                                                                 {% for item in itinerario.fechaitems %}
                                                                     <h4>{{ item.titulo }}</h4>
-                                                                    {{ item.descripcion|raw }}
+                                                                    <div class="ck-content">{{ item.descripcion|raw }}</div>
                                                                     <div class="container-fluid hidden-print">
                                                                         {% for archivo in item.archivos %}
                                                                             {% if loop.index0 % 2 == 0 %}
