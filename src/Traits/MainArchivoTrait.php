@@ -22,7 +22,7 @@ trait MainArchivoTrait
     private $externalTypes = ['youtube', 'vimeo'];
     private $modalTypes = ['jpg', 'jpeg', 'png', 'txt', 'youtube', 'vimeo'];
     private $resizableTypes = ['jpg', 'jpeg', 'png'];
-    private $imageSize = ['image' => ['width' => '800', 'height' => '800'], 'thumb' => ['width' => '800', 'height' => '800']];
+    private $imageSize = ['image' => ['width' => '800', 'height' => '800'], 'thumb' => ['width' => '400', 'height' => '400']];
 
 
     private $pregYoutube = "/^(?:http(?:s)?:\/\/)?(?:www\.)?(?:m\.)?(?:youtu\.be\/|youtube\.com\/(?:(?:watch)?\?(?:.*&)?v(?:i)?=|(?:embed|v|vi|user|shorts)\/))([^\?&\"'>]+)/";
@@ -388,7 +388,7 @@ trait MainArchivoTrait
         $imageTypes = ['image/jpeg', 'image/png'];
 
         if(in_array($this->getArchivo()->getMimeType(), $imageTypes)){
-            //debe ir antes ta que la imagen sera movida
+            //debe ir antes ya que la imagen sera movida
             $this->generarImagen($this->getArchivo(), $this->getInternalThumbDir(), $this->imageSize['thumb']['width'], $this->imageSize['thumb']['height']);
             $this->generarImagen($this->getArchivo(), $this->getInternalDir(), $this->imageSize['image']['width'], $this->imageSize['image']['height']);
             unlink($this->getArchivo()->getPathname());
