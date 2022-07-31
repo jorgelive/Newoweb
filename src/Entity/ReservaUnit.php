@@ -56,6 +56,20 @@ class ReservaUnit
     private $unitnexos;
 
     /**
+     * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitcaracteristica", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
+     */
+    private $unitcaracteristicas;
+
+    /**
+     * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitmedio", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
+     */
+    private $unitmedios;
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -74,6 +88,8 @@ class ReservaUnit
     public function __construct() {
         $this->reservas = new ArrayCollection();
         $this->unitnexos = new ArrayCollection();
+        $this->unitcaracteristicas = new ArrayCollection();
+        $this->unitmedios = new ArrayCollection();
 
     }
 
@@ -203,22 +219,61 @@ class ReservaUnit
         return $this;
     }
 
-    public function addUnitnexoe(ReservaUnitnexo $unitnexoe): self
+    /**
+     * @return Collection<int, ReservaUnitcaracteristica>
+     */
+    public function getUnitcaracteristicas(): Collection
     {
-        if (!$this->unitnexos->contains($unitnexoe)) {
-            $this->unitnexos[] = $unitnexoe;
-            $unitnexoe->setUnit($this);
+        return $this->unitcaracteristicas;
+    }
+
+    public function addUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
+    {
+        if (!$this->unitcaracteristicas->contains($unitcaracteristica)) {
+            $this->unitcaracteristicas[] = $unitcaracteristica;
+            $unitcaracteristica->setUnit($this);
         }
 
         return $this;
     }
 
-    public function removeUnitnexoe(ReservaUnitnexo $unitnexoe): self
+    public function removeUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
     {
-        if ($this->unitnexos->removeElement($unitnexoe)) {
+        if ($this->unitcaracteristicas->removeElement($unitcaracteristica)) {
             // set the owning side to null (unless already changed)
-            if ($unitnexoe->getUnit() === $this) {
-                $unitnexoe->setUnit(null);
+            if ($unitcaracteristica->getUnit() === $this) {
+                $unitcaracteristica->setUnit(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ReservaUnitmedio>
+     */
+    public function getUnitmedios(): Collection
+    {
+        return $this->unitmedios;
+    }
+
+
+    public function addUnitmedio(\App\Entity\ReservaUnitmedio $unitmedio): self
+    {
+        $unitmedio->setUnit($this);
+
+        $this->unitmedios[] = $unitmedio;
+
+        return $this;
+    }
+
+    public function removeUnitmedio(\App\Entity\Reservaunitmedio $unitmedio): self
+    {
+
+        if ($this->unitmedios->removeElement($unitmedio)) {
+            // set the owning side to null (unless already changed)
+            if ($unitmedio->getUnit() === $this) {
+                $unitmedio->setUnit(null);
             }
         }
 

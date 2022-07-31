@@ -10,13 +10,13 @@ use Gedmo\Mapping\Annotation as Gedmo;
 use Gedmo\Translatable\Translatable;
 
 /**
- * MaestroClasemedio
+ * ReservaUnitclasemedio
  *
- * @ORM\Table(name="mae_clasemedio")
+ * @ORM\Table(name="res_unitclasemedio")
  * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\MaestroClasemedioTranslation")
+ * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnitclasemedioTranslation")
  */
-class MaestroClasemedio implements Translatable
+class ReservaUnitclasemedio implements Translatable
 {
 
     /**
@@ -46,9 +46,9 @@ class MaestroClasemedio implements Translatable
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\MaestroMedio", mappedBy="clasemedio", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitmedio", mappedBy="unitclasemedio", cascade={"persist","remove"}, orphanRemoval=true)
      */
-    private $medios;
+    private $unitmedios;
 
     /**
      * @var \DateTime $creado
@@ -75,7 +75,7 @@ class MaestroClasemedio implements Translatable
 
     public function __construct()
     {
-        $this->medios = new ArrayCollection();
+        $this->unitmedios = new ArrayCollection();
     }
 
 
@@ -102,7 +102,7 @@ class MaestroClasemedio implements Translatable
      *
      * @param string $nombre
      *
-     * @return MaestroClasemedio
+     * @return ReservaUnitclasemedio
      */
     public function setNombre($nombre)
     {
@@ -126,7 +126,7 @@ class MaestroClasemedio implements Translatable
      *
      * @param \DateTime $creado
      *
-     * @return MaestroClasemedio
+     * @return ReservaUnitclasemedio
      */
     public function setCreado($creado)
     {
@@ -150,7 +150,7 @@ class MaestroClasemedio implements Translatable
      *
      * @param \DateTime $modificado
      *
-     * @return MaestroClasemedio
+     * @return ReservaUnitclasemedio
      */
     public function setModificado($modificado)
     {
@@ -174,7 +174,7 @@ class MaestroClasemedio implements Translatable
      *
      * @param string|null $titulo
      *
-     * @return MaestroClasemedio
+     * @return ReservaUnitclasemedio
      */
     public function setTitulo($titulo = null)
     {
@@ -194,34 +194,35 @@ class MaestroClasemedio implements Translatable
     }
 
     /**
-     * Add medio.
+     * Add unitmedio.
      *
-     * @param \App\Entity\MaestroMedio $maestromedio
+     * @param \App\Entity\ReservaUnitmedio $unitmedio
      *
-     * @return MaestroClasemedio
+     * @return ReservaUnitclasemedio
      */
-    public function addMedio(\App\Entity\MaestroMedio $medio)
+    public function addUnitmedio(\App\Entity\ReservaUnitmedio $unitmedio)
     {
-        $medio->setClasemedio($this);
+        $unitmedio->setUnitclasemedio($this);
 
-        $this->medios[] = $medio;
+        $this->unitmedios[] = $unitmedio;
 
         return $this;
     }
 
     /**
-     * Remove medio.
+     * Remove unitmedio.
      *
-     * @param \App\Entity\Maestromedio $medio
+     * @param \App\Entity\ReservaUnitmedio $unitmedio
      *
-     * @return MaestroClasemedio
+     * @return ReservaUnitclasemedio
      */
-    public function removeMedio(MaestroMedio $medio): self
+    public function removeUnitmedio(\App\Entity\Reservaunitmedio $unitmedio)
     {
-        if ($this->medios->removeElement($medio)) {
+
+        if ($this->unitmedios->removeElement($unitmedio)) {
             // set the owning side to null (unless already changed)
-            if ($medio->getClasemedio() === $this) {
-                $medio->setClasemedio(null);
+            if ($unitmedio->getUnitclasemedio() === $this) {
+                $unitmedio->setUnitclasemedio(null);
             }
         }
 
@@ -229,13 +230,13 @@ class MaestroClasemedio implements Translatable
     }
 
     /**
-     * Get medios.
+     * Get unitmedios.
      *
      * @return \Doctrine\Common\Collections\Collection
      */
-    public function getMedios()
+    public function getUnitmedios()
     {
-        return $this->medios;
+        return $this->unitmedios;
     }
 
 

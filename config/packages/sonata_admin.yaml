@@ -16,8 +16,8 @@ sonata_admin:
                 label: 'Cotizaciones'
                 icon: '<i class="fa fa-calendar"></i>'
                 items:
-                    - app.admin.cotizacionfile
                     - app.admin.cotizacioncotizacion
+                    - app.admin.cotizacionfile
                     - app.admin.cotizacioncotservicio
                     - app.admin.cotizacioncotcomponente
                     - app.admin.cotizacionfilepasajero
@@ -54,6 +54,8 @@ sonata_admin:
                     - app.admin.reservapago
                     - app.admin.reservaestablecimiento
                     - app.admin.reservaunit
+                    - app.admin.reservaunitmedio
+                    - app.admin.reservaunitclasemedio
                     - app.admin.reservaunitnexo
 
             app.admin.group.maestro:
