@@ -452,11 +452,11 @@
                             if(isNaN(diffDate) === true || isNaN(timestampfin)){
                                 newFechaHoraFin = moment(inicio,'YYYY/MM/DD HH:mm').add(fin.attr("duracion"), 'hours').format('YYYY/MM/DD HH:mm');
                                 console.log('Cambiada la fechahorafin de acuerdo a la duracion');
-                                fin.val(newFechaHoraFin);
+                                fin.val(newFechaHoraFin).trigger('change');
                             }else{
                                 newFechaHoraFin = new Date(new Date(fin.val()).getTime() + diffDate);
                                 console.log('Cambiada la fechahorafin de acuerdo la fecha anterior');
-                                fin.val(moment(newFechaHoraFin).format('YYYY/MM/DD HH:mm'));
+                                fin.val(moment(newFechaHoraFin).format('YYYY/MM/DD HH:mm')).trigger('change');
                             }
                             //actualizamos por la doble ejecucion
                             selector.attr('oldvalforfin', selector.val());
@@ -525,7 +525,7 @@
                                             console.log('Tiene duracion (' + $(this).attr("duracion") +'), cambiando fecha inicio');
                                             var componentdatetime = new Date(new Date($(this).val()).getTime() + diffDate);
 
-                                            $(this).val(moment(componentdatetime).format('YYYY/MM/DD HH:mm'));
+                                            $(this).val(moment(componentdatetime).format('YYYY/MM/DD HH:mm')).trigger('change');
                                         }
                                     });
 
@@ -535,7 +535,7 @@
                                             console.log('Tiene duracion (' + $(this).attr("duracion") +'), cambiando fecha fin');
                                             var componentdatetime = new Date(new Date($(this).val()).getTime() + diffDate);
 
-                                            $(this).val(moment(componentdatetime).format('YYYY/MM/DD HH:mm'));
+                                            $(this).val(moment(componentdatetime).format('YYYY/MM/DD HH:mm')).trigger('change');
                                         }
                                     });
 
@@ -549,7 +549,7 @@
                                             var componentdatetime = new Date(new Date($(this).val()).getTime() + diffDate);
                                             var nuevaFecha = moment(componentdatetime).format('YYYY/MM/DD HH:mm').substr(0, 11);
 
-                                            $(this).val(nuevaFecha + horaAnterior);
+                                            $(this).val(nuevaFecha + horaAnterior).trigger('change');
                                         }
                                     });
 
@@ -561,7 +561,7 @@
                                             var componentdatetime = new Date(new Date($(this).val()).getTime() + diffDate);
                                             var nuevaFecha = moment(componentdatetime).format('YYYY/MM/DD HH:mm').substr(0, 11);
 
-                                            $(this).val(nuevaFecha + horaAnterior);
+                                            $(this).val(nuevaFecha + horaAnterior).trigger('change');
                                         }
                                     });
                                 }

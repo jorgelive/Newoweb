@@ -23,7 +23,7 @@ class ServicioItinerariodia implements Translatable
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
@@ -40,7 +40,7 @@ class ServicioItinerariodia implements Translatable
     /**
      * @var int
      *
-     * @ORM\Column(name="dia", type="integer")
+     * @ORM\Column(type="integer")
      */
     private $dia = 1;
 
@@ -48,14 +48,14 @@ class ServicioItinerariodia implements Translatable
      * @var string
      *
      * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=100)
+     * @ORM\Column(type="string", length=100)
      */
     private $titulo;
 
     /**
      * @var bool
      *
-     * @ORM\Column(name="importante", type="boolean", options={"default": 1})
+     * @ORM\Column(type="boolean", options={"default": 1})
      */
     private $importante;
 
@@ -63,7 +63,7 @@ class ServicioItinerariodia implements Translatable
      * @var string
      *
      * @Gedmo\Translatable
-     * @ORM\Column(name="contenido", type="text")
+     * @ORM\Column(type="text")
      */
     private $contenido;
 
