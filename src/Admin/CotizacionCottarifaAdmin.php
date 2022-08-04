@@ -15,6 +15,11 @@ use Sonata\Form\Type\CollectionType;
 
 class CotizacionCottarifaAdmin extends AbstractAdmin
 {
+    public function configure(): void
+    {
+        $this->classnameLabel = "Tarifa";
+    }
+
     /**
      * @param DatagridMapper $datagridMapper
      */

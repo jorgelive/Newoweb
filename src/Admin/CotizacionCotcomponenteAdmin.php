@@ -27,6 +27,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
 
     public function configure(): void
     {
+        $this->classnameLabel = "Componente";
         $this->setFormTheme([0 => 'cotizacion_cotcomponente_admin/form_admin_fields.html.twig']);
     }
 

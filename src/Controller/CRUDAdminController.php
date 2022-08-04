@@ -21,7 +21,14 @@ class CRUDAdminController extends BaseController
             $session = $this->container->get('request_stack')->getSession();
             $last_list = $session->get('last_list');
 
-            if(strstr($last_list['route'], $current_admin) || empty($last_list['route'])) {
+            if(!strstr($last_list['route'], $current_admin) && !empty($last_list['route'])) {
+                $response = new RedirectResponse(
+                    $this->container->get('router')->generate(
+                        $last_list['route'],
+                        ['filter' => $last_list['filters']]
+                    )
+                );
+            }else{ //comportamiento normal
                 $parameters = [];
 
                 $filter = $this->admin->getFilterParameters();
@@ -29,13 +36,6 @@ class CRUDAdminController extends BaseController
                     $parameters['filter'] = $filter;
                 }
                 $response = $this->redirect($this->admin->generateUrl('list', $parameters));
-            }else{
-                $response = new RedirectResponse(
-                    $this->container->get('router')->generate(
-                        $last_list['route'],
-                        array('filter' => $last_list['filters'])
-                    )
-                );
             }
         }
 
@@ -44,11 +44,13 @@ class CRUDAdminController extends BaseController
 
     public function listAction(Request $request): Response
     {
-        $session = $this->container->get('request_stack')->getSession();
-        $route = $this->container->get('router')->match($request->getPathInfo())['_route'];
-
-        $filters = $this->admin->getFilterParameters();
-        $session->set('last_list', array('route' => $route, 'filters' => $filters));
+        //No se ejecuta en el caso de lista modal
+        if(is_null($request->get('pcode'))){
+            $session = $this->container->get('request_stack')->getSession();
+            $route = $this->container->get('router')->match($request->getPathInfo())['_route'];
+            $filters = $this->admin->getFilterParameters();
+            $session->set('last_list', array('route' => $route, 'filters' => $filters));
+        }
 
         return parent::listAction($request);
 

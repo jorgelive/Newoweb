@@ -23,8 +23,10 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
 
     public function configure(): void
     {
+        $this->classnameLabel = "Cotización";
         $this->setFormTheme([0 => 'cotizacion_cotizacion_admin/form_admin_fields.html.twig']);
     }
+
 
     protected function configureDefaultSortValues(array &$sortValues): void
     {

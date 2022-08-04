@@ -16,6 +16,11 @@ class CotizacionFileAdmin extends AbstractAdmin
 
     public $vars;
 
+    public function configure(): void
+    {
+        $this->classnameLabel = "File";
+    }
+
     protected function configureDefaultSortValues(array &$sortValues): void
     {
         $sortValues[DatagridInterface::PAGE] = 1;
