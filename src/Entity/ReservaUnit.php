@@ -66,6 +66,7 @@ class ReservaUnit
      * @var \Doctrine\Common\Collections\Collection
      *
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitmedio", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OrderBy({"prioridad" = "ASC"})
      */
     private $unitmedios;
 

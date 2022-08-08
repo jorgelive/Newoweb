@@ -3,6 +3,7 @@
 namespace App\Admin;
 
 use Sonata\AdminBundle\Admin\AbstractAdmin;
+use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
@@ -17,6 +18,31 @@ use Symfony\Component\Form\FormInterface;
 
 class ReservaUnitmedioAdmin extends AbstractAdmin
 {
+    public function configure(): void
+    {
+        $this->classnameLabel = "Multimedia";
+    }
+
+    protected function configureDefaultSortValues(array &$sortValues): void
+    {
+        $sortValues[DatagridInterface::PAGE] = 1;
+        $sortValues[DatagridInterface::SORT_ORDER] = 'ASC';
+        $sortValues[DatagridInterface::SORT_BY] = 'prioridad';
+    }
+
+    protected function configureFilterParameters(array $parameters): array
+    {
+        if(!isset($parameters['unit'])){
+            $parameters = array_merge([
+                'unit' => [
+                    'value' => 1
+                ]
+            ], $parameters);
+        }
+
+        return $parameters;
+    }
+
     /**
      * @param DatagridMapper $datagridMapper
      */
@@ -36,6 +62,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                 'label' => 'Título'
             ])
             ->add('enlace')
+            ->add('prioridad')
         ;
     }
 
@@ -63,6 +90,10 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
             ])
             ->add('titulo', null, [
                 'label' => 'Título',
+                'editable' => true
+            ])
+            ->add('prioridad', null, [
+                'label' => 'Prioridad',
                 'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
@@ -99,6 +130,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                 'label' => 'Título'
             ])
             ->add('enlace')
+            ->add('prioridad')
             ->add('archivo', FileType::class, [
                 'required' => false
             ])
@@ -125,6 +157,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                         'style' => 'min-width: 250px;'
                     ]
                 ])
+                ->add('prioridad')
             ;
         };
 
