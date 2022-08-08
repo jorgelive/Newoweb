@@ -66,6 +66,13 @@ class ReservaUnittipocaracteristica implements Translatable
      */
     private $modificado;
 
+    /**
+     * @Gedmo\Locale
+     * Used locale to override Translation listener`s locale
+     * this is not a mapped field of entity metadata, just a simple property
+     */
+    private $locale;
+
     public function __construct() {
         $this->reservas = new ArrayCollection();
         $this->unitcaracteristicas = new ArrayCollection();

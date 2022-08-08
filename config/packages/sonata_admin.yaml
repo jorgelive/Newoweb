@@ -54,6 +54,8 @@ sonata_admin:
                     - app.admin.reservapago
                     - app.admin.reservaestablecimiento
                     - app.admin.reservaunit
+                    - app.admin.reservaunitcaracteristica
+                    - app.admin.reservaunittipocaracteristica
                     - app.admin.reservaunitmedio
                     - app.admin.reservaunitclasemedio
                     - app.admin.reservaunitnexo

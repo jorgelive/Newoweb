@@ -379,7 +379,6 @@ services:
                 show_mosaic_button: false
         public: true
 
-
     app.admin.cotizacionfile:
         class: App\Admin\CotizacionFileAdmin
         tags:
@@ -949,6 +948,28 @@ services:
               manager_type: orm
               group: Reserva
               label: Unidad
+              show_mosaic_button: false
+        public: true
+
+    app.admin.reservaunitcaracteristica:
+        class: App\Admin\ReservaUnitcaracteristicaAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Entity\ReservaUnitcaracteristica
+              manager_type: orm
+              group: Reserva
+              label: Característica de unidad
+              show_mosaic_button: false
+        public: true
+
+    app.admin.reservaunittipocaracteristica:
+        class: App\Admin\ReservaUnittipocaracteristicaAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Entity\ReservaUnittipocaracteristica
+              manager_type: orm
+              group: Reserva
+              label: Tipo de característica
               show_mosaic_button: false
         public: true
 

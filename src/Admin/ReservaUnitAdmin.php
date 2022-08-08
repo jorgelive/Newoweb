@@ -64,6 +64,20 @@ class ReservaUnitAdmin extends AbstractAdmin
                 'edit' => 'inline',
                 'inline' => 'table'
             ])
+            ->add('unitcaracteristicas', CollectionType::class, [
+                'by_reference' => false,
+                'label' => 'Caracteristicas',
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table'
+            ])
+            ->add('unitmedios', CollectionType::class, [
+                'by_reference' => false,
+                'label' => 'Multimedia',
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table'
+            ])
         ;
     }
 
@@ -79,9 +93,14 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('unitnexos', null, [
                 'label' => 'Nexos'
             ])
+            ->add('unitcaracteristicas', null, [
+                'label' => 'Caracteristicas'
+            ])
+            ->add('unitmedios', null, [
+                'label' => 'Multimedia'
+            ])
         ;
     }
-
 
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {

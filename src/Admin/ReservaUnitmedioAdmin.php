@@ -8,8 +8,12 @@ use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\AdminBundle\Route\RouteCollection;
+use Sonata\Form\Type\DatePickerType;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
 
 class ReservaUnitmedioAdmin extends AbstractAdmin
 {
@@ -78,10 +82,13 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
     protected function configureFormFields(FormMapper $formMapper): void
     {
 
-        $formMapper
-            ->add('unit', null, [
+        if ($this->getRoot()->getClass() != 'App\Entity\ReservaUnit'){
+            $formMapper->add('unit', null, [
                 'label' => 'Unidad'
-            ])
+            ]);
+        }
+
+        $formMapper
             ->add('unitclasemedio', null, [
                     'label' => 'Clase'
             ])
@@ -96,6 +103,42 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                 'required' => false
             ])
         ;
+
+        $widthModifier = function (FormInterface $form) {
+
+            $form
+                ->add('nombre', null, [
+                    'label' => 'Nombre',
+                    'attr' => [
+                        'style' => 'min-width: 150px;'
+                    ]
+                ])
+                ->add('titulo', null, [
+                    'label' => 'Título',
+                    'attr' => [
+                        'style' => 'min-width: 150px;'
+                    ]
+                ])
+                ->add('enlace', null, [
+                    'label' => 'Enlace',
+                    'attr' => [
+                        'style' => 'min-width: 250px;'
+                    ]
+                ])
+            ;
+        };
+
+        $formBuilder = $formMapper->getFormBuilder();
+        $formBuilder->addEventListener(
+            FormEvents::PRE_SET_DATA,
+            function (FormEvent $event) use ($widthModifier) {
+                if($event->getData()
+                    && $this->getRoot()->getClass() == 'App\Entity\ReservaUnit'
+                ){
+                    $widthModifier($event->getForm());
+                }
+            }
+        );
     }
 
     /**
