@@ -3,6 +3,7 @@
 namespace App\Admin;
 
 use Sonata\AdminBundle\Admin\AbstractAdmin;
+use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
@@ -11,6 +12,14 @@ use Sonata\Form\Type\DatePickerType;
 
 class MaestroTipocambioAdmin extends AbstractAdmin
 {
+
+    protected function configureDefaultSortValues(array &$sortValues): void
+    {
+        $sortValues[DatagridInterface::PAGE] = 1;
+        $sortValues[DatagridInterface::SORT_ORDER] = 'DESC';
+        $sortValues[DatagridInterface::SORT_BY] = 'fecha';
+    }
+
     /**
      * @param DatagridMapper $datagridMapper
      */
@@ -33,7 +42,9 @@ class MaestroTipocambioAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('fecha')
+            ->add('fecha',null, [
+                'format' => 'Y/m/d'
+            ])
             ->add('moneda')
             ->add('compra')
             ->add('venta')
@@ -73,7 +84,9 @@ class MaestroTipocambioAdmin extends AbstractAdmin
     {
         $showMapper
             ->add('id')
-            ->add('fecha')
+            ->add('fecha',null, [
+                'format' => 'Y/m/d'
+            ])
             ->add('moneda')
             ->add('compra')
             ->add('venta')

@@ -2,9 +2,10 @@
 
 namespace App\Service;
 
-use \Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use \Symfony\Component\DependencyInjection\ContainerAwareTrait;
-use \Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
+use Doctrine\ORM\EntityManagerInterface;
+use App\Entity\MaestroTipocambio;
 
 
 class MainTipocambio implements ContainerAwareInterface{
@@ -13,7 +14,8 @@ class MainTipocambio implements ContainerAwareInterface{
 
     private $doctrine;
 
-    function getDoctrine(){
+    function getDoctrine(): EntityManagerInterface
+    {
         return $this->doctrine;
     }
 
@@ -27,7 +29,7 @@ class MainTipocambio implements ContainerAwareInterface{
      * @param mixed $mensaje
      * @return boolean
      */
-    public function getTipodecambio(\DateTime $fecha)
+    public function getTipodecambio(\DateTime $fecha): MaestroTipocambio
     {
 
         $enDB = $this->getDoctrine()->getRepository('App\Entity\MaestroTipocambio')
@@ -36,13 +38,26 @@ class MainTipocambio implements ContainerAwareInterface{
         if ($enDB){
             return $enDB;
         }
-        $valores = $this->leerPagina($fecha);
 
-        return $this->insertTipo(end($this->formatearValoresJson($valores)), $fecha);
+        $valoresMensual = $this->formatearValores($this->leerPagina($fecha));
+
+        if(!empty($valoresMensual)){
+            if(isset($valoresMensual[$fecha->format('Y-m-d')])){
+                $valorFecha = $valoresMensual[$fecha->format('Y-m-d')];
+            }else{
+                //retornamos el ultimo valor del array
+                $valorFecha = end($valoresMensual);
+            }
+            return $this->insertTipo($valorFecha, $fecha);
+        }else{
+            //retornamos la entidad vacia
+            return new \App\Entity\MaestroTipocambio();
+        }
 
     }
 
-    private function insertTipo($tipo, $fecha){
+    private function insertTipo(array $tipo, \DateTime $fecha): MaestroTipocambio
+    {
 
         $em = $this->getDoctrine();
 
@@ -61,7 +76,8 @@ class MainTipocambio implements ContainerAwareInterface{
 
     }
 
-    private function leerPagina(\DateTime $fecha){
+    private function leerPagina(\DateTime $fecha): array
+    {
 
         $token = 'apis-token-1.aTSI1U7KEuT-6bbbCguH-4Y8TI6KS73N';
 
@@ -92,7 +108,7 @@ class MainTipocambio implements ContainerAwareInterface{
 
             // Check the return value of curl_exec(), too
             if ($content === false) {
-                throw new Exception(curl_error($ch), curl_errno($ch));
+                throw new \Exception(curl_error($ch), curl_errno($ch));
             }
 
             $data = json_decode($content,true);
@@ -101,10 +117,10 @@ class MainTipocambio implements ContainerAwareInterface{
 
             return $data;
 
-        } catch(Exception $e) {
+        } catch(\Exception $e) {
 
             trigger_error(sprintf(
-                'Curl failed with error #%d: %s',
+                'Falló la lectura de la pagina apis.net.pe #%d: %s',
                 $e->getCode(), $e->getMessage()),
                 E_USER_ERROR);
 
@@ -113,7 +129,8 @@ class MainTipocambio implements ContainerAwareInterface{
     }
 
 
-    private function formatearValoresJson($json){
+    private function formatearValores(array $array): array
+    {
         $result = [];
 
         foreach ($json as $index => $valor) {

@@ -14,6 +14,11 @@ use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 class ReservaUnitAdmin extends AbstractAdmin
 {
 
+    public function configure(): void
+    {
+        $this->classnameLabel = "Unidad";
+    }
+
     /**
      * @param DatagridMapper $datagridMapper
      */
@@ -23,6 +28,9 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('id')
             ->add('establecimiento')
             ->add('nombre')
+            ->add('descripcion', TranslationFieldFilter::class, [
+                'label' => 'Descripción'
+            ])
         ;
     }
 
@@ -35,6 +43,9 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('id')
             ->add('establecimiento')
             ->add('nombre')
+            ->add('descripcion', null, [
+                'label' => 'Descripción'
+            ])
             ->add('unitnexos', null, [
                 'label' => 'Nexos'
             ])
@@ -42,6 +53,9 @@ class ReservaUnitAdmin extends AbstractAdmin
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
+                    'detalle' => [
+                        'template' => 'reserva_unit_admin\list__action_detalle.html.twig'
+                    ],
                     'edit' => [],
                     'delete' => [],
                 ],
@@ -57,6 +71,9 @@ class ReservaUnitAdmin extends AbstractAdmin
         $formMapper
             ->add('establecimiento')
             ->add('nombre')
+            ->add('descripcion', null, [
+                'label' => 'Descripción'
+            ])
             ->add('unitnexos', CollectionType::class, [
                 'by_reference' => false,
                 'label' => 'Nexos'
@@ -89,7 +106,15 @@ class ReservaUnitAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('establecimiento')
+            ->add('establecimiento.direccion', null, [
+                'label' => 'Dirección',
+                'template' => 'base_sonata_admin/show_map.html.twig',
+                'zoom' => 17
+            ])
             ->add('nombre')
+            ->add('descripcion', null, [
+                'label' => 'Descripción'
+            ])
             ->add('unitnexos', null, [
                 'label' => 'Nexos'
             ])
@@ -105,5 +130,7 @@ class ReservaUnitAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('ical', $this->getRouterIdParameter() . '/ical');
+        $collection->add('detalle', $this->getRouterIdParameter() . '/detalle');
+
     }
 }

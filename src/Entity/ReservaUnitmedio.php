@@ -217,5 +217,5 @@ class ReservaUnitmedio implements Translatable
     {
         return $this->titulo;
     }
-    
+
 }

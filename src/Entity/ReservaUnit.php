@@ -6,6 +6,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
+use Gedmo\Translatable\Translatable;
 use Doctrine\Common\Collections\ArrayCollection;
 
 /**
@@ -13,8 +14,9 @@ use Doctrine\Common\Collections\ArrayCollection;
  *
  * @ORM\Table(name="res_unit")
  * @ORM\Entity
+ * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnitTranslation")
  */
-class ReservaUnit
+class ReservaUnit implements Translatable
 {
 
     /**
@@ -32,6 +34,13 @@ class ReservaUnit
      * @ORM\Column(type="string", length=255)
      */
     private $nombre;
+
+    /**
+     * @var string
+     * @Gedmo\Translatable
+     * @ORM\Column(type="string", length=255)
+     */
+    private $descripcion;
 
     /**
      * @var \App\Entity\ReservaEstablecimiento
@@ -86,6 +95,13 @@ class ReservaUnit
      */
     private $modificado;
 
+    /**
+     * @Gedmo\Locale
+     * Used locale to override Translation listener`s locale
+     * this is not a mapped field of entity metadata, just a simple property
+     */
+    private $locale;
+
     public function __construct() {
         $this->reservas = new ArrayCollection();
         $this->unitnexos = new ArrayCollection();
@@ -120,6 +136,18 @@ class ReservaUnit
     public function setNombre(string $nombre): self
     {
         $this->nombre = $nombre;
+
+        return $this;
+    }
+
+    public function getDescripcion(): ?string
+    {
+        return $this->descripcion;
+    }
+
+    public function setDescripcion(string $descripcion): self
+    {
+        $this->descripcion = $descripcion;
 
         return $this;
     }

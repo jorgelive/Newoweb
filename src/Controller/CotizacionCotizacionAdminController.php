@@ -6,6 +6,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use App\Service\CotizacionResumen;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 class CotizacionCotizacionAdminController extends CRUDAdminController
 {
@@ -22,7 +23,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
-    public function clonarAction(Request $request = null)
+    public function clonarAction(Request $request = null): RedirectResponse
     {
 
         $object = $this->assertObjectExists($request, true);
@@ -82,7 +83,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
     }
 
-    public function showAction(Request $request = null):\Symfony\Component\HttpFoundation\Response
+    public function showAction(Request $request = null): Response | RedirectResponse
     {
 
         $object = $this->assertObjectExists($request, true);
@@ -119,7 +120,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
     }
 
-    function resumenAction(Request $request = null):\Symfony\Component\HttpFoundation\Response
+    function resumenAction(Request $request = null): Response | RedirectResponse
     {
 
         $object = $this->assertObjectExists($request, true);
@@ -133,8 +134,8 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
             }
         }
         if($object->getEstadocotizacion()->isOcultoResumen()){
-                $this->addFlash('sonata_flash_error', 'El no se muestra en resumen, redirigido a "Mostrar"');
-                return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
+            $this->addFlash('sonata_flash_error', 'La cotización no se muestra en resumen, redirigido a "Mostrar"');
+            return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
         }
 
         $this->checkParentChildAssociation($request, $object);

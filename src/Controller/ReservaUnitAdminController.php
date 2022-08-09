@@ -19,6 +19,36 @@ class ReservaUnitAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
+    public function detalleAction(Request $request = null): Response | RedirectResponse
+    {
+        $object = $this->assertObjectExists($request, true);
+        \assert(null !== $object);
+
+        $this->checkParentChildAssociation($request, $object);
+
+        //$this->admin->checkAccess('show', $object);
+
+        $preResponse = $this->preShow($request, $object);
+        if (null !== $preResponse) {
+            return $preResponse;
+        }
+
+        $this->admin->setSubject($object);
+
+        $fields = $this->admin->getShow();
+
+        $template = 'reserva_unit_admin/detalle.html.twig';
+
+        return $this->renderWithExtraParams($template,
+            [
+                'object' => $object,
+                'action' => 'detalle',
+                'elements' => $fields,
+
+            ]);
+
+    }
+
     public function icalAction(Request $request = null): Response
     {
         $ahora = new \DateTime('now');

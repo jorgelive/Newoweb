@@ -40,7 +40,9 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ->add('unittipocaracteristica', null, [
                 'label' => 'Tipo'
             ])
-            ->add('contenido')
+            ->add('contenido', null, [
+                'safe' => true
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -85,7 +87,9 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ->add('unittipocaracteristica', null, [
                 'label' => 'Tipo'
             ])
-            ->add('contenido')
+            ->add('contenido', null, [
+                'safe' => true
+            ])
         ;
     }
 }

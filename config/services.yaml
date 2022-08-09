@@ -1135,7 +1135,7 @@ services:
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\TranporteServicio
+                model_class: App\Entity\TransporteServicio
                 controller: App\Controller\TransporteServicioAdminController
                 manager_type: orm
                 group: Transporte
@@ -1152,7 +1152,7 @@ services:
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\TranporteServiciooperativo
+                model_class: App\Entity\TransporteServiciooperativo
                 manager_type: orm
                 group: Transporte
                 label: 'Información Operativa'
@@ -1164,7 +1164,7 @@ services:
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\TranporteServiciocontable
+                model_class: App\Entity\TransporteServiciocontable
                 controller: App\Controller\TransporteServiciocontableAdminController
                 manager_type: orm
                 group: Transporte
@@ -1179,7 +1179,7 @@ services:
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\TranporteServiciocomponente
+                model_class: App\Entity\TransporteServiciocomponente
                 controller: App\Controller\TransporteServiciocomponenteAdminController
                 manager_type: orm
                 group: Transporte
@@ -1192,7 +1192,7 @@ services:
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\TranporteConductor
+                model_class: App\Entity\TransporteConductor
                 manager_type: orm
                 group: Transporte
                 label: Conductores
@@ -1204,7 +1204,7 @@ services:
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\TranporteUnidad
+                model_class: App\Entity\TransporteUnidad
                 manager_type: orm
                 group: Transporte
                 label: Unidades
@@ -1218,7 +1218,7 @@ services:
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\TranporteTiposeroperativo
+                model_class: App\Entity\TransporteTiposeroperativo
                 manager_type: orm
                 group: Transporte
                 label: Tipo operativo
@@ -1230,7 +1230,7 @@ services:
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\TranporteTipounibit
+                model_class: App\Entity\TransporteTipounibit
                 manager_type: orm
                 group: Transporte
                 label: 'Tipo de bitácora'
@@ -1242,7 +1242,7 @@ services:
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\TranporteUnidadbitacora
+                model_class: App\Entity\TransporteUnidadbitacora
                 manager_type: orm
                 group: Transporte
                 label: 'Bitácoras'
