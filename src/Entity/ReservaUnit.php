@@ -42,6 +42,14 @@ class ReservaUnit implements Translatable
      */
     private $descripcion;
 
+
+    /**
+     * @var string
+     * @Gedmo\Translatable
+     * @ORM\Column(type="string", length=255)
+     */
+    private $referencia;
+
     /**
      * @var \App\Entity\ReservaEstablecimiento
      *
@@ -148,6 +156,19 @@ class ReservaUnit implements Translatable
     public function setDescripcion(string $descripcion): self
     {
         $this->descripcion = $descripcion;
+
+        return $this;
+    }
+
+
+    public function getReferencia(): ?string
+    {
+        return $this->referencia;
+    }
+
+    public function setReferencia(string $referencia): self
+    {
+        $this->referencia = $referencia;
 
         return $this;
     }

@@ -133,7 +133,7 @@ class MainTipocambio implements ContainerAwareInterface{
     {
         $result = [];
 
-        foreach ($json as $index => $valor) {
+        foreach ($array as $index => $valor) {
             $fecha = $valor['fecha'];
             $result[$fecha]['date'] = new \DateTime($fecha);
             $result[$fecha]['compra'] = $valor['compra'];

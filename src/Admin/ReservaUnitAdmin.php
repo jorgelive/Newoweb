@@ -31,6 +31,9 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('descripcion', TranslationFieldFilter::class, [
                 'label' => 'Descripción'
             ])
+            ->add('referencia', TranslationFieldFilter::class, [
+                'label' => 'Referencia de ubicación'
+            ])
         ;
     }
 
@@ -45,6 +48,9 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('descripcion', null, [
                 'label' => 'Descripción'
+            ])
+            ->add('referencia', null, [
+                'label' => 'Referencia de ubicación'
             ])
             ->add('unitnexos', null, [
                 'label' => 'Nexos'
@@ -73,6 +79,9 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('descripcion', null, [
                 'label' => 'Descripción'
+            ])
+            ->add('referencia', null, [
+                'label' => 'Referencia de ubicación'
             ])
             ->add('unitnexos', CollectionType::class, [
                 'by_reference' => false,
@@ -114,6 +123,9 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('descripcion', null, [
                 'label' => 'Descripción'
+            ])
+            ->add('referencia', null, [
+                'label' => 'Referencia de ubicación'
             ])
             ->add('unitnexos', null, [
                 'label' => 'Nexos'
