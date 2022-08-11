@@ -172,6 +172,10 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('cantidadninos', null, [
                 'label' => 'Ni'
             ])
+            ->add('created', null, [
+                'label' => 'Creación',
+                'format' => 'Y/m/d H:i'
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -212,6 +216,10 @@ class ReservaReservaAdmin extends AbstractAdmin
             ])
             ->add('cantidadninos', null, [
                 'label' => 'Niños'
+            ])
+            ->add('created', null, [
+                'label' => 'Creación',
+                'format' => 'Y/m/d H:i'
             ])
             ->add('chanel', null, [
                 'label' => 'Canal'
