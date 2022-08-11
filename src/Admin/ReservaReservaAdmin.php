@@ -172,7 +172,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('cantidadninos', null, [
                 'label' => 'Ni'
             ])
-            ->add('created', null, [
+            ->add('creado', null, [
                 'label' => 'Creación',
                 'format' => 'Y/m/d H:i'
             ])
@@ -217,7 +217,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('cantidadninos', null, [
                 'label' => 'Niños'
             ])
-            ->add('created', null, [
+            ->add('creado', null, [
                 'label' => 'Creación',
                 'format' => 'Y/m/d H:i'
             ])
