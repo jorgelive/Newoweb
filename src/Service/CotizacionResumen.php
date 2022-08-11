@@ -19,21 +19,21 @@ class CotizacionResumen implements ContainerAwareInterface
     private int $edadMax = 120;
 
     private array $datosTabs;
-    private $datosCotizacion;
+    private array $datosCotizacion;
 
-    private $clasificacionTarifas = [];
-    private $resumendeClasificado = [];
+    private array $clasificacionTarifas = [];
+    private array $resumendeClasificado = [];
 
-    private $mensaje;
+    private string $mensaje;
 
-    private $tipocambio;
+    private MainTipocambio $tipocambio;
 
     function getDoctrine(): EntityManagerInterface
     {
         return $this->doctrine;
     }
 
-    function setTl($tl): CotizacionResumen
+    function setTl(?string $tl): CotizacionResumen
     {
         if(is_null($tl)){
             $tl = 'es';
@@ -48,7 +48,7 @@ class CotizacionResumen implements ContainerAwareInterface
         $this->tipocambio = $tipocambio;
     }
 
-    function getTituloItinerario(\DateTime $fecha, $itinerarioFechaAux) : string
+    function getTituloItinerario(\DateTime $fecha, array $itinerarioFechaAux): string
     {
         if(!empty($itinerarioFechaAux)){
 
@@ -72,7 +72,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
     }
 
-    function procesar($id)
+    function procesar(int $id): bool
     {
 
         $cotizacion = $this->getDoctrine()
@@ -352,10 +352,10 @@ class CotizacionResumen implements ContainerAwareInterface
                                             }
 
                                             $tempArrayIncluye['mostrarcostoincluye'] = false;
-                                            if($tarifa->getTipotarifa()->isMostrarcostoincluye() ===true && !empty($tarifa->getTarifa()->getMonto()) && !empty($tarifa->getTarifa()->getMoneda())){
+                                            if($tarifa->getTipotarifa()->isMostrarcostoincluye() ===true && !empty($tarifa->getMonto()) && !empty($tarifa->getMoneda())){
                                                 $tempArrayIncluye['mostrarcostoincluye'] = true;
-                                                $tempArrayIncluye['simboloMoneda'] = $tarifa->getTarifa()->getMoneda()->getSimbolo();
-                                                $tempArrayIncluye['costo'] = $tarifa->getTarifa()->getMonto();
+                                                $tempArrayIncluye['simboloMoneda'] = $tarifa->getMoneda()->getSimbolo();
+                                                $tempArrayIncluye['costo'] = $tarifa->getMonto();
                                             }
 
                                             if(!empty($tarifa->getTarifa()->getCapacidadmin())){
@@ -579,19 +579,23 @@ class CotizacionResumen implements ContainerAwareInterface
         return true;
     }
 
-    public function getMensaje(){
+    public function getMensaje(): string
+    {
         return $this->mensaje;
     }
 
-    public function getDatosTabs(){
+    public function getDatosTabs(): array
+    {
         return $this->datosTabs;
     }
 
-    public function getDatosCotizacion(){
+    public function getDatosCotizacion(): array
+    {
         return $this->datosCotizacion;
     }
 
-    public function orderResumenTarifas(){
+    public function orderResumenTarifas(): void
+    {
 
         usort($this->clasificacionTarifas, function($a, $b){
             if(!isset($b['edadMin'])){ $b['edadMin'] = $this->edadMin; }
@@ -703,7 +707,8 @@ class CotizacionResumen implements ContainerAwareInterface
         ksort($this->resumendeClasificado);
     }
 
-    private function obtenerTarifasComponente($componente, $cantidadTotalPasajeros){
+    private function obtenerTarifasComponente(array $componente, int $cantidadTotalPasajeros): void
+    {
 
         $claseTarifas = [];
 
@@ -763,14 +768,16 @@ class CotizacionResumen implements ContainerAwareInterface
         }
     }
 
-    private function resetClasificacionTarifas(){
+    private function resetClasificacionTarifas(): void
+    {
 
         foreach ($this->clasificacionTarifas as &$clase):
             $clase['cantidadRestante'] = $clase['cantidad'];
         endforeach;
     }
 
-    private function procesarTarifa($claseTarifas, $ejecucion, $cantidadTotalPasajeros){
+    private function procesarTarifa(array $claseTarifas, int $ejecucion, int $cantidadTotalPasajeros): void
+    {
 
         $ejecucion++;
 
@@ -830,8 +837,8 @@ class CotizacionResumen implements ContainerAwareInterface
             //los prorrateados se distribuyen
             if($clase['prorrateado'] === false){
                 $voterIndex = $this->voter($clase, $cantidadTotalPasajeros);
-
-                if($voterIndex !== false){
+                //es -1 si no encuentra
+                if($voterIndex >= 0){
                     $this->match($clase, $voterIndex, $clase['tituloPersistente']);
 
                     if($clase['cantidad'] < 1){
@@ -860,7 +867,8 @@ class CotizacionResumen implements ContainerAwareInterface
         }
     }
 
-    private function modificarClasificacion(&$clase, $voterIndex){
+    private function modificarClasificacion(array &$clase, int $voterIndex): void
+    {
 
         $temp = $this->clasificacionTarifas[$voterIndex];
         $edadMaxima = $this->edadMax;
@@ -917,7 +925,8 @@ class CotizacionResumen implements ContainerAwareInterface
         }
     }
 
-    private function match(&$clase, $voterIndex, $tituloPersistente = false){
+    private function match(array &$clase, int $voterIndex, bool $tituloPersistente = false): void
+    {
 
         if($tituloPersistente === true){
             //si hubiera ya un titulo lo concatenamos
@@ -945,7 +954,8 @@ class CotizacionResumen implements ContainerAwareInterface
         unset($clase['tarifa']['montototal']);
     }
 
-    private function voter($clase, $cantidadTotalPasajeros){
+    private function voter(array $clase, int $cantidadTotalPasajeros): int
+    {
 
         $clasificacion = $this->clasificacionTarifas;
 
@@ -1003,23 +1013,23 @@ class CotizacionResumen implements ContainerAwareInterface
         endforeach;
 
         if(empty($voter) || max($voter) <= 0 ){
-            return false;
+            return -1;
         }
 
         return array_search(max($voter), $voter);
     }
 
-    public function getFormatedDate($FechaStamp): string
+    public function getFormatedDate(int $fechaStamp): string
     {
 
         if($this->tl != 'es' && $this->tl != 'en'){
             $this->tl = 'es';
         }
 
-        $ano = date('Y',$FechaStamp);
-        $mes = date('n',$FechaStamp);
-        $dia = date('d',$FechaStamp);
-        $diasemana = date('w',$FechaStamp);
+        $ano = date('Y',$fechaStamp);
+        $mes = date('n',$fechaStamp);
+        $dia = date('d',$fechaStamp);
+        $diasemana = date('w',$fechaStamp);
 
         if($this->tl == 'es'){
             $diassemanaN = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
