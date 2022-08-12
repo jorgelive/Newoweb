@@ -170,6 +170,33 @@ class CotizacionFilepasajero
     }
 
     /**
+     * Get apellidoPaterno.
+     *
+     * @return string
+     */
+    public function getApellidoPaterno()
+    {
+        $apellidosArray = explode(' ', $this->apellido, 2);
+
+        return $apellidosArray[0];
+    }
+
+    /**
+     * Get apellidoMaterno.
+     *
+     * @return string
+     */
+    public function getApellidoMaterno()
+    {
+        $apellidosArray = explode(' ', $this->apellido, 2);
+
+        if(!isset($apellidosArray[1])){
+            return 'NR';
+        }
+        return $apellidosArray[1];
+    }
+
+    /**
      * Set fechanacimiento.
      *
      * @param \DateTime $fechanacimiento

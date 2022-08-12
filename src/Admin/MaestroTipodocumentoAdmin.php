@@ -24,6 +24,12 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('codigoddc', null, [
                 'label' => 'Código DDC'
             ])
+            ->add('codigopr', null, [
+                'label' => 'Código PR'
+            ])
+            ->add('codigocon', null, [
+                'label' => 'Código CON'
+            ])
         ;
     }
 
@@ -43,6 +49,14 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ])
             ->add('codigoddc', null, [
                 'label' => 'Código DDC',
+                'editable' => true
+            ])
+            ->add('codigopr', null, [
+                'label' => 'Código PR',
+                'editable' => true
+            ])
+            ->add('codigocon', null, [
+                'label' => 'Código CON',
                 'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, 'actions', [
@@ -69,6 +83,12 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('codigoddc', null, [
                 'label' => 'Código DDC'
             ])
+            ->add('codigopr', null, [
+                'label' => 'Código PR'
+            ])
+            ->add('codigocon', null, [
+                'label' => 'Código CON'
+            ])
         ;
     }
 
@@ -85,6 +105,12 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ])
             ->add('codigoddc', null, [
                 'label' => 'Código DDC'
+            ])
+            ->add('codigopr', null, [
+                'label' => 'Código PR'
+            ])
+            ->add('codigocon', null, [
+                'label' => 'Código CON'
             ])
         ;
     }

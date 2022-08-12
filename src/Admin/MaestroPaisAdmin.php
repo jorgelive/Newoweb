@@ -22,6 +22,15 @@ class MaestroPaisAdmin extends AbstractAdmin
             ->add('codigodcc',  null, [
                 'label' => 'Código DCC'
             ])
+            ->add('codigopr',  null, [
+                'label' => 'Código PR'
+            ])
+            ->add('codigocon',  null, [
+                'label' => 'Código CON'
+            ])
+            ->add('ciudadcon',  null, [
+                'label' => 'Ciudad CON'
+            ])
         ;
     }
 
@@ -40,6 +49,18 @@ class MaestroPaisAdmin extends AbstractAdmin
             ])
             ->add('codigodcc',  null, [
                 'label' => 'Código DCC',
+                'editable' => true
+            ])
+            ->add('codigopr',  null, [
+                'label' => 'Código PR',
+                'editable' => true
+            ])
+            ->add('codigocon',  null, [
+                'label' => 'Código CON',
+                'editable' => true
+            ])
+            ->add('ciudadcon',  null, [
+                'label' => 'Ciudad CON',
                 'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, array(
@@ -63,6 +84,15 @@ class MaestroPaisAdmin extends AbstractAdmin
             ->add('codigodcc',  null, [
                 'label' => 'Código DCC'
             ])
+            ->add('codigopr',  null, [
+                'label' => 'Código PR'
+            ])
+            ->add('codigocon',  null, [
+                'label' => 'Código CON'
+            ])
+            ->add('ciudadcon',  null, [
+                'label' => 'Ciudad CON'
+            ])
         ;
     }
 
@@ -77,6 +107,15 @@ class MaestroPaisAdmin extends AbstractAdmin
             ->add('nacionalidad')
             ->add('codigodcc',  null, [
                 'label' => 'Código DCC'
+            ])
+            ->add('codigopr',  null, [
+                'label' => 'Código PR'
+            ])
+            ->add('codigocon',  null, [
+                'label' => 'Código CON'
+            ])
+            ->add('ciudadcon',  null, [
+                'label' => 'Ciudad CON'
             ])
         ;
     }

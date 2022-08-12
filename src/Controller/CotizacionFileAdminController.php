@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,10 +21,6 @@ class CotizacionFileAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
-
-    /**
-     *
-     */
     public function archivodccAction(Request $request): Response
     {
         $object = $this->assertObjectExists($request, true);
@@ -73,24 +70,143 @@ class CotizacionFileAdminController extends CRUDAdminController
             ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
             ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
             ->getArchivo();
-
-
-        $status = Response::HTTP_OK;
-        return $this->makeFileResponse($archivoexcel, $status);
     }
 
-    function makeFileResponse($archivo, $status): Response
+    public function archivoprAction(Request $request): Response
     {
+        $object = $this->assertObjectExists($request, true);
 
-        $mimeType = $archivo->getContentType();
-        $filename = $archivo->getFilename();
+        $this->assertObjectExists($request);
 
-        $response = new Response();
-        $response->headers->set('Content-Type', sprintf('%s; charset=utf-8', $mimeType));
-        $response->headers->set('Content-Disposition', sprintf('attachment; filename="%s', $filename));
-        $response->setContent($archivo->export());
-        $response->setStatusCode($status);
-        return $response;
+        $this->checkParentChildAssociation($request, $object);
+
+        $this->admin->checkAccess('show', $object);
+
+        $preResponse = $this->preShow($request, $object);
+        if (null !== $preResponse) {
+            return $preResponse;
+        }
+
+        $this->admin->setSubject($object);
+
+        $em = $this->container->get('doctrine.orm.default_entity_manager');
+
+        $qb = $em->createQueryBuilder()
+            ->select('fp')
+            ->from('App\Entity\CotizacionFilepasajero', 'fp')
+            ->where('fp.file = :file')
+            ->setParameter('file', $object->getId())
+            ->orderBy('fp.id', 'ASC')
+        ;
+
+        $filePasajeros = $qb->getQuery()->getResult();
+
+        $encabezado = ['Item reserva', 'Nombre', 'Apellido', 'Tipo Doc', 'Número Doc', 'Nacionalidad', 'Nacimiento', 'File'];
+        foreach ($filePasajeros as $key => $filePasajero){
+            $resultados[$key]['item'] = 1;
+            $resultados[$key]['nombre'] = $filePasajero->getNombre();
+            $resultados[$key]['apellido'] = $filePasajero->getApellido();
+            $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigopr();
+            $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
+            $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigopr();
+            $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d/m/Y');
+            $resultados[$key]['file'] = 'F' . sprintf('%010d', $object->getId());
+
+        }
+
+        return $this->container->get('App\Service\MainArchivoexcel')
+            ->setArchivo()
+            ->setParametrosWriter($resultados, $encabezado, 'PERURAIL_' . $object->getNombre())
+            ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+            ->getArchivo();
     }
+
+    public function archivoconAction(Request $request): Response
+    {
+        $object = $this->assertObjectExists($request, true);
+
+        $this->assertObjectExists($request);
+
+        $this->checkParentChildAssociation($request, $object);
+
+        $this->admin->checkAccess('show', $object);
+
+        $preResponse = $this->preShow($request, $object);
+        if (null !== $preResponse) {
+            return $preResponse;
+        }
+
+        $this->admin->setSubject($object);
+
+        $em = $this->container->get('doctrine.orm.default_entity_manager');
+
+        $qb = $em->createQueryBuilder()
+            ->select('fp')
+            ->from('App\Entity\CotizacionFilepasajero', 'fp')
+            ->where('fp.file = :file')
+            ->setParameter('file', $object->getId())
+            ->orderBy('fp.id', 'ASC')
+        ;
+
+        $filePasajeros = $qb->getQuery()->getResult();
+
+        $qb = $em->createQueryBuilder()
+            ->select('cc')
+            ->from('App\Entity\CotizacionCotcomponente', 'cc')
+            ->innerJoin('cc.cotservicio', 'cs')
+            ->innerJoin('cs.cotizacion', 'c')
+            ->innerJoin('c.file', 'f')
+            ->where('f.id = :file')
+            ->andWhere('c.estadocotizacion = :estado')
+            ->andWhere($qb->expr()->in('cc.componente', [30, 85])) //Consettur RT y OW
+            ->setParameter('file', $object->getId())
+            ->setParameter('estado', 3) //aceptado
+            ->orderBy('cc.id', 'ASC')
+            ->setMaxResults(1);
+        ;
+
+        $cotcomponentes = $qb->getQuery()->getResult();
+        if(empty($cotcomponentes)){
+            $this->addFlash('sonata_flash_error', 'No exixte el servicio concetir para la cotización confirmada del file.');
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
+
+        $fechaservicio = $cotcomponentes['0']->getFechahorainicio();
+
+        $encabezado = ['Fecha de uso', 'Tramo', 'Tipo Doc', 'Número Doc', 'Nombres', 'Apellido Paterno', 'Apellido Materno', 'Nacimiento', 'Sexo', 'Pais', 'Ciudad', 'Residente', 'Estudiante', 'Guia', 'Discapacitado'];
+        foreach ($filePasajeros as $key => $filePasajero){
+            $edad = $fechaservicio->diff($filePasajero->getFechanacimiento())->y;
+            if($edad>=12 && $edad<=17 && $filePasajero->getPais()->getId() == 117){
+                $esEstudiante = 'SI';
+            }else{
+                $esEstudiante = 'NO';
+            }
+
+            $resultados[$key]['fechauso'] = $fechaservicio->format('d-m-Y');
+            $resultados[$key]['tramo'] = 'Subida y Bajada';
+            $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigocon();
+            $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
+            $resultados[$key]['nombre'] = $filePasajero->getNombre();
+            $resultados[$key]['apellidopaterno'] = $filePasajero->getApellidoPaterno();
+            $resultados[$key]['apellidomaterno'] = $filePasajero->getApellidoMaterno();
+            $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d-m-Y');
+            $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
+            $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigocon();
+            $resultados[$key]['pais'] = $filePasajero->getPais()->getCiudadcon();
+            $resultados[$key]['residente'] = 'NO';
+            $resultados[$key]['estudiante'] = $esEstudiante;
+            $resultados[$key]['guia'] = 'NO';
+            $resultados[$key]['discapacitado'] = 'NO';
+
+        }
+
+        return $this->container->get('App\Service\MainArchivoexcel')
+            ->setArchivo()
+            ->setParametrosWriter($resultados, $encabezado, 'consettur_' . $object->getNombre())
+            ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+            ->getArchivo();
+    }
+
+
 
 }

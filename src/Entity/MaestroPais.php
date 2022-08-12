@@ -38,11 +38,36 @@ class MaestroPais
     private $nacionalidad;
 
     /**
+     * DCC Cusco
      * @var int
      *
      * @ORM\Column(type="integer", length=3)
      */
     private $codigodcc;
+
+    /**
+     * Perurail
+     * @var string
+     *
+     * @ORM\Column(type="string", length=5)
+     */
+    private $codigopr;
+
+    /**
+     * Consettur
+     * @var string
+     *
+     * @ORM\Column(type="string", length=40)
+     */
+    private $codigocon;
+
+    /**
+     * Consettur ciudad
+     * @var string
+     *
+     * @ORM\Column(type="string", length=40)
+     */
+    private $ciudadcon;
 
     /**
      * @var \DateTime $creado
@@ -85,7 +110,7 @@ class MaestroPais
      *
      * @return MaestroPais
      */
-    public function setNombre($nombre)
+    public function setNombre(string $nombre)
     {
         $this->nombre = $nombre;
     
@@ -109,7 +134,7 @@ class MaestroPais
      *
      * @return MaestroPais
      */
-    public function setNacionalidad($nacionalidad)
+    public function setNacionalidad(string $nacionalidad)
     {
         $this->nacionalidad = $nacionalidad;
     
@@ -148,6 +173,78 @@ class MaestroPais
     public function getCodigodcc()
     {
         return $this->codigodcc;
+    }
+
+    /**
+     * Set codigopr
+     *
+     * @param string $codigopr
+     *
+     * @return MaestroPais
+     */
+    public function setCodigopr(string $codigopr)
+    {
+        $this->codigopr = $codigopr;
+
+        return $this;
+    }
+
+    /**
+     * Get codigopr
+     *
+     * @return string
+     */
+    public function getCodigopr()
+    {
+        return $this->codigopr;
+    }
+
+    /**
+     * Set codigocon
+     *
+     * @param string $codigocon
+     *
+     * @return MaestroPais
+     */
+    public function setCodigocon(string $codigocon)
+    {
+        $this->codigocon = $codigocon;
+
+        return $this;
+    }
+
+    /**
+     * Get codigocon
+     *
+     * @return string
+     */
+    public function getCodigocon()
+    {
+        return $this->codigocon;
+    }
+
+    /**
+     * Set ciudadcon
+     *
+     * @param string $ciudadcon
+     *
+     * @return MaestroPais
+     */
+    public function setCiudadcon(string $ciudadcon)
+    {
+        $this->ciudadcon = $ciudadcon;
+
+        return $this;
+    }
+
+    /**
+     * Get ciudadcon
+     *
+     * @return string
+     */
+    public function getCiudadcon()
+    {
+        return $this->ciudadcon;
     }
 
     /**

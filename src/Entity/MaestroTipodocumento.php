@@ -38,11 +38,28 @@ class MaestroTipodocumento
     private $codigo;
 
     /**
-     * @var string
+     * DDC Cusco
+     * @var int
      *
      * @ORM\Column(type="integer", length=2)
      */
     private $codigoddc;
+
+    /**
+     * Perurail
+     * @var string
+     *
+     * @ORM\Column(type="string", length=5)
+     */
+    private $codigopr;
+
+    /**
+     * Consettur
+     * @var string
+     *
+     * @ORM\Column(type="string", length=40)
+     */
+    private $codigocon;
 
     /**
      * @var \DateTime $creado
@@ -129,7 +146,7 @@ class MaestroTipodocumento
     /**
      * Set codigoddc
      *
-     * @param string $codigoddc
+     * @param int $codigoddc
      *
      * @return MaestroTipodocumento
      */
@@ -143,11 +160,60 @@ class MaestroTipodocumento
     /**
      * Get codigoddc
      *
-     * @return string
+     * @return int
      */
     public function getCodigoddc()
     {
         return $this->codigoddc;
+    }
+
+
+    /**
+     * Set codigopr
+     *
+     * @param string $codigopr
+     *
+     * @return MaestroTipodocumento
+     */
+    public function setCodigopr($codigopr)
+    {
+        $this->codigopr = $codigopr;
+
+        return $this;
+    }
+
+    /**
+     * Get codigopr
+     *
+     * @return string
+     */
+    public function getCodigopr()
+    {
+        return $this->codigopr;
+    }
+
+    /**
+     * Set codigocon
+     *
+     * @param string $codigocon
+     *
+     * @return MaestroTipodocumento
+     */
+    public function setCodigocon($codigocon)
+    {
+        $this->codigopr = $codigocon;
+
+        return $this;
+    }
+
+    /**
+     * Get codigocon
+     *
+     * @return string
+     */
+    public function getCodigocon()
+    {
+        return $this->codigocon;
     }
 
     /**

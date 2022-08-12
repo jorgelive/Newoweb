@@ -150,5 +150,7 @@ class CotizacionFileAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('archivodcc', $this->getRouterIdParameter() . '/archivodcc');
+        $collection->add('archivopr', $this->getRouterIdParameter() . '/archivopr');
+        $collection->add('archivocon', $this->getRouterIdParameter() . '/archivocon');
     }
 }
