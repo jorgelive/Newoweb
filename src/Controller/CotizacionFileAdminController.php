@@ -192,7 +192,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d-m-Y');
             $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
             $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigocon();
-            $resultados[$key]['pais'] = $filePasajero->getPais()->getCiudadcon();
+            $resultados[$key]['ciudad'] = $filePasajero->getPais()->getCiudadcon();
             $resultados[$key]['residente'] = 'NO';
             $resultados[$key]['estudiante'] = $esEstudiante;
             $resultados[$key]['guia'] = 'NO';
