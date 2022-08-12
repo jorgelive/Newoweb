@@ -201,7 +201,7 @@ class MaestroTipodocumento
      */
     public function setCodigocon($codigocon)
     {
-        $this->codigopr = $codigocon;
+        $this->codigocon = $codigocon;
 
         return $this;
     }
