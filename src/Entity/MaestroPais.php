@@ -26,16 +26,23 @@ class MaestroPais
     /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=100)
+     * @ORM\Column(type="string", length=100)
      */
     private $nombre;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="nacionalidad", type="string", length=100)
+     * @ORM\Column(type="string", length=100)
      */
     private $nacionalidad;
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(type="integer", length=3)
+     */
+    private $codigodcc;
 
     /**
      * @var \DateTime $creado
@@ -117,6 +124,30 @@ class MaestroPais
     public function getNacionalidad()
     {
         return $this->nacionalidad;
+    }
+
+    /**
+     * Set codigodcc
+     *
+     * @param int $codigodcc
+     *
+     * @return MaestroPais
+     */
+    public function setCodigodcc(int $codigodcc)
+    {
+        $this->codigodcc = $codigodcc;
+
+        return $this;
+    }
+
+    /**
+     * Get codigodcc
+     *
+     * @return int
+     */
+    public function getCodigodcc()
+    {
+        return $this->codigodcc;
     }
 
     /**

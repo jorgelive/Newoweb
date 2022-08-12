@@ -231,6 +231,25 @@ class CotizacionFilepasajero
         return $this->numerodocumento;
     }
 
+
+    /**
+     * Get numerodocumento.
+     *
+     * @return int
+     */
+    public function getCategoriaddc(): int
+    {
+        if($this->getEdad() >= 18){
+            return 1;
+        }elseif($this->getEdad() >= 13 && $this->getEdad() >= 17){
+            return 2;
+        }elseif($this->getEdad() >= 3 && $this->getEdad() >= 12){
+            return 7;
+        }else{
+           return 0;
+        }
+    }
+
     /**
      * Set creado.
      *
@@ -375,27 +394,4 @@ class CotizacionFilepasajero
         return $this->file;
     }
 
-    /**
-     * Set nacimiento.
-     *
-     * @param string $nacimiento
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setNacimiento($nacimiento)
-    {
-        $this->nacimiento = $nacimiento;
-    
-        return $this;
-    }
-
-    /**
-     * Get nacimiento.
-     *
-     * @return string
-     */
-    public function getNacimiento()
-    {
-        return $this->nacimiento;
-    }
 }

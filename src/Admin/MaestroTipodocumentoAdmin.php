@@ -21,6 +21,9 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('codigo', null, [
                 'label' => 'Código'
             ])
+            ->add('codigoddc', null, [
+                'label' => 'Código DDC'
+            ])
         ;
     }
 
@@ -36,6 +39,10 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ])
             ->add('codigo', null, [
                 'label' => 'Código',
+                'editable' => true
+            ])
+            ->add('codigoddc', null, [
+                'label' => 'Código DDC',
                 'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, 'actions', [
@@ -59,6 +66,9 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('codigo', null, [
                 'label' => 'Código'
             ])
+            ->add('codigoddc', null, [
+                'label' => 'Código DDC'
+            ])
         ;
     }
 
@@ -72,6 +82,9 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('codigo', null, [
                 'label' => 'Código'
+            ])
+            ->add('codigoddc', null, [
+                'label' => 'Código DDC'
             ])
         ;
     }

@@ -17,7 +17,7 @@ class MaestroSexo
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
@@ -26,7 +26,7 @@ class MaestroSexo
     /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=100)
+     * @ORM\Column(type="string", length=100)
      */
     private $nombre;
 
@@ -86,6 +86,16 @@ class MaestroSexo
     public function getNombre()
     {
         return $this->nombre;
+    }
+
+    /**
+     * Get inicial
+     *
+     * @return string
+     */
+    public function getInicial()
+    {
+        return substr(ucfirst($this->nombre), 0, 1);
     }
 
     /**

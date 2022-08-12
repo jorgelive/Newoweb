@@ -271,7 +271,8 @@ services:
     App\Service\MainArchivoexcel:
         calls:
              - [ setContainer, [ '@service_container' ] ]
-             - [ setVariableproceso, [ App\Service\MainVariableproceso ] ]
+             - [ setVariableproceso, [ '@App\Service\MainVariableproceso' ] ]
+             - [ setArchivoexcelFactory, [ '@App\Service\MainArchivoexcelFactory' ] ]
 
     app.eventlistener.cuenta_movimiento_doctrine_event_listener:
         class: App\EventListener\CuentaMovimientoDoctrineEventListener
@@ -385,6 +386,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\CotizacionFile
+                controller: App\Controller\CotizacionFileAdminController
                 manager_type: orm
                 group: 'Cotización'
                 label: 'Files de Cotización'

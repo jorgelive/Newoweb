@@ -17,7 +17,7 @@ class MaestroTipodocumento
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
@@ -26,16 +26,23 @@ class MaestroTipodocumento
     /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=100)
+     * @ORM\Column(type="string", length=100)
      */
     private $nombre;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="codigo", type="string", length=10)
+     * @ORM\Column(type="string", length=10)
      */
     private $codigo;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(type="integer", length=2)
+     */
+    private $codigoddc;
 
     /**
      * @var \DateTime $creado
@@ -117,6 +124,30 @@ class MaestroTipodocumento
     public function getCodigo()
     {
         return $this->codigo;
+    }
+
+    /**
+     * Set codigoddc
+     *
+     * @param string $codigoddc
+     *
+     * @return MaestroTipodocumento
+     */
+    public function setCodigoddc($codigoddc)
+    {
+        $this->codigoddc = $codigoddc;
+
+        return $this;
+    }
+
+    /**
+     * Get codigoddc
+     *
+     * @return string
+     */
+    public function getCodigoddc()
+    {
+        return $this->codigoddc;
     }
 
     /**

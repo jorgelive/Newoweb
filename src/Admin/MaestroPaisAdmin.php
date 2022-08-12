@@ -19,6 +19,9 @@ class MaestroPaisAdmin extends AbstractAdmin
             ->add('id')
             ->add('nombre')
             ->add('nacionalidad')
+            ->add('codigodcc',  null, [
+                'label' => 'Código DCC'
+            ])
         ;
     }
 
@@ -33,6 +36,10 @@ class MaestroPaisAdmin extends AbstractAdmin
                 'editable' => true
             ])
             ->add('nacionalidad', null, [
+                'editable' => true
+            ])
+            ->add('codigodcc',  null, [
+                'label' => 'Código DCC',
                 'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, array(
@@ -53,6 +60,9 @@ class MaestroPaisAdmin extends AbstractAdmin
         $formMapper
             ->add('nombre')
             ->add('nacionalidad')
+            ->add('codigodcc',  null, [
+                'label' => 'Código DCC'
+            ])
         ;
     }
 
@@ -65,6 +75,9 @@ class MaestroPaisAdmin extends AbstractAdmin
             ->add('id')
             ->add('nombre')
             ->add('nacionalidad')
+            ->add('codigodcc',  null, [
+                'label' => 'Código DCC'
+            ])
         ;
     }
 }

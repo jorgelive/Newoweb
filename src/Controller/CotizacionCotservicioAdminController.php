@@ -26,7 +26,9 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
      */
     public function icalAction(Request $request): Response
     {
-        $this->assertObjectExists($request);
+        //$object = $this->assertObjectExists($request, true);
+        //\assert(null !== $object);
+
         $estado = 3; //3 Aceptado
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 
@@ -40,7 +42,7 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
             ->orderBy('cs.fechahorainicio', 'ASC')
         ;
 
-        $cotServicios= $qb->getQuery()->getResult();
+        $cotServicios = $qb->getQuery()->getResult();
 
         $calendar = $this->container->get('App\Service\IcalGenerator')->setTimezone('America/Lima')->setProdid('-//OpenPeru//Cotservicio Calendar //ES')->createCalendar();
 
