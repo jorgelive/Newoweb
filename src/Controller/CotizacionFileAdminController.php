@@ -70,7 +70,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         return $this->container->get('App\Service\MainArchivoexcel')
             ->setArchivo()
-            ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre(), 'csv')
+            ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
             ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
             ->getArchivo();
 

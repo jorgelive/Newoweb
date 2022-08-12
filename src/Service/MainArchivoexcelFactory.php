@@ -58,9 +58,16 @@ class MainArchivoexcelFactory
      * Create a writer given the PHPExcelObject and the type,
      *   the type could be one of PHPExcel_IOFactory::$_autoResolveClasses
      */
-    public function createWriter(Spreadsheet $phpExcelObject, string $type = 'Xlsx'): IWriter
+    public function createWriter(Spreadsheet $phpExcelObject, string $type = 'Xlsx', bool $removeEnclosure = false): IWriter
     {
-        return call_user_func(array($this->phpExcelIO, 'createWriter'), $phpExcelObject, $type);
+        $writer = call_user_func(array($this->phpExcelIO, 'createWriter'), $phpExcelObject, $type);
+
+        if ($removeEnclosure){
+            $writer->setEnclosure('');
+        }
+
+        return $writer;
+
     }
 
     /**

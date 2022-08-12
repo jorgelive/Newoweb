@@ -49,6 +49,7 @@ class MainArchivoexcel implements ContainerAwareInterface
     private int $filaBase = 1;
     private string $nombre;
     private string $tipo;
+    private bool $removeEnclosure;
 
     //lamado por inyeccion de componentes
     public function setVariableproceso(MainVariableproceso $variableproceso): void
@@ -448,6 +449,17 @@ class MainArchivoexcel implements ContainerAwareInterface
         return $this;
     }
 
+    public function setRemoveEnclosure(bool $removeEnclosure): self
+    {
+        $this->removeEnclosure = $removeEnclosure;
+        return $this;
+    }
+
+    public function isRemoveEnclosure(): bool
+    {
+        return $this->removeEnclosure;
+    }
+
     public function isTrimEspacios(): bool
     {
         return $this->trimEspacios;
@@ -570,9 +582,12 @@ class MainArchivoexcel implements ContainerAwareInterface
     }
 
 
-    public function setParametrosWriter(array $contenido, array $encabezado = [], string $nombre = 'archivoGenerado', string $tipo = 'xlsx'): self
+    public function setParametrosWriter(array $contenido, array $encabezado = [], string $nombre = 'archivoGenerado', string $tipo = 'xlsx', bool $removeEnclosure = false): self
     {
         $this->setNombre($nombre);
+
+        $this->setRemoveEnclosure($removeEnclosure);
+
         if (!empty($encabezado)) {
             $this->setFila($encabezado, 'A1');
             $this->filaBase = 2;
@@ -753,7 +768,7 @@ class MainArchivoexcel implements ContainerAwareInterface
 
         $tipoWriter['xlsx'] = 'Xlsx';
         $tipoWriter['csv'] = 'Csv';
-        $writer = $this->archivoexcelFactory->createWriter($this->archivo, $tipoWriter[$this->getTipo()]);
+        $writer = $this->archivoexcelFactory->createWriter($this->archivo, $tipoWriter[$this->getTipo()], $this->isRemoveEnclosure());
 
         $response = $this->archivoexcelFactory->createStreamedResponse($writer);
         $response->headers->set('Content-Type', 'text/vnd.ms-excel; charset=utf-8');
