@@ -205,7 +205,5 @@ class CotizacionFileAdminController extends CRUDAdminController
             ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
             ->getArchivo();
     }
-
-
-
+    
 }
