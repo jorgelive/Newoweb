@@ -172,8 +172,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         }
 
         $fechaservicio = $cotcomponentes['0']->getFechahorainicio();
-
-        $encabezado = ['Fecha de uso', 'Tramo', 'Tipo Doc', 'Número Doc', 'Nombres', 'Apellido Paterno', 'Apellido Materno', 'Nacimiento', 'Sexo', 'Pais', 'Ciudad', 'Residente', 'Estudiante', 'Guia', 'Discapacitado'];
+        $encabezado = ['fecha de uso', 'tramo', 'tipo de documento', 'numero de documento', 'nombres', 'apellido', 'apellido materno', 'fecha de nacimiento', 'genero', 'pais', 'ciudad', 'tipo de residente', 'es estudiante', 'es guia', 'es discapacitado']
         foreach ($filePasajeros as $key => $filePasajero){
             $edad = $fechaservicio->diff($filePasajero->getFechanacimiento())->y;
             if($edad>=12 && $edad<=17 && $filePasajero->getPais()->getId() == 117){
@@ -193,7 +192,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
             $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigocon();
             $resultados[$key]['ciudad'] = $filePasajero->getPais()->getCiudadcon();
-            $resultados[$key]['residente'] = 'NO';
+            $resultados[$key]['residente'] = '';
             $resultados[$key]['estudiante'] = $esEstudiante;
             $resultados[$key]['guia'] = 'NO';
             $resultados[$key]['discapacitado'] = 'NO';
