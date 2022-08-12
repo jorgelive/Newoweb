@@ -54,7 +54,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         $filePasajeros = $qb->getQuery()->getResult();
 
         $resultados = [];
-        $encabezado = ['Apellido', 'Nombre', 'Tipo Doc', 'Número Doc', 'Nacimiento', 'Pais', 'Sexo', 'File', 'Categoria'];
+        $encabezado = []; //['Apellido', 'Nombre', 'Tipo Doc', 'Número Doc', 'Nacimiento', 'Pais', 'Sexo', 'File', 'Categoria'];
         foreach ($filePasajeros as $key => $filePasajero){
             $resultados[$key]['apellido'] = $filePasajero->getApellido();
             $resultados[$key]['nombre'] = $filePasajero->getNombre();
@@ -70,7 +70,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         return $this->container->get('App\Service\MainArchivoexcel')
             ->setArchivo()
-            ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre())
+            ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre(), 'csv')
             ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
             ->getArchivo();
 

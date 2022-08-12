@@ -752,6 +752,7 @@ class MainArchivoexcel implements ContainerAwareInterface
         }
 
         $tipoWriter['xlsx'] = 'Xlsx';
+        $tipoWriter['csv'] = 'Csv';
         $writer = $this->archivoexcelFactory->createWriter($this->archivo, $tipoWriter[$this->getTipo()]);
 
         $response = $this->archivoexcelFactory->createStreamedResponse($writer);
