@@ -50,6 +50,11 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         $filePasajeros = $qb->getQuery()->getResult();
 
+        if(empty($filePasajeros)){
+            $this->addFlash('sonata_flash_error', 'El file no tiene pasajeros ingresados.');
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
+
         $resultados = [];
         $encabezado = []; //['Apellido', 'Nombre', 'Tipo Doc', 'Número Doc', 'Nacimiento', 'Pais', 'Sexo', 'File', 'Categoria'];
         foreach ($filePasajeros as $key => $filePasajero){
@@ -101,7 +106,12 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         $filePasajeros = $qb->getQuery()->getResult();
 
-        $encabezado = ['Item reserva', 'Nombre', 'Apellido', 'Tipo Doc', 'Número Doc', 'Nacionalidad', 'Nacimiento', 'File'];
+        if(empty($filePasajeros)){
+            $this->addFlash('sonata_flash_error', 'El file no tiene pasajeros ingresados.');
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
+
+        $encabezado = ['ITEM RESERVA', 'PRIMER NOMBRE', 'PRIMER APELLIDO', 'TIPO DOC', 'NRO DOC', 'NACIONALIDAD', 'FECHA NAC.', 'REF CLIENTE'];
         foreach ($filePasajeros as $key => $filePasajero){
             $resultados[$key]['item'] = 1;
             $resultados[$key]['nombre'] = $filePasajero->getNombre();
@@ -116,7 +126,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         return $this->container->get('App\Service\MainArchivoexcel')
             ->setArchivo()
-            ->setParametrosWriter($resultados, $encabezado, 'PERURAIL_' . $object->getNombre())
+            ->setParametrosWriter($resultados, $encabezado, 'PERURAIL_' . $object->getNombre(), 'xls')
             ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
             ->getArchivo();
     }
@@ -149,6 +159,11 @@ class CotizacionFileAdminController extends CRUDAdminController
         ;
 
         $filePasajeros = $qb->getQuery()->getResult();
+
+        if(empty($filePasajeros)){
+            $this->addFlash('sonata_flash_error', 'El file no tiene pasajeros ingresados.');
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
 
         $qb = $em->createQueryBuilder()
             ->select('cc')
