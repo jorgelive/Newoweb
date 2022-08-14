@@ -6,6 +6,7 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\Form\Type\DatePickerType;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
@@ -99,11 +100,11 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ])
             ->add('validezinicio', null, [
                 'label' => 'Inicio',
-                'format' => 'Y/m/d H:i'
+                'format' => 'Y/m/d'
             ])
             ->add('validezfin', null, [
                 'label' => 'Fin',
-                'format' => 'Y/m/d H:i'
+                'format' => 'Y/m/d'
             ])
             ->add('prorrateado', null, [
                 'editable' => true
@@ -145,6 +146,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
+                    'clonar' => [
+                        'template' => 'servicio_tarifa_admin/list__action_clonar.html.twig'
+                    ]
                 ],
             ])
         ;
@@ -293,10 +297,12 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('moneda')
             ->add('monto')
             ->add('validezinicio', null, [
-                'label' => 'Inicio'
+                'label' => 'Inicio',
+                'format' => 'Y/m/d'
             ])
             ->add('validezfin', null, [
-                'label' => 'Fin'
+                'label' => 'Fin',
+                'format' => 'Y/m/d'
             ])
             ->add('prorrateado')
             ->add('tipopax', null, [
@@ -322,5 +328,10 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'label' => 'Categoria de tour'
             ])
         ;
+    }
+
+    protected function configureRoutes(RouteCollectionInterface $collection): void
+    {
+        $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
     }
 }

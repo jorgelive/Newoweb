@@ -1077,6 +1077,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioTarifa
+                controller: App\Controller\ServicioTarifaAdminController
                 manager_type: orm
                 group: Servicio
                 label: Tarifa para cotizar
