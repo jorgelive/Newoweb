@@ -5,6 +5,7 @@ namespace App\Admin;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
+use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
@@ -35,6 +36,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('id')
             ->add('componente')
             ->add('nombre')
+            ->add('categoriatour', null, [
+                'label' => 'Categoria de tour'
+            ])
             ->add('titulo', TranslationFieldFilter::class, [
                 'label' => 'Título'
             ])
@@ -65,9 +69,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('edadmax', null, [
                 'label' => 'Edad max'
             ])
-            ->add('categoriatour', null, [
-                'label' => 'Categoria de tour'
-            ])
         ;
     }
 
@@ -86,9 +87,22 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('nombre', null, [
                 'editable' => true
             ])
+            ->add('categoriatour', FieldDescriptionInterface::TYPE_CHOICE, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'categoriatour']],
+                'label' => 'Categoria de tour',
+                'editable' => true,
+                'class' => 'App\Entity\MaestroCategoriatour',
+                'choices' => [
+                    1 => 'Estandar',
+                    2 => 'Económico',
+                    3 => 'Superior',
+                    4 => 'Premium'
+                ]
+            ])
             ->add('titulo', null, [
                 'label' => 'Título',
-                'editable' => true
             ])
             ->add('moneda', null, [
                 'sortable' => true,
@@ -137,9 +151,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'label' => 'Edad max',
                 'editable' => true
             ])
-            ->add('categoriatour', null, [
-                'label' => 'Categoria de tour'
-            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -167,6 +178,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
 
         $formMapper
             ->add('nombre')
+            ->add('categoriatour', null, [
+                'label' => 'Categoria de tour'
+            ])
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
@@ -208,9 +222,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'attr' => [
                     'class' => 'fecha'
                 ]
-            ])
-            ->add('categoriatour', null, [
-                'label' => 'Categoria de tour'
             ])
         ;
 
@@ -291,6 +302,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('id')
             ->add('componente')
             ->add('nombre')
+            ->add('categoriatour', null, [
+                'label' => 'Categoria de tour'
+            ])
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
@@ -322,10 +336,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ])
             ->add('edadmax', null, [
                 'label' => 'Edad max'
-            ])
-
-            ->add('categoriatour', null, [
-                'label' => 'Categoria de tour'
             ])
         ;
     }

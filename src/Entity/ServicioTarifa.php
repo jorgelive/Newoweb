@@ -125,6 +125,7 @@ class ServicioTarifa implements Translatable
      * @var \App\Entity\MaestroCategoriatour
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\MaestroCategoriatour")
+     * @ORM\JoinColumn(name="categoriatour_id", referencedColumnName="id", nullable=false)
      */
     protected $categoriatour;
 

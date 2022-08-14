@@ -5,6 +5,7 @@ namespace App\Admin;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
+use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
@@ -146,12 +147,12 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ->add('numeropasajeros', null, [
                 'label' => 'Num Pax'
             ])
-            ->add('comision', 'decimal', [
+            ->add('comision', FieldDescriptionInterface::TYPE_FLOAT, [
                 'editable' => true,
                 'row_align' => 'right',
                 'label' => 'Comisión'
             ])
-            ->add('estadocotizacion', 'choice', [
+            ->add('estadocotizacion', FieldDescriptionInterface::TYPE_CHOICE, [
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
                 'sort_parent_association_mappings' => [['fieldName' => 'estadocotizacion']],

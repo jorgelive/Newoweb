@@ -7,6 +7,7 @@ use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
+use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
 class MaestroCategoriatourAdmin extends AbstractAdmin
 {
@@ -18,6 +19,9 @@ class MaestroCategoriatourAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
+            ->add('titulo', TranslationFieldFilter::class, [
+                'label' => 'Título'
+            ])
         ;
     }
 
@@ -29,6 +33,10 @@ class MaestroCategoriatourAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('nombre', null, [
+                'editable' => true
+            ])
+            ->add('titulo', null, [
+                'label' => 'Título',
                 'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
@@ -49,6 +57,9 @@ class MaestroCategoriatourAdmin extends AbstractAdmin
     {
         $formMapper
             ->add('nombre')
+            ->add('titulo', null, [
+                'label' => 'Título'
+            ])
         ;
     }
 
@@ -60,6 +71,9 @@ class MaestroCategoriatourAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
+            ->add('titulo', null, [
+                'label' => 'Título'
+            ])
         ;
     }
 }

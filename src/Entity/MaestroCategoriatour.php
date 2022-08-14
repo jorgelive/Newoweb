@@ -30,6 +30,14 @@ class MaestroCategoriatour
     private $nombre;
 
     /**
+     * @var string
+     *
+     * @Gedmo\Translatable
+     * @ORM\Column(type="string", length=100, nullable=false)
+     */
+    private $titulo;
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -85,6 +93,30 @@ class MaestroCategoriatour
     public function getNombre()
     {
         return $this->nombre;
+    }
+
+    /**
+     * Set titulo.
+     *
+     * @param string $titulo
+     *
+     * @return MaestroCategoriatour
+     */
+    public function setTitulo($titulo)
+    {
+        $this->titulo = $titulo;
+
+        return $this;
+    }
+
+    /**
+     * Get titulo.
+     *
+     * @return string
+     */
+    public function getTitulo()
+    {
+        return $this->titulo;
     }
 
     /**

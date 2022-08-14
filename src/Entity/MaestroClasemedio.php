@@ -172,11 +172,11 @@ class MaestroClasemedio implements Translatable
     /**
      * Set titulo.
      *
-     * @param string|null $titulo
+     * @param string $titulo
      *
      * @return MaestroClasemedio
      */
-    public function setTitulo($titulo = null)
+    public function setTitulo($titulo)
     {
         $this->titulo = $titulo;
     
@@ -186,7 +186,7 @@ class MaestroClasemedio implements Translatable
     /**
      * Get titulo.
      *
-     * @return string|null
+     * @return string
      */
     public function getTitulo()
     {
