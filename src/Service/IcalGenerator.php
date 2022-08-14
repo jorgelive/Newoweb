@@ -30,19 +30,19 @@ class IcalGenerator
     /**
      * @var \DateTimeZone
      */
-    protected $timezone;
+    protected \DateTimeZone $timezone;
 
     /**
      * @var string
      */
-    protected $prodid;
+    protected string $prodid;
 
     /**
      * Create new calendar
      *
      * @return IcalCalendar
      */
-    public function createCalendar()
+    public function createCalendar(): IcalCalendar
     {
         $calendar = new IcalCalendar();
 
@@ -62,7 +62,7 @@ class IcalGenerator
      *
      * @return CalendarEvent
      */
-    public function createCalendarEvent()
+    public function createCalendarEvent(): CalendarEvent
     {
         return new CalendarEvent();
 
@@ -73,7 +73,7 @@ class IcalGenerator
      *
      * @return CalendarAlarm
      */
-    public function createCalendarAlarm()
+    public function createCalendarAlarm(): CalendarAlarm
     {
         return new CalendarAlarm();
     }
@@ -83,7 +83,7 @@ class IcalGenerator
      *
      * @return CalendarFreeBusy
      */
-    public function createCalendarFreeBusy()
+    public function createCalendarFreeBusy(): CalendarFreeBusy
     {
         return new CalendarFreeBusy();
     }
@@ -93,7 +93,7 @@ class IcalGenerator
      *
      * @return CalendarTodo
      */
-    public function createCalendarTodo()
+    public function createCalendarTodo(): CalendarTodo
     {
         return new CalendarTodo();
 
@@ -104,7 +104,7 @@ class IcalGenerator
      *
      * @return Attendee
      */
-    public function createAttendee()
+    public function createAttendee(): Attendee
     {
         return new Attendee(new Formatter());
 
@@ -115,7 +115,7 @@ class IcalGenerator
      *
      * @return Organizer
      */
-    public function createOrganizer()
+    public function createOrganizer(): Organizer
     {
         return new Organizer(new Formatter());
 
@@ -126,7 +126,7 @@ class IcalGenerator
      *
      * @return Geo
      */
-    public function createGeo()
+    public function createGeo(): Geo
     {
         return new Geo();
 
@@ -137,7 +137,7 @@ class IcalGenerator
      *
      * @return Location
      */
-    public function createLocation()
+    public function createLocation(): Location
     {
         return new Location();
 
@@ -148,7 +148,7 @@ class IcalGenerator
      *
      * @return RecurrenceRule
      */
-    public function createRecurrenceRule()
+    public function createRecurrenceRule(): RecurrenceRule
     {
         return new RecurrenceRule(new Formatter());
 
@@ -159,7 +159,7 @@ class IcalGenerator
      *
      * @param string $timezone
      */
-    public function setTimezone($timezone)
+    public function setTimezone(string $timezone): self
     {
         $this->timezone = new \DateTimeZone($timezone);
 
@@ -171,7 +171,7 @@ class IcalGenerator
      *
      * @param string $prodid
      */
-    public function setProdid($prodid)
+    public function setProdid(string $prodid): self
     {
         $this->prodid = $prodid;
 

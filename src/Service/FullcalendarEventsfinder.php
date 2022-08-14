@@ -2,8 +2,12 @@
 
 namespace App\Service;
 
+use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManager;
+use Doctrine\Persistence\ObjectManager;
+use Doctrine\Persistence\ObjectRepository;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Symfony\Component\Security\Http\AccessMap;
@@ -19,14 +23,15 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
 
     use ContainerAwareTrait;
 
-    protected $tokenStorage;
-    protected $authorizatinCheker;
-    protected $managerRegistry;
-    protected $calendars;
-    protected $manager;
-    protected $repository;
-    protected $options;
-
+    protected TokenStorageInterface $tokenStorage;
+    protected ManagerRegistry $managerRegistry;
+    protected array $calendars; //configuracion
+    protected ObjectManager $manager;
+    protected ObjectRepository $repository;
+    protected array $options;
+    /**
+     * @var ContainerInterface
+     */
     protected $container;
 
     public function __construct(ManagerRegistry $managerRegistry, TokenStorageInterface $tokenStorage, AuthorizationCheckerInterface $authorizationChecker)
@@ -37,7 +42,8 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
         $this->authorizationChecker = $authorizationChecker;
     }
 
-    public function setCalendar($calendar){
+    public function setCalendar(string $calendar): void
+    {
 
         $this->calendars = $this->container->getParameter('calendars');
         if(!array_key_exists($calendar, $this->calendars)){
@@ -61,7 +67,8 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
         $this->repository = $this->manager->getRepository($this->options['entity']);
     }
 
-    public function getEvents($data) {
+    public function getEvents(array $data): mixed
+    {
 
         $user = $this->tokenStorage->getToken()->getUser();
 
@@ -74,9 +81,10 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
 
         }else{
             //Para consultas simples
-            $query = $this->manager->createQueryBuilder()
+            $query = $this->manager
+                ->getRepository($this->options['entity'])
+                ->createQueryBuilder()
                 ->select('me')
-                ->from($this->options['entity'], 'me')
                 ->where('me.' . $this->options['parameters']['end'] . ' >= :firstDate AND me.'. $this->options['parameters']['start'] . ' <= :lastDate');
 
             $query->setParameter('firstDate', $data['from'])
@@ -117,12 +125,12 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
             endforeach;
         }
 
-
         return $query->getQuery()->getResult();
 
     }
 
-    public function serializeResources($elements) {
+    public function serializeResources(array $elements): string
+    {
 
         $result = [];
         $aux = [];
@@ -170,7 +178,8 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
         return json_encode($result);
     }
 
-    public function serialize($elements) {
+    public function serialize(array $elements): string
+    {
 
         $result = [];
 

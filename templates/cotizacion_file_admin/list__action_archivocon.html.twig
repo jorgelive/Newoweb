@@ -1,0 +1,8 @@
+{% if admin.isGranted('show', object) and admin.hasRoute('archivocon') %}
+    <a href="{{ admin.generateObjectUrl('archivocon', object) }}"
+       class="btn btn-sm btn-success"
+       title="Formato Consettur">
+        <i class="fa fa-info" aria-hidden="true"></i>
+        F Consettur
+    </a>
+{% endif %}

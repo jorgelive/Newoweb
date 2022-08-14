@@ -12,7 +12,7 @@ class MainTipocambio implements ContainerAwareInterface{
 
     use ContainerAwareTrait;
 
-    private $doctrine;
+    private EntityManagerInterface $doctrine;
 
     function getDoctrine(): EntityManagerInterface
     {
@@ -51,7 +51,7 @@ class MainTipocambio implements ContainerAwareInterface{
             return $this->insertTipo($valorFecha, $fecha);
         }else{
             //retornamos la entidad vacia
-            return new \App\Entity\MaestroTipocambio();
+            return new MaestroTipocambio();
         }
 
     }
@@ -127,7 +127,6 @@ class MainTipocambio implements ContainerAwareInterface{
         }
 
     }
-
 
     private function formatearValores(array $array): array
     {

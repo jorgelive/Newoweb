@@ -127,7 +127,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         return $this->container->get('App\Service\MainArchivoexcel')
             ->setArchivo()
             ->setParametrosWriter($resultados, $encabezado, 'PERURAIL_' . $object->getNombre(), 'xls')
-            ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+            //->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
             ->getArchivo();
     }
 

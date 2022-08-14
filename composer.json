@@ -57,7 +57,8 @@
         "symfony/yaml": "6.0.*",
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/twig": "^2.12|^3.0",
-        "ext-curl": "*"
+        "ext-curl": "*",
+        "ext-calendar": "*"
     },
     "config": {
         "allow-plugins": {

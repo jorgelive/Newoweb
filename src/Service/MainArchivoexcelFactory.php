@@ -7,12 +7,10 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\IWriter;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-
 class MainArchivoexcelFactory
 {
     private string $phpExcelIO;
     private string $phpExcelCell;
-    //private $phpExcelStyle;
 
     public function __construct(string $phpExcelIO = '\PhpOffice\PhpSpreadsheet\IOFactory', string $phpExcelCell = '\PhpOffice\PhpSpreadsheet\Cell\Coordinate')
     {
@@ -25,21 +23,12 @@ class MainArchivoexcelFactory
     public function createPHPExcelObject(?string $filename =  null): Spreadsheet
     {
         if (null == $filename) {
-            $phpExcelObject = new Spreadsheet();
-
-            return $phpExcelObject;
+            return new Spreadsheet();
         }
 
         return call_user_func(array($this->phpExcelIO, 'load'), $filename);
     }
 
-    /**
-     * Creates an empty PHPExcel Sheet if the filename is empty, otherwise loads the file into the object.
-     */
-    public function createPHPExcelSheet(Spreadsheet $phpExcelObject, $filename = null): Worksheet
-    {
-        return new Worksheet($phpExcelObject, $filename);
-    }
 
     /**
      * Creates an empty PHPExcel Object if the filename is empty, otherwise loads the file into the object.
@@ -67,7 +56,6 @@ class MainArchivoexcelFactory
         }
 
         return $writer;
-
     }
 
     /**

@@ -11,7 +11,7 @@ class MainVariableproceso implements ContainerAwareInterface{
 
     use ContainerAwareTrait;
 
-    private static $mensajes;
+    private static array $mensajes;
 
 
     public function __construct()
@@ -34,12 +34,12 @@ class MainVariableproceso implements ContainerAwareInterface{
 
     }
 
-    public function getMensajes(): Array
+    public function getMensajes(): array
     {
         return MainVariableproceso::$mensajes;
     }
 
-    public function sanitizeString($str, $with = '', $what = array())
+    public function sanitizeString(string $str, string $with = '', array $what = []): string
     {
         if(!is_array($what)){
             $what = [$what];
@@ -65,7 +65,7 @@ class MainVariableproceso implements ContainerAwareInterface{
         return $proceso;
     }
 
-    public function exceltime($variable, $tipo='from')
+    public function exceltime(string $variable, string $tipo='from'): string
     {
         if(empty($variable)){
             return '00:00:00';
@@ -102,10 +102,10 @@ class MainVariableproceso implements ContainerAwareInterface{
         }
     }
 
-    public function exceldate($variable, $tipo='from')
+    public function exceldate(int|string $variable, $tipo='from'): int|string
     {
         if(empty($variable)){
-            return $variable;
+            return '';
         }
         if($tipo == 'from'){
 
@@ -122,7 +122,8 @@ class MainVariableproceso implements ContainerAwareInterface{
         }
     }
 
-    public function is_multi_array($array) {
+    public function is_multi_array(array $array): bool
+    {
         return (count($array) != count($array, 1));
     }
 

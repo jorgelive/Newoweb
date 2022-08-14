@@ -91,7 +91,6 @@ class CotizacionResumen implements ContainerAwareInterface
             return false;
         }
 
-
 //para mostrar primero el itinerario
         $datosTabs['itinerario']['nombre'] = 'Itinerario';
         $datosTabs['itinerario']['icono'] = 'fa-map';
@@ -712,7 +711,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
         $claseTarifas = [];
 
-        $tiposAux=[];
+        $tiposAux = [];
 
 //se ejecuta bucle para detectar tipo duplicado
         foreach ($componente as $id => $tarifa):
@@ -778,7 +777,6 @@ class CotizacionResumen implements ContainerAwareInterface
 
     private function procesarTarifa(array $claseTarifas, int $ejecucion, int $cantidadTotalPasajeros): void
     {
-
         $ejecucion++;
 
         if(empty($this->clasificacionTarifas)){

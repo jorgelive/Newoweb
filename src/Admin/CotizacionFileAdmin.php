@@ -79,6 +79,15 @@ class CotizacionFileAdmin extends AbstractAdmin
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
+                    'archivodcc' => [
+                        'template' => 'cotizacion_file_admin\list__action_archivodcc.html.twig'
+                    ],
+                    'archivopr' => [
+                        'template' => 'cotizacion_file_admin\list__action_archivopr.html.twig'
+                    ],
+                    'archivocon' => [
+                        'template' => 'cotizacion_file_admin\list__action_archivocon.html.twig'
+                    ],
                     'edit' => [],
                     'delete' => [],
                 ],

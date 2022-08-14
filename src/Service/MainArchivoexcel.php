@@ -27,7 +27,7 @@ class MainArchivoexcel implements ContainerAwareInterface
 //reader
     private array $setTablaSpecs;
     private array $setColumnaSpecs;
-    private $validCols;
+    private array $validCols;
     private bool $parsed = false;
     private bool $descartarBlanco = false;
     private bool $trimEspacios = false ;
@@ -51,12 +51,13 @@ class MainArchivoexcel implements ContainerAwareInterface
     private string $tipo;
     private bool $removeEnclosure;
 
-    //lamado por inyeccion de componentes
+    //llamado por inyeccion de componentes
     public function setVariableproceso(MainVariableproceso $variableproceso): void
     {
         $this->variableproceso = $variableproceso;
     }
 
+    //llamado por inyeccion de componentes
     public function setArchivoexcelFactory(MainArchivoexcelFactory $archivoexcelFactory): void
     {
         $this->archivoexcelFactory = $archivoexcelFactory;
@@ -67,8 +68,7 @@ class MainArchivoexcel implements ContainerAwareInterface
         return $this->archivoBasePath;
     }
 
-
-    private function getHoja()
+    private function getHoja(): Worksheet
     {
         return $this->hoja;
     }
@@ -101,9 +101,11 @@ class MainArchivoexcel implements ContainerAwareInterface
         return $this;
     }
 
+    /**
+     * @throws \PhpOffice\PhpSpreadsheet\Exception
+     */
     public function setArchivo(): self
     {
-
         if (!empty($this->getArchivoBasePath())) {
             $this->archivo = $this->archivoexcelFactory->createPHPExcelObject($this->getArchivoBasePath());
         } else {
@@ -112,24 +114,32 @@ class MainArchivoexcel implements ContainerAwareInterface
         $this->archivo->getProperties()->setCreator("OpenPeru")
             ->setTitle("Documento Generado")
             ->setDescription("Documento generado para descargar");
+
         $this->hoja = $this->archivo->setActiveSheetIndex(0);
+
         return $this;
         //$total_sheets=$this->archivo->getSheetCount();
         //$allSheetName=$this->archivo->getSheetNames();
 
     }
 
-    public function setHoja($hoja): self
+    /**
+     * @throws \PhpOffice\PhpSpreadsheet\Exception
+     */
+    public function setHoja(int $hojaIndex): self
     {
         $cantidad = $this->archivo->getSheetCount();
-        if ($this->archivo->getSheetCount() < $hoja) {
-            $diferencia = $hoja - $this->archivo->getSheetCount();
+
+        //si no existe la hoja del indice creamos las hojas necesarias
+        if ($this->archivo->getSheetCount() < $hojaIndex) {
+            $diferencia = $hojaIndex - $this->archivo->getSheetCount();
             for ($x = 0; $x < $diferencia; $x++) {
                 $numeroHoja = $cantidad + 1 + $x;
-                $this->archivo->addSheet($this->archivoexcelFactory->createPHPExcelSheet($this->archivo, "Worksheet - " . $numeroHoja));
+                $this->archivo->createSheet();
             }
         }
-        $this->hoja = $this->archivo->setActiveSheetIndex($hoja - 1);
+        $this->hoja = $this->archivo->setActiveSheetIndex($hojaIndex - 1);
+
         return $this;
         //$total_sheets=$this->archivo->getSheetCount();
         //$allSheetName=$this->archivo->getSheetNames();
@@ -175,15 +185,14 @@ class MainArchivoexcel implements ContainerAwareInterface
                 }
             endforeach;
         } else {
-            $this->columnaSpecs = array();
-            $this->validCols = array();
+            $this->columnaSpecs = [];
+            $this->validCols = [];
         }
         return $this;
     }
 
-    public function parseExcel()
+    public function parseExcel(): bool
     {
-
         if (empty($this->archivo)) {
             $this->variableproceso->setMensajes('El archivo no pudo ser puesto en memoria.', 'error');
             return false;
@@ -219,19 +228,19 @@ class MainArchivoexcel implements ContainerAwareInterface
                 $value = $this->getHoja()->getCellByColumnAndRow($col, $row)->getValue();
 
                 //detecta filas de "especificacion"
-                if ($col == 0 && substr($value, 0, 1) == "&" && substr($value, 3, 1) == "&") {
+                if ($col == 0 && str_starts_with($value, "&") && substr($value, 3, 1) == "&") {
                     $specRow = true;
-                    if (substr($value, 0, 4) == "&ta&") {
+                    if (str_starts_with($value, "&ta&")) {
                         $specRowType = 'T';
                         $value = substr($value, 4);
-                    } elseif (substr($value, 0, 4) == "&co&") {
+                    } elseif (str_starts_with($value, "&co&")) {
                         $specRowType = 'C';
                         $value = substr($value, 4);
                     } else {
                         $specRowType = '';
                     }
 
-                } elseif ($col == 0 && substr($value, 0, 1) != "&") {
+                } elseif ($col == 0 && !str_starts_with($value, "&")) {
                     $specRow = false;
                     $specRowType = '';
                 }
@@ -260,7 +269,7 @@ class MainArchivoexcel implements ContainerAwareInterface
                                 $procesandoNombre = true;
                             } elseif ($procesandoNombre === true) {
                                 $this->validCols[] = 'noProcess';
-                            } elseif ($procesandoNombre !== true && !empty($this->validCols) && isset($this->validCols[$col]) && $this->validCols[$col] != 'noProcess') {
+                            } elseif (!empty($this->validCols) && isset($this->validCols[$col]) && $this->validCols[$col] != 'noProcess') {
                                 if (preg_match("/-/i", $this->validCols[$col])) {
                                     $nombres = explode('-', $this->validCols[$col]);
                                 } else {
@@ -323,9 +332,9 @@ class MainArchivoexcel implements ContainerAwareInterface
                                     if ($this->columnaSpecs[$columnName[$key]]['tipo'] == 'file' && $key == 1) {
                                         $parteValor = str_pad($parteValor, 10, 0, STR_PAD_LEFT);
                                     }elseif($this->columnaSpecs[$columnName[$key]]['tipo'] == 'exceldate') {
-                                        $parteValor = $this->container->get('App\Service\MainVariableproceso')->exceldate($parteValor);
+                                        $parteValor = $this->variableproceso->exceldate($parteValor);
                                     }elseif($this->columnaSpecs[$columnName[$key]]['tipo'] == 'exceltime') {
-                                        $parteValor = $this->container->get('App\Service\MainVariableproceso')->exceltime($parteValor);
+                                        $parteValor = $this->variableproceso->exceltime($parteValor);
                                     }
                                 }
                                 $existentesRaw[$fila][$this->columnaSpecs[$columnName[$key]]['nombre']] = str_replace(chr(194) . chr(160), "", $parteValor);
@@ -542,40 +551,40 @@ class MainArchivoexcel implements ContainerAwareInterface
         return $this->existentesCustomIndizados;
     }
 
-    private function setExistentesCustomIndizados($existentesCustomIndizados)
+    private function setExistentesCustomIndizados(array $existentesCustomIndizados): self
     {
         $this->existentesCustomIndizados = $existentesCustomIndizados;
         return $this;
     }
 
-    public function getExistentesCustomIndizadosMulti()
+    public function getExistentesCustomIndizadosMulti(): array
     {
         return $this->existentesCustomIndizadosMulti;
     }
 
-    private function setExistentesCustomIndizadosMulti($existentesCustomIndizadosMulti)
+    private function setExistentesCustomIndizadosMulti(array $existentesCustomIndizadosMulti): self
     {
         $this->existentesCustomIndizadosMulti = $existentesCustomIndizadosMulti;
         return $this;
     }
 
-    public function getExistentesCustomRaw()
+    public function getExistentesCustomRaw(): array
     {
         return $this->existentesCustomRaw;
     }
 
-    private function setExistentesCustomRaw($existentesCustomRaw)
+    private function setExistentesCustomRaw(array $existentesCustomRaw): self
     {
         $this->existentesCustomRaw = $existentesCustomRaw;
         return $this;
     }
 
-    public function getExistentesDescartados()
+    public function getExistentesDescartados(): array
     {
         return $this->existentesDescartados;
     }
 
-    public function setExistentesDescartados($existentesDescartados)
+    public function setExistentesDescartados(array $existentesDescartados): self
     {
         $this->existentesDescartados = $existentesDescartados;
         return $this;
@@ -592,7 +601,6 @@ class MainArchivoexcel implements ContainerAwareInterface
             $this->setFila($encabezado, 'A1');
             $this->filaBase = 2;
         }
-
         $this->setTabla($contenido, 'A' . $this->getFilaBase());
 
         $this->setTipo($tipo);
@@ -677,27 +685,33 @@ class MainArchivoexcel implements ContainerAwareInterface
             $this->variableproceso->setMensajes('El formato de columna no es correcto.', 'error');
             return $this;
         }
-        $highestRow = $this->getHoja()->getHighestRow();
+
+        $highestRow = $this->getHoja()->getHighestDataRow();
+        $highestColumn = $this->getHoja()->getHighestDataColumn();
         foreach ($formatoColumna as $formato => $columnas):
             foreach ($columnas as $columna):
-                if (strpos($columna, ':') !== false) {
+                if (str_contains($columna, ':')) {
                     $columna = explode(':', $columna, 2);
                     if (is_numeric($columna[0]) && (is_numeric($columna[1]) || empty($columna[1]))) {
                         if (empty($columna[1])) {
-                            $columna[1] = $this->archivoexcelFactory->columnIndexFromString($highestRow);
+                            $columna[1] = $this->archivoexcelFactory
+                                ->columnIndexFromString($highestColumn);
                         }
                         foreach (range($columna[0], $columna[1]) as $columnaProceso) {
                             $columnaString = $this->archivoexcelFactory->stringFromColumnIndex($columnaProceso);
-                            $this->getHoja()->getStyle($columna . $this->getFilaBase() . ':' . $columna . $highestRow)
+                            $this->getHoja()
+                                ->getStyle($columna . $this->getFilaBase() . ':' . $columna . $highestRow)
                                 ->getNumberFormat()
                                 ->setFormatCode($columnaString);
                         }
                     }
                 } else {
                     if (is_numeric($columna)) {
-                        $columna = $this->archivoexcelFactory->stringFromColumnIndex($columna);
+                        $columna = $this->archivoexcelFactory
+                            ->stringFromColumnIndex($columna);
                     }
-                    $this->getHoja()->getStyle($columna . $this->getFilaBase() . ':' . $columna . $highestRow)
+                    $this->getHoja()
+                        ->getStyle($columna . $this->getFilaBase() . ':' . $columna . $highestRow)
                         ->getNumberFormat()
                         ->setFormatCode($formato);
                 }
@@ -717,9 +731,10 @@ class MainArchivoexcel implements ContainerAwareInterface
         foreach ($anchoColumna as $columna => $ancho):
             if (str_contains($columna, ':')) {
                 $columna = explode(':', $columna, 2);
+
                 if (is_numeric($columna[0]) && (is_numeric($columna[1]) || empty($columna[1]))) {
                     if (empty($columna[1])) {
-                        $columna[1] = $this->archivoexcelFactory->columnIndexFromString($this->getHoja()->getHighestColumn());
+                        $columna[1] = $this->archivoexcelFactory->columnIndexFromString($this->getHoja()->getHighestDataColumn());
                     }
                     foreach (range($columna[0], $columna[1]) as $columnaProceso) {
                         $columnaString = $this->archivoexcelFactory->stringFromColumnIndex($columnaProceso);
