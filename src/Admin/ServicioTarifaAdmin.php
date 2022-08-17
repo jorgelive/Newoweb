@@ -39,6 +39,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('categoriatour', null, [
                 'label' => 'Categoria de tour'
             ])
+            ->add('modalidadtarifa', null, [
+                'label' => 'Modalidad'
+            ])
             ->add('titulo', TranslationFieldFilter::class, [
                 'label' => 'Título'
             ])
@@ -99,6 +102,18 @@ class ServicioTarifaAdmin extends AbstractAdmin
                     2 => 'Económico',
                     3 => 'Superior',
                     4 => 'Premium'
+                ]
+            ])
+            ->add('modalidadtarifa', FieldDescriptionInterface::TYPE_CHOICE, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'modalidadtarifa']],
+                'label' => 'Modalidad',
+                'editable' => true,
+                'class' => 'App\Entity\ServicioModalidadtarifa',
+                'choices' => [
+                    1 => 'Privado',
+                    2 => 'Grupal'
                 ]
             ])
             ->add('titulo', null, [
@@ -181,6 +196,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('categoriatour', null, [
                 'label' => 'Categoria de tour'
+            ])
+            ->add('modalidadtarifa', null, [
+                'label' => 'Modalidad'
             ])
             ->add('titulo', null, [
                 'label' => 'Título'
@@ -305,6 +323,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('categoriatour', null, [
                 'label' => 'Categoria de tour'
+            ])
+            ->add('modalidadtarifa', null, [
+                'label' => 'Modalidad'
             ])
             ->add('titulo', null, [
                 'label' => 'Título'
