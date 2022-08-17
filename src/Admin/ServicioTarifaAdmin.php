@@ -103,6 +103,7 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ])
             ->add('titulo', null, [
                 'label' => 'Título',
+                'editable' => true
             ])
             ->add('moneda', null, [
                 'sortable' => true,
