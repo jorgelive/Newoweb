@@ -44,11 +44,15 @@
             }
         }
 
+        {# Modificaciones para el encabezado y Bredcrumb #}
         .main-header {height: 100px;}
         .main-header .logo {height: 100px;}
         .main-header .logo img {max-width: unset;}
         .main-sidebar, .left-side {padding-top: 100px;}
         .fc-toolbar h2 {font-size: 20px; padding-top: 10px;}
+        div.encabezado td {white-space: normal !important;}
+        body > div.wrapper > header > nav > div.navbar-custom-menu > ul > li > a { background-color: white; }
+        body > div > header > nav > div.navbar-left > div > ol > li.active {max-width: 250px; white-space: nowrap;}
 
         ul.listaordenada, ul.sonata-ba-show-one-to-many { list-style: none; padding: 0; margin: 0;}
         ul.listaordenada li, ul.sonata-ba-show-one-to-many li{ padding-left: 16px; position: relative;}
@@ -78,6 +82,43 @@
             })
         });
     </script>
+{% endblock %}
+
+{# custom languaje switcher, for not to use translatiom's bundle one #}
+{% block sonata_top_nav_menu %}
+    {{ parent() }}
+    <div class="navbar-custom-menu">
+        <ul class="nav navbar-nav">
+            {% block sonata_top_nav_menu_locale_block %}
+                <li class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                        <i class="fa fa-flag fa-fw" aria-hidden="true"></i>
+                        {{ 'idioma'|trans({}, 'app')|capitalize }}
+                        <i class="fa fa-caret-down" aria-hidden="true"></i>
+                    </a>
+                    <div class="dropdown-menu">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <ul class="dropdown-menu">
+                                    <li role="presentation" class="dropdown-header">
+                                        <i class="fa fa-language"></i>
+                                        {{ 'languages'|trans({}, 'SonataTranslationBundle') }}
+                                    </li>
+                                    {% for locale in sonata_translation_locales %}
+                                        <li role="presentation" class="{{ app.request.locale == locale ? 'active' : '' }}">
+                                            <a role="menuitem" tabindex="-1" href="{{ path('sonata.translation.locale', {'locale': locale}) }}">
+                                                {{ locale|sonata_language_name(locale)|capitalize }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            {% endblock %}
+        </ul>
+    </div>
 {% endblock %}
 
 {% block side_bar_after_nav %}

@@ -217,10 +217,6 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('cantidadninos', null, [
                 'label' => 'Niños'
             ])
-            ->add('creado', null, [
-                'label' => 'Creación',
-                'format' => 'Y/m/d H:i'
-            ])
             ->add('chanel', null, [
                 'label' => 'Canal'
             ])
@@ -281,6 +277,10 @@ class ReservaReservaAdmin extends AbstractAdmin
             ])
             ->add('cantidadninos', null, [
                 'label' => 'Niños'
+            ])
+            ->add('creado', null, [
+                'label' => 'Creación',
+                'format' => 'Y/m/d H:i'
             ])
             ->add('enlace', null, [
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],

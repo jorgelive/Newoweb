@@ -263,7 +263,6 @@ services:
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
-
     App\Service\FullcalendarEventsfinder:
         calls:
              - [ setContainer, [ '@service_container' ] ]
@@ -1094,6 +1093,17 @@ services:
                 group: Servicio
                 label: Dias de itinerario
                 show_mosaic_button: false
+        public: true
+
+    app.admin.servicionotaitinerariodia:
+        class: App\Admin\ServicioNotaitinerariodiaAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Entity\ServicioNotaitinerariodia
+              manager_type: orm
+              group: Servicio
+              label: Notas de itinerarios
+              show_mosaic_button: false
         public: true
 
     app.admin.servicioitidiaarchivo:

@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use phpDocumentor\Reflection\Types\String_;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Gedmo\Translatable\Translatable;
@@ -21,7 +22,7 @@ class ServicioTarifa implements Translatable
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
@@ -30,14 +31,14 @@ class ServicioTarifa implements Translatable
     /**
      * @var bool
      *
-     * @ORM\Column(name="prorrateado", type="boolean", options={"default": 0})
+     * @ORM\Column(type="boolean", options={"default": 0})
      */
     private $prorrateado;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=100)
+     * @ORM\Column(type="string", length=100)
      */
     private $nombre;
 
@@ -45,12 +46,12 @@ class ServicioTarifa implements Translatable
      * @var string
      *
      * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=100, nullable=true)
+     * @ORM\Column(type="string", length=100, nullable=true)
      */
     private $titulo;
 
     /**
-     * @var \App\Entity\MaestroMoneda
+     * @var MaestroMoneda
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\MaestroMoneda")
      */
@@ -59,54 +60,54 @@ class ServicioTarifa implements Translatable
     /**
      * @var string
      *
-     * @ORM\Column(name="monto", type="decimal", precision=7, scale=2, nullable=true)
+     * @ORM\Column(type="decimal", precision=7, scale=2, nullable=true)
      */
     private $monto;
 
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="validezinicio", type="date")
+     * @ORM\Column(type="date")
      */
     private $validezinicio;
 
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="validezfin", type="date")
+     * @ORM\Column(type="date")
      */
     private $validezfin;
 
     /**
      * @var int
      *
-     * @ORM\Column(name="capacidadmin", type="integer", nullable=true)
+     * @ORM\Column(type="integer", nullable=true)
      */
     private $capacidadmin;
 
     /**
      * @var int
      *
-     * @ORM\Column(name="capacidadmax", type="integer", nullable=true)
+     * @ORM\Column(type="integer", nullable=true)
      */
     private $capacidadmax;
 
     /**
      * @var int
      *
-     * @ORM\Column(name="edadmin", type="integer", nullable=true)
+     * @ORM\Column(type="integer", nullable=true)
      */
     private $edadmin;
 
     /**
      * @var int
      *
-     * @ORM\Column(name="edadmax", type="integer", nullable=true)
+     * @ORM\Column(type="integer", nullable=true)
      */
     private $edadmax;
 
     /**
-     * @var \App\Entity\ServicioTipotarifa
+     * @var ServicioTipotarifa
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\ServicioTipotarifa")
      * @ORM\JoinColumn(name="tipotarifa_id", referencedColumnName="id", nullable=false)
@@ -114,7 +115,7 @@ class ServicioTarifa implements Translatable
     protected $tipotarifa;
 
     /**
-     * @var \App\Entity\ServicioComponente
+     * @var ServicioComponente
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\ServicioComponente", inversedBy="tarifas")
      * @ORM\JoinColumn(name="componente_id", referencedColumnName="id", nullable=false)
@@ -122,15 +123,15 @@ class ServicioTarifa implements Translatable
     protected $componente;
 
     /**
-     * @var \App\Entity\MaestroCategoriatour
+     * @var MaestroCategoriatour
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\MaestroCategoriatour")
-     * @ORM\JoinColumn(name="categoriatour_id", referencedColumnName="id", nullable=false)
+     * @ORM\JoinColumn(name="categoriatour_id", referencedColumnName="id", nullable=true)
      */
     protected $categoriatour;
 
     /**
-     * @var \App\Entity\MaestroTipopax
+     * @var MaestroTipopax
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\MaestroTipopax")
      */
@@ -154,8 +155,6 @@ class ServicioTarifa implements Translatable
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
 
@@ -193,424 +192,214 @@ class ServicioTarifa implements Translatable
         return sprintf('%s%s', $this->getNombre(), $varchain) ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
-
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set prorrateado
-     *
-     * @param boolean $prorrateado
-     *
-     * @return ServicioTarifa
-     */
-    public function setProrrateado($prorrateado)
+    public function setProrrateado(?bool $prorrateado): self
     {
         $this->prorrateado = $prorrateado;
     
         return $this;
     }
 
-    /**
-     * Is prorrateado
-     *
-     * @return boolean
-     */
     public function isProrrateado(): ?bool
     {
         return $this->prorrateado;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return ServicioTarifa
-     */
-    public function setNombre($nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
     
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set monto
-     *
-     * @param string $monto
-     *
-     * @return ServicioTarifa
-     */
-    public function setMonto($monto)
+    public function setMonto(?string $monto): self
     {
         $this->monto = $monto;
     
         return $this;
     }
 
-    /**
-     * Get monto
-     *
-     * @return string
-     */
-    public function getMonto()
+    public function getMonto(): ?string
     {
         return $this->monto;
     }
 
-    /**
-     * Set validezinicio
-     *
-     * @param \DateTime $validezinicio
-     *
-     * @return ServicioTarifa
-     */
-    public function setValidezinicio($validezinicio)
+    public function setValidezinicio(?\DateTime $validezinicio): self
     {
         $this->validezinicio = $validezinicio;
     
         return $this;
     }
 
-    /**
-     * Get validezinicio
-     *
-     * @return \DateTime
-     */
-    public function getValidezinicio()
+    public function getValidezinicio(): ?\DateTime
     {
         return $this->validezinicio;
     }
 
-    /**
-     * Set validezfin
-     *
-     * @param string $validezfin
-     *
-     * @return ServicioTarifa
-     */
-    public function setValidezfin($validezfin)
+    public function setValidezfin(?\DateTime $validezfin): self
     {
         $this->validezfin = $validezfin;
     
         return $this;
     }
 
-    /**
-     * Get validezfin
-     *
-     * @return string
-     */
-    public function getValidezfin()
+    public function getValidezfin(): ?\DateTime
     {
         return $this->validezfin;
     }
 
-    /**
-     * Set capacidadmin
-     *
-     * @param string $capacidadmin
-     *
-     * @return ServicioTarifa
-     */
-    public function setCapacidadmin($capacidadmin)
+    public function setCapacidadmin(?string $capacidadmin): self
     {
         $this->capacidadmin = $capacidadmin;
     
         return $this;
     }
 
-    /**
-     * Get capacidadmin
-     *
-     * @return string
-     */
-    public function getCapacidadmin()
+    public function getCapacidadmin(): ?int
     {
         return $this->capacidadmin;
     }
 
-    /**
-     * Set capacidadmax
-     *
-     * @param integer $capacidadmax
-     *
-     * @return ServicioTarifa
-     */
-    public function setCapacidadmax($capacidadmax)
+    public function setCapacidadmax(?int $capacidadmax): self
     {
         $this->capacidadmax = $capacidadmax;
     
         return $this;
     }
 
-    /**
-     * Get capacidadmax
-     *
-     * @return integer
-     */
-    public function getCapacidadmax()
+    public function getCapacidadmax(): ?int
     {
         return $this->capacidadmax;
     }
 
-    /**
-     * Set edadmin
-     *
-     * @param integer $edadmin
-     *
-     * @return ServicioTarifa
-     */
-    public function setEdadmin($edadmin)
+    public function setEdadmin(?int $edadmin): self
     {
         $this->edadmin = $edadmin;
     
         return $this;
     }
 
-    /**
-     * Get edadmin
-     *
-     * @return integer
-     */
-    public function getEdadmin()
+    public function getEdadmin(): ?int
     {
         return $this->edadmin;
     }
 
-    /**
-     * Set edadmax
-     *
-     * @param integer $edadmax
-     *
-     * @return ServicioTarifa
-     */
-    public function setEdadmax($edadmax)
+    public function setEdadmax(?int $edadmax): self
     {
         $this->edadmax = $edadmax;
     
         return $this;
     }
 
-    /**
-     * Get edadmax
-     *
-     * @return integer
-     */
-    public function getEdadmax()
+    public function getEdadmax(): ?int
     {
         return $this->edadmax;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return ServicioTarifa
-     */
-    public function setCreado($creado)
+    public function setCreado(\DateTime $creado): self
     {
         $this->creado = $creado;
     
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return ServicioTarifa
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
     
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): \DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Set componente
-     *
-     * @param \App\Entity\ServicioComponente $componente
-     *
-     * @return ServicioTarifa
-     */
-    public function setComponente(\App\Entity\ServicioComponente $componente = null)
+    public function setComponente(ServicioComponente $componente = null): self
     {
         $this->componente = $componente;
     
         return $this;
     }
 
-    /**
-     * Get componente
-     *
-     * @return \App\Entity\ServicioComponente
-     */
-    public function getComponente()
+    public function getComponente(): ?ServicioComponente
     {
         return $this->componente;
     }
 
-    /**
-     * Set categoriatour
-     *
-     * @param \App\Entity\MaestroCategoriatour $categoriatour
-     *
-     * @return ServicioTarifa
-     */
-    public function setCategoriatour(\App\Entity\MaestroCategoriatour $categoriatour = null)
+    public function setCategoriatour(?MaestroCategoriatour $categoriatour = null): self
     {
         $this->categoriatour = $categoriatour;
     
         return $this;
     }
 
-    /**
-     * Get categoriatour
-     *
-     * @return \App\Entity\MaestroCategoriatour
-     */
-    public function getCategoriatour()
+    public function getCategoriatour(): ?MaestroCategoriatour
     {
         return $this->categoriatour;
     }
 
-    /**
-     * Set tipopax
-     *
-     * @param \App\Entity\MaestroTipopax $tipopax
-     *
-     * @return ServicioTarifa
-     */
-    public function setTipopax(\App\Entity\MaestroTipopax $tipopax = null)
+    public function setTipopax(MaestroTipopax $tipopax = null): self
     {
         $this->tipopax = $tipopax;
     
         return $this;
     }
 
-    /**
-     * Get tipopax
-     *
-     * @return \App\Entity\MaestroTipopax
-     */
-    public function getTipopax()
+    public function getTipopax(): ?MaestroTipopax
     {
         return $this->tipopax;
     }
 
-    /**
-     * Set moneda
-     *
-     * @param \App\Entity\MaestroMoneda $moneda
-     *
-     * @return ServicioTarifa
-     */
-    public function setMoneda(\App\Entity\MaestroMoneda $moneda = null)
+    public function setMoneda(?MaestroMoneda $moneda = null): self
     {
         $this->moneda = $moneda;
     
         return $this;
     }
 
-    /**
-     * Get moneda
-     *
-     * @return \App\Entity\MaestroMoneda
-     */
-    public function getMoneda()
+    public function getMoneda(): ?MaestroMoneda
     {
         return $this->moneda;
     }
 
-    /**
-     * Set titulo
-     *
-     * @param string $titulo
-     *
-     * @return ServicioTarifa
-     */
-    public function setTitulo($titulo)
+    public function setTitulo(?string $titulo): self
     {
         $this->titulo = $titulo;
     
         return $this;
     }
 
-    /**
-     * Get titulo
-     *
-     * @return string
-     */
-    public function getTitulo()
+    public function getTitulo(): ?string
     {
         return $this->titulo;
     }
 
-    /**
-     * Set tipotarifa.
-     *
-     * @param \App\Entity\ServicioTipotarifa|null $tipotarifa
-     *
-     * @return ServicioTarifa
-     */
-    public function setTipotarifa(\App\Entity\ServicioTipotarifa $tipotarifa = null)
+    public function setTipotarifa(?ServicioTipotarifa $tipotarifa = null): self
     {
         $this->tipotarifa = $tipotarifa;
     
         return $this;
     }
 
-    /**
-     * Get tipotarifa
-     *
-     * @return \App\Entity\ServicioTipotarifa|null
-     */
-    public function getTipotarifa()
+
+    public function getTipotarifa(): ?ServicioTipotarifa
     {
         return $this->tipotarifa;
     }
-
 
 }

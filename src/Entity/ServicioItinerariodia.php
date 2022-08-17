@@ -92,6 +92,14 @@ class ServicioItinerariodia implements Translatable
     private $itidiaarchivos;
 
     /**
+     * @var \App\Entity\ServicioNotaitinerariodia
+     *
+     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioNotaitinerariodia", inversedBy="itinerariodias")
+     * @ORM\JoinColumn(name="notaitinerariodia_id", referencedColumnName="id", nullable=true)
+     */
+    protected $notaitinerariodia;
+
+    /**
      * @Gedmo\Locale
      * Used locale to override Translation listener`s locale
      * this is not a mapped field of entity metadata, just a simple property
@@ -325,6 +333,31 @@ class ServicioItinerariodia implements Translatable
     {
         return $this->itidiaarchivos;
     }
+
+    /**
+     * Set notaitinerariodia
+     *
+     * @param \App\Entity\ServicioNotaitinerariodia $notaitinerariodia
+     *
+     * @return ServicioItinerariodia
+     */
+    public function setNotaitinerariodia(\App\Entity\ServicioNotaitinerariodia $notaitinerariodia = null)
+    {
+        $this->notaitinerariodia = $notaitinerariodia;
+
+        return $this;
+    }
+
+    /**
+     * Get notaitinerariodia
+     *
+     * @return \App\Entity\ServicioNotaitinerariodia
+     */
+    public function getNotaitinerariodia()
+    {
+        return $this->notaitinerariodia;
+    }
+
 
     /**
      * Set importante.

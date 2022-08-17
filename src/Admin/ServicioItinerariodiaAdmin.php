@@ -22,6 +22,9 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('itinerario')
+            ->add('notaitinerariodia', null, [
+                'label' => 'Nota'
+            ])
             ->add('dia')
             ->add('titulo', TranslationFieldFilter::class, [
                 'label' => 'Título'
@@ -39,12 +42,17 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('itinerario')
+            ->add('notaitinerariodia', null, [
+                'label' => 'Nota'
+            ])
             ->add('dia')
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
             ->add('importante')
-            ->add('contenido')
+            ->add('contenido', null, [
+                'template' => 'base_sonata_admin/list_html.html.twig'
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -67,6 +75,9 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
             $formMapper->add('itinerario');
         }
         $formMapper
+            ->add('notaitinerariodia', null, [
+                'label' => 'Nota'
+            ])
             ->add('dia')
             ->add('titulo', null, [
                 'label' => 'Título'
@@ -95,6 +106,9 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
             ->add('id')
             ->add('itinerario')
             ->add('dia')
+            ->add('notaitinerariodia', null, [
+                'label' => 'Nota'
+            ])
             ->add('titulo', null, [
                 'label' => 'Título'
             ])

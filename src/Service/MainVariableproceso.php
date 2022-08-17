@@ -13,10 +13,9 @@ class MainVariableproceso implements ContainerAwareInterface{
 
     private static array $mensajes;
 
-
-    public function __construct()
+    public function stripAccents(string $string): string
     {
-
+        return strtr($string,'àáâãäçèéêëìíîïñòóôõöùúûüýÿÀÁÂÃÄÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ','aaaaaceeeeiiiinooooouuuuyyAAAAACEEEEIIIINOOOOOUUUUY');
     }
 
     public function setMensajes(String $contenido, String $tipo = 'info'): bool

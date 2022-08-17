@@ -6,13 +6,14 @@ use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use App\Service\MainTipocambio;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class CotizacionResumen implements ContainerAwareInterface
 {
 
     use ContainerAwareTrait;
 
-    private string $tl = 'es';
+    private RequestStack $requestStack;
     private EntityManagerInterface $doctrine;
 
     private int $edadMin = 0;
@@ -28,24 +29,17 @@ class CotizacionResumen implements ContainerAwareInterface
 
     private MainTipocambio $tipocambio;
 
-    function getDoctrine(): EntityManagerInterface
+    function getEntityManager(): EntityManagerInterface
     {
         return $this->doctrine;
     }
 
-    function setTl(?string $tl): CotizacionResumen
-    {
-        if(is_null($tl)){
-            $tl = 'es';
-        }
-        $this->tl = $tl;
-        return $this;
-    }
 
-    function __construct(EntityManagerInterface $em, MainTipocambio $tipocambio)
+    function __construct(EntityManagerInterface $em, MainTipocambio $tipocambio, RequestStack $requestStack)
     {
         $this->doctrine = $em;
         $this->tipocambio = $tipocambio;
+        $this->requestStack = $requestStack;
     }
 
     function getTituloItinerario(\DateTime $fecha, array $itinerarioFechaAux): string
@@ -64,7 +58,7 @@ class CotizacionResumen implements ContainerAwareInterface
             }elseif((int)$fecha->format('H') <= 12 && isset($itinerarioFechaAux[$diaAnterior->format('ymd')])){
                 return $itinerarioFechaAux[$diaAnterior->format('ymd')];
             }else{
-                return reset($itinerarioFechaAux);
+                return reset($itinerarioFechaAux) ?? '';
             }
         }
 
@@ -75,7 +69,7 @@ class CotizacionResumen implements ContainerAwareInterface
     function procesar(int $id): bool
     {
 
-        $cotizacion = $this->getDoctrine()
+        $cotizacion = $this->getEntityManager()
             ->getRepository('App\Entity\CotizacionCotizacion')
             ->find($id);
 
@@ -1020,26 +1014,28 @@ class CotizacionResumen implements ContainerAwareInterface
     public function getFormatedDate(int $fechaStamp): string
     {
 
-        if($this->tl != 'es' && $this->tl != 'en'){
-            $this->tl = 'es';
+        $languaje = $this->requestStack->getCurrentRequest()->getLocale();
+
+        $tl = $this->requestStack->getCurrentRequest()->get('tl');
+        if($tl != null && in_array($tl, ['es', 'en'])){
+            $languaje = $this->requestStack->getCurrentRequest()->get('tl');
         }
 
-        $ano = date('Y',$fechaStamp);
-        $mes = date('n',$fechaStamp);
-        $dia = date('d',$fechaStamp);
-        $diasemana = date('w',$fechaStamp);
+        $ano = date('Y', $fechaStamp);
+        $mes = date('n', $fechaStamp);
+        $dia = date('d', $fechaStamp);
+        $diasemana = date('w', $fechaStamp);
 
-        if($this->tl == 'es'){
+        if($languaje == 'es'){
             $diassemanaN = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
             $mesesN = [1 => 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
             return $diassemanaN[$diasemana] . ', ' . $dia . ' de ' . $mesesN[$mes] . ' de ' . $ano;
-        }elseif($this->tl == 'en'){
+        }elseif($languaje == 'en'){
             $diassemanaN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             $mesesN = [1 => 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
             return $diassemanaN[$diasemana] . ' ' . $mesesN[$mes] . ' ' . $dia . ', ' . $ano;
-
         }else{
             return 'Idioma no soportado aun.';
         }

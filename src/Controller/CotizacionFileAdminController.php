@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use App\Service\MainArchivoexcel;
+use App\Service\MainVariableproceso;
 
 class CotizacionFileAdminController extends CRUDAdminController
 {
@@ -16,10 +17,15 @@ class CotizacionFileAdminController extends CRUDAdminController
     public static function getSubscribedServices(): array
     {
         return [
+                'App\Service\MainVariableproceso' => MainVariableproceso::class,
                 'App\Service\MainArchivoexcel' => MainArchivoexcel::class,
                 'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
             ] + parent::getSubscribedServices();
     }
+
+
+
+
 
     public function archivodccAction(Request $request): Response
     {
@@ -111,17 +117,18 @@ class CotizacionFileAdminController extends CRUDAdminController
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
+        $variableProceso = $this->container->get('App\Service\MainVariableproceso');
+
         $encabezado = ['ITEM RESERVA', 'PRIMER NOMBRE', 'PRIMER APELLIDO', 'TIPO DOC', 'NRO DOC', 'NACIONALIDAD', 'FECHA NAC.', 'REF CLIENTE'];
         foreach ($filePasajeros as $key => $filePasajero){
             $resultados[$key]['item'] = 1;
-            $resultados[$key]['nombre'] = $filePasajero->getNombre();
-            $resultados[$key]['apellido'] = $filePasajero->getApellido();
+            $resultados[$key]['nombre'] = $variableProceso->stripAccents($filePasajero->getNombre());
+            $resultados[$key]['apellido'] =  $variableProceso->stripAccents($filePasajero->getApellido());
             $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigopr();
-            $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
+            $resultados[$key]['numerodocumento'] = $variableProceso->stripAccents($filePasajero->getNumerodocumento());
             $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigopr();
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d/m/Y');
             $resultados[$key]['file'] = 'F' . sprintf('%010d', $object->getId());
-
         }
 
         return $this->container->get('App\Service\MainArchivoexcel')

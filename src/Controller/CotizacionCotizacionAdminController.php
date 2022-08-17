@@ -104,7 +104,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
         $template = 'cotizacion_cotizacion_admin/show.html.twig';
 
-        if($this->container->get('App\Service\CotizacionResumen')->setTl($request->get('tl'))->procesar($object->getId())){
+        if($this->container->get('App\Service\CotizacionResumen')->procesar($object->getId())){
             return $this->renderWithExtraParams($template,
                 ['cotizacion' => $this->container->get('App\Service\CotizacionResumen')->getDatosCotizacion(),
                     'tabs' => $this->container->get('App\Service\CotizacionResumen')->getDatosTabs(),
@@ -153,7 +153,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
         $template = 'cotizacion_cotizacion_admin/show.html.twig';
 
-        if($this->container->get('App\Service\CotizacionResumen')->setTl($request->get('tl'))->procesar($object->getId())){
+        if($this->container->get('App\Service\CotizacionResumen')->procesar($object->getId())){
             return $this->renderWithExtraParams($template,
                 ['cotizacion' => $this->container->get('App\Service\CotizacionResumen')->getDatosCotizacion(),
                     'tabs' => $this->container->get('App\Service\CotizacionResumen')->getDatosTabs(),

@@ -34,6 +34,8 @@ sonata_admin:
                 items:
                     - app.admin.servicioservicio
                     - app.admin.servicioitinerario
+                    - app.admin.servicioitinerariodia
+                    - app.admin.servicionotaitinerariodia
                     - app.admin.serviciocomponente
                     - app.admin.serviciotarifa
                     - app.admin.serviciotipocomponente
