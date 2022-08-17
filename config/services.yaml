@@ -1126,8 +1126,19 @@ services:
                 model_class: App\Entity\ServicioTipotarifa
                 manager_type: orm
                 group: Servicio
-                label: Tipo de tarifa cotizada
+                label: Tipo de tarifa
                 show_mosaic_button: false
+        public: true
+
+    app.admin.serviciomodalidadtarifa:
+        class: App\Admin\ServicioModalidadtarifaAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Entity\ServicioModalidadtarifa
+              manager_type: orm
+              group: Servicio
+              label: Modalidad de tarifa
+              show_mosaic_button: false
         public: true
 
     app.admin.serviciotipotarifadetalle:

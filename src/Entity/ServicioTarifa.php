@@ -115,6 +115,14 @@ class ServicioTarifa implements Translatable
     protected $tipotarifa;
 
     /**
+     * @var ServicioModalidadtarifa
+     *
+     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioModalidadtarifa")
+     * @ORM\JoinColumn(name="modalidadtarifa_id", referencedColumnName="id", nullable=true)
+     */
+    protected $modalidadtarifa;
+
+    /**
      * @var ServicioComponente
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\ServicioComponente", inversedBy="tarifas")
@@ -400,6 +408,19 @@ class ServicioTarifa implements Translatable
     public function getTipotarifa(): ?ServicioTipotarifa
     {
         return $this->tipotarifa;
+    }
+
+    public function setModalidadtarifa(?ServicioModalidadtarifa $modalidadtarifa = null): self
+    {
+        $this->modalidadtarifa = $modalidadtarifa;
+
+        return $this;
+    }
+
+
+    public function getModalidadtarifa(): ?ServicioModalidadtarifa
+    {
+        return $this->modalidadtarifa;
     }
 
 }

@@ -154,7 +154,9 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('manual', null, [
                 'editable' => true
             ])
-            ->add('nombre')
+            ->add('nombre', null, [
+                'editable' => true
+            ])
             ->add('enlace', null, [
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],
                 'template' => 'base_sonata_admin/list_url.html.twig'
@@ -167,10 +169,12 @@ class ReservaReservaAdmin extends AbstractAdmin
                 ]
             ])
             ->add('cantidadadultos', null, [
-                'label' => 'Adl'
+                'label' => 'Adl',
+                'editable' => true
             ])
             ->add('cantidadninos', null, [
-                'label' => 'Ni'
+                'label' => 'Ni',
+                'editable' => true
             ])
             ->add('creado', null, [
                 'label' => 'Creación',

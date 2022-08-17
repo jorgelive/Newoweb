@@ -26,6 +26,15 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
             ->add('titulo', TranslationFieldFilter::class, [
                 'label' => 'Título'
             ])
+            ->add('nomostrartarifa', null, [
+                'label' => 'No mostrar tar'
+            ])
+            ->add('nomostrarmodalidadtarifa', null, [
+                'label' => 'No mostrar mod'
+            ])
+            ->add('nomostrarcategoriatour', null, [
+                'label' => 'No mostrar cat'
+            ])
         ;
     }
 
@@ -44,6 +53,15 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
             ->add('titulo', null, [
                 'label' => 'Título',
                 'editable' => true
+            ])
+            ->add('nomostrartarifa', null, [
+                'label' => 'No mostrar tar'
+            ])
+            ->add('nomostrarmodalidadtarifa', null, [
+                'label' => 'No mostrar mod'
+            ])
+            ->add('nomostrarcategoriatour', null, [
+                'label' => 'No mostrar cat'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -71,7 +89,13 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
                 'label' => 'Título'
             ])
             ->add('nomostrartarifa', null, [
-                'label' => 'No mostrar tarifa'
+                'label' => 'No mostrar tar'
+            ])
+            ->add('nomostrarmodalidadtarifa', null, [
+                'label' => 'No mostrar mod'
+            ])
+            ->add('nomostrarcategoriatour', null, [
+                'label' => 'No mostrar cat'
             ])
         ;
 
@@ -111,7 +135,15 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
-
+            ->add('nomostrartarifa', null, [
+                'label' => 'No mostrar tar'
+            ])
+            ->add('nomostrarmodalidadtarifa', null, [
+                'label' => 'No mostrar mod'
+            ])
+            ->add('nomostrarcategoriatour', null, [
+                'label' => 'No mostrar cat'
+            ])
         ;
     }
 }

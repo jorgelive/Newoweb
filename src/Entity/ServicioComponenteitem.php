@@ -21,7 +21,7 @@ class ServicioComponenteitem implements Translatable
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
@@ -31,16 +31,30 @@ class ServicioComponenteitem implements Translatable
      * @var string
      *
      * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=160, nullable=true)
+     * @ORM\Column(type="string", length=160, nullable=true)
      */
     private $titulo;
 
     /**
      * @var bool
      *
-     * @ORM\Column(name="nomostrartarifa", type="boolean", options={"default": 0})
+     * @ORM\Column(type="boolean", options={"default": 0})
      */
     private $nomostrartarifa;
+
+    /**
+     * @var bool
+     *
+     * @ORM\Column(type="boolean", options={"default": 0})
+     */
+    private $nomostrarmodalidadtarifa;
+
+    /**
+     * @var bool
+     *
+     * @ORM\Column(type="boolean", options={"default": 0})
+     */
+    private $nomostrarcategoriatour;
 
     /**
      * @var \App\Entity\ServicioComponente
@@ -68,8 +82,6 @@ class ServicioComponenteitem implements Translatable
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
 
@@ -86,151 +98,96 @@ class ServicioComponenteitem implements Translatable
      */
     public function __toString()
     {
-
         return sprintf('%s', $this->getTitulo()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
-
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set nomostrartarifa
-     *
-     * @param boolean $nomostrartarifa
-     *
-     * @return ServicioComponenteitem
-     */
-    public function setNomostrartarifa($nomostrartarifa)
+    public function setTitulo(?string $titulo): self
+    {
+        $this->titulo = $titulo;
+
+        return $this;
+    }
+
+    public function getTitulo(): ?string
+    {
+        return $this->titulo;
+    }
+
+    public function setNomostrartarifa(?bool $nomostrartarifa): self
     {
         $this->nomostrartarifa = $nomostrartarifa;
 
         return $this;
     }
 
-    /**
-     * Is nomostrartarifa
-     *
-     * @return boolean
-     */
     public function isNomostrartarifa(): ?bool
     {
         return $this->nomostrartarifa;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return ServicioComponenteitem
-     */
-    public function setCreado($creado)
+    public function setNomostrarmodalidadtarifa(?bool $nomostrarmodalidadtarifa): self
+    {
+        $this->nomostrarmodalidadtarifa = $nomostrarmodalidadtarifa;
+
+        return $this;
+    }
+
+    public function isNomostrarmodalidadtarifa(): ?bool
+    {
+        return $this->nomostrarmodalidadtarifa;
+    }
+
+    public function setNomostracategoriatour(?bool $nomostrarcategoriatour): self
+    {
+        $this->nomostrarcategoriatour = $nomostrarcategoriatour;
+
+        return $this;
+    }
+
+    public function isNomostrarcategoriatour(): ?bool
+    {
+        return $this->nomostrarcategoriatour;
+    }
+
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
     
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): \DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return ServicioComponenteitem
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
     
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Set componente
-     *
-     * @param \App\Entity\ServicioComponente $componente
-     *
-     * @return ServicioComponenteitem
-     */
-    public function setComponente(\App\Entity\ServicioComponente $componente = null)
+    public function setComponente(?ServicioComponente $componente = null): self
     {
         $this->componente = $componente;
     
         return $this;
     }
 
-    /**
-     * Get componente
-     *
-     * @return \App\Entity\ServicioComponente
-     */
-    public function getComponente()
+    public function getComponente(): ?ServicioComponente
     {
         return $this->componente;
-    }
-
-    /**
-     * Get componente
-     *
-     * @return \App\Entity\Serviciocomponente
-     */
-    public function getTarifa()
-    {
-        return $this->componente;
-    }
-
-
-
-    /**
-     * Set titulo
-     *
-     * @param string $titulo
-     *
-     * @return ServicioTarifa
-     */
-    public function setTitulo($titulo)
-    {
-        $this->titulo = $titulo;
-    
-        return $this;
-    }
-
-    /**
-     * Get titulo
-     *
-     * @return string
-     */
-    public function getTitulo()
-    {
-        return $this->titulo;
     }
 
 }

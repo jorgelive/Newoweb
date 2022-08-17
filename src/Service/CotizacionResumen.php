@@ -202,7 +202,14 @@ class CotizacionResumen implements ContainerAwareInterface
                                 $archivosTempArray[] = $archivoTemp;
                             endforeach;
                         }
-                        $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['fechaitems'][] = ['titulo' => $dia->getTitulo(), 'descripcion' => $dia->getContenido(), 'archivos' => $archivosTempArray];
+                        $tempItinerario['titulo'] = $dia->getTitulo();
+                        $tempItinerario['descripcion'] = $dia->getContenido();
+                        $tempItinerario['archivos'] = $archivosTempArray;
+                        if(!empty($dia->getNotaitinerariodia())){
+                            $tempItinerario['nota'] = $dia->getNotaitinerariodia()->getContenido();
+                        }
+                        $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['fechaitems'][] = $tempItinerario;
+                        unset($tempItinerario);
                         unset($archivosTempArray);
 
                         //Auxiliar de titulos de itinerario por dia en caso de que sean los importantes
@@ -239,7 +246,8 @@ class CotizacionResumen implements ContainerAwareInterface
                             $tempArrayItem=[];
                             if($componente->getComponente()->getTipocomponente()->isAgendable() === true && $componente->getComponente()->getComponenteitems()->count() > 0){
                                 foreach ($componente->getComponente()->getComponenteitems() as $item){
-                                    if($item->isNomostrartarifa() !== true){
+                                    //todo por que?
+                                    if(!$item->isNomostrartarifa()){
                                         $tempArrayItem[] = $item->getTitulo();
                                     }
                                 }
@@ -333,8 +341,23 @@ class CotizacionResumen implements ContainerAwareInterface
 
 //4N bucle de items, para cada item pongo la tarifa
                                     foreach ($componente->getComponente()->getComponenteitems() as $item){
-                                        if(!empty($tarifa->getTarifa()->getTitulo()) && $item->isNomostrartarifa() !== true){
-                                            $tempArrayIncluye['titulo'] = $tarifa->getTarifa()->getTitulo();
+                                        //alguno de los 3 o titulo o modalidad o categoria
+                                        if((!empty($tarifa->getTarifa()->getTitulo()) && !$item->isNomostrartarifa())
+                                            ||(!empty($tarifa->getTarifa()->getModalidadtarifa()) && !$item->isNomostrarmodalidadtarifa())
+                                            ||(!empty($tarifa->getTarifa()->getCategoriatour()) && !$item->isNomostrarcategoriatour())
+                                        ){
+                                            if(!empty($tarifa->getTarifa()->getTitulo()) && !$item->isNomostrartarifa()){
+                                                $tempArrayIncluye['titulo'] = $tarifa->getTarifa()->getTitulo();
+                                            }
+
+                                            if(!empty($tarifa->getTarifa()->getModalidadtarifa()) && !$item->isNomostrarmodalidadtarifa()){
+                                                $tempArrayIncluye['modalidad'] = $tarifa->getTarifa()->getModalidadtarifa()->getTitulo();
+                                            }
+
+                                            if(!empty($tarifa->getTarifa()->getCategoriatour()) && !$item->isNomostrarcategoriatour()){
+                                                $tempArrayIncluye['categoria'] = $tarifa->getTarifa()->getCategoriatour()->getTitulo();
+                                            }
+
                                             $tempArrayIncluye['cantidad'] = (int)($tarifa->getCantidad());
                                             if(!empty($tarifa->getTarifa()->getValidezInicio())){
                                                 $tempArrayIncluye['validezInicio'] = $tarifa->getTarifa()->getValidezInicio();
