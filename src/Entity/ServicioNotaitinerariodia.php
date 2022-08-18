@@ -47,7 +47,7 @@ class ServicioNotaitinerariodia implements Translatable
      * @var \Doctrine\Common\Collections\Collection
      *
      * @ORM\OneToMany(targetEntity="App\Entity\ServicioItinerariodia", mappedBy="notaitinerariodia", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"nombre" = "ASC"})
+     * @ORM\OrderBy({"id" = "ASC"})
      */
     private $itinerariodias;
 
