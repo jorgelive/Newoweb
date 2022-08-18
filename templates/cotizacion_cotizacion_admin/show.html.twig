@@ -647,7 +647,21 @@ file that was distributed with this source code.
                                                                                     {% if componente.tarifas is defined %}
                                                                                         <ul style="list-style: none; padding-left: 20px;">
                                                                                             {% for tarifa in componente.tarifas %}
-                                                                                                <li>{% if tarifa.titulo is defined %}{{ tarifa.titulo }}{% endif %} {% if tarifa.modalidad is defined %}{{ tarifa.modalidad }}{% endif %} {% if tarifa.categoria is defined %}{{ tarifa.categoria }}{% endif %}  {% if tarifa.cantidad > 1 %} <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span> {% endif %}{% if tarifa.mostrarcostoincluye == true %}({{ tarifa.simboloMoneda }} {{ tarifa.costo }}){% endif %}
+                                                                                                <li>{% if tarifa.titulo is defined %}
+                                                                                                        {{ tarifa.titulo }}
+                                                                                                    {% endif %}
+                                                                                                    {% if tarifa.modalidad is defined %}
+                                                                                                        {{ tarifa.modalidad }}
+                                                                                                    {% endif %}
+                                                                                                    {% if tarifa.categoria is defined %}
+                                                                                                        {{ tarifa.categoria }}
+                                                                                                    {% endif %}
+                                                                                                    {% if tarifa.cantidad > 1 %}
+                                                                                                        <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span>
+                                                                                                    {% endif %}
+                                                                                                    {% if tarifa.mostrarcostoincluye == true %}
+                                                                                                        ({{ tarifa.simboloMoneda }} {{ tarifa.costo }})
+                                                                                                    {% endif %}
                                                                                                     {% if tarifa.detalles is defined %}
                                                                                                         (
                                                                                                         {% for detalle in tarifa.detalles %}

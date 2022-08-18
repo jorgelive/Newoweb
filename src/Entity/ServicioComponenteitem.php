@@ -142,7 +142,7 @@ class ServicioComponenteitem implements Translatable
         return $this->nomostrarmodalidadtarifa;
     }
 
-    public function setNomostracategoriatour(?bool $nomostrarcategoriatour): self
+    public function setNomostrarcategoriatour(?bool $nomostrarcategoriatour): self
     {
         $this->nomostrarcategoriatour = $nomostrarcategoriatour;
 
