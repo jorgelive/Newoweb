@@ -23,6 +23,9 @@ class ServicioNotaitinerariodiaAdmin extends AbstractAdmin
             ->add('id')
             ->add('nombre')
             ->add('contenido', TranslationFieldFilter::class)
+            ->add('itinerariodias', null, [
+                'Dias de itinerarios'
+            ])
         ;
     }
 
@@ -34,6 +37,9 @@ class ServicioNotaitinerariodiaAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('Nombre')
+            ->add('itinerariodias', null, [
+                'Dias de itinerarios'
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -57,6 +63,8 @@ class ServicioNotaitinerariodiaAdmin extends AbstractAdmin
                 'attr' => ['class' => 'ckeditor']
             ])
             ->add('itinerariodias', null, [
+                'by_reference' => false,
+                'Dias de itinerarios'
             ])
         ;
     }
@@ -73,6 +81,7 @@ class ServicioNotaitinerariodiaAdmin extends AbstractAdmin
                 'safe' => true
             ])
             ->add('itinerariodias', null, [
+                'Dias de itinerarios'
             ])
         ;
     }
