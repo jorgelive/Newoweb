@@ -23,9 +23,6 @@ class ServicioNotaitinerariodiaAdmin extends AbstractAdmin
             ->add('id')
             ->add('nombre')
             ->add('contenido', TranslationFieldFilter::class)
-            ->add('itinerariodias', null, [
-                'Dias de itinerarios'
-            ])
         ;
     }
 
