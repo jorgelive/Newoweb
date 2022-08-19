@@ -22,6 +22,9 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('itinerario')
+            ->add('itinerario.servicio', null, [
+                'label' => 'Servicio'
+            ])
             ->add('notaitinerariodia', null, [
                 'label' => 'Nota'
             ])
@@ -41,9 +44,16 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('itinerario')
+            ->add('itinerario', null, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'itinerario']]
+            ])
             ->add('notaitinerariodia', null, [
-                'label' => 'Nota'
+                'label' => 'Nota',
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'notaitinerariodia']],
             ])
             ->add('dia')
             ->add('titulo', null, [

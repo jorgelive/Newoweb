@@ -38,7 +38,10 @@ class ServicioNotaitinerariodiaAdmin extends AbstractAdmin
             ->add('id')
             ->add('Nombre')
             ->add('itinerariodias', null, [
-                'label' =>'Dias de itinerarios'
+                'label' =>'Dias de itinerarios',
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'itinerariodias']],
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
