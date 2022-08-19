@@ -14,6 +14,11 @@ use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 class ServicioNotaitinerariodiaAdmin extends AbstractAdmin
 {
 
+    public function configure(): void
+    {
+        $this->classnameLabel = "Nota de Itinerario";
+    }
+
     /**
      * @param DatagridMapper $datagridMapper
      */

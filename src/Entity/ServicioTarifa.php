@@ -29,6 +29,13 @@ class ServicioTarifa implements Translatable
     private $id;
 
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ServicioTarifaTranslation", mappedBy="object", cascade={"persist", "remove")
+     */
+    protected $translations;
+
+    /**
      * @var bool
      *
      * @ORM\Column(type="boolean", options={"default": 0})
