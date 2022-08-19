@@ -320,7 +320,7 @@ class ServicioTarifa implements Translatable
         return $this->edadmax;
     }
 
-    public function setCreado(\DateTime $creado): self
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
     
@@ -344,7 +344,7 @@ class ServicioTarifa implements Translatable
         return $this->modificado;
     }
 
-    public function setComponente(ServicioComponente $componente = null): self
+    public function setComponente(?ServicioComponente $componente = null): self
     {
         $this->componente = $componente;
     
@@ -368,7 +368,7 @@ class ServicioTarifa implements Translatable
         return $this->categoriatour;
     }
 
-    public function setTipopax(MaestroTipopax $tipopax = null): self
+    public function setTipopax(?MaestroTipopax $tipopax = null): self
     {
         $this->tipopax = $tipopax;
     
