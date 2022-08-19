@@ -31,7 +31,7 @@ class ServicioTarifa implements Translatable
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioTarifaTranslation", mappedBy="object", cascade={"persist", "remove")
+     * @ORM\OneToMany(targetEntity="App\Entity\ServicioTarifaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 
