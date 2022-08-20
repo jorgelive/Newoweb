@@ -86,15 +86,15 @@ class CotizacionResumen implements ContainerAwareInterface
         }
 
 //para mostrar primero el itinerario
-        $datosTabs['itinerario']['nombre'] = 'Itinerario';
+        $datosTabs['itinerario']['nombre'] = 'tab_itinerario';
         $datosTabs['itinerario']['icono'] = 'fa-map';
-        $datosTabs['tarifas']['nombre'] = 'Precio';
+        $datosTabs['tarifas']['nombre'] = 'tab_precio';
         $datosTabs['tarifas']['icono'] = 'fa-dollar-sign';
-        $datosTabs['incluye']['nombre'] = 'Incluidos';
+        $datosTabs['incluye']['nombre'] = 'tab_incluidos';
         $datosTabs['incluye']['icono'] = 'fa-check';
-        $datosTabs['agenda']['nombre'] = 'Agenda';
-        $datosTabs['agenda']['icono'] = 'fa-calendar';
-        $datosTabs['politica']['nombre'] = 'Términos';
+        $datosTabs['horario']['nombre'] = 'tab_horario';
+        $datosTabs['horario']['icono'] = 'fa-calendar';
+        $datosTabs['politica']['nombre'] = 'tab_terminos';
         $datosTabs['politica']['icono'] = 'fa-exclamation';
         $datosTabs['politica']['contenido'] = $cotizacion->getCotpolitica()->getContenido();
 
@@ -213,7 +213,7 @@ class CotizacionResumen implements ContainerAwareInterface
                         unset($archivosTempArray);
 
                         //Auxiliar de titulos de itinerario por dia en caso de que sean los importantes
-                        //para uso en agenda e incluye.
+                        //para uso en horario e incluye.
                         if($dia->isImportante() === true){
                             $itinerarioFechaAux[$fecha->format('ymd')] = $dia->getTitulo();
                         }
@@ -242,7 +242,7 @@ class CotizacionResumen implements ContainerAwareInterface
                             $tempArrayComponente['fechahorainicio'] = $componente->getFechahorainicio();
                             $tempArrayComponente['fechahorafin'] = $componente->getFechahorafin();
 
-//la presencia del titulo sera un indicador para mostrarlo o no en agenda ya que el tem array componente es interno para los demas procesos
+//la presencia del titulo sera un indicador para mostrarlo o no en horario ya que el item array componente es interno para los demas procesos
                             $tempArrayItem=[];
                             if($componente->getComponente()->getTipocomponente()->isAgendable() === true && $componente->getComponente()->getComponenteitems()->count() > 0){
                                 foreach ($componente->getComponente()->getComponenteitems() as $item){
@@ -542,9 +542,9 @@ class CotizacionResumen implements ContainerAwareInterface
                                 return false;
                             }
 
-//solo si tiene título lo pongo en agenda
+//solo si tiene título lo pongo en horario
                             if(isset($tempArrayComponente['titulo'])){
-                                $datosTabs['agenda']['componentes'][] = $tempArrayComponente;
+                                $datosTabs['horario']['componentes'][] = $tempArrayComponente;
                             }
 
                             unset($tempArrayComponente);

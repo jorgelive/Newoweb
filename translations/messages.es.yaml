@@ -1,2 +1,17 @@
 idioma: idioma
-Itinerario: Itinerario
+tab_itinerario: itinerario
+tab_precio: precio
+tab_incluidos: incluidos
+tab_horario: horario
+tab_terminos: 'términos'
+cotización: 'cotización'
+nombre: nombre
+namelist: 'relación de pasajeros'
+nombres: nombres
+apellidos: apellidos
+pais: 'país'
+sexo: sexo
+tipodoc: tipo doc
+numerodoc: num. doc
+fechanacimiento: fecha nacimiento
+edad: edad

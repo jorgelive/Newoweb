@@ -62,7 +62,7 @@ file that was distributed with this source code.
             height:20px;
             border-top:3px solid #130d6b;
             border-radius: 50% ;
-            bottom:0px;
+            bottom:0;
             left:10%;
         }
 
@@ -101,13 +101,12 @@ file that was distributed with this source code.
                         <tbody>
                             {% if action == 'show' %}
                                 <tr class="sonata-ba-view-container">
-                                    <th>Nombre</th>
+                                    <th>{{ 'cotizacion'|trans({},'messages')|capitalize }}</th>
                                     <td>{{ cotizacion.cotizacion.nombre }}</td>
-
                                 </tr>
                             {% endif %}
                             <tr class="sonata-ba-view-container">
-                                <th>Nombre</th>
+                                <th>{{ 'nombre'|trans({},'messages')|capitalize }}</th>
                                 <td>{{ cotizacion.file.nombre }} ({{ cotizacion.file.paisnombre }}) x {{ cotizacion.cotizacion.numeropasajeros }}</td>
                             </tr>
                         </tbody>
@@ -123,7 +122,7 @@ file that was distributed with this source code.
                             <div class="panel-heading">
                                 <h5 class="panel-title">
                                     <a data-toggle="collapse" data-parent="#accordion" href="#collapse1">
-                                        <i class="fas fa-users"></i> Relación de pasajeros
+                                        <i class="fas fa-users"></i> {{ 'namelist'|trans({},'messages')|capitalize }}
                                     </a>
                                 </h5>
                             </div>
@@ -133,28 +132,28 @@ file that was distributed with this source code.
                                         <thead>
                                         <tr class="sonata-ba-list-field-header">
                                             <th>
-                                                Nombres
+                                                {{ 'nombres'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Apellidos
+                                                {{ 'apellidos'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Pais
+                                                {{ 'pais'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Sexo
+                                                {{ 'sexo'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Tipo doc.
+                                                {{ 'tipodoc'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Número doc.
+                                                {{ 'numerodoc'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Fecha nacimiento
+                                                {{ 'fechanacimiento'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Edad
+                                                {{ 'edad'|trans({},'messages')|capitalize }}
                                             </th>
                                         </tr>
                                         </thead>
@@ -233,7 +232,7 @@ file that was distributed with this source code.
                         <li{% if loop.first %} class="active"{% endif %}>
                             <a href="#tab_{{ admin.uniqid }}_{{ loop.index }}" data-toggle="tab">
                                 <i class="fas {{ contenido.icono }}" aria-hidden="true"></i>
-                                <span style="font-size: 1.2em">{{ contenido.nombre }}</span>
+                                <span style="font-size: 1.2em">{{ contenido.nombre|trans({},'messages')|capitalize}}</span>
                             </a>
                         </li>
                     {% endfor %}
@@ -249,7 +248,7 @@ file that was distributed with this source code.
                                 <div class="sonata-ba-collapsed-fields">
 
                                     {% if name == 'tarifas' %}
-                                    <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                    <h3 class="visible-print">{{ contenido.nombre|trans({},'messages')|capitalize}}</h3>
                                     {% if action == 'show' %}
                                     <div class="panel-group box box-primary" id="accordiontarifas">
                                         <div class="panel panel-default hidden-print">
@@ -617,7 +616,7 @@ file that was distributed with this source code.
 
 
                                     {% elseif name == 'incluye' %}
-                                        <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                        <h3 class="visible-print">{{ contenido.nombre|trans({}, 'messages')|capitalize}}</h3>
                                         {% if action == 'show' %}
                                         <div class="panel-group box box-primary" id="accordionincluye">
                                             <div class="panel panel-default hidden-print">
@@ -632,57 +631,60 @@ file that was distributed with this source code.
                                         {% endif%}
                                                     <div class="panel-body table-responsive">
                                                         <h3 class="visible-print">Servicios incluidos</h3>
-                                                        {% for incluido in contenido.incluidos %}
-                                                            <h4 style="font-weight: bold;">{{ incluido.tituloItinerario }}:</h4>
-                                                            <ul class="list-unstyled">
-                                                                {% for tipotarifa in incluido.tipotarifas %}
-                                                                    <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
-                                                                        <ul class="fa-ul">
-                                                                            {% for componente in tipotarifa.componentes %}
-                                                                                <li><i style="color: {{ componente.listacolor }};" class="fa-li fas {{ componente.listaclase }}"></i>{% if componente.cantidadComponente > 1 %} <span style="font-weight: bold;">{{ componente.cantidadComponente }} x</span>{% endif %} {{ componente.titulo }}  ({{ componente.fecha }})
-                                                                                    {% if componente.tarifas is defined %}
-                                                                                        <ul style="list-style: none; padding-left: 20px;">
-                                                                                            {% for tarifa in componente.tarifas %}
-                                                                                                <li>{% if tarifa.titulo is defined %}
-                                                                                                        {{ tarifa.titulo }}
-                                                                                                    {% endif %}
-                                                                                                    {% if tarifa.modalidad is defined %}
-                                                                                                        <span style="font-size: 0.8em">Mod:</span> {{ tarifa.modalidad }}
-                                                                                                    {% endif %}
-                                                                                                    {% if tarifa.categoria is defined %}
-                                                                                                        <span style="font-size: 0.8em">Cat:</span> {{ tarifa.categoria }}
-                                                                                                    {% endif %}
-                                                                                                    {% if tarifa.cantidad > 1 %}
-                                                                                                        <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span>
-                                                                                                    {% endif %}
-                                                                                                    {% if tarifa.mostrarcostoincluye == true %}
-                                                                                                        ({{ tarifa.simboloMoneda }} {{ tarifa.costo }})
-                                                                                                    {% endif %}
-                                                                                                    {% if tarifa.detalles is defined %}
-                                                                                                        (
-                                                                                                        {% for detalle in tarifa.detalles %}
-                                                                                                            {% if not loop.first %}
-                                                                                                                &nbsp;
+                                                        <ul class="list-unstyled">
+                                                            {% for incluido in contenido.incluidos %}
+                                                                <li><h4 style="font-weight: bold;">{{ incluido.tituloItinerario }}:</h4>
+                                                                    <ul class="fa-ul" style="margin-left: 1.2em;">
+                                                                        {% for tipotarifa in incluido.tipotarifas %}
+                                                                            <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
+                                                                                <ul class="fa-ul">
+                                                                                    {% for componente in tipotarifa.componentes %}
+                                                                                        <li><i style="color: {{ componente.listacolor }};" class="fa-li fas {{ componente.listaclase }}"></i>{% if componente.cantidadComponente > 1 %} <span style="font-weight: bold;">{{ componente.cantidadComponente }} x</span>{% endif %} {{ componente.titulo }}  ({{ componente.fecha }})
+                                                                                            {% if componente.tarifas is defined %}
+                                                                                                <ul class="fa-ul" style="margin-left: 0.5em;">
+                                                                                                    {% for tarifa in componente.tarifas %}
+                                                                                                        <li>- {% if tarifa.titulo is defined %}
+                                                                                                                {{ tarifa.titulo }}
                                                                                                             {% endif %}
-                                                                                                            {% if detalle.tipoId == 4 %}
-                                                                                                                <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
-                                                                                                            {% else %}
-                                                                                                                <span>{{ detalle.contenido }}</span>
+                                                                                                            {% if tarifa.modalidad is defined %}
+                                                                                                                <span style="font-size: 0.8em; font-weight: bold; color: steelblue;">Mod:</span> {{ tarifa.modalidad }}
                                                                                                             {% endif %}
-                                                                                                        {% endfor %}
-                                                                                                        )
-                                                                                                    {% endif %}
-                                                                                                </li>
-                                                                                            {% endfor %}
-                                                                                        </ul>
-                                                                                    {% endif %}
-                                                                                </li>
-                                                                            {% endfor %}
-                                                                        </ul>
-                                                                    </li>
-                                                                {% endfor %}
-                                                            </ul>
-                                                        {% endfor %}
+                                                                                                            {% if tarifa.categoria is defined %}
+                                                                                                                <span style="font-size: 0.8em;font-weight: bold; color: steelblue;">Cat:</span> {{ tarifa.categoria }}
+                                                                                                            {% endif %}
+                                                                                                            {% if tarifa.cantidad > 1 %}
+                                                                                                                <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span>
+                                                                                                            {% endif %}
+                                                                                                            {% if tarifa.mostrarcostoincluye == true %}
+                                                                                                                ({{ tarifa.simboloMoneda }} {{ tarifa.costo }})
+                                                                                                            {% endif %}
+                                                                                                            {% if tarifa.detalles is defined %}
+                                                                                                                (
+                                                                                                                {% for detalle in tarifa.detalles %}
+                                                                                                                    {% if not loop.first %}
+                                                                                                                        &nbsp;
+                                                                                                                    {% endif %}
+                                                                                                                    {% if detalle.tipoId == 4 %}
+                                                                                                                        <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
+                                                                                                                    {% else %}
+                                                                                                                        <span>{{ detalle.contenido }}</span>
+                                                                                                                    {% endif %}
+                                                                                                                {% endfor %}
+                                                                                                                )
+                                                                                                            {% endif %}
+                                                                                                        </li>
+                                                                                                    {% endfor %}
+                                                                                                </ul>
+                                                                                            {% endif %}
+                                                                                        </li>
+                                                                                    {% endfor %}
+                                                                                </ul>
+                                                                            </li>
+                                                                        {% endfor %}
+                                                                    </ul>
+                                                                </li>
+                                                            {% endfor %}
+                                                        </ul>
                                                     </div>
                                         {% if action == 'show' %}
                                                 </div>
@@ -746,10 +748,10 @@ file that was distributed with this source code.
                                         {% endif %}
 
                                     {% elseif name == 'politica' %}
-                                        <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                        <h3 class="visible-print">{{ contenido.nombre|trans({}, 'messages')|capitalize}}</h3>
                                         <div class="ck-content">{{ contenido.contenido|raw }}</div>
                                     {% elseif name == 'itinerario' %}
-                                        <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                        <h3 class="visible-print">{{ contenido.nombre|trans({}, 'messages')|capitalize}}</h3>
                                         {% if action == 'show' %}
                                         <div class="panel-group box box-primary" id="accordionitinerario">
                                             <div class="panel panel-default hidden-print">
@@ -904,27 +906,23 @@ file that was distributed with this source code.
                                             </div>
                                         {% endif %}
 
-
-
-
-
-                                    {% elseif name == 'agenda' %}
+                                    {% elseif name == 'horario' %}
 
                                         <div class="box-body table-responsive no-padding">
-                                            <h3 class="visible-print">{{ contenido.nombre}}</h3>
+                                            <h3 class="visible-print">{{ contenido.nombre|trans({}, 'messages')|capitalize}}</h3>
                                             <ul class="fa-ul">
                                                 {% for componente in contenido.componentes | filter(componente => componente.fechahorainicio != componente.fechahorafin ) %}
-                                                    <li>
+                                                    <li style="margin-bottom: 10px">
                                                         <i class="fa-li fas fa-map"></i>
                                                         {{ componente.titulo }} en {{ componente.tituloItinerario }}
                                                         <ul class="fa-ul">
                                                             <li>
-                                                                <i class="fa-li fas fa-calendar"></i>
-                                                                Inicio: <span style="font-weight: bold">{{ componente.fechahorainicio|date('H:i Y/m/d') }}</span>
+                                                                <i class="fa-li fas fa-calendar" style="color: orange;"></i>
+                                                                Inicio: <span style="font-weight: bold">{{ componente.fechahorainicio|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
                                                             </li>
                                                             <li>
-                                                                <i class="fa-li fas fa-calendar-check"></i>
-                                                                Fin: <span style="font-weight: bold">{{ componente.fechahorafin|date('H:i Y/m/d') }}</span>
+                                                                <i class="fa-li fas fa-calendar-check" style="color: green;"></i>
+                                                                Fin: <span style="font-weight: bold">{{ componente.fechahorafin|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
                                                             </li>
                                                         </ul>
                                                     </li>

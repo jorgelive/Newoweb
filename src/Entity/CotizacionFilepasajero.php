@@ -268,9 +268,9 @@ class CotizacionFilepasajero
     {
         if($this->getEdad() >= 18){
             return 1;
-        }elseif($this->getEdad() >= 13 && $this->getEdad() >= 17){
+        }elseif($this->getEdad() >= 13 && $this->getEdad() <= 17){
             return 2;
-        }elseif($this->getEdad() >= 3 && $this->getEdad() >= 12){
+        }elseif($this->getEdad() >= 3 && $this->getEdad() <= 12){
             return 7;
         }else{
            return 0;

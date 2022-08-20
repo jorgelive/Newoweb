@@ -1,2 +1,17 @@
 idioma: languaje
-Itinerario: Itinerary
+tab_itinerario: itinerary
+tab_precio: price
+tab_incluidos: includes
+tab_horario: schedule
+tab_terminos: terms
+cotizacion: quotation
+nombre: name
+namelist: name list
+nombres: names
+apellidos: surnames
+pais: country
+sexo: gender
+tipodoc: doc Type
+numerodoc: doc Number
+fechanacimiento: birthday
+edad: age
