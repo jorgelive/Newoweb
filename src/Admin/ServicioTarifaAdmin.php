@@ -113,7 +113,7 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'class' => 'App\Entity\ServicioModalidadtarifa',
                 'choices' => [
                     1 => 'Privado',
-                    2 => 'Grupal'
+                    2 => 'Compartido'
                 ]
             ])
             ->add('titulo', null, [
@@ -249,12 +249,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
             $form
                 ->add('nombre', null, [
                     'label' => 'Nombre',
-                    'attr' => [
-                        'style' => 'width: 200px;'
-                    ]
-                ])
-                ->add('titulo', null, [
-                    'label' => 'Título',
                     'attr' => [
                         'style' => 'width: 200px;'
                     ]

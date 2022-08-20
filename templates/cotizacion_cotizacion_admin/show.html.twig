@@ -647,10 +647,10 @@ file that was distributed with this source code.
                                                                                                         {{ tarifa.titulo }}
                                                                                                     {% endif %}
                                                                                                     {% if tarifa.modalidad is defined %}
-                                                                                                        Mod: {{ tarifa.modalidad }}
+                                                                                                        <span style="font-size: 0.8em">Mod:</span> {{ tarifa.modalidad }}
                                                                                                     {% endif %}
                                                                                                     {% if tarifa.categoria is defined %}
-                                                                                                        Cat: {{ tarifa.categoria }}
+                                                                                                        <span style="font-size: 0.8em">Cat:</span> {{ tarifa.categoria }}
                                                                                                     {% endif %}
                                                                                                     {% if tarifa.cantidad > 1 %}
                                                                                                         <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span>
