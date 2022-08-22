@@ -88,7 +88,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             foreach ($partes as $key => $parte){
                 $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
                     ->setArchivo()
-                    ->setParametrosWriter($parte, $encabezado, 'DCC_' . $object->getNombre(), 'csv')
+                    ->setParametrosWriter($parte, $encabezado, 'DCC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
                     ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
                     ->createFile();
                 $archivos[$key]['nombre'] = 'DCC_' . $object->getNombre() . '_Parte_' . $key + 1 . '.csv';
