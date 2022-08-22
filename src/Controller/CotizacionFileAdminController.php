@@ -27,7 +27,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
     public function archivodccAction(Request $request): Response
     {
-        $maxLength = 2;
+        $maxLength = 10;
 
         $object = $this->assertObjectExists($request, true);
 
