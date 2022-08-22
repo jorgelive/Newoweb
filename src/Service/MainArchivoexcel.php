@@ -17,6 +17,8 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     use ContainerAwareTrait;
 
+    protected array $tipoWriter = ['xlsx' => 'Xlsx', 'xls' => 'Xls', 'csv' => 'Csv'];
+
     protected MainVariableproceso $variableproceso;
 
     private string $archivoBasePath = '';
@@ -775,16 +777,13 @@ class MainArchivoexcel implements ContainerAwareInterface
         return $this;
     }
 
-    public function getArchivo(): Response
+    public function getResponse(): Response
     {
         if (empty($this->getTipo())) {
             $this->variableproceso->setMensajes('El tipo esta vacio.', 'error');
         }
 
-        $tipoWriter['xlsx'] = 'Xlsx';
-        $tipoWriter['xls'] = 'Xls';
-        $tipoWriter['csv'] = 'Csv';
-        $writer = $this->archivoexcelFactory->createWriter($this->archivo, $tipoWriter[$this->getTipo()], $this->isRemoveEnclosure());
+        $writer = $this->archivoexcelFactory->createWriter($this->archivo, $this->tipoWriter[$this->getTipo()], $this->isRemoveEnclosure());
 
         $response = $this->archivoexcelFactory->createStreamedResponse($writer);
         $response->headers->set('Content-Type', 'text/vnd.ms-excel; charset=utf-8');
@@ -792,6 +791,18 @@ class MainArchivoexcel implements ContainerAwareInterface
         $response->headers->set('Pragma', 'public');
         $response->headers->set('Cache-Control', 'max-age=1');
         return $response;
+    }
 
+    public function createFile(): string
+    {
+        if (empty($this->getTipo())) {
+            $this->variableproceso->setMensajes('El tipo esta vacio.', 'error');
+        }
+
+        $writer = $this->archivoexcelFactory->createWriter($this->archivo, $this->tipoWriter[$this->getTipo()], $this->isRemoveEnclosure());
+
+        $path = tempnam(sys_get_temp_dir(), $this->getTipo());
+        $writer->save($path);
+        return $path;
     }
 }

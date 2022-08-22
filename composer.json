@@ -58,7 +58,8 @@
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/twig": "^2.12|^3.0",
         "ext-curl": "*",
-        "ext-calendar": "*"
+        "ext-calendar": "*",
+        "ext-zip": "*"
     },
     "config": {
         "allow-plugins": {

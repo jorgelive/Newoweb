@@ -1,0 +1,9 @@
+{% if object is defined and admin.hasRoute('show') and object.id is not null %}
+    <li>
+        <a class="sonata-action-element" href="{{ url('admin_app_cotizacioncotizacion_show', {'id': object.cotizacion.id }) }}">
+            <i class="fa fa-newspaper-o" aria-hidden="true"></i>
+            Mostrar Cotización
+        </a>
+    </li>
+{% endif %}
+

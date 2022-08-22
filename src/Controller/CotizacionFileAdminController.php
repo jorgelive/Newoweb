@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use App\Service\MainArchivoexcel;
+use App\Service\MainArchivozip;
 use App\Service\MainVariableproceso;
 
 class CotizacionFileAdminController extends CRUDAdminController
@@ -19,16 +20,15 @@ class CotizacionFileAdminController extends CRUDAdminController
         return [
                 'App\Service\MainVariableproceso' => MainVariableproceso::class,
                 'App\Service\MainArchivoexcel' => MainArchivoexcel::class,
+                'App\Service\MainArchivozip' => MainArchivozip::class,
                 'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
             ] + parent::getSubscribedServices();
     }
 
-
-
-
-
     public function archivodccAction(Request $request): Response
     {
+        $maxLength = 10;
+
         $object = $this->assertObjectExists($request, true);
 
         $this->assertObjectExists($request);
@@ -73,18 +73,39 @@ class CotizacionFileAdminController extends CRUDAdminController
             $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
             $resultados[$key]['file'] = 'F' . sprintf('%010d', $object->getId());
             $resultados[$key]['categoria'] = $filePasajero->getCategoriaddc();
-
         }
 
-        return $this->container->get('App\Service\MainArchivoexcel')
-            ->setArchivo()
-            ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
-            ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
-            ->getArchivo();
+        if (count($resultados) <= $maxLength) {
+            return $this->container->get('App\Service\MainArchivoexcel')
+                ->setArchivo()
+                ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
+                ->setAnchoColumna(['0:' => 20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                ->getResponse();
+        }else{
+
+            $partes = array_chunk($resultados, $maxLength);
+
+            foreach ($partes as $key => $parte){
+                $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
+                    ->setArchivo()
+                    ->setParametrosWriter($parte, $encabezado, 'DCC_' . $object->getNombre(), 'cvc')
+                    ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                    ->createFile();
+                $archivos[$key]['nombre'] = 'DCC_' . $object->getNombre() . '_Parte_' . $key + 1 . '.cvc';
+            }
+
+            return $this->container->get('App\Service\MainArchivozip')
+                ->setParametros($archivos, 'DCC_' . $object->getNombre())
+                ->procesar()
+                ->getResponse();
+
+        }
     }
 
     public function archivoprAction(Request $request): Response
     {
+        $maxLength = 50;
+
         $object = $this->assertObjectExists($request, true);
 
         $this->assertObjectExists($request);
@@ -131,15 +152,37 @@ class CotizacionFileAdminController extends CRUDAdminController
             $resultados[$key]['file'] = 'F' . sprintf('%010d', $object->getId());
         }
 
-        return $this->container->get('App\Service\MainArchivoexcel')
-            ->setArchivo()
-            ->setParametrosWriter($resultados, $encabezado, 'PERURAIL_' . $object->getNombre(), 'xls')
-            //->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
-            ->getArchivo();
+        if (count($resultados) <= $maxLength){
+            return $this->container->get('App\Service\MainArchivoexcel')
+                ->setArchivo()
+                ->setParametrosWriter($resultados, $encabezado, 'PERURAIL_' . $object->getNombre(), 'xls')
+                ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                ->getResponse();
+        }else{
+            $partes = array_chunk($resultados, $maxLength);
+
+            foreach ($partes as $key => $parte){
+                $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
+                    ->setArchivo()
+                    ->setParametrosWriter($parte, $encabezado, 'PERURAIL_' . $object->getNombre(), 'xls')
+                    ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                    ->createFile();
+                $archivos[$key]['nombre'] = 'PERURAIL_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xls';
+
+            }
+
+            return $this->container->get('App\Service\MainArchivozip')
+                ->setParametros($archivos, 'PERURAIL_' . $object->getNombre())
+                ->procesar()
+                ->getResponse();
+        }
+
     }
 
     public function archivoconAction(Request $request): Response
     {
+        $maxLength = 50;
+
         $object = $this->assertObjectExists($request, true);
 
         $this->assertObjectExists($request);
@@ -221,11 +264,31 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         }
 
-        return $this->container->get('App\Service\MainArchivoexcel')
-            ->setArchivo()
-            ->setParametrosWriter($resultados, $encabezado, 'consettur_' . $object->getNombre())
-            ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
-            ->getArchivo();
+        if (count($resultados) <= $maxLength) {
+            return $this->container->get('App\Service\MainArchivoexcel')
+                ->setArchivo()
+                ->setParametrosWriter($resultados, $encabezado, 'consettur_' . $object->getNombre(), 'xlsx')
+                ->setAnchoColumna(['0:' => 20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                ->getResponse();
+        }else{
+            $partes = array_chunk($resultados, $maxLength);
+
+            foreach ($partes as $key => $parte){
+                $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
+                    ->setArchivo()
+                    ->setParametrosWriter($parte, $encabezado, 'consettur_' . $object->getNombre(), 'xlsx')
+                    ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                    ->createFile();
+                $archivos[$key]['nombre'] = 'consettur_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xlsx';
+
+            }
+
+            return $this->container->get('App\Service\MainArchivozip')
+                ->setParametros($archivos, 'consettur_' . $object->getNombre())
+                ->procesar()
+                ->getResponse();
+
+        }
     }
     
 }

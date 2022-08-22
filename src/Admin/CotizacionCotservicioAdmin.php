@@ -295,4 +295,12 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
         return ['fechahorainicio', 'servicio.nombre', 'cotizacion.file.nombre', 'cotizacion.numeropasajeros'];
     }
 
+    protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
+    {
+        if($action == 'show'){
+            $buttonList['cotizacionshow'] = ['template' => 'cotizacion_cotservicio_admin/cotizacionshow_button.html.twig'];
+        }
+        return $buttonList;
+    }
+
 }

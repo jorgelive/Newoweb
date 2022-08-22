@@ -18,6 +18,11 @@ use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 
 class ReservaReservaAdmin extends AbstractAdmin
 {
+    public function configure(): void
+    {
+        $this->classnameLabel = "Reserva";
+    }
+
     protected function configureDefaultSortValues(array &$sortValues): void
     {
         $sortValues[DatagridInterface::PAGE] = 1;
