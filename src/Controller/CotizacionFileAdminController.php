@@ -27,7 +27,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
     public function archivodccAction(Request $request): Response
     {
-        $maxLength = 10;
+        $maxLength = 2;
 
         $object = $this->assertObjectExists($request, true);
 
@@ -88,10 +88,10 @@ class CotizacionFileAdminController extends CRUDAdminController
             foreach ($partes as $key => $parte){
                 $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
                     ->setArchivo()
-                    ->setParametrosWriter($parte, $encabezado, 'DCC_' . $object->getNombre(), 'cvc')
+                    ->setParametrosWriter($parte, $encabezado, 'DCC_' . $object->getNombre(), 'csv')
                     ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
                     ->createFile();
-                $archivos[$key]['nombre'] = 'DCC_' . $object->getNombre() . '_Parte_' . $key + 1 . '.cvc';
+                $archivos[$key]['nombre'] = 'DCC_' . $object->getNombre() . '_Parte_' . $key + 1 . '.csv';
             }
 
             return $this->container->get('App\Service\MainArchivozip')
