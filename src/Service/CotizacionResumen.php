@@ -524,9 +524,11 @@ class CotizacionResumen implements ContainerAwareInterface
                                 if(!empty($tarifa->getTarifa()->getTipopax())){
                                     $tempArrayTarifa['tipoPaxId'] = $tarifa->getTarifa()->getTipopax()->getId();
                                     $tempArrayTarifa['tipoPaxNombre'] = $tarifa->getTarifa()->getTipopax()->getNombre();
+                                    $tempArrayTarifa['tipoPaxTitulo'] = $tarifa->getTarifa()->getTipopax()->getTitulo();
                                 }else{
                                     $tempArrayTarifa['tipoPaxId'] = 0;
-                                    $tempArrayTarifa['tipoPaxNombre'] = ucfirst($this->translator->trans('cualquier_nacionalidad', [], 'messages'));
+                                    $tempArrayTarifa['tipoPaxNombre'] = 'Cualquier_nacionalidad';
+                                    $tempArrayTarifa['tipoPaxTitulo'] = ucfirst($this->translator->trans('cualquier_nacionalidad', [], 'messages'));
                                 }
 
                                 $tempArrayTarifa['tipoTarId'] = $tarifa->getTipotarifa()->getId();
@@ -744,6 +746,7 @@ class CotizacionResumen implements ContainerAwareInterface
             $temp['tipoPaxId'] = $tarifa['tipoPaxId'];
 
             $temp['tipoPaxNombre'] = $tarifa['tipoPaxNombre'];
+            $temp['tipoPaxTitulo'] = $tarifa['tipoPaxTitulo'];
             $temp['prorrateado'] = $tarifa['prorrateado'];
 
             $min = $this->edadMin;
@@ -813,6 +816,7 @@ class CotizacionResumen implements ContainerAwareInterface
                 $auxClase['cantidadRestante'] = $clase['cantidad'];
                 $auxClase['tipoPaxId'] = $clase['tipoPaxId'];
                 $auxClase['tipoPaxNombre'] = $clase['tipoPaxNombre'];
+                $auxClase['tipoPaxTitulo'] = $clase['tipoPaxTitulo'];
                 if(isset($clase['edadMin'])){
                     $auxClase['edadMin'] = $clase['edadMin'];
                 }
@@ -913,6 +917,7 @@ class CotizacionResumen implements ContainerAwareInterface
         if($clase['tipoPaxId'] != 0){
             $temp['tipoPaxId'] = $clase['tipoPaxId'];
             $temp['tipoPaxNombre'] = $clase['tipoPaxNombre'];
+            $temp['tipoPaxTitulo'] = $clase['tipoPaxTitulo'];
         }
 
         $temp['tipo'] = $clase['tipo'];
@@ -942,6 +947,7 @@ class CotizacionResumen implements ContainerAwareInterface
             if($clase['tipoPaxId'] != 0){
                 $this->clasificacionTarifas[$voterIndex]['tipoPaxId'] = $clase['tipoPaxId'];
                 $this->clasificacionTarifas[$voterIndex]['tipoPaxNombre'] = $clase['tipoPaxNombre'];
+                $this->clasificacionTarifas[$voterIndex]['tipoPaxTitulo'] = $clase['tipoPaxTitulo'];
             }
         }
     }
