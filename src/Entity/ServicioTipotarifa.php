@@ -15,7 +15,7 @@ use Gedmo\Translatable\Translatable;
  * @Gedmo\TranslationEntity(class="App\Entity\ServicioTipotarifaTranslation")
  */
 class ServicioTipotarifa
-
+{
     /**
      * @var int
      *
