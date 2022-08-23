@@ -113,7 +113,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
     protected function configureFormFields(FormMapper $formMapper): void
     {
 
-        if ($this->getRoot()->getClass() != 'App\Entity\ReservaUnit'){
+        if($this->getRoot()->getClass() != 'App\Entity\ReservaUnit'){
             $formMapper->add('unit', null, [
                 'label' => 'Unidad'
             ]);
@@ -213,7 +213,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
 
     private function manageFileUpload($unitmedio): void
     {
-        if ($unitmedio->getArchivo()) {
+        if($unitmedio->getArchivo()) {
             $unitmedio->refreshModificado();
         }
     }

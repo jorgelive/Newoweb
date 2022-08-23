@@ -115,13 +115,13 @@ class ServicioItinerariodia implements Translatable
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
 
             $newItidiaarchivos = new ArrayCollection();
-            foreach ($this->itidiaarchivos as $itidiaarchivo) {
+            foreach($this->itidiaarchivos as $itidiaarchivo) {
                 $newItidiaarchivo = clone $itidiaarchivo;
                 $newItidiaarchivo->setItinerariodia($this);
                 $newItidiaarchivos->add($newItidiaarchivo);

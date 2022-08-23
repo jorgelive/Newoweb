@@ -32,7 +32,7 @@ class FullcalendarExtension extends AbstractExtension
 
     public function generateUrl($calendar){
         $exists = $this->_router->getRouteCollection()->get('app_fullcalendar_load_event');
-        if (null === $exists)
+        if(null === $exists)
         {
             return null;
         }
@@ -42,7 +42,7 @@ class FullcalendarExtension extends AbstractExtension
 
     public function generateResourceUrl($calendar){
         $exists = $this->_router->getRouteCollection()->get('app_fullcalendar_load_resource');
-        if (null === $exists)
+        if(null === $exists)
         {
             return null;
         }
@@ -52,15 +52,15 @@ class FullcalendarExtension extends AbstractExtension
 
     public function fullcalendar($calendars, $defaultView = null, $views = [], $allDaySlot = false)
     {
-        if (empty($views)){
+        if(empty($views)){
             $views = ['timeGridWeek', 'dayGridMonth', 'listMonth', 'resourceTimelineOneDay'];
         }
 
-        if (empty($defaultView)){
+        if(empty($defaultView)){
             $defaultView = 'dayGridMonth';
         }
 
-        if (!is_array($calendars) && is_string($calendars)){
+        if(!is_array($calendars) && is_string($calendars)){
             $calendars = ['Default' => $calendars];
         }
 
@@ -70,7 +70,7 @@ class FullcalendarExtension extends AbstractExtension
 
         $views = implode(' ', $views);
 
-        foreach ($calendars as $key => $calendar){
+        foreach($calendars as $key => $calendar){
             $calendarsUrls[] = [
                 'nombre' => $key,
                 'event' => $this->generateUrl($calendar),
@@ -112,12 +112,12 @@ class FullcalendarExtension extends AbstractExtension
         
         for(var val in data) {
             $("<option />", {text: data[val]['nombre'], value: val}).appendTo(s);
-            if (val > 0){
+            if(val > 0){
                 renderDropdown = true;
             } 
         }
         
-        if (renderDropdown === true){
+        if(renderDropdown === true){
             $("#calendar").before(s);
         }
         
@@ -166,17 +166,17 @@ class FullcalendarExtension extends AbstractExtension
             },
             eventClick: function(info) {
                 clickCnt++;         
-                if (clickCnt === 1) {
+                if(clickCnt === 1) {
                     oneClickTimer = setTimeout(function() {
                         clickCnt = 0;
-                        if (typeof info.event.extendedProps.urlshow !== 'undefined') {
+                        if(typeof info.event.extendedProps.urlshow !== 'undefined') {
                             window.location.href = info.event.extendedProps.urlshow;
                         }
                     }, 400);
-                } else if (clickCnt === 2) {
+                } else if(clickCnt === 2) {
                     clearTimeout(oneClickTimer);
                     clickCnt = 0;
-                    if (typeof info.event.extendedProps.urledit !== 'undefined') {
+                    if(typeof info.event.extendedProps.urledit !== 'undefined') {
                         window.location.href = info.event.extendedProps.urledit;
                     }
                 }     
@@ -191,7 +191,7 @@ class FullcalendarExtension extends AbstractExtension
                 getResources(fetchInfo.start, fetchInfo.end, fetchInfo.timezone, function(resources) {
                     setTimeout(function(){ // Timeout
                         $(".fc-day-today").attr("id","scrollTo"); // Set an ID for the current day..
-                        if (typeof $("#scrollTo").position() != 'undefined'){
+                        if(typeof $("#scrollTo").position() != 'undefined'){
                             $(".fc-scroller").animate({
                                 scrollLeft: $("#scrollTo").position().left // Scroll to this ID
                             }, 2000);

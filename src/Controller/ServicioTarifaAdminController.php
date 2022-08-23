@@ -24,7 +24,7 @@ class ServicioTarifaAdminController extends CRUDAdminController
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 
-        if (!$object) {
+        if(!$object) {
             throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
         }
 

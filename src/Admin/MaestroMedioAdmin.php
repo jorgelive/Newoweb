@@ -126,7 +126,7 @@ class MaestroMedioAdmin extends AbstractAdmin
 
     private function manageFileUpload($medio): void
     {
-        if ($medio->getArchivo()) {
+        if($medio->getArchivo()) {
             $medio->refreshModificado();
         }
     }

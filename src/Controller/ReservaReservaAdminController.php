@@ -27,7 +27,7 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 
-        if (!$object) {
+        if(!$object) {
             throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
         }
 
@@ -73,7 +73,7 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $calendar = $this->container->get('App\Service\IcalGenerator')->setTimezone('America/Lima')->setProdid('-//OpenPeru//Cotservicio Calendar //ES')->createCalendar();
 
-        foreach ($reservas as $reserva){
+        foreach($reservas as $reserva){
 
             $fechainicioMasUno = new \DateTime($reserva->getFechahorainicio()->format('Y-m-d H:i') . '+1 hour');
             $fechafinMasUno = new \DateTime($reserva->getFechahorafin()->format('Y-m-d H:i') . '+1 hour');

@@ -73,7 +73,7 @@ class CotizacionCottarifadetalle
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);

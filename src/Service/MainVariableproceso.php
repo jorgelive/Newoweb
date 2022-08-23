@@ -56,7 +56,7 @@ class MainVariableproceso implements ContainerAwareInterface{
         $what[] = "/[?]+/";
 
         $withArray = [];
-        foreach ($what as $dummy):
+        foreach($what as $dummy):
             $withArray[] = $with;
         endForeach;
 

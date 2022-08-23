@@ -91,7 +91,7 @@ class TransporteServiciocomponente
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
@@ -214,7 +214,7 @@ class TransporteServiciocomponente
     {
         if($this->getNumchd() > 0){
             return sprintf('%s %s x %s+%s de %s a %s', $this->getHora()->format('H:i'), $this->getNombre(), (string)$this->getNumadl(), (string)$this->getNumchd(), $this->getOrigen(), $this->getDestino());
-        } else{
+        }else{
             return sprintf('%s %s x %s de %s a %s', $this->getHora()->format('H:i'), $this->getNombre(), (string)$this->getNumadl(), $this->getOrigen(), $this->getDestino());
         }
     }

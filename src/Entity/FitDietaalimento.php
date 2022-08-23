@@ -75,7 +75,7 @@ class FitDietaalimento
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
@@ -118,7 +118,7 @@ class FitDietaalimento
 
     public function getMedidaAlimento()
     {
-        if (!empty($this->getAlimento())){
+        if(!empty($this->getAlimento())){
             return $this->getAlimento()->getMedidaalimento()->getNombre();
         }
 
@@ -127,7 +127,7 @@ class FitDietaalimento
 
     public function getCantidadAlimento()
     {
-        if (!empty($this->getAlimento())){
+        if(!empty($this->getAlimento())){
             return $this->getAlimento()->getCantidad() * $this->getCantidad();
         }
 
@@ -143,7 +143,7 @@ class FitDietaalimento
 
     public function getGrasa()
     {
-        if (!empty($this->getAlimento())){
+        if(!empty($this->getAlimento())){
             return $this->getAlimento()->getGrasa();
         }
 
@@ -163,7 +163,7 @@ class FitDietaalimento
 
     public function getCarbohidrato()
     {
-        if (!empty($this->getAlimento())){
+        if(!empty($this->getAlimento())){
             return $this->getAlimento()->getCarbohidrato();
         }
 
@@ -183,7 +183,7 @@ class FitDietaalimento
 
     public function getProteina()
     {
-        if (!empty($this->getAlimento())){
+        if(!empty($this->getAlimento())){
             return $this->getAlimento()->getProteina();
         }
         return 0;
@@ -197,7 +197,7 @@ class FitDietaalimento
 
     public function getProteinaTotalAlto()
     {
-        if (empty($this->getAlimento()) || $this->getAlimento()->isProteinaaltovalor() === false){
+        if(empty($this->getAlimento()) || $this->getAlimento()->isProteinaaltovalor() === false){
             return 0;
         }
         return $this->getProteina() * $this->getCantidad();

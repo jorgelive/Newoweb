@@ -47,7 +47,7 @@ class ObtenerReservasCommand extends Command
 
         $nexos = $this->entityManager->getRepository("App\Entity\ReservaUnitnexo")->findAll();
 
-        foreach ($nexos as $nexo){
+        foreach($nexos as $nexo){
             if(!$nexo->isDeshabilitado()){
                 $ical = new ICal(false, array(
                     'defaultSpan'                 => 2,     // Default value
@@ -119,14 +119,14 @@ class ObtenerReservasCommand extends Command
                             $temp['enlace'] = $out[0][0];
                         }
                         $insertar = true;
-                    }elseif ($canal == 3){
+                    }elseif($canal == 3){
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 1);
                         $temp['nombre'] = ucwords(strtolower(str_replace('CLOSED - ', '', $event->summary))) . '- Completar';
                         $temp['enlace'] = '';
                         $insertar = true;
                     }
 
-                    if ($insertar === true){
+                    if($insertar === true){
                         $reserva = new ReservaReserva();
                         $reserva->setChanel($nexo->getChanel());
                         $reserva->setUnit($unidad);
@@ -142,7 +142,7 @@ class ObtenerReservasCommand extends Command
                     }
                 }
 
-                foreach ($currentReservas as &$currentReserva){
+                foreach($currentReservas as &$currentReserva){
                     if($currentReserva->isManual()){
                         continue;
                     }

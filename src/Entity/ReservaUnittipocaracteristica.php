@@ -150,7 +150,7 @@ class ReservaUnittipocaracteristica implements Translatable
 
     public function addUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
     {
-        if (!$this->unitcaracteristicas->contains($unitcaracteristica)) {
+        if(!$this->unitcaracteristicas->contains($unitcaracteristica)) {
             $this->unitcaracteristicas[] = $unitcaracteristica;
             $unitcaracteristica->setUnittipocaracteristica($this);
         }
@@ -160,9 +160,9 @@ class ReservaUnittipocaracteristica implements Translatable
 
     public function removeUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
     {
-        if ($this->unitcaracteristicas->removeElement($unitcaracteristica)) {
+        if($this->unitcaracteristicas->removeElement($unitcaracteristica)) {
             // set the owning side to null (unless already changed)
-            if ($unitcaracteristica->getUnittipocaracteristica() === $this) {
+            if($unitcaracteristica->getUnittipocaracteristica() === $this) {
                 $unitcaracteristica->setUnittipocaracteristica(null);
             }
         }

@@ -96,12 +96,12 @@ class CotizacionCotservicio
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
             $newCotcomponentes = new ArrayCollection();
-            foreach ($this->cotcomponentes as $cotcomponente) {
+            foreach($this->cotcomponentes as $cotcomponente) {
                 $newCotcomponente = clone $cotcomponente;
                 $newCotcomponente->setCotservicio($this);
                 $newCotcomponentes->add($newCotcomponente);

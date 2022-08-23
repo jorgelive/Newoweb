@@ -98,12 +98,12 @@ class FitDieta
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
             $newDietacomidas = new ArrayCollection();
-            foreach ($this->dietacomidas as $dietacomida) {
+            foreach($this->dietacomidas as $dietacomida) {
                 $newDietacomida = clone $dietacomida;
                 $newDietacomida->setDieta($this);
                 $newDietacomidas->add($newDietacomida);
@@ -138,7 +138,7 @@ class FitDieta
     public function getGrasaTotal()
     {
         $result = 0;
-        foreach ($this->dietacomidas as $dietacomida):
+        foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getGrasaTotal();
         endforeach;
 
@@ -157,7 +157,7 @@ class FitDieta
     public function getCarbohidratoTotal()
     {
         $result = 0;
-        foreach ($this->dietacomidas as $dietacomida):
+        foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getCarbohidratoTotal();
         endforeach;
 
@@ -176,7 +176,7 @@ class FitDieta
     public function getProteinaTotal()
     {
         $result = 0;
-        foreach ($this->dietacomidas as $dietacomida):
+        foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getProteinaTotal();
         endforeach;
 
@@ -195,7 +195,7 @@ class FitDieta
     public function getProteinaTotalAlto()
     {
         $result = 0;
-        foreach ($this->dietacomidas as $dietacomida):
+        foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getProteinaTotalAlto();
         endforeach;
 
@@ -214,7 +214,7 @@ class FitDieta
     public function getGrasaCalorias()
     {
         $result = 0;
-        foreach ($this->dietacomidas as $dietacomida):
+        foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getGrasaCalorias();
         endforeach;
 
@@ -224,7 +224,7 @@ class FitDieta
     public function getCarbohidratoCalorias()
     {
         $result = 0;
-        foreach ($this->dietacomidas as $dietacomida):
+        foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getCarbohidratoCalorias();
         endforeach;
 
@@ -234,7 +234,7 @@ class FitDieta
     public function getProteinaCalorias()
     {
         $result = 0;
-        foreach ($this->dietacomidas as $dietacomida):
+        foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getProteinaCalorias();
         endforeach;
 
@@ -257,7 +257,7 @@ class FitDieta
 
     public function getGrasaPorcentaje()
     {
-        if (empty($this->getTotalCalorias())){return 0;}
+        if(empty($this->getTotalCalorias())){return 0;}
 
         $result = $this->getGrasaCalorias() / $this->getTotalCalorias() * 100;
 
@@ -266,7 +266,7 @@ class FitDieta
 
     public function getCarbohidratoPorcentaje()
     {
-        if (empty($this->getTotalCalorias())){return 0;}
+        if(empty($this->getTotalCalorias())){return 0;}
 
         $result = $this->getCarbohidratoCalorias() / $this->getTotalCalorias() * 100;
 
@@ -275,7 +275,7 @@ class FitDieta
 
     public function getProteinaPorcentaje()
     {
-        if (empty($this->getTotalCalorias())){return 0;}
+        if(empty($this->getTotalCalorias())){return 0;}
 
         $result = $this->getProteinaCalorias() / $this->getTotalCalorias() * 100;
 

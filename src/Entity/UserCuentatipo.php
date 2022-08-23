@@ -188,9 +188,9 @@ class UserCuentatipo
 
     public function removeCuenta(UserCuenta $cuenta): self
     {
-        if ($this->cuentas->removeElement($cuenta)) {
+        if($this->cuentas->removeElement($cuenta)) {
             // set the owning side to null (unless already changed)
-            if ($cuenta->getCuentatipo() === $this) {
+            if($cuenta->getCuentatipo() === $this) {
                 $cuenta->setCuentatipo(null);
             }
         }

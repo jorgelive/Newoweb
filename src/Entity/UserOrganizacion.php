@@ -198,8 +198,8 @@ class UserOrganizacion
 
     public function setDependencias($dependencias)
     {
-        if (count($dependencias) > 0) {
-            foreach ($dependencias as $dependencia) {
+        if(count($dependencias) > 0) {
+            foreach($dependencias as $dependencia) {
                 $this->addDependencia($dependencia);
             }
         }

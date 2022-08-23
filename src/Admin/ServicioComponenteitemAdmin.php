@@ -79,7 +79,7 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\ServicioComponente'
+        if($this->getRoot()->getClass() != 'App\Entity\ServicioComponente'
         ){
             $formMapper->add('componente');
         }

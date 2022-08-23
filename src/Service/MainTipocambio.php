@@ -35,7 +35,7 @@ class MainTipocambio implements ContainerAwareInterface{
         $enDB = $this->getDoctrine()->getRepository('App\Entity\MaestroTipocambio')
             ->findOneBy(['moneda' => 2, 'fecha' => $fecha]);
 
-        if ($enDB){
+        if($enDB){
             return $enDB;
         }
 
@@ -85,7 +85,7 @@ class MainTipocambio implements ContainerAwareInterface{
             $ch = curl_init();
 
             // Check if initialization had gone wrong*
-            if ($ch === false) {
+            if($ch === false) {
                 throw new \Exception('failed to initialize');
             }
 
@@ -107,7 +107,7 @@ class MainTipocambio implements ContainerAwareInterface{
             $content = curl_exec($ch);
 
             // Check the return value of curl_exec(), too
-            if ($content === false) {
+            if($content === false) {
                 throw new \Exception(curl_error($ch), curl_errno($ch));
             }
 
@@ -132,7 +132,7 @@ class MainTipocambio implements ContainerAwareInterface{
     {
         $result = [];
 
-        foreach ($array as $index => $valor) {
+        foreach($array as $index => $valor) {
             $fecha = $valor['fecha'];
             $result[$fecha]['date'] = new \DateTime($fecha);
             $result[$fecha]['compra'] = $valor['compra'];

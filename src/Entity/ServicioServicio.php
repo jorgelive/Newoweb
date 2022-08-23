@@ -102,13 +102,13 @@ class ServicioServicio implements Translatable
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
 
             $newComponentes = new ArrayCollection();
-            foreach ($this->componentes as $componente) {
+            foreach($this->componentes as $componente) {
                 $newComponente = $componente;
                 $newComponente->addServicio($this);
                 $newComponentes->add($newComponente);

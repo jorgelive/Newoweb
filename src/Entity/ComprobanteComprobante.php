@@ -153,12 +153,12 @@ class ComprobanteComprobante
 
     public function __clone() {
 
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
             $newComprobanteitems = new ArrayCollection();
-            foreach ($this->comprobanteitems as $comprobanteitem) {
+            foreach($this->comprobanteitems as $comprobanteitem) {
                 $newComprobanteitem = clone $comprobanteitem;
                 $newComprobanteitem->setComprobante($this);
                 $newComprobanteitems->add($newComprobanteitem);
@@ -166,7 +166,7 @@ class ComprobanteComprobante
             $this->comprobanteitems = $newComprobanteitems;
 
             $newServiciocontables = new ArrayCollection();
-            foreach ($this->serviciocontables as $serviciocontable) {
+            foreach($this->serviciocontables as $serviciocontable) {
                 $newServiciocontable = clone $serviciocontable;
                 $newServiciocontable->setComprobante($this);
                 $newServiciocontables->add($newServiciocontable);

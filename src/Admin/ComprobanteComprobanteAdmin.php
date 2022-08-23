@@ -41,7 +41,7 @@ class ComprobanteComprobanteAdmin extends AbstractAdmin
                 'label' => 'Fecha de servicio',
                 'callback' => function($queryBuilder, $alias, $field, $value) {
 
-                    if (!$value['value'] || !($value['value'] instanceof \DateTime)) {
+                    if(!$value['value'] || !($value['value'] instanceof \DateTime)) {
                         return;
                     }
                     $fechaMasUno = clone ($value['value']);
@@ -106,7 +106,7 @@ class ComprobanteComprobanteAdmin extends AbstractAdmin
                 'label' => 'Fecha de emisión',
                 'callback' => function($queryBuilder, $alias, $field, $value) {
 
-                    if (!$value['value'] || !($value['value'] instanceof \DateTime)) {
+                    if(!$value['value'] || !($value['value'] instanceof \DateTime)) {
                         return;
                     }
                     $fechaMasUno = clone ($value['value']);

@@ -198,9 +198,9 @@ class FitMedidaalimento
 
     public function removeAlimento(FitAlimento $alimento): self
     {
-        if ($this->alimentos->removeElement($alimento)) {
+        if($this->alimentos->removeElement($alimento)) {
             // set the owning side to null (unless already changed)
-            if ($alimento->getMedidaalimento() === $this) {
+            if($alimento->getMedidaalimento() === $this) {
                 $alimento->setMedidaalimento(null);
             }
         }

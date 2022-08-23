@@ -93,7 +93,7 @@ class ServicioItinerarioAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\ServicioServicio'){
+        if($this->getRoot()->getClass() != 'App\Entity\ServicioServicio'){
             $formMapper->add('servicio');
         }
         $formMapper

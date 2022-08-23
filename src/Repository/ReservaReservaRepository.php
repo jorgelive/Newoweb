@@ -14,9 +14,9 @@ class ReservaReservaRepository extends \Doctrine\ORM\EntityRepository
 {
     public function findCalendarTodas($data)
     {
-        if (!$data['user'] instanceof UserUser) {
+        if(!$data['user'] instanceof UserUser) {
             throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
-        } else {
+        }else{
             $user = $data['user'];
         }
 
@@ -37,9 +37,9 @@ class ReservaReservaRepository extends \Doctrine\ORM\EntityRepository
 
     public function findCalendarNoCanceladas($data)
     {
-        if (!$data['user'] instanceof UserUser) {
+        if(!$data['user'] instanceof UserUser) {
             throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
-        } else {
+        }else{
             $user = $data['user'];
         }
 

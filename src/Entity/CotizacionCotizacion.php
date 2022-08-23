@@ -150,14 +150,14 @@ class CotizacionCotizacion implements Translatable
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setFecha(new \DateTime('today'));
             $this->setCreado(null);
             $this->setModificado(null);
             $this->setToken(mt_rand());
             $newCotservicios = new ArrayCollection();
-            foreach ($this->cotservicios as $cotservicio) {
+            foreach($this->cotservicios as $cotservicio) {
                 $newCotservicio = clone $cotservicio;
                 $newCotservicio->setCotizacion($this);
                 $newCotservicios->add($newCotservicio);

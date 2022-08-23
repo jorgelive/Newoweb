@@ -107,12 +107,12 @@ class TransporteServicio
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
             $newServiciocomponentes = new ArrayCollection();
-            foreach ($this->serviciocomponentes as $serviciocomponente) {
+            foreach($this->serviciocomponentes as $serviciocomponente) {
                 $newServiciocomponente = clone $serviciocomponente;
                 $newServiciocomponente->setServicio($this);
                 $newServiciocomponentes->add($newServiciocomponente);
@@ -120,7 +120,7 @@ class TransporteServicio
             $this->serviciocomponentes = $newServiciocomponentes;
 
             $newServiciooperativos = new ArrayCollection();
-            foreach ($this->serviciooperativos as $serviciooperativo) {
+            foreach($this->serviciooperativos as $serviciooperativo) {
                 $newServiciooperativo = clone $serviciooperativo;
                 $newServiciooperativo->setServicio($this);
                 $newServiciooperativos->add($newServiciooperativo);
@@ -128,7 +128,7 @@ class TransporteServicio
             $this->serviciooperativos = $newServiciooperativos;
 
             $newServiciocontables = new ArrayCollection();
-            foreach ($this->serviciocontables as $serviciocontable) {
+            foreach($this->serviciocontables as $serviciocontable) {
                 $newServiciocontable = clone $serviciocontable;
                 $newServiciocontable->setServicio($this);
                 $newServiciocontables->add($newServiciocontable);
@@ -140,10 +140,10 @@ class TransporteServicio
     public function getExportcomponentes()
     {
         $exportcomponentes = [];
-        foreach ($this->getServiciocomponentes() as $key => $serviciocomponente):
+        foreach($this->getServiciocomponentes() as $key => $serviciocomponente):
             if($serviciocomponente->getNumchd() > 0){
                 $exportcomponentes[] = sprintf('%s %s x %s+%s de %s a %s', $serviciocomponente->getHora()->format('H:i'), $serviciocomponente->getNombre(), (string)$serviciocomponente->getNumadl(), (string)$serviciocomponente->getNumchd(), $serviciocomponente->getOrigen(), $serviciocomponente->getDestino());
-            } else{
+            }else{
                 $exportcomponentes[] = sprintf('%s %s x %s de %s a %s', $serviciocomponente->getHora()->format('H:i'), $serviciocomponente->getNombre(), (string)$serviciocomponente->getNumadl(), $serviciocomponente->getOrigen(), $serviciocomponente->getDestino());
             }
         endforeach;
@@ -155,7 +155,7 @@ class TransporteServicio
     {
 
         $exportoperativos = [];
-        foreach ($this->getServiciooperativos() as $key => $serviciooperativo):
+        foreach($this->getServiciooperativos() as $key => $serviciooperativo):
             $exportoperativos[] =
                 sprintf("%s: %s.", $serviciooperativo->getTiposeroperativo()->getCodigo(), $serviciooperativo->getTexto());
         endforeach;
@@ -215,7 +215,7 @@ class TransporteServicio
     {
         $comp = [];
 
-        foreach ($this->getServiciocomponentes() as $componente):
+        foreach($this->getServiciocomponentes() as $componente):
             $comp[] = sprintf('%s x %s', $componente->getNombre(), $componente->getNumadl());
         endforeach;
 

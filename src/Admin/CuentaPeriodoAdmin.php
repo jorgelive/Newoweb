@@ -71,7 +71,7 @@ class CuentaPeriodoAdmin extends AbstractAdmin
 
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\CuentaCuenta'){
+        if($this->getRoot()->getClass() != 'App\Entity\CuentaCuenta'){
             $formMapper->add('cuenta');
         }
 
@@ -96,7 +96,7 @@ class CuentaPeriodoAdmin extends AbstractAdmin
                 ]
             ]);
 
-        if ($this->getRoot()->getClass() != 'App\Entity\CuentaCuenta'){
+        if($this->getRoot()->getClass() != 'App\Entity\CuentaCuenta'){
             $formMapper
                 ->add('movimientos', CollectionType::class, [
                     'by_reference' => false,
@@ -121,7 +121,7 @@ class CuentaPeriodoAdmin extends AbstractAdmin
         $formBuilder->addEventListener(
             FormEvents::PRE_SET_DATA,
             function (FormEvent $event) use ($editModifier) {
-                if ($this->isCurrentRoute('edit')) {
+                if($this->isCurrentRoute('edit')) {
                     $editModifier($event->getForm());
                 }
             }

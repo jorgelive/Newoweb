@@ -46,7 +46,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $id = $object->getId();
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 
-        if (!$object) {
+        if(!$object) {
             throw $this->createNotFoundException(sprintf('Unable to find the object with id: %s', $id));
         }
 
@@ -56,7 +56,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $newObject->setNombre($object->getNombre().' (Clone)');
         $newObject->setEstadocotizacion($em->getReference('App\Entity\CotizacionEstadocotizacion', 1));
 
-        foreach ($newObject->getCotservicios() as $cotservicio):
+        foreach($newObject->getCotservicios() as $cotservicio):
             //en la primera iteracion considerando que el orden es por fecha de inicio
             if(!isset($oldFechaInicio)){
                 $oldFechaInicio = new \DateTime($cotservicio->getFechaHoraInicio()->format('Y-m-d'));
@@ -67,7 +67,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
                 $cotservicio->getFechaHoraInicio()->add($interval);
                 $cotservicio->getFechaHoraFin()->add($interval);
             }
-            foreach ($cotservicio->getCotcomponentes() as $cotcomponente):
+            foreach($cotservicio->getCotcomponentes() as $cotcomponente):
                 if(isset($newFechaInicio) && isset($interval)) {
                     $cotcomponente->getFechaHoraInicio()->add($interval);
                     $cotcomponente->getFechaHoraFin()->add($interval);
@@ -94,7 +94,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $this->admin->checkAccess('show', $object);
 
         $preResponse = $this->preShow($request, $object);
-        if (null !== $preResponse) {
+        if(null !== $preResponse) {
             return $preResponse;
         }
 
@@ -143,7 +143,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         //$this->admin->checkAccess('show', $object);
 
         $preResponse = $this->preShow($request, $object);
-        if (null !== $preResponse) {
+        if(null !== $preResponse) {
             return $preResponse;
         }
 

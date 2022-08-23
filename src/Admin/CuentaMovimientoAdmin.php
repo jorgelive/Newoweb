@@ -37,7 +37,7 @@ class CuentaMovimientoAdmin extends AbstractAdmin
                 'label' => 'Fecha',
                 'callback' => function($queryBuilder, $alias, $field, $value) {
 
-                    if (!$value['value']['start']
+                    if(!$value['value']['start']
                         || !($value['value']['start'] instanceof \DateTime)
                         || !$value['value']['end']
                         || !($value['value']['end'] instanceof \DateTime)
@@ -161,7 +161,7 @@ class CuentaMovimientoAdmin extends AbstractAdmin
 
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\CuentaCuenta'
+        if($this->getRoot()->getClass() != 'App\Entity\CuentaCuenta'
         && $this->getRoot()->getClass() != 'App\Entity\CuentaPeriodo'){
             $formMapper->add('periodo');
         }

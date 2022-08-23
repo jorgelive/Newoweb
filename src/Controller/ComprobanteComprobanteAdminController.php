@@ -25,7 +25,7 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
         $object = $this->admin->getSubject();
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 
-        if (!$object) {
+        if(!$object) {
             throw new NotFoundHttpException(sprintf('No se puede encontrar el objeto con el identificador : %s', $this->admin->getIdParameter()));
         }
 
@@ -70,7 +70,7 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
         $object = $this->admin->getSubject();
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 
-        if (!$object) {
+        if(!$object) {
             throw new NotFoundHttpException(sprintf('No se puede encontrar el objeto con el identificador : %s', $this->admin->getIdParameter()));
         }
 
@@ -131,11 +131,11 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
 
         $object = $this->admin->getSubject();
 
-        if (!$object) {
+        if(!$object) {
             throw new NotFoundHttpException(sprintf('No se puede encontrar el objeto con el identificador : %s', $this->admin->getIdParameter()));
         }
 
-        if (!$object->getTipo()
+        if(!$object->getTipo()
             || $object->getTipo()->getId() <= 0
         ){
             $this->addFlash('sonata_flash_error', 'Este documento no admite la emision de una factura.');
@@ -156,7 +156,7 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
             if($serviciocontable->getServicio()->getServiciocomponentes()){
                 $filesArray = $serviciocontable->getServicio()->getServiciocomponentes()->toArray();
 
-                foreach ($filesArray as $files){
+                foreach($filesArray as $files){
                     $filesString .= sprintf(' F.%s', $files->getCodigo());
                 }
             }
@@ -216,14 +216,14 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
 
         $solicitud['operacion'] = "generar_comprobante";
 
-        if (!($object->getTipo())){
+        if(!($object->getTipo())){
             $this->addFlash('sonata_flash_error', 'No se puede obtener el tipo de documento.');
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
         $solicitud['tipo_de_comprobante'] = $object->getTipo()->getCodigoexterno();
 
-        if ($object->getSerie()
+        if($object->getSerie()
             || $object->getDocumento()
         ){
             $this->addFlash('sonata_flash_error', 'El documento ya se ha facturado.');
@@ -244,7 +244,7 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
         $solicitud['sunat_transaction'] = 1; //fijo
         $solicitud['cliente_tipo_de_documento'] = 6; //fijo
 
-        if (!$object->getDependencia()
+        if(!$object->getDependencia()
             ||  !$object->getDependencia()->getOrganizacion()
         ){
             $this->addFlash('sonata_flash_error', 'No se puede obtener el cliente.');
@@ -376,7 +376,7 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
-        foreach ($respuesta as $key => $value){
+        foreach($respuesta as $key => $value){
             if($key == 'serie'){
                 $object->setSerie($value);
             }elseif($key == 'numero'){
@@ -385,7 +385,7 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
             }elseif($key == 'enlace'){
                 $object->setUrl($value);
             }else{
-                if (!(is_array($value) || empty($value))){
+                if(!(is_array($value) || empty($value))){
                     $mensaje = new Mensaje();
                     $mensaje->setClave($key);
                     $mensaje->setContenido($value);

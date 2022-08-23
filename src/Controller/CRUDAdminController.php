@@ -13,7 +13,7 @@ class CRUDAdminController extends BaseController
     {
         $response = parent::redirectTo($request, $object);
 
-        if (null !== $request->get('btn_update_and_list') || null !== $request->get('btn_create_and_list')) {
+        if(null !== $request->get('btn_update_and_list') || null !== $request->get('btn_create_and_list')) {
 
             $current_admin = str_replace("_edit", "", $this->container->get('router')->match($request->getPathInfo())['_route']);
             $current_admin = str_replace("_create", "", $current_admin);
@@ -32,7 +32,7 @@ class CRUDAdminController extends BaseController
                 $parameters = [];
 
                 $filter = $this->admin->getFilterParameters();
-                if ([] !== $filter) {
+                if([] !== $filter) {
                     $parameters['filter'] = $filter;
                 }
                 $response = $this->redirect($this->admin->generateUrl('list', $parameters));

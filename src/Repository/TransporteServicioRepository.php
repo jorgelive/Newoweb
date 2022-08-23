@@ -11,7 +11,7 @@ class TransporteServicioRepository extends EntityRepository
 {
     public function findCalendarConductorColored($data)
     {
-        if (!$data['user'] instanceof UserUser){
+        if(!$data['user'] instanceof UserUser){
             throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
         }else{
             $user = $data['user'];
@@ -22,7 +22,7 @@ class TransporteServicioRepository extends EntityRepository
             ->from('App\Entity\TransporteServicio', 's')
             ->where('s.fechahorafin >= :firstDate AND s.fechahorainicio <= :lastDate');
 
-/*        if ($user && $user->getDependencia() && $user->getDependencia()->getId() != 1) {
+/*        if($user && $user->getDependencia() && $user->getDependencia()->getId() != 1) {
             $qb->andWhere('me.dependencia = :dependencia')
                 ->setParameter('dependencia', $user->getDependencia()->getId());
         }*/

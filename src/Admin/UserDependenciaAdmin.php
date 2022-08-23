@@ -75,7 +75,7 @@ class UserDependenciaAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\UserOrganizacion'){
+        if($this->getRoot()->getClass() != 'App\Entity\UserOrganizacion'){
             $formMapper
                 ->add('organizacion', null, [
                     'required' => true,

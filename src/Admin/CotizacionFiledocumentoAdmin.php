@@ -70,7 +70,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
     protected function configureFormFields(FormMapper $formMapper): void
     {
 
-        if ($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'){
+        if($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'){
             $formMapper->add('file');
         }
         $formMapper
@@ -145,7 +145,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
 
     private function manageFileUpload($cotizacionfiledocumento)
     {
-        if ($cotizacionfiledocumento->getArchivo()) {
+        if($cotizacionfiledocumento->getArchivo()) {
             $cotizacionfiledocumento->refreshModificado();
         }
     }

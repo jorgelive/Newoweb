@@ -59,7 +59,7 @@ class TransporteUnidadbitacoraAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\TransporteUnidad'){
+        if($this->getRoot()->getClass() != 'App\Entity\TransporteUnidad'){
             $formMapper->add('unidad');
         }
 

@@ -153,7 +153,7 @@ class ReservaEstado
 
     public function addReserva(ReservaReserva $reserva): self
     {
-        if (!$this->reservas->contains($reserva)) {
+        if(!$this->reservas->contains($reserva)) {
             $this->reservas[] = $reserva;
             $reserva->setEstado($this);
         }
@@ -163,9 +163,9 @@ class ReservaEstado
 
     public function removeReserva(ReservaReserva $reserva): self
     {
-        if ($this->reservas->removeElement($reserva)) {
+        if($this->reservas->removeElement($reserva)) {
             // set the owning side to null (unless already changed)
-            if ($reserva->getEstado() === $this) {
+            if($reserva->getEstado() === $this) {
                 $reserva->setEstado(null);
             }
         }

@@ -59,7 +59,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\ReservaUnit'){
+        if($this->getRoot()->getClass() != 'App\Entity\ReservaUnit'){
             $formMapper->add('unit', null, [
                 'label' => 'Unidad'
             ]);

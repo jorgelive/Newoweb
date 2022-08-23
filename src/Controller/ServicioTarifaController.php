@@ -86,7 +86,7 @@ class ServicioTarifaController extends AbstractController
             return $this->makeresponse($content, $status);
         };
 
-        foreach ($pagination->getItems() as $key => $item):
+        foreach($pagination->getItems() as $key => $item):
             $resultado[$key]['id'] = $item->getId();
             $resultado[$key]['label'] = $item->__toString();
             $resultado[$key]['costo'] = sprintf('%s %s', $item->getMoneda()->getCodigo(), $item->getMonto());

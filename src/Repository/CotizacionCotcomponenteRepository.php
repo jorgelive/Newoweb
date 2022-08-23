@@ -14,9 +14,9 @@ class CotizacionCotcomponenteRepository extends \Doctrine\ORM\EntityRepository
 {
     public function findCalendarAceptado($data)
     {
-        if (!$data['user'] instanceof UserUser) {
+        if(!$data['user'] instanceof UserUser) {
             throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
-        } else {
+        }else{
             $user = $data['user'];
         }
 
@@ -38,9 +38,9 @@ class CotizacionCotcomponenteRepository extends \Doctrine\ORM\EntityRepository
 
     public function findCalendarAceptadoEfectuado($data)
     {
-        if (!$data['user'] instanceof UserUser) {
+        if(!$data['user'] instanceof UserUser) {
             throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
-        } else {
+        }else{
             $user = $data['user'];
         }
 

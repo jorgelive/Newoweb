@@ -76,14 +76,14 @@ class MainArchivozip implements ContainerAwareInterface{
         $zip = new \ZipArchive();
         $this->archivoPath = tempnam(sys_get_temp_dir(), 'zip');
         $zip->open($this->getArchivoPath(),  \ZipArchive::CREATE);
-        foreach ($this->getArchivos() as $archivo) {
+        foreach($this->getArchivos() as $archivo) {
             $zip->addFile($archivo['path'], $archivo['nombre']);
         }
 
         $zip->close();
 
         if($this->getMantenerFuente() !== true){
-            foreach ($this->getArchivos() as $archivo) {
+            foreach($this->getArchivos() as $archivo) {
                 unlink($archivo['path']);
             }
         }

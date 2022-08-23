@@ -93,7 +93,7 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
         }
 
         if(isset($this->options['filters']) && !empty($this->options['filters'])){
-            foreach ($this->options['filters'] as $i => $filter):
+            foreach($this->options['filters'] as $i => $filter):
                 $valor = false;
                 if(!str_contains($filter['value'], '.')){
                     $valor = $filter['value'];
@@ -102,7 +102,7 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
                     $partes = explode('.', $filter['value']);
 
                     $clonedElement = clone $user;
-                    foreach ($partes as $parte){
+                    foreach($partes as $parte){
                         $methodFormated = 'get' . ucfirst($parte);
                         //var_dump($methodFormated); die;
                         if($clonedElement !== null){
@@ -136,8 +136,8 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
         $aux = [];
         if(isset($this->options['resource'])){
             $i=0;
-            foreach ($elements as $element) {
-                foreach ($this->options['resource'] as $key => $parameter){
+            foreach($elements as $element) {
+                foreach($this->options['resource'] as $key => $parameter){
                     if(strpos($parameter, '.') > 0){
                         $methods = explode('.', $parameter);
                     }else{
@@ -145,7 +145,7 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
                     }
 
                     $clonedElement = clone $element; //var_dump($element);
-                    foreach ($methods as $method){
+                    foreach($methods as $method){
                         $methodFormated = 'get' . ucfirst($method);
                         $clonedElement = $clonedElement->$methodFormated();
                     }
@@ -186,8 +186,8 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
         $i=0;
         //elements son los resultados del query
         //var_dump($elements); die;
-        foreach ($elements as $element) {
-            foreach ($this->options['parameters'] as $key => $parameter){
+        foreach($elements as $element) {
+            foreach($this->options['parameters'] as $key => $parameter){
                 if($key == 'url'){ // el parametro url es array proceso el subparametro id
                     $subject = $parameter['id'];
                 }else{
@@ -201,7 +201,7 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
                 }
 
                 $copiedElement = $element; //ya no clono;
-                foreach ($methods as $method){
+                foreach($methods as $method){
                     $methodFormated = 'get' . ucfirst($method);
                     $copiedElement = $copiedElement->$methodFormated();
                 }
@@ -230,7 +230,7 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
                     $methods = [$this->options['resource']['id']];
                 }
 
-                foreach ($methods as $method){
+                foreach($methods as $method){
                     $methodFormated = 'get' . ucfirst($method);
                     $copiedElement = $copiedElement->$methodFormated();
                 }

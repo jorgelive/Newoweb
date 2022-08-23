@@ -174,7 +174,7 @@ class ServicioTarifa implements Translatable
     private $locale;
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);

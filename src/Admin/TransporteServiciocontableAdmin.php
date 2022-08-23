@@ -43,7 +43,7 @@ class TransporteServiciocontableAdmin extends AbstractAdmin
                 'label' => 'Fecha de servicio',
                 'callback' => function($queryBuilder, $alias, $field, $value) {
 
-                    if (!$value['value'] || !($value['value'] instanceof \DateTime)) {
+                    if(!$value['value'] || !($value['value'] instanceof \DateTime)) {
                         return;
                     }
                     $fechaMasUno = clone ($value['value']);
@@ -136,7 +136,7 @@ class TransporteServiciocontableAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\TransporteServicio'){
+        if($this->getRoot()->getClass() != 'App\Entity\TransporteServicio'){
             $formMapper->add('servicio');
         }
         $formMapper
@@ -146,7 +146,7 @@ class TransporteServiciocontableAdmin extends AbstractAdmin
             ->add('total')
         ;
 
-        if ($this->getRoot()->getClass() != 'App\Entity\TransporteComprobante'){
+        if($this->getRoot()->getClass() != 'App\Entity\TransporteComprobante'){
             $formMapper->add('comprobante');
         }
 

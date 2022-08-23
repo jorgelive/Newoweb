@@ -104,7 +104,7 @@ class FitAlimento
     public function __toString()
     {
 
-        if (empty($this->getMedidaalimento())) {
+        if(empty($this->getMedidaalimento())) {
             return sprintf("Id: %s.", $this->getId());
         }
 

@@ -218,9 +218,9 @@ class MaestroClasemedio implements Translatable
      */
     public function removeMedio(MaestroMedio $medio): self
     {
-        if ($this->medios->removeElement($medio)) {
+        if($this->medios->removeElement($medio)) {
             // set the owning side to null (unless already changed)
-            if ($medio->getClasemedio() === $this) {
+            if($medio->getClasemedio() === $this) {
                 $medio->setClasemedio(null);
             }
         }

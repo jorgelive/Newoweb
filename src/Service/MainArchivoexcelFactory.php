@@ -22,7 +22,7 @@ class MainArchivoexcelFactory
      */
     public function createPHPExcelObject(?string $filename =  null): Spreadsheet
     {
-        if (null == $filename) {
+        if(null == $filename) {
             return new Spreadsheet();
         }
 
@@ -51,7 +51,7 @@ class MainArchivoexcelFactory
     {
         $writer = call_user_func(array($this->phpExcelIO, 'createWriter'), $phpExcelObject, $type);
 
-        if ($removeEnclosure){
+        if($removeEnclosure){
             $writer->setEnclosure('');
         }
 

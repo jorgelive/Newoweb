@@ -62,7 +62,7 @@ class ServicioItidiaarchivoAdmin extends AbstractAdmin
     protected function configureFormFields(FormMapper $formMapper): void
     {
 
-        if ($this->getRoot()->getClass() != 'App\Entity\ServicioItinerariodia' &&
+        if($this->getRoot()->getClass() != 'App\Entity\ServicioItinerariodia' &&
             $this->getRoot()->getClass() != 'App\Entity\ServicioItinerario' &&
             $this->getRoot()->getClass() != 'App\Entity\ServicioServicio'
         ){

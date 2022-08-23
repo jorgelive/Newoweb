@@ -219,9 +219,9 @@ class ReservaUnitclasemedio implements Translatable
     public function removeUnitmedio(\App\Entity\Reservaunitmedio $unitmedio)
     {
 
-        if ($this->unitmedios->removeElement($unitmedio)) {
+        if($this->unitmedios->removeElement($unitmedio)) {
             // set the owning side to null (unless already changed)
-            if ($unitmedio->getUnitclasemedio() === $this) {
+            if($unitmedio->getUnitclasemedio() === $this) {
                 $unitmedio->setUnitclasemedio(null);
             }
         }

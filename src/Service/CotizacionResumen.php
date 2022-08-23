@@ -118,7 +118,7 @@ class CotizacionResumen implements ContainerAwareInterface
 //Archivos $datosCotizacion['archivos']
         if($cotizacion->getFile()->getFiledocumentos()->count() > 0){
             $archivosAux = [];
-            foreach ($cotizacion->getFile()->getFiledocumentos() as $documento):
+            foreach($cotizacion->getFile()->getFiledocumentos() as $documento):
 
                 $archivosAux['webPath'] = $documento->getWebPath();     //$this->get('request')->getSchemeAndHttpHost();
                 $archivosAux['nombre'] = $documento->getNombre();
@@ -139,7 +139,7 @@ class CotizacionResumen implements ContainerAwareInterface
 //Lista de pasajeros $datosCotizacion['pasajeros']
         if($cotizacion->getFile()->getFilepasajeros()->count() > 0){
             $pasajerosAux = [];
-            foreach ($cotizacion->getFile()->getFilepasajeros() as $pasajero):
+            foreach($cotizacion->getFile()->getFilepasajeros() as $pasajero):
                 $pasajerosAux['nombre'] = $pasajero->getNombre();
                 $pasajerosAux['apellido'] = $pasajero->getApellido();
                 $pasajerosAux['pais'] = $pasajero->getPais()->getNombre();
@@ -157,7 +157,7 @@ class CotizacionResumen implements ContainerAwareInterface
 //Notas de condiciones especiales solo las muestro si hay servicios
             if($cotizacion->getCotnotas()->count() > 0){
                 $auxNotas = [];
-                foreach ($cotizacion->getCotnotas() as $nota):
+                foreach($cotizacion->getCotnotas() as $nota):
                     $auxNotas['nombre'] = $nota->getNombre();
                     $auxNotas['titulo'] = $nota->getTitulo();
                     $auxNotas['contenido'] = $nota->getContenido();
@@ -167,7 +167,7 @@ class CotizacionResumen implements ContainerAwareInterface
             }
 
 //1N bucle de servicios
-            foreach ($cotizacion->getCotservicios() as $keyServicio => $servicio):
+            foreach($cotizacion->getCotservicios() as $keyServicio => $servicio):
 
                 //Itinerarios $datosTabs['itinerario']['itinerarios'][FECHA]
                 $itinerarioFechaAux = [];
@@ -175,7 +175,7 @@ class CotizacionResumen implements ContainerAwareInterface
                 if($servicio->getItinerario()->getItinerariodias()->count() > 0){
 
 //2N bucle de dias de itinerario
-                    foreach ($servicio->getItinerario()->getItinerariodias() as $keyItinerariodia => $dia):
+                    foreach($servicio->getItinerario()->getItinerariodias() as $keyItinerariodia => $dia):
 
                         $fecha = clone($servicio->getFechahorainicio());
                         $fecha->add(new \DateInterval('P' . ($dia->getDia() - 1) . 'D'));
@@ -192,7 +192,7 @@ class CotizacionResumen implements ContainerAwareInterface
                         $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['nroDia'] = $nroDia;
                         $archivosTempArray = [];
                         if($dia->getItidiaarchivos()->count() > 0){
-                            foreach ($dia->getItidiaarchivos() as $archivo):
+                            foreach($dia->getItidiaarchivos() as $archivo):
                                 $archivoTemp['nombre'] = $archivo->getMedio()->getNombre();
                                 $archivoTemp['titulo'] = $archivo->getMedio()->getTitulo();
                                 $archivoTemp['tipo'] = $archivo->getMedio()->getTipo();
@@ -245,7 +245,7 @@ class CotizacionResumen implements ContainerAwareInterface
 //la presencia del titulo sera un indicador para mostrarlo o no en horario ya que el item array componente es interno para los demas procesos
                             $tempArrayItem=[];
                             if($componente->getComponente()->getTipocomponente()->isAgendable() === true && $componente->getComponente()->getComponenteitems()->count() > 0){
-                                foreach ($componente->getComponente()->getComponenteitems() as $item){
+                                foreach($componente->getComponente()->getComponenteitems() as $item){
                                     //todo por que?
                                     if(!$item->isNomostrartarifa()){
                                         $tempArrayItem[] = $item->getTitulo();
@@ -254,7 +254,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                 $tempArrayComponente['titulo'] = implode(', ',  $tempArrayItem);
                             }
 //3N bucle de tarifas
-                            foreach ($componente->getCottarifas() as $tarifa):
+                            foreach($componente->getCottarifas() as $tarifa):
 //Incluye
                                 $tempArrayInternoIncluye = [];
 //Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
@@ -262,7 +262,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                     $servicioId = $servicio->getId();
                                     $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = $tempArrayComponente['tituloItinerario'];
 
-                                } else {
+                                }else{
                                     $servicioId = -1;
                                     $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = 'Varios';
                                 }
@@ -340,7 +340,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                     $datosTabs['incluye']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
 
 //4N bucle de items, para cada item pongo la tarifa
-                                    foreach ($componente->getComponente()->getComponenteitems() as $item){
+                                    foreach($componente->getComponente()->getComponenteitems() as $item){
                                         //alguno de los 3 o titulo o modalidad o categoria
                                         if((!empty($tarifa->getTarifa()->getTitulo()) && !$item->isNomostrartarifa())
                                             ||(!empty($tarifa->getTarifa()->getModalidadtarifa()) && !$item->isNomostrarmodalidadtarifa())
@@ -620,9 +620,9 @@ class CotizacionResumen implements ContainerAwareInterface
         });
 
         //el bucle esta pasado por referencia!!!!!
-        foreach ($this->clasificacionTarifas as &$clase):
+        foreach($this->clasificacionTarifas as &$clase):
 
-            foreach ($clase['tarifas'] as $tarifa):
+            foreach($clase['tarifas'] as $tarifa):
                 $clase['resumen'][$tarifa['tipoTarId']]['tipoTarNombre'] = $tarifa['tipoTarNombre'];
                 $clase['resumen'][$tarifa['tipoTarId']]['tipoTarTitulo'] = $tarifa['tipoTarTitulo'];
                 $clase['resumen'][$tarifa['tipoTarId']]['tipoTarListacolor'] = $tarifa['tipoTarListacolor'];
@@ -731,7 +731,7 @@ class CotizacionResumen implements ContainerAwareInterface
         $tiposAux = [];
 
 //se ejecuta bucle para detectar tipo duplicado
-        foreach ($componente as $id => $tarifa):
+        foreach($componente as $id => $tarifa):
             $temp = [];
 
             $temp['cantidad'] = $tarifa['cantidad'];
@@ -787,7 +787,7 @@ class CotizacionResumen implements ContainerAwareInterface
     private function resetClasificacionTarifas(): void
     {
 
-        foreach ($this->clasificacionTarifas as &$clase):
+        foreach($this->clasificacionTarifas as &$clase):
             $clase['cantidadRestante'] = $clase['cantidad'];
         endforeach;
     }
@@ -799,7 +799,7 @@ class CotizacionResumen implements ContainerAwareInterface
         if(empty($this->clasificacionTarifas)){
 
             $cantidadTemporal = 0;
-            foreach ($claseTarifas as $keyClase => &$clase):
+            foreach($claseTarifas as $keyClase => &$clase):
 
                 $auxClase = [];
                 $auxClase['tipo'] = $clase['tipo'];
@@ -830,7 +830,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
         }
 
-        foreach ($claseTarifas as $keyClase => &$clase):
+        foreach($claseTarifas as $keyClase => &$clase):
 
             //los prorrateados no modifican los rangos
             if($clase['cantidad'] <= $cantidadTotalPasajeros){
@@ -847,7 +847,7 @@ class CotizacionResumen implements ContainerAwareInterface
         endforeach;
 
         //$cantidadTarifas = count($claseTarifas);
-        foreach ($claseTarifas as $keyClase => &$clase):
+        foreach($claseTarifas as $keyClase => &$clase):
 
             //los prorrateados se distribuyen
             if($clase['prorrateado'] === false){
@@ -860,9 +860,9 @@ class CotizacionResumen implements ContainerAwareInterface
                         unset($claseTarifas[$keyClase]);
                     }
                 }
-            } else {
+            }else{
 
-                foreach ($this->clasificacionTarifas as &$clasificacionTarifa):
+                foreach($this->clasificacionTarifas as &$clasificacionTarifa):
                     $clasificacionTarifa['tarifas'][] = $clase['tarifa'];
                 endforeach;
 
@@ -976,7 +976,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
         $voter = [];
 
-        foreach ($clasificacion as $keyTarifa => $tarifaClasificada):
+        foreach($clasificacion as $keyTarifa => $tarifaClasificada):
 
             $voter[$keyTarifa] = 0;
 

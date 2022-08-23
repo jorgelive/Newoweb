@@ -18,7 +18,7 @@ class CuentaMovimientoDoctrineEventListener
     public function prePersist(LifecycleEventArgs $args)
     {
         $entity = $args->getEntity();
-        if ($entity instanceof CuentaMovimiento){
+        if($entity instanceof CuentaMovimiento){
             if(!$entity->getUser()) {
                 $entity->setUser($this->tokenStorage->getToken()->getUser());
             }

@@ -33,11 +33,11 @@ class TransporteServiciocontableAdminController extends CRUDAdminController
 
         $object = $this->admin->getSubject();
 
-        if (!$object) {
+        if(!$object) {
             throw new NotFoundHttpException(sprintf('No se puede encontrar el objeto con el identificador : %s', $this->admin->getIdParameter()));
         }
 
-        if (!$object->getTiposercontable()
+        if(!$object->getTiposercontable()
             || $object->getTiposercontable()->getId() <= 0
         ){
             $this->addFlash('sonata_flash_error', 'Este documento no admite la emision de una factura.');
@@ -68,12 +68,12 @@ class TransporteServiciocontableAdminController extends CRUDAdminController
         }
         $solicitud = [];
         $solicitud['operacion'] = "generar_comprobante";
-        if (!($object->getTiposercontable())){
+        if(!($object->getTiposercontable())){
             $this->addFlash('sonata_flash_error', 'No se puede obtener el tipo de documento.');
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
         $solicitud['tipo_de_comprobante'] = $object->getTiposercontable()->getCodigoexterno();
-        if ($object->getSerie()
+        if($object->getSerie()
             || $object->getDocumento()
         ){
             $this->addFlash('sonata_flash_error', 'El documento ya se ha facturado.');
@@ -89,7 +89,7 @@ class TransporteServiciocontableAdminController extends CRUDAdminController
         $solicitud['numero'] = (string)$object->getTiposercontable()->getCorrelativo();
         $solicitud['sunat_transaction'] = 1; //fijo
         $solicitud['cliente_tipo_de_documento'] = 6; //fijo
-        if (!$object->getServicio()
+        if(!$object->getServicio()
             ||  !$object->getServicio()->getDependencia()
             ||  !$object->getServicio()->getDependencia()->getOrganizacion()
         ){
@@ -102,7 +102,7 @@ class TransporteServiciocontableAdminController extends CRUDAdminController
         $solicitud['cliente_email'] = $object->getServicio()->getDependencia()->getEmail();
         $solicitud['fecha_de_emision'] = $fechaEmision->format('d-m-Y');
         $solicitud['fecha_de_vencimiento'] = '';
-        if (!($object->getMoneda())){
+        if(!($object->getMoneda())){
             $this->addFlash('sonata_flash_error', 'No se puede obtener la moneda del documento.');
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
@@ -155,7 +155,7 @@ class TransporteServiciocontableAdminController extends CRUDAdminController
         if($object->getServicio()->getServiciocomponentes()){
             $filesArray = $object->getServicio()->getServiciocomponentes()->toArray();
 
-            foreach ($filesArray as $files){
+            foreach($filesArray as $files){
                 $filesString .= sprintf(' F.%s', $files->getCodigo());
             }
         }
@@ -207,7 +207,7 @@ class TransporteServiciocontableAdminController extends CRUDAdminController
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
-        foreach ($respuesta as $key => $value){
+        foreach($respuesta as $key => $value){
             if($key == 'serie'){
                 $object->setSerie($value);
             }elseif($key == 'numero'){
@@ -216,7 +216,7 @@ class TransporteServiciocontableAdminController extends CRUDAdminController
             }elseif($key == 'enlace'){
                 $object->setUrl($value);
             }else{
-                if (!(is_array($value) || empty($value))){
+                if(!(is_array($value) || empty($value))){
                     /*$mensaje = new Sercontablemensaje();
                     $mensaje->setClave($key);
                     $mensaje->setContenido($value);

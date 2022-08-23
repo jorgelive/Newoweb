@@ -112,13 +112,13 @@ class ServicioComponente implements Translatable
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
 
             $newTarifas = new ArrayCollection();
-            foreach ($this->tarifas as $tarifa) {
+            foreach($this->tarifas as $tarifa) {
                 $newTarifa = clone $tarifa;
                 $newTarifa->setComponente($this);
                 $newTarifas->add($newTarifa);
@@ -126,7 +126,7 @@ class ServicioComponente implements Translatable
             $this->tarifas = $newTarifas;
 
             $newServicios = new ArrayCollection();
-            foreach ($this->servicios as $servicio) {
+            foreach($this->servicios as $servicio) {
                 $newServicio = $servicio;
                 $newServicio->addComponente($this);
                 $newServicios->add($newServicio);
@@ -134,7 +134,7 @@ class ServicioComponente implements Translatable
             $this->servicios = $newServicios;
 
             $newComponenteitems = new ArrayCollection();
-            foreach ($this->componenteitems as $componenteitem) {
+            foreach($this->componenteitems as $componenteitem) {
                 $newComponenteitem = clone $componenteitem;
                 $newComponenteitem->setComponente($this);
                 $newComponenteitems->add($newComponenteitem);

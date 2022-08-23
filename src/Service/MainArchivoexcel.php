@@ -84,18 +84,18 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     public function setArchivoBasePath(ObjectRepository $repositorio, int $id, string $funcionArchivo): self
     {
-        if (empty($repositorio) || empty($id) || empty($funcionArchivo)) {
+        if(empty($repositorio) || empty($id) || empty($funcionArchivo)) {
             $this->variableproceso->setMensajes('Los parametros del archivo base no son válidos.', 'error');
             return $this;
         }
         $archivoAlmacenado = $repositorio->find($id);
-        if (empty($archivoAlmacenado) || $archivoAlmacenado->getOperacion() != $funcionArchivo || !is_object($archivoAlmacenado)) {
+        if(empty($archivoAlmacenado) || $archivoAlmacenado->getOperacion() != $funcionArchivo || !is_object($archivoAlmacenado)) {
             $this->variableproceso->setMensajes('El archivo no existe en la base de datos o es inválido.', 'error');
             return $this;
         }
         $fs = new Filesystem();
 
-        if (!$fs->exists($archivoAlmacenado->getInternalFullPath())) {
+        if(!$fs->exists($archivoAlmacenado->getInternalFullPath())) {
             $this->variableproceso->setMensajes('El archivo no existe en la ruta.', 'error');
             return $this;
         }
@@ -108,9 +108,9 @@ class MainArchivoexcel implements ContainerAwareInterface
      */
     public function setArchivo(): self
     {
-        if (!empty($this->getArchivoBasePath())) {
+        if(!empty($this->getArchivoBasePath())) {
             $this->archivo = $this->archivoexcelFactory->createPHPExcelObject($this->getArchivoBasePath());
-        } else {
+        }else{
             $this->archivo = $this->archivoexcelFactory->createPHPExcelObject();
         }
         $this->archivo->getProperties()->setCreator("OpenPeru")
@@ -133,7 +133,7 @@ class MainArchivoexcel implements ContainerAwareInterface
         $cantidad = $this->archivo->getSheetCount();
 
         //si no existe la hoja del indice creamos las hojas necesarias
-        if ($this->archivo->getSheetCount() < $hojaIndex) {
+        if($this->archivo->getSheetCount() < $hojaIndex) {
             $diferencia = $hojaIndex - $this->archivo->getSheetCount();
             for ($x = 0; $x < $diferencia; $x++) {
                 $numeroHoja = $cantidad + 1 + $x;
@@ -152,41 +152,41 @@ class MainArchivoexcel implements ContainerAwareInterface
     {
         $this->setTablaSpecs = $setTablaSpecs;
         $this->setColumnaSpecs = $setColumnaSpecs;
-        if (empty($setTablaSpecs['tipo'])) {
+        if(empty($setTablaSpecs['tipo'])) {
             $setTablaSpecs['tipo'] = 'S';
         }
-        if (!empty($setTablaSpecs)) {
+        if(!empty($setTablaSpecs)) {
             $this->tablaSpecs = $setTablaSpecs;
-        } else {
+        }else{
             $this->tablaSpecs = [];
         }
-        if (!empty($setColumnaSpecs)) {
-            foreach ($setColumnaSpecs as $columna):
-                if (isset($columna['nombre'])) {
+        if(!empty($setColumnaSpecs)) {
+            foreach($setColumnaSpecs as $columna):
+                if(isset($columna['nombre'])) {
                     $this->validCols[] = $columna['nombre'];
-                    if (preg_match("/-/i", $columna['nombre'])) {
+                    if(preg_match("/-/i", $columna['nombre'])) {
                         $nombres = explode('-', $columna['nombre']);
-                    } else {
+                    }else{
                         $nombres = array($columna['nombre']);
                     }
                     unset($columna['nombre']);
-                    foreach ($nombres as $nombre):
+                    foreach($nombres as $nombre):
                         $this->columnaSpecs[$nombre] = $columna;
                         $this->columnaSpecs[$nombre]['nombre'] = $nombre;
                         $this->tablaSpecs['columnas'][] = $nombre;
-                        if (!isset($columna['proceso']) || (isset($columna['proceso']) && $columna['proceso'] == 'si')) {
+                        if(!isset($columna['proceso']) || (isset($columna['proceso']) && $columna['proceso'] == 'si')) {
                             $this->tablaSpecs['columnasProceso'][] = $nombre;
                         }
-                        if (isset($columna['llave']) && $columna['llave'] == 'si') {
+                        if(isset($columna['llave']) && $columna['llave'] == 'si') {
                             $this->tablaSpecs['llaves'][] = $nombre;
                         }
                     endforeach;
 
-                } else {
+                }else{
                     $this->validCols[] = 'noProcess';
                 }
             endforeach;
-        } else {
+        }else{
             $this->columnaSpecs = [];
             $this->validCols = [];
         }
@@ -195,12 +195,12 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     public function parseExcel(): bool
     {
-        if (empty($this->archivo)) {
+        if(empty($this->archivo)) {
             $this->variableproceso->setMensajes('El archivo no pudo ser puesto en memoria.', 'error');
             return false;
         }
 
-        if ($this->isParsed()) {
+        if($this->isParsed()) {
             $this->variableproceso->setMensajes('El archivo ya fue procesado anteriormente.', 'info');
             return true;
         }
@@ -230,19 +230,19 @@ class MainArchivoexcel implements ContainerAwareInterface
                 $value = $this->getHoja()->getCellByColumnAndRow($col, $row)->getValue();
 
                 //detecta filas de "especificacion"
-                if ($col == 0 && str_starts_with($value, "&") && substr($value, 3, 1) == "&") {
+                if($col == 0 && str_starts_with($value, "&") && substr($value, 3, 1) == "&") {
                     $specRow = true;
-                    if (str_starts_with($value, "&ta&")) {
+                    if(str_starts_with($value, "&ta&")) {
                         $specRowType = 'T';
                         $value = substr($value, 4);
-                    } elseif (str_starts_with($value, "&co&")) {
+                    }elseif(str_starts_with($value, "&co&")) {
                         $specRowType = 'C';
                         $value = substr($value, 4);
-                    } else {
+                    }else{
                         $specRowType = '';
                     }
 
-                } elseif ($col == 0 && !str_starts_with($value, "&")) {
+                }elseif($col == 0 && !str_starts_with($value, "&")) {
                     $specRow = false;
                     $specRowType = '';
                 }
@@ -252,86 +252,86 @@ class MainArchivoexcel implements ContainerAwareInterface
                 //guion en el medio del nombre lee dos variables separadas por guion
                 //proceso='no' es para que no se utilice en la consulta de la base de datos
 
-                if ($specRow === true) {
-                    if ($specRowType == 'C' && is_null($this->setColumnaSpecs)) {
+                if($specRow === true) {
+                    if($specRowType == 'C' && is_null($this->setColumnaSpecs)) {
                         $valorArray = explode(':', $value);
-                        if (isset($valorArray[1])) {
-                            if ($valorArray[0] == 'nombre') {
+                        if(isset($valorArray[1])) {
+                            if($valorArray[0] == 'nombre') {
                                 $this->validCols[] = $valorArray[1];
-                                if (preg_match("/-/i", $valorArray[1])) {
+                                if(preg_match("/-/i", $valorArray[1])) {
                                     $nombres = explode('-', $valorArray[1]);
-                                } else {
+                                }else{
                                     $nombres = array($valorArray[1]);
                                 }
-                                foreach ($nombres as $nombre):
+                                foreach($nombres as $nombre):
                                     $this->columnaSpecs[$nombre]['nombre'] = $nombre;
                                     $this->tablaSpecs['columnas'][] = $nombre;
                                     $this->tablaSpecs['columnasProceso'][] = $nombre;
                                 endforeach;
                                 $procesandoNombre = true;
-                            } elseif ($procesandoNombre === true) {
+                            }elseif($procesandoNombre === true) {
                                 $this->validCols[] = 'noProcess';
-                            } elseif (!empty($this->validCols) && isset($this->validCols[$col]) && $this->validCols[$col] != 'noProcess') {
-                                if (preg_match("/-/i", $this->validCols[$col])) {
+                            }elseif(!empty($this->validCols) && isset($this->validCols[$col]) && $this->validCols[$col] != 'noProcess') {
+                                if(preg_match("/-/i", $this->validCols[$col])) {
                                     $nombres = explode('-', $this->validCols[$col]);
-                                } else {
+                                }else{
                                     $nombres = array($this->validCols[$col]);
                                 }
-                                foreach ($nombres as $nombre):
+                                foreach($nombres as $nombre):
                                     $this->columnaSpecs[$nombre][$valorArray[0]] = $valorArray[1];
                                 endforeach;
                             }
-                            if ($valorArray[0] == 'llave' && $valorArray[1] == 'si' && isset($this->validCols[$col]) && $this->validCols[$col] != 'noProcess') {
-                                if (preg_match("/-/i", $this->validCols[$col])) {
+                            if($valorArray[0] == 'llave' && $valorArray[1] == 'si' && isset($this->validCols[$col]) && $this->validCols[$col] != 'noProcess') {
+                                if(preg_match("/-/i", $this->validCols[$col])) {
                                     $nombres = explode('-', $this->validCols[$col]);
-                                } else {
+                                }else{
                                     $nombres = array($this->validCols[$col]);
                                 }
-                                foreach ($nombres as $nombre):
+                                foreach($nombres as $nombre):
                                     $this->tablaSpecs['llaves'][] = $this->columnaSpecs[$nombre]['nombre'];
                                 endforeach;
                             }
-                            if ($valorArray[0] == 'proceso' && $valorArray[1] == 'no' && isset($this->validCols[$col]) && $this->validCols[$col] != 'noProcess') {
-                                if (preg_match("/-/i", $this->validCols[$col])) {
+                            if($valorArray[0] == 'proceso' && $valorArray[1] == 'no' && isset($this->validCols[$col]) && $this->validCols[$col] != 'noProcess') {
+                                if(preg_match("/-/i", $this->validCols[$col])) {
                                     $nombres = explode('-', $this->validCols[$col]);
-                                } else {
+                                }else{
                                     $nombres = array($this->validCols[$col]);
                                 }
-                                foreach ($nombres as $nombre):
+                                foreach($nombres as $nombre):
                                     $encontrado = array_search($this->columnaSpecs[$nombre]['nombre'], $this->tablaSpecs['columnasProceso'], true);
-                                    if ($encontrado !== false) {
+                                    if($encontrado !== false) {
                                         unset($this->tablaSpecs['columnasProceso'][$encontrado]);
                                     }
                                 endforeach;
                             }
                         }
                     }
-                    if ($specRowType == 'T' && is_null($this->setTablaSpecs)) {
+                    if($specRowType == 'T' && is_null($this->setTablaSpecs)) {
                         $valorArray = explode(':', $value);
-                        if (isset($valorArray[1])) {
+                        if(isset($valorArray[1])) {
                             $this->tablaSpecs[$valorArray[0]] = $valorArray[1];
                         }
                     }
-                } else {
-                    if (!empty($this->validCols) && isset($this->validCols[$col]) && $this->validCols[$col] != 'noProcess') {
+                }else{
+                    if(!empty($this->validCols) && isset($this->validCols[$col]) && $this->validCols[$col] != 'noProcess') {
                         $columnName = $this->validCols[$col];
-                        if (preg_match("/-/i", $this->validCols[$col])) {
+                        if(preg_match("/-/i", $this->validCols[$col])) {
                             $value = explode('-', $value);
                             $columnName = explode('-', $columnName);
-                        } else {
+                        }else{
                             $value = array($value);
                             $columnName = array($columnName);
                         }
-                        foreach ($value as $key => $parteValor):
+                        foreach($value as $key => $parteValor):
 
-                            if (trim(str_replace(chr(194) . chr(160), "", $parteValor)) != '' || !$this->isDescartarBlanco()) {
+                            if(trim(str_replace(chr(194) . chr(160), "", $parteValor)) != '' || !$this->isDescartarBlanco()) {
 
-                                if ($this->isTrimEspacios()) {
+                                if($this->isTrimEspacios()) {
                                     $parteValor = trim(str_replace(chr(194) . chr(160), "", $parteValor));
                                 }
 
-                                if (isset($this->columnaSpecs[$columnName[$key]]['tipo'])){
-                                    if ($this->columnaSpecs[$columnName[$key]]['tipo'] == 'file' && $key == 1) {
+                                if(isset($this->columnaSpecs[$columnName[$key]]['tipo'])){
+                                    if($this->columnaSpecs[$columnName[$key]]['tipo'] == 'file' && $key == 1) {
                                         $parteValor = str_pad($parteValor, 10, 0, STR_PAD_LEFT);
                                     }elseif($this->columnaSpecs[$columnName[$key]]['tipo'] == 'exceldate') {
                                         $parteValor = $this->variableproceso->exceldate($parteValor);
@@ -343,9 +343,9 @@ class MainArchivoexcel implements ContainerAwareInterface
                             }
 
                         endforeach;
-                    } else {
-                        if (trim(str_replace(chr(194) . chr(160), "", $value)) != '' || !$this->isDescartarBlanco()) {
-                            if ($this->isTrimEspacios()) {
+                    }else{
+                        if(trim(str_replace(chr(194) . chr(160), "", $value)) != '' || !$this->isDescartarBlanco()) {
+                            if($this->isTrimEspacios()) {
                                 $value = trim(str_replace(chr(194) . chr(160), "", $value));
                             }
                             $existentesDescartados[$fila][] = str_replace(chr(194) . chr(160), "", $value);
@@ -358,9 +358,9 @@ class MainArchivoexcel implements ContainerAwareInterface
                 }
 
             }
-            if (!empty($this->tablaSpecs['llaves'])) {
-                foreach ($this->tablaSpecs['llaves'] as $llave):
-                    if (empty($existentesRaw[$fila][$llave])) {
+            if(!empty($this->tablaSpecs['llaves'])) {
+                foreach($this->tablaSpecs['llaves'] as $llave):
+                    if(empty($existentesRaw[$fila][$llave])) {
                         unset($existentesRaw[$fila]);
                         break;
                     }
@@ -370,29 +370,29 @@ class MainArchivoexcel implements ContainerAwareInterface
 
         }
 
-        if (empty($existentesRaw)) {
+        if(empty($existentesRaw)) {
             $this->variableproceso->setMensajes('La lectura del archivo no obtuvo resultados.', 'error');
             return false;
         }
 
-        foreach ($existentesRaw as $nroLinea => $valor):
+        foreach($existentesRaw as $nroLinea => $valor):
             //primero obtenemos los custom
-            if (!empty($this->getCamposCustom())) {
+            if(!empty($this->getCamposCustom())) {
 
-                foreach ($this->getCamposCustom() as $llaveCustom):
+                foreach($this->getCamposCustom() as $llaveCustom):
 
-                    if (isset($valor[$llaveCustom])) {
+                    if(isset($valor[$llaveCustom])) {
 
                         $existentesCustomRaw[$nroLinea][$llaveCustom] = $valor[$llaveCustom];
                     }
                 endforeach;
             }
 
-            if (!empty($this->tablaSpecs['llaves'])) {
+            if(!empty($this->tablaSpecs['llaves'])) {
                 $indice = array();
                 $llavesSave = array();
 
-                foreach ($this->tablaSpecs['llaves'] as $llave):
+                foreach($this->tablaSpecs['llaves'] as $llave):
                     $indice[] = $valor[$llave];
                     $llavesSave[$llave] = $valor[$llave];
                     unset($valor[$llave]);
@@ -401,10 +401,10 @@ class MainArchivoexcel implements ContainerAwareInterface
                 $existentesIndizadosMulti[implode('|', $indice)][] = $valor;
                 $existentesIndizadosKp[implode('|', $indice)] = array_merge($llavesSave, $valor);
                 $existentesIndizadosMultiKp[implode('|', $indice)][] = array_merge($llavesSave, $valor);
-                if (!empty($this->getCamposCustom())) {
+                if(!empty($this->getCamposCustom())) {
                     $i = 0;
-                    foreach ($this->getCamposCustom() as $llaveCustom):
-                        if (isset($valor[$llaveCustom])) {
+                    foreach($this->getCamposCustom() as $llaveCustom):
+                        if(isset($valor[$llaveCustom])) {
                             $existentesCustomIndizadosMulti[implode('|', $indice)][$i][$llaveCustom] = $valor[$llaveCustom];
                             $existentesCustomIndizados[implode('|', $indice)][$llaveCustom] = $valor[$llaveCustom];
 
@@ -412,17 +412,17 @@ class MainArchivoexcel implements ContainerAwareInterface
                         $i++;
                     endforeach;
                 }
-            } else {
+            }else{
                 $noGroup = true;
             }
 
         endforeach;
 
         $this->setExistentesRaw($existentesRaw);
-        if (!empty($existentesCustomRaw)) {
+        if(!empty($existentesCustomRaw)) {
             $this->setExistentesCustomRaw($existentesCustomRaw);
         }
-        if (!empty($existentesDescartados)) {
+        if(!empty($existentesDescartados)) {
             $this->setExistentesDescartados($existentesDescartados);
         }
 
@@ -431,11 +431,11 @@ class MainArchivoexcel implements ContainerAwareInterface
             $this->setExistentesIndizadosMulti($existentesIndizadosMulti);
             $this->setExistentesIndizadosKp($existentesIndizadosKp);
             $this->setExistentesIndizadosMultiKp($existentesIndizadosMultiKp);
-            if (!empty($existentesCustomIndizados)) {
+            if(!empty($existentesCustomIndizados)) {
                 $this->setExistentesCustomIndizados($existentesCustomIndizados);
             }
 
-            if (!empty($existentesCustomIndizadosMulti)) {
+            if(!empty($existentesCustomIndizadosMulti)) {
                 $this->setExistentesCustomIndizadosMulti($existentesCustomIndizadosMulti);
             }
         }
@@ -599,7 +599,7 @@ class MainArchivoexcel implements ContainerAwareInterface
 
         $this->setRemoveEnclosure($removeEnclosure);
 
-        if (!empty($encabezado)) {
+        if(!empty($encabezado)) {
             $this->setFila($encabezado, 'A1');
             $this->filaBase = 2;
         }
@@ -611,15 +611,15 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     public function setFila(array $fila, string $posicion): self
     {
-        if (empty($this->getHoja()) || empty($fila) || !is_array($fila) || $this->variableproceso->is_multi_array($fila) || empty($posicion)) {
+        if(empty($this->getHoja()) || empty($fila) || !is_array($fila) || $this->variableproceso->is_multi_array($fila) || empty($posicion)) {
             $this->variableproceso->setMensajes('El formato de fila no es correcto.', 'error');
             return $this;
         }
         $posicionX = preg_replace("/[0-9]/", '', $posicion);
         $posicionY = preg_replace("/[^0-9]/", '', $posicion);
         $posicionXNumerico = $this->archivoexcelFactory->columnIndexFromString($posicionX);
-        foreach ($fila as $key => $celda):
-            if (!is_numeric($key)) {
+        foreach($fila as $key => $celda):
+            if(!is_numeric($key)) {
                 $this->variableproceso->setMensajes('El índice del array debe ser numérico', 'error');
                 return $this;
             }
@@ -637,7 +637,7 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     public function setColumna(array $columna, string $posicion): self
     {
-        if (empty($this->getHoja()) || empty($posicion)) {
+        if(empty($this->getHoja()) || empty($posicion)) {
             $this->variableproceso->setMensajes('El formato de columna no es correcto.', 'error');
             return $this;
         }
@@ -650,7 +650,7 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     public function setTabla(array $tabla, string $posicion): self
     {
-        if (empty($this->getHoja()) || empty($tabla) || !$this->variableproceso ->is_multi_array($tabla) || empty($posicion)) {
+        if(empty($this->getHoja()) || empty($tabla) || !$this->variableproceso ->is_multi_array($tabla) || empty($posicion)) {
             $this->variableproceso->setMensajes('El formato de tabla no es correcto.', 'error');
             return $this;
         }
@@ -683,23 +683,23 @@ class MainArchivoexcel implements ContainerAwareInterface
     public function setFormatoColumna(array $formatoColumna): self
     {
 
-        if (empty($this->getHoja()) || empty($formatoColumna) || !$this->variableproceso->is_multi_array($formatoColumna)) {
+        if(empty($this->getHoja()) || empty($formatoColumna) || !$this->variableproceso->is_multi_array($formatoColumna)) {
             $this->variableproceso->setMensajes('El formato de columna no es correcto.', 'error');
             return $this;
         }
 
         $highestRow = $this->getHoja()->getHighestDataRow();
         $highestColumn = $this->getHoja()->getHighestDataColumn();
-        foreach ($formatoColumna as $formato => $columnas):
-            foreach ($columnas as $columna):
-                if (str_contains($columna, ':')) {
+        foreach($formatoColumna as $formato => $columnas):
+            foreach($columnas as $columna):
+                if(str_contains($columna, ':')) {
                     $columna = explode(':', $columna, 2);
-                    if (is_numeric($columna[0]) && (is_numeric($columna[1]) || empty($columna[1]))) {
-                        if (empty($columna[1])) {
+                    if(is_numeric($columna[0]) && (is_numeric($columna[1]) || empty($columna[1]))) {
+                        if(empty($columna[1])) {
                             $columna[1] = $this->archivoexcelFactory
                                 ->columnIndexFromString($highestColumn);
                         }
-                        foreach (range($columna[0], $columna[1]) as $columnaProceso) {
+                        foreach(range($columna[0], $columna[1]) as $columnaProceso) {
                             $columnaString = $this->archivoexcelFactory->stringFromColumnIndex($columnaProceso);
                             $this->getHoja()
                                 ->getStyle($columna . $this->getFilaBase() . ':' . $columna . $highestRow)
@@ -707,8 +707,8 @@ class MainArchivoexcel implements ContainerAwareInterface
                                 ->setFormatCode($columnaString);
                         }
                     }
-                } else {
-                    if (is_numeric($columna)) {
+                }else{
+                    if(is_numeric($columna)) {
                         $columna = $this->archivoexcelFactory
                             ->stringFromColumnIndex($columna);
                     }
@@ -725,35 +725,35 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     public function setAnchoColumna(array $anchoColumna): self
     {
-        if (empty($this->getHoja()) || empty($anchoColumna) || !is_array($anchoColumna)) {
+        if(empty($this->getHoja()) || empty($anchoColumna) || !is_array($anchoColumna)) {
             $this->variableproceso->setMensajes('El ancho no tiene el formato correcto.', 'error');
             return $this;
         }
 
-        foreach ($anchoColumna as $columna => $ancho):
-            if (str_contains($columna, ':')) {
+        foreach($anchoColumna as $columna => $ancho):
+            if(str_contains($columna, ':')) {
                 $columna = explode(':', $columna, 2);
 
-                if (is_numeric($columna[0]) && (is_numeric($columna[1]) || empty($columna[1]))) {
-                    if (empty($columna[1])) {
+                if(is_numeric($columna[0]) && (is_numeric($columna[1]) || empty($columna[1]))) {
+                    if(empty($columna[1])) {
                         $columna[1] = $this->archivoexcelFactory->columnIndexFromString($this->getHoja()->getHighestDataColumn());
                     }
-                    foreach (range($columna[0], $columna[1]) as $columnaProceso) {
+                    foreach(range($columna[0], $columna[1]) as $columnaProceso) {
                         $columnaString = $this->archivoexcelFactory->stringFromColumnIndex($columnaProceso);
-                        if (is_numeric($ancho)) {
+                        if(is_numeric($ancho)) {
                             $this->getHoja()->getColumnDimension($columnaString)->setWidth($ancho);
-                        } elseif ($ancho == 'auto') {
+                        }elseif($ancho == 'auto') {
                             $this->getHoja()->getColumnDimension($columnaString)->setAutoSize(true);
                         }
                     }
                 }
-            } else {
-                if (is_numeric($columna)) {
+            }else{
+                if(is_numeric($columna)) {
                     $columna = $this->archivoexcelFactory->stringFromColumnIndex($columna);
                 }
-                if (is_numeric($ancho)) {
+                if(is_numeric($ancho)) {
                     $this->getHoja()->getColumnDimension($columna)->setWidth($ancho);
-                } elseif ($ancho == 'auto') {
+                }elseif($ancho == 'auto') {
                     $this->getHoja()->getColumnDimension($columna)->setAutoSize(true);
                 }
             }
@@ -764,13 +764,13 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     public function setCeldas(array $celdas, string $tipo = 'texto'): self
     {
-        if (empty($this->getHoja()) || empty($celdas)) {
+        if(empty($this->getHoja()) || empty($celdas)) {
             $this->variableproceso->setMensajes('Las celdas no tienen el formato correcto.', 'error');
             return $this;
         }
 
-        if ($tipo == 'texto') {
-            foreach ($celdas as $celda => $valor):
+        if($tipo == 'texto') {
+            foreach($celdas as $celda => $valor):
                 $this->getHoja()->setCellValueExplicit($celda, $valor, 's');
             endforeach;
         }
@@ -779,7 +779,7 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     public function getResponse(): Response
     {
-        if (empty($this->getTipo())) {
+        if(empty($this->getTipo())) {
             $this->variableproceso->setMensajes('El tipo esta vacio.', 'error');
         }
 
@@ -795,7 +795,7 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     public function createFile(): string
     {
-        if (empty($this->getTipo())) {
+        if(empty($this->getTipo())) {
             $this->variableproceso->setMensajes('El tipo esta vacio.', 'error');
         }
 

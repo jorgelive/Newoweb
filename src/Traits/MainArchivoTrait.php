@@ -309,7 +309,7 @@ trait MainArchivoTrait
      */
     public function preUpload()
     {
-        if (null !== $this->getArchivo()) {
+        if(null !== $this->getArchivo()) {
             $this->saveOldFilesInfo();
             $this->extension = $this->getArchivo()->getClientOriginalExtension();
             if(!$this->getNombre()){
@@ -322,7 +322,7 @@ trait MainArchivoTrait
             $this->setEnlaceurl(null);
             $this->setEnlacethumburl(null);
 
-        }elseif (null !== $this->getEnlace()){
+        }elseif(null !== $this->getEnlace()){
 
             $enlaceValido = false;
 
@@ -379,7 +379,7 @@ trait MainArchivoTrait
     public function upload(): void
     {
         //limpia archivos antiguos solo si no envie nuevos
-        if ($this->getArchivo() === null) {
+        if($this->getArchivo() === null) {
             return;
         }
         
@@ -452,11 +452,11 @@ trait MainArchivoTrait
     
     private function removeOldFiles(): void
     {
-        if (!empty($this->oldFile['image']) && file_exists($this->oldFile['image'])){
+        if(!empty($this->oldFile['image']) && file_exists($this->oldFile['image'])){
             unlink($this->oldFile['image']);
             $this->oldFile['image'] = '';
         }
-        if (!empty($this->oldFile['thumb']) && file_exists($this->oldFile['thumb'])){
+        if(!empty($this->oldFile['thumb']) && file_exists($this->oldFile['thumb'])){
             unlink($this->oldFile['thumb']);
             $this->oldFile['thumb'] = '';
         }

@@ -46,11 +46,11 @@ class IcalGenerator
     {
         $calendar = new IcalCalendar();
 
-        if (!is_null($this->timezone)) {
+        if(!is_null($this->timezone)) {
             $calendar->setTimezone($this->timezone);
         }
 
-        if (!is_null($this->prodid)) {
+        if(!is_null($this->prodid)) {
             $calendar->setProdId($this->prodid);
         }
 

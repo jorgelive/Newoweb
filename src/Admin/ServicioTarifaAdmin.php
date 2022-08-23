@@ -186,7 +186,7 @@ class ServicioTarifaAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\ServicioServicio'
+        if($this->getRoot()->getClass() != 'App\Entity\ServicioServicio'
             && $this->getRoot()->getClass() != 'App\Entity\ServicioComponente'
         ){
             $formMapper->add('componente');

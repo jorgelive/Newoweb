@@ -38,7 +38,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         $this->admin->checkAccess('show', $object);
 
         $preResponse = $this->preShow($request, $object);
-        if (null !== $preResponse) {
+        if(null !== $preResponse) {
             return $preResponse;
         }
 
@@ -63,7 +63,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         $resultados = [];
         $encabezado = []; //['Apellido', 'Nombre', 'Tipo Doc', 'Número Doc', 'Nacimiento', 'Pais', 'Sexo', 'File', 'Categoria'];
-        foreach ($filePasajeros as $key => $filePasajero){
+        foreach($filePasajeros as $key => $filePasajero){
             $resultados[$key]['apellido'] = $filePasajero->getApellido();
             $resultados[$key]['nombre'] = $filePasajero->getNombre();
             $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigoddc();
@@ -75,7 +75,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             $resultados[$key]['categoria'] = $filePasajero->getCategoriaddc();
         }
 
-        if (count($resultados) <= $maxLength) {
+        if(count($resultados) <= $maxLength) {
             return $this->container->get('App\Service\MainArchivoexcel')
                 ->setArchivo()
                 ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
@@ -85,7 +85,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
             $partes = array_chunk($resultados, $maxLength);
 
-            foreach ($partes as $key => $parte){
+            foreach($partes as $key => $parte){
                 $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
                     ->setArchivo()
                     ->setParametrosWriter($parte, $encabezado, 'DCC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
@@ -115,7 +115,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         $this->admin->checkAccess('show', $object);
 
         $preResponse = $this->preShow($request, $object);
-        if (null !== $preResponse) {
+        if(null !== $preResponse) {
             return $preResponse;
         }
 
@@ -141,7 +141,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         $variableProceso = $this->container->get('App\Service\MainVariableproceso');
 
         $encabezado = ['ITEM RESERVA', 'PRIMER NOMBRE', 'PRIMER APELLIDO', 'TIPO DOC', 'NRO DOC', 'NACIONALIDAD', 'FECHA NAC.', 'REF CLIENTE'];
-        foreach ($filePasajeros as $key => $filePasajero){
+        foreach($filePasajeros as $key => $filePasajero){
             $resultados[$key]['item'] = 1;
             $resultados[$key]['nombre'] = $variableProceso->stripAccents($filePasajero->getNombre());
             $resultados[$key]['apellido'] =  $variableProceso->stripAccents($filePasajero->getApellido());
@@ -152,7 +152,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             $resultados[$key]['file'] = 'F' . sprintf('%010d', $object->getId());
         }
 
-        if (count($resultados) <= $maxLength){
+        if(count($resultados) <= $maxLength){
             return $this->container->get('App\Service\MainArchivoexcel')
                 ->setArchivo()
                 ->setParametrosWriter($resultados, $encabezado, 'PERURAIL_' . $object->getNombre(), 'xls')
@@ -161,7 +161,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         }else{
             $partes = array_chunk($resultados, $maxLength);
 
-            foreach ($partes as $key => $parte){
+            foreach($partes as $key => $parte){
                 $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
                     ->setArchivo()
                     ->setParametrosWriter($parte, $encabezado, 'PERURAIL_' . $object->getNombre(), 'xls')
@@ -192,7 +192,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         $this->admin->checkAccess('show', $object);
 
         $preResponse = $this->preShow($request, $object);
-        if (null !== $preResponse) {
+        if(null !== $preResponse) {
             return $preResponse;
         }
 
@@ -238,7 +238,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         $fechaservicio = $cotcomponentes['0']->getFechahorainicio();
         $encabezado = ['fecha de uso', 'tramo', 'tipo de documento', 'numero de documento', 'nombres', 'apellido', 'apellido materno', 'fecha de nacimiento', 'genero', 'pais', 'ciudad', 'tipo de residente', 'es estudiante', 'es guia', 'es discapacitado'];
-        foreach ($filePasajeros as $key => $filePasajero){
+        foreach($filePasajeros as $key => $filePasajero){
             $edad = $fechaservicio->diff($filePasajero->getFechanacimiento())->y;
             if($edad>=12 && $edad<=17 && $filePasajero->getPais()->getId() == 117){
                 $esEstudiante = 'SI';
@@ -264,7 +264,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         }
 
-        if (count($resultados) <= $maxLength) {
+        if(count($resultados) <= $maxLength) {
             return $this->container->get('App\Service\MainArchivoexcel')
                 ->setArchivo()
                 ->setParametrosWriter($resultados, $encabezado, 'consettur_' . $object->getNombre(), 'xlsx')
@@ -273,7 +273,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         }else{
             $partes = array_chunk($resultados, $maxLength);
 
-            foreach ($partes as $key => $parte){
+            foreach($partes as $key => $parte){
                 $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
                     ->setArchivo()
                     ->setParametrosWriter($parte, $encabezado, 'consettur_' . $object->getNombre(), 'xlsx')

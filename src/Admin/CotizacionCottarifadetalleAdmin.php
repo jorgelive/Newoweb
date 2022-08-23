@@ -57,7 +57,7 @@ class CotizacionCottarifadetalleAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'
+        if($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'
             && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotizacion'
             && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotservicio'
             && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotcomponente'

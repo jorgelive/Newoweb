@@ -59,7 +59,7 @@ class FitDietaalimentoAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\FitDieta'
+        if($this->getRoot()->getClass() != 'App\Entity\FitDieta'
             && $this->getRoot()->getClass() != 'App\Entity\FitDietacomida'
         ){
             $formMapper->add('dietacomida',  null, [

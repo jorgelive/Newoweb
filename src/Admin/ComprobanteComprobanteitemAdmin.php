@@ -58,7 +58,7 @@ class ComprobanteComprobanteitemAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\ComprobanteComprobante'){
+        if($this->getRoot()->getClass() != 'App\Entity\ComprobanteComprobante'){
             $formMapper->add('comprobante');
         }
         $formMapper

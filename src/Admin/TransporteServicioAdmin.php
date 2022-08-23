@@ -78,7 +78,7 @@ class TransporteServicioAdmin extends AbstractAdmin
                 'callback' => function($queryBuilder, $alias, $field, $filterData) {
 
                     $valor = $filterData->getValue();
-                    if (!$valor|| !($valor instanceof \DateTime)) {
+                    if(!$valor|| !($valor instanceof \DateTime)) {
                         return false;
                     }
                     $fechaMasUno = clone ($valor);

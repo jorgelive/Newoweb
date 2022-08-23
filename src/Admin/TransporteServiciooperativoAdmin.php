@@ -64,7 +64,7 @@ class TransporteServiciooperativoAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if ($this->getRoot()->getClass() != 'App\Entity\TrasnporteServicio'){
+        if($this->getRoot()->getClass() != 'App\Entity\TrasnporteServicio'){
             $formMapper->add('servicio');
         }
         $formMapper

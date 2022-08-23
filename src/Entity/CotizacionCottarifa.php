@@ -109,12 +109,12 @@ class CotizacionCottarifa
 
     public function __clone() {
 
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
             $newCottarifadetalles = new ArrayCollection();
-            foreach ($this->cottarifadetalles as $cottarifadetalle) {
+            foreach($this->cottarifadetalles as $cottarifadetalle) {
                 $newCottarifadetalle = clone $cottarifadetalle;
                 $newCottarifadetalle->setCottarifa($this);
                 $newCottarifadetalles->add($newCottarifadetalle);

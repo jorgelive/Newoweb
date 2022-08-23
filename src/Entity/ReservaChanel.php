@@ -127,7 +127,7 @@ class ReservaChanel
 
     public function addReserva(ReservaReserva $reserva): self
     {
-        if (!$this->reservas->contains($reserva)) {
+        if(!$this->reservas->contains($reserva)) {
             $this->reservas[] = $reserva;
             $reserva->setChanel($this);
         }
@@ -137,9 +137,9 @@ class ReservaChanel
 
     public function removeReserva(ReservaReserva $reserva): self
     {
-        if ($this->reservas->removeElement($reserva)) {
+        if($this->reservas->removeElement($reserva)) {
             // set the owning side to null (unless already changed)
-            if ($reserva->getChanel() === $this) {
+            if($reserva->getChanel() === $this) {
                 $reserva->setChanel(null);
             }
         }
@@ -157,7 +157,7 @@ class ReservaChanel
 
     public function addUnitnexo(ReservaUnitnexo $unitnexo): self
     {
-        if (!$this->unitnexos->contains($unitnexo)) {
+        if(!$this->unitnexos->contains($unitnexo)) {
             $this->unitnexos[] = $unitnexo;
             $unitnexo->setChanel($this);
         }
@@ -167,9 +167,9 @@ class ReservaChanel
 
     public function removeUnitnexo(ReservaUnitnexo $unitnexo): self
     {
-        if ($this->unitnexos->removeElement($unitnexo)) {
+        if($this->unitnexos->removeElement($unitnexo)) {
             // set the owning side to null (unless already changed)
-            if ($unitnexo->getChanel() === $this) {
+            if($unitnexo->getChanel() === $this) {
                 $unitnexo->setChanel(null);
             }
         }

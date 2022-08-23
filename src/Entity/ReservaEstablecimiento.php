@@ -177,7 +177,7 @@ class ReservaEstablecimiento
 
     public function addUnit(ReservaUnit $unit): self
     {
-        if (!$this->units->contains($unit)) {
+        if(!$this->units->contains($unit)) {
             $this->units[] = $unit;
             $unit->setEstablecimiento($this);
         }
@@ -187,9 +187,9 @@ class ReservaEstablecimiento
 
     public function removeUnit(ReservaUnit $unit): self
     {
-        if ($this->units->removeElement($unit)) {
+        if($this->units->removeElement($unit)) {
             // set the owning side to null (unless already changed)
-            if ($unit->getEstablecimiento() === $this) {
+            if($unit->getEstablecimiento() === $this) {
                 $unit->setEstablecimiento(null);
             }
         }

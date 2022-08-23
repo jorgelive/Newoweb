@@ -90,7 +90,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                 'callback' => function($queryBuilder, $alias, $field, $filterData) {
 
                     $valor = $filterData->getValue();
-                    if (!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
+                    if(!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
                         return false;
                     }
                     $fechaMasUno = clone ($valor['end']);
@@ -102,7 +102,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                         $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
                         $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
                         return true;
-                    } else{
+                    }else{
                         return false;
                     }
                 },
@@ -176,7 +176,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
     {
 
 
-        if ($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'
+        if($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'
             && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotizacion'
             && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotservicio'
             && !($this->isCurrentRoute('edit') && $this->getRoot()->getClass() == 'App\Entity\CotizacionCotcomponente')
@@ -224,7 +224,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                     ]
                 ])
             ;
-        } else {
+        }else{
             //muestro como oculto ya que las tarifas dependen de los componentes
             $formMapper
             ->add('componente', ModelHiddenType::class);
@@ -301,7 +301,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                     && !is_null($event->getData()->getComponente()->getDuracion())
                 ) {
                     $duracion = $event->getData()->getComponente()->getDuracion();
-                }elseif ($event->getData()
+                }elseif($event->getData()
                     && $event->getData()->getCotservicio()
                     && $event->getData()->getCotservicio()->getItinerario()
                     && $event->getData()->getCotservicio()->getItinerario()->getDuracion())

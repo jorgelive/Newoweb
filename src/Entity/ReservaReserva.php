@@ -169,7 +169,7 @@ class ReservaReserva
     }
 
     public function __clone() {
-        if ($this->id) {
+        if($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
@@ -385,7 +385,7 @@ class ReservaReserva
 
     public function addDetalle(ReservaDetalle $detalle): self
     {
-        if (!$this->detalles->contains($detalle)) {
+        if(!$this->detalles->contains($detalle)) {
             $this->detalles[] = $detalle;
             $detalle->setReserva($this);
         }
@@ -395,9 +395,9 @@ class ReservaReserva
 
     public function removeDetalle(ReservaDetalle $detalle): self
     {
-        if ($this->detalles->removeElement($detalle)) {
+        if($this->detalles->removeElement($detalle)) {
             // set the owning side to null (unless already changed)
-            if ($detalle->getReserva() === $this) {
+            if($detalle->getReserva() === $this) {
                 $detalle->setReserva(null);
             }
         }
@@ -415,7 +415,7 @@ class ReservaReserva
 
     public function addImporte(ReservaImporte $importe): self
     {
-        if (!$this->importes->contains($importe)) {
+        if(!$this->importes->contains($importe)) {
             $this->importes[] = $importe;
             $importe->setReserva($this);
         }
@@ -425,9 +425,9 @@ class ReservaReserva
 
     public function removeImporte(ReservaImporte $importe): self
     {
-        if ($this->importes->removeElement($importe)) {
+        if($this->importes->removeElement($importe)) {
             // set the owning side to null (unless already changed)
-            if ($importe->getReserva() === $this) {
+            if($importe->getReserva() === $this) {
                 $importe->setReserva(null);
             }
         }
@@ -445,7 +445,7 @@ class ReservaReserva
 
     public function addPago(ReservaPago $pago): self
     {
-        if (!$this->pagos->contains($pago)) {
+        if(!$this->pagos->contains($pago)) {
             $this->pagos[] = $pago;
             $pago->setReserva($this);
         }
@@ -455,9 +455,9 @@ class ReservaReserva
 
     public function removePago(ReservaPago $pago): self
     {
-        if ($this->pagos->removeElement($pago)) {
+        if($this->pagos->removeElement($pago)) {
             // set the owning side to null (unless already changed)
-            if ($pago->getReserva() === $this) {
+            if($pago->getReserva() === $this) {
                 $pago->setReserva(null);
             }
         }

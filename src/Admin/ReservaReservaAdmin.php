@@ -95,7 +95,7 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'callback' => function($queryBuilder, $alias, $field, $filterData) {
 
                     $valor = $filterData->getValue();
-                    if (!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
+                    if(!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
                         return false;
                     }
                     $fechaMasUno = clone ($valor['end']);
@@ -107,7 +107,7 @@ class ReservaReservaAdmin extends AbstractAdmin
                         $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
                         $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
                         return true;
-                    } else{
+                    }else{
                         return false;
                     }
                 },

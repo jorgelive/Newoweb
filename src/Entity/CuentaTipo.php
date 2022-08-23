@@ -189,7 +189,7 @@ class CuentaTipo
 
     public function addClas(CuentaClase $clas): self
     {
-        if (!$this->clases->contains($clas)) {
+        if(!$this->clases->contains($clas)) {
             $this->clases[] = $clas;
             $clas->setTipo($this);
         }
@@ -199,9 +199,9 @@ class CuentaTipo
 
     public function removeClas(CuentaClase $clas): self
     {
-        if ($this->clases->removeElement($clas)) {
+        if($this->clases->removeElement($clas)) {
             // set the owning side to null (unless already changed)
-            if ($clas->getTipo() === $this) {
+            if($clas->getTipo() === $this) {
                 $clas->setTipo(null);
             }
         }

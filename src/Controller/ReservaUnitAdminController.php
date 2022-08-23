@@ -29,7 +29,7 @@ class ReservaUnitAdminController extends CRUDAdminController
         //$this->admin->checkAccess('show', $object);
 
         $preResponse = $this->preShow($request, $object);
-        if (null !== $preResponse) {
+        if(null !== $preResponse) {
             return $preResponse;
         }
 
@@ -53,7 +53,7 @@ class ReservaUnitAdminController extends CRUDAdminController
     {
         $ahora = new \DateTime('now');
         $object = $this->assertObjectExists($request, true);
-        if (!$object) {
+        if(!$object) {
             throw $this->createNotFoundException('Unable to find the object processing the request');
         }
         $id = $object->getId();
@@ -75,7 +75,7 @@ class ReservaUnitAdminController extends CRUDAdminController
 
         $calendar = $this->container->get('App\Service\IcalGenerator')->setTimezone('America/Lima')->setProdid('-//OpenPeru//Cotservicio Calendar //ES')->createCalendar();
 
-        foreach ($reservas as $reserva){
+        foreach($reservas as $reserva){
 
             $fechainicio = new \DateTime($reserva->getFechahorainicio()->format('Y-m-d'));
             $fechafin = new \DateTime($reserva->getFechahorafin()->format('Y-m-d'));

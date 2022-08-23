@@ -46,11 +46,11 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
 
         $calendar = $this->container->get('App\Service\IcalGenerator')->setTimezone('America/Lima')->setProdid('-//OpenPeru//Cotservicio Calendar //ES')->createCalendar();
 
-        foreach ($cotServicios as $cotServicio){
+        foreach($cotServicios as $cotServicio){
 
             $cotComponentes = $cotServicio->getCotComponentes();
             $decripcion = [];
-            foreach ($cotComponentes as $cotComponente){
+            foreach($cotComponentes as $cotComponente){
                 $decripcion[] = $cotComponente->getEstadocotcomponente()->getNombre() . ' / ' . $cotComponente->getFechahorainicio()->format('h:i d-m-Y') . ' ' . $cotComponente->getComponente()->getNombre();
             }
 

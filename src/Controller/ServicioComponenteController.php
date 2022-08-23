@@ -60,7 +60,7 @@ class ServicioComponenteController extends AbstractController
             return $this->makeresponse($content, $status);
         };
 
-        foreach ($pagination->getItems() as $key => $item):
+        foreach($pagination->getItems() as $key => $item):
             $resultado[$key]['id'] = $item->getId();
             $resultado[$key]['label'] = $item->getNombre();
         endforeach;
