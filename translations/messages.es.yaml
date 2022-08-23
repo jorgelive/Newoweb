@@ -20,6 +20,22 @@ inicio: inicio
 fin: fin
 precio_de_venta: precio de venta
 precio_por_pasajero: precio por pasajero
-desde: desde
-hasta: hasta
-'años': 'años'
+desde %edad% anos: 'desde %edad% años'
+hasta %edad% anos: 'hasta %edad% años'
+de %edad% anos: 'de %edad% años'
+con_carne_de_estudiante_valido_y_vigente: 'con carné de estudiante válido y vigente'
+reserve_con_el: reserve con el
+o: o
+notas: notas
+la_tarifa: la tarifa
+no_incluye_impuestos: no incluye impuestos
+consulte_la_exoneracion: 'consulte la exoneración'
+la_tarifa_tiene_una_validez_de_3_dias_hasta_el: La tarifa tiene una validez de 3 dias hasta el
+tarifa_base: tarifa base
+dolares: dolares
+tarifa_en_soles_al_tipo_de_cambio_referencial_de: tarifa en soles al tipo de cambio referencial de
+del_dia: of
+tickets_y_documentos: tickets y documentos
+varios: varios
+cualquier_nacionalidad: cualquier nacionalidad
+total: total

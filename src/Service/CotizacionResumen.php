@@ -7,6 +7,7 @@ use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use App\Service\MainTipocambio;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class CotizacionResumen implements ContainerAwareInterface
 {
@@ -15,6 +16,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
     private RequestStack $requestStack;
     private EntityManagerInterface $doctrine;
+    private TranslatorInterface $translator;
 
     private int $edadMin = 0;
     private int $edadMax = 120;
@@ -35,11 +37,13 @@ class CotizacionResumen implements ContainerAwareInterface
     }
 
 
-    function __construct(EntityManagerInterface $em, MainTipocambio $tipocambio, RequestStack $requestStack)
+    function __construct(EntityManagerInterface $em, MainTipocambio $tipocambio, RequestStack $requestStack, TranslatorInterface $translator)
     {
         $this->doctrine = $em;
         $this->tipocambio = $tipocambio;
         $this->requestStack = $requestStack;
+        $this->translator = $translator;
+
     }
 
     function getTituloItinerario(\DateTime $fecha, array $itinerarioFechaAux): string
@@ -264,7 +268,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
                                 }else{
                                     $servicioId = -1;
-                                    $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = 'Varios';
+                                    $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = ucfirst($this->translator->trans('varios', [], 'messages'));
                                 }
 
                                 $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
@@ -298,6 +302,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                 if(!empty($tarifa->getTarifa()->getTipopax())){
                                     $tempArrayInternoIncluye['tipoPaxId'] = $tarifa->getTarifa()->getTipopax()->getId();
                                     $tempArrayInternoIncluye['tipoPaxNombre'] = $tarifa->getTarifa()->getTipopax()->getNombre();
+                                    $tempArrayInternoIncluye['tipoPaxTitulo'] = $tarifa->getTarifa()->getTipopax()->getTitulo();
                                 }
 
                                 $tempArrayDetalle = [];
@@ -393,6 +398,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                             if(!empty($tarifa->getTarifa()->getTipopax())){
                                                 $tempArrayIncluye['tipoPaxId'] = $tarifa->getTarifa()->getTipopax()->getId();
                                                 $tempArrayIncluye['tipoPaxNombre'] = $tarifa->getTarifa()->getTipopax()->getNombre();
+                                                $tempArrayIncluye['tipoPaxTitulo'] = $tarifa->getTarifa()->getTipopax()->getTitulo();
                                             }
                                             $tempArrayDetalle = [];
                                             foreach($tarifa->getCottarifadetalles() as $id => $detalle):
@@ -520,7 +526,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                     $tempArrayTarifa['tipoPaxNombre'] = $tarifa->getTarifa()->getTipopax()->getNombre();
                                 }else{
                                     $tempArrayTarifa['tipoPaxId'] = 0;
-                                    $tempArrayTarifa['tipoPaxNombre'] = 'Cualquier nacionalidad';
+                                    $tempArrayTarifa['tipoPaxNombre'] = ucfirst($this->translator->trans('cualquier_nacionalidad', [], 'messages'));
                                 }
 
                                 $tempArrayTarifa['tipoTarId'] = $tarifa->getTipotarifa()->getId();

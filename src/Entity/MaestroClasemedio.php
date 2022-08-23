@@ -22,7 +22,7 @@ class MaestroClasemedio implements Translatable
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
@@ -31,7 +31,7 @@ class MaestroClasemedio implements Translatable
     /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=255)
+     * @ORM\Column(type="string", length=255)
      */
     private $nombre;
 
@@ -39,7 +39,7 @@ class MaestroClasemedio implements Translatable
      * @var string
      *
      * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=100, nullable=false)
+     * @ORM\Column(type="string", length=100, nullable=false)
      */
     private $titulo;
 

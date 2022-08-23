@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Translatable\Translatable;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
@@ -11,13 +12,14 @@ use Gedmo\Mapping\Annotation as Gedmo;
  *
  * @ORM\Table(name="mae_tipopax")
  * @ORM\Entity
+ * @Gedmo\TranslationEntity(class="App\Entity\MaestroTipopaxTranslation")
  */
-class MaestroTipopax
+class MaestroTipopax implements Translatable
 {
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
@@ -27,6 +29,14 @@ class MaestroTipopax
      * @ORM\Column(type="string", length=100)
      */
     private $nombre;
+
+    /**
+     * @var string
+     *
+     * @Gedmo\Translatable
+     * @ORM\Column(type="string", length=100, nullable=false)
+     */
+    private $titulo;
 
     /**
      * @var \DateTime $creado
@@ -84,6 +94,30 @@ class MaestroTipopax
     public function getNombre()
     {
         return $this->nombre;
+    }
+
+    /**
+     * Set titulo.
+     *
+     * @param string $titulo
+     *
+     * @return MaestroTipopax
+     */
+    public function setTitulo($titulo)
+    {
+        $this->titulo = $titulo;
+
+        return $this;
+    }
+
+    /**
+     * Get titulo.
+     *
+     * @return string
+     */
+    public function getTitulo()
+    {
+        return $this->titulo;
     }
 
     /**

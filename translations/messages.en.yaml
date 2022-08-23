@@ -20,6 +20,22 @@ inicio: start
 fin: end
 precio_de_venta: selling price
 precio_por_pasajero: price per client
-desde: from
-hasta: to
-'años': years old
+desde %edad% anos: 'from %edad% years old'
+hasta %edad% anos: 'to %edad% years old'
+de %edad% anos: '%edad% years old'
+con_carne_de_estudiante_valido_y_vigente: with a valid International Student Identity Card
+reserve_con_el: book with
+o: or
+notas: notes
+la_tarifa: the rate
+no_incluye_impuestos: does not include taxes
+consulte_la_exoneracion: consult taxes exemption
+la_tarifa_tiene_una_validez_de_3_dias_hasta_el: the rate is valid for 3 dais until
+tarifa_base: base rate
+dolares: dolars
+tarifa_en_soles_al_tipo_de_cambio_referencial_de: the price in soles is at the exchange rate
+del_dia: of
+tickets_y_documentos: tickets and documents
+varios: others
+cualquier_nacionalidad: any country
+total: total

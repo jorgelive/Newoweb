@@ -197,7 +197,7 @@ file that was distributed with this source code.
                             <div style="background-color: rgba(0,172,214,0.18);" class="panel-heading">
                                 <h5 class="panel-title">
                                     <a style="font-weight: bold;" data-toggle="collapse" data-parent="#accordion" href="#collapse2">
-                                        <i class="fas fa-file"></i> Tickets y documentos
+                                        <i class="fas fa-file"></i> {{ 'tickets_y_documentos'|trans({},'messages')|capitalize }}
                                     </a>
                                 </h5>
                             </div>
@@ -271,7 +271,7 @@ file that was distributed with this source code.
                                                         {% for rango in contenido.rangos %}
                                                             <li>
                                                                 <p style="margin-bottom: 0;">
-                                                                    {{ rango.tipoPaxNombre }}
+                                                                    {{ rango.tipoPaxTitulo }}
                                                                     {% if rango.tituloPersistente is defined %}
                                                                         ({{ rango.tituloPersistente }})
                                                                     {% endif %}
@@ -281,21 +281,21 @@ file that was distributed with this source code.
                                                                             {% if rango.edadMin is defined or rango.edadMax is defined %}
 
                                                                                 {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
-                                                                                    de {{ rango.edadMin }} años
+                                                                                    {% trans with {'%edad%': rango.edadMin } from 'messages' %}de %edad% anos{% endtrans %}
                                                                                     {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                                                                        &nbsp;(con carné de estudiante válido y vigente)
+                                                                                        &nbsp;({{ 'con_carne_de_estudiante_valido_y_vigente'|trans({},'messages') }})
                                                                                     {% endif %}
 
                                                                                 {% else %}
 
                                                                                     {% if rango.edadMin is defined %}
-                                                                                        {{ 'desde'|trans({},'messages') }} {{ rango.edadMin }} {{ 'años'|trans({},'messages') }}
+                                                                                        {% trans with {'%edad%': rango.edadMin } from 'messages' %}desde %edad% anos{% endtrans %}
                                                                                     {% endif %}
 
                                                                                     {% if rango.edadMax is defined %}
-                                                                                        {{ 'hasta'|trans({},'messages') }} {{ rango.edadMax }} {{ 'años'|trans({},'messages') }}
+                                                                                        {% trans with {'%edad%': rango.edadMax } from 'messages' %}hasta %edad% anos{% endtrans %}
                                                                                         {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                                                                            &nbsp;(con carné de estudiante válido y vigente)
+                                                                                            &nbsp;({{ 'con_carne_de_estudiante_valido_y_vigente'|trans({},'messages') }})
                                                                                         {% endif %}
                                                                                     {% endif %}
 
@@ -314,7 +314,7 @@ file that was distributed with this source code.
                                                                                 <span style="font-size: 1.2em; font-weight: bold; color: #1B6129;">
                                                                                         US$ {{ tarifaresumen.ventadolares }}
                                                                                 </span>
-                                                                                {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
+                                                                                {% if cotizacion.file.paisid == 117 %} {{ 'o'|trans({},'messages') }} <span style="font-weight: bold; color: #1B6129;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
                                                                             </p>
                                                                         </li>
                                                                     {% endfor %}
@@ -325,7 +325,7 @@ file that was distributed with this source code.
 
                                                     {% if cotizacion.cotizacion.estadocotizacion != 6 %}
 
-                                                        <h4 style="margin-top: 15px;">Total </h4>
+                                                        <h4 style="margin-top: 15px;">{{ 'total'|trans({},'messages')|capitalize}}: </h4>
 
                                                         <ul style="list-style-type: none; padding-left: 18px;">
                                                             {%  for resumenitem in contenido.resumen | filter (resumenitem => resumenitem.oculto is same as (false)) %}
@@ -337,9 +337,9 @@ file that was distributed with this source code.
                                                                         </span>
                                                                         {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
 
-                                                                        , reserve con el {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
+                                                                        , {{ 'reserve_con_el'|trans({},'messages') }} {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
                                                                         {% if cotizacion.file.paisid == 117 %}
-                                                                            o S/.{{ resumenitem.adelantosoles }}
+                                                                            {{ 'o'|trans({},'messages') }} S/.{{ resumenitem.adelantosoles }}
                                                                         {% endif %}
                                                                         )
 
@@ -352,13 +352,13 @@ file that was distributed with this source code.
 
                                                     {% if cotizacion.cotizacion.estadocotizacion != 6 or cotizacion.file.paisid == 117 %}
 
-                                                        <h4 style="margin-top: 15px;">Notas: </h4>
+                                                        <h4 style="margin-top: 15px;">{{ 'notas'|trans({},'messages')|capitalize }}: </h4>
                                                         <div>
                                                             <p>
-                                                                La tarifa <span style="font-weight: bold;">no incluye impuestos</span>, consulte la exoneración.
+                                                                {{ 'la_tarifa'|trans({},'messages')|capitalize }} <span style="font-weight: bold;">{{ 'no_incluye_impuestos'|trans({},'messages') }}</span>, {{ 'consulte_la_exoneracion'|trans({},'messages') }}.
                                                             </p>
                                                             {% if cotizacion.cotizacion.estadocotizacion != 6 %}
-                                                                <p>La tarifa tiene una validez de 3 dias hasta el
+                                                                <p>{{ 'la_tarifa_tiene_una_validez_de_3_dias_hasta_el'|trans({},'messages')|capitalize }}
                                                                     <span style="font-weight: bold;">
                                                                         {{ cotizacion.cotizacion.fechacotizacion|date_modify("+3 day")|date("d/m/Y") }}
                                                                     </span>
@@ -366,16 +366,16 @@ file that was distributed with this source code.
                                                             {% endif %}
 
                                                             {% if cotizacion.file.paisid == 117 %}
-                                                                <p>Tarifa base:
+                                                                <p>{{ 'tarifa_base'|trans({},'messages')|capitalize }}:
                                                                     <span style="font-weight: bold;">
-                                                                        DOLARES
+                                                                        {{ 'dolares'|trans({},'messages')|upper }}
                                                                     </span>
                                                                 </p>
-                                                                <p>Tarifa en soles al tipo de cambio referencial de
+                                                                <p>{{ 'tarifa_en_soles_al_tipo_de_cambio_referencial_de'|trans({},'messages')|capitalize }}
                                                                     <span style="font-weight: bold; color: #1B6129;">
                                                                         {{ cotizacion.cotizacion.tipocambioventa }}
                                                                     </span>
-                                                                    del dia
+                                                                    {{ 'del_dia'|trans({},'messages') }}
                                                                     <span style="font-weight: bold; color: #1B6129;">
                                                                         {{ cotizacion.cotizacion.fechacotizacion | date("d/m/Y") }}
                                                                     </span>
