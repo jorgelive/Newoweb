@@ -55,6 +55,11 @@ class MaestroTipopax implements Translatable
     private $modificado;
 
     /**
+     * @Gedmo\Locale
+     */
+    private $locale;
+
+    /**
      * @return string
      */
     public function __toString()
