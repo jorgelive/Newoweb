@@ -12,6 +12,7 @@ use Gedmo\Mapping\Annotation as Gedmo;
  *
  * @ORM\Table(name="mae_categoriatour")
  * @ORM\Entity
+ * @Gedmo\TranslationEntity(class="App\Entity\MaestroCategoriatourTranslation")
  */
 class MaestroCategoriatour
 {

@@ -18,7 +18,7 @@ use App\Traits\MainArchivoTrait;
  * @ORM\HasLifecycleCallbacks
  * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnitmedioTranslation")
  */
-class ReservaUnitmedio implements Translatable
+class ReservaUnitmedio
 {
 
     use MainArchivoTrait;

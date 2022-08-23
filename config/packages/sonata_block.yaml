@@ -1,7 +1,7 @@
 sonata_block:
     http_cache: false
     blocks:
-        sonata_translation.block.locale_switcher: null
+        # sonata_translation.block.locale_switcher: null
         sonata.admin.block.admin_list:
             contexts: [admin]
 

@@ -18,7 +18,7 @@ use App\Traits\MainArchivoTrait;
  * @ORM\HasLifecycleCallbacks
  * @Gedmo\TranslationEntity(class="App\Entity\MaestroMedioTranslation")
  */
-class MaestroMedio implements Translatable
+class MaestroMedio
 {
 
 

@@ -16,7 +16,7 @@ use Gedmo\Translatable\Translatable;
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="App\Entity\ServicioComponenteTranslation")
  */
-class ServicioComponente implements Translatable
+class ServicioComponente
 {
 
 

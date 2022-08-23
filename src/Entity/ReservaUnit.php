@@ -16,7 +16,7 @@ use Doctrine\Common\Collections\ArrayCollection;
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnitTranslation")
  */
-class ReservaUnit implements Translatable
+class ReservaUnit
 {
 
     /**

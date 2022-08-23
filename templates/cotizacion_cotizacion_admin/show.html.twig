@@ -337,7 +337,7 @@ file that was distributed with this source code.
                                                                         </span>
                                                                         {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
 
-                                                                        , {{ 'reserve_con_el'|trans({},'messages') }} {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
+                                                                        <br>{{ 'reserve_con_el'|trans({},'messages') }} {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
                                                                         {% if cotizacion.file.paisid == 117 %}
                                                                             {{ 'o'|trans({},'messages') }} S/.{{ resumenitem.adelantosoles }}
                                                                         {% endif %}

@@ -14,7 +14,7 @@ use Gedmo\Mapping\Annotation as Gedmo;
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="App\Entity\MaestroTipopaxTranslation")
  */
-class MaestroTipopax implements Translatable
+class MaestroTipopax
 {
     /**
      * @var int
