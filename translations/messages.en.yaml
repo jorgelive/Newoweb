@@ -15,3 +15,11 @@ tipodoc: doc Type
 numerodoc: doc Number
 fechanacimiento: birthday
 edad: age
+dia: day
+inicio: start
+fin: end
+precio_de_venta: selling price
+precio_por_pasajero: price per client
+desde: from
+hasta: to
+'años': years old

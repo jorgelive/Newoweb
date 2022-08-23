@@ -255,7 +255,7 @@ file that was distributed with this source code.
                                             <div class="panel-heading">
                                                 <h5 class="panel-title">
                                                     <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas1">
-                                                        Precio de venta
+                                                        {{ 'precio_de_venta'|trans({},'messages')|capitalize }}
                                                     </a>
                                                 </h5>
                                             </div>
@@ -263,9 +263,9 @@ file that was distributed with this source code.
                                     {% endif %}
                                                 <div class="panel-body table-responsive">
 
-                                                    <h3 class="visible-print">Precio de Venta</h3>
+                                                    <h3 class="visible-print">{{ 'precio_de_venta'|trans({},'messages')|capitalize }}</h3>
 
-                                                    <h4>Precio por pasajero:</h4>
+                                                    <h4>{{ 'precio_por_pasajero'|trans({},'messages')|capitalize }}:</h4>
                                                     <ul style="list-style-type: none; padding-left: 18px">
 
                                                         {% for rango in contenido.rangos %}
@@ -289,11 +289,11 @@ file that was distributed with this source code.
                                                                                 {% else %}
 
                                                                                     {% if rango.edadMin is defined %}
-                                                                                        desde {{ rango.edadMin }} años
+                                                                                        {{ 'desde'|trans({},'messages') }} {{ rango.edadMin }} {{ 'años'|trans({},'messages') }}
                                                                                     {% endif %}
 
                                                                                     {% if rango.edadMax is defined %}
-                                                                                        hasta {{ rango.edadMax }} años
+                                                                                        {{ 'hasta'|trans({},'messages') }} {{ rango.edadMax }} {{ 'años'|trans({},'messages') }}
                                                                                         {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
                                                                                             &nbsp;(con carné de estudiante válido y vigente)
                                                                                         {% endif %}
@@ -770,7 +770,7 @@ file that was distributed with this source code.
 
                                                             {% for itinerario in contenido.itinerarios %}
 
-                                                                <h4><span style="font-weight: bold;">{{ itinerario.fecha }}</span>&nbsp;-&nbsp;<span>Dia {{ itinerario.nroDia }}</span></h4>
+                                                                <h4><span style="font-weight: bold;">{{ itinerario.fecha|format_datetime('full', 'none')}}</span>&nbsp;-&nbsp;<span>{{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}</span></h4>
                                                                 {% for item in itinerario.fechaitems %}
                                                                     <h4>{{ item.titulo }}</h4>
                                                                     <div class="ck-content itinerariodescripcion">{{ item.descripcion|raw }}</div>
@@ -918,11 +918,11 @@ file that was distributed with this source code.
                                                         <ul class="fa-ul">
                                                             <li>
                                                                 <i class="fa-li fas fa-calendar" style="color: orange;"></i>
-                                                                Inicio: <span style="font-weight: bold">{{ componente.fechahorainicio|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
+                                                                {{ 'inicio'|trans({},'messages')|capitalize }}: <span style="font-weight: bold">{{ componente.fechahorainicio|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
                                                             </li>
                                                             <li>
                                                                 <i class="fa-li fas fa-calendar-check" style="color: green;"></i>
-                                                                Fin: <span style="font-weight: bold">{{ componente.fechahorafin|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
+                                                                {{ 'fin'|trans({},'messages')|capitalize }}: <span style="font-weight: bold">{{ componente.fechahorafin|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
                                                             </li>
                                                         </ul>
                                                     </li>

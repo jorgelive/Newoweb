@@ -188,7 +188,7 @@ class CotizacionResumen implements ContainerAwareInterface
                         $nroDia = (int)$primeraFecha->diff($currentDate)->format('%d') + 1;
 
                         //se sobreescriben en cada iteracion
-                        $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['fecha'] = $this->getFormatedDate(strtotime($fecha->format('Y-m-d')));
+                        $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['fecha'] = $fecha;
                         $datosTabs['itinerario']['itinerarios'][$fecha->format('ymd')]['nroDia'] = $nroDia;
                         $archivosTempArray = [];
                         if($dia->getItidiaarchivos()->count() > 0){
@@ -1034,33 +1034,4 @@ class CotizacionResumen implements ContainerAwareInterface
         return array_search(max($voter), $voter);
     }
 
-    public function getFormatedDate(int $fechaStamp): string
-    {
-
-        $languaje = $this->requestStack->getCurrentRequest()->getLocale();
-
-        $tl = $this->requestStack->getCurrentRequest()->get('tl');
-        if($tl != null && in_array($tl, ['es', 'en'])){
-            $languaje = $this->requestStack->getCurrentRequest()->get('tl');
-        }
-
-        $ano = date('Y', $fechaStamp);
-        $mes = date('n', $fechaStamp);
-        $dia = date('d', $fechaStamp);
-        $diasemana = date('w', $fechaStamp);
-
-        if($languaje == 'es'){
-            $diassemanaN = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-            $mesesN = [1 => 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-
-            return $diassemanaN[$diasemana] . ', ' . $dia . ' de ' . $mesesN[$mes] . ' de ' . $ano;
-        }elseif($languaje == 'en'){
-            $diassemanaN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            $mesesN = [1 => 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-            return $diassemanaN[$diasemana] . ' ' . $mesesN[$mes] . ' ' . $dia . ', ' . $ano;
-        }else{
-            return 'Idioma no soportado aun.';
-        }
-    }
 }

@@ -15,7 +15,7 @@ use Gedmo\Translatable\Entity\MappedSuperclass\AbstractPersonalTranslation;
  * )
  *
  */
-class MaestroCategoriaTourTranslation extends AbstractPersonalTranslation
+class MaestroCategoriatourTranslation extends AbstractPersonalTranslation
 {
     /**
      * @ORM\ManyToOne(targetEntity="MaestroCategoriatour", inversedBy="translations")

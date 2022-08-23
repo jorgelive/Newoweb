@@ -15,3 +15,11 @@ tipodoc: tipo doc
 numerodoc: num. doc
 fechanacimiento: fecha nacimiento
 edad: edad
+dia: dia
+inicio: inicio
+fin: fin
+precio_de_venta: precio de venta
+precio_por_pasajero: precio por pasajero
+desde: desde
+hasta: hasta
+'años': 'años'
