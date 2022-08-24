@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -25,6 +26,13 @@ class ServicioModalidadtarifa
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
+
+    /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ServicioModalidadtarifaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
 
     /**
      * @var string
@@ -61,6 +69,14 @@ class ServicioModalidadtarifa
      * @Gedmo\Locale
      */
     private $locale;
+
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->translations = new ArrayCollection();
+    }
 
 
     /**

@@ -173,6 +173,11 @@ class ServicioTarifa
      */
     private $locale;
 
+    public function __construct()
+    {
+        $this->translations = new ArrayCollection();
+    }
+
     public function __clone() {
         if($this->id) {
             $this->id = null;

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -24,6 +25,13 @@ class MaestroCategoriatour
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
+
+    /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\MaestroCategoriatourTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
 
     /**
      * @ORM\Column(type="string", length=100)
@@ -53,6 +61,15 @@ class MaestroCategoriatour
      * @ORM\Column(type="datetime")
      */
     private $modificado;
+
+    /**
+     * @Gedmo\Locale
+     */
+    private $locale;
+
+    public function __construct() {
+        $this->translations = new ArrayCollection();
+    }
 
     /**
      * @return string

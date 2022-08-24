@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Translatable\Translatable;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -24,6 +25,14 @@ class MaestroTipopax
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
+
+    /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\MaestroTipopaxTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
+
 
     /**
      * @ORM\Column(type="string", length=100)
@@ -58,6 +67,11 @@ class MaestroTipopax
      * @Gedmo\Locale
      */
     private $locale;
+
+    public function __construct()
+    {
+        $this->translations = new ArrayCollection();
+    }
 
     /**
      * @return string

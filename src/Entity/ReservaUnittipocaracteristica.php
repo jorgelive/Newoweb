@@ -22,16 +22,23 @@ class ReservaUnittipocaracteristica
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
 
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnittipocaracteristicaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
+
+    /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=255)
+     * @ORM\Column(type="string", length=255)
      */
     private $nombre;
 
@@ -39,7 +46,7 @@ class ReservaUnittipocaracteristica
      * @var string
      *
      * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=100, nullable=false)
+     * @ORM\Column(type="string", length=100, nullable=false)
      */
     private $titulo;
 
@@ -68,14 +75,13 @@ class ReservaUnittipocaracteristica
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
 
     public function __construct() {
         $this->reservas = new ArrayCollection();
         $this->unitcaracteristicas = new ArrayCollection();
+        $this->translations = new ArrayCollection();
     }
 
     /**

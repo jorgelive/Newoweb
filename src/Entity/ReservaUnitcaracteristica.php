@@ -28,6 +28,13 @@ class ReservaUnitcaracteristica
     private $id;
 
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitcaracteristicaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
+
+    /**
      * @var string
      *
      * @Gedmo\Translatable
@@ -69,10 +76,13 @@ class ReservaUnitcaracteristica
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
+
+    public function __construct()
+    {
+        $this->translations = new ArrayCollection();
+    }
 
     /**
      * @return string

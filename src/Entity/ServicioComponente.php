@@ -19,7 +19,6 @@ use Gedmo\Translatable\Translatable;
 class ServicioComponente
 {
 
-
     /**
      * @var int
      *
@@ -28,6 +27,13 @@ class ServicioComponente
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
+
+    /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ServicioComponenteTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
 
     /**
      * @var string
@@ -96,8 +102,6 @@ class ServicioComponente
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
 
@@ -109,6 +113,7 @@ class ServicioComponente
         $this->tarifas = new ArrayCollection();
         $this->servicios = new ArrayCollection();
         $this->componenteitems = new ArrayCollection();
+        $this->translations = new ArrayCollection();
     }
 
     public function __clone() {

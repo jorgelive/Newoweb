@@ -23,30 +23,37 @@ class ServicioServicio
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
 
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ServicioServicioTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
+
+    /**
      * @var string
      *
-     * @ORM\Column(name="codigo", type="string", length=20)
+     * @ORM\Column(type="string", length=20)
      */
     private $codigo;
 
     /**
      * @var bool
      *
-     * @ORM\Column(name="paralelo", type="boolean", options={"default": 0})
+     * @ORM\Column(type="boolean", options={"default": 0})
      */
     private $paralelo;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=100)
+     * @ORM\Column(type="string", length=100)
      */
     private $nombre;
 
@@ -87,8 +94,6 @@ class ServicioServicio
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
 
@@ -99,6 +104,7 @@ class ServicioServicio
     {
         $this->componentes = new ArrayCollection();
         $this->itinerarios = new ArrayCollection();
+        $this->translations = new ArrayCollection();
     }
 
     public function __clone() {

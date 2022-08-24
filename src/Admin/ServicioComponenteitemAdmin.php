@@ -23,6 +23,9 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
     {
         $datagridMapper
             ->add('id')
+            ->add('Componente', null, [
+                'label' => 'Componente'
+            ])
             ->add('titulo', TranslationFieldFilter::class, [
                 'label' => 'Título'
             ])
@@ -45,23 +48,24 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('tarifa', null, [
-                'sortable' => true,
-                'sort_field_mapping' => ['fieldName' => 'nombre'],
-                'sort_parent_association_mappings' => [['fieldName' => 'tarifa']]
+            ->add('Componente', null, [
+                'label' => 'Componente'
             ])
             ->add('titulo', null, [
                 'label' => 'Título',
                 'editable' => true
             ])
             ->add('nomostrartarifa', null, [
-                'label' => 'No mostrar tar'
+                'label' => 'No mostrar tar',
+                'editable' => true
             ])
             ->add('nomostrarmodalidadtarifa', null, [
-                'label' => 'No mostrar mod'
+                'label' => 'No mostrar mod',
+                'editable' => true
             ])
             ->add('nomostrarcategoriatour', null, [
-                'label' => 'No mostrar cat'
+                'label' => 'No mostrar cat',
+                'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',

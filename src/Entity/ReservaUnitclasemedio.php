@@ -29,6 +29,13 @@ class ReservaUnitclasemedio
     private $id;
 
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitclasemedioTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
+
+    /**
      * @var string
      *
      * @ORM\Column(name="nombre", type="string", length=255)
@@ -68,14 +75,13 @@ class ReservaUnitclasemedio
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
 
     public function __construct()
     {
         $this->unitmedios = new ArrayCollection();
+        $this->translations = new ArrayCollection();
     }
 
 

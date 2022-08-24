@@ -19,7 +19,7 @@ class ServicioTipotarifa
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
@@ -28,7 +28,7 @@ class ServicioTipotarifa
     /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=255)
+     * @ORM\Column(type="string", length=255)
      */
     private $nombre;
 
@@ -36,42 +36,42 @@ class ServicioTipotarifa
      * @var string
      *
      * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=100, nullable=false)
+     * @ORM\Column(type="string", length=100, nullable=false)
      */
     private $titulo;
 
     /**
      * @var bool
      *
-     * @ORM\Column(name="comisionable", type="boolean", options={"default": 1})
+     * @ORM\Column(type="boolean", options={"default": 1})
      */
     private $comisionable = true;
 
     /**
      * @var bool
      *
-     * @ORM\Column(name="oculto", type="boolean", options={"default": 0})
+     * @ORM\Column(type="boolean", options={"default": 0})
      */
     private $oculto = false;
 
     /**
      * @var bool
      *
-     * @ORM\Column(name="mostrarcostoincluye", type="boolean", options={"default": 0})
+     * @ORM\Column(type="boolean", options={"default": 0})
      */
     private $mostrarcostoincluye = false;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="listacolor", type="string", length=30, nullable=true)
+     * @ORM\Column(type="string", length=30, nullable=true)
      */
     private $listacolor;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="listaclase", type="string", length=30, nullable=true)
+     * @ORM\Column(type="string", length=30, nullable=true)
      */
     private $listaclase;
 
@@ -93,11 +93,8 @@ class ServicioTipotarifa
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
-
 
     /**
      * @return string

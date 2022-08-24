@@ -1054,7 +1054,7 @@ services:
                 model_class: App\Entity\ServicioComponenteitem
                 manager_type: orm
                 group: Servicio
-                label: Componente item
+                label: Item de Componente
                 show_mosaic_button: false
         public: true
 

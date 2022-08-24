@@ -30,6 +30,13 @@ class ServicioNotaitinerariodia
     private $id;
 
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ServicioNotaitinerariodiaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
+
+    /**
      * @var string
      *
      * @ORM\Column(type="string", length=100)
@@ -69,8 +76,6 @@ class ServicioNotaitinerariodia
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
 
@@ -80,6 +85,7 @@ class ServicioNotaitinerariodia
     public function __construct()
     {
         $this->itinerariodias = new ArrayCollection();
+        $this->translations = new ArrayCollection();
     }
 
     public function __clone() {

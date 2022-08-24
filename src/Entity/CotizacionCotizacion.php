@@ -22,44 +22,51 @@ class CotizacionCotizacion
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
 
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotizacionTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
+
+    /**
      * @var string
      *
-     * @ORM\Column(name="token", type="string", length=20)
+     * @ORM\Column(type="string", length=20)
      */
     private $token;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=255)
+     * @ORM\Column(type="string", length=255)
      */
     private $nombre;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="titulo", type="string", length=255)
+     * @ORM\Column(type="string", length=255)
      */
     private $titulo;
 
     /**
      * @var int
      *
-     * @ORM\Column(name="numeropasajeros", type="integer")
+     * @ORM\Column(type="integer")
      */
     private $numeropasajeros;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="comision", type="decimal", precision=5, scale=2, nullable=false)
+     * @ORM\Column(type="decimal", precision=5, scale=2, nullable=false)
      */
     private $comision = '20.00';
 
@@ -67,7 +74,7 @@ class CotizacionCotizacion
     /**
      * @var string
      *
-     * @ORM\Column(name="adelanto", type="decimal", precision=5, scale=2, nullable=false)
+     * @ORM\Column(type="decimal", precision=5, scale=2, nullable=false)
      */
     private $adelanto = '50.00';
 
@@ -139,14 +146,13 @@ class CotizacionCotizacion
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
 
     public function __construct() {
         $this->cotservicios = new ArrayCollection();
         $this->cotnotas = new ArrayCollection();
+        $this->translations = new ArrayCollection();
     }
 
     public function __clone() {

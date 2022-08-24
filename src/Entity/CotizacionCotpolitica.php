@@ -22,25 +22,31 @@ class CotizacionCotpolitica
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
 
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotpoliticaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
+
+    /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=255)
+     * @ORM\Column(type="string", length=255)
      */
     private $nombre;
-
 
     /**
      * @var string
      *
      * @Gedmo\Translatable
-     * @ORM\Column(name="contenido", type="text")
+     * @ORM\Column(type="text")
      */
     private $contenido;
 
@@ -69,14 +75,17 @@ class CotizacionCotpolitica
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
     private $locale;
 
+    /**
+     * Constructor
+     */
     public function __construct() {
         $this->cotizaciones = new ArrayCollection();
+        $this->translations = new ArrayCollection();
     }
+
 
     /**
      * @return string

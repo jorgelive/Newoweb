@@ -29,6 +29,13 @@ class MaestroClasemedio
     private $id;
 
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\MaestroClasemedioTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
+
+    /**
      * @var string
      *
      * @ORM\Column(type="string", length=255)
@@ -74,6 +81,7 @@ class MaestroClasemedio
     public function __construct()
     {
         $this->medios = new ArrayCollection();
+        $this->translations = new ArrayCollection();
     }
 
 
