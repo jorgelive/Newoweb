@@ -18,7 +18,6 @@ class MaestroPaisAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
-            ->add('nacionalidad')
             ->add('codigodcc',  null, [
                 'label' => 'Código DCC'
             ])
@@ -42,9 +41,6 @@ class MaestroPaisAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('nombre', null, [
-                'editable' => true
-            ])
-            ->add('nacionalidad', null, [
                 'editable' => true
             ])
             ->add('codigodcc',  null, [
@@ -80,7 +76,6 @@ class MaestroPaisAdmin extends AbstractAdmin
     {
         $formMapper
             ->add('nombre')
-            ->add('nacionalidad')
             ->add('codigodcc',  null, [
                 'label' => 'Código DCC'
             ])
@@ -104,7 +99,6 @@ class MaestroPaisAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
-            ->add('nacionalidad')
             ->add('codigodcc',  null, [
                 'label' => 'Código DCC'
             ])

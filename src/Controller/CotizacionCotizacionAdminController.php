@@ -50,7 +50,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
             throw $this->createNotFoundException(sprintf('Unable to find the object with id: %s', $id));
         }
 
-        $this->admin->checkAccess('edit', $object);
+        $this->admin->checkAccess('create', $object);
 
         $newObject = clone $object;
         $newObject->setNombre($object->getNombre().' (Clone)');

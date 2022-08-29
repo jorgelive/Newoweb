@@ -6,7 +6,6 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
-use Gedmo\Translatable\Translatable;
 use Doctrine\Common\Collections\ArrayCollection;
 
 /**
@@ -14,7 +13,6 @@ use Doctrine\Common\Collections\ArrayCollection;
  *
  * @ORM\Table(name="ser_itinerario")
  * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioItinerarioTranslation")
  */
 class ServicioItinerario
 {
@@ -23,37 +21,30 @@ class ServicioItinerario
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
 
     /**
-     * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioItinerarioTranslation", mappedBy="object", cascade={"persist", "remove"})
-     */
-    protected $translations;
-
-    /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=100)
+     * @ORM\Column(type="string", length=100)
      */
     private $nombre;
 
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="hora", type="time")
+     * @ORM\Column(type="time")
      */
     private $hora;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="duracion", type="decimal", precision=4, scale=1)
+     * @ORM\Column(type="decimal", precision=4, scale=1)
      */
     private $duracion;
 
@@ -89,17 +80,11 @@ class ServicioItinerario
     private $itinerariodias;
 
     /**
-     * @Gedmo\Locale
-     */
-    private $locale;
-
-    /**
      * Constructor
      */
     public function __construct()
     {
         $this->itinerariodias = new ArrayCollection();
-        $this->translations = new ArrayCollection();
     }
 
     public function __clone() {

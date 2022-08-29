@@ -6,6 +6,7 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
@@ -16,7 +17,7 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
 
     public function configure(): void
     {
-        $this->classnameLabel = "Dia de itinerario";
+        $this->classnameLabel = "Día de itinerario";
     }
 
     /**
@@ -74,6 +75,9 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
+                    'traducir' => [
+                        'template' => 'servicio_itinerariodia_admin/list__action_traducir.html.twig'
+                    ]
                 ],
             ])
         ;
@@ -136,5 +140,10 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
                 'associated_property' => 'medio'
             ])
         ;
+    }
+
+    protected function configureRoutes(RouteCollectionInterface $collection): void
+    {
+        $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
     }
 }

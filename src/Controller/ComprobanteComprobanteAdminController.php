@@ -44,7 +44,7 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
-        $this->admin->checkAccess('edit', $object);
+        $this->admin->checkAccess('create', $object);
 
         $newObject = clone $object;
 
@@ -89,7 +89,7 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
-        $this->admin->checkAccess('edit', $object);
+        $this->admin->checkAccess('create', $object);
 
         $newObject = clone $object;
 

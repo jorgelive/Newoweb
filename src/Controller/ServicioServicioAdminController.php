@@ -28,7 +28,7 @@ class ServicioServicioAdminController extends CRUDAdminController
             throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
         }
 
-        $this->admin->checkAccess('edit', $object);
+        $this->admin->checkAccess('create', $object);
 
         $newObject = clone $object;
         $newObject->setNombre($object->getNombre() . ' (Clone)');

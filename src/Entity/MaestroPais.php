@@ -31,13 +31,6 @@ class MaestroPais
     private $nombre;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(type="string", length=100)
-     */
-    private $nacionalidad;
-
-    /**
      * DCC Cusco
      * @var int
      *
@@ -125,30 +118,6 @@ class MaestroPais
     public function getNombre()
     {
         return $this->nombre;
-    }
-
-    /**
-     * Set nacionalidad
-     *
-     * @param string $nacionalidad
-     *
-     * @return MaestroPais
-     */
-    public function setNacionalidad(string $nacionalidad)
-    {
-        $this->nacionalidad = $nacionalidad;
-    
-        return $this;
-    }
-
-    /**
-     * Get nacionalidad
-     *
-     * @return string
-     */
-    public function getNacionalidad()
-    {
-        return $this->nacionalidad;
     }
 
     /**

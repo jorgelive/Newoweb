@@ -5,6 +5,8 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     locale: 'es'
+    google_maps_key: '%env(resolve:GOOGLE_MAPS_KEY)%'
+    google_translate_key: '%env(resolve:GOOGLE_TRANSLATE_KEY)%'
     facturacion_ruta_prueba: 'https://www.nubefact.com/api/v1/f76cbd70-fbe8-4a66-96a9-a92d21c0a3ea'
     facturacion_token_prueba: '%env(resolve:DFACTURACION_TOKEN_PRUEBA)%'
     facturacion_ruta_produccion: 'https://www.nubefact.com/api/v1/b576e284-665a-41cb-9ceb-859de41e8ba7'
@@ -1089,6 +1091,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioItinerariodia
+                controller: App\Controller\ServicioItinerariodiaAdminController
                 manager_type: orm
                 group: Servicio
                 label: Dias de itinerario
