@@ -2,12 +2,12 @@
 
 namespace App\Controller;
 
-use Google\Cloud\Translate\V2\TranslateClient;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
+use Google\Cloud\Translate\V2\TranslateClient;
 
-class ServicioTarifaAdminController extends CRUDAdminController
+class CotizacionCotpoliticaAdminController extends CRUDAdminController
 {
 
     public static function getSubscribedServices(): array
@@ -15,30 +15,6 @@ class ServicioTarifaAdminController extends CRUDAdminController
         return [
                 'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
             ] + parent::getSubscribedServices();
-    }
-
-    public function clonarAction(Request $request = null)
-    {
-
-        $object = $this->assertObjectExists($request, true);
-        $id = $object->getId();
-
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        if(!$object) {
-            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
-        }
-
-        $this->admin->checkAccess('create', $object);
-
-        $newObject = clone $object;
-        $newObject->setNombre($object->getNombre() . ' (Clone)');
-        $this->admin->create($newObject);
-
-        $this->addFlash('sonata_flash_success', 'Tarifa clonada correctamente');
-
-        return new RedirectResponse($this->admin->generateUrl('list'));
-
     }
 
     public function traducirAction(Request $request)
@@ -60,33 +36,31 @@ class ServicioTarifaAdminController extends CRUDAdminController
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
 
-        $tarifaDL = $em->getRepository('App\Entity\Serviciotarifa')->find($id);
-        $tarifaDL->setLocale($request->getDefaultLocale());
-        $em->refresh($tarifaDL);
+        $cotpoliticaDL = $em->getRepository('App\Entity\Cotizacioncotpolitica')->find($id);
+        $cotpoliticaDL->setLocale($request->getDefaultLocale());
+        $em->refresh($cotpoliticaDL);
 
-        $tituloDL = $tarifaDL->getTitulo();
+        $contenidoDL = $cotpoliticaDL->getContenido();
 
-        $tarifaDL->setLocale($request->getLocale());
-        $em->refresh($tarifaDL);
+        $cotpoliticaDL->setLocale($request->getLocale());
+        $em->refresh($cotpoliticaDL);
 
         $translate = new TranslateClient([
             'key' => $this->getParameter('google_translate_key')
         ]);
 
-        $tituloTL = $translate->translate($tituloDL, [
+        $contenidoTL = $translate->translate($contenidoDL, [
             'target' => $request->getLocale(),
             'source' => $request->getDefaultLocale()
         ]);
 
-        $object->setTitulo($tituloTL['text']);
+        $object->setContenido($contenidoTL['text']);
 
         $existingObject = $this->admin->update($object);
 
-        $this->addFlash('sonata_flash_success', 'Tarifa traducida correctamente');
+        $this->addFlash('sonata_flash_success', 'Política traducida correctamente');
 
         return new RedirectResponse($this->admin->generateUrl('list'));
 
     }
-
-
 }

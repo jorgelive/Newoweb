@@ -87,6 +87,26 @@ class ReservaUnitmedio
         $this->translations = new ArrayCollection();
     }
 
+    public function setLocale(?string $locale): self
+    {
+        $this->locale = $locale;
+
+        return $this;
+    }
+
+    public function getTranslations()
+    {
+        return $this->translations;
+    }
+
+    public function addTranslation(ReservaUnitmedioTranslation $translation)
+    {
+        if (!$this->translations->contains($translation)) {
+            $this->translations[] = $translation;
+            $translation->setObject($this);
+        }
+    }
+
     /**
      * @return string
      */

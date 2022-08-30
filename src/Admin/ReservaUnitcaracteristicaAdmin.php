@@ -6,11 +6,17 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
 class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
 {
+
+    public function configure(): void
+    {
+        $this->classnameLabel = "Unidad caracteristica";
+    }
 
     /**
      * @param DatagridMapper $datagridMapper
@@ -41,7 +47,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
                 'label' => 'Tipo'
             ])
             ->add('contenido', null, [
-                'safe' => true
+                'template' => 'base_sonata_admin/list_html.html.twig'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -49,6 +55,9 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
+                    'traducir' => [
+                        'template' => 'reserva_unitcaracteristica_admin/list__action_traducir.html.twig'
+                    ]
                 ],
             ])
         ;
@@ -91,5 +100,10 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
                 'safe' => true
             ])
         ;
+    }
+
+    protected function configureRoutes(RouteCollectionInterface $collection): void
+    {
+        $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
     }
 }

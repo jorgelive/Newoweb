@@ -218,7 +218,7 @@ class MaestroClasemedio
     /**
      * Remove medio.
      *
-     * @param \App\Entity\Maestromedio $medio
+     * @param \App\Entity\MaestroMedio $medio
      *
      * @return MaestroClasemedio
      */

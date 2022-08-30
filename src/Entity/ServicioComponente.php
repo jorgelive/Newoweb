@@ -14,7 +14,6 @@ use Gedmo\Translatable\Translatable;
  *
  * @ORM\Table(name="ser_componente")
  * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioComponenteTranslation")
  */
 class ServicioComponente
 {
@@ -22,23 +21,16 @@ class ServicioComponente
     /**
      * @var int
      *
-     * @ORM\Column(name="id", type="integer")
+     * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
 
     /**
-     * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioComponenteTranslation", mappedBy="object", cascade={"persist", "remove"})
-     */
-    protected $translations;
-
-    /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=100)
+     * @ORM\Column(type="string", length=100)
      */
     private $nombre;
 
@@ -72,7 +64,7 @@ class ServicioComponente
     /**
      * @var string
      *
-     * @ORM\Column(name="duracion", type="decimal", precision=4, scale=1, nullable=true)
+     * @ORM\Column(type="decimal", precision=4, scale=1, nullable=true)
      */
     private $duracion;
 
@@ -100,10 +92,6 @@ class ServicioComponente
      */
     private $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
-    private $locale;
 
     /**
      * Constructor
@@ -113,7 +101,6 @@ class ServicioComponente
         $this->tarifas = new ArrayCollection();
         $this->servicios = new ArrayCollection();
         $this->componenteitems = new ArrayCollection();
-        $this->translations = new ArrayCollection();
     }
 
     public function __clone() {

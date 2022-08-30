@@ -6,6 +6,7 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
@@ -32,12 +33,18 @@ class CotizacionCotpoliticaAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('nombre')
+            ->add('contenido', null, [
+                'template' => 'base_sonata_admin/list_html.html.twig'
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
+                    'traducir' => [
+                        'template' => 'cotizacion_cotpolitica_admin/list__action_traducir.html.twig'
+                    ]
                 ],
             ])
         ;
@@ -70,4 +77,10 @@ class CotizacionCotpoliticaAdmin extends AbstractAdmin
             ])
         ;
     }
+
+    protected function configureRoutes(RouteCollectionInterface $collection): void
+    {
+        $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
+    }
+
 }

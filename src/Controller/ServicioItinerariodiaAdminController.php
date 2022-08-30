@@ -23,7 +23,7 @@ class ServicioItinerariodiaAdminController extends CRUDAdminController
         $object = $this->assertObjectExists($request, true);
         $id = $object->getId();
         if($request->getDefaultLocale() == $request->getLocale()){
-            $this->addFlash('sonata_flash_error', 'El idioma actual debe ser diferente al idioma por defecto de la aplicacion');
+            $this->addFlash('sonata_flash_error', 'El idioma actual debe ser diferente al idioma por defecto de la aplicación');
 
             return new RedirectResponse($this->admin->generateUrl('list'));
         }

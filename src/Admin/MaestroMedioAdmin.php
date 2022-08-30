@@ -6,6 +6,7 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\AdminBundle\Route\RouteCollection;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
@@ -13,6 +14,11 @@ use Symfony\Component\Form\Extension\Core\Type\FileType;
 
 class MaestroMedioAdmin extends AbstractAdmin
 {
+    public function configure(): void
+    {
+        $this->classnameLabel = "Medio";
+    }
+
     /**
      * @param DatagridMapper $datagridMapper
      */
@@ -60,7 +66,10 @@ class MaestroMedioAdmin extends AbstractAdmin
                 'actions' => [
                     'show' => [],
                     'edit' => [],
-                    'delete' => []
+                    'delete' => [],
+                    'traducir' => [
+                        'template' => 'maestro_medio_admin/list__action_traducir.html.twig'
+                    ]
                 ]
             ])
         ;
@@ -129,6 +138,11 @@ class MaestroMedioAdmin extends AbstractAdmin
         if($medio->getArchivo()) {
             $medio->refreshModificado();
         }
+    }
+
+    protected function configureRoutes(RouteCollectionInterface $collection): void
+    {
+        $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
     }
 
 }

@@ -532,6 +532,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCotpolitica
+                controller: App\Controller\CotizacionCotpoliticaAdminController
                 manager_type: orm
                 group: 'Cotización'
                 label: 'Políticas'
@@ -544,6 +545,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCotnota
+                controller: App\Controller\CotizacionCotnotaAdminController
                 manager_type: orm
                 group: 'Cotización'
                 label: Notas operativas
@@ -819,6 +821,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\MaestroMedio
+                controller: App\Controller\MaestroMedioAdminController
                 manager_type: orm
                 group: Maestros
                 label: Multimedia
@@ -959,6 +962,7 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ReservaUnitcaracteristica
+              controller: App\Controller\ReservaUnitcaracteristicaAdminController
               manager_type: orm
               group: Reserva
               label: Característica de unidad
@@ -981,6 +985,7 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ReservaUnitmedio
+              controller: App\Controller\ReservaUnitmedioAdminController
               manager_type: orm
               group: Reserva
               label: Unidad Multimedia
@@ -1054,6 +1059,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioComponenteitem
+                controller: App\Controller\ServicioComponenteitemAdminController
                 manager_type: orm
                 group: Servicio
                 label: Item de Componente
@@ -1103,6 +1109,7 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ServicioNotaitinerariodia
+              controller: App\Controller\ServicioNotaitinerariodiaAdminController
               manager_type: orm
               group: Servicio
               label: Notas de itinerarios

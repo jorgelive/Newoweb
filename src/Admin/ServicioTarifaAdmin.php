@@ -20,6 +20,11 @@ use Sonata\AdminBundle\Datagrid\DatagridInterface;
 class ServicioTarifaAdmin extends AbstractAdmin
 {
 
+    public function configure(): void
+    {
+        $this->classnameLabel = "Tarifa";
+    }
+
     protected function configureDefaultSortValues(array &$sortValues): void
     {
         $sortValues[DatagridInterface::PAGE] = 1;
@@ -175,6 +180,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
                     'delete' => [],
                     'clonar' => [
                         'template' => 'servicio_tarifa_admin/list__action_clonar.html.twig'
+                    ],
+                    'traducir' => [
+                        'template' => 'servicio_tarifa_admin/list__action_traducir.html.twig'
                     ]
                 ],
             ])
@@ -359,5 +367,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
+        $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
     }
 }

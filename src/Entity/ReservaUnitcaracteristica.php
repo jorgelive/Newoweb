@@ -92,6 +92,26 @@ class ReservaUnitcaracteristica
         return $this->getUnittipocaracteristica()->getNombre() . ' : ' . $this->getContenido();
     }
 
+    public function setLocale(?string $locale): self
+    {
+        $this->locale = $locale;
+
+        return $this;
+    }
+
+    public function getTranslations()
+    {
+        return $this->translations;
+    }
+
+    public function addTranslation(ReservaUnitcaracteristicaTranslation $translation)
+    {
+        if (!$this->translations->contains($translation)) {
+            $this->translations[] = $translation;
+            $translation->setObject($this);
+        }
+    }
+
     public function getId(): ?int
     {
         return $this->id;

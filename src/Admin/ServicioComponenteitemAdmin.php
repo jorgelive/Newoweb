@@ -6,6 +6,7 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
@@ -15,6 +16,11 @@ use Symfony\Component\Form\FormInterface;
 
 class ServicioComponenteitemAdmin extends AbstractAdmin
 {
+
+    public function configure(): void
+    {
+        $this->classnameLabel = "Componente Item";
+    }
 
     /**
      * @param DatagridMapper $datagridMapper
@@ -73,6 +79,9 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
+                    'traducir' => [
+                        'template' => 'servicio_componenteitem_admin/list__action_traducir.html.twig'
+                    ]
                 ],
             ])
         ;
@@ -149,5 +158,10 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
                 'label' => 'No mostrar cat'
             ])
         ;
+    }
+
+    protected function configureRoutes(RouteCollectionInterface $collection): void
+    {
+        $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
     }
 }
