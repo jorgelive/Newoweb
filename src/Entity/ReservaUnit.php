@@ -131,6 +131,26 @@ class ReservaUnit
         return sprintf('%s %s',$this->getNombre(), $this->getEstablecimiento()->getNombre());
     }
 
+    public function setLocale(?string $locale): self
+    {
+        $this->locale = $locale;
+
+        return $this;
+    }
+
+    public function getTranslations()
+    {
+        return $this->translations;
+    }
+
+    public function addTranslation(ReservaUnitTranslation $translation)
+    {
+        if (!$this->translations->contains($translation)) {
+            $this->translations[] = $translation;
+            $translation->setObject($this);
+        }
+    }
+
     public function getId(): ?int
     {
         return $this->id;

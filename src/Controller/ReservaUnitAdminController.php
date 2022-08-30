@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Service\IcalGenerator;
+use Google\Cloud\Translate\V2\TranslateClient;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
@@ -17,6 +18,60 @@ class ReservaUnitAdminController extends CRUDAdminController
                 'App\Service\IcalGenerator' => IcalGenerator::class,
                 'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
             ] + parent::getSubscribedServices();
+    }
+
+    public function traducirAction(Request $request)
+    {
+
+        $object = $this->assertObjectExists($request, true);
+        $id = $object->getId();
+        if($request->getDefaultLocale() == $request->getLocale()){
+            $this->addFlash('sonata_flash_error', 'El idioma actual debe ser diferente al idioma por defecto de la aplicación');
+
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
+
+        if(!$object) {
+            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
+        }
+
+        $this->admin->checkAccess('edit', $object);
+
+        $em = $this->container->get('doctrine.orm.default_entity_manager');
+
+        $unitDL = $em->getRepository('App\Entity\ReservaUnit')->find($id);
+        $unitDL->setLocale($request->getDefaultLocale());
+        $em->refresh($unitDL);
+
+        $descripcionDL = $unitDL->getDescripcion();
+        $referenciaDL = $unitDL->getReferencia();
+
+        $unitDL->setLocale($request->getLocale());
+        $em->refresh($unitDL);
+
+        $translate = new TranslateClient([
+            'key' => $this->getParameter('google_translate_key')
+        ]);
+
+        $descripcionTL = $translate->translate($descripcionDL, [
+            'target' => $request->getLocale(),
+            'source' => $request->getDefaultLocale()
+        ]);
+
+        $referenciaTL = $translate->translate($referenciaDL, [
+            'target' => $request->getLocale(),
+            'source' => $request->getDefaultLocale()
+        ]);
+
+        $object->setDescripcion($descripcionTL['text']);
+        $object->setReferencia($referenciaTL['text']);
+
+        $existingObject = $this->admin->update($object);
+
+        $this->addFlash('sonata_flash_success', 'Unidad traducida correctamente');
+
+        return new RedirectResponse($this->admin->generateUrl('list'));
+
     }
 
     public function detalleAction(Request $request = null): Response | RedirectResponse

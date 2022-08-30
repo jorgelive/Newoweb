@@ -1,0 +1,36 @@
+{% if admin.isGranted('CREATE', object) and admin.hasRoute('traducir') and app.request.defaultlocale != app.request.locale %}
+    <a href="#"
+       class="btn btn-sm btn-info edit_link"
+       data-toggle="modal"
+       data-target="#traducirModal-{{ object.id }}">
+        <i class="fa fa-language" aria-hidden="true"></i>
+        Traducir
+    </a>
+
+    <div class="modal fade" id="traducirModal-{{ object.id }}" tabindex="-1" role="dialog" aria-labelledby="traducirLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel">Traducir</h4>
+                </div>
+                <div class="modal-body">
+                    Esta seguro que desea traducir esta unidad?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
+                        No
+                    </button>
+                    <a href="{{ admin.generateObjectUrl('traducir', object) }}"
+                       class="btn btn-info"
+                       title="Traducir">
+                        Traducir
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+
+

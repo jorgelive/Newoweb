@@ -64,6 +64,9 @@ class ReservaUnitAdmin extends AbstractAdmin
                     ],
                     'edit' => [],
                     'delete' => [],
+                    'traducir' => [
+                        'template' => 'reserva_unit_admin/list__action_traducir.html.twig'
+                    ]
                 ],
             ])
         ;
@@ -143,6 +146,7 @@ class ReservaUnitAdmin extends AbstractAdmin
     {
         $collection->add('ical', $this->getRouterIdParameter() . '/ical');
         $collection->add('detalle', $this->getRouterIdParameter() . '/detalle');
+        $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
 
     }
 }

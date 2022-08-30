@@ -23,6 +23,13 @@ class ReservaUnitTranslation extends AbstractPersonalTranslation
      */
     protected $object;
 
+    public function __construct($locale, $field, $value)
+    {
+        $this->setLocale($locale);
+        $this->setField($field);
+        $this->setContent($value);
+    }
+
     public function getObject()
     {
         return $this->object;
