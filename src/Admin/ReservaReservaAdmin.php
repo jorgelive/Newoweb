@@ -64,9 +64,9 @@ class ReservaReservaAdmin extends AbstractAdmin
         $entityManager = $this->getModelManager()->getEntityManager('App\Entity\ReservaReserva');
 
         $inicio = new \DateTime('today');
-        $inicio = $inicio->add(\DateInterval::createFromDateString('12 hours'));
+        $inicio = $inicio->add(\DateInterval::createFromDateString('14 hours'));
         $fin = new \DateTime( 'tomorrow + 1day');
-        $fin = $fin->add(\DateInterval::createFromDateString('9 hours'));
+        $fin = $fin->add(\DateInterval::createFromDateString('10 hours'));
 
         $estadoReference = $entityManager->getReference('App\Entity\ReservaEstado', 2);
         $object->setEstado($estadoReference);

@@ -35,7 +35,8 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('id')
             ->add('nombre')
             ->add('titulo', null, [
-                'label' => 'Título'
+                'label' => 'Título',
+                'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
