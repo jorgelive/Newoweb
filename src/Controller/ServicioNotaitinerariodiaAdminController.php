@@ -40,7 +40,7 @@ class ServicioNotaitinerariodiaAdminController extends CRUDAdminController
         $notaitinerariodiaDL->setLocale($request->getDefaultLocale());
         $em->refresh($notaitinerariodiaDL);
 
-        $tituloDL = $notaitinerariodiaDL->getTitulo();
+        $contenidoDL = $notaitinerariodiaDL->getContenido();
 
         $notaitinerariodiaDL->setLocale($request->getLocale());
         $em->refresh($notaitinerariodiaDL);
@@ -49,12 +49,12 @@ class ServicioNotaitinerariodiaAdminController extends CRUDAdminController
             'key' => $this->getParameter('google_translate_key')
         ]);
 
-        $tituloTL = $translate->translate($tituloDL, [
+        $contenidoTL = $translate->translate($contenidoDL, [
             'target' => $request->getLocale(),
             'source' => $request->getDefaultLocale()
         ]);
 
-        $object->setTitulo($tituloTL['text']);
+        $object->setContenido($contenidoTL['text']);
 
         $existingObject = $this->admin->update($object);
 

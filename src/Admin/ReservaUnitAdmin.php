@@ -47,10 +47,12 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('establecimiento')
             ->add('nombre')
             ->add('descripcion', null, [
-                'label' => 'Descripción'
+                'label' => 'Descripción',
+                'editable' => true
             ])
             ->add('referencia', null, [
-                'label' => 'Referencia de ubicación'
+                'label' => 'Referencia de ubicación',
+                'editable' => true
             ])
             ->add('unitnexos', null, [
                 'label' => 'Nexos'
