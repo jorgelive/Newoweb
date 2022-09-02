@@ -29,7 +29,7 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
     {
         $datagridMapper
             ->add('id')
-            ->add('Componente', null, [
+            ->add('componente', null, [
                 'label' => 'Componente'
             ])
             ->add('titulo', TranslationFieldFilter::class, [
@@ -54,7 +54,7 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('Componente', null, [
+            ->add('componente', null, [
                 'label' => 'Componente'
             ])
             ->add('titulo', null, [
@@ -145,6 +145,9 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
     {
         $showMapper
             ->add('id')
+            ->add('componente', null, [
+                'label' => 'Componente'
+            ])
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
