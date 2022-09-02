@@ -209,7 +209,7 @@ file that was distributed with this source code.
                                             <div class="col-xs-4 col-sm-2">
                                                 <div class="thumbnail">
                                                     <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
-                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.nombre }}" style="width:100%">
+                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.nombre }}" {% if archivo.inModal == true %}style="width:100%"{% endif %}>
                                                         <div class="caption">
                                                             <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.nombre }}</p>
                                                         </div>
@@ -782,7 +782,7 @@ file that was distributed with this source code.
                                                                             <div class="col-xs-12 col-sm-6">
                                                                                 <div class="thumbnail">
                                                                                     <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.titulo }}"{% else %} target="_blank" {% endif %}>
-                                                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" style="width:100%">
+                                                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" {% if archivo.inModal == true %}style="width:100%"{% endif %}>
                                                                                         <div class="caption">
                                                                                             <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
                                                                                         </div>

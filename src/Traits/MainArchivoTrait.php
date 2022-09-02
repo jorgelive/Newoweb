@@ -20,7 +20,7 @@ trait MainArchivoTrait
     private $tempThumb;
 
     private $externalTypes = ['youtube', 'vimeo'];
-    private $modalTypes = ['jpg', 'jpeg', 'png', 'txt', 'youtube', 'vimeo'];
+    private $modalTypes = ['jpg', 'jpeg', 'png', 'youtube', 'vimeo'];
     private $resizableTypes = ['jpg', 'jpeg', 'png'];
     private $imageSize = ['image' => ['width' => '800', 'height' => '800'], 'thumb' => ['width' => '400', 'height' => '400']];
 

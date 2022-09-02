@@ -130,7 +130,7 @@ class CotizacionResumen implements ContainerAwareInterface
                 $archivosAux['webThumbPath'] = $documento->getWebThumbPath();
                 $archivosAux['webPath'] = $documento->getWebPath();
                 $archivosAux['inModal'] = $documento->getInModal();
-                $archivosAux['tipo'] = $documento->getTipofiledocumento()->getNombre();
+                $archivosAux['tipodocumento'] = $documento->getTipofiledocumento()->getNombre();
                 if($documento->getTipofiledocumento()->isInterno() === true){
                     $archivosAux['interno'] = true;
                 }else{
