@@ -194,7 +194,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                     'template' => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
                     'route' => ['name' => 'app_servicio_componente_porserviciodropdown', 'parameters' => []],
                     'placeholder' => '',
-                    'context' => '/\[cotcomponentes\]\[\d\]\[componente\]$/g, "[servicio]"',
+                    'context' => '/\[cotcomponentes\]\[\d*\]\[componente\]$/g, "[servicio]"',
                     'minimum_input_length' => 0,
                     'dropdown_auto_width' => false,
                     'btn_add' => false

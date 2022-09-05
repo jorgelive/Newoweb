@@ -25,7 +25,7 @@
                     },
                     seleccionar: function (event) {
 
-                        var itinerarioregex = /\[serviciocontables\]\[\d\]\[total\]$/g;
+                        var itinerarioregex = /\[serviciocontables\]\[\d*\]\[total\]$/g;
 
                         if(itinerarioregex.test($(this).attr("name")) === true) {
                             return methods.actualizarnetoigv.call(this, event);

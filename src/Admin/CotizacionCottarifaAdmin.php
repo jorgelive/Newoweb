@@ -89,7 +89,7 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
                 'template' => '/form/type/ajax_dropdown_type_cotizacion_cottarifa.html.twig',
                 'route' => ['name' => 'app_servicio_tarifa_porcomponentedropdown', 'parameters' => []],
                 'placeholder' => '',
-                'context' => '/\[cottarifas\]\[\d\]\[tarifa\]$/g, "[componente]"',
+                'context' => '/\[cottarifas\]\[\d*\]\[tarifa\]$/g, "[componente]"',
                 'minimum_input_length' => 0,
                 'dropdown_auto_width' => false,
                 'btn_add' => false
