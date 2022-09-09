@@ -50,18 +50,24 @@ class CotizacionCotnotaAdminController extends CRUDAdminController
             'key' => $this->getParameter('google_translate_key')
         ]);
 
-        $tituloTL = $translate->translate($tituloDL, [
-            'target' => $request->getLocale(),
-            'source' => $request->getDefaultLocale()
-        ]);
+        if(!empty($tituloDL)) {
+            $tituloTL = $translate->translate($tituloDL, [
+                'target' => $request->getLocale(),
+                'source' => $request->getDefaultLocale()
+            ]);
+            if(substr($tituloDL, 0, 1) === strtoupper(substr($tituloDL, 0, 1))){
+                $tituloTL['text'] = ucfirst($tituloTL['text']);
+            }
+            $object->setTitulo($tituloTL['text']);
+        }
 
-        $contenidoTL = $translate->translate($contenidoDL, [
-            'target' => $request->getLocale(),
-            'source' => $request->getDefaultLocale()
-        ]);
-
-        $object->setTitulo($tituloTL['text']);
-        $object->setContenido($contenidoTL['text']);
+        if(!empty($contenidoDL)) {
+            $contenidoTL = $translate->translate($contenidoDL, [
+                'target' => $request->getLocale(),
+                'source' => $request->getDefaultLocale()
+            ]);
+            $object->setContenido($contenidoTL['text']);
+        }
 
         $existingObject = $this->admin->update($object);
 

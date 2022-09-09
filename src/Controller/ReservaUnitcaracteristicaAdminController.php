@@ -49,12 +49,13 @@ class ReservaUnitcaracteristicaAdminController extends CRUDAdminController
             'key' => $this->getParameter('google_translate_key')
         ]);
 
-        $contenidoTL = $translate->translate($contenidoDL, [
-            'target' => $request->getLocale(),
-            'source' => $request->getDefaultLocale()
-        ]);
-
-        $object->setContenido($contenidoTL['text']);
+        if(!empty($contenidoDL)) {
+            $contenidoTL = $translate->translate($contenidoDL, [
+                'target' => $request->getLocale(),
+                'source' => $request->getDefaultLocale()
+            ]);
+            $object->setContenido($contenidoTL['text']);
+        }
 
         $existingObject = $this->admin->update($object);
 

@@ -49,12 +49,16 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
             'key' => $this->getParameter('google_translate_key')
         ]);
 
-        $tituloTL = $translate->translate($tituloDL, [
-            'target' => $request->getLocale(),
-            'source' => $request->getDefaultLocale()
-        ]);
-
-        $object->setTitulo($tituloTL['text']);
+        if(!empty($tituloDL)) {
+            $tituloTL = $translate->translate($tituloDL, [
+                'target' => $request->getLocale(),
+                'source' => $request->getDefaultLocale()
+            ]);
+            if(substr($tituloDL, 0, 1) === strtoupper(substr($tituloDL, 0, 1))){
+                $tituloTL['text'] = ucfirst($tituloTL['text']);
+            }
+            $object->setTitulo($tituloTL['text']);
+        }
 
         $existingObject = $this->admin->update($object);
 

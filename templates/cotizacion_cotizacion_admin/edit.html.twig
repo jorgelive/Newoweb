@@ -103,7 +103,7 @@
                                 var fechaInicioServicioId = $(this).attr("id").replace(/servicio_autocomplete_input$/g, 'fechahorainicio');
                                 console.log('Seleccionando toda la fila');
                                 var filaActual = $(this).closest('tr');
-                                var fecha = moment(new Date()).format('YYYY/MM/DD');
+                                var fecha = moment(moment(new Date()).format('YYYY/MM/DD'), 'YYYY/MM/DD').format('YYYY/MM/DD HH:mm');
                                 var fechaActual = moment($('input#' + fechaInicioServicioId).val().substr(0, 10), 'YYYY/MM/DD').format('YYYY/MM/DD HH:mm');
                                 if(filaActual.index() > 0){
 
@@ -127,6 +127,15 @@
                                         console.log('El servicio es paralelo, agregando clase');
                                         filaActual.removeClass('paralelo').addClass('paralelo');
                                         $('input#' + fechaInicioServicioId).removeClass('paralelo').addClass('paralelo');
+                                    }
+                                }else{
+
+                                    if($('input#' + fechaInicioServicioId).val() !== '' ){
+
+                                        fecha = fechaActual;
+                                        //tambien ejecuto ya que no se ejecutara después
+                                        console.log('La fecha es diferente ejecutando el cambio y trigger de manera anticipada');
+                                        $('input#' + fechaInicioServicioId).val(fecha).trigger('input');
                                     }
                                 }
 
