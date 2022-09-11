@@ -43,7 +43,7 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/adminview_button.html.twig'];
         }else{
             $buttonList['resumen'] = ['template' => 'cotizacion_cotizacion_admin/resumen_button.html.twig'];
-            $buttonList['fileedit'] = ['template' => 'cotizacion_cotizacion_admin/fileedit_button.html.twig'];
+            $buttonList['fileshow'] = ['template' => 'cotizacion_cotizacion_admin/fileshow_button.html.twig'];
         }
         return $buttonList;
     }
@@ -162,7 +162,7 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'choices' => [
                     1 => 'Pendiente',
                     2 => 'Archivado',
-                    3 => 'Aceptado',
+                    3 => 'Confirmado',
                     4 => 'Operado',
                     5 => 'Cancelado',
                     6 => 'Plantilla'

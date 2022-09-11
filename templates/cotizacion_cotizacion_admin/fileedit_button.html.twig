@@ -1,9 +1,0 @@
-{% if object is defined and admin.hasRoute('edit') and object.id is not null %}
-    <li>
-        <a class="sonata-action-element" href="{{ url('admin_app_cotizacionfile_edit', {'id': object.file.id }) }}">
-            <i class="fa fa-newspaper-o" aria-hidden="true"></i>
-            Editar File
-        </a>
-    </li>
-{% endif %}
-

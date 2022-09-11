@@ -1,0 +1,8 @@
+{% if object is defined and admin.isGranted('show', object) and admin.hasRoute('archivopr') %}
+    <li>
+        <a class="sonata-action-element" href="{{ admin.generateObjectUrl('archivopr', object) }}">
+            <i class="fa fa-info" aria-hidden="true"></i>
+            F PeruRail
+        </a>
+    </li>
+{% endif %}

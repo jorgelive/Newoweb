@@ -29,6 +29,14 @@ class CotizacionFileAdmin extends AbstractAdmin
         $sortValues[DatagridInterface::SORT_BY] = 'modificado';
     }
 
+    protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
+    {
+        $buttonList['archivodcc'] = ['template' => 'cotizacion_file_admin/archivodcc_button.html.twig'];
+        $buttonList['archivopr'] = ['template' => 'cotizacion_file_admin/archivopr_button.html.twig'];
+        $buttonList['archivocon'] = ['template' => 'cotizacion_file_admin/archivocon_button.html.twig'];
+
+        return $buttonList;
+    }
 
     /**
      * @param DatagridMapper $datagridMapper
