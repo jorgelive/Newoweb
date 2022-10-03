@@ -88,7 +88,7 @@ file that was distributed with this source code.
                     {% set carbocolor1, carbocolor2, carbocolor3 = '#FFFFE1', '#FFFEBE', '#FFFC3C'  %}
                     {% set protcolor1, protcolor2, protcolor3 = '#DCFDF9', '#BEFFF8', '#2AFFE8' %}
 
-                    {% if field_name == 'alimento' and nested_field.vars.sonata_admin_code == 'gopro_fit.admin.dietaalimento' %}
+                    {% if field_name == 'alimento' and nested_field.vars.sonata_admin_code == 'app.admin.fitdietaalimento' %}
                         <td>
                             <input readonly style="text-align: right; width: {{ anchomedida }}px" type="text" class="campo_medidacantidad form-control" id="{{ nested_field.parent.vars.id }}_medidacantidad" value="{{ nested_field.parent.vars.value.MedidaCantidadAlimento }}">
                         </td>

@@ -24,10 +24,10 @@
                         var $this = $(this);
                         //colocando attributo para no duplicar el metodo
                         if($this.attr('methodCambiovalorSeleccionar') === 'true'){
-                            console.log('On change no necesario: ' + $(this).attr("id"));
+                            console.log('On change no necesario: ' + $(this).attr("id") + 'ya que el valor de methodCambiovalorSeleccionar es true');
                             return $this;
                         }else{
-                            console.log('Seteando valor, methodCambiovalorSeleccionar variable: ' + $this.attr('methodCambiovalorSeleccionar') + ' en :' + $(this).attr("id"));
+                            console.log('Cambiando methodCambiovalorSeleccionar de ' + $this.attr('methodCambiovalorSeleccionar') + ' a true en :' + $(this).attr("id"));
                             $this.attr('methodcambiovalorseleccionar', 'true');
                             $this.off("change", methods.seleccionar).on("change", methods.seleccionar);
                             $this.off("input", methods.seleccionar).on("input", methods.seleccionar);
@@ -37,20 +37,22 @@
                     },
                     seleccionar: function (event) {
 
-                        var alimentoregex = /dietacomidas_\d*_dietaalimentos_\d*_alimento_autocomplete_input_v4$/g;
+                        var alimentoregex = /dietacomidas_\d*_dietaalimentos_\d*_alimento_autocomplete_input$/g;
                         var cantidadregex = /dietacomidas_\d*_dietaalimentos_\d*_cantidad$/g;
 
                         if(alimentoregex.test($(this).attr("id")) === true) {
+                            console.log('Ejecutando procesar alimento en ' + $(this).attr("id"))
                             return methods.procesaralimento.call(this, event);
                         }
                         if(cantidadregex.test($(this).attr("id")) === true) {
+                            console.log('Ejecutando procesar cantidas en ' + $(this).attr("id"))
                             return methods.procesarcantidad.call(this, event);
                         }
                     },
                     procesarcantidad: function (event) {
 
                         var baseId = $(this).attr("id").replace(/cantidad$/g, '');
-                        var alimentoId = baseId + 'alimento_autocomplete_input_v4';
+                        var alimentoId = baseId + 'alimento_autocomplete_input';
                         var inputval = $('select#' + alimentoId).val();
                         if(!$.isNumeric(inputval)){
                             return $this;
@@ -69,19 +71,24 @@
                         var carbohidratoId = baseId + 'carbohidrato';
                         var proteinaId = baseId + 'proteina';
 
+                        console.log('Ejecutando completarvalores en ' + $('input#' + cantidadId));
+
                         return methods.completarvalores.call(this, baseId, cantidad, $('input#' + cantidadId).attr('data-medidaalimento'), $('input#' + cantidadId).attr('data-cantidadalimento'), $('input#' + grasaId).val(), $('input#' + carbohidratoId).val(), $('input#' + proteinaId).val(), $('input#' + cantidadId).attr('data-proteinaaltovalor'), $('input#' + cantidadId).data('tipoalimento'));
 
                     },
                     procesaralimento: function (event) {
 
-                        var baseId = $(this).attr("id").replace(/alimento_autocomplete_input_v4$/g, '');
+                        var baseId = $(this).attr("id").replace(/alimento_autocomplete_input$/g, '');
                         var alimentoId = $(this).attr("id");
                         var inputval = $('select#' + alimentoId).val();
+
                         if(!$.isNumeric(inputval)){
-                            return $this;
+                            return;
                         }
 
                         var url = "{{ path(admin.vars.dietaalimentos.alimentopath) }}" + '/' + inputval;
+
+                        console.log('Ejecutando makeajaxcall en ' + $('select#' + alimentoId).val());
 
                         return methods.makeajaxcall.call(this, event, url, baseId);
 

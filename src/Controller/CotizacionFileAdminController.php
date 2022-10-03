@@ -232,7 +232,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         $cotcomponentes = $qb->getQuery()->getResult();
         if(empty($cotcomponentes)){
-            $this->addFlash('sonata_flash_error', 'No exixte el servicio concetir para la cotización confirmada del file.');
+            $this->addFlash('sonata_flash_error', 'No existe el servicio CONSETTUR para la cotización confirmada del file o el file no esta confirmado.');
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
@@ -248,6 +248,11 @@ class CotizacionFileAdminController extends CRUDAdminController
 
             $resultados[$key]['fechauso'] = $fechaservicio->format('d-m-Y');
             $resultados[$key]['tramo'] = 'Subida y Bajada';
+            if($filePasajero->getPais()->getId() != 117){//si no es peruano fuerzo a pasaporte
+                $resultados[$key]['tipodoumento'] = 'PASAPORTE';
+            }else{
+                $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigocon();
+            }
             $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigocon();
             $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
             $resultados[$key]['nombre'] = $filePasajero->getNombre();

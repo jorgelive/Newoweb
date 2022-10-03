@@ -82,8 +82,14 @@ class ServicioServicioAdmin extends AbstractAdmin
             ])
             ->add('nombre')
             ->add('paralelo')
-            ->add('componentes')
-            ->add('itinerarios')
+            ->add('componentes', null, [
+                'by_reference' => false,
+                'label' => 'Componentes'
+            ])
+            ->add('itinerarios', null, [
+                'by_reference' => false,
+                'label' => 'Itinerarios'
+            ])
         ;
     }
 
