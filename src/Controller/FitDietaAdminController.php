@@ -5,6 +5,7 @@ namespace App\Controller;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 class FitDietaAdminController extends CRUDAdminController
 {
@@ -38,6 +39,36 @@ class FitDietaAdminController extends CRUDAdminController
         return new RedirectResponse($this->admin->generateUrl('list'));
 
     }
+
+    public function showAction(Request $request): Response
+    {
+        $object = $this->assertObjectExists($request, true);
+        \assert(null !== $object);
+
+        $this->checkParentChildAssociation($request, $object);
+
+        //lo hago publico
+        //$this->admin->checkAccess('show', $object);
+
+        $preResponse = $this->preShow($request, $object);
+        if (null !== $preResponse) {
+            return $preResponse;
+        }
+
+        $this->admin->setSubject($object);
+
+        $fields = $this->admin->getShow();
+
+        $template = 'fit_dieta_admin/show.html.twig';
+
+        return $this->renderWithExtraParams($template, [
+            'action' => 'show',
+            'object' => $object,
+            'elements' => $fields,
+        ]);
+    }
+
+
 
 
 }
