@@ -106,6 +106,9 @@ class FitDietaAdmin extends AbstractAdmin
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
+                    'resumen' => [
+                        'template' => 'fit_dieta_admin\list__action_resumen.html.twig'
+                    ],
                     'clonar' => [
                         'template' => 'fit_dieta_admin/list__action_clonar.html.twig'
                     ]
@@ -183,7 +186,7 @@ class FitDietaAdmin extends AbstractAdmin
 
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
-        //$collection->add('resumen', $this->getRouterIdParameter() . '/resumen');
+        $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
         $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
     }
 }

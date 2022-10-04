@@ -40,10 +40,16 @@ class FitDietaAdminController extends CRUDAdminController
 
     }
 
-    public function showAction(Request $request): Response
+    public function resumenAction(Request $request): Response
     {
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
+
+        //verificamos token
+        if($request->get('token') != $object->getToken()){
+            $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
 
         $this->checkParentChildAssociation($request, $object);
 

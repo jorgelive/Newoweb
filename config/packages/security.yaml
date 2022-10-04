@@ -56,7 +56,7 @@ security:
         - { path: ^/app/reservaunit/\d*/detalle$, role: PUBLIC_ACCESS }
         - { path: ^/app/cotizacioncotizacion/\d*/resumen$, role: PUBLIC_ACCESS }
         - { path: ^/app/cotizacioncotizacion/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
-        - { path: ^/app/fitdieta/\d*/show$, role: PUBLIC_ACCESS }
+        - { path: ^/app/fitdieta/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
 
         # Admin login page needs to be accessed without credential
         - { path: ^/admin/login$, role: PUBLIC_ACCESS }

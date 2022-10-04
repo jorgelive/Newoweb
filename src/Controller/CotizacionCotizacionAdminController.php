@@ -126,13 +126,12 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
 
-//todo eliminar el acceso sin token el 2022/07/05
-        if($object->getId() >= 440){
-            if($request->get('token') != $object->getToken()){
-                $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
-                return new RedirectResponse($this->admin->generateUrl('list'));
-            }
+        //verificamos token
+        if($request->get('token') != $object->getToken()){
+            $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
+            return new RedirectResponse($this->admin->generateUrl('list'));
         }
+
         if($object->getEstadocotizacion()->isOcultoResumen()){
             $this->addFlash('sonata_flash_error', 'La cotización no se muestra en resumen, redirigido a "Mostrar"');
             return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));

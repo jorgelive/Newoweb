@@ -28,6 +28,13 @@ class FitDieta
     /**
      * @var string
      *
+     * @ORM\Column(type="string", length=20)
+     */
+    private $token;
+
+    /**
+     * @var string
+     *
      * @ORM\Column(name="nombre", type="string", length=255)
      */
     private $nombre;
@@ -102,6 +109,7 @@ class FitDieta
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
+            $this->setToken(mt_rand());
             $newDietacomidas = new ArrayCollection();
             foreach($this->dietacomidas as $dietacomida) {
                 $newDietacomida = clone $dietacomida;
@@ -291,6 +299,30 @@ class FitDieta
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * Set token
+     *
+     * @param string $token
+     *
+     * @return FitDieta
+     */
+    public function setToken($token)
+    {
+        $this->token = $token;
+
+        return $this;
+    }
+
+    /**
+     * Get token
+     *
+     * @return string
+     */
+    public function getToken()
+    {
+        return $this->token;
     }
 
     /**

@@ -644,7 +644,6 @@ services:
             - [ setTemplate, [edit, fit_dieta_admin/edit.html.twig]]
             - [ setTemplate, [list, fit_dieta_admin/list.html.twig]]
             - [ setTemplate, [show, fit_dieta_admin/show.html.twig]]
-            # show overridden in controller
         public: true
 
     app.admin.fitdietacomida:
