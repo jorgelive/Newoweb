@@ -70,7 +70,7 @@ class ServicioItinerariodia
      * @var string
      *
      * @Gedmo\Translatable
-     * @ORM\Column(type="text")
+     * @ORM\Column(type="text", nullable=true)
      */
     private $contenido;
 
