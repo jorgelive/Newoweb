@@ -163,7 +163,7 @@ class ServicioItinerariodia
      */
     public function __toString()
     {
-        return sprintf('Dia %d: %s', $this->getDia(), $this->getItinerario()->getNombre());
+        return $this->getTitulo() ?? sprintf('Dia %d: %s', $this->getDia(), $this->getItinerario()->getNombre());
     }
 
 
