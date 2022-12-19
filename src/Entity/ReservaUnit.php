@@ -346,10 +346,10 @@ class ReservaUnit
     {
 
         if($this->unitmedios->removeElement($unitmedio)) {
-            // set the owning side to null (unless already changed)
-            if($unitmedio->getUnit() === $this) {
-                $unitmedio->setUnit(null);
-            }
+            //el orphan removal se encarga de quitar el elemento
+            //if($unitmedio->getUnit() === $this) {
+            //    $unitmedio->setUnit(null);
+            //}
         }
 
         return $this;
