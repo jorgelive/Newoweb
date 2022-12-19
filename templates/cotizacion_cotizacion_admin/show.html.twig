@@ -229,21 +229,28 @@ file that was distributed with this source code.
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs hidden-print" role="tablist">
                     {% for name, contenido in tabs %}
+                        {% if name == 'itinerario' and action != 'show' and contenido.itinerarios is not defined %}
+                        {% else %}
+
                         <li{% if loop.first %} class="active"{% endif %}>
                             <a href="#tab_{{ admin.uniqid }}_{{ loop.index }}" data-toggle="tab">
                                 <i class="fas {{ contenido.icono }}" aria-hidden="true"></i>
                                 <span style="font-size: 1.2em">{{ contenido.nombre|trans({},'messages')|capitalize}}</span>
                             </a>
                         </li>
+                        {% endif %}
                     {% endfor %}
                 </ul>
 
                 <div class="tab-content">
                     {% for name, contenido in tabs %}
-                        <div
-                                class="tab-pane fade{% if loop.first %} in active{% endif %}"
+                        {% if name == 'itinerario' and action != 'show' and contenido.itinerarios is not defined %}
+                            {% if loop.first %} {% set forceactive = true %} {% endif %}
+                        {% else %}
+                            <div
+                                class="tab-pane fade{% if loop.first or forceactive == true %} in active {% set forceactive = false %}{% endif %}"
                                 id="tab_{{ admin.uniqid }}_{{ loop.index }}"
-                        >
+                            >
                             <div class="box-body container-fluid">
                                 <div class="sonata-ba-collapsed-fields">
 
@@ -252,6 +259,225 @@ file that was distributed with this source code.
                                     {% if action == 'show' %}
                                     <div class="panel-group box box-primary" id="accordiontarifas">
                                         <div class="panel panel-default hidden-print">
+                                            <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
+                                                <h5 class="panel-title">
+                                                    <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas2">
+                                                        Interno: Valores
+                                                    </a>
+                                                </h5>
+                                            </div>
+                                            <div id="collapsetarifas2" class="panel-collapse collapse in">
+                                                <div class="panel-body table-responsive">
+                                                    <h3 class="visible-print">Valores</h3>
+                                                    <h4><strong>Resumen General</strong> al <span style="font-size: 0.7em;"> {{ cotizacion.cotizacion.comision|number_format(2, '.', '')}}% </span></h4>
+                                                    <div class="box-body table-responsive no-padding">
+                                                        <table class="table table-bordered table-striped sonata-ba-list">
+                                                            <thead>
+                                                            <tr class="sonata-ba-list-field-header">
+                                                                <th class="text-center">
+                                                                    Ganancia<br />S/.
+                                                                </th>
+                                                                <th class="text-center">
+                                                                    Ganancia<br />$
+                                                                </th>
+                                                                <th class="text-center">
+                                                                    Típo
+                                                                </th>
+                                                                <th class="text-center">
+                                                                    Costo<br />S/.
+                                                                </th>
+                                                                <th class="text-center">
+                                                                    Costo<br />$
+                                                                </th>
+                                                                <th class="text-center">
+                                                                    Venta<br />S/.
+                                                                </th>
+                                                                <th class="text-center">
+                                                                    Venta<br />$
+                                                                </th>
+                                                            </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                            {%  for resumenitem in contenido.resumen %}
+                                                                <tr>
+                                                                    <td class="text-right" style="font-weight: bold; color: #1B6129;">
+                                                                        {{ resumenitem.gananciasoles }}
+                                                                    </td>
+                                                                    <td class="text-right" style="font-weight: bold; color: #1B6129;">
+                                                                        {{ resumenitem.gananciadolares }}
+                                                                    </td>
+                                                                    <td style="color: {{ resumenitem.listacolor }}">
+                                                                        {{ resumenitem.titulo }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ resumenitem.montosoles }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ resumenitem.montodolares }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ resumenitem.ventasoles }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ resumenitem.ventadolares }}
+                                                                    </td>
+
+                                                                </tr>
+                                                            {% endfor %}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    <br />
+                                                    <h4><strong>Por tipo de pasajero</strong></h4>
+                                                    {% for rango in contenido.rangos %}
+                                                        <h4>
+                                                            {{ rango.tipoPaxNombre }} <strong>x {{ rango.cantidad }}</strong>
+                                                        </h4>
+                                                        {% if rango.edadMin is defined or rango.edadMax is defined%}
+                                                            <p>
+                                                                {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
+                                                                    de {{ rango.edadMin }} años
+                                                                    {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                                                        &nbsp;<br />(con carné de estudiante válido y vigente)
+                                                                    {% endif %}
+
+                                                                {% else %}
+                                                                    {% if rango.edadMin is defined %}
+                                                                        desde {{ rango.edadMin }} años
+                                                                    {% endif %}
+
+                                                                    {% if rango.edadMax is defined %}
+                                                                        hasta {{ rango.edadMax }} años
+                                                                        {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                                                            <br />(con carné de estudiante válido y vigente)
+                                                                        {% endif %}
+                                                                    {% endif %}
+
+                                                                {% endif %}
+
+                                                            </p>
+                                                        {% endif %}
+
+                                                        {% if rango.tituloPersistente is defined %}
+                                                            <h5>{{ rango.tituloPersistente }}</h5>
+                                                        {% endif %}
+                                                        <div style="margin-left: 15px;" class="box-body table-responsive no-padding">
+                                                            <table class="table table-bordered table-striped sonata-ba-list">
+                                                                <thead>
+                                                                <tr class="sonata-ba-list-field-header">
+                                                                    <th>
+                                                                        Monto Cotizado
+                                                                    </th>
+                                                                    <th>
+                                                                        Tipo
+                                                                    </th>
+                                                                    <th>
+                                                                        Componente (Tarifa)
+                                                                    </th>
+                                                                    <th>
+                                                                        Servicio
+                                                                    </th>
+                                                                    <th class="text-right">
+                                                                        Venta soles
+                                                                    </th>
+                                                                    <th class="text-right">
+                                                                        Venta dolares
+                                                                    </th>
+                                                                </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                {%  for tarifadetalle in rango.tarifas %}
+                                                                <tr>
+                                                                    <td style="font-weight: bold;  color: #1B6129;">
+                                                                        {% if tarifadetalle.cantidadComponente > 1 %}
+                                                                            {{ tarifadetalle.cantidadComponente }} x&nbsp;
+                                                                        {% endif %}
+                                                                        {{ tarifadetalle.montoOriginal }}&nbsp;{{ tarifadetalle.monedaOriginal }}
+                                                                        {% if tarifadetalle.prorrateado %}
+                                                                            &nbsp;(P)
+                                                                        {% else %}
+                                                                            &nbsp;(U)
+                                                                        {% endif %}
+                                                                    </td>
+                                                                    <td style="color: {{ tarifadetalle.tipoTarListacolor }};">
+                                                                        {{ tarifadetalle.tipoTarTitulo }}
+                                                                    </td>
+                                                                    <td>
+                                                                        {{ tarifadetalle.nombreComponente }} ({{ tarifadetalle.nombre }})
+                                                                    </td>
+                                                                    <td>
+                                                                        {{ tarifadetalle.nombreServicio }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ tarifadetalle.ventasoles }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ tarifadetalle.ventadolares }}
+                                                                    </td>
+
+                                                                    {% endfor %}
+                                                                </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                        <br />
+                                                        <div style="margin-left: 30px;" class="box-body table-responsive no-padding">
+                                                            <table class="table table-bordered table-striped sonata-ba-list">
+                                                                <thead>
+                                                                <tr class="sonata-ba-list-field-header">
+                                                                    <th>
+                                                                        Tipo
+                                                                    </th>
+                                                                    <th>
+                                                                        Tipo para Pax
+                                                                    </th>
+                                                                    <th class="text-right">
+                                                                        Costo Soles
+                                                                    </th>
+                                                                    <th class="text-right">
+                                                                        Costo Dolares
+                                                                    </th>
+                                                                    <th class="text-right">
+                                                                        Venta soles
+                                                                    </th>
+                                                                    <th class="text-right">
+                                                                        Venta dolares
+                                                                    </th>
+                                                                </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                {%  for tarifaresumen in rango.resumen %}
+                                                                <tr>
+                                                                    <td style="color: {{ tarifaresumen.tipoTarListacolor }}">
+                                                                        {{ tarifaresumen.tipoTarNombre }}
+                                                                    </td>
+                                                                    <td style="color: {{ tarifaresumen.tipoTarListacolor }}">
+                                                                        {{ tarifaresumen.tipoTarTitulo }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ tarifaresumen.montosoles }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ tarifaresumen.montodolares }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ tarifaresumen.ventasoles }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ tarifaresumen.ventadolares }}
+                                                                    </td>
+                                                                    {% endfor %}
+                                                                </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                        <br />
+                                                    {% endfor %}
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="panel panel-default hidden-print">
                                             <div class="panel-heading">
                                                 <h5 class="panel-title">
                                                     <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas1">
@@ -259,7 +485,7 @@ file that was distributed with this source code.
                                                     </a>
                                                 </h5>
                                             </div>
-                                            <div id="collapsetarifas1" class="panel-collapse collapse in">
+                                            <div id="collapsetarifas1" class="panel-collapse collapse">
                                     {% endif %}
                                                 <div class="panel-body table-responsive">
 
@@ -389,227 +615,6 @@ file that was distributed with this source code.
                                         </div>
                                     {% endif %}
 
-                                        {% if action == 'show' %}
-                                            <div class="panel panel-default hidden-print">
-                                                <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
-                                                    <h5 class="panel-title">
-                                                        <a data-toggle="collapse" data-parent="#accordiontarifas" href="#collapsetarifas2">
-                                                            Interno: Valores
-                                                        </a>
-                                                    </h5>
-                                                </div>
-                                                <div id="collapsetarifas2" class="panel-collapse collapse">
-                                                    <div class="panel-body table-responsive">
-                                                        <h3 class="visible-print">Valores</h3>
-                                                        <h4><strong>Resumen General</strong> al <span style="font-size: 0.7em;"> {{ cotizacion.cotizacion.comision|number_format(2, '.', '')}}% </span></h4>
-                                                        <div class="box-body table-responsive no-padding">
-                                                            <table class="table table-bordered table-striped sonata-ba-list">
-                                                                <thead>
-                                                                <tr class="sonata-ba-list-field-header">
-                                                                    <th class="text-center">
-                                                                        Ganancia<br />S/.
-                                                                    </th>
-                                                                    <th class="text-center">
-                                                                        Ganancia<br />$
-                                                                    </th>
-                                                                    <th class="text-center">
-                                                                        Típo
-                                                                    </th>
-                                                                    <th class="text-center">
-                                                                        Costo<br />S/.
-                                                                    </th>
-                                                                    <th class="text-center">
-                                                                        Costo<br />$
-                                                                    </th>
-                                                                    <th class="text-center">
-                                                                        Venta<br />S/.
-                                                                    </th>
-                                                                    <th class="text-center">
-                                                                        Venta<br />$
-                                                                    </th>
-                                                                </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                {%  for resumenitem in contenido.resumen %}
-                                                                    <tr>
-                                                                        <td class="text-right" style="font-weight: bold; color: #1B6129;">
-                                                                            {{ resumenitem.gananciasoles }}
-                                                                        </td>
-                                                                        <td class="text-right" style="font-weight: bold; color: #1B6129;">
-                                                                            {{ resumenitem.gananciadolares }}
-                                                                        </td>
-                                                                        <td style="color: {{ resumenitem.listacolor }}">
-                                                                            {{ resumenitem.titulo }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ resumenitem.montosoles }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ resumenitem.montodolares }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ resumenitem.ventasoles }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ resumenitem.ventadolares }}
-                                                                        </td>
-
-                                                                    </tr>
-                                                                {% endfor %}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                        <br />
-                                                        <h4><strong>Por tipo de pasajero</strong></h4>
-                                                        {% for rango in contenido.rangos %}
-                                                            <h4>
-                                                                {{ rango.tipoPaxNombre }} <strong>x {{ rango.cantidad }}</strong>
-                                                            </h4>
-                                                            {% if rango.edadMin is defined or rango.edadMax is defined%}
-                                                                <p>
-                                                                    {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
-                                                                        de {{ rango.edadMin }} años
-                                                                        {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                                                            &nbsp;<br />(con carné de estudiante válido y vigente)
-                                                                        {% endif %}
-
-                                                                    {% else %}
-                                                                        {% if rango.edadMin is defined %}
-                                                                            desde {{ rango.edadMin }} años
-                                                                        {% endif %}
-
-                                                                        {% if rango.edadMax is defined %}
-                                                                            hasta {{ rango.edadMax }} años
-                                                                            {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                                                                <br />(con carné de estudiante válido y vigente)
-                                                                            {% endif %}
-                                                                        {% endif %}
-
-                                                                    {% endif %}
-
-                                                                </p>
-                                                            {% endif %}
-
-                                                            {% if rango.tituloPersistente is defined %}
-                                                                <h5>{{ rango.tituloPersistente }}</h5>
-                                                            {% endif %}
-                                                            <div style="margin-left: 15px;" class="box-body table-responsive no-padding">
-                                                                <table class="table table-bordered table-striped sonata-ba-list">
-                                                                    <thead>
-                                                                    <tr class="sonata-ba-list-field-header">
-                                                                        <th>
-                                                                            Monto Cotizado
-                                                                        </th>
-                                                                        <th>
-                                                                            Tipo
-                                                                        </th>
-                                                                        <th>
-                                                                            Componente (Tarifa)
-                                                                        </th>
-                                                                        <th>
-                                                                            Servicio
-                                                                        </th>
-                                                                        <th class="text-right">
-                                                                            Venta soles
-                                                                        </th>
-                                                                        <th class="text-right">
-                                                                            Venta dolares
-                                                                        </th>
-                                                                    </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                    {%  for tarifadetalle in rango.tarifas %}
-                                                                    <tr>
-                                                                        <td style="font-weight: bold;  color: #1B6129;">
-                                                                            {% if tarifadetalle.cantidadComponente > 1 %}
-                                                                                {{ tarifadetalle.cantidadComponente }} x&nbsp;
-                                                                            {% endif %}
-                                                                            {{ tarifadetalle.montoOriginal }}&nbsp;{{ tarifadetalle.monedaOriginal }}
-                                                                            {% if tarifadetalle.prorrateado %}
-                                                                                &nbsp;(P)
-                                                                            {% else %}
-                                                                                &nbsp;(U)
-                                                                            {% endif %}
-                                                                        </td>
-                                                                        <td style="color: {{ tarifadetalle.tipoTarListacolor }};">
-                                                                            {{ tarifadetalle.tipoTarTitulo }}
-                                                                        </td>
-                                                                        <td>
-                                                                            {{ tarifadetalle.nombreComponente }} ({{ tarifadetalle.nombre }})
-                                                                        </td>
-                                                                        <td>
-                                                                            {{ tarifadetalle.nombreServicio }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ tarifadetalle.ventasoles }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ tarifadetalle.ventadolares }}
-                                                                        </td>
-
-                                                                        {% endfor %}
-                                                                    </tr>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                            <br />
-                                                            <div style="margin-left: 30px;" class="box-body table-responsive no-padding">
-                                                                <table class="table table-bordered table-striped sonata-ba-list">
-                                                                    <thead>
-                                                                    <tr class="sonata-ba-list-field-header">
-                                                                        <th>
-                                                                            Tipo
-                                                                        </th>
-                                                                        <th>
-                                                                            Tipo para Pax
-                                                                        </th>
-                                                                        <th class="text-right">
-                                                                            Costo Soles
-                                                                        </th>
-                                                                        <th class="text-right">
-                                                                            Costo Dolares
-                                                                        </th>
-                                                                        <th class="text-right">
-                                                                            Venta soles
-                                                                        </th>
-                                                                        <th class="text-right">
-                                                                            Venta dolares
-                                                                        </th>
-                                                                    </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                    {%  for tarifaresumen in rango.resumen %}
-                                                                    <tr>
-                                                                        <td style="color: {{ tarifaresumen.tipoTarListacolor }}">
-                                                                            {{ tarifaresumen.tipoTarNombre }}
-                                                                        </td>
-                                                                        <td style="color: {{ tarifaresumen.tipoTarListacolor }}">
-                                                                            {{ tarifaresumen.tipoTarTitulo }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ tarifaresumen.montosoles }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ tarifaresumen.montodolares }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ tarifaresumen.ventasoles }}
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            {{ tarifaresumen.ventadolares }}
-                                                                        </td>
-                                                                        {% endfor %}
-                                                                    </tr>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                            <br />
-                                                        {% endfor %}
-
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        {% endif %}
                                     {% if action == 'show' %}
                                     </div>
                                     {% endif %}
@@ -620,14 +625,64 @@ file that was distributed with this source code.
                                         {% if action == 'show' %}
                                         <div class="panel-group box box-primary" id="accordionincluye">
                                             <div class="panel panel-default hidden-print">
-                                                <div class="panel-heading">
+                                                <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
                                                     <h5 class="panel-title">
-                                                        <a data-toggle="collapse" data-parent="#accordionincluye" href="#collapseincluye1">
-                                                            Publico: Servicios incluidos
+                                                        <a data-toggle="collapse" data-parent="#accordionincluye" href="#collapseincluye2">
+                                                            Interno: Servicios incluidos
                                                         </a>
                                                     </h5>
                                                 </div>
-                                                <div id="collapseincluye1" class="panel-collapse collapse in">
+                                                <div id="collapseincluye2" class="panel-collapse collapse in">
+                                                    <div class="panel-body table-responsive">
+                                                        <h3 class="visible-print">Interno: Servicios incluidos</h3>
+                                                        {% for internoIncluido in contenido.internoIncluidos %}
+                                                            <h4 style="font-weight: bold;">{{ internoIncluido.tituloItinerario }}:</h4>
+                                                            <ul class="list-unstyled">
+                                                                {% for tipotarifa in internoIncluido.tipotarifas %}
+                                                                    <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
+                                                                        <ul class="fa-ul">
+                                                                            {% for componente in tipotarifa.componentes %}
+                                                                                <li><i style="color: {{ componente.listacolor }};" class="fa-li fas {{ componente.listaclase }}"></i>{% if componente.cantidadComponente > 1 %} <span style="font-weight: bold;">{{ componente.cantidadComponente }} x</span>{% endif %} {{ componente.nombre }}  ({{ componente.fecha }})
+                                                                                    {% if componente.tarifas is defined %}
+                                                                                        <ul style="list-style: none; padding-left: 20px;">
+                                                                                            {% for tarifa in componente.tarifas %}
+                                                                                                <li>{{ tarifa.nombre }} {% if tarifa.cantidad > 1 %} <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span> {% endif %}
+                                                                                                    {% if tarifa.detalles is defined %}
+                                                                                                        <ul style="list-style: none; padding-left: 20px;">
+                                                                                                            {% for detalle in tarifa.detalles %}
+                                                                                                                <li>
+                                                                                                                    {% if detalle.tipoId == 4 %}
+                                                                                                                        <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
+                                                                                                                    {% else %}
+                                                                                                                        {{ detalle.contenido }}
+                                                                                                                    {% endif %}
+                                                                                                                </li>
+                                                                                                            {% endfor %}
+                                                                                                        </ul>
+                                                                                                    {% endif %}
+                                                                                                </li>
+                                                                                            {% endfor %}
+                                                                                        </ul>
+                                                                                    {% endif %}
+                                                                                </li>
+                                                                            {% endfor %}
+                                                                        </ul>
+                                                                    </li>
+                                                                {% endfor %}
+                                                            </ul>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="panel panel-default hidden-print">
+                                                <div class="panel-heading">
+                                                    <h5 class="panel-title">
+                                                        <a data-toggle="collapse" data-parent="#accordionincluye" href="#collapseincluye1">
+                                                            Público: Servicios incluidos
+                                                        </a>
+                                                    </h5>
+                                                </div>
+                                                <div id="collapseincluye1" class="panel-collapse collapse">
                                         {% endif%}
                                                     <div class="panel-body table-responsive">
                                                         <h3 class="visible-print">Servicios incluidos</h3>
@@ -691,58 +746,6 @@ file that was distributed with this source code.
                                             </div>
                                         {% endif %}
 
-                                            {% if action == 'show' %}
-                                                <div class="panel panel-default hidden-print">
-                                                    <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
-                                                        <h5 class="panel-title">
-                                                            <a data-toggle="collapse" data-parent="#accordionincluye" href="#collapseincluye2">
-                                                                Interno: Servicios incluidos
-                                                            </a>
-                                                        </h5>
-                                                    </div>
-                                                    <div id="collapseincluye2" class="panel-collapse collapse">
-                                                        <div class="panel-body table-responsive">
-                                                            <h3 class="visible-print">Interno: Servicios incluidos</h3>
-                                                            {% for internoIncluido in contenido.internoIncluidos %}
-                                                                <h4 style="font-weight: bold;">{{ internoIncluido.tituloItinerario }}:</h4>
-                                                                <ul class="list-unstyled">
-                                                                    {% for tipotarifa in internoIncluido.tipotarifas %}
-                                                                        <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
-                                                                            <ul class="fa-ul">
-                                                                                {% for componente in tipotarifa.componentes %}
-                                                                                    <li><i style="color: {{ componente.listacolor }};" class="fa-li fas {{ componente.listaclase }}"></i>{% if componente.cantidadComponente > 1 %} <span style="font-weight: bold;">{{ componente.cantidadComponente }} x</span>{% endif %} {{ componente.nombre }}  ({{ componente.fecha }})
-                                                                                        {% if componente.tarifas is defined %}
-                                                                                            <ul style="list-style: none; padding-left: 20px;">
-                                                                                                {% for tarifa in componente.tarifas %}
-                                                                                                    <li>{{ tarifa.nombre }} {% if tarifa.cantidad > 1 %} <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span> {% endif %}
-                                                                                                        {% if tarifa.detalles is defined %}
-                                                                                                            <ul style="list-style: none; padding-left: 20px;">
-                                                                                                            {% for detalle in tarifa.detalles %}
-                                                                                                                <li>
-                                                                                                                {% if detalle.tipoId == 4 %}
-                                                                                                                    <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
-                                                                                                                {% else %}
-                                                                                                                    {{ detalle.contenido }}
-                                                                                                                {% endif %}
-                                                                                                                </li>
-                                                                                                            {% endfor %}
-                                                                                                            </ul>
-                                                                                                        {% endif %}
-                                                                                                    </li>
-                                                                                                {% endfor %}
-                                                                                            </ul>
-                                                                                        {% endif %}
-                                                                                    </li>
-                                                                                {% endfor %}
-                                                                            </ul>
-                                                                        </li>
-                                                                    {% endfor %}
-                                                                </ul>
-                                                            {% endfor %}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            {% endif %}
                                         {% if action == 'show' %}
                                         </div>
                                         {% endif %}
@@ -755,68 +758,6 @@ file that was distributed with this source code.
                                         {% if action == 'show' %}
                                         <div class="panel-group box box-primary" id="accordionitinerario">
                                             <div class="panel panel-default hidden-print">
-                                                <div class="panel-heading">
-                                                    <h5 class="panel-title">
-                                                        <a data-toggle="collapse" data-parent="#accordionitinerario" href="#collapseitinerario1">
-                                                            Publico: Itinerario por dia
-                                                        </a>
-                                                    </h5>
-                                                </div>
-                                                <div id="collapseitinerario1" class="panel-collapse collapse in">
-                                        {% endif%}
-                                                    <div class="panel-body table-responsive">
-                                                        <h3 class="visible-print">Itinerario</h3>
-                                                        {% if contenido.itinerarios is defined and contenido.itinerarios|length > 0 %}
-
-                                                            {% for itinerario in contenido.itinerarios %}
-
-                                                                <h4><span style="font-weight: bold;">{{ itinerario.fecha|format_datetime('full', 'none')}}</span>&nbsp;-&nbsp;<span>{{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}</span></h4>
-                                                                {% for item in itinerario.fechaitems %}
-                                                                    <h4>{{ item.titulo }}</h4>
-                                                                    <div class="ck-content itinerariodescripcion">{{ item.descripcion|raw }}</div>
-                                                                    <div class="container-fluid hidden-print">
-                                                                        {% for archivo in item.archivos %}
-                                                                            {% if loop.index0 % 2 == 0 %}
-                                                                                <div class="row">
-                                                                            {% endif %}
-                                                                            <div class="col-xs-12 col-sm-6">
-                                                                                <div class="thumbnail">
-                                                                                    <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.titulo }}"{% else %} target="_blank" {% endif %}>
-                                                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" {% if archivo.inModal == true %}style="width:100%"{% endif %}>
-                                                                                        <div class="caption">
-                                                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
-                                                                                        </div>
-                                                                                    </a>
-                                                                                </div>
-                                                                            </div>
-                                                                            {% if loop.index % 2 == 0 or loop.last %}
-                                                                                </div>
-                                                                            {% endif %}
-                                                                        {% endfor %}
-                                                                    </div>
-                                                                    {% if item.nota is defined %}
-                                                                        <div class="ck-content itinerarionota post-it">{{ item.nota|raw }}</div>
-                                                                    {% endif %}
-                                                                {% endfor %}
-
-                                                            {% endfor %}
-                                                        {% endif %}
-                                                        {% if contenido.notas is defined and contenido.notas|length > 0 %}
-                                                            <h4>Notas:</h4>
-                                                            {% for nota in contenido.notas %}
-                                                                <h5><strong>{{ nota.titulo }}</strong></h5>
-                                                                {{ nota.contenido|raw }}
-                                                            {% endfor %}
-                                                        {% endif %}
-                                                    </div>
-
-                                        {% if action == 'show' %}
-                                                </div>
-                                            </div>
-                                        {% endif %}
-
-                                        {% if action == 'show' %}
-                                            <div class="panel panel-default hidden-print">
                                                 <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
                                                     <h5 class="panel-title">
                                                         <a data-toggle="collapse" data-parent="#accordionitinerario" href="#collapseitinerario2">
@@ -824,7 +765,7 @@ file that was distributed with this source code.
                                                         </a>
                                                     </h5>
                                                 </div>
-                                                <div id="collapseitinerario2" class="panel-collapse collapse">
+                                                <div id="collapseitinerario2" class="panel-collapse collapse in">
                                                     <div class="panel-body table-responsive">
                                                         <h3 class="visible-print">Interno: Detalle de servicios</h3>
                                                         {% if object.cotservicios is defined and object.cotservicios|length > 0%}
@@ -901,7 +842,67 @@ file that was distributed with this source code.
                                                     </div>
                                                 </div>
                                             </div>
+                                            <div class="panel panel-default hidden-print">
+                                                <div class="panel-heading">
+                                                    <h5 class="panel-title">
+                                                        <a data-toggle="collapse" data-parent="#accordionitinerario" href="#collapseitinerario1">
+                                                            Publico: Itinerario por dia
+                                                        </a>
+                                                    </h5>
+                                                </div>
+                                                <div id="collapseitinerario1" class="panel-collapse collapse">
+                                        {% endif%}
+                                                    <div class="panel-body table-responsive">
+                                                        <h3 class="visible-print">Itinerario</h3>
+                                                        {% if contenido.itinerarios is defined and contenido.itinerarios|length > 0 %}
+
+                                                            {% for itinerario in contenido.itinerarios %}
+
+                                                                <h4><span style="font-weight: bold;">{{ itinerario.fecha|format_datetime('full', 'none')}}</span>&nbsp;-&nbsp;<span>{{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}</span></h4>
+                                                                {% for item in itinerario.fechaitems %}
+                                                                    <h4>{{ item.titulo }}</h4>
+                                                                    <div class="ck-content itinerariodescripcion">{{ item.descripcion|raw }}</div>
+                                                                    <div class="container-fluid hidden-print">
+                                                                        {% for archivo in item.archivos %}
+                                                                            {% if loop.index0 % 2 == 0 %}
+                                                                                <div class="row">
+                                                                            {% endif %}
+                                                                            <div class="col-xs-12 col-sm-6">
+                                                                                <div class="thumbnail">
+                                                                                    <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.titulo }}"{% else %} target="_blank" {% endif %}>
+                                                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" {% if archivo.inModal == true %}style="width:100%"{% endif %}>
+                                                                                        <div class="caption">
+                                                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
+                                                                                        </div>
+                                                                                    </a>
+                                                                                </div>
+                                                                            </div>
+                                                                            {% if loop.index % 2 == 0 or loop.last %}
+                                                                                </div>
+                                                                            {% endif %}
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                    {% if item.nota is defined %}
+                                                                        <div class="ck-content itinerarionota post-it">{{ item.nota|raw }}</div>
+                                                                    {% endif %}
+                                                                {% endfor %}
+
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                        {% if contenido.notas is defined and contenido.notas|length > 0 %}
+                                                            <h4>Notas:</h4>
+                                                            {% for nota in contenido.notas %}
+                                                                <h5><strong>{{ nota.titulo }}</strong></h5>
+                                                                {{ nota.contenido|raw }}
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    </div>
+
+                                        {% if action == 'show' %}
+                                                </div>
+                                            </div>
                                         {% endif %}
+
                                         {% if action == 'show' %}
                                             </div>
                                         {% endif %}
@@ -936,6 +937,7 @@ file that was distributed with this source code.
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                     {% endfor %}
                 </div>
             </div>
