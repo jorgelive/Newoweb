@@ -38,6 +38,7 @@ class ServicioItinerarioAdmin extends AbstractAdmin
             ->add('id')
             ->add('servicio')
             ->add('nombre')
+            ->add('titulo')
             ->add('hora', null, [
                 'with_seconds' => false
             ])
@@ -61,6 +62,9 @@ class ServicioItinerarioAdmin extends AbstractAdmin
                 'sort_parent_association_mappings' => [['fieldName' => 'servicio']]
             ])
             ->add('nombre', null, [
+                'editable' => true
+            ])
+            ->add('titulo', null, [
                 'editable' => true
             ])
             ->add('hora', 'datetime', [
@@ -98,6 +102,7 @@ class ServicioItinerarioAdmin extends AbstractAdmin
         }
         $formMapper
             ->add('nombre')
+            ->add('titulo')
             ->add('hora', null, [
                 'with_seconds' => false
             ])
@@ -123,6 +128,7 @@ class ServicioItinerarioAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
+            ->add('titulo')
             ->add('servicio')
             ->add('hora', 'datetime', [
                 'format' => 'H:i'

@@ -860,7 +860,11 @@ file that was distributed with this source code.
 
                                                                 <h4><span style="font-weight: bold;">{{ itinerario.fecha|format_datetime('full', 'none')}}</span>&nbsp;-&nbsp;<span>{{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}</span></h4>
                                                                 {% for item in itinerario.fechaitems %}
-                                                                    <h4>{{ item.titulo }}</h4>
+                                                                    {% if item.titulo is defined %}
+                                                                        <h4>{{ item.titulo }} - {{ item.tituloDia }}</h4>
+                                                                    {% else%}
+                                                                        <h4>{{ item.tituloDia }}</h4>
+                                                                    {% endif%}
                                                                     <div class="ck-content itinerariodescripcion">{{ item.descripcion|raw }}</div>
                                                                     <div class="container-fluid hidden-print">
                                                                         {% for archivo in item.archivos %}

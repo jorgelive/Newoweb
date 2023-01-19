@@ -6,6 +6,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
+use Gedmo\Translatable\Translatable;
 use Doctrine\Common\Collections\ArrayCollection;
 
 /**
@@ -13,10 +14,10 @@ use Doctrine\Common\Collections\ArrayCollection;
  *
  * @ORM\Table(name="ser_itinerario")
  * @ORM\Entity
+ * @Gedmo\TranslationEntity(class="App\Entity\ServicioItinerarioTranslation")
  */
 class ServicioItinerario
 {
-
 
     /**
      * @var int
@@ -28,11 +29,25 @@ class ServicioItinerario
     private $id;
 
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ServicioItinerarioTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    protected $translations;
+
+    /**
      * @var string
      *
      * @ORM\Column(type="string", length=100)
      */
     private $nombre;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(type="string", length=100, nullable=true)
+     */
+    private $titulo;
 
     /**
      * @var \DateTime
@@ -80,6 +95,11 @@ class ServicioItinerario
     private $itinerariodias;
 
     /**
+     * @Gedmo\Locale
+     */
+    private $locale;
+
+    /**
      * Constructor
      */
     public function __construct()
@@ -111,6 +131,27 @@ class ServicioItinerario
     {
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
+
+    public function setLocale(?string $locale): self
+    {
+        $this->locale = $locale;
+
+        return $this;
+    }
+
+    public function getTranslations()
+    {
+        return $this->translations;
+    }
+
+    public function addTranslation(ServicioItinerariodiaTranslation $translation)
+    {
+        if (!$this->translations->contains($translation)) {
+            $this->translations[] = $translation;
+            $translation->setObject($this);
+        }
+    }
+
 
     /**
      * Get id
@@ -144,6 +185,30 @@ class ServicioItinerario
     public function getNombre()
     {
         return $this->nombre;
+    }
+
+    /**
+     * Set titulo
+     *
+     * @param string $titulo
+     *
+     * @return ServicioItinerario
+     */
+    public function setTitulo($titulo)
+    {
+        $this->titulo = $titulo;
+
+        return $this;
+    }
+
+    /**
+     * Get titulo
+     *
+     * @return string
+     */
+    public function getTitulo()
+    {
+        return $this->titulo;
     }
 
     /**

@@ -206,7 +206,10 @@ class CotizacionResumen implements ContainerAwareInterface
                                 $archivosTempArray[] = $archivoTemp;
                             endforeach;
                         }
-                        $tempItinerario['titulo'] = $dia->getTitulo();
+                        $tempItinerario['tituloDia'] = $dia->getTitulo();
+                        if(!empty($servicio->getItinerario()->getTitulo())){
+                            $tempItinerario['titulo'] = $servicio->getItinerario()->getTitulo();
+                        }
                         $tempItinerario['descripcion'] = $dia->getContenido();
                         $tempItinerario['archivos'] = $archivosTempArray;
                         if(!empty($dia->getNotaitinerariodia())){
@@ -223,6 +226,9 @@ class CotizacionResumen implements ContainerAwareInterface
                         }
 
                     endforeach;
+
+
+
                 }
 
                 if($servicio->getCotcomponentes()->count() > 0){
@@ -239,6 +245,8 @@ class CotizacionResumen implements ContainerAwareInterface
 
                             if(!empty($itinerarioFechaAux)){
                                 $tempArrayComponente['tituloItinerario'] = $this->getTituloItinerario($componente->getFechahorainicio(), $itinerarioFechaAux);
+                            }elseif(!empty($servicio->getItinerario()->getTitulo())){
+                                $tempArrayComponente['tituloItinerario'] = $servicio->getItinerario()->getTitulo();
                             }
 
                             $tempArrayComponente['nombre'] = $componente->getComponente()->getNombre();
