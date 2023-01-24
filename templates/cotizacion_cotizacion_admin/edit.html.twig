@@ -520,6 +520,8 @@
                                 var newdatetime = new Date(selector.val());
                                 var olddatetime = new Date(selector.attr('oldvalforcomponentes'));
 
+
+
                                 var diffDate = (newdatetime - olddatetime);
 
                                 if(result === false){
@@ -529,6 +531,11 @@
                                         if (typeof $(this).attr("duracion") !== 'undefined'){
 
                                             var componentdatetime = new Date(new Date($(this).val()).getTime() + diffDate);
+
+                                            console.log('newdatetime ' + newdatetime);
+                                            console.log('olddatetime ' + olddatetime);
+                                            console.log('diffdate ' + diffDate);
+                                            console.log('componentdatetime ' + componentdatetime);
 
                                             var componentdatetimeformat = moment(componentdatetime).format('YYYY/MM/DD HH:mm');
                                             console.log('Tiene duración (' + $(this).attr("duracion") +'), cambiando fecha inicio a ' + componentdatetimeformat );
