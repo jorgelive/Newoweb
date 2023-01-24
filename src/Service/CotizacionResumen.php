@@ -600,6 +600,19 @@ class CotizacionResumen implements ContainerAwareInterface
                 $datosTabs['incluye']['incluidos'][] = $datosTabs['incluye']['incluidos'][-1];
                 unset($datosTabs['incluye']['incluidos'][-1]);
             }
+            if(isset($datosTabs['incluye']['internoIncluidos'][-1])){
+                $datosTabs['incluye']['internoIncluidos'][] = $datosTabs['incluye']['internoIncluidos'][-1];
+                unset($datosTabs['incluye']['internoIncluidos'][-1]);
+            }
+//ponemos los hoteles al inicio
+            if(isset($datosTabs['incluye']['incluidos'][-4])){
+                array_unshift($datosTabs['incluye']['incluidos'], $datosTabs['incluye']['incluidos'][-4]);
+                unset($datosTabs['incluye']['incluidos'][-4]);
+            }
+            if(isset($datosTabs['incluye']['internoIncluidos'][-4])){
+                array_unshift($datosTabs['incluye']['internoIncluidos'], $datosTabs['incluye']['internoIncluidos'][-4]);
+                unset($datosTabs['incluye']['internoIncluidos'][-4]);
+            }
 
         }else{
             $this->mensaje = 'La cotización no tiene servicios.';
