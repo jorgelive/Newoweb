@@ -606,12 +606,14 @@ class CotizacionResumen implements ContainerAwareInterface
             }
 //ponemos los hoteles al inicio
             if(isset($datosTabs['incluye']['incluidos'][-4])){
-                array_unshift($datosTabs['incluye']['incluidos'], $datosTabs['incluye']['incluidos'][-4]);
+                $hoteles = $datosTabs['incluye']['incluidos'][-4];
                 unset($datosTabs['incluye']['incluidos'][-4]);
+                array_unshift($datosTabs['incluye']['incluidos'], $hoteles);
             }
             if(isset($datosTabs['incluye']['internoIncluidos'][-4])){
-                array_unshift($datosTabs['incluye']['internoIncluidos'], $datosTabs['incluye']['internoIncluidos'][-4]);
+                $hoteles = $datosTabs['incluye']['internoIncluidos'][-4];
                 unset($datosTabs['incluye']['internoIncluidos'][-4]);
+                array_unshift($datosTabs['incluye']['internoIncluidos'], $hoteles);
             }
 
         }else{
