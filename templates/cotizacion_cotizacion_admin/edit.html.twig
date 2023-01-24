@@ -140,7 +140,7 @@
                                 }
 
                                 if(fecha !== fechaActual){
-                                    console.log('La fecha es diferente ejecutando el cambio y trigger');
+                                    console.log('La fecha ' + fecha + ' es diferente a la fecha actual ' + fechaActual + ' ejecutando el cambio y trigger');
                                     $('input#' + fechaInicioServicioId).val('').change().val(fecha).change();
                                 }
                             }}
@@ -463,7 +463,7 @@
                                 fin.val(moment(newFechaHoraFin).format('YYYY/MM/DD HH:mm')).trigger('change');
                             }
                             //actualizamos por la doble ejecucion
-                            console.log('Actualizamos el valor de oldvarforfin a' + selector.val());
+                            console.log('Actualizamos el valor de oldvarforfin a ' + selector.val());
                             selector.attr('oldvalforfin', selector.val());
                         }
                     },
@@ -527,10 +527,13 @@
                                     inputFechaInicio.each(function (index, value){
 
                                         if (typeof $(this).attr("duracion") !== 'undefined'){
-                                            console.log('Tiene duración (' + $(this).attr("duracion") +'), cambiando fecha inicio');
+
                                             var componentdatetime = new Date(new Date($(this).val()).getTime() + diffDate);
 
-                                            $(this).val(moment(componentdatetime).format('YYYY/MM/DD HH:mm')).trigger('change');
+                                            var componentdatetimeformat = moment(componentdatetime).format('YYYY/MM/DD HH:mm');
+                                            console.log('Tiene duración (' + $(this).attr("duracion") +'), cambiando fecha inicio a ' + componentdatetimeformat );
+
+                                            $(this).val(componentdatetimeformat).trigger('change');
                                         }
                                     });
 
@@ -550,7 +553,7 @@
 
                                 }
                                 //actualizamos por la doble ejecucion
-                                console.log('Actualizamos el valor de oldvarforcomponentes a' + selector.val());
+                                console.log('Actualizamos el valor de oldvarforcomponentes a ' + selector.val());
                                 selector.attr('oldvalforcomponentes', selector.val());
                             }
                         });
