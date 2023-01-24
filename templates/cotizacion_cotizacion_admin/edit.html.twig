@@ -135,7 +135,7 @@
                                         fecha = fechaActual;
                                         //tambien ejecuto ya que no se ejecutara después
                                         $('input#' + fechaInicioServicioId).attr('oldvalforfin', $('input#' + fechaInicioServicioId).val());
-                                        $('input#' + fechaInicioServicioId.attr('oldvalforcomponentes', $('input#' + fechaInicioServicioId).val());
+                                        $('input#' + fechaInicioServicioId).attr('oldvalforcomponentes', $('input#' + fechaInicioServicioId).val());
 
                                         console.log('La fecha es diferente ejecutando el cambio y trigger de manera anticipada');
                                         $('input#' + fechaInicioServicioId).val('').change().val(fecha).change();
