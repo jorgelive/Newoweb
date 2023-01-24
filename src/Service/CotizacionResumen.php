@@ -270,12 +270,21 @@ class CotizacionResumen implements ContainerAwareInterface
 //Incluye
                                 $tempArrayInternoIncluye = [];
 //Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
-                                if(isset($tempArrayComponente['tituloItinerario']) && !empty($tempArrayComponente['tituloItinerario'])){
+                                if(
+                                    $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId() == 4 //hoteles
+                                ){
+                                    $servicioId = -4;
+                                    $datosTabs['incluye']['internoIncluidos'][$servicioId]['caso'] = 'hotel';
+                                    $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = ucfirst($this->translator->trans('alojamiento', [], 'messages'));
+
+                                } elseif(isset($tempArrayComponente['tituloItinerario']) && !empty($tempArrayComponente['tituloItinerario'])){
                                     $servicioId = $servicio->getId();
+                                    $datosTabs['incluye']['internoIncluidos'][$servicioId]['caso'] = 'normal';
                                     $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = $tempArrayComponente['tituloItinerario'];
 
                                 }else{
                                     $servicioId = -1;
+                                    $datosTabs['incluye']['internoIncluidos'][$servicioId]['caso'] = 'varios';
                                     $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = ucfirst($this->translator->trans('varios', [], 'messages'));
                                 }
 
@@ -350,6 +359,7 @@ class CotizacionResumen implements ContainerAwareInterface
 //Pongo el titulo del itinerario que ya defini para los internos
 
                                     $datosTabs['incluye']['incluidos'][$servicioId]['tituloItinerario'] = $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'];
+                                    $datosTabs['incluye']['incluidos'][$servicioId]['caso'] = $datosTabs['incluye']['internoIncluidos'][$servicioId]['caso'];
                                     $datosTabs['incluye']['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
 
 //4N bucle de items, para cada item pongo la tarifa
