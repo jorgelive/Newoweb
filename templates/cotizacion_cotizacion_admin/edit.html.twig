@@ -135,13 +135,13 @@
                                         fecha = fechaActual;
                                         //tambien ejecuto ya que no se ejecutara después
                                         console.log('La fecha es diferente ejecutando el cambio y trigger de manera anticipada');
-                                        $('input#' + fechaInicioServicioId).val(fecha).trigger('input');
+                                        $('input#' + fechaInicioServicioId).val('').change().val(fecha).change();
                                     }
                                 }
 
                                 if(fecha !== fechaActual){
                                     console.log('La fecha es diferente ejecutando el cambio y trigger');
-                                    $('input#' + fechaInicioServicioId).val(fecha).trigger('input');
+                                    $('input#' + fechaInicioServicioId).val('').change().val(fecha).change();
                                 }
                             }}
                         );
