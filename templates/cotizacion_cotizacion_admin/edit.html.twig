@@ -134,8 +134,8 @@
 
                                         fecha = fechaActual;
                                         //tambien ejecuto ya que no se ejecutara después
-                                        $('input#' + fechaHoraInicioId).attr('oldvalforfin', $('input#' + fechaHoraInicioId).val());
-                                        $('input#' + fechaHoraInicioId).attr('oldvalforcomponentes', $('input#' + fechaHoraInicioId).val());
+                                        $('input#' + fechaInicioServicioId).attr('oldvalforfin', $('input#' + fechaInicioServicioId).val());
+                                        $('input#' + fechaInicioServicioId.attr('oldvalforcomponentes', $('input#' + fechaInicioServicioId).val());
 
                                         console.log('La fecha es diferente ejecutando el cambio y trigger de manera anticipada');
                                         $('input#' + fechaInicioServicioId).val('').change().val(fecha).change();
@@ -143,8 +143,8 @@
                                 }
 
                                 if(fecha !== fechaActual){
-                                    $('input#' + fechaHoraInicioId).attr('oldvalforfin', $('input#' + fechaHoraInicioId).val());
-                                    $('input#' + fechaHoraInicioId).attr('oldvalforcomponentes', $('input#' + fechaHoraInicioId).val());
+                                    $('input#' + fechaInicioServicioId).attr('oldvalforfin', $('input#' + fechaInicioServicioId).val());
+                                    $('input#' + fechaInicioServicioId).attr('oldvalforcomponentes', $('input#' + fechaInicioServicioId).val());
 
                                     console.log('La fecha ' + fecha + ' es diferente a la fecha actual ' + fechaActual + ' ejecutando el cambio y trigger');
                                     $('input#' + fechaInicioServicioId).val('').change().val(fecha).change();
