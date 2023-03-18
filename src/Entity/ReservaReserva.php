@@ -89,6 +89,14 @@ class ReservaReserva
     protected $chanel;
 
     /**
+     * @var \App\Entity\ReservaUnitnexo
+     *
+     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnitnexo", inversedBy="reservas")
+     * @ORM\JoinColumn(name="unitnexo_id", referencedColumnName="id", nullable=true)
+     */
+    protected $unitnexo;
+
+    /**
      * @var \App\Entity\ReservaUnit
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnit", inversedBy="reservas")
@@ -347,6 +355,18 @@ class ReservaReserva
     public function setChanel(?ReservaChanel $chanel): self
     {
         $this->chanel = $chanel;
+
+        return $this;
+    }
+
+    public function getUnitnexo(): ?ReservaUnitnexo
+    {
+        return $this->unitnexo;
+    }
+
+    public function setUnitnexo(?ReservaUnitnexo $unitnexo): self
+    {
+        $this->unitnexo = $unitnexo;
 
         return $this;
     }
