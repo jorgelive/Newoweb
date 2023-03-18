@@ -146,7 +146,7 @@ class ObtenerReservasCommand extends Command
                 }
 
                 foreach($currentReservas as &$currentReserva){
-                    if(in_array($currentReserva->getUid(), $uidsArray) && empty($currentReserva->getUnitnexo()){
+                    if(in_array($currentReserva->getUid(), $uidsArray) && empty($currentReserva->getUnitnexo())){
                         $currentReserva->setUnitnexo($nexo);
                     }
                     if($currentReserva->isManual()){
