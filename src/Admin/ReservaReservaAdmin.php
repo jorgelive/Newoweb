@@ -181,6 +181,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Ni',
                 'editable' => true
             ])
+            ->add('unitnexo', null, [
+                'label' => 'Nexo'
+            ])
             ->add('creado', null, [
                 'label' => 'Creación',
                 'format' => 'Y/m/d H:i'
