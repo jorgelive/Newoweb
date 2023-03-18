@@ -59,11 +59,11 @@ class ObtenerReservasCommand extends Command
                     ->createQueryBuilder('rr')
                     ->select('rr')
                     ->from('App\Entity\ReservaReserva', 'rr')
-                    //->where('rr.nexo = :nexo')                    
+                    //->where('rr.unitnexo = :unitnexo')                    
                     ->where('rr.chanel = :chanel')
                     ->andWhere('rr.unit = :unit')
                     ->andWhere('DATE(rr.fechahorainicio) >= :fechahorainicio')
-                    //->setParameter('nexo', $nexo->getId())
+                    //->setParameter('unitnexo', $nexo->getId())
                     ->setParameter('chanel', $nexo->getChanel()->getId())
                     ->setParameter('unit', $nexo->getUnit()->getId())
                     ->setParameter('fechahorainicio', $ahora->format('Y-m-d'));
@@ -131,7 +131,7 @@ class ObtenerReservasCommand extends Command
                     if($insertar === true){
                         $reserva = new ReservaReserva();
                         $reserva->setChanel($nexo->getChanel());
-                        $reserva->setNexo($nexo);
+                        $reserva->setUnitnexo($nexo);
                         $reserva->setUnit($unidad);
                         $reserva->setEstado($temp['estado']);
                         $reserva->setManual(false);
@@ -146,8 +146,8 @@ class ObtenerReservasCommand extends Command
                 }
 
                 foreach($currentReservas as &$currentReserva){
-                    if(empty($currentReserva->getNexo()){
-                        $currentReserva->setNexo($nexo);
+                    if(in_array($currentReserva->getUid(), $uidsArray) && empty($currentReserva->getUnitnexo()){
+                        $currentReserva->setUnitnexo($nexo);
                     }
                     if($currentReserva->isManual()){
                         continue;
