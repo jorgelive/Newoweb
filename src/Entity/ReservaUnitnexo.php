@@ -49,6 +49,13 @@ class ReservaUnitnexo
     protected $unit;
 
     /**
+     * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ReservaReserva", mappedBy="unitnexo", cascade={"persist","remove"})
+     */
+    private $reservas;
+
+    /**
      * @var bool
      *
      * @ORM\Column(type="boolean", options={"default": 0})
@@ -70,6 +77,10 @@ class ReservaUnitnexo
      * @ORM\Column(type="datetime")
      */
     private $modificado;
+
+    public function __construct() {
+        $this->reservas = new ArrayCollection();
+    }
 
     /**
      * @return string
@@ -156,5 +167,33 @@ class ReservaUnitnexo
         return $this;
     }
 
+    /**
+     * @return Collection<int, ReservaReserva>
+     */
+    public function getReservas(): Collection
+    {
+        return $this->reservas;
+    }
 
+    public function addReserva(ReservaReserva $reserva): self
+    {
+        if(!$this->reservas->contains($reserva)) {
+            $this->reservas[] = $reserva;
+            $reserva->setUnitnexo($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReserva(ReservaReserva $reserva): self
+    {
+        if($this->reservas->removeElement($reserva)) {
+            // set the owning side to null (unless already changed)
+            if($reserva->getUnitnexo() === $this) {
+                $reserva->setUnitnexo(null);
+            }
+        }
+
+        return $this;
+    }
 }
