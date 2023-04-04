@@ -30,6 +30,13 @@ class ReservaReservaAdmin extends AbstractAdmin
         $sortValues[DatagridInterface::SORT_BY] = 'fechahorainicio';
     }
 
+    protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
+    {
+        $buttonList['clonar'] = ['template' => 'reserva_reserva_admin/clonar_button.html.twig'];
+        $buttonList['extender'] = ['template' => 'reserva_reserva_admin/extender_button.html.twig'];
+        return $buttonList;
+    }
+
     protected function configureFilterParameters(array $parameters): array
     {
 
@@ -193,6 +200,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                     'delete' => [],
                     'clonar' => [
                         'template' => 'reserva_reserva_admin/list__action_clonar.html.twig'
+                    ],
+                    'extender' => [
+                        'template' => 'reserva_reserva_admin/list__action_extender.html.twig'
                     ]
                 ]
             ])
@@ -328,6 +338,7 @@ class ReservaReservaAdmin extends AbstractAdmin
     {
         $collection->add('ical', 'ical');
         $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
+        $collection->add('extender', $this->getRouterIdParameter() . '/extender');
     }
 
 }

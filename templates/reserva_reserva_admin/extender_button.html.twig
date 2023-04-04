@@ -1,0 +1,8 @@
+{% if object is defined and admin.isGranted('edit', object) and admin.hasRoute('extender') %}
+    <li>
+        <a class="sonata-action-element" href="{{ admin.generateObjectUrl('extender', object) }}">
+            <i class="fa fa-sign-out" aria-hidden="true"></i>
+            Extender
+        </a>
+    </li>
+{% endif %}

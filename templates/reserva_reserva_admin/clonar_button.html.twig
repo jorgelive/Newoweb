@@ -1,0 +1,8 @@
+{% if object is defined and admin.isGranted('edit', object) and admin.hasRoute('clonar') %}
+    <li>
+        <a class="sonata-action-element" href="{{ admin.generateObjectUrl('clonar', object) }}">
+            <i class="fa fa-clone" aria-hidden="true"></i>
+            Clonar
+        </a>
+    </li>
+{% endif %}
