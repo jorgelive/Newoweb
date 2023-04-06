@@ -155,9 +155,10 @@ class FullcalendarExtension extends AbstractExtension
                     type: 'resourceTimeline',
                     duration: { months: 1 },
                     buttonText: 'Mes Line',
-                    slotMinWidth: 35,
-                    slotDuration: '06:00:00',
-                    resourceAreaWidth: '150px'                   
+                    slotMinWidth: 60,
+                    slotDuration: '12:00:00',
+                    resourceAreaWidth: '150px',
+                    contentHeight: 350                  
                 }
             },
             dateClick: function(info) {
