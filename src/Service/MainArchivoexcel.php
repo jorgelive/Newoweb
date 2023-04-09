@@ -17,6 +17,8 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     use ContainerAwareTrait;
 
+    private string $internalTemplateDir = __DIR__ . '/../../public/template';
+
     protected array $tipoWriter = ['xlsx' => 'Xlsx', 'xls' => 'Xls', 'csv' => 'Csv'];
 
     protected MainVariableproceso $variableproceso;
@@ -82,24 +84,41 @@ class MainArchivoexcel implements ContainerAwareInterface
         return $this;
     }
 
-    public function setArchivoBasePath(ObjectRepository $repositorio, int $id, string $funcionArchivo): self
+    public function setArchivoBaseRepositorio(ObjectRepository $repositorio, int $id): self
     {
-        if(empty($repositorio) || empty($id) || empty($funcionArchivo)) {
+        if(empty($repositorio) || empty($id)) {
             $this->variableproceso->setMensajes('Los parametros del archivo base no son válidos.', 'error');
             return $this;
         }
         $archivoAlmacenado = $repositorio->find($id);
-        if(empty($archivoAlmacenado) || $archivoAlmacenado->getOperacion() != $funcionArchivo || !is_object($archivoAlmacenado)) {
+        if(empty($archivoAlmacenado) || !is_object($archivoAlmacenado)) {
             $this->variableproceso->setMensajes('El archivo no existe en la base de datos o es inválido.', 'error');
             return $this;
         }
         $fs = new Filesystem();
 
-        if(!$fs->exists($archivoAlmacenado->getInternalFullPath())) {
+        if(!$fs->exists($archivoAlmacenado->getInternalPath())) {
             $this->variableproceso->setMensajes('El archivo no existe en la ruta.', 'error');
             return $this;
         }
-        $this->archivoBasePath = $archivoAlmacenado->getInternalFullPath();
+        $this->archivoBasePath = $archivoAlmacenado->getInternalPath();
+        return $this;
+    }
+
+    public function setArchivoBasePath(string $path): self
+    {
+        if(empty($path)) {
+            $this->variableproceso->setMensajes('Los parametros del archivo base no son válidos.', 'error');
+            return $this;
+        }
+
+        $fs = new Filesystem();
+
+        if(!$fs->exists($path)) {
+            $this->variableproceso->setMensajes('El archivo no existe en la ruta.', 'error');
+            return $this;
+        }
+        $this->archivoBasePath = $this->internalTemplateDir . '/' . $path;
         return $this;
     }
 
@@ -592,6 +611,12 @@ class MainArchivoexcel implements ContainerAwareInterface
         return $this;
     }
 
+    public function setFilaBase(int $filaBase): self
+    {
+        $this->filaBase = $filaBase;
+        return $this;
+    }
+
 
     public function setParametrosWriter(array $contenido, array $encabezado = [], string $nombre = 'archivoGenerado', string $tipo = 'xlsx', bool $removeEnclosure = false): self
     {
@@ -601,7 +626,7 @@ class MainArchivoexcel implements ContainerAwareInterface
 
         if(!empty($encabezado)) {
             $this->setFila($encabezado, 'A1');
-            $this->filaBase = 2;
+            $this->setFilaBase(2);
         }
         $this->setTabla($contenido, 'A' . $this->getFilaBase());
 

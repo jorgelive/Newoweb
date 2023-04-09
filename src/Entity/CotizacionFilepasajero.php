@@ -260,7 +260,22 @@ class CotizacionFilepasajero
 
 
     /**
-     * Get numerodocumento.
+     * Get tipopaxperurail.
+     *
+     * @return int
+     */
+    public function getTipopaxperurail(): int
+    {
+        if($this->getEdad() >= 12) {
+            return 1;
+        }else{
+            return 2;
+        }
+    }
+
+
+    /**
+     * Get categoriadcc.
      *
      * @return int
      */

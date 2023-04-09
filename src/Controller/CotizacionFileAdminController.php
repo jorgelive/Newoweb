@@ -104,7 +104,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
     public function archivoprAction(Request $request): Response
     {
-        $maxLength = 50;
+        $maxLength = 100;
 
         $object = $this->assertObjectExists($request, true);
 
@@ -140,22 +140,24 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         $variableProceso = $this->container->get('App\Service\MainVariableproceso');
 
-        $encabezado = ['ITEM RESERVA', 'PRIMER NOMBRE', 'PRIMER APELLIDO', 'TIPO DOC', 'NRO DOC', 'NACIONALIDAD', 'FECHA NAC.', 'REF CLIENTE'];
+        $encabezado = ['TIPO PASAJERO', 'GENERO(F/M)', 'TIPO DOC', 'NRO DOC', 'PRIMER NOMBRE', 'PRIMER APELLIDO', 'FECHA NAC', 'NACIONALIDAD'];
         foreach($filePasajeros as $key => $filePasajero){
-            $resultados[$key]['item'] = 1;
-            $resultados[$key]['nombre'] = $variableProceso->stripAccents($filePasajero->getNombre());
-            $resultados[$key]['apellido'] =  $variableProceso->stripAccents($filePasajero->getApellido());
+            $resultados[$key]['tipopax'] = $filePasajero->getTipopaxperurail();
+            $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
             $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigopr();
             $resultados[$key]['numerodocumento'] = $variableProceso->stripAccents($filePasajero->getNumerodocumento());
-            $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigopr();
+            $resultados[$key]['nombre'] = $variableProceso->stripAccents($filePasajero->getNombre());
+            $resultados[$key]['apellido'] =  $variableProceso->stripAccents($filePasajero->getApellido());
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d/m/Y');
-            $resultados[$key]['file'] = 'F' . sprintf('%010d', $object->getId());
+            $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigopr();
         }
 
         if(count($resultados) <= $maxLength){
             return $this->container->get('App\Service\MainArchivoexcel')
+                ->setArchivoBasePath('perurail.xlsx')
                 ->setArchivo()
-                ->setParametrosWriter($resultados, $encabezado, 'PERURAIL_' . $object->getNombre(), 'xls')
+                ->setFileBase(2)
+                ->setParametrosWriter($resultados, [], 'PERURAIL_' . $object->getNombre(), 'xlsx')
                 ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
                 ->getResponse();
         }else{

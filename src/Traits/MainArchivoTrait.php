@@ -20,8 +20,8 @@ trait MainArchivoTrait
     private $tempThumb;
 
     private $externalTypes = ['youtube', 'vimeo'];
-    private $modalTypes = ['jpg', 'jpeg', 'png', 'youtube', 'vimeo'];
-    private $resizableTypes = ['jpg', 'jpeg', 'png'];
+    private $modalTypes = ['jpg', 'jpeg', 'png', 'webp', 'youtube', 'vimeo'];
+    private $resizableTypes = ['jpg', 'jpeg', 'png', 'webp'];
     private $imageSize = ['image' => ['width' => '800', 'height' => '800'], 'thumb' => ['width' => '400', 'height' => '400']];
 
 
@@ -72,7 +72,7 @@ trait MainArchivoTrait
     private $prioridad;
 
     /**
-     * @Assert\File(maxSize = "2M")
+     * @Assert\File(maxSize = "6M")
      */
     private $archivo;
 
@@ -385,9 +385,9 @@ trait MainArchivoTrait
         
         $this->removeOldFiles();
 
-        $imageTypes = ['image/jpeg', 'image/png'];
+        $imageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
-        if(in_array($this->getArchivo()->getMimeType(), $imageTypes)){
+        if(in_array($this->getArchivo()->getClientMimeType(), $imageTypes)){ //getClientMimeType reemplazado por que produce error en webp
             //debe ir antes ya que la imagen sera movida
             $this->generarImagen($this->getArchivo(), $this->getInternalThumbDir(), $this->imageSize['thumb']['width'], $this->imageSize['thumb']['height']);
             $this->generarImagen($this->getArchivo(), $this->getInternalDir(), $this->imageSize['image']['width'], $this->imageSize['image']['height']);
@@ -408,10 +408,10 @@ trait MainArchivoTrait
         $im->readImage($image->getPathname()); //Read the file
         $im->setCompressionQuality(95);
 
-        if($image->getMimeType() == 'image/jpeg') {
-            $im->setInterlaceScheme(\Imagick::INTERLACE_PNG);
-        }elseif($image->getMimeType() == 'image/png'){
+        if($image->getMimeType() == 'image/jpeg' || $image->getMimeType() == 'image/webp') { //reconoce webp como jpg
             $im->setInterlaceScheme(\Imagick::INTERLACE_JPEG);
+        }elseif($image->getMimeType() == 'image/png'){
+            $im->setInterlaceScheme(\Imagick::INTERLACE_PNG);
         }
         $im->resizeImage($ancho, $alto,\Imagick::FILTER_LANCZOS, 1, TRUE);
 
@@ -526,7 +526,7 @@ trait MainArchivoTrait
 
     public function getWebThumbDir(): string
     {
-        if(in_array($this->extension, ['jpg', 'jpeg', 'png'])){
+        if(in_array($this->extension, $this->resizableTypes)){
             return $this->getWebDir() . '/thumb';
         }else{
             return '/app/icons';
