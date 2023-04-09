@@ -677,7 +677,7 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     public function setTabla(array $tabla, string $posicion): self
     {
-        if(empty($this->getHoja()) || empty($tabla) || !$this->variableproceso ->is_multi_array($tabla) || empty($posicion)) {
+        if(empty($this->getHoja()) || empty($tabla) || !$this->variableproceso->is_multi_array($tabla) || empty($posicion)) {
             $this->variableproceso->setMensajes('El formato de tabla no es correcto.', 'error');
             return $this;
         }

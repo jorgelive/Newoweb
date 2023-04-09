@@ -146,8 +146,8 @@ class CotizacionFileAdminController extends CRUDAdminController
             $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
             $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigopr();
             $resultados[$key]['numerodocumento'] = $variableProceso->stripAccents($filePasajero->getNumerodocumento());
-            $resultados[$key]['nombre'] = $variableProceso->stripAccents($filePasajero->getNombre());
-            $resultados[$key]['apellido'] =  $variableProceso->stripAccents($filePasajero->getApellido());
+            $resultados[$key]['nombre'] = $filePasajero->getNombre();
+            $resultados[$key]['apellido'] =  $filePasajero->getApellido();
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d/m/Y');
             $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigopr();
         }
