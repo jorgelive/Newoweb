@@ -42,7 +42,7 @@ class MaestroPais
      * Perurail
      * @var string
      *
-     * @ORM\Column(type="string", length=5)
+     * @ORM\Column(type="integer", length=3)
      */
     private $codigopr;
 
