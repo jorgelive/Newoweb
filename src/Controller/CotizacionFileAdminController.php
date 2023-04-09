@@ -156,7 +156,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             return $this->container->get('App\Service\MainArchivoexcel')
                 ->setArchivoBasePath('perurail.xlsx')
                 ->setArchivo()
-                ->setFileBase(2)
+                ->setFilaBase(2)
                 ->setParametrosWriter($resultados, [], 'PERURAIL_' . $object->getNombre(), 'xlsx')
                 ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
                 ->getResponse();
@@ -165,11 +165,13 @@ class CotizacionFileAdminController extends CRUDAdminController
 
             foreach($partes as $key => $parte){
                 $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
+                    ->setArchivoBasePath('perurail.xlsx')
                     ->setArchivo()
-                    ->setParametrosWriter($parte, $encabezado, 'PERURAIL_' . $object->getNombre(), 'xls')
+                    ->setFilaBase(2)
+                    ->setParametrosWriter($parte, [], 'PERURAIL_' . $object->getNombre(), 'xlsx')
                     ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
                     ->createFile();
-                $archivos[$key]['nombre'] = 'PERURAIL_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xls';
+                $archivos[$key]['nombre'] = 'PERURAIL_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xlsx';
 
             }
 

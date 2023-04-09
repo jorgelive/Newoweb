@@ -17,7 +17,7 @@ class MainArchivoexcel implements ContainerAwareInterface
 
     use ContainerAwareTrait;
 
-    private string $internalTemplateDir = __DIR__ . '/../../public/template';
+    private string $internalTemplateDir = __DIR__ . '/../../public/templates';
 
     protected array $tipoWriter = ['xlsx' => 'Xlsx', 'xls' => 'Xls', 'csv' => 'Csv'];
 
@@ -114,11 +114,13 @@ class MainArchivoexcel implements ContainerAwareInterface
 
         $fs = new Filesystem();
 
-        if(!$fs->exists($path)) {
+        $this->archivoBasePath = $this->internalTemplateDir . '/' . $path;
+
+        if(!$fs->exists($this->archivoBasePath)) {
             $this->variableproceso->setMensajes('El archivo no existe en la ruta.', 'error');
             return $this;
         }
-        $this->archivoBasePath = $this->internalTemplateDir . '/' . $path;
+
         return $this;
     }
 
