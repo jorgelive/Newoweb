@@ -14,6 +14,7 @@ class CotizacionCotizacionDoctrineEventListener
             if(!$entity->getToken()) {
                 $entity->setToken(mt_rand());
             }
+
         }
     }
 }

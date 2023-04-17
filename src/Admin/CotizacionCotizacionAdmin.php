@@ -57,6 +57,47 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('file')
+            ->add('fechaingreso', CallbackFilter::class,[
+                'label' => 'Fecha de ingreso',
+                'callback' => function($queryBuilder, $alias, $field, $filterData) {
+
+                    $valor = $filterData->getValue();
+                    if(!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
+                        return false;
+                    }
+                    $fechaMasUno = clone ($valor['end']);
+                    $fechaMasUno->add(new \DateInterval('P1D'));
+
+                    if(empty($filterData->getType())){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
+                        return true;
+                    }else{
+                        return false;
+                    }
+                },
+                'field_type' => DateRangePickerType::class,
+                'field_options' => [
+                    'field_options_start' => [
+                        'dp_use_current' => true,
+                        'dp_show_today' => true,
+                        'format'=> 'yyyy/MM/dd'
+                    ],
+                    'field_options_end' => [
+                        'dp_use_current' => true,
+                        'dp_show_today' => true,
+                        'format'=> 'yyyy/MM/dd'
+                    ]
+                ],
+                'operator_type' => ChoiceType::class,
+                'operator_options' => [
+                    'choices' => [
+                        'Igual a' => 0
+                    ]
+                ]
+            ])
             ->add('fecha', CallbackFilter::class,[
                 'label' => 'Fecha cotización',
                 'callback' => function($queryBuilder, $alias, $field, $filterData) {
@@ -124,9 +165,10 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('primerCotservicioFecha', 'datetime', [
-                'label' => 'Fecha Inicio',
-                'format' => 'Y/m/d'
+            ->add('fechaingreso', null, [
+                'label' => 'Entrada',
+                'format' => 'Y/m/d H:i',
+                'sortable' => true
             ])
             ->add('file', null, [
                 'sortable' => true,
@@ -170,6 +212,11 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ])
             ->add('file.filedocumentos', null, [
                 'label' => 'Documentos'
+            ])
+            ->add('fechasalida', null, [
+                'label' => 'Salida',
+                'format' => 'Y/m/d H:i',
+                'sortable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',

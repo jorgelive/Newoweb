@@ -23,15 +23,27 @@ class ReservaUnitclasemedioTranslation extends AbstractPersonalTranslation
      */
     protected $object;
 
-    public function getObject()
-    {
-        return $this->object;
-    }
-
+    /**
+     * Set object related
+     *
+     * @param object $object
+     *
+     * @return static
+     */
     public function setObject($object)
     {
         $this->object = $object;
 
         return $this;
+    }
+
+    /**
+     * Get related object
+     *
+     * @return object
+     */
+    public function getObject()
+    {
+        return $this->object;
     }
 }

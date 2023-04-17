@@ -129,6 +129,20 @@ class CotizacionCotizacion
     private $fecha;
 
     /**
+     * @var \DateTime $fechaingreso
+     *
+     * @ORM\Column(type="datetime", nullable=true)
+     */
+    private $fechaingreso;
+
+    /**
+     * @var \DateTime $fechasalida
+     *
+     * @ORM\Column(type="datetime", nullable=true)
+     */
+    private $fechasalida;
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -190,20 +204,6 @@ class CotizacionCotizacion
         }else{
             return sprintf("%s x%s (%s): %s.", $this->getFile()->getNombre(), $this->getNumeropasajeros(), $this->getEstadocotizacion()->getNombre(), $this->getTitulo()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
         }
-    }
-
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getPrimerCotservicioFecha()
-    {
-        if($this->getCotservicios()->count() < 1){
-            return null;
-        }
-
-        return $this->getCotservicios()->first()->getFechaHoraInicio();
     }
 
     /**
@@ -590,11 +590,61 @@ class CotizacionCotizacion
     /**
      * Get fecha.
      *
-     * @return date|null
+     * @return \datetime|null
      */
     public function getFecha()
     {
         return $this->fecha;
+    }
+
+    /**
+     * Set fechaingreso.
+     *
+     * @param \datetime $fechaingreso
+     *
+     * @return CotizacionCotizacion
+     */
+    public function setFechaingreso($fechaingreso)
+    {
+
+        $this->fechaingreso = $fechaingreso;
+
+        return $this;
+    }
+
+    /**
+     * Get fechaingreso.
+     *
+     * @return \datetime|null
+     */
+    public function getFechaingreso()
+    {
+        return $this->fechaingreso;
+    }
+
+    /**
+     * Set fechasalida.
+     *
+     * @param \datetime $fechasalida
+     *
+     * @return CotizacionCotizacion
+     */
+    public function setFechasalida($fechasalida)
+    {
+
+        $this->fechasalida = $fechasalida;
+
+        return $this;
+    }
+
+    /**
+     * Get fechasalida.
+     *
+     * @return \datetime|null
+     */
+    public function getFechasalida()
+    {
+        return $this->fechasalida;
     }
 
 }

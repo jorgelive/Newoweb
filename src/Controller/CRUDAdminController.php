@@ -45,7 +45,9 @@ class CRUDAdminController extends BaseController
     public function listAction(Request $request): Response
     {
         //No se ejecuta en el caso de lista modal
-        if(is_null($request->get('pcode'))){
+        //$temp = gettype($request->get('_xml_http_request'));
+
+        if(is_null($request->get('pcode')) && $request->get('_xml_http_request') != 'true'){
             $session = $this->container->get('request_stack')->getSession();
             $route = $this->container->get('router')->match($request->getPathInfo())['_route'];
             $filters = $this->admin->getFilterParameters();
