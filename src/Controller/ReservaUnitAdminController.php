@@ -110,6 +110,11 @@ class ReservaUnitAdminController extends CRUDAdminController
     public function icalAction(Request $request = null): Response
     {
         $ahora = new \DateTime('now');
+
+        $host = gethostbyaddr($request->getClientIp());
+
+        file_put_contents('debug/reservasunithosts.txt', 'Conectado desde '. $host . "\n", FILE_APPEND | LOCK_EX);
+
         $object = $this->assertObjectExists($request, true);
         if(!$object) {
             throw $this->createNotFoundException('Unable to find the object processing the request');
