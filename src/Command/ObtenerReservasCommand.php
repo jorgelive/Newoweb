@@ -87,25 +87,30 @@ class ObtenerReservasCommand extends Command
                     $temp = [];
                     $insertar = false;
 
-                    //todo buscar en la coleccion de existentes
-                    $existente = $this->entityManager->getRepository("App\Entity\ReservaReserva")->findOneBy(['uid' => $event->uid]);
+                    //Puede haber mas de una reserva con el mismo uid por lo que reemplazamos el findOneBy por findBy
+                    $existentes = $this->entityManager->getRepository("App\Entity\ReservaReserva")->findBy(['uid' => $event->uid]);
 
                     $uidsArray[] = $event->uid;
 
-                    if(!is_null($existente)){
-                        if($existente->isManual() === true){
-                            continue;
+                    if(count($existentes) > 0){
+                        foreach ($existentes as $existente) {
+
+                            if ($existente->isManual() === true) {
+                                //si es manual no hacemos nada
+                                continue;
+                            }
+
+                            if ($existente->getFechahorainicio()->format('Ymd') != $event->dtstart) {
+                                $currentStartTime = $existente->getFechahorainicio()->format('H:i');
+                                $existente->setFechahorainicio(new \DateTime($event->dtstart . ' ' . $currentStartTime));
+                            }
+                            if ($existente->getFechahorafin()->format('Ymd') != $event->dtend) {
+                                $currentEndTime = $existente->getFechahorafin()->format('H:i');
+                                $existente->setFechahorafin(new \DateTime($event->dtend . ' ' . $currentEndTime));
+                            }
                         }
 
-                        if($existente->getFechahorainicio()->format('Ymd') != $event->dtstart){
-                            $currentStartTime = $existente->getFechahorainicio()->format('H:i');
-                            $existente->setFechahorainicio(new \DateTime($event->dtstart . ' ' . $currentStartTime));
-                        }
-                        if($existente->getFechahorafin()->format('Ymd') != $event->dtend){
-                            $currentEndTime = $existente->getFechahorafin()->format('H:i');
-                            $existente->setFechahorafin(new \DateTime($event->dtend . ' ' . $currentEndTime));
-                        }
-                        //Solo actualizamos horas y salimos
+                        //Solo actualizamos fechas y horas, salimos del bucle ya que la reserva se encuentra presente
                         continue;
                     }
 
