@@ -111,10 +111,6 @@ class ReservaUnitAdminController extends CRUDAdminController
     {
         $ahora = new \DateTime('now');
 
-        $host = gethostbyaddr($request->getClientIp());
-
-        file_put_contents('debug/reservasunithosts.txt', 'Conectado desde '. $host . "\n", FILE_APPEND | LOCK_EX);
-
         $object = $this->assertObjectExists($request, true);
         if(!$object) {
             throw $this->createNotFoundException('Unable to find the object processing the request');
@@ -138,7 +134,16 @@ class ReservaUnitAdminController extends CRUDAdminController
 
         $calendar = $this->container->get('App\Service\IcalGenerator')->setTimezone('America/Lima')->setProdid('-//OpenPeru//Cotservicio Calendar //ES')->createCalendar();
 
+        $queriedfrom = gethostbyaddr($request->getClientIp());
+
+        file_put_contents('debug/reservasuniticalhosts.txt', $ahora->format('Y-m-d H:i') . ' Para: ' . $id . ', Consultado desde '. $queriedfrom . "\n", FILE_APPEND | LOCK_EX);
+
         foreach($reservas as $reserva){
+
+            if($reserva->getChanel()->getId() == 3 && str_contains($queriedfrom, 'booking.com')){
+                //Si la consulta es de booking y la reserva es de booking no la mostramos
+                continue;
+            }
 
             $fechainicio = new \DateTime($reserva->getFechahorainicio()->format('Y-m-d'));
             $fechafin = new \DateTime($reserva->getFechahorafin()->format('Y-m-d'));
