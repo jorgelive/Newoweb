@@ -80,7 +80,7 @@ class ObtenerReservasCommand extends Command
                 $unidad = $nexo->getUnit();
                 $establecimiento = $nexo->getUnit()->getEstablecimiento();
 
-                //guarda los uids del bucle actual para despues comparar con las reservas existentes y cancelar las que ya no esten
+                //Guarda los uids del bucle actual para después comparar con las reservas existentes y cancelar las que ya no estén
                 $uidsArray = [];
 
                 foreach($ical->events() as $event){
@@ -105,7 +105,7 @@ class ObtenerReservasCommand extends Command
                             $currentEndTime = $existente->getFechahorafin()->format('H:i');
                             $existente->setFechahorafin(new \DateTime($event->dtend . ' ' . $currentEndTime));
                         }
-                        //solo actualizamos horas y salimos
+                        //Solo actualizamos horas y salimos
                         continue;
                     }
 
@@ -115,15 +115,15 @@ class ObtenerReservasCommand extends Command
                     if($canal == 2 && $event->summary != 'Airbnb (Not available)'){
 
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 2);
-                        $temp['nombre'] = 'Completar';
+                        $temp['nombre'] = 'Completar Airbnb';
                         if($num_found = preg_match_all('~[a-z]+://\S+~', $event->description, $out))
                         {
                             $temp['enlace'] = $out[0][0];
                         }
                         $insertar = true;
-                    }elseif($canal == 3){
-                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 1);
-                        $temp['nombre'] = ucwords(strtolower(str_replace('CLOSED - ', '', $event->summary))) . '- Completar';
+                    }elseif($canal == 3){ //booking
+                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 2);  //ya no Pendiente (1)
+                        $temp['nombre'] = ucwords(strtolower(str_replace('Not Available', '', $event->summary))) . 'Completar Booking';
                         $temp['enlace'] = '';
                         $insertar = true;
                     }
@@ -146,13 +146,16 @@ class ObtenerReservasCommand extends Command
                 }
 
                 foreach($currentReservas as &$currentReserva){
+                    //Fix para colocar el id de nexo posteriormente
                     if(in_array($currentReserva->getUid(), $uidsArray) && empty($currentReserva->getUnitnexo())){
                         $currentReserva->setUnitnexo($nexo);
                     }
                     if($currentReserva->isManual()){
                         continue;
                     }
+
                     if(!in_array($currentReserva->getUid(), $uidsArray)){
+                        //cancelamos la reserva si ya no esta presente
                         if($currentReserva->getEstado()->getId() != 3){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 3));
                             $output->writeln(sprintf('Cancelando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
@@ -163,7 +166,7 @@ class ObtenerReservasCommand extends Command
                         if($currentReserva->getChanel()->getId() == 2){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 2));
                         }elseif($currentReserva->getChanel()->getId() == 3){
-                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 1));
+                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 2)); //Ya no pendiente (1)
                         }
                     }
                 }
@@ -181,6 +184,5 @@ class ObtenerReservasCommand extends Command
 
         return Command::SUCCESS;
 
-        // return Command::INVALID
     }
 }
