@@ -22,7 +22,7 @@ class MainVariableproceso implements ContainerAwareInterface{
     {
 
         $file_to_read = @fopen($file, "r");
-        $old_text = @fread($file_to_read, 2048); // max 1024
+        $old_text = @fread($file_to_read, 8184); // max 1024
         @fclose($file_to_read);
         $file_to_write = fopen($file, "w");
         fwrite($file_to_write, $text . $old_text);
