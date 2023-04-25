@@ -30,7 +30,14 @@ class CotizacionCotcomponenteDoctrineEventListener
         $oldFechahoraInicio = $cotservicio->getFechahorainicio();
         $oldFechahoraFin = $cotservicio->getFechahorafin();
         $newFechahoraInicio = $cotservicio->getCotcomponentes()->first()->getFechahorainicio();
-        $newFechahoraFin = $cotservicio->getCotcomponentes()->last()->getFechahorafin();
+        $cotcomponentes = $cotservicio->getCotcomponentes();
+        foreach ($cotcomponentes as $cotcomponente){
+            if(!isset($newFechahoraFin) || $cotcomponente->getFechahorafin() > $newFechahoraFin){
+                $newFechahoraFin = $cotcomponente->getFechahorafin();
+            }
+
+        }
+        //$newFechahoraFin = $cotservicio->getCotcomponentes()->last()->getFechahorafin();
         $modificado = false;
         if($oldFechahoraInicio != $newFechahoraInicio ){
             $modificado = true;
