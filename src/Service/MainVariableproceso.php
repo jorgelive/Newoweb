@@ -18,6 +18,17 @@ class MainVariableproceso implements ContainerAwareInterface{
         return strtr($string,'àáâãäçèéêëìíîïñòóôõöùúûüýÿÀÁÂÃÄÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ','aaaaaceeeeiiiinooooouuuuyyAAAAACEEEEIIIINOOOOOUUUUY');
     }
 
+    public function prependtofile($file, $text): bool
+    {
+
+        $file_to_read = @fopen($file, "r");
+        $old_text = @fread($file_to_read, 2048); // max 1024
+        @fclose($file_to_read);
+        $file_to_write = fopen($file, "w");
+        fwrite($file_to_write, $text . $old_text);
+        return true;
+    }
+
     public function setMensajes(String $contenido, String $tipo = 'info'): bool
     {
 

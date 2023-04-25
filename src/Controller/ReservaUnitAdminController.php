@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Service\IcalGenerator;
+use App\Service\MainVariableproceso;
 use Google\Cloud\Translate\V2\TranslateClient;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,7 +17,8 @@ class ReservaUnitAdminController extends CRUDAdminController
     {
         return [
                 'App\Service\IcalGenerator' => IcalGenerator::class,
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
+                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
+                'App\Service\MainVariableproceso' => MainVariableproceso::class,
             ] + parent::getSubscribedServices();
     }
 
@@ -109,6 +111,8 @@ class ReservaUnitAdminController extends CRUDAdminController
 
     public function icalAction(Request $request = null): Response
     {
+        $variableproceso = $this->container->get('App\Service\MainVariableproceso');
+
         $ahora = new \DateTime('now');
 
         $object = $this->assertObjectExists($request, true);
@@ -136,11 +140,12 @@ class ReservaUnitAdminController extends CRUDAdminController
 
         $queriedfrom = gethostbyaddr($request->getClientIp());
 
-        file_put_contents('debug/reservasuniticalhosts.txt', $ahora->format('Y-m-d H:i') . ' Para: ' . $id . ', Consultado desde '. $queriedfrom . "\n", FILE_APPEND | LOCK_EX);
+        $variableproceso->prependtofile('debug/reservasuniticalhosts.txt', $ahora->format('Y-m-d H:i:s') . ' Para: ' . $id . ', Consultado desde '. $queriedfrom . "\n");
 
         foreach($reservas as $reserva){
 
             if($reserva->getChanel()->getId() == 3 && str_contains($queriedfrom, 'booking.com')){
+                $variableproceso->prependtofile('debug/reservasuniticalhosts.txt', $ahora->format('Y-m-d H:i:s') . ' Omitiendo reserva de Booking.com para ' . $reserva->getFechahorainicio()->format('Y-m-d') . ', con id: '. $reserva->getId() . "\n");
                 //Si la consulta es de booking y la reserva es de booking no la mostramos
                 continue;
             }

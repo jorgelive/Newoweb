@@ -117,7 +117,6 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
         $fechaEmision = new \DateTime();
 
 
-
         //solo facturamos en el cas de que se use el servidor de produccion
         if($request->getHost() == 'oweb.openperu.pe' || $request->getHost() == 'openperu.pe'){
             $ruta = $this->getParameter('facturacion_ruta_produccion');
