@@ -841,6 +841,51 @@ file that was distributed with this source code.
                                                         {% endif %}
                                                     </div>
                                                 </div>
+                                                <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
+                                                    <h5 class="panel-title">
+                                                        <a data-toggle="collapse" data-parent="#accordionitinerario" href="#collapseitinerario3">
+                                                            Interno: Resumen de tarifas
+                                                        </a>
+                                                    </h5>
+                                                </div>
+                                                <div id="collapseitinerario3" class="panel-collapse collapse">
+                                                    <div class="panel-body table-responsive">
+                                                        <h3 class="visible-print">Interno: Detalle de servicios</h3>
+                                                        {% if object.cotservicios is defined and object.cotservicios|length > 0%}
+
+                                                                {% for servicio in object.cotservicios %}
+
+
+                                                                        {% if servicio.cotcomponentes is defined and servicio.cotcomponentes|length > 0%}
+
+                                                                            {% for componente in servicio.cotcomponentes %}
+
+                                                                                {{ componente.fechahorainicio|date("Y-m-d H:i") }} {{ componente.componente.nombre }} {% if componente.cantidad > 1  %}x{{ componente.cantidad }}{% endif %}
+
+                                                                                {% if componente.cottarifas is defined and componente.cottarifas|length > 0%}
+                                                                                    {% for tarifa in componente.cottarifas %}
+                                                                                        {% if loop.first == false  %},{% endif %}
+                                                                                        {{ tarifa.tarifa.nombre }} x{{ tarifa.cantidad }} {% if tarifa.tarifa.tipotarifa.id != 1  %}({{ tarifa.tarifa.tipotarifa.nombre }}){% endif %}
+
+                                                                                        {% for detalle in tarifa.cottarifadetalles %}
+                                                                                            {% if detalle.tipotarifadetalle.id != 4  %}
+                                                                                                {% if loop.first == false  %},{% endif %}
+                                                                                                {{ detalle.tipotarifadetalle.nombre }}: {{ detalle.detalle }}
+                                                                                            {% endif %}
+                                                                                        {% endfor %}
+
+                                                                                    {% endfor %}
+                                                                                {% endif %}
+                                                                                <br>
+                                                                            {% endfor %}
+
+                                                                        {% endif %}
+
+                                                                {% endfor %}
+
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div class="panel panel-default hidden-print">
                                                 <div class="panel-heading">
