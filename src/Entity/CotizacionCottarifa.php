@@ -41,6 +41,14 @@ class CotizacionCottarifa
     protected $cotcomponente;
 
     /**
+     * @var \App\Entity\ServicioProvider
+     *
+     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioProvider", inversedBy="cottarifas")
+     * @ORM\JoinColumn(name="provider_id", referencedColumnName="id", nullable=true)
+     */
+    protected $provider;
+
+    /**
      * @var \App\Entity\ServicioTarifa
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\ServicioTarifa")
@@ -259,6 +267,30 @@ class CotizacionCottarifa
     public function getCotcomponente()
     {
         return $this->cotcomponente;
+    }
+
+    /**
+     * Set provider
+     *
+     * @param \App\Entity\ServicioProvider $provider
+     *
+     * @return CotizacionCottarifa
+     */
+    public function setProvider(\App\Entity\ServicioProvider $provider = null)
+    {
+        $this->provider = $provider;
+
+        return $this;
+    }
+
+    /**
+     * Get provider
+     *
+     * @return \App\Entity\ServicioProvider
+     */
+    public function getProvider()
+    {
+        return $this->provider;
     }
 
     /**

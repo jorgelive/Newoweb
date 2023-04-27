@@ -39,6 +39,7 @@ sonata_admin:
                     - app.admin.serviciocomponente
                     - app.admin.serviciocomponenteitem
                     - app.admin.serviciotarifa
+                    - app.admin.servicioprovider
                     - app.admin.serviciotipocomponente
                     - app.admin.serviciotipotarifa
                     - app.admin.serviciomodalidadtarifa

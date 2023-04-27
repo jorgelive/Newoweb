@@ -153,6 +153,14 @@ class ServicioTarifa
     protected $tipopax;
 
     /**
+     * @var \App\Entity\ServicioProvider
+     *
+     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioProvider", inversedBy="tarifas")
+     * @ORM\JoinColumn(name="provider_id", referencedColumnName="id", nullable=true)
+     */
+    protected $provider;
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -453,6 +461,19 @@ class ServicioTarifa
     public function getModalidadtarifa(): ?ServicioModalidadtarifa
     {
         return $this->modalidadtarifa;
+    }
+
+
+    public function setProvider(?ServicioProvider $provider = null): self
+    {
+        $this->provider = $provider;
+
+        return $this;
+    }
+
+    public function getProvider(): ?ServicioProvider
+    {
+        return $this->provider;
     }
 
 }

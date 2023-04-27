@@ -7,6 +7,7 @@ use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Form\Type\ModelAutocompleteType;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\Form\Type\DatePickerType;
@@ -41,6 +42,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('id')
             ->add('componente')
             ->add('nombre')
+            ->add('provider',  null, [
+                'label' => 'Proveedor'
+            ])
             ->add('categoriatour', null, [
                 'label' => 'Categoria de tour'
             ])
@@ -94,6 +98,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ])
             ->add('nombre', null, [
                 'editable' => true
+            ])
+            ->add('provider',  null, [
+                'label' => 'Proveedor'
             ])
             ->add('categoriatour', FieldDescriptionInterface::TYPE_CHOICE, [
                 'sortable' => true,
@@ -202,6 +209,13 @@ class ServicioTarifaAdmin extends AbstractAdmin
 
         $formMapper
             ->add('nombre')
+            ->add('provider', ModelAutocompleteType::class, [
+                'property' => 'nombre',
+                'minimum_input_length' => 0,
+                'dropdown_auto_width' => false,
+                'required' => false,
+                'label' => 'Proveedor'
+            ])
             ->add('categoriatour', null, [
                 'label' => 'Categoria de tour'
             ])

@@ -215,6 +215,7 @@
                             context: $(this),
                             success: function(result){
                                 var monedaId = $(this).attr("id").replace(/tarifa_autocomplete_input$/g, 'moneda');
+                                var providerId = $(this).attr("id").replace(/tarifa_autocomplete_input$/g, 'provider_autocomplete_input'); //este tambien es autocomplete
                                 var montoId = $(this).attr("id").replace(/tarifa_autocomplete_input$/g, 'monto');
                                 var cantidadId = $(this).attr("id").replace(/tarifa_autocomplete_input$/g, 'cantidad');
                                 var numeroPaxId = $(this).attr("id").replace(/cotservicios_\d*_cotcomponentes_\d*_cottarifas_\d*_tarifa_autocomplete_input$/g, 'numeropasajeros');
@@ -225,6 +226,27 @@
 
                                     $('input#' + montoId).val(result.monto).trigger('input');
                                     $('select#' + monedaId).val(result.moneda).trigger('change');
+
+                                    console.log(result.providerId);
+
+                                    var $select = $('select#' + providerId);
+
+                                    if(result.providerId === null || result.providerName === null){
+                                        $select.val(null).trigger('change');
+                                    } else {
+                                        var items = {id: result.providerId, text: result.providerName};
+                                        var data = $select.val() || [];    // si hubiera datos hacemos merge
+
+                                        $(items).each(function () {
+                                            if(!$select.find("option[value='" + this.id + "']").length) {
+                                                $select.append(new Option(this.text, this.id, true, true));
+                                            }
+                                            data.push(this.id);
+                                        });
+
+                                        $select.val(data).trigger('change');
+                                    }
+
                                     $('select#' + tipotarifaId).val(result.tipotarifa).trigger('change');
                                     if(result.prorrateado === true){
 

@@ -32,6 +32,9 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
                 'label' => 'Componente'
             ])
             ->add('tarifa')
+            ->add('provider',  null, [
+                'label' => 'Proveedor'
+            ])
             ->add('moneda')
             ->add('monto')
             ->add('tipotarifa',  null, [
@@ -52,6 +55,9 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
                 'label' => 'Componente'
             ])
             ->add('tarifa')
+            ->add('provider',  null, [
+                'label' => 'Proveedor'
+            ])
             ->add('moneda')
             ->add('monto')
             ->add('tipotarifa',  null, [
@@ -97,6 +103,13 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
             ->add('cantidad')
             ->add('moneda')
             ->add('monto')
+            ->add('provider', ModelAutocompleteType::class, [
+                'property' => 'nombre',
+                'minimum_input_length' => 0,
+                'dropdown_auto_width' => false,
+                'required' => false,
+                'label' => 'Proveedor'
+            ])
             ->add('tipotarifa',  null, [
                 'label' => 'Tipo'
             ])
@@ -155,6 +168,9 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
                 'label' => 'Componente'
             ])
             ->add('tarifa')
+            ->add('provider',  null, [
+                'label' => 'Proveedor'
+            ])
             ->add('cantidad')
             ->add('moneda')
             ->add('monto')

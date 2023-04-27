@@ -1103,6 +1103,18 @@ services:
                 show_mosaic_button: false
         public: true
 
+    app.admin.servicioprovider:
+        class: App\Admin\ServicioProviderAdmin
+        tags:
+            -
+                name: sonata.admin
+                model_class: App\Entity\ServicioProvider
+                manager_type: orm
+                group: Servicio
+                label: Proveedor
+                show_mosaic_button: false
+        public: true
+
     app.admin.servicioitinerariodia:
         class: App\Admin\ServicioItinerariodiaAdmin
         tags:
