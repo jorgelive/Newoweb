@@ -35,12 +35,16 @@ class ServicioProviderAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('nombre')
+            ->add('nombre', null, [
+                'editable' => true
+            ])
             ->add('telefono', null, [
-                'label' => 'Teléfono'
+                'label' => 'Teléfono',
+                'editable' => true
             ])
             ->add('email', null, [
-                'label' => 'E-Mail'
+                'label' => 'E-Mail',
+                'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
