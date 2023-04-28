@@ -37,6 +37,13 @@ class ServicioProvider
     /**
      * @var string
      *
+     * @ORM\Column(type="string", length=100, nullable=true)
+     */
+    private $direccion;
+
+    /**
+     * @var string
+     *
      * @ORM\Column(type="string", length=30, nullable=true)
      */
     private $telefono;
@@ -111,6 +118,18 @@ class ServicioProvider
     public function getNombre(): string
     {
         return $this->nombre;
+    }
+
+    public function setDirecion(string $direccion): self
+    {
+        $this->direccion = $direccion;
+
+        return $this;
+    }
+
+    public function getDireccion(): ?string
+    {
+        return $this->direccion;
     }
 
     public function setTelefono(string $telefono): self

@@ -291,7 +291,6 @@ class CotizacionResumen implements ContainerAwareInterface
                                 $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tarifaCantidad'] = (int)($tarifa->getCantidad());
                                 $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoTarifaId'] = $tarifa->getTipotarifa()->getId();
                                 $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoTarifaNombre'] = $tarifa->getTipotarifa()->getNombre();
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['infoOperativa'] = '';
 
 //Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
                                 if(
@@ -303,8 +302,19 @@ class CotizacionResumen implements ContainerAwareInterface
                                     $tempHoteles[$tarifa->getId()]['fechaHoraInicio'] = $tempArrayComponente['fechahorainicio'];
                                     $tempHoteles[$tarifa->getId()]['fechaHoraFin'] = $tempArrayComponente['fechahorafin'];
                                     $tempHoteles[$tarifa->getId()]['nombreComponente'] = $tempArrayComponente['nombre'];
+
                                     if(!empty($tarifa->getProvider())){
                                         $tempHoteles[$tarifa->getId()]['proveedor'] = $tarifa->getProvider()->getNombre();
+                                        if(!empty($tarifa->getProvider()->getDireccion())){
+                                            $tempHoteles[$tarifa->getId()]['direccion'] = $tarifa->getProvider()->getDireccion();
+                                        }
+                                        if(!empty($tarifa->getProvider()->getTelefono())){
+                                            $tempHoteles[$tarifa->getId()]['telefono'] = $tarifa->getProvider()->getTelefono();
+                                        }
+                                        if(!empty($tarifa->getProvider()->getEmail())){
+                                            $tempHoteles[$tarifa->getId()]['email'] = $tarifa->getProvider()->getEmail();
+                                        }
+
                                     }else{
                                         $tempHoteles[$tarifa->getId()]['proveedor'] = 'No Ingresado';
                                     }
@@ -369,7 +379,11 @@ class CotizacionResumen implements ContainerAwareInterface
 
                                 endforeach;
 
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['infoOperativa'] = implode(' ', $tempInfoOperativa);
+                                if(!empty($tempInfoOperativa)){
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['infoOperativa'] = implode(' ', $tempInfoOperativa);
+
+                                }
+                                unset($tempInfoOperativa);
 
                                 if(!empty($tempArrayDetalle)){
                                     $tempArrayInternoIncluye['detalles'] = $tempArrayDetalle;
@@ -554,7 +568,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
                                 $tempArrayTarifa['ventasoles'] = number_format((float)($tempArrayTarifa['montosoles'] * $factorComision), 2, '.', '');
                                 $tempArrayTarifa['ventadolares'] = number_format((float)($tempArrayTarifa['montodolares'] * $factorComision), 2, '.', '');
-
+                                unset($factorComision);
 
                                 if(!empty($tarifa->getTarifa()->getValidezInicio())){
                                     $tempArrayTarifa['validezInicio'] = $tarifa->getTarifa()->getValidezInicio();
@@ -621,6 +635,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                 $this->mensaje = sprintf('La cantidad de pasajeros por componente no coincide con la cantidad de pasajeros en %s %s %s.', $servicio->getFechahorainicio()->format('Y/m/d'), $servicio->getServicio()->getNombre(), $componente->getComponente()->getNombre());
                                 return false;
                             }
+                            unset($cantidadComponente);
 
                         }else{
                             $this->mensaje = sprintf('El componente no tiene tarifa en %s %s %s.', $servicio->getFechahorainicio()->format('Y/m/d'), $servicio->getServicio()->getNombre(), $componente->getComponente()->getNombre());
@@ -635,8 +650,35 @@ class CotizacionResumen implements ContainerAwareInterface
                 }
 
             endforeach;
+//procesamos la informacion para enviar a proveedor
+            foreach ($tempProveedores as &$proveedor):
+                foreach($proveedor['tarifas'] as $tarifa):
+                    if($tarifa['tipoComponenteId'] == 4){ //tipo 4 hoteles
+                        //no modificamos si es hotel
+                        continue;
+                    }
+                    $inicio = new \DateTime($tarifa['fechaHoraInicio']->format('Y-m-d'));
+                    $fin = new \DateTime($tarifa['fechaHoraFin']->format('Y-m-d'));
+                    foreach ($tempHoteles as $idHotel => $hotel):
+                        $inicioHotel = new \Datetime($hotel['fechaHoraInicio']->format('Y-m-d'));
+                        $finHotel = new \Datetime($hotel['fechaHoraFin']->format('Y-m-d'));
+                        if($inicio >= $inicioHotel && $fin <= $finHotel){
+                            //para que no se repita isamos el idhotel
+                            $proveedor['hoteles'][$idHotel] = $hotel;
+                        }
+                    endforeach;
+                        unset($inicioHotel);
+                        unset($finHotel);
+                endforeach;
+                unset($inicio);
+                unset($fin);
+
+            endforeach;
+            //como esta por referencia es mejor destruir
+            unset($proveedor);
 
             $datosTabs['itinerario']['proveedores'] = $tempProveedores;
+            unset($tempProveedores);
 
 //Ordenamos el varios al final
             if(isset($datosTabs['incluye']['incluidos'][-1])){
@@ -672,13 +714,11 @@ class CotizacionResumen implements ContainerAwareInterface
 //Hacemos disponible los datos de la cotización para el resumen de las tarifas.
         $this->datosCotizacion = $datosCotizacion;
 
-
         if(!empty($this->clasificacionTarifas)){
             $this->orderResumenTarifas();
             $datosTabs['tarifas']['rangos'] = $this->clasificacionTarifas;
-//es el resumen final de todos los pasajeros de tarifas costos v netas por tipo de tarifa incluido no incluido, etc  $this->resumendeClasificado
+//Es el resumen final de todos los pasajeros de tarifas costos v netas por tipo de tarifa incluido no incluido, etc  $this->resumendeClasificado
             $datosTabs['tarifas']['resumen'] = $this->resumendeClasificado;
-
         }
 
         $this->datosTabs = $datosTabs;
@@ -811,6 +851,9 @@ class CotizacionResumen implements ContainerAwareInterface
 
         endforeach;
 
+        //destruimos la referencia
+        unset($clase);
+
         ksort($this->resumendeClasificado);
     }
 
@@ -882,6 +925,8 @@ class CotizacionResumen implements ContainerAwareInterface
         foreach($this->clasificacionTarifas as &$clase):
             $clase['cantidadRestante'] = $clase['cantidad'];
         endforeach;
+        //destruimos la referencia
+        unset($clase);
     }
 
     private function procesarTarifa(array $claseTarifas, int $ejecucion, int $cantidadTotalPasajeros): void
@@ -920,6 +965,7 @@ class CotizacionResumen implements ContainerAwareInterface
                     break;
                 }
             endforeach;
+            unset($clase);
 
         }
 
@@ -938,6 +984,8 @@ class CotizacionResumen implements ContainerAwareInterface
             }
 
         endforeach;
+        //destruimos la referencia
+        unset($clase);
 
         //$cantidadTarifas = count($claseTarifas);
         foreach($claseTarifas as $keyClase => &$clase):
@@ -964,6 +1012,8 @@ class CotizacionResumen implements ContainerAwareInterface
             }
 
         endforeach;
+        //destruimos la referencia
+        unset($clase);
 
         if($ejecucion <= 10 && count($claseTarifas) > 0){
             $this->procesarTarifa($claseTarifas, $ejecucion, $cantidadTotalPasajeros);

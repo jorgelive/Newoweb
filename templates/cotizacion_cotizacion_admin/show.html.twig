@@ -765,7 +765,7 @@ file that was distributed with this source code.
                                                         </a>
                                                     </h5>
                                                 </div>
-                                                <div id="collapseitinerario2" class="panel-collapse collapse in">
+                                                <div id="collapseitinerario2" class="panel-collapse collapse">
                                                     <div class="panel-body table-responsive">
                                                         <h3 class="visible-print">Interno: Detalle de servicios</h3>
                                                         {% if object.cotservicios is defined and object.cotservicios|length > 0%}
@@ -848,7 +848,7 @@ file that was distributed with this source code.
                                                         </a>
                                                     </h5>
                                                 </div>
-                                                <div id="collapseitinerario3" class="panel-collapse collapse">
+                                                <div id="collapseitinerario3" class="panel-collapse collapse in">
                                                     <div class="panel-body table-responsive">
                                                         <h3 class="visible-print">Interno: Resumen para proveedores</h3>
 
@@ -856,34 +856,45 @@ file that was distributed with this source code.
 
                                                                 {% for proveedor in contenido.proveedores %}
 
-                                                                        {{ proveedor.nombre }}
-                                                                        <br />
+                                                                    <h3>{{ proveedor.nombre }} </h3>
+                                                                    <h4><span style="font-weight: bold;"> Pax: {{ cotizacion.file.nombre }}</span> ({{ cotizacion.file.paisnombre }}) x {{ cotizacion.cotizacion.numeropasajeros }}</h4>
+
+                                                                    {% if proveedor.tarifas is defined and proveedor.tarifas|length > 0%}
+
+                                                                        {% for tarifa in proveedor.tarifas %}
+                                                                            <p>
+
+                                                                            {% if tarifa.tipoComponenteId == 1  or tarifa.tipoComponenteId == 4 or tarifa.tipoComponenteId == 6 %} {# tickets 1 hoteles 4 pool 6#}
+                                                                                {{ tarifa.fechaHoraInicio|date("Y-m-d") }}
+                                                                            {% else %}
+                                                                                {{ tarifa.fechaHoraInicio|date("Y-m-d H:i") }}
+                                                                            {% endif %}
+
+                                                                            {{ tarifa.componenteNombre }}
+                                                                            {% if tarifa.componenteCantidad > 1  %}x{{ tarifa.componenteCantidad }}{% endif %}
+                                                                            {{ tarifa.tarifaNombre }} x
+                                                                            {{ tarifa.tarifaCantidad }}
+                                                                            {% if tarifa.infoOperativa is defined %}{{ tarifa.infoOperativa }}{% endif %}
+                                                                            {% if tarifa.tipoTarifaId != 1  %}({{ tarifa.tipoTarifa }}){% endif %}
+
+                                                                            </p>
+                                                                        {% endfor %}
+
+                                                                    {% endif %}
+                                                                    {% if proveedor.hoteles is defined and proveedor.hoteles|length > 0%}
+
+                                                                        <h4>Hoteles</h4>
+
+                                                                        {% for hotel in proveedor.hoteles %}
+                                                                            <p>
+                                                                            Del {{hotel.fechaHoraInicio|date("Y-m-d") }} al {{hotel.fechaHoraFin|date("Y-m-d") }} {{hotel.proveedor }}
+                                                                            {% if hotel.direccion is defined %}{{ hotel.direccion }}{% endif %}
+                                                                            </p>
+                                                                        {% endfor %}
+
+                                                                    {% endif %}
 
 
-
-                                                                        {% if proveedor.tarifas is defined and proveedor.tarifas|length > 0%}
-
-                                                                            {% for tarifa in proveedor.tarifas %}
-
-                                                                                {% if tarifa.tipoComponenteId == 1  or tarifa.tipoComponenteId == 4 or tarifa.tipoComponenteId == 6 %} {# tickets 1 hoteles 4 pool 6#}
-                                                                                    {{ tarifa.fechaHoraInicio|date("Y-m-d") }}
-                                                                                {% else %}
-                                                                                    {{ tarifa.fechaHoraInicio|date("Y-m-d H:i") }}
-                                                                                {% endif %}
-
-                                                                                {{ tarifa.componenteNombre }}
-                                                                                {% if tarifa.componenteCantidad > 1  %}x{{ tarifa.componenteCantidad }}{% endif %}
-                                                                                {{ tarifa.tarifaNombre }} x
-                                                                                {{ tarifa.tarifaCantidad }}
-                                                                                {% if tarifa.infoOperativa is not null and tarifa.infoOperativa is not empty %}{{ tarifa.infoOperativa }}{% endif %}
-                                                                                {% if tarifa.tipoTarifaId != 1  %}({{ tarifa.tipoTarifa }}){% endif %}
-
-                                                                                <br />
-                                                                            {% endfor %}
-
-                                                                            <br />
-
-                                                                        {% endif %}
 
                                                                 {% endfor %}
 
