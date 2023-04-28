@@ -119,6 +119,10 @@ class CotizacionResumen implements ContainerAwareInterface
         $datosCotizacion['cotizacion']['numeropasajeros'] = $cotizacion->getNumeropasajeros();
         $datosCotizacion['cotizacion']['estadocotizacion'] = $cotizacion->getEstadocotizacion()->getId();
 
+        //guarda los datos de hoteles
+        $tempHoteles = [];
+        $tempProveedores = [];
+
 //Archivos $datosCotizacion['archivos']
         if($cotizacion->getFile()->getFiledocumentos()->count() > 0){
             $archivosAux = [];
@@ -227,8 +231,6 @@ class CotizacionResumen implements ContainerAwareInterface
 
                     endforeach;
 
-
-
                 }
 
                 if($servicio->getCotcomponentes()->count() > 0){
@@ -269,13 +271,43 @@ class CotizacionResumen implements ContainerAwareInterface
                             foreach($componente->getCottarifas() as $tarifa):
 //Incluye
                                 $tempArrayInternoIncluye = [];
+
+                                if(!empty($tarifa->getProvider())) {
+                                    $providerId = $tarifa->getProvider()->getId();
+                                    $providerName = $tarifa->getProvider()->getNombre();
+
+                                }else{
+                                    $providerId = -1;
+                                    $providerName = 'No definido';
+                                }
+                                $tempProveedores[$providerId]['nombre'] = $providerName;
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['fechaHoraInicio'] = $tempArrayComponente['fechahorainicio'];
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['fechaHoraFin'] = $tempArrayComponente['fechahorafin'];
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoComponenteId'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId();
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoComponenteNombre'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getNombre();
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['componenteNombre'] = $tempArrayComponente['nombre'];
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['componenteCantidad'] = (int)($componente->getCantidad());
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tarifaNombre'] = $tarifa->getTarifa()->getNombre();
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tarifaCantidad'] = (int)($tarifa->getCantidad());
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoTarifaId'] = $tarifa->getTipotarifa()->getId();
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoTarifaNombre'] = $tarifa->getTipotarifa()->getNombre();
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['infoOperativa'] = '';
+
 //Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
                                 if(
                                     $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId() == 4 //hoteles
                                 ){
-                                    $servicioId = -4;
+                                    $servicioId = -4; //podria ser cualuie numero negativo
                                     $datosTabs['incluye']['internoIncluidos'][$servicioId]['caso'] = 'hotel';
                                     $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = ucfirst($this->translator->trans('alojamiento', [], 'messages'));
+                                    $tempHoteles[$tarifa->getId()]['fechaHoraInicio'] = $tempArrayComponente['fechahorainicio'];
+                                    $tempHoteles[$tarifa->getId()]['fechaHoraFin'] = $tempArrayComponente['fechahorafin'];
+                                    $tempHoteles[$tarifa->getId()]['nombreComponente'] = $tempArrayComponente['nombre'];
+                                    if(!empty($tarifa->getProvider())){
+                                        $tempHoteles[$tarifa->getId()]['proveedor'] = $tarifa->getProvider()->getNombre();
+                                    }else{
+                                        $tempHoteles[$tarifa->getId()]['proveedor'] = 'No Ingresado';
+                                    }
 
                                 } elseif(isset($tempArrayComponente['tituloItinerario']) && !empty($tempArrayComponente['tituloItinerario'])){
                                     $servicioId = $servicio->getId();
@@ -323,12 +355,21 @@ class CotizacionResumen implements ContainerAwareInterface
                                 }
 
                                 $tempArrayDetalle = [];
+                                $tempInfoOperativa = [];
                                 foreach($tarifa->getCottarifadetalles() as $id => $detalle):
                                     $tempArrayDetalle[$id]['contenido'] = $detalle->getDetalle();
                                     $tempArrayDetalle[$id]['tipoId'] = $detalle->getTipotarifadetalle()->getId();
                                     $tempArrayDetalle[$id]['tipoNombre'] = $detalle->getTipotarifadetalle()->getNombre();
                                     $tempArrayDetalle[$id]['tipoTitulo'] = empty($detalle->getTipotarifadetalle()->getTitulo()) ? $tempArrayDetalle[$id]['tipoNombre'] : $detalle->getTipotarifadetalle()->getTitulo();
+
+                                    if($detalle->getTipotarifadetalle()->getId() == 6) // informacion operativa tipo 6
+                                    {
+                                        $tempInfoOperativa[] = $detalle->getDetalle();
+                                    }
+
                                 endforeach;
+
+                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['infoOperativa'] = implode(' ', $tempInfoOperativa);
 
                                 if(!empty($tempArrayDetalle)){
                                     $tempArrayInternoIncluye['detalles'] = $tempArrayDetalle;
@@ -595,6 +636,8 @@ class CotizacionResumen implements ContainerAwareInterface
 
             endforeach;
 
+            $datosTabs['itinerario']['proveedores'] = $tempProveedores;
+
 //Ordenamos el varios al final
             if(isset($datosTabs['incluye']['incluidos'][-1])){
                 $datosTabs['incluye']['incluidos'][] = $datosTabs['incluye']['incluidos'][-1];
@@ -604,6 +647,12 @@ class CotizacionResumen implements ContainerAwareInterface
                 $datosTabs['incluye']['internoIncluidos'][] = $datosTabs['incluye']['internoIncluidos'][-1];
                 unset($datosTabs['incluye']['internoIncluidos'][-1]);
             }
+//ordenamos los proveedores
+            if(isset($datosTabs['itinerario']['proveedores'][-1])){
+                $datosTabs['itinerario']['proveedores'][] = $datosTabs['itinerario']['proveedores'][-1];
+                unset($datosTabs['itinerario']['proveedores'][-1]);
+            }
+
 //ponemos los hoteles al inicio
             if(isset($datosTabs['incluye']['incluidos'][-4])){
                 $hoteles = $datosTabs['incluye']['incluidos'][-4];
@@ -622,6 +671,7 @@ class CotizacionResumen implements ContainerAwareInterface
         }
 //Hacemos disponible los datos de la cotización para el resumen de las tarifas.
         $this->datosCotizacion = $datosCotizacion;
+
 
         if(!empty($this->clasificacionTarifas)){
             $this->orderResumenTarifas();
