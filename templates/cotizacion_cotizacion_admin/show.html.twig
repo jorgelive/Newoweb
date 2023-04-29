@@ -851,53 +851,71 @@ file that was distributed with this source code.
                                                 <div id="collapseitinerario3" class="panel-collapse collapse in">
                                                     <div class="panel-body table-responsive">
                                                         <h3 class="visible-print">Interno: Resumen para proveedores</h3>
-
                                                             {% if contenido.proveedores is defined and contenido.proveedores|length > 0 %}
-
                                                                 {% for proveedor in contenido.proveedores %}
+                                                                    {% set whatsappText = "" %}
+                                                                    <h3>{{ proveedor.nombre }}</h3>
 
-                                                                    <h3>{{ proveedor.nombre }} </h3>
-                                                                    <h4><span style="font-weight: bold;"> Pax: {{ cotizacion.file.nombre }}</span> ({{ cotizacion.file.paisnombre }}) x {{ cotizacion.cotizacion.numeropasajeros }}</h4>
-
+                                                                    <h4>Pax: <span style="font-weight: bold;"> {{ cotizacion.file.nombre }}</span> ({{ cotizacion.file.paisnombre }}) <span style="font-weight: bold;">x{{ cotizacion.cotizacion.numeropasajeros }}</span></h4>
+                                                                    {% set whatsappText = '*Pax: ' ~ cotizacion.file.nombre ~ '* ' ~ cotizacion.file.paisnombre ~ ' *x' ~ cotizacion.cotizacion.numeropasajeros ~ '*\n\n' %}
                                                                     {% if proveedor.tarifas is defined and proveedor.tarifas|length > 0%}
-
                                                                         {% for tarifa in proveedor.tarifas %}
                                                                             <p>
-
                                                                             {% if tarifa.tipoComponenteId == 1  or tarifa.tipoComponenteId == 4 or tarifa.tipoComponenteId == 6 %} {# tickets 1 hoteles 4 pool 6#}
+                                                                                {% set whatsappText = whatsappText ~ tarifa.fechaHoraInicio|date("Y-m-d") %}
                                                                                 {{ tarifa.fechaHoraInicio|date("Y-m-d") }}
                                                                             {% else %}
                                                                                 {{ tarifa.fechaHoraInicio|date("Y-m-d H:i") }}
+                                                                                {% set whatsappText = whatsappText ~ tarifa.fechaHoraInicio|date("Y-m-d H:i") %}
                                                                             {% endif %}
-
                                                                             {{ tarifa.componenteNombre }}
-                                                                            {% if tarifa.componenteCantidad > 1  %}x{{ tarifa.componenteCantidad }}{% endif %}
-                                                                            {{ tarifa.tarifaNombre }} x
-                                                                            {{ tarifa.tarifaCantidad }}
-                                                                            {% if tarifa.infoOperativa is defined %}{{ tarifa.infoOperativa }}{% endif %}
-                                                                            {% if tarifa.tipoTarifaId != 1  %}({{ tarifa.tipoTarifa }}){% endif %}
-
+                                                                                {% if tarifa.componenteCantidad > 1  %}
+                                                                                    <span style="font-weight: bold;">x{{ tarifa.componenteCantidad }}</span>
+                                                                                    {% set whatsappText = whatsappText ~ ' *x' ~ tarifa.componenteCantidad ~ '*' %}
+                                                                                {% endif %}
+                                                                                {% if tarifa.tipoComponenteId == 4 %}
+                                                                                    noches
+                                                                                    {% set whatsappText = whatsappText ~ ' noches' %}
+                                                                                {% endif %}
+                                                                                <span style="font-weight: bold;">{{ tarifa.tarifaNombre }}</span>
+                                                                                {% set whatsappText = whatsappText ~ ' *' ~ tarifa.tarifaNombre ~ '*' %}
+                                                                                {% if tarifa.tipoComponenteId != 4 %}
+                                                                                    <span style="font-weight: bold;">x{{ tarifa.tarifaCantidad }}</span>
+                                                                                    {% set whatsappText = whatsappText ~ ' *x' ~ tarifa.tarifaCantidad ~ '*' %}
+                                                                                {% endif %}
+                                                                            {% if tarifa.infoOperativa is defined %}
+                                                                                {{ tarifa.infoOperativa }}
+                                                                                {% set whatsappText = whatsappText ~ ' ' ~ tarifa.infoOperativa %}
+                                                                            {% endif %}
+                                                                            {% if tarifa.tipoTarifaId != 1  %}
+                                                                                ({{ tarifa.tipoTarifa }})
+                                                                                {% set whatsappText = whatsappText ~ ' (' ~ tarifa.tipoTarifa ~ ')' %}
+                                                                            {% endif %}
+                                                                            {% set whatsappText = whatsappText ~ '\n' %}
                                                                             </p>
                                                                         {% endfor %}
-
                                                                     {% endif %}
                                                                     {% if proveedor.hoteles is defined and proveedor.hoteles|length > 0%}
-
-                                                                        <h4>Hoteles</h4>
-
+                                                                        {% set whatsappText = whatsappText ~ '\n' %}
+                                                                        <h4>Hoteles:</h4>
+                                                                        {% set whatsappText = whatsappText ~ '*Hoteles:*\n' %}
                                                                         {% for hotel in proveedor.hoteles %}
                                                                             <p>
-                                                                            Del {{hotel.fechaHoraInicio|date("Y-m-d") }} al {{hotel.fechaHoraFin|date("Y-m-d") }} {{hotel.proveedor }}
-                                                                            {% if hotel.direccion is defined %}{{ hotel.direccion }}{% endif %}
+                                                                                Del {{hotel.fechaHoraInicio|date("Y-m-d") }} al {{hotel.fechaHoraFin|date("Y-m-d") }} <span style="font-weight: bold;">{{hotel.proveedor }}</span>
+                                                                                {% set whatsappText = whatsappText ~ 'Del ' ~ hotel.fechaHoraInicio|date("Y-m-d") ~ ' al ' ~ hotel.fechaHoraFin|date("Y-m-d") ~ ' *' ~ hotel.proveedor ~ '*' %}
+                                                                                {% if hotel.direccion is defined %}
+                                                                                    {{ hotel.direccion }}
+                                                                                    {% set whatsappText = whatsappText ~ ' ' ~ hotel.direccion %}
+                                                                                {% endif %}
+                                                                                {% set whatsappText = whatsappText ~ '\n' %}
                                                                             </p>
                                                                         {% endfor %}
-
                                                                     {% endif %}
+                                                                    {% if proveedor.telefono is defined %}
 
-
-
+                                                                        <a href='https://wa.me/{{proveedor.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}' style='display: inline-block; padding:8px; border-radius: 4px; background-color: #25D366; color: #fff; text-decoration: none; font-family: sans-serif; font-size: 16px;'>Enviar por Whatsapp</a>
+                                                                    {% endif %}
                                                                 {% endfor %}
-
                                                         {% endif %}
                                                     </div>
                                                 </div>

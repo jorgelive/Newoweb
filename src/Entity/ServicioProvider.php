@@ -120,7 +120,7 @@ class ServicioProvider
         return $this->nombre;
     }
 
-    public function setDirecion(string $direccion): self
+    public function setDirecion(?string $direccion): self
     {
         $this->direccion = $direccion;
 
@@ -132,7 +132,7 @@ class ServicioProvider
         return $this->direccion;
     }
 
-    public function setTelefono(string $telefono): self
+    public function setTelefono(?string $telefono): self
     {
         $this->telefono = $telefono;
 
@@ -144,7 +144,7 @@ class ServicioProvider
         return $this->telefono;
     }
 
-    public function setEmail(string $email): self
+    public function setEmail(?string $email): self
     {
         $this->email = $email;
 

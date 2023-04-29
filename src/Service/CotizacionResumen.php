@@ -275,12 +275,19 @@ class CotizacionResumen implements ContainerAwareInterface
                                 if(!empty($tarifa->getProvider())) {
                                     $providerId = $tarifa->getProvider()->getId();
                                     $providerName = $tarifa->getProvider()->getNombre();
+                                    if(!empty($tarifa->getProvider()->getTelefono())){
+                                        $tempProveedores[$providerId]['telefono'] = $tarifa->getProvider()->getTelefono();
+                                    }
+                                    if(!empty($tarifa->getProvider()->getEmail())){
+                                        $tempProveedores[$providerId]['email'] = $tarifa->getProvider()->getEmail();
+                                    }
 
                                 }else{
                                     $providerId = -1;
                                     $providerName = 'No definido';
                                 }
                                 $tempProveedores[$providerId]['nombre'] = $providerName;
+
                                 $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['fechaHoraInicio'] = $tempArrayComponente['fechahorainicio'];
                                 $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['fechaHoraFin'] = $tempArrayComponente['fechahorafin'];
                                 $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoComponenteId'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId();
