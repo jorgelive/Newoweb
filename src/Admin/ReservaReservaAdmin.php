@@ -156,12 +156,49 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Fin',
                 'format' => 'Y/m/d H:i'
             ])
-            ->add('unit', null, [
-                'label' => 'Alojamiento'
+            ->add('unit', FieldDescriptionInterface::TYPE_CHOICE, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'unit']],
+                'label' => 'Alojamiento',
+                'editable' => true,
+                'class' => 'App\Entity\ReservaUnit',
+                'required' => true,
+                'choices' => [
+                    1 => '#1 Centro Cusco',
+                    2 => '#2 Centro Cusco',
+                    3 => '#3 Centro Cusco',
+                    4 => '#4 Centro Cusco',
+                    5 => '#5 Centro Cusco',
+                ]
             ])
-            ->add('estado')
-            ->add('chanel', null, [
-                'label' => 'Canal'
+            ->add('estado', FieldDescriptionInterface::TYPE_CHOICE, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'estado']],
+                'label' => 'Estado',
+                'editable' => true,
+                'class' => 'App\Entity\ReservaEstado',
+                'required' => true,
+                'choices' => [
+                    1 => 'Pendiente',
+                    2 => 'Confirmado',
+                    3 => 'Cancelado'
+                ]
+            ])
+            ->add('chanel', FieldDescriptionInterface::TYPE_CHOICE, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'chanel']],
+                'label' => 'Canal',
+                'editable' => true,
+                'class' => 'App\Entity\ReservaChanel',
+                'required' => true,
+                'choices' => [
+                    1 => 'Directo',
+                    2 => 'Airbnb',
+                    3 => 'Booking'
+                ]
             ])
             ->add('manual', null, [
                 'editable' => true
@@ -171,7 +208,8 @@ class ReservaReservaAdmin extends AbstractAdmin
             ])
             ->add('enlace', null, [
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],
-                'template' => 'base_sonata_admin/list_url.html.twig'
+                'template' => 'base_sonata_admin/list_url.html.twig',
+                'editable' => true
             ])
             ->add('detalles', null, [
                 'label' => 'Detalles',

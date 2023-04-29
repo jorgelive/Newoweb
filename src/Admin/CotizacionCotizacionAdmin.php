@@ -201,6 +201,7 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'label' => 'Estado',
                 'editable' => true,
                 'class' => 'App\Entity\CotizacionEstadocotizacion',
+                'required' => true,
                 'choices' => [
                     1 => 'Pendiente',
                     2 => 'Archivado',
@@ -221,7 +222,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
-                    'show' => [],
+                    'show' => [
+                        'template' => 'cotizacion_cotizacion_admin\list__action_show.html.twig'
+                    ],
                     'edit' => [],
                     'delete' => [],
                     'resumen' => [

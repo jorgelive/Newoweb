@@ -375,7 +375,7 @@ class CotizacionResumen implements ContainerAwareInterface
 
                                 $tempArrayDetalle = [];
                                 $tempInfoOperativa = [];
-                                
+
                                 foreach($tarifa->getCottarifadetalles() as $id => $detalle):
                                     $tempArrayDetalle[$id]['contenido'] = $detalle->getDetalle();
                                     $tempArrayDetalle[$id]['tipoId'] = $detalle->getTipotarifadetalle()->getId();
