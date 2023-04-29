@@ -102,6 +102,10 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('provider',  null, [
                 'label' => 'Proveedor'
             ])
+            ->add('providernomostrable',  null, [
+                'label' => 'No Mostrar a Proveedor',
+                'editable' => true
+            ])
             ->add('categoriatour', FieldDescriptionInterface::TYPE_CHOICE, [
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
@@ -215,6 +219,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'dropdown_auto_width' => false,
                 'required' => false,
                 'label' => 'Proveedor'
+            ])
+            ->add('providernomostrable',  null, [
+                'label' => 'No Mostrar a Proveedor'
             ])
             ->add('categoriatour', null, [
                 'label' => 'Categoria de tour'
@@ -337,6 +344,12 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('id')
             ->add('componente')
             ->add('nombre')
+            ->add('provider',  null, [
+                'label' => 'Proveedor'
+            ])
+            ->add('providernomostrable',  null, [
+                'label' => 'No Mostrar a Proveedor'
+            ])
             ->add('categoriatour', null, [
                 'label' => 'Categoria de tour'
             ])

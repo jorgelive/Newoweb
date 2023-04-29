@@ -272,32 +272,34 @@ class CotizacionResumen implements ContainerAwareInterface
 //Incluye
                                 $tempArrayInternoIncluye = [];
 
-                                if(!empty($tarifa->getProvider())) {
-                                    $providerId = $tarifa->getProvider()->getId();
-                                    $providerName = $tarifa->getProvider()->getNombre();
-                                    if(!empty($tarifa->getProvider()->getTelefono())){
-                                        $tempProveedores[$providerId]['telefono'] = $tarifa->getProvider()->getTelefono();
-                                    }
-                                    if(!empty($tarifa->getProvider()->getEmail())){
-                                        $tempProveedores[$providerId]['email'] = $tarifa->getProvider()->getEmail();
-                                    }
+                                if(!$tarifa->getTarifa()->isProvidernomostrable()){
+                                    if(!empty($tarifa->getProvider())) {
+                                        $providerId = $tarifa->getProvider()->getId();
+                                        $providerName = $tarifa->getProvider()->getNombre();
+                                        if(!empty($tarifa->getProvider()->getTelefono())){
+                                            $tempProveedores[$providerId]['telefono'] = $tarifa->getProvider()->getTelefono();
+                                        }
+                                        if(!empty($tarifa->getProvider()->getEmail())){
+                                            $tempProveedores[$providerId]['email'] = $tarifa->getProvider()->getEmail();
+                                        }
 
-                                }else{
-                                    $providerId = -1;
-                                    $providerName = 'No definido';
+                                    }else{
+                                        $providerId = -1;
+                                        $providerName = 'No definido';
+                                    }
+                                    $tempProveedores[$providerId]['nombre'] = $providerName;
+
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['fechaHoraInicio'] = $tempArrayComponente['fechahorainicio'];
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['fechaHoraFin'] = $tempArrayComponente['fechahorafin'];
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoComponenteId'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId();
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoComponenteNombre'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getNombre();
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['componenteNombre'] = $tempArrayComponente['nombre'];
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['componenteCantidad'] = (int)($componente->getCantidad());
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tarifaNombre'] = $tarifa->getTarifa()->getNombre();
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tarifaCantidad'] = (int)($tarifa->getCantidad());
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoTarifaId'] = $tarifa->getTipotarifa()->getId();
+                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoTarifaNombre'] = $tarifa->getTipotarifa()->getNombre();
                                 }
-                                $tempProveedores[$providerId]['nombre'] = $providerName;
-
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['fechaHoraInicio'] = $tempArrayComponente['fechahorainicio'];
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['fechaHoraFin'] = $tempArrayComponente['fechahorafin'];
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoComponenteId'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId();
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoComponenteNombre'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getNombre();
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['componenteNombre'] = $tempArrayComponente['nombre'];
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['componenteCantidad'] = (int)($componente->getCantidad());
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tarifaNombre'] = $tarifa->getTarifa()->getNombre();
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tarifaCantidad'] = (int)($tarifa->getCantidad());
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoTarifaId'] = $tarifa->getTipotarifa()->getId();
-                                $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['tipoTarifaNombre'] = $tarifa->getTipotarifa()->getNombre();
 
 //Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
                                 if(
@@ -373,22 +375,25 @@ class CotizacionResumen implements ContainerAwareInterface
 
                                 $tempArrayDetalle = [];
                                 $tempInfoOperativa = [];
+                                
                                 foreach($tarifa->getCottarifadetalles() as $id => $detalle):
                                     $tempArrayDetalle[$id]['contenido'] = $detalle->getDetalle();
                                     $tempArrayDetalle[$id]['tipoId'] = $detalle->getTipotarifadetalle()->getId();
                                     $tempArrayDetalle[$id]['tipoNombre'] = $detalle->getTipotarifadetalle()->getNombre();
                                     $tempArrayDetalle[$id]['tipoTitulo'] = empty($detalle->getTipotarifadetalle()->getTitulo()) ? $tempArrayDetalle[$id]['tipoNombre'] : $detalle->getTipotarifadetalle()->getTitulo();
 
-                                    if($detalle->getTipotarifadetalle()->getId() == 6) // informacion operativa tipo 6
+                                    if($detalle->getTipotarifadetalle()->getId() == 6) // $tempProveedores informacion operativa tipo 6 para proveedores
                                     {
                                         $tempInfoOperativa[] = $detalle->getDetalle();
                                     }
 
                                 endforeach;
 
-                                if(!empty($tempInfoOperativa)){
-                                    $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['infoOperativa'] = implode(' ', $tempInfoOperativa);
+                                if(!$tarifa->getTarifa()->isProvidernomostrable()) {
+                                    if (!empty($tempInfoOperativa)) {
+                                        $tempProveedores[$providerId]['tarifas'][$tarifa->getId()]['infoOperativa'] = implode(' ', $tempInfoOperativa);
 
+                                    }
                                 }
                                 unset($tempInfoOperativa);
 
@@ -397,9 +402,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                 }
 
                                 $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['cantidadComponente'] = $componente->getCantidad();
-
                                 $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['nombre'] = $componente->getComponente()->getNombre();
-
                                 $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['listaclase'] = $tarifa->getTipotarifa()->getListaclase();
                                 $datosTabs['incluye']['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
 

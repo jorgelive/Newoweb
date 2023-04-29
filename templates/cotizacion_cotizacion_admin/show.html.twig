@@ -888,8 +888,8 @@ file that was distributed with this source code.
                                                                                 {% set whatsappText = whatsappText ~ ' ' ~ tarifa.infoOperativa %}
                                                                             {% endif %}
                                                                             {% if tarifa.tipoTarifaId != 1  %}
-                                                                                ({{ tarifa.tipoTarifa }})
-                                                                                {% set whatsappText = whatsappText ~ ' (' ~ tarifa.tipoTarifa ~ ')' %}
+                                                                                ({{ tarifa.tipoTarifaNombre }})
+                                                                                {% set whatsappText = whatsappText ~ ' (' ~ tarifa.tipoTarifaNombre ~ ')' %}
                                                                             {% endif %}
                                                                             {% set whatsappText = whatsappText ~ '\n' %}
                                                                             </p>

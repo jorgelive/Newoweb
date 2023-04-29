@@ -161,6 +161,13 @@ class ServicioTarifa
     protected $provider;
 
     /**
+     * @var bool
+     *
+     * @ORM\Column(type="boolean", options={"default": 0})
+     */
+    private $providernomostrable;
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -474,6 +481,18 @@ class ServicioTarifa
     public function getProvider(): ?ServicioProvider
     {
         return $this->provider;
+    }
+
+    public function setProvidernomostrable(?bool $providernomostrable): self
+    {
+        $this->providernomostrable = $providernomostrable;
+
+        return $this;
+    }
+
+    public function isProvidernomostrable(): ?bool
+    {
+        return $this->providernomostrable;
     }
 
 }
