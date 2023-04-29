@@ -120,7 +120,7 @@ class ServicioProvider
         return $this->nombre;
     }
 
-    public function setDirecion(?string $direccion): self
+    public function setDireccion(?string $direccion): self
     {
         $this->direccion = $direccion;
 
