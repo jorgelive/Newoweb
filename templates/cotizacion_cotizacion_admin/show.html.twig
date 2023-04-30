@@ -854,10 +854,10 @@ file that was distributed with this source code.
                                                             {% if contenido.proveedores is defined and contenido.proveedores|length > 0 %}
                                                                 {% for proveedor in contenido.proveedores %}
                                                                     {% set whatsappText = "" %}
-                                                                    <h3>{{ proveedor.nombre }}</h3>
+                                                                    <h3>{{ proveedor.nombreMostrar }}</h3>
 
                                                                     <h4>Pax: <span style="font-weight: bold;"> {{ cotizacion.file.nombre }}</span> ({{ cotizacion.file.paisnombre }}) <span style="font-weight: bold;">x{{ cotizacion.cotizacion.numeropasajeros }}</span></h4>
-                                                                    {% set whatsappText = '*Pax: ' ~ cotizacion.file.nombre ~ '* ' ~ cotizacion.file.paisnombre ~ ' *x' ~ cotizacion.cotizacion.numeropasajeros ~ '*\n\n' %}
+                                                                    {% set whatsappText = '*Pax: ' ~ cotizacion.file.nombre ~ '* (' ~ cotizacion.file.paisnombre ~ ') *x' ~ cotizacion.cotizacion.numeropasajeros ~ '*\n\n' %}
                                                                     {% if proveedor.tarifas is defined and proveedor.tarifas|length > 0%}
                                                                         {% for tarifa in proveedor.tarifas %}
                                                                             <p>
@@ -903,8 +903,8 @@ file that was distributed with this source code.
                                                                         {% set whatsappText = whatsappText ~ '*Hoteles:*\n' %}
                                                                         {% for hotel in proveedor.hoteles %}
                                                                             <p>
-                                                                                Del {{hotel.fechaHoraInicio|date("Y-m-d") }} al {{hotel.fechaHoraFin|date("Y-m-d") }} <span style="font-weight: bold;">{{hotel.proveedor }}</span>
-                                                                                {% set whatsappText = whatsappText ~ 'Del ' ~ hotel.fechaHoraInicio|date("Y-m-d") ~ ' al ' ~ hotel.fechaHoraFin|date("Y-m-d") ~ ' *' ~ hotel.proveedor ~ '*' %}
+                                                                                Del {{hotel.fechaHoraInicio|date("Y-m-d") }} al {{hotel.fechaHoraFin|date("Y-m-d") }} <span style="font-weight: bold;">{{hotel.nombreMostrar }}</span>
+                                                                                {% set whatsappText = whatsappText ~ 'Del ' ~ hotel.fechaHoraInicio|date("Y-m-d") ~ ' al ' ~ hotel.fechaHoraFin|date("Y-m-d") ~ ' *' ~ hotel.nombreMostrar ~ '*' %}
                                                                                 {% if hotel.direccion is defined %}
                                                                                     {{ hotel.direccion }}
                                                                                     {% set whatsappText = whatsappText ~ ' ' ~ hotel.direccion %}
@@ -914,9 +914,12 @@ file that was distributed with this source code.
                                                                         {% endfor %}
                                                                     {% endif %}
                                                                     {% if proveedor.telefono is defined %}
-
                                                                         <a href='https://wa.me/{{proveedor.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}' style='display: inline-block; padding:8px; border-radius: 4px; background-color: #25D366; color: #fff; text-decoration: none; font-family: sans-serif; font-size: 16px;'>Enviar por Whatsapp</a>
                                                                     {% endif %}
+
+
+
+
                                                                 {% endfor %}
                                                         {% endif %}
                                                     </div>

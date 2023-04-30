@@ -190,7 +190,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
         ){
             $formMapper
                 ->add('componente', ModelAutocompleteType::class, [
-                    'property' => 'nombre',
+                    'property' => 'nombre', //no funciona ya que se cambio la ruta
                     'template' => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
                     'route' => ['name' => 'app_servicio_componente_porserviciodropdown', 'parameters' => []],
                     'placeholder' => '',

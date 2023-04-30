@@ -279,6 +279,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                         $indiceTarifasProveedor = $tempArrayComponente['fechahorainicio']->format('Ymd').sprintf('%04d',$tarifa->getTarifa()->getComponente()->getTipocomponente()->getPrioridadparaproveedor()).$tempArrayComponente['fechahorainicio']->format('Hi').sprintf('%010d', $tarifa->getId());
                                         $providerId = $tarifa->getProvider()->getId();
                                         $providerName = $tarifa->getProvider()->getNombre();
+                                        $providerNameMostrar = $tarifa->getProvider()->getNombremostrar();
                                         //se sobreescriben para cada tarifa
                                         if(!empty($tarifa->getProvider()->getTelefono())){
                                             $tempProveedores[$providerId]['telefono'] = $tarifa->getProvider()->getTelefono();
@@ -290,8 +291,10 @@ class CotizacionResumen implements ContainerAwareInterface
                                     }else{
                                         $providerId = -1;
                                         $providerName = 'No definido';
+                                        $providerNameMostrar = 'No definido';
                                     }
                                     $tempProveedores[$providerId]['nombre'] = $providerName;
+                                    $tempProveedores[$providerId]['nombreMostrar'] = $providerNameMostrar;
 
                                     $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['fechaHoraInicio'] = $tempArrayComponente['fechahorainicio'];
                                     $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['fechaHoraFin'] = $tempArrayComponente['fechahorafin'];
@@ -318,7 +321,8 @@ class CotizacionResumen implements ContainerAwareInterface
                                     $tempHoteles[$tarifa->getId()]['nombreComponente'] = $tempArrayComponente['nombre'];
 
                                     if(!empty($tarifa->getProvider())){
-                                        $tempHoteles[$tarifa->getId()]['proveedor'] = $tarifa->getProvider()->getNombre();
+                                        $tempHoteles[$tarifa->getId()]['nombre'] = $tarifa->getProvider()->getNombre();
+                                        $tempHoteles[$tarifa->getId()]['nombreMostrar'] = $tarifa->getProvider()->getNombremostrar();
                                         if(!empty($tarifa->getProvider()->getDireccion())){
                                             $tempHoteles[$tarifa->getId()]['direccion'] = $tarifa->getProvider()->getDireccion();
                                         }
@@ -330,7 +334,8 @@ class CotizacionResumen implements ContainerAwareInterface
                                         }
 
                                     }else{
-                                        $tempHoteles[$tarifa->getId()]['proveedor'] = 'No Ingresado';
+                                        $tempHoteles[$tarifa->getId()]['nombre'] = 'No Ingresado';
+                                        $tempHoteles[$tarifa->getId()]['nombreMostrar'] = 'No Ingresado';
                                     }
 
                                 } elseif(isset($tempArrayComponente['tituloItinerario']) && !empty($tempArrayComponente['tituloItinerario'])){

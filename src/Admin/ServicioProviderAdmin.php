@@ -19,6 +19,9 @@ class ServicioProviderAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
+            ->add('nombremostrar', null, [
+                'label' => 'Nombre para mostrar'
+            ])
             ->add('direccion', null, [
                 'label' => 'Dirección'
             ])
@@ -39,6 +42,10 @@ class ServicioProviderAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('nombre', null, [
+                'editable' => true
+            ])
+            ->add('nombremostrar', null, [
+                'label' => 'Nombre para mostrar',
                 'editable' => true
             ])
             ->add('direccion', null, [
@@ -71,6 +78,9 @@ class ServicioProviderAdmin extends AbstractAdmin
     {
         $formMapper
             ->add('nombre')
+            ->add('nombremostrar', null, [
+                'label' => 'Nombre para mostrar'
+            ])
             ->add('direccion', null, [
                 'label' => 'Dirección'
             ])
@@ -91,6 +101,9 @@ class ServicioProviderAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
+            ->add('nombremostrar', null, [
+                'label' => 'Nombre para mostrar'
+            ])
             ->add('direccion', null, [
                 'label' => 'Dirección'
             ])

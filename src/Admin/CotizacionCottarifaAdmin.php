@@ -91,7 +91,7 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
 
         $formMapper
             ->add('tarifa', ModelAutocompleteType::class, [
-                'property' => 'nombre',
+                'property' => 'nombre', //no funciona ya que se cambio la ruta
                 'template' => '/form/type/ajax_dropdown_type_cotizacion_cottarifa.html.twig',
                 'route' => ['name' => 'app_servicio_tarifa_porcomponentedropdown', 'parameters' => []],
                 'placeholder' => '',

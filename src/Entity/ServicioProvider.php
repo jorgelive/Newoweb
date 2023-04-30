@@ -30,9 +30,16 @@ class ServicioProvider
     /**
      * @var string
      *
-     * @ORM\Column(type="string", length=100)
+     * @ORM\Column(type="string", length=30)
      */
     private $nombre;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(type="string", length=100)
+     */
+    private $nombremostrar;
 
     /**
      * @var string
@@ -96,12 +103,10 @@ class ServicioProvider
         $this->tarifas = new ArrayCollection();
     }
 
-
     public function __toString(): string
     {
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
-
 
     public function getId(): int
     {
@@ -118,6 +123,18 @@ class ServicioProvider
     public function getNombre(): string
     {
         return $this->nombre;
+    }
+
+    public function setNombremostrar(string $nombremostrar): self
+    {
+        $this->nombremostrar = $nombremostrar;
+
+        return $this;
+    }
+
+    public function getNombremostrar(): string
+    {
+        return $this->nombremostrar;
     }
 
     public function setDireccion(?string $direccion): self
