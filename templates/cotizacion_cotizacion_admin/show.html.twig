@@ -861,16 +861,16 @@ file that was distributed with this source code.
                                                                     {% if proveedor.tarifas is defined and proveedor.tarifas|length > 0%}
                                                                         {% for tarifa in proveedor.tarifas %}
                                                                             <p>
-                                                                            {% if tarifa.tipoComponenteId == 1  or tarifa.tipoComponenteId == 4 or tarifa.tipoComponenteId == 6 %} {# tickets 1 hoteles 4 pool 6#}
-                                                                                {% set whatsappText = whatsappText ~ tarifa.fechaHoraInicio|date("Y-m-d") %}
-                                                                                {{ tarifa.fechaHoraInicio|date("Y-m-d") }}
-                                                                            {% else %}
-                                                                                {{ tarifa.fechaHoraInicio|date("Y-m-d H:i") }}
-                                                                                {% set whatsappText = whatsappText ~ tarifa.fechaHoraInicio|date("Y-m-d H:i") %}
-                                                                            {% endif %}
+                                                                                {% if tarifa.tipoComponenteId == 1  or tarifa.tipoComponenteId == 4 or tarifa.tipoComponenteId == 6 %} {# tickets 1 hoteles 4 pool 6#}
+                                                                                    {% set whatsappText = whatsappText ~ tarifa.fechaHoraInicio|date("Y-m-d") %}
+                                                                                    {{ tarifa.fechaHoraInicio|date("Y-m-d") }}
+                                                                                {% else %}
+                                                                                    {{ tarifa.fechaHoraInicio|date("Y-m-d H:i") }}
+                                                                                    {% set whatsappText = whatsappText ~ tarifa.fechaHoraInicio|date("Y-m-d H:i") %}
+                                                                                {% endif %}
 
-                                                                            {{ tarifa.componenteNombre }}
-                                                                            {% set whatsappText = whatsappText ~ ' ' ~ tarifa.componenteCantidad %}
+                                                                                {{ tarifa.componenteNombre }}
+                                                                                {% set whatsappText = whatsappText ~ ' ' ~ tarifa.componenteNombre %}
                                                                                 {% if tarifa.componenteCantidad > 1  %}
                                                                                     <span style="font-weight: bold;">x{{ tarifa.componenteCantidad }}</span>
                                                                                     {% set whatsappText = whatsappText ~ ' *x' ~ tarifa.componenteCantidad ~ '*' %}
