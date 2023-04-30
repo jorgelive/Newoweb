@@ -50,6 +50,14 @@ class ServicioTarifa
     private $nombre;
 
     /**
+     * para mostrar al proveedor
+     * @var string
+     *
+     * @ORM\Column(type="string", length=100)
+     */
+    private $nombremostrar;
+
+    /**
      * @var string
      *
      * @Gedmo\Translatable
@@ -274,6 +282,18 @@ class ServicioTarifa
     public function getNombre(): ?string
     {
         return $this->nombre;
+    }
+
+    public function setNombremostrar(?string $nombremostrar): self
+    {
+        $this->nombremostrar = $nombremostrar;
+
+        return $this;
+    }
+
+    public function getNombremostrar(): ?string
+    {
+        return $this->nombremostrar;
     }
 
     public function setMonto(?string $monto): self

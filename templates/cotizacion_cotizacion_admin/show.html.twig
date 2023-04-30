@@ -853,11 +853,12 @@ file that was distributed with this source code.
                                                         <h3 class="visible-print">Interno: Resumen para proveedores</h3>
                                                             {% if contenido.proveedores is defined and contenido.proveedores|length > 0 %}
                                                                 {% for proveedor in contenido.proveedores %}
-                                                                    {% set whatsappText = "" %}
-                                                                    <h3>{{ proveedor.nombreMostrar }}</h3>
 
-                                                                    <h4>Pax: <span style="font-weight: bold;"> {{ cotizacion.file.nombre }}</span> ({{ cotizacion.file.paisnombre }}) <span style="font-weight: bold;">x{{ cotizacion.cotizacion.numeropasajeros }}</span></h4>
-                                                                    {% set whatsappText = '*Pax: ' ~ cotizacion.file.nombre ~ '* (' ~ cotizacion.file.paisnombre ~ ') *x' ~ cotizacion.cotizacion.numeropasajeros ~ '*\n\n' %}
+                                                                    <h3>{{ proveedor.nombreMostrar }} <span style="font-size: 70%;">({{ proveedor.nombre }})</span></h3>
+                                                                    {% set whatsappText = 'Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase proveer los siguientes servicios:\n'%}
+
+                                                                    <h4>Pax: <span style="font-weight: bold;"> {{ cotizacion.file.nombre }} x{{ cotizacion.cotizacion.numeropasajeros }}</span> ({{ cotizacion.file.paisnombre }} - {{ cotizacion.file.idioma }})</h4>
+                                                                    {% set whatsappText = whatsappText ~ 'Pax: *' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros ~ '* (' ~ cotizacion.file.paisnombre ~ '-' ~ cotizacion.file.idioma ~ ')' ~ '*\n\n' %}
                                                                     {% if proveedor.tarifas is defined and proveedor.tarifas|length > 0%}
                                                                         {% for tarifa in proveedor.tarifas %}
                                                                             <p>
@@ -879,9 +880,11 @@ file that was distributed with this source code.
                                                                                     noches
                                                                                     {% set whatsappText = whatsappText ~ ' noches' %}
                                                                                 {% endif %}
-                                                                                <span style="font-weight: bold;">{{ tarifa.tarifaNombre }}</span>
+                                                                                    {% if tarifa.tipoComponenteId != 4 %}
+                                                                                    <span style="font-weight: bold;">{{ tarifa.tarifaNombre }}</span>
+                                                                                {% endif %}
                                                                                 {% set whatsappText = whatsappText ~ ' *' ~ tarifa.tarifaNombre ~ '*' %}
-                                                                                {% if tarifa.tipoComponenteId != 4 %}
+                                                                                {% if tarifa.tarifaCantidad is defined %} {# depende del prorateo #}
                                                                                     <span style="font-weight: bold;">x{{ tarifa.tarifaCantidad }}</span>
                                                                                     {% set whatsappText = whatsappText ~ ' *x' ~ tarifa.tarifaCantidad ~ '*' %}
                                                                                 {% endif %}
@@ -914,11 +917,67 @@ file that was distributed with this source code.
                                                                         {% endfor %}
                                                                     {% endif %}
                                                                     {% if proveedor.telefono is defined %}
-                                                                        <a href='https://wa.me/{{proveedor.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}' style='display: inline-block; padding:8px; border-radius: 4px; background-color: #25D366; color: #fff; text-decoration: none; font-family: sans-serif; font-size: 16px;'>Enviar por Whatsapp</a>
+                                                                        <a href="https://wa.me/{{proveedor.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                                                                           class="btn btn-sm btn-success edit_link">
+                                                                            <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                                                                            Enviar por Whatsapp
+                                                                        </a>
                                                                     {% endif %}
 
+                                                                    {% if proveedor.email is defined %}
+                                                                        <a href="#"
+                                                                           class="btn btn-sm btn-info edit_link"
+                                                                           data-toggle="modal"
+                                                                           data-target="#clonarModal-{{ loop.index }}">
+                                                                            <i class="fa fa-email" aria-hidden="true"></i>
+                                                                            Enviar por Correo
+                                                                        </a>
+
+                                                                        <div class="modal fade" id="clonarModal-{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="clonarLabel">
+                                                                            <div class="modal-dialog" role="document">
+                                                                                <div class="modal-content">
+                                                                                    <div class="modal-header">
+                                                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                                                                        <h4 class="modal-title" id="myModalLabel-{{ loop.index }}">Clonar</h4>
+                                                                                    </div>
+                                                                                    <div class="modal-body">
+                                                                                        Esta seguro que desea clonar esta cotización? (Opcionalmente cambie la fecha de inicio de los servicios)
+                                                                                    </div>
+                                                                                    <div class="modal-footer">
+
+                                                                                        <div id="sonata-ba-field-container-fechainicio-{{ loop.index }}" class="form-group">
+
+                                                                                            <label class="control-label required" for="fechainicio-{{ loop.index }}">Fecha de inicio</label>
+
+                                                                                            <div class="sonata-ba-field sonata-ba-field-standard-natural">
+
+                                                                                                <div class="input-group">
+                                                                                                    <div class="input-group date" id="dp_fechainicio-{{ loop.index }}">
+                                                                                                        <input type="text" id="fechainicio-{{ loop.index }}" name="fechainicio" class="sonata-medium-date form-control" data-date-format="YYYY/MM/DD">
+                                                                                                        <span class="input-group-addon">
+                                                                                                            <span class="fa-calendar fa"></span>
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                </div>
 
 
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        <div class="form-group"> <!-- Submit button -->
+                                                                                            <a id="lk_fechainicio-{{ loop.index }}" href="{{ admin.generateObjectUrl('show', object) }}"
+                                                                                               class="btn btn-danger"
+                                                                                               title="Clonar">
+                                                                                                Clonar
+                                                                                            </a>
+                                                                                            <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+                                                                                        </div>
+
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    {% endif %}
 
                                                                 {% endfor %}
                                                         {% endif %}

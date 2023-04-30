@@ -42,6 +42,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('id')
             ->add('componente')
             ->add('nombre')
+            ->add('nombremostrar',  null, [
+                'label' => 'Nombre para proveedor'
+            ])
             ->add('provider',  null, [
                 'label' => 'Proveedor'
             ])
@@ -98,6 +101,10 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ])
             ->add('nombre', null, [
                 'editable' => true
+            ])
+            ->add('nombremostrar',  null, [
+                'editable' => true,
+                'label' => 'Nombre para proveedor'
             ])
             ->add('provider',  null, [
                 'label' => 'Proveedor'
@@ -213,6 +220,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
 
         $formMapper
             ->add('nombre')
+            ->add('nombremostrar',  null, [
+                'label' => 'Nombre para proveedor'
+            ])
             ->add('provider', ModelAutocompleteType::class, [
                 'property' => 'nombre',
                 'minimum_input_length' => 0,
@@ -282,6 +292,12 @@ class ServicioTarifaAdmin extends AbstractAdmin
                         'style' => 'width: 200px;'
                     ]
                 ])
+                ->add('nombremostrar',  null, [
+                    'label' => 'Nombre para proveedor',
+                    'attr' => [
+                        'style' => 'width: 200px;'
+                    ]
+                ])
                 ->add('titulo', null, [
                     'label' => 'Título',
                     'attr' => [
@@ -344,6 +360,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('id')
             ->add('componente')
             ->add('nombre')
+            ->add('nombremostrar',  null, [
+                'label' => 'Nombre para proveedor'
+            ])
             ->add('provider',  null, [
                 'label' => 'Proveedor'
             ])

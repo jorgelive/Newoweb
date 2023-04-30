@@ -303,8 +303,15 @@ class CotizacionResumen implements ContainerAwareInterface
                                     $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tipoComponentePrioridad'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getPrioridadparaproveedor();
                                     $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['componenteNombre'] = $tempArrayComponente['nombre'];
                                     $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['componenteCantidad'] = (int)($componente->getCantidad());
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tarifaNombre'] = $tarifa->getTarifa()->getNombre();
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tarifaCantidad'] = (int)($tarifa->getCantidad());
+                                    if(!empty($tarifa->getTarifa()->getNombremostrar())){
+                                        $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tarifaNombre'] = $tarifa->getTarifa()->getNombremostrar();
+                                    }else{
+                                        $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tarifaNombre'] = $tarifa->getTarifa()->getNombre();
+                                    }
+
+                                    if($tarifa->getTarifa()->isProrrateado() === false){
+                                        $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tarifaCantidad'] = (int)($tarifa->getCantidad());
+                                    }
                                     $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tipoTarifaId'] = $tarifa->getTipotarifa()->getId();
                                     $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tipoTarifaNombre'] = $tarifa->getTipotarifa()->getNombre();
                                 }
