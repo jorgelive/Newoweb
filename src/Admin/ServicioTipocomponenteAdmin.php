@@ -24,6 +24,10 @@ class ServicioTipocomponenteAdmin extends AbstractAdmin
             ->add('agendable', null, [
                 'label' => 'Mostrar en agenda'
             ])
+            ->add('prioridadparaproveedor', null, [
+                'label' => 'Prioridad para proveedor'
+            ])
+
         ;
     }
 
@@ -44,6 +48,10 @@ class ServicioTipocomponenteAdmin extends AbstractAdmin
             ->add('agendable', null, [
                 'editable' => true,
                 'label' => 'Mostrar en agenda'
+            ])
+            ->add('prioridadparaproveedor', null, [
+                'editable' => true,
+                'label' => 'Prioridad para proveedor'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -69,6 +77,9 @@ class ServicioTipocomponenteAdmin extends AbstractAdmin
             ->add('agendable', null, [
                 'label' => 'Mostrar en agenda'
             ])
+            ->add('prioridadparaproveedor', null, [
+                'label' => 'Prioridad para proveedor'
+            ])
         ;
     }
 
@@ -85,6 +96,9 @@ class ServicioTipocomponenteAdmin extends AbstractAdmin
             ])
             ->add('agendable', null, [
                 'label' => 'Mostrar en agenda'
+            ])
+            ->add('prioridadparaproveedor', null, [
+                'label' => 'Prioridad para proveedor'
             ])
         ;
     }

@@ -26,24 +26,30 @@ class ServicioTipocomponente
     /**
      * @var string
      *
-     * @ORM\Column(name="nombre", type="string", length=50)
+     * @ORM\Column(type="string", length=50)
      */
     private $nombre;
 
     /**
      * @var bool
      *
-     * @ORM\Column(name="dependeduracion", type="boolean", options={"default": 0})
+     * @ORM\Column(type="boolean", options={"default": 0})
      */
     private $dependeduracion;
 
     /**
      * @var bool
      *
-     * @ORM\Column(name="agendable", type="boolean", options={"default": 0})
+     * @ORM\Column(type="boolean", options={"default": 0})
      */
     private $agendable;
 
+    /**
+     * @var int
+     *
+     * @ORM\Column(type="integer", nullable=false, options={"default":1})
+     */
+    protected $prioridadparaproveedor;
 
     /**
      * @var \DateTime $creado
@@ -70,139 +76,81 @@ class ServicioTipocomponente
     }
 
 
-
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): int
     {
         return $this->id;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return ServicioTipocomponente
-     */
-    public function setNombre($nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
     
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return ServicioTipocomponente
-     */
-    public function setCreado($creado)
+    public function setPrioridadparaproveedor(?int $prioridadparaproveedor): self
+    {
+        $this->prioridadparaproveedor = $prioridadparaproveedor;
+
+        return $this;
+    }
+
+    public function getPrioridadparaproveedor(): ?int
+    {
+        return $this->prioridadparaproveedor;
+    }
+
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
     
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return ServicioTipocomponente
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
     
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Set dependeduracion
-     *
-     * @param boolean $dependeduracion
-     *
-     * @return ServicioTipocomponente
-     */
-    public function setDependeduracion($dependeduracion)
+    public function setDependeduracion(?bool $dependeduracion): self
     {
         $this->dependeduracion = $dependeduracion;
     
         return $this;
     }
 
-    /**
-     * Is dependeduracion
-     *
-     * @return boolean
-     */
     public function isDependeduracion(): ?bool
     {
         return $this->dependeduracion;
     }
 
-
-    /**
-     * Set agendable
-     *
-     * @param boolean $agendable
-     *
-     * @return ServicioTipocomponente
-     */
-    public function setAgendable($agendable)
+    public function setAgendable(?bool $agendable): self
     {
         $this->agendable = $agendable;
 
         return $this;
     }
 
-    /**
-     * Is agendable
-     *
-     * @return boolean
-     */
     public function isAgendable(): ?bool
     {
         return $this->agendable;
     }
-
-
-
 
 }
