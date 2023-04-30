@@ -7,6 +7,9 @@ use Symfony\Component\HttpFoundation\Request;
 use App\Service\CotizacionResumen;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class CotizacionCotizacionAdminController extends CRUDAdminController
 {
@@ -23,7 +26,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
-    public function clonarAction(Request $request = null): RedirectResponse
+    public function clonarAction(Request $request): RedirectResponse
     {
 
         $object = $this->assertObjectExists($request, true);
@@ -83,7 +86,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
     }
 
-    public function showAction(Request $request = null): Response | RedirectResponse
+    public function showAction(Request $request): Response | RedirectResponse
     {
 
         $object = $this->assertObjectExists($request, true);
@@ -120,7 +123,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
     }
 
-    function resumenAction(Request $request = null): Response | RedirectResponse
+    function resumenAction(Request $request): Response | RedirectResponse
     {
 
         $object = $this->assertObjectExists($request, true);
@@ -165,5 +168,36 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
             $this->addFlash('sonata_flash_error', $this->container->get('App\Service\CotizacionResumen')->getMensaje());
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
+    }
+
+    function emailAction(Request $request, MailerInterface $mailer): RedirectResponse
+    {
+        $object = $this->assertObjectExists($request, true);
+        \assert(null !== $object);
+
+        $emaiInfo = $request->get('email');
+
+        $email = (new Email())
+            ->from('susan@openperu.pe')
+            ->to(urldecode($emaiInfo['destinatario']))
+            ->cc('susan@live.com.pe')
+            ->priority(Email::PRIORITY_HIGH)
+            ->subject(urldecode($emaiInfo['titulo']))
+            ->html(urldecode($emaiInfo['mensaje']));
+
+        try {
+
+            $mailer->send($email);
+        }catch (TransportExceptionInterface $e) {
+
+            $this->addFlash('sonata_flash_error', 'Hubo un error al enviar el mensaje:' . $e->getMessage());
+
+            return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
+
+        }
+
+        $this->addFlash('sonata_flash_success', 'Se envió correctamente el mensaje.');
+        return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
+
     }
 }

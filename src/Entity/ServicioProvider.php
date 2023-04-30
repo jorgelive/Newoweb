@@ -74,7 +74,6 @@ class ServicioProvider
      * @var \Doctrine\Common\Collections\Collection
      *
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCottarifa", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"nombre" = "ASC"})
      */
     private $cottarifas;
 

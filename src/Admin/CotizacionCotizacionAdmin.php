@@ -336,5 +336,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
 
         $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
         $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
+        $collection->add('email', $this->getRouterIdParameter() . '/email');
     }
 }

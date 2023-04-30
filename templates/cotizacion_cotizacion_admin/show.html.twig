@@ -855,19 +855,27 @@ file that was distributed with this source code.
                                                                 {% for proveedor in contenido.proveedores %}
 
                                                                     <h3>{{ proveedor.nombreMostrar }} <span style="font-size: 70%;">({{ proveedor.nombre }})</span></h3>
-                                                                    {% set whatsappText = 'Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase proveer los siguientes servicios:\n'%}
+                                                                    {% set whatsappText = 'Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase proveer los siguientes servicios:\n\n'%}
+                                                                    {% set emailMensaje = '<p>Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase proveer los siguientes servicios:</p>'%}
 
                                                                     <h4>Pax: <span style="font-weight: bold;"> {{ cotizacion.file.nombre }} x{{ cotizacion.cotizacion.numeropasajeros }}</span> ({{ cotizacion.file.paisnombre }} - {{ cotizacion.file.idioma }})</h4>
-                                                                    {% set whatsappText = whatsappText ~ 'Pax: *' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros ~ '* (' ~ cotizacion.file.paisnombre ~ '-' ~ cotizacion.file.idioma ~ ')' ~ '*\n\n' %}
+                                                                    {% set emailTitulo = 'OpenPeru Reserva Pax: ' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros %}
+                                                                    {% set whatsappText = whatsappText ~ 'Pax: *' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros ~ '* (' ~ cotizacion.file.paisnombre ~ '-' ~ cotizacion.file.idioma ~ ')' ~ '\n\n' %}
+                                                                    {% set emailMensaje = emailMensaje ~ '<h4>Pax: <span style="font-weight: bold;">' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros ~ '</span> (' ~ cotizacion.file.paisnombre ~ '-' ~ cotizacion.file.idioma ~ ')' ~ '</p>' %}
+
                                                                     {% if proveedor.tarifas is defined and proveedor.tarifas|length > 0%}
                                                                         {% for tarifa in proveedor.tarifas %}
                                                                             <p>
+                                                                            {% set emailMensaje = emailMensaje ~ '<p>' %}
                                                                                 {% if tarifa.tipoComponenteId == 1  or tarifa.tipoComponenteId == 4 or tarifa.tipoComponenteId == 6 %} {# tickets 1 hoteles 4 pool 6#}
-                                                                                    {% set whatsappText = whatsappText ~ tarifa.fechaHoraInicio|date("Y-m-d") %}
                                                                                     {{ tarifa.fechaHoraInicio|date("Y-m-d") }}
+                                                                                    {% set whatsappText = whatsappText ~ tarifa.fechaHoraInicio|date("Y-m-d") %}
+                                                                                    {% set emailMensaje = emailMensaje ~ tarifa.fechaHoraInicio|date("Y-m-d") %}
+
                                                                                 {% else %}
                                                                                     {{ tarifa.fechaHoraInicio|date("Y-m-d H:i") }}
                                                                                     {% set whatsappText = whatsappText ~ tarifa.fechaHoraInicio|date("Y-m-d H:i") %}
+                                                                                    {% set emailMensaje = emailMensaje ~ tarifa.fechaHoraInicio|date("Y-m-d H:1") %}
                                                                                 {% endif %}
 
                                                                                 {{ tarifa.componenteNombre }}
@@ -875,45 +883,58 @@ file that was distributed with this source code.
                                                                                 {% if tarifa.componenteCantidad > 1  %}
                                                                                     <span style="font-weight: bold;">x{{ tarifa.componenteCantidad }}</span>
                                                                                     {% set whatsappText = whatsappText ~ ' *x' ~ tarifa.componenteCantidad ~ '*' %}
+                                                                                    {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">x' ~ tarifa.componenteCantidad ~ '</span>' %}
                                                                                 {% endif %}
                                                                                 {% if tarifa.tipoComponenteId == 4 %}
                                                                                     noches
                                                                                     {% set whatsappText = whatsappText ~ ' noches' %}
+                                                                                    {% set emailMensaje = emailMensaje ~ ' noches' %}
                                                                                 {% endif %}
-                                                                                    {% if tarifa.tipoComponenteId != 4 %}
+                                                                                {% if tarifa.tipoComponenteId != 4 %}
                                                                                     <span style="font-weight: bold;">{{ tarifa.tarifaNombre }}</span>
+                                                                                    {% set whatsappText = whatsappText ~ ' *' ~ tarifa.tarifaNombre ~ '*' %}
+                                                                                    {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">' ~ tarifa.tarifaNombre ~ '</span>' %}
                                                                                 {% endif %}
-                                                                                {% set whatsappText = whatsappText ~ ' *' ~ tarifa.tarifaNombre ~ '*' %}
                                                                                 {% if tarifa.tarifaCantidad is defined %} {# depende del prorateo #}
                                                                                     <span style="font-weight: bold;">x{{ tarifa.tarifaCantidad }}</span>
                                                                                     {% set whatsappText = whatsappText ~ ' *x' ~ tarifa.tarifaCantidad ~ '*' %}
+                                                                                    {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">x' ~ tarifa.tarifaCantidad ~ '</span>' %}
                                                                                 {% endif %}
                                                                             {% if tarifa.infoOperativa is defined %}
                                                                                 {{ tarifa.infoOperativa }}
                                                                                 {% set whatsappText = whatsappText ~ ' ' ~ tarifa.infoOperativa %}
+                                                                                {% set emailMensaje = emailMensaje ~ ' ' ~ tarifa.infoOperativa %}
                                                                             {% endif %}
                                                                             {% if tarifa.tipoTarifaId != 1  %}
                                                                                 ({{ tarifa.tipoTarifaNombre }})
                                                                                 {% set whatsappText = whatsappText ~ ' (' ~ tarifa.tipoTarifaNombre ~ ')' %}
+                                                                                {% set emailMensaje = emailMensaje ~ ' (' ~ tarifa.tipoTarifaNombre ~ ')' %}
                                                                             {% endif %}
-                                                                            {% set whatsappText = whatsappText ~ '\n' %}
                                                                             </p>
+                                                                            {% set whatsappText = whatsappText ~ '\n' %}
+                                                                            {% set emailMensaje = emailMensaje ~ '</p>>' %}
                                                                         {% endfor %}
                                                                     {% endif %}
                                                                     {% if proveedor.hoteles is defined and proveedor.hoteles|length > 0%}
                                                                         {% set whatsappText = whatsappText ~ '\n' %}
                                                                         <h4>Hoteles:</h4>
                                                                         {% set whatsappText = whatsappText ~ '*Hoteles:*\n' %}
+                                                                        {% set emailMensaje = emailMensaje  ~ '<h4>Hoteles:</h4>' %}
                                                                         {% for hotel in proveedor.hoteles %}
                                                                             <p>
+                                                                            {% set emailMensaje = emailMensaje ~ '<p>' %}
                                                                                 Del {{hotel.fechaHoraInicio|date("Y-m-d") }} al {{hotel.fechaHoraFin|date("Y-m-d") }} <span style="font-weight: bold;">{{hotel.nombreMostrar }}</span>
                                                                                 {% set whatsappText = whatsappText ~ 'Del ' ~ hotel.fechaHoraInicio|date("Y-m-d") ~ ' al ' ~ hotel.fechaHoraFin|date("Y-m-d") ~ ' *' ~ hotel.nombreMostrar ~ '*' %}
+                                                                                {% set emailMensaje = emailMensaje ~ 'Del ' ~ hotel.fechaHoraInicio|date("Y-m-d") ~ ' al ' ~ hotel.fechaHoraFin|date("Y-m-d") ~ ' <span style="font-weight: bold;">' ~ hotel.nombreMostrar ~ '</span>' %}
                                                                                 {% if hotel.direccion is defined %}
                                                                                     {{ hotel.direccion }}
                                                                                     {% set whatsappText = whatsappText ~ ' ' ~ hotel.direccion %}
+                                                                                    {% set emailMensaje = emailMensaje ~ ' ' ~ hotel.direccion %}
                                                                                 {% endif %}
-                                                                                {% set whatsappText = whatsappText ~ '\n' %}
+
                                                                             </p>
+                                                                            {% set whatsappText = whatsappText ~ '\n' %}
+                                                                            {% set emailMensaje = emailMensaje ~ '</p>' %}
                                                                         {% endfor %}
                                                                     {% endif %}
                                                                     {% if proveedor.telefono is defined %}
@@ -928,49 +949,32 @@ file that was distributed with this source code.
                                                                         <a href="#"
                                                                            class="btn btn-sm btn-info edit_link"
                                                                            data-toggle="modal"
-                                                                           data-target="#clonarModal-{{ loop.index }}">
+                                                                           data-target="#emailModal-{{ loop.index }}">
                                                                             <i class="fa fa-email" aria-hidden="true"></i>
                                                                             Enviar por Correo
                                                                         </a>
 
-                                                                        <div class="modal fade" id="clonarModal-{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="clonarLabel">
+                                                                        <div class="modal fade" id="emailModal-{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="emailLabel">
                                                                             <div class="modal-dialog" role="document">
                                                                                 <div class="modal-content">
                                                                                     <div class="modal-header">
                                                                                         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                                                                        <h4 class="modal-title" id="myModalLabel-{{ loop.index }}">Clonar</h4>
+                                                                                        <h4 class="modal-title" id="myModalLabel-{{ loop.index }}">Enviar Mensaje</h4>
                                                                                     </div>
                                                                                     <div class="modal-body">
-                                                                                        Esta seguro que desea clonar esta cotización? (Opcionalmente cambie la fecha de inicio de los servicios)
+                                                                                        Esta seguro que desea enviar el mensaje al proveedor?
                                                                                     </div>
                                                                                     <div class="modal-footer">
 
-                                                                                        <div id="sonata-ba-field-container-fechainicio-{{ loop.index }}" class="form-group">
+                                                                                        <div class="form-group">
 
-                                                                                            <label class="control-label required" for="fechainicio-{{ loop.index }}">Fecha de inicio</label>
-
-                                                                                            <div class="sonata-ba-field sonata-ba-field-standard-natural">
-
-                                                                                                <div class="input-group">
-                                                                                                    <div class="input-group date" id="dp_fechainicio-{{ loop.index }}">
-                                                                                                        <input type="text" id="fechainicio-{{ loop.index }}" name="fechainicio" class="sonata-medium-date form-control" data-date-format="YYYY/MM/DD">
-                                                                                                        <span class="input-group-addon">
-                                                                                                            <span class="fa-calendar fa"></span>
-                                                                                                        </span>
-                                                                                                    </div>
-                                                                                                </div>
-
-
-                                                                                            </div>
-                                                                                        </div>
-
-                                                                                        <div class="form-group"> <!-- Submit button -->
-                                                                                            <a id="lk_fechainicio-{{ loop.index }}" href="{{ admin.generateObjectUrl('show', object) }}"
-                                                                                               class="btn btn-danger"
-                                                                                               title="Clonar">
-                                                                                                Clonar
-                                                                                            </a>
-                                                                                            <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+                                                                                            <form action="{{ admin.generateObjectUrl('email', object ) }}" method="POST">
+                                                                                                <input type="hidden" name="email[mensaje]" value="{{ emailMensaje|url_encode }}" />
+                                                                                                <input type="hidden" name="email[titulo]" value="{{ emailTitulo|url_encode }}" />
+                                                                                                <input type="hidden" name="email[destinatario]"  value="{{ proveedor.email|url_encode }}" />
+                                                                                                <button type="submit" class="btn btn-danger">Enviar E-Mail</button>
+                                                                                                <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+                                                                                            </form>
                                                                                         </div>
 
                                                                                     </div>
