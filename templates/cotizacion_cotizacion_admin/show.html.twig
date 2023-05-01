@@ -876,11 +876,12 @@ file that was distributed with this source code.
                                                                                 {% else %}
                                                                                     {{ tarifa.fechaHoraInicio|date("Y-m-d H:i") }}
                                                                                     {% set whatsappText = whatsappText ~ tarifa.fechaHoraInicio|date("Y-m-d H:i") %}
-                                                                                    {% set emailMensaje = emailMensaje ~ tarifa.fechaHoraInicio|date("Y-m-d H:1") %}
+                                                                                    {% set emailMensaje = emailMensaje ~ tarifa.fechaHoraInicio|date("Y-m-d H:i") %}
                                                                                 {% endif %}
 
                                                                                 {{ tarifa.componenteNombre }}
                                                                                 {% set whatsappText = whatsappText ~ ' ' ~ tarifa.componenteNombre %}
+                                                                                {% set emailMensaje = emailMensaje ~ ' ' ~ tarifa.componenteNombre %}
                                                                                 {% if tarifa.componenteCantidad > 1  %}
                                                                                     <span style="font-weight: bold;">x{{ tarifa.componenteCantidad }}</span>
                                                                                     {% set whatsappText = whatsappText ~ ' *x' ~ tarifa.componenteCantidad ~ '*' %}
