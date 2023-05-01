@@ -178,9 +178,10 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $emaiInfo = $request->get('email');
 
         $email = (new Email())
-            ->from('susan@openperu.pe')
-            ->to(urldecode($emaiInfo['destinatario']))
-            ->cc('susan@live.com.pe')
+            ->from('jorge@openperu.pe')
+            ->to('susan@openperu.pe')
+            //->to(urldecode($emaiInfo['destinatario']))
+            //->cc('susan@live.com.pe')
             ->priority(Email::PRIORITY_HIGH)
             ->subject(urldecode($emaiInfo['titulo']))
             ->html(urldecode($emaiInfo['mensaje']));
