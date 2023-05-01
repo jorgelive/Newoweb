@@ -186,18 +186,15 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
             ->priority(Email::PRIORITY_HIGH)
             ->subject(urldecode($emaiInfo['titulo']))
             ->html(urldecode($emaiInfo['mensaje']));
+
         try {
             $mailer->send($email);
         }catch (TransportExceptionInterface $e) {
-
             $this->addFlash('sonata_flash_error', 'Hubo un error al enviar el mensaje:' . $e->getMessage());
-
             return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
-
         }
 
         $this->addFlash('sonata_flash_success', 'Se envió correctamente el mensaje.');
         return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
-
     }
 }
