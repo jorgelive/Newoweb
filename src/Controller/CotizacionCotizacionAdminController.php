@@ -8,6 +8,7 @@ use App\Service\CotizacionResumen;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
@@ -170,7 +171,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         }
     }
 
-    function emailAction(Request $request, MailerInterface $mailer): RedirectResponse
+    function emailAction(Request $request, TransportInterface $mailer): RedirectResponse
     {
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
@@ -179,15 +180,13 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
         $email = (new Email())
             ->from('jorge@openperu.pe')
-            ->to('susan@openperu.pe')
-            //->to(urldecode($emaiInfo['destinatario']))
-            //->cc('susan@live.com.pe')
+            //->to('susan@openperu.pe')
+            ->to(urldecode($emaiInfo['destinatario']))
+            ->cc('susan@live.com.pe')
             ->priority(Email::PRIORITY_HIGH)
             ->subject(urldecode($emaiInfo['titulo']))
             ->html(urldecode($emaiInfo['mensaje']));
-
         try {
-
             $mailer->send($email);
         }catch (TransportExceptionInterface $e) {
 
