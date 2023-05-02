@@ -474,7 +474,7 @@ class CotizacionResumen implements ContainerAwareInterface
                                             }
 
                                             $tempArrayIncluye['mostrarcostoincluye'] = false;
-                                            if($tarifa->getTipotarifa()->isMostrarcostoincluye() ===true && !empty($tarifa->getMonto()) && !empty($tarifa->getMoneda())){
+                                            if($tarifa->getTipotarifa()->isMostrarcostoincluye() ===true && !(empty($tarifa->getMonto()) || empty($tarifa->getMoneda()))){
                                                 $tempArrayIncluye['mostrarcostoincluye'] = true;
                                                 $tempArrayIncluye['simboloMoneda'] = $tarifa->getMoneda()->getSimbolo();
                                                 $tempArrayIncluye['costo'] = $tarifa->getMonto();
