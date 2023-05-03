@@ -36,6 +36,9 @@ class ServicioComponenteAdmin extends AbstractAdmin
             ->add('duracion', null, [
                 'label' => 'Duración'
             ])
+            ->add('anticipacionalerta', null, [
+                'label' => 'Anticipación de Alerta'
+            ])
             ->add('servicios')
         ;
     }
@@ -61,7 +64,12 @@ class ServicioComponenteAdmin extends AbstractAdmin
             ])
             ->add('duracion', null, [
                 'label' => 'Duración',
-                'row_align' => 'right'
+                'row_align' => 'right',
+                'editable' => true
+            ])
+            ->add('anticipacionalerta', null, [
+                'label' => 'Anticipación de Alerta',
+                'editable' => true
             ])
             ->add('tarifas')
             ->add('servicios')
@@ -99,6 +107,9 @@ class ServicioComponenteAdmin extends AbstractAdmin
             ->add('duracion', null, [
                 'label' => 'Duración'
             ])
+            ->add('anticipacionalerta', null, [
+                'label' => 'Anticipacion de Alerta'
+            ])
             ->add('servicios', null,[
                 'by_reference' => false
             ])
@@ -128,6 +139,9 @@ class ServicioComponenteAdmin extends AbstractAdmin
             ])
             ->add('duracion', null, [
                 'label' => 'Duración'
+            ])
+            ->add('anticipacionalerta', null, [
+                'label' => 'Anticipacion de Alerta'
             ])
             ->add('servicios')
             ->add('tarifas')
