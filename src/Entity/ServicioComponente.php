@@ -35,6 +35,13 @@ class ServicioComponente
     private $nombre;
 
     /**
+     * @var int
+     *
+     * @ORM\Column(type="integer", nullable=true)
+     */
+    private $anticipacionalerta;
+
+    /**
      * @var \Doctrine\Common\Collections\Collection
      *
      * @ORM\OneToMany(targetEntity="App\Entity\ServicioComponenteitem", mappedBy="componente", cascade={"persist","remove"}, orphanRemoval=true)
@@ -135,129 +142,77 @@ class ServicioComponente
         }
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
-
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return ServicioComponente
-     */
-    public function setNombre($nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
     
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return ServicioComponente
-     */
-    public function setCreado($creado)
+    public function setAnticipacionalerta(?int $anticipacionalerta): self
+    {
+        $this->anticipacionalerta = $anticipacionalerta;
+
+        return $this;
+    }
+
+    public function getAnticipacionalerta(): ?int
+    {
+        return $this->anticipacionalerta;
+    }
+
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
     
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return ServicioComponente
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
     
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Set tipocomponente
-     *
-     * @param \App\Entity\ServicioTipocomponente $tipocomponente
-     *
-     * @return ServicioComponente
-     */
-    public function setTipocomponente(\App\Entity\ServicioTipocomponente $tipocomponente = null)
+    public function setTipocomponente(?ServicioTipocomponente $tipocomponente = null): self
     {
         $this->tipocomponente = $tipocomponente;
     
         return $this;
     }
 
-    /**
-     * Get tipocomponente
-     *
-     * @return \App\Entity\ServicioTipocomponente
-     */
-    public function getTipocomponente()
+    public function getTipocomponente(): ServicioTipocomponente
     {
         return $this->tipocomponente;
     }
 
-    /**
-     * Add tarifa
-     *
-     * @param \App\Entity\ServicioTarifa $tarifa
-     *
-     * @return ServicioComponente
-     */
-    public function addTarifa(\App\Entity\ServicioTarifa $tarifa)
+    public function addTarifa(ServicioTarifa $tarifa): self
     {
         $tarifa->setComponente($this);
 
@@ -266,34 +221,17 @@ class ServicioComponente
         return $this;
     }
 
-    /**
-     * Remove tarifa
-     *
-     * @param \App\Entity\ServicioTarifa $tarifa
-     */
-    public function removeTarifa(\App\Entity\ServicioTarifa $tarifa)
+    public function removeTarifa(ServicioTarifa $tarifa)
     {
         $this->tarifas->removeElement($tarifa);
     }
 
-    /**
-     * Get tarifas
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getTarifas()
+    public function getTarifas(): Collection
     {
         return $this->tarifas;
     }
 
-    /**
-     * Add servicio
-     *
-     * @param \App\Entity\ServicioServicio $servicio
-     *
-     * @return ServicioComponente
-     */
-    public function addServicio(\App\Entity\ServicioServicio $servicio)
+    public function addServicio(ServicioServicio $servicio): self
     {
         $servicio->addComponente($this);
 
@@ -302,59 +240,30 @@ class ServicioComponente
         return $this;
     }
 
-    /**
-     * Remove servicio
-     *
-     * @param \App\Entity\ServicioServicio $servicio
-     */
-    public function removeServicio(\App\Entity\ServicioServicio $servicio)
+    public function removeServicio(ServicioServicio $servicio)
     {
         $this->servicios->removeElement($servicio);
         $servicio->removeComponente($this);
     }
 
-    /**
-     * Get servicios
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getServicios()
+    public function getServicios(): Collection
     {
         return $this->servicios;
     }
 
-    /**
-     * Set duracion.
-     *
-     * @param string|null $duracion
-     *
-     * @return ServicioComponente
-     */
-    public function setDuracion($duracion = null)
+    public function setDuracion(?string $duracion = null): self
     {
         $this->duracion = $duracion;
     
         return $this;
     }
 
-    /**
-     * Get duracion.
-     *
-     * @return string|null
-     */
-    public function getDuracion()
+    public function getDuracion(): ?string
     {
         return $this->duracion;
     }
 
-    /**
-     * Add componenteitem
-     *
-     * @param \App\Entity\ServicioComponenteitem $tarifa
-     *
-     * @return ServicioComponente
-     */
-    public function addComponenteitem(\App\Entity\ServicioComponenteitem $componenteitem)
+    public function addComponenteitem(ServicioComponenteitem $componenteitem): self
     {
         $componenteitem->setComponente($this);
 
@@ -363,22 +272,12 @@ class ServicioComponente
         return $this;
     }
 
-    /**
-     * Remove componenteitem
-     *
-     * @param \App\Entity\ServicioComponenteitem $componenteitem
-     */
-    public function removeComponenteitem(\App\Entity\ServicioComponenteitem $componenteitem)
+    public function removeComponenteitem(ServicioComponenteitem $componenteitem)
     {
         $this->componenteitems->removeElement($componenteitem);
     }
 
-    /**
-     * Get componenteitems
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getComponenteitems()
+    public function getComponenteitems(): Collection
     {
         return $this->componenteitems;
     }
