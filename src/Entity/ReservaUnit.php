@@ -59,7 +59,7 @@ class ReservaUnit
     /**
      * @var \App\Entity\ReservaEstablecimiento
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaEstablecimiento", inversedBy="unites")
+     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaEstablecimiento", inversedBy="units")
      * @ORM\JoinColumn(name="establecimiento_id", referencedColumnName="id", nullable=false)
      */
     protected $establecimiento;

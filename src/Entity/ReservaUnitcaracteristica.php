@@ -45,7 +45,7 @@ class ReservaUnitcaracteristica
     /**
      * @var \App\Entity\ReservaUnittipocaracteristica
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnittipocaracteristica", inversedBy="unitnexos")
+     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnittipocaracteristica")
      * @ORM\JoinColumn(name="unittipocaracteristica_id", referencedColumnName="id", nullable=false)
      */
     protected $unittipocaracteristica;

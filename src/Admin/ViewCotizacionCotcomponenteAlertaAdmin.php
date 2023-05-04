@@ -10,6 +10,7 @@ use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\AdminBundle\Show\ShowMapper;
+use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\Form\Type\DateRangePickerType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 
@@ -102,7 +103,7 @@ class ViewCotizacionCotcomponenteAlertaAdmin extends AbstractAdmin
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
-            ->add('estadocotcomponente', null, [
+            ->add('estadocotcomponente', FieldDescriptionInterface::TYPE_STRING, [
                 'label' => 'Estado'
             ])
             ->add('fechahorainicio', null, [
@@ -110,11 +111,14 @@ class ViewCotizacionCotcomponenteAlertaAdmin extends AbstractAdmin
                 'format' => 'Y/m/d H:i'
             ])
             ->add('cotservicio', null, [
-                'label' => 'Servicio'
+                'label' => 'Servicio',
+                'route' => ['name' => 'edit']
             ])
-            ->add('componente')
+            ->add('componente',FieldDescriptionInterface::TYPE_STRING)
             ->add('cantidad')
-
+            ->add('cotservicio.cotizacion.file.filedocumentos', null, [
+                'label' => 'Documentos'
+            ])
             ->add('fechaalerta', null, [
                 'label' => 'Alerta',
                 'format' => 'Y/m/d H:i'

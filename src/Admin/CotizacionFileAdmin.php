@@ -6,6 +6,7 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
+use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\Form\Type\CollectionType;
@@ -61,12 +62,12 @@ class CotizacionFileAdmin extends AbstractAdmin
             ->add('nombre', null, [
                 'editable' => true
             ])
-            ->add('pais', null, [
+            ->add('pais', FieldDescriptionInterface::TYPE_STRING, [
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
                 'sort_parent_association_mappings' => [['fieldName' => 'pais']],
             ])
-            ->add('idioma', null, [
+            ->add('idioma', FieldDescriptionInterface::TYPE_STRING, [
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
                 'sort_parent_association_mappings' => [['fieldName' => 'idioma']],
