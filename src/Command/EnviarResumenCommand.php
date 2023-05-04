@@ -87,7 +87,6 @@ class EnviarResumenCommand extends Command
             }else{
                 $email->addTo(new Address($receiver));
             }
-
         }
 
         try {
