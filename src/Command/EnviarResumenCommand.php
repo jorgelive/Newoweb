@@ -46,9 +46,12 @@ class EnviarResumenCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $ahora = new \DateTime('now');
+        $hoy = new \DateTime('now');
+        $manana = new \DateTime('tomorrow');
+        $pasado = new \DateTime('tomorrow + 1day');
+
         $output->writeln([
-            sprintf('%s: Iniciando envio de mensajes...', $ahora->format('Y-m-d H:i')),
+            sprintf('%s: Iniciando envio de mensajes...', $hoy->format('Y-m-d H:i')),
             '============'
         ]);
 
@@ -56,32 +59,85 @@ class EnviarResumenCommand extends Command
         if(count($componenteAlertas) > 0){
 
             foreach($componenteAlertas as $id => $componenteAlerta){
-                $resumen[$id]['idEstado'] = $componenteAlerta->getEstadocotcomponente()->getNombre();
-                $resumen[$id]['nombreEstado'] = $componenteAlerta->getEstadocotcomponente()->getNombre();
-                $resumen[$id]['fechaHoraInicio'] = $componenteAlerta->getFechahorainicio();
-                $resumen[$id]['nombreFile'] = $componenteAlerta->getCotservicio()->getCotizacion()->getFile()->getNombre() . ' x' . $componenteAlerta->getCotservicio()->getCotizacion()->getNumeropasajeros();
-                $resumen[$id]['idServicio'] = $componenteAlerta->getCotservicio()->getId();
-                $resumen[$id]['nombreServicio'] = $componenteAlerta->getCotservicio()->getServicio()->getNombre();
-                $resumen[$id]['nombreComponente'] = $componenteAlerta->getComponente()->getNombre();
-                $resumen[$id]['fechaAlerta'] = $componenteAlerta->getFechaalerta();
+                $alertas[$id]['idEstado'] = $componenteAlerta->getEstadocotcomponente()->getNombre();
+                $alertas[$id]['nombreEstado'] = $componenteAlerta->getEstadocotcomponente()->getNombre();
+                $alertas[$id]['fechaHoraInicio'] = $componenteAlerta->getFechahorainicio();
+                $alertas[$id]['nombreFile'] = $componenteAlerta->getCotservicio()->getCotizacion()->getFile()->getNombre() . ' x' . $componenteAlerta->getCotservicio()->getCotizacion()->getNumeropasajeros();
+                $alertas[$id]['idServicio'] = $componenteAlerta->getCotservicio()->getId();
+                $alertas[$id]['nombreServicio'] = $componenteAlerta->getCotservicio()->getServicio()->getNombre();
+                $alertas[$id]['nombreComponente'] = $componenteAlerta->getComponente()->getNombre();
+                $alertas[$id]['fechaAlerta'] = $componenteAlerta->getFechaalerta();
             }
         }else{
-            $resumen = [];
+            $alertas = [];
         }
 
-        $ahora = new \DateTime('now');
+        $qb = $this->entityManager->createQueryBuilder('rr');
 
-        $receivers = explode(',', $this->params->get('mailer_alert_receivers'));
+        $qb->select('rr')
+            ->from('App\Entity\ReservaReserva', 'rr')
+            ->innerJoin('rr.estado', 'e')
+            ->where(
+                $qb->expr()->orX(
+                    $qb->expr()->andX(
+                        $qb->expr()->gte('DATE(rr.fechahorainicio)', ':hoy'),
+                        $qb->expr()->lt('DATE(rr.fechahorainicio)', ':pasado'),
+                        $qb->expr()->eq('rr.estado', '2') //confimado
+                    ),
+                    $qb->expr()->andX(
+                        $qb->expr()->gte('DATE(rr.fechahorafin)', ':hoy'),
+                        $qb->expr()->lt('DATE(rr.fechahorafin)', ':pasado'),
+                        $qb->expr()->eq('rr.estado', '2') //confimado
+                    )
+                )
+
+            )
+            ->setParameter('hoy', $hoy->format('Y-m-d'))
+            ->setParameter('pasado', $pasado->format('Y-m-d'));
+
+        $reservas = $qb->getQuery()->getResult();
+
+        //Para Ordenar
+        $reservasOrdenadas = ['ingresosHoy' => [], 'salidasHoy' => [], 'ingresosManana' => [], 'salidasManana' => [] ];
+        $existeReservas = false;
+        foreach ($reservas as $reserva){
+            if($reserva->getFechahorainicio()->format('Y-m-d') == $hoy->format('Y-m-d')){
+                $reservasOrdenadas['ingresosHoy']['nombre'] = 'Ingresando hoy';
+                $reservasOrdenadas['ingresosHoy']['reservas'][] = $reserva;
+                $existeReservas = true;
+            }
+            if($reserva->getFechahorainicio()->format('Y-m-d') == $manana->format('Y-m-d')){
+                $reservasOrdenadas['ingresosManana']['nombre'] = 'Ingresando mañana';
+                $reservasOrdenadas['ingresosManana']['reservas'][] = $reserva;
+                $existeReservas = true;
+            }
+            if($reserva->getFechahorafin()->format('Y-m-d') == $hoy->format('Y-m-d')){
+                $reservasOrdenadas['salidasHoy']['nombre'] = 'Saliendo hoy';
+                $reservasOrdenadas['salidasHoy']['reservas'][] = $reserva;
+                $existeReservas = true;
+            }
+            if($reserva->getFechahorafin()->format('Y-m-d') == $manana->format('Y-m-d')){
+                $reservasOrdenadas['salidasManana']['nombre'] = 'Saliendo mañana';
+                $reservasOrdenadas['salidasManana']['reservas'][] = $reserva;
+                $existeReservas = true;
+            }
+        }
+        if(!$existeReservas){$reservasOrdenadas=[];}
+        unset($reservas);
+        unset($reserva);
 
         $email = (new TemplatedEmail())
             ->from(new Address($this->params->get('mailer_sender_email'), $this->params->get('mailer_sender_name')))
 
-            ->subject(sprintf('OpenPeru - Resumen del %s', $ahora->format('Y-m-d')))
+            ->subject(sprintf('OpenPeru - Resumen del %s', $hoy->format('Y-m-d')))
             ->htmlTemplate('emails/command_enviar_resumen.html.twig')
             ->context([
                 'fechaHoraActual' => new \DateTime('now'),
-                'resumen' => $resumen
+                'alertas' => $alertas,
+                'reservasordenadas' => $reservasOrdenadas
             ]);
+
+        $receivers = explode(',', $this->params->get('mailer_alert_receivers'));
 
         foreach ($receivers as $key => $receiver){
             if ($key === array_key_first($receivers)) {
@@ -93,9 +149,10 @@ class EnviarResumenCommand extends Command
 
         try {
             $this->mailer->send($email);
+            //$dummy = 1;
         }catch (TransportExceptionInterface $e) {
             $output->writeln([
-                    'Se ha completado el proceso!',
+                    'Se ha completado el proceso con error!',
                     ''
                 ]
             );
@@ -103,7 +160,7 @@ class EnviarResumenCommand extends Command
         }
 
         $output->writeln([
-            'Se ha completado el proceso!',
+            'Se ha completado el proceso exitosamente!',
             ''
             ]
         );

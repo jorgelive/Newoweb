@@ -1,54 +1,105 @@
 <h2>OpenPeru - Resumen</h2>
 <p>
-    Hola {{ email.toName }} este es el resumen del sistema de OpenPeru!
+    Hola, este es el resumen del sistema de OpenPeru!
 </p>
 
-<h3>Componentes pendientes de confirmación y reconfirmación</h3>
-{% if resumen|length > 0 %}
-<table style="border-collapse: collapse;">
-    <tr style="border-bottom: 1pt solid steelblue;">
-        <th>
-            Estado
-        </th>
-        <th>
-            Fecha
-        </th>
-        <th>
-            File
-        </th>
-        <th>
-            Servicio
-        </th>
-        <th>
-            Componente
-        </th>
-    </tr>
-    {% for item in resumen %}
-        <tr style="border-bottom: 1pt solid steelblue;">
-             {% if item.idEstado == 1 %}
-                 {% set color = 'darkred' %}
-             {% else %}
-                 {% set color = 'darkorange' %}
-             {% endif %}
-            <td style="padding: 0 4px 0 4px; color: {{ color }}">
-                {{ item.nombreEstado }}
-            </td>
-            <td style="padding: 0 4px 0 4px;">
-                {{ item.fechaHoraInicio|date("Y-m-d H:i") }}
-            </td>
-            <td style="padding: 0 4px 0 4px;">
-                {{ item.nombreFile }}
-            </td>
-            <td style="padding: 0 4px 0 4px;">
-                <a href="{{ url('admin_app_cotizacioncotservicio_edit', {'id': item.idServicio }) }}">{{item.nombreServicio}}</a>
-            </td>
-            <td style="padding: 0 4px 0 4px;">
-                {{item.nombreComponente}}
-            </td>
+<h3>Componentes pendientes de confirmación y reconfirmación: </h3>
+{% if alertas|length > 0 %}
+    <table style="margin-left: 15px; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid steelblue;">
+            <th>
+                Estado
+            </th>
+            <th>
+                Fecha
+            </th>
+            <th>
+                File
+            </th>
+            <th>
+                Servicio
+            </th>
+            <th>
+                Componente
+            </th>
         </tr>
-    {% endfor %}
-</table>
+        {% for alerta in alertas %}
+            <tr style="border-bottom: 1px solid steelblue;">
+                 {% if alerta.idEstado == 1 %}
+                     {% set color = 'darkred' %}
+                 {% else %}
+                     {% set color = 'darkorange' %}
+                 {% endif %}
+                <td style="padding: 0 4px 0 4px; color: {{ color }}">
+                    {{ alerta.nombreEstado }}
+                </td>
+                <td style="padding: 0 4px 0 4px;">
+                    {{ alerta.fechaHoraInicio|date("Y-m-d H:i") }}
+                </td>
+                <td style="padding: 0 4px 0 4px;">
+                    {{ alerta.nombreFile }}
+                </td>
+                <td style="padding: 0 4px 0 4px;">
+                    <a href="{{ url('admin_app_cotizacioncotservicio_edit', {'id': alerta.idServicio }) }}">{{alerta.nombreServicio}}</a>
+                </td>
+                <td style="padding: 0 4px 0 4px;">
+                    {{alerta.nombreComponente}}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
 {% else %}
-<p style="font-size: 1.3em; color: darkgreen">Los servicios proximos se encuentran confirmados y reconfirmados</p>
+    <p style="font-size: 1.3em; color: darkgreen">Los servicios próximos se encuentran confirmados y reconfirmados.</p>
+{% endif %}
+
+<h3>Ingresos y salidas de apartamentos: </h3>
+{% if reservasordenadas|length > 0 %}
+    {% for tipo in reservasordenadas %}
+        {% if tipo|length > 0 %}
+            <h4 style="margin-left: 15px;">{{ tipo.nombre }}:</h4>
+            <table style="margin-left: 30px; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid steelblue;">
+                    <th>
+                        Apartamento
+                    </th>
+                    <th>
+                        Canal
+                    </th>
+                    <th>
+                        Nombre
+                    </th>
+                    <th>
+                        Adultos
+                    </th>
+                    <th>
+                        Niños
+                    </th>
+                </tr>
+                {% for reserva in tipo.reservas %} {# siempre tiene contenido, ya no validamos #}
+                    <tr style="border-bottom: 1px solid steelblue;">
+
+                        <td style="padding: 0 4px 0 4px;">
+                            {{ reserva.unit.nombre }}
+                        </td>
+                        <td style="padding: 0 4px 0 4px;">
+                            {{ reserva.chanel.nombre }}
+                        </td>
+                        <td style="padding: 0 4px 0 4px;">
+                            <a href="{{ url('admin_app_reservareserva_show', {'id': reserva.id }) }}">{{ reserva.nombre }}</a>
+                        </td>
+                        <td style="padding: 0 4px 0 4px;">
+                            {{ reserva.cantidadadultos }}
+                        </td>
+                        <td style="padding: 0 4px 0 4px;">
+                            {{ reserva.cantidadninos }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+    {% endfor %}
+
+{% else %}
+    <p style="font-size: 1.3em; color: indigo;">No hay reservas ingresando o saliendo para el dia de mañana y pasado mañana.</p>
 {% endif %}
 
