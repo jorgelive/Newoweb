@@ -60,7 +60,7 @@
             <table style="margin-left: 30px; border-collapse: collapse;">
                 <tr style="border-bottom: 1px solid steelblue;">
                     <th>
-                        Apartamento
+                        Apart
                     </th>
                     <th>
                         Canal
@@ -92,6 +92,58 @@
                         </td>
                         <td style="padding: 0 4px 0 4px;">
                             {{ reserva.cantidadninos }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+    {% endfor %}
+
+{% else %}
+    <p style="font-size: 1.3em; color: indigo;">No hay reservas ingresando o saliendo para el dia de mañana y pasado mañana.</p>
+{% endif %}
+
+<h3>Toures y excursiones: </h3>
+{% if serviciosordenados|length > 0 %}
+    {% for tipo in serviciosordenados %}
+        {% if tipo|length > 0 %}
+            <h4 style="margin-left: 15px;">{{ tipo.nombre }}:</h4>
+            <table style="margin-left: 30px; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid steelblue;">
+                    <th>
+                        Hora
+                    </th>
+                    <th>
+                        Servicio
+                    </th>
+                    <th>
+                        Itinerario
+                    </th>
+                    <th>
+                        Componentes
+                    </th>
+                </tr>
+                {% for servicio in tipo.servicios %} {# siempre tiene contenido, ya no validamos #}
+                    <tr style="border-bottom: 1px solid steelblue;">
+                        <td style="padding: 0 4px 0 4px;">
+                            {{ servicio.fechahorainicio|date('H:i') }}
+                        </td>
+                        <td style="padding: 0 4px 0 4px;">
+                            <a href="{{ url('admin_app_reservareserva_show', {'id': servicio.id }) }}">{{ servicio.resumen }}</a>
+                        </td>
+                        <td style="padding: 0 4px 0 4px;">
+                            {{ servicio.itinerario.nombre }}
+                        </td>
+                        <td style="padding: 0 4px 0 4px;">
+                            {% if servicio.cotcomponentes|length > 0 %}
+                                <ul>
+                                    {% for componente in servicio.cotcomponentes %}
+                                        <li>
+                                            <a style="color: {{componente.estadocotcomponente.color}};">{{ componente.componente.nombre }} ({{ componente.estadocotcomponente.nombre }})</a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

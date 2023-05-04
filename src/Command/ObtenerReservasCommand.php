@@ -56,7 +56,7 @@ class ObtenerReservasCommand extends Command
                 ));
 
                 $qb = $this->entityManager
-                    ->createQueryBuilder('rr')
+                    ->createQueryBuilder()
                     ->select('rr')
                     ->from('App\Entity\ReservaReserva', 'rr')
                     ->where('rr.unitnexo = :unitnexo')                    

@@ -141,7 +141,8 @@ class CotizacionCotservicio
      */
     public function getResumen()
     {
-        return sprintf('%s: %s', $this->getServicio()->getNombre(), $this->getCotizacion()->getFile()->getNombre());
+        //return sprintf('%s: %s', $this->getServicio()->getNombre(), $this->getCotizacion()->getFile()->getNombre());
+        return sprintf('%s x%s: %s', $this->getCotizacion()->getFile()->getNombre(), $this->getCotizacion()->getNumeropasajeros(), $this->getServicio()->getNombre());
     }
 
     /**

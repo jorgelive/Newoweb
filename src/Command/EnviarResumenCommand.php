@@ -72,7 +72,7 @@ class EnviarResumenCommand extends Command
             $alertas = [];
         }
 
-        $qb = $this->entityManager->createQueryBuilder('rr');
+        $qb = $this->entityManager->createQueryBuilder();
 
         $qb->select('rr')
             ->from('App\Entity\ReservaReserva', 'rr')
@@ -122,9 +122,49 @@ class EnviarResumenCommand extends Command
                 $existeReservas = true;
             }
         }
-        if(!$existeReservas){$reservasOrdenadas=[];}
+        if(!$existeReservas){$reservasOrdenadas = [];}
         unset($reservas);
         unset($reserva);
+        unset($qb);
+
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->select('cs')
+            ->from('App\Entity\CotizacionCotservicio', 'cs')
+            ->innerJoin('cs.cotizacion', 'c')
+            ->innerJoin('c.estadocotizacion', 'e')
+            ->where(
+                $qb->expr()->andX(
+                    $qb->expr()->eq('e.id', 3), //confirmado
+                    $qb->expr()->gte('DATE(cs.fechahorainicio)', ':hoy'),
+                    $qb->expr()->lt('DATE(cs.fechahorainicio)', ':pasado'),
+                )
+            )
+            ->orderBy('cs.fechahorainicio', 'ASC')
+
+            ->setParameter('hoy', $hoy->format('Y-m-d'))
+            ->setParameter('pasado', $pasado->format('Y-m-d'));
+
+        $servicios = $qb->getQuery()->getResult();
+
+        $existeServicios = true;
+        $serviciosOrdenados = ['serviciosHoy' => [], 'serviciosManana' => []];
+        foreach ($servicios as $servicio) {
+            if($servicio->getFechahorainicio()->format('Y-m-d') == $hoy->format('Y-m-d')){
+                $serviciosOrdenados['serviciosHoy']['nombre'] = 'Servicios para hoy';
+                $serviciosOrdenados['serviciosHoy']['servicios'][] = $servicio;
+                $existeServicios = true;
+            }
+            if($servicio->getFechahorainicio()->format('Y-m-d') == $manana->format('Y-m-d')){
+                $serviciosOrdenados['serviciosManana']['nombre'] = 'Servicios para mañana';
+                $serviciosOrdenados['serviciosManana']['servicios'][] = $servicio;
+                $existeServicios = true;
+            }
+
+        }
+        if(!$existeServicios){$serviciosOrdenados = [];}
+        unset($servicios);
+        unset($servicio);
+        unset($qb);
 
         $email = (new TemplatedEmail())
             ->from(new Address($this->params->get('mailer_sender_email'), $this->params->get('mailer_sender_name')))
@@ -134,7 +174,8 @@ class EnviarResumenCommand extends Command
             ->context([
                 'fechaHoraActual' => new \DateTime('now'),
                 'alertas' => $alertas,
-                'reservasordenadas' => $reservasOrdenadas
+                'reservasordenadas' => $reservasOrdenadas,
+                'serviciosordenados' => $serviciosOrdenados
             ]);
 
         $receivers = explode(',', $this->params->get('mailer_alert_receivers'));
