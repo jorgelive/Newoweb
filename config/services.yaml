@@ -7,6 +7,10 @@ parameters:
     locale: 'es'
     google_maps_key: '%env(resolve:GOOGLE_MAPS_KEY)%'
     google_translate_key: '%env(resolve:GOOGLE_TRANSLATE_KEY)%'
+    mailer_sender_email: '%env(resolve:MAILER_SENDER_EMAIL)%'
+    mailer_sender_name: '%env(resolve:MAILER_SENDER_EMAIL)%'
+    mailer_control_email: '%env(resolve:MAILER_CONTROL_EMAIL)%'
+    mailer_alert_receivers: '%env(resolve:MAILER_ALERT_RECEIVERS)%'
     facturacion_ruta_prueba: 'https://www.nubefact.com/api/v1/f76cbd70-fbe8-4a66-96a9-a92d21c0a3ea'
     facturacion_token_prueba: '%env(resolve:DFACTURACION_TOKEN_PRUEBA)%'
     facturacion_ruta_produccion: 'https://www.nubefact.com/api/v1/b576e284-665a-41cb-9ceb-859de41e8ba7'
@@ -488,6 +492,17 @@ services:
         calls:
             - [ setTemplate, [list, cotizacion_cotcomponente_admin\list.html.twig]]
             - [ setTemplate, [show, cotizacion_cotcomponente_admin\show.html.twig]]
+        public: true
+
+    app.admin.viewcotizacioncotcomponentealerta:
+        class: App\Admin\ViewCotizacionCotcomponenteAlertaAdmin
+        tags:
+            -
+                name: sonata.admin
+                model_class: App\Entity\ViewCotizacionCotcomponenteAlerta
+                manager_type: orm
+                group: Cotizacion
+                label: Alerta de Componente
         public: true
 
     app.admin.cotizacioncottarifa:

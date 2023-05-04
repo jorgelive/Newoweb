@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
@@ -179,10 +180,10 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $emaiInfo = $request->get('email');
 
         $email = (new Email())
-            ->from('jorge@openperu.pe')
+            ->from(new Address($this->getParameter('mailer_sender_email'), $this->getParameter('mailer_sender_name')))
             //->to('susan@openperu.pe')
             ->to(urldecode($emaiInfo['destinatario']))
-            ->cc('susan@live.com.pe')
+            ->cc($this->getParameter('mailer_control_email'))
             ->priority(Email::PRIORITY_HIGH)
             ->subject(urldecode($emaiInfo['titulo']))
             ->html(urldecode($emaiInfo['mensaje']));

@@ -8,6 +8,7 @@ use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Form\Type\ModelAutocompleteType;
@@ -139,12 +140,8 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
             ->add('id')
             ->add('fechahorainicio', null, [
                 'label' => 'Inicio',
-                'format' => 'H:i d/m/Y '
+                'format' => 'Y/m/d H:i'
             ])
-            ->add('cotservicio.cotizacion.file.nombre', null, [
-                'label' => 'file'
-            ])
-
             ->add('cotservicio', null, [
                 'label' => 'Servicio'
             ])
@@ -340,4 +337,5 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
             ])
         ;
     }
+
 }

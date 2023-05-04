@@ -1,0 +1,52 @@
+<h2>OpenPeru - Resumen</h2>
+<p>
+    Hola {{ email.toName }} este es el resumen del sistema de OpenPeru!
+</p>
+
+<h3>Componentes pendientes de confirmación y reconfirmación</h3>
+{% if resumen is defined %}
+<table style="border-collapse: collapse;">
+    <tr style="border-bottom: 1pt solid steelblue;">
+        <th>
+            Estado
+        </th>
+        <th>
+            Fecha
+        </th>
+        <th>
+            File
+        </th>
+        <th>
+            Servicio
+        </th>
+        <th>
+            Componente
+        </th>
+    </tr>
+    {% for item in resumen %}
+        <tr style="border-bottom: 1pt solid steelblue;">
+             {% if item.idEstado == 1 %}
+                 {% set color = 'darkred' %}
+             {% else %}
+                 {% set color = 'darkorange' %}
+             {% endif %}
+            <td style="padding: 0 4px 0 4px; color: {{ color }}">
+                {{ item.nombreEstado }}
+            </td>
+            <td style="padding: 0 4px 0 4px;">
+                {{ item.fechaHoraInicio|date("Y-m-d H:i") }}
+            </td>
+            <td style="padding: 0 4px 0 4px;">
+                {{ item.nombreFile }}
+            </td>
+            <td style="padding: 0 4px 0 4px;">
+                <a href="{{ url('admin_app_cotizacioncotservicio_edit', {'id': item.idServicio }) }}">{{item.nombreServicio}}</a>
+            </td>
+            <td style="padding: 0 4px 0 4px;">
+                {{item.nombreComponente}}
+            </td>
+        </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
