@@ -65,6 +65,8 @@ class EnviarResumenCommand extends Command
                 $resumen[$id]['nombreComponente'] = $componenteAlerta->getComponente()->getNombre();
                 $resumen[$id]['fechaAlerta'] = $componenteAlerta->getFechaalerta();
             }
+        }else{
+            $resumen = [];
         }
 
         $ahora = new \DateTime('now');

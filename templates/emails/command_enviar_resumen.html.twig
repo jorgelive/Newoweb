@@ -4,7 +4,7 @@
 </p>
 
 <h3>Componentes pendientes de confirmación y reconfirmación</h3>
-{% if resumen is defined %}
+{% if resumen|length > 0 %}
 <table style="border-collapse: collapse;">
     <tr style="border-bottom: 1pt solid steelblue;">
         <th>
@@ -48,5 +48,7 @@
         </tr>
     {% endfor %}
 </table>
+{% else %}
+<p style="font-size: 110px; color: darkgreen">Los servicios proximos se encuentran confirmados y reconfirmados</p>
 {% endif %}
 
