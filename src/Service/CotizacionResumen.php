@@ -276,7 +276,8 @@ class CotizacionResumen implements ContainerAwareInterface
                                 if(!$tarifa->getTarifa()->isProvidernomostrable()){
                                     $indiceComponentesProveedor = $tempArrayComponente['fechahorainicio']->format('Ymd')
                                         . sprintf('%04d',$tarifa->getTarifa()->getComponente()->getTipocomponente()->getPrioridadparaproveedor())
-                                        . $tempArrayComponente['fechahorainicio']->format('Hi'); // agrupamos por horas, ya no separamos por tarifa con: sprintf('%010d', $tarifa->getId());
+                                        . $tempArrayComponente['fechahorainicio']->format('Hi')
+                                        . sprintf('%010d', $componente->getId()); // agrupamos por componentes, ya no separamos por tarifa con: sprintf('%010d', $tarifa->getId());
 
                                     if(!empty($tarifa->getProvider())) {
                                         $providerId = $tarifa->getProvider()->getId();
