@@ -27,9 +27,6 @@ class MaestroPaisAdmin extends AbstractAdmin
             ->add('codigocon',  null, [
                 'label' => 'Código CON'
             ])
-            ->add('ciudadcon',  null, [
-                'label' => 'Ciudad CON'
-            ])
         ;
     }
 
@@ -53,10 +50,6 @@ class MaestroPaisAdmin extends AbstractAdmin
             ])
             ->add('codigocon',  null, [
                 'label' => 'Código CON',
-                'editable' => true
-            ])
-            ->add('ciudadcon',  null, [
-                'label' => 'Ciudad CON',
                 'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, array(
@@ -85,9 +78,6 @@ class MaestroPaisAdmin extends AbstractAdmin
             ->add('codigocon',  null, [
                 'label' => 'Código CON'
             ])
-            ->add('ciudadcon',  null, [
-                'label' => 'Ciudad CON'
-            ])
         ;
     }
 
@@ -107,9 +97,6 @@ class MaestroPaisAdmin extends AbstractAdmin
             ])
             ->add('codigocon',  null, [
                 'label' => 'Código CON'
-            ])
-            ->add('ciudadcon',  null, [
-                'label' => 'Ciudad CON'
             ])
         ;
     }

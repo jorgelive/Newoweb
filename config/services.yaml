@@ -5,6 +5,8 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     locale: 'es'
+    router.request_context.host: 'oweb.openperu.pe'
+    router.request_context.scheme: 'https'
     google_maps_key: '%env(resolve:GOOGLE_MAPS_KEY)%'
     google_translate_key: '%env(resolve:GOOGLE_TRANSLATE_KEY)%'
     mailer_sender_email: '%env(resolve:MAILER_SENDER_EMAIL)%'

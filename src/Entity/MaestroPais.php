@@ -40,7 +40,7 @@ class MaestroPais
 
     /**
      * Perurail
-     * @var string
+     * @var integer
      *
      * @ORM\Column(type="integer", length=3)
      */
@@ -48,19 +48,13 @@ class MaestroPais
 
     /**
      * Consettur
-     * @var string
+     * @var integer
      *
-     * @ORM\Column(type="string", length=40)
+     * @ORM\Column(type="integer", length=40)
      */
     private $codigocon;
 
-    /**
-     * Consettur ciudad
-     * @var string
-     *
-     * @ORM\Column(type="string", length=40)
-     */
-    private $ciudadcon;
+
 
     /**
      * @var \DateTime $creado
@@ -192,29 +186,6 @@ class MaestroPais
         return $this->codigocon;
     }
 
-    /**
-     * Set ciudadcon
-     *
-     * @param string $ciudadcon
-     *
-     * @return MaestroPais
-     */
-    public function setCiudadcon(string $ciudadcon)
-    {
-        $this->ciudadcon = $ciudadcon;
-
-        return $this;
-    }
-
-    /**
-     * Get ciudadcon
-     *
-     * @return string
-     */
-    public function getCiudadcon()
-    {
-        return $this->ciudadcon;
-    }
 
     /**
      * Set creado

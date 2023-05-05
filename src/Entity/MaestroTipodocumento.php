@@ -55,9 +55,8 @@ class MaestroTipodocumento
 
     /**
      * Consettur
-     * @var string
-     *
-     * @ORM\Column(type="string", length=40)
+     * @var integer
+     * @ORM\Column(type="integer", length=2)
      */
     private $codigocon;
 

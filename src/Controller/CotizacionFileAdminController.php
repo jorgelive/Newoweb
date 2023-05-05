@@ -219,64 +219,36 @@ class CotizacionFileAdminController extends CRUDAdminController
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
-        $qb = $em->createQueryBuilder()
-            ->select('cc')
-            ->from('App\Entity\CotizacionCotcomponente', 'cc')
-            ->innerJoin('cc.cotservicio', 'cs')
-            ->innerJoin('cs.cotizacion', 'c')
-            ->innerJoin('c.file', 'f')
-            ->where('f.id = :file')
-            ->andWhere('c.estadocotizacion = :estado')
-            ->andWhere($qb->expr()->in('cc.componente', [30, 85])) //Consettur RT y OW
-            ->setParameter('file', $object->getId())
-            ->setParameter('estado', 3) //aceptado
-            ->orderBy('cc.id', 'ASC')
-            ->setMaxResults(1);
-        ;
-
-        $cotcomponentes = $qb->getQuery()->getResult();
-        if(empty($cotcomponentes)){
-            $this->addFlash('sonata_flash_error', 'No existe el servicio CONSETTUR para la cotización confirmada del file o el file no esta confirmado.');
-            return new RedirectResponse($this->admin->generateUrl('list'));
-        }
-
-        $fechaservicio = $cotcomponentes['0']->getFechahorainicio();
-        $encabezado = ['fecha de uso', 'tramo', 'tipo de documento', 'numero de documento', 'nombres', 'apellido', 'apellido materno', 'fecha de nacimiento', 'genero', 'pais', 'ciudad', 'tipo de residente', 'es estudiante', 'es guia', 'es discapacitado'];
+        $encabezado = ['Apellido Paterno', 'Apellido Materno', 'Nombres', 'IdTipoDoc', 'NroDoc', 'Fecha de Nacimiento', 'IdPais', 'Ciudad', 'Sexo'];
         foreach($filePasajeros as $key => $filePasajero){
-            $edad = $fechaservicio->diff($filePasajero->getFechanacimiento())->y;
-            if($edad>=12 && $edad<=17 && $filePasajero->getPais()->getId() == 117){
-                $esEstudiante = 'SI';
-            }else{
-                $esEstudiante = 'NO';
-            }
 
-            $resultados[$key]['fechauso'] = $fechaservicio->format('d-m-Y');
-            $resultados[$key]['tramo'] = 'Subida y Bajada';
-            if($filePasajero->getPais()->getId() != 117){//si no es peruano fuerzo a pasaporte
-                $resultados[$key]['tipodoumento'] = 'PASAPORTE';
-            }else{
-                $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigocon();
-            }
-            $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigocon();
-            $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
-            $resultados[$key]['nombre'] = $filePasajero->getNombre();
             $resultados[$key]['apellidopaterno'] = $filePasajero->getApellidoPaterno();
             $resultados[$key]['apellidomaterno'] = $filePasajero->getApellidoMaterno();
-            $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d-m-Y');
-            $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
+            $resultados[$key]['nombre'] = $filePasajero->getNombre();
+            if($filePasajero->getPais()->getId() != 117){//si no es peruano fuerzo a pasaporte
+                $resultados[$key]['tipodocumento'] = '4';
+            }else{
+                $resultados[$key]['tipodocumento'] = $filePasajero->getTipodocumento()->getCodigocon();
+            }
+            $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
+            $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('Y-m-d');
+
             $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigocon();
-            $resultados[$key]['ciudad'] = $filePasajero->getPais()->getCiudadcon();
-            $resultados[$key]['residente'] = '';
-            $resultados[$key]['estudiante'] = $esEstudiante;
-            $resultados[$key]['guia'] = 'NO';
-            $resultados[$key]['discapacitado'] = 'NO';
+            if($filePasajero->getPais()->getId() == 117){//si es peruano pongo Lima
+                $resultados[$key]['ciudad'] = 'Lima';
+            }else{
+                $resultados[$key]['ciudad'] = '';
+            }
+            $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
 
         }
 
         if(count($resultados) <= $maxLength) {
             return $this->container->get('App\Service\MainArchivoexcel')
+                ->setArchivoBasePath('consettur.xlsx')
                 ->setArchivo()
-                ->setParametrosWriter($resultados, $encabezado, 'consettur_' . $object->getNombre(), 'xlsx')
+                ->setFilaBase(2)
+                ->setParametrosWriter($resultados, [], 'consettur_' . $object->getNombre(), 'xlsx')
                 ->setAnchoColumna(['0:' => 20]) //['A'=>12,'B'=>'auto','0:'=>20]
                 ->getResponse();
         }else{
@@ -284,8 +256,10 @@ class CotizacionFileAdminController extends CRUDAdminController
 
             foreach($partes as $key => $parte){
                 $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
+                    ->setArchivoBasePath('consettur.xlsx')
                     ->setArchivo()
-                    ->setParametrosWriter($parte, $encabezado, 'consettur_' . $object->getNombre(), 'xlsx')
+                    ->setFilaBase(2)
+                    ->setParametrosWriter($parte, [], 'consettur_' . $object->getNombre(), 'xlsx')
                     ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
                     ->createFile();
                 $archivos[$key]['nombre'] = 'consettur_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xlsx';
