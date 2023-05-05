@@ -272,9 +272,11 @@ class CotizacionResumen implements ContainerAwareInterface
 //Incluye
                                 $tempArrayInternoIncluye = [];
 //para almacenar el indice para ordenar
-                                $indiceTarifasProveedor = '';
+                                $indiceComponentesProveedor = '';
                                 if(!$tarifa->getTarifa()->isProvidernomostrable()){
-                                    $indiceTarifasProveedor = $tempArrayComponente['fechahorainicio']->format('Ymd').sprintf('%04d',$tarifa->getTarifa()->getComponente()->getTipocomponente()->getPrioridadparaproveedor()).$tempArrayComponente['fechahorainicio']->format('Hi').sprintf('%010d', $tarifa->getId());
+                                    $indiceComponentesProveedor = $tempArrayComponente['fechahorainicio']->format('Ymd')
+                                        . sprintf('%04d',$tarifa->getTarifa()->getComponente()->getTipocomponente()->getPrioridadparaproveedor())
+                                        . $tempArrayComponente['fechahorainicio']->format('Hi'); // agrupamos por horas, ya no separamos por tarifa con: sprintf('%010d', $tarifa->getId());
 
                                     if(!empty($tarifa->getProvider())) {
                                         $providerId = $tarifa->getProvider()->getId();
@@ -296,33 +298,38 @@ class CotizacionResumen implements ContainerAwareInterface
                                     $tempProveedores[$providerId]['nombre'] = $providerName;
                                     $tempProveedores[$providerId]['nombreMostrar'] = $providerNameMostrar;
 
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['fechaHoraInicio'] = $tempArrayComponente['fechahorainicio'];
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['fechaHoraFin'] = $tempArrayComponente['fechahorafin'];
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tipoComponenteId'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId();
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tipoComponenteNombre'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getNombre();
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tipoComponentePrioridad'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getPrioridadparaproveedor();
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['componenteNombre'] = $tempArrayComponente['nombre'];
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['componenteCantidad'] = (int)($componente->getCantidad());
+                                    //comunes que se sobreescriben si es que pertenecen al mismo commponente, ya no queremos filas distitas ahora usan el mismo $indiceComponentesProveedor
+
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['fechaHoraInicio'] = $tempArrayComponente['fechahorainicio'];
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['fechaHoraFin'] = $tempArrayComponente['fechahorafin'];
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tipoComponenteId'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId();
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tipoComponenteNombre'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getNombre();
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tipoComponentePrioridad'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getPrioridadparaproveedor();
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['componenteNombre'] = $tempArrayComponente['nombre'];
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['componenteCantidad'] = (int)($componente->getCantidad());
+
+
                                     if(!empty($tarifa->getTarifa()->getNombremostrar())){
-                                        $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tarifaNombre'] = $tarifa->getTarifa()->getNombremostrar();
+                                        $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tarifas'][$tarifa->getId()]['tarifaNombre'] = $tarifa->getTarifa()->getNombremostrar();
                                     }else{
-                                        $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tarifaNombre'] = $tarifa->getTarifa()->getNombre();
+                                        $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tarifas'][$tarifa->getId()]['tarifaNombre'] = $tarifa->getTarifa()->getNombre();
                                     }
 
                                     if($tarifa->getTarifa()->isProrrateado() === false){
-                                        $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tarifaCantidad'] = (int)($tarifa->getCantidad());
+                                        $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tarifas'][$tarifa->getId()]['tarifaCantidad'] = (int)($tarifa->getCantidad());
                                     }
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tipoTarifaId'] = $tarifa->getTipotarifa()->getId();
-                                    $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['tipoTarifaNombre'] = $tarifa->getTipotarifa()->getNombre();
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tarifas'][$tarifa->getId()]['tipoTarifaId'] = $tarifa->getTipotarifa()->getId();
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tarifas'][$tarifa->getId()]['tipoTarifaNombre'] = $tarifa->getTipotarifa()->getNombre();
                                 }
 
 //Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
                                 if(
                                     $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId() == 4 //hoteles
                                 ){
-                                    $servicioId = -4; //podria ser cualuie numero negativo
+                                    $servicioId = -4; //podria ser cualquier numero negativo
                                     $datosTabs['incluye']['internoIncluidos'][$servicioId]['caso'] = 'hotel';
                                     $datosTabs['incluye']['internoIncluidos'][$servicioId]['tituloItinerario'] = ucfirst($this->translator->trans('alojamiento', [], 'messages'));
+
                                     $tempHoteles[$tarifa->getId()]['fechaHoraInicio'] = $tempArrayComponente['fechahorainicio'];
                                     $tempHoteles[$tarifa->getId()]['fechaHoraFin'] = $tempArrayComponente['fechahorafin'];
                                     $tempHoteles[$tarifa->getId()]['nombreComponente'] = $tempArrayComponente['nombre'];
@@ -408,12 +415,12 @@ class CotizacionResumen implements ContainerAwareInterface
 
                                 if(!$tarifa->getTarifa()->isProvidernomostrable()) {
                                     if (!empty($tempInfoOperativa)) {
-                                        $tempProveedores[$providerId]['tarifas'][$indiceTarifasProveedor]['infoOperativa'] = implode(' ', $tempInfoOperativa);
+                                        $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['infoOperativa'] = implode(' ', $tempInfoOperativa);
 
                                     }
                                 }
                                 unset($tempInfoOperativa);
-                                unset($indiceTarifasProveedor);
+                                unset($indiceComponentesProveedor);
 
                                 if(!empty($tempArrayDetalle)){
                                     $tempArrayInternoIncluye['detalles'] = $tempArrayDetalle;
@@ -681,19 +688,19 @@ class CotizacionResumen implements ContainerAwareInterface
 //procesamos la informacion para enviar a proveedor
             foreach ($tempProveedores as &$proveedor):
                 //ordenamos por el indice
-                ksort($proveedor['tarifas']);
-                foreach($proveedor['tarifas'] as $tarifa):
-                    if($tarifa['tipoComponenteId'] == 4){ //tipo 4 hoteles
+                ksort($proveedor['componentes']);
+                foreach($proveedor['componentes'] as $componente):
+                    if($componente['tipoComponenteId'] == 4){ //tipo 4 hoteles
                         //no modificamos si es hotel
                         continue;
                     }
-                    $inicio = new \DateTime($tarifa['fechaHoraInicio']->format('Y-m-d'));
-                    $fin = new \DateTime($tarifa['fechaHoraFin']->format('Y-m-d'));
+                    $inicio = new \DateTime($componente['fechaHoraInicio']->format('Y-m-d'));
+                    $fin = new \DateTime($componente['fechaHoraFin']->format('Y-m-d'));
                     foreach ($tempHoteles as $idHotel => $hotel):
                         $inicioHotel = new \Datetime($hotel['fechaHoraInicio']->format('Y-m-d'));
                         $finHotel = new \Datetime($hotel['fechaHoraFin']->format('Y-m-d'));
                         if($inicio >= $inicioHotel && $fin <= $finHotel){
-                            //para que no se repita isamos el idhotel
+                            //para que no se repita usamos el idhotel
                             $proveedor['hoteles'][$idHotel] = $hotel;
                         }
                     endforeach;
