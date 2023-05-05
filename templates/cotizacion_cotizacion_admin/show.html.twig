@@ -896,6 +896,8 @@ file that was distributed with this source code.
                                                                                 {% for tarifa in componente.tarifas %}
                                                                                     {% if not loop.first %}
                                                                                         |
+                                                                                        {% set whatsappText = whatsappText ~ ', ' %}
+                                                                                        {% set emailMensaje = emailMensaje ~ ', ' %}
                                                                                     {% endif %}
                                                                                     {% if componente.tipoComponenteId != 4 %} {# no es hotel #}
                                                                                         <span style="font-weight: bold;">{{ tarifa.tarifaNombre }}</span>
