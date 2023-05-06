@@ -7,11 +7,6 @@ use Symfony\Component\HttpFoundation\Request;
 use App\Service\CotizacionResumen;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mailer\Transport\TransportInterface;
-use Symfony\Component\Mime\Address;
-use Symfony\Component\Mime\Email;
-use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class CotizacionCotizacionAdminController extends CRUDAdminController
 {
@@ -173,30 +168,5 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         }
     }
 
-    function emailAction(Request $request, TransportInterface $mailer): RedirectResponse
-    {
-        $object = $this->assertObjectExists($request, true);
-        \assert(null !== $object);
 
-        $emaiInfo = $request->get('email');
-
-        $email = (new Email())
-            ->from(new Address($this->getParameter('mailer_sender_email'), $this->getParameter('mailer_sender_name')))
-            //->to('susan@openperu.pe')
-            ->to(urldecode($emaiInfo['destinatario']))
-            ->cc($this->getParameter('mailer_control_email'))
-            ->priority(Email::PRIORITY_HIGH)
-            ->subject(urldecode($emaiInfo['titulo']))
-            ->html(urldecode($emaiInfo['mensaje']));
-
-        try {
-            $mailer->send($email);
-        }catch (TransportExceptionInterface $e) {
-            $this->addFlash('sonata_flash_error', 'Hubo un error al enviar el mensaje:' . $e->getMessage());
-            return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
-        }
-
-        $this->addFlash('sonata_flash_success', 'Se envió correctamente el mensaje.');
-        return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
-    }
 }

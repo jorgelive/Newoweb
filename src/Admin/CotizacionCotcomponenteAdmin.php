@@ -338,4 +338,9 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
         ;
     }
 
+    protected function configureRoutes(RouteCollectionInterface $collection): void
+    {
+        $collection->add('email', $this->getRouterIdParameter() . '/email');
+    }
+
 }
