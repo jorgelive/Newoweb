@@ -7,45 +7,38 @@ use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManager;
 use Doctrine\Persistence\ObjectManager;
 use Doctrine\Persistence\ObjectRepository;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Symfony\Bundle\FrameworkBundle\Routing\Router;
-use Symfony\Component\Security\Http\AccessMap;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use Symfony\Component\DependencyInjection\ContainerAwareTrait;
+
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-class FullcalendarEventsfinder implements ContainerAwareInterface
+class FullcalendarEventsfinder
 {
-
-    use ContainerAwareTrait;
-
     protected TokenStorageInterface $tokenStorage;
     protected ManagerRegistry $managerRegistry;
     protected array $calendars; //configuracion
     protected ObjectManager $manager;
     protected ObjectRepository $repository;
     protected array $options;
-    /**
-     * @var ContainerInterface
-     */
-    protected $container;
+    protected AuthorizationCheckerInterface $authorizationChecker;
+    protected ParameterBagInterface $params;
+    protected UrlGeneratorInterface $router;
 
-    public function __construct(ManagerRegistry $managerRegistry, TokenStorageInterface $tokenStorage, AuthorizationCheckerInterface $authorizationChecker)
+    public function __construct(ManagerRegistry $managerRegistry, TokenStorageInterface $tokenStorage, AuthorizationCheckerInterface $authorizationChecker, ParameterBagInterface $params, UrlGeneratorInterface $router)
     {
-
         $this->managerRegistry = $managerRegistry;
         $this->tokenStorage = $tokenStorage;
         $this->authorizationChecker = $authorizationChecker;
+        $this->params = $params;
+        $this->router = $router;
     }
 
     public function setCalendar(string $calendar): void
     {
 
-        $this->calendars = $this->container->getParameter('calendars');
+        $this->calendars = $this->params->get('calendars');
         if(!array_key_exists($calendar, $this->calendars)){
             throw new HttpException(500, sprintf("El calendario %s no esta en los parametros de configuración.", $calendar));
         }
@@ -131,7 +124,6 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
 
     public function serializeResources(array $elements): string
     {
-
         $result = [];
         $aux = [];
         if(isset($this->options['resource'])){
@@ -211,10 +203,10 @@ class FullcalendarEventsfinder implements ContainerAwareInterface
                 }elseif($key == 'url'){
 //todo recibir locale y generalo como link
                     if(isset($parameter['edit']) && true === $this->authorizationChecker->isGranted($parameter['edit']['role'])){
-                        $result[$i]['urledit'] = $this->container->get('router')->generate($parameter['edit']['route'], ['id' => $copiedElement, 'tl' => 'es']);
+                        $result[$i]['urledit'] = $this->router->generate($parameter['edit']['route'], ['id' => $copiedElement, 'tl' => 'es']);
                     }
                     if(isset($parameter['show']) && true === $this->authorizationChecker->isGranted($parameter['show']['role'])){
-                        $result[$i]['urlshow'] = $this->container->get('router')->generate($parameter['show']['route'], ['id' => $copiedElement, 'tl' => 'es']);
+                        $result[$i]['urlshow'] = $this->router->generate($parameter['show']['route'], ['id' => $copiedElement, 'tl' => 'es']);
                     }
                 }else{
                     $result[$i][$key] = $copiedElement;

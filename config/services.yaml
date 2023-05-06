@@ -252,7 +252,6 @@ parameters:
                         route: 'admin_gopro_transporte_servicio_edit'
                         role: 'ROLE_TRANSPORTES_EDITOR'
 
-
 services:
     # default configuration for services in *this* file
     _defaults:
@@ -271,15 +270,12 @@ services:
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
-    App\Service\FullcalendarEventsfinder:
-        calls:
-             - [ setContainer, [ '@service_container' ] ]
-
-    App\Service\MainArchivoexcel:
-        calls:
-             - [ setContainer, [ '@service_container' ] ]
-             - [ setVariableproceso, [ '@App\Service\MainVariableproceso' ] ]
-             - [ setArchivoexcelFactory, [ '@App\Service\MainArchivoexcelFactory' ] ]
+    #Antigua definicion de servicios
+    # App\Service\MainArchivoexcel:
+    #    calls:
+    #         - [ setContainer, [ '@service_container' ] ]
+    #         - [ setVariableproceso, [ '@App\Service\MainVariableproceso' ] ]
+    #         - [ setArchivoexcelFactory, [ '@App\Service\MainArchivoexcelFactory' ] ]
 
     app.eventlistener.cuenta_movimiento_doctrine_event_listener:
         class: App\EventListener\CuentaMovimientoDoctrineEventListener
@@ -461,6 +457,7 @@ services:
                 group: Cotizacion
                 label: Cotizaciones
         calls:
+            - [ setTemplate, [show, cotizacion_cotizacion_admin\show.html.twig]]
             - [ setTemplate, [edit, cotizacion_cotizacion_admin\edit.html.twig]]
             - [ setTemplate, [list, cotizacion_cotizacion_admin\list.html.twig]]
         public: true
@@ -488,6 +485,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCotcomponente
+                controller: App\Controller\CotizacionCotcomponenteAdminController
                 manager_type: orm
                 group: Cotizacion
                 label: Componentes

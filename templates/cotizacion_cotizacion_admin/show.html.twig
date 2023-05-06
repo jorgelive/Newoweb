@@ -854,11 +854,11 @@ file that was distributed with this source code.
                                                             {% if contenido.proveedores is defined and contenido.proveedores|length > 0 %}
                                                                 {% for proveedor in contenido.proveedores %}
 
-                                                                    {% set emailTitulo = 'OpenPeru Reserva Pax: ' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros %}
+                                                                    {% set emailTitulo = 'Reserva OpenPeru Pax: ' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros %}
 
                                                                     <h3>{{ proveedor.nombreMostrar }} <span style="font-size: 70%;">({{ proveedor.nombre }})</span></h3>
-                                                                    {% set whatsappText = 'Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase proveer los siguientes servicios:\n\n'%}
-                                                                    {% set emailMensaje = '<p>Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase proveer los siguientes servicios:</p>'%}
+                                                                    {% set whatsappText = 'Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase *reservar* los siguientes servicios:\n\n'%}
+                                                                    {% set emailMensaje = '<p>Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase <span style="font-weight: bold;">reservar</span> los siguientes servicios:</p>'%}
 
                                                                     <h4>Pax: <span style="font-weight: bold;"> {{ cotizacion.file.nombre }} x{{ cotizacion.cotizacion.numeropasajeros }}</span> ({{ cotizacion.file.paisnombre }} - {{ cotizacion.file.idioma }})</h4>
                                                                     {% set whatsappText = whatsappText ~ 'Pax: *' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros ~ '* (' ~ cotizacion.file.paisnombre ~ '-' ~ cotizacion.file.idioma ~ ')' ~ '\n\n' %}
@@ -869,14 +869,13 @@ file that was distributed with this source code.
                                                                             <p>
                                                                             {% set emailMensaje = emailMensaje ~ '<p>' %}
                                                                                 {% if componente.tipoComponenteId == 1  or componente.tipoComponenteId == 4 or componente.tipoComponenteId == 6 %} {# tickets 1 hoteles 4 pool 6#}
-                                                                                    {{ componente.fechaHoraInicio|date("Y-m-d") }}
-                                                                                    {% set whatsappText = whatsappText ~ componente.fechaHoraInicio|date("Y-m-d") %}
-                                                                                    {% set emailMensaje = emailMensaje ~ componente.fechaHoraInicio|date("Y-m-d") %}
-
+                                                                                    <span style="font-weight: bold;">{{ componente.fechaHoraInicio|date("Y-m-d") }}</span>
+                                                                                    {% set whatsappText = whatsappText ~ '*' ~ componente.fechaHoraInicio|date("Y-m-d") ~ '*' %}
+                                                                                    {% set emailMensaje = emailMensaje ~ '<span style="font-weight: bold;">' ~ componente.fechaHoraInicio|date("Y-m-d") ~ '</span>' %}
                                                                                 {% else %}
-                                                                                    {{ componente.fechaHoraInicio|date("Y-m-d H:i") }}
-                                                                                    {% set whatsappText = whatsappText ~ componente.fechaHoraInicio|date("Y-m-d H:i") %}
-                                                                                    {% set emailMensaje = emailMensaje ~ componente.fechaHoraInicio|date("Y-m-d H:i") %}
+                                                                                    <span style="font-weight: bold;">{{ componente.fechaHoraInicio|date("Y-m-d H:i") }}</span>
+                                                                                    {% set whatsappText = whatsappText ~ '*' ~ componente.fechaHoraInicio|date("Y-m-d H:i") ~ '*' %}
+                                                                                    {% set emailMensaje = emailMensaje ~ '<span style="font-weight: bold;">' ~ componente.fechaHoraInicio|date("Y-m-d H:i") ~ '</span>' %}
                                                                                 {% endif %}
 
                                                                                 {{ componente.componenteNombre }}

@@ -34,7 +34,6 @@ class EnviarResumenCommand extends Command
         $this->mailer = $mailer;
         $this->params = $params;
 
-
         parent::__construct();
     }
 

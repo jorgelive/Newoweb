@@ -2,37 +2,21 @@
 
 namespace App\Service;
 
-use Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\MaestroTipocambio;
 
+class MainTipocambio{
 
-class MainTipocambio implements ContainerAwareInterface{
-
-    use ContainerAwareTrait;
-
-    private EntityManagerInterface $doctrine;
-
-    function getDoctrine(): EntityManagerInterface
-    {
-        return $this->doctrine;
-    }
-
+    private EntityManagerInterface $em;
 
     function __construct(EntityManagerInterface $em)
     {
-        $this->doctrine = $em;
+        $this->em = $em;
     }
 
-    /**
-     * @param mixed $mensaje
-     * @return boolean
-     */
     public function getTipodecambio(\DateTime $fecha): MaestroTipocambio
     {
-
-        $enDB = $this->getDoctrine()->getRepository('App\Entity\MaestroTipocambio')
+        $enDB = $this->em->getRepository('App\Entity\MaestroTipocambio')
             ->findOneBy(['moneda' => 2, 'fecha' => $fecha]);
 
         if($enDB){
@@ -53,15 +37,12 @@ class MainTipocambio implements ContainerAwareInterface{
             //retornamos la entidad vacia
             return new MaestroTipocambio();
         }
-
     }
 
     private function insertTipo(array $tipo, \DateTime $fecha): MaestroTipocambio
     {
 
-        $em = $this->getDoctrine();
-
-        $moneda = $em->getReference('App\Entity\MaestroMoneda', 2);
+        $moneda = $this->em->getReference('App\Entity\MaestroMoneda', 2);
 
         $entity = new \App\Entity\MaestroTipocambio();
         $entity->setCompra($tipo['compra']);
@@ -69,16 +50,14 @@ class MainTipocambio implements ContainerAwareInterface{
         $entity->setFecha($fecha);
         $entity->setMoneda($moneda);
 
-        $em->persist($entity);
-        $em->flush();
+        $this->em->persist($entity);
+        $this->em->flush();
 
         return $entity;
-
     }
 
     private function leerPagina(\DateTime $fecha): array
     {
-
         $token = 'apis-token-1.aTSI1U7KEuT-6bbbCguH-4Y8TI6KS73N';
 
         try {
@@ -123,9 +102,7 @@ class MainTipocambio implements ContainerAwareInterface{
                 'Falló la lectura de la pagina apis.net.pe #%d: %s',
                 $e->getCode(), $e->getMessage()),
                 E_USER_ERROR);
-
         }
-
     }
 
     private function formatearValores(array $array): array

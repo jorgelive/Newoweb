@@ -5,13 +5,10 @@ namespace App\Service;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class MainArchivozip implements ContainerAwareInterface{
-
-    use ContainerAwareTrait;
+class MainArchivozip
+{
 
     private array $archivos;
 

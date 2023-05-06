@@ -3,13 +3,10 @@
 namespace App\Service;
 
 use PhpParser\Node\Expr\Array_;
-use Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
-class MainVariableproceso implements ContainerAwareInterface{
-
-    use ContainerAwareTrait;
+class MainVariableproceso
+{
 
     private static array $mensajes;
 

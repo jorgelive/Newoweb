@@ -2,20 +2,16 @@
 
 namespace App\Service;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectRepository;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
-use Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\HttpFoundation\Response;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-
-class MainArchivoexcel implements ContainerAwareInterface
+class MainArchivoexcel
 {
-
-    use ContainerAwareTrait;
 
     private string $internalTemplateDir = __DIR__ . '/../../public/templates';
 
@@ -55,15 +51,9 @@ class MainArchivoexcel implements ContainerAwareInterface
     private string $tipo;
     private bool $removeEnclosure;
 
-    //llamado por inyeccion de componentes
-    public function setVariableproceso(MainVariableproceso $variableproceso): void
+    function __construct(MainVariableproceso $variableproceso, MainArchivoexcelFactory $archivoexcelFactory)
     {
         $this->variableproceso = $variableproceso;
-    }
-
-    //llamado por inyeccion de componentes
-    public function setArchivoexcelFactory(MainArchivoexcelFactory $archivoexcelFactory): void
-    {
         $this->archivoexcelFactory = $archivoexcelFactory;
     }
 
