@@ -107,8 +107,8 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
         $fields = $this->admin->getShow();
 
-        //Usamos la configuracion de services.yml $template = 'cotizacion_cotizacion_admin/show.html.twig';
-        $template = $this->templateRegistry->getTemplate('show');
+        $template = 'cotizacion_cotizacion_admin/show.html.twig';
+        //falla en producciom $template = $this->templateRegistry->getTemplate('show');
 
         if($this->container->get('App\Service\CotizacionResumen')->procesar($object->getId())){
             return $this->renderWithExtraParams($template,

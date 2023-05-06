@@ -39,7 +39,8 @@ class CotizacionCotcomponenteAdminController extends CRUDAdminController
 
         $fields = $this->admin->getShow();
 
-        $template = $this->templateRegistry->getTemplate('show');
+        $template = 'cotizacion_cotcomponente_admin/show.html.twig';
+        //falla en producciom $template = $this->templateRegistry->getTemplate('show');
 
         return $this->renderWithExtraParams($template, [
             'proveedores' => $this->container->get('App\Service\MensajeProveedor')->getMensajesParaComponente($object->getId()),
