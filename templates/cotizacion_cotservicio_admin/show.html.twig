@@ -16,8 +16,8 @@ file that was distributed with this source code.
 
     <style>
         .fila{list-style: none;}
-        .fila.servicio{padding-inline-start: 0; color: black;}
-        .fila li {list-style: none; border: 1px solid gray; margin-bottom: 5px;}
+        .fila.servicio{padding-inline-start: 0; margin: 5px;}
+        .fila li {list-style: none; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; border-left: 1px solid #ccc; margin-bottom: 5px;}
         .celda{display: inline-block; padding: 0 5px;}
         .celda.heading{font-weight: bold; font-size: 0.8em; vertical-align: top;}
         .titulo{font-size: 0.8em; font-weight: bold;}
@@ -29,8 +29,8 @@ file that was distributed with this source code.
 <div class="sonata-ba-view">
 
     {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
-
-    <ul class="fila servicio">
+    <div class="panel panel-default hidden-print">
+        <ul class="fila servicio">
         <li>
             <div class="celda heading">Ser</div>
             <div class="celda">
@@ -73,6 +73,7 @@ file that was distributed with this source code.
                                             <div class="celda">
                                                 <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ tarifa.tarifa.nombre }}</div></div>
                                                 <div class="celda"><div class="titulo">#</div><div class="contenido">{{ tarifa.cantidad }}</div></div>
+                                                <div class="celda"><div class="titulo">Proveedor</div><div class="contenido" style="color: dodgerblue">{% if tarifa.provider is not null %}{{ tarifa.provider.nombre }}{% else %}-{% endif %}</div></div>
                                                 <div class="celda"><div class="titulo">Tipo</div><div class="contenido" style="color: {{ tarifa.tarifa.tipotarifa.listacolor }};">{{ tarifa.tarifa.tipotarifa.nombre }}</div></div>
                                             </div>
                                             {% if tarifa.cottarifadetalles is defined and tarifa.cottarifadetalles|length > 0%}
@@ -98,6 +99,7 @@ file that was distributed with this source code.
             {% endif %}
         </li>
     </ul>
+    </div>
 
     {{ sonata_block_render_event('sonata.admin.show.bottom', { 'admin': admin, 'object': object }) }}
 </div>
