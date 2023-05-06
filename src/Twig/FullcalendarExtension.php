@@ -171,14 +171,16 @@ class FullcalendarExtension extends AbstractExtension
                     oneClickTimer = setTimeout(function() {
                         clickCnt = 0;
                         if(typeof info.event.extendedProps.urlshow !== 'undefined') {
-                            window.location.href = info.event.extendedProps.urlshow;
+                            window.open(info.event.extendedProps.urlshow, '_blank');
+                            //window.location.href = info.event.extendedProps.urlshow;
                         }
                     }, 400);
                 } else if(clickCnt === 2) {
                     clearTimeout(oneClickTimer);
                     clickCnt = 0;
                     if(typeof info.event.extendedProps.urledit !== 'undefined') {
-                        window.location.href = info.event.extendedProps.urledit;
+                        window.open(info.event.extendedProps.urledit, '_blank');
+                        //window.location.href = info.event.extendedProps.urledit;
                     }
                 }     
             },
