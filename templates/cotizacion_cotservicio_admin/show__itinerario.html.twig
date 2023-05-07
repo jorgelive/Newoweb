@@ -1,0 +1,314 @@
+<div class="box-body container-fluid">
+    <div class="sonata-ba-collapsed-fields">
+        <h3 class="visible-print">{{ 'tab_itinerario'|trans({}, 'messages')|capitalize}}</h3>
+        {% if action == 'show' %}
+        <div class="panel-group box box-primary" id="accordionitinerario">
+            <div class="panel panel-default hidden-print">
+                <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
+                    <h5 class="panel-title">
+                        <a data-toggle="collapse" data-parent="#accordionitinerario" href="#collapseitinerario2">
+                            Interno: Detalle de servicios
+                        </a>
+                    </h5>
+                </div>
+                <div id="collapseitinerario2" class="panel-collapse collapse">
+                    <div class="panel-body table-responsive">
+                        <h3 class="visible-print">Interno: Detalle de servicios</h3>
+                        {% if object.cotservicios is defined and object.cotservicios|length > 0%}
+                            <ul class="fila servicio">
+                                {% for servicio in object.cotservicios %}
+                                    <li>
+                                        <div class="celda heading">Ser</div>
+                                        <div class="celda">
+                                            <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ servicio.servicio.nombre }}</div></div>
+                                            <div class="celda"><div class="titulo">Itinerario</div><div class="contenido">{{ servicio.itinerario.nombre|length > 30 ? servicio.itinerario.nombre|slice(0, 30) ~ '...' : servicio.itinerario.nombre }}</div></div>
+                                            <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ servicio.fechahorainicio|date("H:i") }}</span> <span>{{ servicio.fechahorainicio|date("Y-m-d") }}</span></div></div>
+                                            <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ servicio.fechahorafin|date("H:i") }}</span> <span>{{ servicio.fechahorafin|date("Y-m-d") }}</span></div></div>
+                                        </div>
+                                        {% if servicio.cotcomponentes is defined and servicio.cotcomponentes|length > 0%}
+                                            <ul class="fila componente">
+                                                {% for componente in servicio.cotcomponentes %}
+                                                    <li>
+                                                        <div class="celda heading">Com</div>
+                                                        <div class="celda">
+                                                            <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ componente.componente.nombre }}</div></div>
+                                                            <div class="celda"><div class="titulo">#</div><div class="contenido">{{ componente.cantidad }}</div></div>
+                                                            <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ componente.fechahorainicio|date("H:i") }}</span> <span>{{ componente.fechahorainicio|date("Y-m-d") }}</span></div></div>
+                                                            <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ componente.fechahorafin|date("H:i") }}</span> <span>{{ componente.fechahorafin|date("Y-m-d") }}</span></div></div>
+                                                            <div class="celda"><div class="titulo">Estado</div><div class="contenido estadocomponente" style="color: {{ componente.estadocotcomponente.color }};">{{ componente.estadocotcomponente.nombre }}</div></div>
+                                                            {% if componente.componente.componenteitems is defined and componente.componente.componenteitems|length > 0%}
+                                                                <div class="celda">
+                                                                    <div class="titulo">Items</div>
+                                                                    <div class="contenido">
+                                                                        {% for item in componente.componente.componenteitems %}
+                                                                            {% if loop.first == false  %},{% endif%}
+                                                                            {{ item.titulo }}
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                        {% if componente.cottarifas is defined and componente.cottarifas|length > 0%}
+                                                            <ul class="fila tarifa">
+                                                                {% for tarifa in componente.cottarifas %}
+                                                                    <li>
+                                                                        <div class="celda heading">Tar</div>
+                                                                        <div class="celda">
+                                                                            <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ tarifa.tarifa.nombre }}</div></div>
+                                                                            <div class="celda"><div class="titulo">#</div><div class="contenido">{{ tarifa.cantidad }}</div></div>
+                                                                            <div class="celda"><div class="titulo">Proveedor</div><div class="contenido" style="color: dodgerblue">{% if tarifa.provider is not null %}{{ tarifa.provider.nombre }}{% else %}-{% endif %}</div></div>
+                                                                            <div class="celda"><div class="titulo">Tipo</div><div class="contenido" style="color: {{ tarifa.tarifa.tipotarifa.listacolor }};">{{ tarifa.tarifa.tipotarifa.nombre }}</div></div>
+                                                                        </div>
+                                                                        {% if tarifa.cottarifadetalles is defined and tarifa.cottarifadetalles|length > 0%}
+                                                                            <ul class="fila detalle">
+                                                                                {% for detalle in tarifa.cottarifadetalles %}
+                                                                                    <li>
+                                                                                        <div class="celda heading">Det</div>
+                                                                                        <div class="celda">
+                                                                                            <div class="celda"><div class="titulo">Detalle</div><div class="contenido">{{ detalle.detalle }}</div></div>
+                                                                                            <div class="celda"><div class="titulo">Tipo</div><div class="contenido">{{ detalle.tipotarifadetalle.nombre }}</div></div>
+                                                                                        </div>
+                                                                                    </li>
+                                                                                {% endfor %}
+                                                                            </ul>
+                                                                        {% endif %}
+                                                                    </li>
+                                                                {% endfor %}
+                                                            </ul>
+                                                        {% endif %}
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="background-color: rgba(219,144,8,0.22);" class="panel-heading">
+                    <h5 class="panel-title">
+                        <a data-toggle="collapse" data-parent="#accordionitinerario" href="#collapseitinerario3">
+                            Interno: Resumen para proveedores
+                        </a>
+                    </h5>
+                </div>
+                <div id="collapseitinerario3" class="panel-collapse collapse in">
+                    <div class="panel-body table-responsive">
+                        <h3 class="visible-print">Interno: Resumen para proveedores</h3>
+                        {% if tabs.itinerario.proveedores is defined and tabs.itinerario.proveedores|length > 0 %}
+                            {% for proveedor in tabs.itinerario.proveedores %}
+
+                                {% set emailTitulo = 'Reserva OpenPeru Pax: ' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros %}
+
+                                <h3>{{ proveedor.nombreMostrar }} <span style="font-size: 70%;">({{ proveedor.nombre }})</span></h3>
+                                {% set whatsappText = 'Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase *reservar* los siguientes servicios:\n\n'%}
+                                {% set emailMensaje = '<p>Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase <span style="font-weight: bold;">reservar</span> los siguientes servicios:</p>'%}
+
+                                <h4>Pax: <span style="font-weight: bold;"> {{ object.file.nombre }} x{{ object.numeropasajeros }}</span> ({{ object.file.pais.nombre }} - {{ object.file.idioma.nombre }})</h4>
+                                {% set whatsappText = whatsappText ~ 'Pax: *' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '* (' ~ object.file.pais.nombre ~ '-' ~ object.file.idioma.nombre ~ ')' ~ '\n\n' %}
+                                {% set emailMensaje = emailMensaje ~ '<h4>Pax: <span style="font-weight: bold;">' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '</span> (' ~ object.file.pais.nombre ~ '-' ~ object.file.idioma.nombre ~ ')' ~ '</h4>' %}
+
+                                {% if proveedor.componentes is defined and proveedor.componentes|length > 0%}
+                                    {% for componente in proveedor.componentes %}
+                                        <p>
+                                            {% set emailMensaje = emailMensaje ~ '<p>' %}
+                                            {% if componente.tipoComponenteId == 1  or componente.tipoComponenteId == 4 or componente.tipoComponenteId == 6 %} {# tickets 1 hoteles 4 pool 6#}
+                                                <span style="font-weight: bold;">{{ componente.fechaHoraInicio|date("Y-m-d") }}</span>
+                                                {% set whatsappText = whatsappText ~ '*' ~ componente.fechaHoraInicio|date("Y-m-d") ~ '*' %}
+                                                {% set emailMensaje = emailMensaje ~ '<span style="font-weight: bold;">' ~ componente.fechaHoraInicio|date("Y-m-d") ~ '</span>' %}
+                                            {% else %}
+                                                <span style="font-weight: bold;">{{ componente.fechaHoraInicio|date("Y-m-d H:i") }}</span>
+                                                {% set whatsappText = whatsappText ~ '*' ~ componente.fechaHoraInicio|date("Y-m-d H:i") ~ '*' %}
+                                                {% set emailMensaje = emailMensaje ~ '<span style="font-weight: bold;">' ~ componente.fechaHoraInicio|date("Y-m-d H:i") ~ '</span>' %}
+                                            {% endif %}
+
+                                            {{ componente.componenteNombre }}
+                                            {% set whatsappText = whatsappText ~ ' ' ~ componente.componenteNombre %}
+                                            {% set emailMensaje = emailMensaje ~ ' ' ~ componente.componenteNombre %}
+                                            {% if componente.componenteCantidad > 1 or componente.tipoComponenteId == 4 %} {# 4 mostrar siempre si es hotel #}
+                                                <span style="font-weight: bold;">x{{ componente.componenteCantidad }}</span>
+                                                {% set whatsappText = whatsappText ~ ' *x' ~ componente.componenteCantidad ~ '*' %}
+                                                {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">x' ~ componente.componenteCantidad ~ '</span>' %}
+                                            {% endif %}
+                                            {% if componente.tipoComponenteId == 4 %} {# 4 hotel #}
+                                                noches
+                                                {% set whatsappText = whatsappText ~ ' noches' %}
+                                                {% set emailMensaje = emailMensaje ~ ' noches' %}
+                                            {% endif %}
+
+                                            {% for tarifa in componente.tarifas %}
+                                                {% if not loop.first %}
+                                                    |
+                                                    {% set whatsappText = whatsappText ~ ', ' %}
+                                                    {% set emailMensaje = emailMensaje ~ ', ' %}
+                                                {% endif %}
+                                                {% if componente.tipoComponenteId != 4 %} {# no es hotel #}
+                                                    <span style="font-weight: bold;">{{ tarifa.tarifaNombre }}</span>
+                                                    {% set whatsappText = whatsappText ~ ' *' ~ tarifa.tarifaNombre ~ '*' %}
+                                                    {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">' ~ tarifa.tarifaNombre ~ '</span>' %}
+                                                {% endif %}
+                                                {% if tarifa.tarifaCantidad is defined %} {# depende del prorateo #}
+                                                    <span style="font-weight: bold;">x{{ tarifa.tarifaCantidad }}</span>
+                                                    {% set whatsappText = whatsappText ~ ' *x' ~ tarifa.tarifaCantidad ~ '*' %}
+                                                    {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">x' ~ tarifa.tarifaCantidad ~ '</span>' %}
+                                                {% endif %}
+                                                {% if tarifa.infoOperativa is defined %}
+                                                    {{ tarifa.infoOperativa }}
+                                                    {% set whatsappText = whatsappText ~ ' ' ~ tarifa.infoOperativa %}
+                                                    {% set emailMensaje = emailMensaje ~ ' ' ~ tarifa.infoOperativa %}
+                                                {% endif %}
+                                                {% if tarifa.tipoTarifaId != 1  %}
+                                                    ({{ tarifa.tipoTarifaNombre }})
+                                                    {% set whatsappText = whatsappText ~ ' (' ~ tarifa.tipoTarifaNombre ~ ')' %}
+                                                    {% set emailMensaje = emailMensaje ~ ' (' ~ tarifa.tipoTarifaNombre ~ ')' %}
+                                                {% endif %}
+                                            {% endfor %}
+
+                                        </p>
+                                        {% set whatsappText = whatsappText ~ '\n' %}
+                                        {% set emailMensaje = emailMensaje ~ '</p>' %}
+                                    {% endfor %}
+                                {% endif %}
+                                {% if proveedor.hoteles is defined and proveedor.hoteles|length > 0%}
+                                    {% set whatsappText = whatsappText ~ '\n' %}
+                                    <h4>Hoteles:</h4>
+                                    {% set whatsappText = whatsappText ~ '*Hoteles:*\n' %}
+                                    {% set emailMensaje = emailMensaje  ~ '<h4>Hoteles:</h4>' %}
+                                    {% for hotel in proveedor.hoteles %}
+                                        <p>
+                                            {% set emailMensaje = emailMensaje ~ '<p>' %}
+                                            Del {{hotel.fechaHoraInicio|date("Y-m-d") }} al {{hotel.fechaHoraFin|date("Y-m-d") }} <span style="font-weight: bold;">{{hotel.nombreMostrar }}</span>
+                                            {% set whatsappText = whatsappText ~ 'Del ' ~ hotel.fechaHoraInicio|date("Y-m-d") ~ ' al ' ~ hotel.fechaHoraFin|date("Y-m-d") ~ ' *' ~ hotel.nombreMostrar ~ '*' %}
+                                            {% set emailMensaje = emailMensaje ~ 'Del ' ~ hotel.fechaHoraInicio|date("Y-m-d") ~ ' al ' ~ hotel.fechaHoraFin|date("Y-m-d") ~ ' <span style="font-weight: bold;">' ~ hotel.nombreMostrar ~ '</span>' %}
+                                            {% if hotel.direccion is defined %}
+                                                {{ hotel.direccion }}
+                                                {% set whatsappText = whatsappText ~ ' ' ~ hotel.direccion %}
+                                                {% set emailMensaje = emailMensaje ~ ' ' ~ hotel.direccion %}
+                                            {% endif %}
+
+                                        </p>
+                                        {% set whatsappText = whatsappText ~ '\n' %}
+                                        {% set emailMensaje = emailMensaje ~ '</p>' %}
+                                    {% endfor %}
+                                {% endif %}
+                                {% if proveedor.telefono is defined %}
+                                    <a href="https://wa.me/{{proveedor.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                                       class="btn btn-sm btn-success edit_link">
+                                        <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                                        Enviar por Whatsapp
+                                    </a>
+                                {% endif %}
+
+                                {% if proveedor.email is defined %}
+                                    <a href="#"
+                                       class="btn btn-sm btn-info edit_link"
+                                       data-toggle="modal"
+                                       data-target="#emailModal-{{ loop.index }}">
+                                        <i class="fa fa-envelope" aria-hidden="true"></i>
+                                        Enviar por Correo
+                                    </a>
+
+                                    <div class="modal fade" id="emailModal-{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="emailLabel">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                                    <h4 class="modal-title" id="myModalLabel-{{ loop.index }}">Enviar Mensaje</h4>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Esta seguro que desea enviar el mensaje al proveedor?
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <div class="form-group">
+                                                        <form action="{{ admin.generateObjectUrl('email', object ) }}" method="POST">
+                                                            <input type="hidden" name="email[mensaje]" value="{{ emailMensaje|url_encode }}" />
+                                                            <input type="hidden" name="email[titulo]" value="{{ emailTitulo|url_encode }}" />
+                                                            <input type="hidden" name="email[destinatario]"  value="{{ proveedor.email|url_encode }}" />
+                                                            <button type="submit" class="btn btn-danger">Enviar E-Mail</button>
+                                                            <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+                                                        </form>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-default hidden-print">
+                <div class="panel-heading">
+                    <h5 class="panel-title">
+                        <a data-toggle="collapse" data-parent="#accordionitinerario" href="#collapseitinerario1">
+                            Publico: Itinerario por dia
+                        </a>
+                    </h5>
+                </div>
+                <div id="collapseitinerario1" class="panel-collapse collapse">
+                    {% endif%}
+                    <div class="panel-body table-responsive">
+                        <h3 class="visible-print">Itinerario</h3>
+                        {% if tabs.itinerario.itinerarios is defined and tabs.itinerario.itinerarios|length > 0 %}
+
+                            {% for itinerario in tabs.itinerario.itinerarios %}
+
+                                <h4><span style="font-weight: bold;">{{ itinerario.fecha|format_datetime('full', 'none')}}</span>&nbsp;-&nbsp;<span>{{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}</span></h4>
+                                {% for item in itinerario.fechaitems %}
+                                    {% if item.titulo is defined %}
+                                        <h4>{{ item.titulo }} - {{ item.tituloDia }}</h4>
+                                    {% else%}
+                                        <h4>{{ item.tituloDia }}</h4>
+                                    {% endif%}
+                                    <div class="ck-content itinerariodescripcion">{{ item.descripcion|raw }}</div>
+                                    <div class="container-fluid hidden-print">
+                                        {% for archivo in item.archivos %}
+                                            {% if loop.index0 % 2 == 0 %}
+                                                <div class="row">
+                                            {% endif %}
+                                            <div class="col-xs-12 col-sm-6">
+                                                <div class="thumbnail">
+                                                    <a href="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webPath|raw }}{% else %}{{ archivo.medio.webPath|raw }}{% endif %}"{% if archivo.medio.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.tituloDia }}"{% else %} target="_blank" {% endif %}>
+                                                        <img src="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webThumbPath|raw }}{% else %}{{ archivo.medio.webThumbPath|raw }}{% endif %}" alt="{{ archivo.medio.titulo }}" {% if archivo.medio.inModal == true %}style="width:100%"{% endif %}>
+                                                        <div class="caption">
+                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.medio.titulo }}</p>
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            {% if loop.index % 2 == 0 or loop.last %}
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    {% if item.nota is defined %}
+                                        <div class="ck-content itinerarionota post-it">{{ item.nota|raw }}</div>
+                                    {% endif %}
+                                {% endfor %}
+
+                            {% endfor %}
+                        {% endif %}
+                        {% if object.cotnotas|length > 0 %}
+                            <h4>Notas:</h4>
+                            {% for nota in object.cotnotas %}
+                                <h5><strong>{{ nota.titulo }}</strong></h5>
+                                {{ nota.contenido|raw }}
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    {% if action == 'show' %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if action == 'show' %}
+        </div>
+        {% endif %}
+
+    </div>
+</div>

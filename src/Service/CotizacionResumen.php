@@ -50,7 +50,6 @@ class CotizacionResumen
         $this->cotizacionIncluye = $cotizacionIncluye;
     }
 
-
     function procesar(int $id): bool
     {
         $cotizacion = $this->em
@@ -67,55 +66,28 @@ class CotizacionResumen
         $this->tipocambio = $this->tipocambioManager->getTipodecambio($cotizacion->getFecha());
 
         if(empty($this->tipocambio->getId())){
-            $this->mensaje = sprintf('No se puede obtener la el tipo de cambio del dia %s.',  $cotizacion->getFecha()->format('Y-m-d') );
+            $this->mensaje = sprintf('No se puede obtener el tipo de cambio del dia %s.',  $cotizacion->getFecha()->format('Y-m-d') );
             return false;
         }
 
-//para mostrar primero el itinerario
-        $datosTabs['itinerario']['nombre'] = 'tab_itinerario';
-        $datosTabs['itinerario']['icono'] = 'fa-map';
         $datosTabs['itinerario']['itinerarios'] = $this->cotizacionItinerario->getItinerario($cotizacion);
         $datosTabs['itinerario']['proveedores'] = $this->mensajeProveedor->getMensajesParaCotizacion($id);//$tempProveedores;
-        $datosTabs['tarifas']['nombre'] = 'tab_precio';
-        $datosTabs['tarifas']['icono'] = 'fa-dollar-sign';
-        $datosTabs['incluye']['nombre'] = 'tab_incluidos';
-        $datosTabs['incluye']['icono'] = 'fa-check';
-        $datosTabs['incluye']['datos'] = $this->cotizacionIncluye->getDatos($cotizacion);
-        $datosTabs['horario']['nombre'] = 'tab_horario';
-        $datosTabs['horario']['icono'] = 'fa-calendar';
-        $datosTabs['politica']['nombre'] = 'tab_terminos';
-        $datosTabs['politica']['icono'] = 'fa-exclamation';
-        $datosTabs['politica']['contenido'] = $cotizacion->getCotpolitica()->getContenido();
+        $datosTabs['incluye'] = $this->cotizacionIncluye->getDatos($cotizacion);
 
-//datos generales del encabezado
-        $datosCotizacion = [];
-
+        //datos generales del encabezado
         $datosCotizacion['tipocambio'] = $this->tipocambio;
 
         if($cotizacion->getCotservicios()->count() > 0){
 
-//Notas de condiciones especiales solo las muestro si hay servicios
-            if($cotizacion->getCotnotas()->count() > 0){
-                $auxNotas = [];
-                foreach($cotizacion->getCotnotas() as $nota):
-                    $auxNotas['nombre'] = $nota->getNombre();
-                    $auxNotas['titulo'] = $nota->getTitulo();
-                    $auxNotas['contenido'] = $nota->getContenido();
-                    $datosTabs['itinerario']['notas'][] = $auxNotas;
-                    unset($auxNotas);
-                endforeach;
-            }
-//1N bucle de servicios
             foreach($cotizacion->getCotservicios() as $servicio):
 
                 if($servicio->getCotcomponentes()->count() > 0){
-//2N bucle de componenentes
+
                     foreach($servicio->getCotcomponentes() as $componente):
 
                         if($componente->getCottarifas()->count() > 0){
 
                             $cantidadComponente = 0;
-//$tempArrayComponente y $tempArrayTarifa son para clasificacion por rangos
                             $tempArrayComponente = [];
                             $tempArrayComponente['tituloItinerario'] = $this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio);
                             $tempArrayComponente['nombre'] = $componente->getComponente()->getNombre();
@@ -135,7 +107,7 @@ class CotizacionResumen
                                 }
                                 $tempArrayComponente['titulo'] = implode(', ',  $tempArrayItem);
                             }
-//3N bucle de tarifas
+
                             foreach($componente->getCottarifas() as $tarifa):
 
 //Tarifa por rango y el resumen por rango usa los temporales $tempArrayComponente['tarifas'][] = $tempArrayTarifa genera las variables $this->clasificacionTarifas y $this->resumendeClasificado; procesando los temporales
@@ -391,7 +363,7 @@ class CotizacionResumen
         if(empty($this->clasificacionTarifas)){
 
             $cantidadTemporal = 0;
-            foreach($claseTarifas as $keyClase => &$clase):
+            foreach($claseTarifas as &$clase):
 
                 $auxClase = [];
                 $auxClase['tipo'] = $clase['tipo'];
@@ -423,8 +395,7 @@ class CotizacionResumen
             unset($clase);
         }
 
-        foreach($claseTarifas as $keyClase => &$clase):
-
+        foreach($claseTarifas as &$clase):
             //los prorrateados no modifican los rangos
             if($clase['cantidad'] <= $cantidadTotalPasajeros){
                 $voterIndex = $this->voter($clase);
@@ -433,16 +404,13 @@ class CotizacionResumen
                     //paso el array principal para adicionar elemento como esta por referencia
                     $this->modificarClasificacion($clase, $voterIndex);
                 }
-
             }
 
         endforeach;
         //destruimos la referencia
         unset($clase);
 
-        //$cantidadTarifas = count($claseTarifas);
         foreach($claseTarifas as $keyClase => &$clase):
-
             //los prorrateados se distribuyen
             if($clase['prorrateado'] === false){
                 $voterIndex = $this->voter($clase);
@@ -455,13 +423,11 @@ class CotizacionResumen
                     }
                 }
             }else{
-
                 foreach($this->clasificacionTarifas as &$clasificacionTarifa):
                     $clasificacionTarifa['tarifas'][] = $clase['tarifa'];
                 endforeach;
 
                 unset($claseTarifas[$keyClase]);
-
             }
 
         endforeach;
@@ -494,7 +460,6 @@ class CotizacionResumen
         if(isset($clase['edadMin']) && $clase['edadMin'] > $edadMinima){
             $temp['edadMin'] = $clase['edadMin'];
         }
-
         if(isset($clase['edadMax']) && $clase['edadMax'] < $edadMaxima){
             $temp['edadMax'] = $clase['edadMax'];
         }
@@ -515,7 +480,6 @@ class CotizacionResumen
         }elseif($clase['cantidad'] < $this->clasificacionTarifas[$voterIndex]['cantidad']){
 
             $this->clasificacionTarifas[] = $temp;
-
             $this->clasificacionTarifas[$voterIndex]['cantidad'] = $this->clasificacionTarifas[$voterIndex]['cantidad'] - $clase['cantidad'];
             $this->clasificacionTarifas[$voterIndex]['cantidadRestante'] = $this->clasificacionTarifas[$voterIndex]['cantidadRestante'] - $clase['cantidad'];
 
@@ -681,7 +645,6 @@ class CotizacionResumen
                 $this->resumendeClasificado[$tarifa['tipoTarId']]['ventadolares'] = number_format((float)$this->resumendeClasificado[$tarifa['tipoTarId']]['ventadolares'], '2', '.', '');
 
                 //se sobreescribem hasta el final del bucle
-
                 $this->resumendeClasificado[$tarifa['tipoTarId']]['adelantosoles'] = $this->resumendeClasificado[$tarifa['tipoTarId']]['ventasoles'] * $this->cotizacion->getAdelanto() / 100;
                 $this->resumendeClasificado[$tarifa['tipoTarId']]['adelantosoles'] = number_format((float)$this->resumendeClasificado[$tarifa['tipoTarId']]['adelantosoles'], '2', '.', '');
 
