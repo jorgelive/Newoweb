@@ -93,7 +93,7 @@ file that was distributed with this source code.
             <div class="encabezado box box-primary">
                 <div class="box-header">
                     <h4 class="box-title">
-                        {{ cotizacion.cotizacion.titulo }}
+                        {{ object.titulo }}
                     </h4>
                 </div>
                 <div class="box-body table-responsive no-padding">
@@ -102,12 +102,12 @@ file that was distributed with this source code.
                             {% if action == 'show' %}
                                 <tr class="sonata-ba-view-container">
                                     <th>{{ 'cotizacion'|trans({},'messages')|capitalize }}</th>
-                                    <td>{{ cotizacion.cotizacion.nombre }}</td>
+                                    <td>{{ object.nombre }}</td>
                                 </tr>
                             {% endif %}
                             <tr class="sonata-ba-view-container">
                                 <th>{{ 'nombre'|trans({},'messages')|capitalize }}</th>
-                                <td>{{ cotizacion.file.nombre }} x {{ cotizacion.cotizacion.numeropasajeros }} ({{ cotizacion.file.paisnombre }} <span style="color: #710000;">{{ cotizacion.file.idioma }}</span>)</td>
+                                <td>{{ object.file.nombre }} x {{ object.numeropasajeros }} ({{ object.file.pais.nombre }} <span style="color: #710000;">{{ object.file.idioma.nombre }}</span>)</td>
                             </tr>
                         </tbody>
                     </table>
@@ -115,9 +115,9 @@ file that was distributed with this source code.
             </div>
 
 
-            {% if cotizacion.pasajeros is defined or cotizacion.archivos is defined %}
+            {% if object.file.filepasajeros is not empty or object.file.filedocumentos is not empty %}
                 <div class="panel-group box box-primary" id="accordion">
-                    {% if cotizacion.pasajeros is defined and cotizacion.pasajeros|length > 0 %}
+                    {% if object.file.filepasajeros|length > 0 %}
                         <div class="panel panel-default hidden-print">
                             <div class="panel-heading">
                                 <h5 class="panel-title">
@@ -158,7 +158,7 @@ file that was distributed with this source code.
                                         </tr>
                                         </thead>
                                         <tbody>
-                                        {% for pasajero in cotizacion.pasajeros %}
+                                        {% for pasajero in object.file.filepasajeros %}
                                             <tr>
                                                 <td>
                                                     {{ pasajero.nombre }}
@@ -167,13 +167,13 @@ file that was distributed with this source code.
                                                     {{ pasajero.apellido }}
                                                 </td>
                                                 <td>
-                                                    {{ pasajero.pais }}
+                                                    {{ pasajero.pais.nombre }}
                                                 </td>
                                                 <td>
-                                                    {{ pasajero.sexo }}
+                                                    {{ pasajero.sexo.nombre }}
                                                 </td>
                                                 <td>
-                                                    {{ pasajero.tipodocumento }}
+                                                    {{ pasajero.tipodocumento.nombre }}
                                                 </td>
                                                 <td>
                                                     {{ pasajero.numerodocumento }}
@@ -192,7 +192,7 @@ file that was distributed with this source code.
                             </div>
                         </div>
                     {% endif %}
-                    {% if cotizacion.archivos is defined and cotizacion.archivos|length > 0 %}
+                    {% if object.file.filedocumentos|length > 0 %}
                         <div class="panel panel-default hidden-print">
                             <div style="background-color: rgba(0,172,214,0.18);" class="panel-heading">
                                 <h5 class="panel-title">
@@ -204,8 +204,8 @@ file that was distributed with this source code.
                             <div id="collapse2" class="panel-collapse collapse">
                                 <div class="panel-body">
                                     <div class="container-fluid">
-                                        {% for archivo in cotizacion.archivos %}
-                                            {% if (action == 'show' or (action == 'resumen' and archivo.interno == false )) %}
+                                        {% for archivo in object.file.filedocumentos %}
+                                            {% if (action == 'show' or (action == 'resumen' and archivo.tipofiledocumento.interno == false )) %}
                                             <div class="col-xs-4 col-sm-2">
                                                 <div class="thumbnail">
                                                     <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
@@ -227,6 +227,8 @@ file that was distributed with this source code.
             {% endif %}
 
             <div class="nav-tabs-custom">
+
+
                 <ul class="nav nav-tabs hidden-print" role="tablist">
                     {% for name, contenido in tabs %}
                         {% if name == 'itinerario' and action != 'show' and contenido.itinerarios is not defined %}
@@ -269,7 +271,7 @@ file that was distributed with this source code.
                                             <div id="collapsetarifas2" class="panel-collapse collapse in">
                                                 <div class="panel-body table-responsive">
                                                     <h3 class="visible-print">Valores</h3>
-                                                    <h4><strong>Resumen General</strong> al <span style="font-size: 0.7em;"> {{ cotizacion.cotizacion.comision|number_format(2, '.', '')}}% </span></h4>
+                                                    <h4><strong>Resumen General</strong> al <span style="font-size: 0.7em;"> {{ object.comision|number_format(2, '.', '')}}% </span></h4>
                                                     <div class="box-body table-responsive no-padding">
                                                         <table class="table table-bordered table-striped sonata-ba-list">
                                                             <thead>
@@ -540,7 +542,7 @@ file that was distributed with this source code.
                                                                                 <span style="font-size: 1.2em; font-weight: bold; color: #1B6129;">
                                                                                         US$ {{ tarifaresumen.ventadolares }}
                                                                                 </span>
-                                                                                {% if cotizacion.file.paisid == 117 %} {{ 'o'|trans({},'messages') }} <span style="font-weight: bold; color: #1B6129;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
+                                                                                {% if object.file.pais.id == 117 %} {{ 'o'|trans({},'messages') }} <span style="font-weight: bold; color: #1B6129;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
                                                                             </p>
                                                                         </li>
                                                                     {% endfor %}
@@ -549,7 +551,7 @@ file that was distributed with this source code.
                                                         {% endfor %}
                                                     </ul>
 
-                                                    {% if cotizacion.cotizacion.estadocotizacion != 6 %}
+                                                    {% if object.estadocotizacion.id != 6 %}
 
                                                         <h4 style="margin-top: 15px;">{{ 'total'|trans({},'messages')|capitalize}}: </h4>
 
@@ -561,10 +563,10 @@ file that was distributed with this source code.
                                                                         <span style="font-size: 1.2em; font-weight: bold; color: #1B6129;">
                                                                             US$ {{ resumenitem.ventadolares }}
                                                                         </span>
-                                                                        {% if cotizacion.file.paisid == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
+                                                                        {% if object.file.pais.id == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
 
-                                                                        <br>{{ 'reserve_con_el'|trans({},'messages') }} {{ cotizacion.cotizacion.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
-                                                                        {% if cotizacion.file.paisid == 117 %}
+                                                                        <br>{{ 'reserve_con_el'|trans({},'messages') }} {{ object.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
+                                                                        {% if object.file.pais.id == 117 %}
                                                                             {{ 'o'|trans({},'messages') }} S/.{{ resumenitem.adelantosoles }}
                                                                         {% endif %}
                                                                         )
@@ -576,22 +578,22 @@ file that was distributed with this source code.
 
                                                     {% endif %}
 
-                                                    {% if cotizacion.cotizacion.estadocotizacion != 6 or cotizacion.file.paisid == 117 %}
+                                                    {% if object.estadocotizacion.id != 6 or object.file.pais.id == 117 %}
 
                                                         <h4 style="margin-top: 15px;">{{ 'notas'|trans({},'messages')|capitalize }}: </h4>
                                                         <div>
                                                             <p>
                                                                 {{ 'la_tarifa'|trans({},'messages')|capitalize }} <span style="font-weight: bold;">{{ 'no_incluye_impuestos'|trans({},'messages') }}</span>, {{ 'consulte_la_exoneracion'|trans({},'messages') }}.
                                                             </p>
-                                                            {% if cotizacion.cotizacion.estadocotizacion != 6 %}
+                                                            {% if object.estadocotizacion.id != 6 %}
                                                                 <p>{{ 'la_tarifa_tiene_una_validez_de_3_dias_hasta_el'|trans({},'messages')|capitalize }}
                                                                     <span style="font-weight: bold;">
-                                                                        {{ cotizacion.cotizacion.fechacotizacion|date_modify("+3 day")|date("d/m/Y") }}
+                                                                        {{ object.fecha|date_modify("+3 day")|date("d/m/Y") }}
                                                                     </span>
                                                                 </p>
                                                             {% endif %}
 
-                                                            {% if cotizacion.file.paisid == 117 %}
+                                                            {% if object.file.pais.id == 117 %}
                                                                 <p>{{ 'tarifa_base'|trans({},'messages')|capitalize }}:
                                                                     <span style="font-weight: bold;">
                                                                         {{ 'dolares'|trans({},'messages')|upper }}
@@ -599,11 +601,11 @@ file that was distributed with this source code.
                                                                 </p>
                                                                 <p>{{ 'tarifa_en_soles_al_tipo_de_cambio_referencial_de'|trans({},'messages')|capitalize }}
                                                                     <span style="font-weight: bold; color: #1B6129;">
-                                                                        {{ cotizacion.cotizacion.tipocambioventa }}
+                                                                        {{ cotizacion.tipocambio.venta }}
                                                                     </span>
                                                                     {{ 'del_dia'|trans({},'messages') }}
                                                                     <span style="font-weight: bold; color: #1B6129;">
-                                                                        {{ cotizacion.cotizacion.fechacotizacion | date("d/m/Y") }}
+                                                                        {{ object.fecha | date("d/m/Y") }}
                                                                     </span>
                                                                 </p>
                                                             {% endif %}
@@ -635,7 +637,7 @@ file that was distributed with this source code.
                                                 <div id="collapseincluye2" class="panel-collapse collapse in">
                                                     <div class="panel-body table-responsive">
                                                         <h3 class="visible-print">Interno: Servicios incluidos</h3>
-                                                        {% for internoIncluido in contenido.internoIncluidos %}
+                                                        {% for internoIncluido in contenido.datos.internoIncluidos %}
                                                             <h4 style="font-weight: bold;">{{ internoIncluido.tituloItinerario }}:</h4>
                                                             <ul class="list-unstyled">
                                                                 {% for tipotarifa in internoIncluido.tipotarifas %}
@@ -687,7 +689,7 @@ file that was distributed with this source code.
                                                     <div class="panel-body table-responsive">
                                                         <h3 class="visible-print">Servicios incluidos</h3>
                                                         <ul class="list-unstyled">
-                                                            {% for incluido in contenido.incluidos %}
+                                                            {% for incluido in contenido.datos.incluidos %}
                                                                 <li><h4 style="font-weight: bold;">{{ incluido.tituloItinerario }}:</h4>
                                                                     <ul class="fa-ul" style="margin-left: 1.2em;">
                                                                         {% for tipotarifa in incluido.tipotarifas %}
@@ -752,7 +754,7 @@ file that was distributed with this source code.
 
                                     {% elseif name == 'politica' %}
                                         <h3 class="visible-print">{{ contenido.nombre|trans({}, 'messages')|capitalize}}</h3>
-                                        <div class="ck-content">{{ contenido.contenido|raw }}</div>
+                                        <div class="ck-content">{{ object.cotpolitica.contenido|raw }}</div>
                                     {% elseif name == 'itinerario' %}
                                         <h3 class="visible-print">{{ contenido.nombre|trans({}, 'messages')|capitalize}}</h3>
                                         {% if action == 'show' %}
@@ -855,15 +857,15 @@ file that was distributed with this source code.
                                                             {% if contenido.proveedores is defined and contenido.proveedores|length > 0 %}
                                                                 {% for proveedor in contenido.proveedores %}
 
-                                                                    {% set emailTitulo = 'Reserva OpenPeru Pax: ' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros %}
+                                                                    {% set emailTitulo = 'Reserva OpenPeru Pax: ' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros %}
 
                                                                     <h3>{{ proveedor.nombreMostrar }} <span style="font-size: 70%;">({{ proveedor.nombre }})</span></h3>
                                                                     {% set whatsappText = 'Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase *reservar* los siguientes servicios:\n\n'%}
                                                                     {% set emailMensaje = '<p>Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase <span style="font-weight: bold;">reservar</span> los siguientes servicios:</p>'%}
 
-                                                                    <h4>Pax: <span style="font-weight: bold;"> {{ cotizacion.file.nombre }} x{{ cotizacion.cotizacion.numeropasajeros }}</span> ({{ cotizacion.file.paisnombre }} - {{ cotizacion.file.idioma }})</h4>
-                                                                    {% set whatsappText = whatsappText ~ 'Pax: *' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros ~ '* (' ~ cotizacion.file.paisnombre ~ '-' ~ cotizacion.file.idioma ~ ')' ~ '\n\n' %}
-                                                                    {% set emailMensaje = emailMensaje ~ '<h4>Pax: <span style="font-weight: bold;">' ~ cotizacion.file.nombre ~ ' x' ~ cotizacion.cotizacion.numeropasajeros ~ '</span> (' ~ cotizacion.file.paisnombre ~ '-' ~ cotizacion.file.idioma ~ ')' ~ '</h4>' %}
+                                                                    <h4>Pax: <span style="font-weight: bold;"> {{ object.file.nombre }} x{{ object.numeropasajeros }}</span> ({{ object.file.pais.nombre }} - {{ object.file.idioma.nombre }})</h4>
+                                                                    {% set whatsappText = whatsappText ~ 'Pax: *' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '* (' ~ object.file.pais.nombre ~ '-' ~ object.file.idioma.nombre ~ ')' ~ '\n\n' %}
+                                                                    {% set emailMensaje = emailMensaje ~ '<h4>Pax: <span style="font-weight: bold;">' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '</span> (' ~ object.file.pais.nombre ~ '-' ~ object.file.idioma.nombre ~ ')' ~ '</h4>' %}
 
                                                                     {% if proveedor.componentes is defined and proveedor.componentes|length > 0%}
                                                                         {% for componente in proveedor.componentes %}
@@ -1028,10 +1030,10 @@ file that was distributed with this source code.
                                                                             {% endif %}
                                                                             <div class="col-xs-12 col-sm-6">
                                                                                 <div class="thumbnail">
-                                                                                    <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.tituloDia }}"{% else %} target="_blank" {% endif %}>
-                                                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" {% if archivo.inModal == true %}style="width:100%"{% endif %}>
+                                                                                    <a href="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webPath|raw }}{% else %}{{ archivo.medio.webPath|raw }}{% endif %}"{% if archivo.medio.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.tituloDia }}"{% else %} target="_blank" {% endif %}>
+                                                                                        <img src="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webThumbPath|raw }}{% else %}{{ archivo.medio.webThumbPath|raw }}{% endif %}" alt="{{ archivo.medio.titulo }}" {% if archivo.medio.inModal == true %}style="width:100%"{% endif %}>
                                                                                         <div class="caption">
-                                                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
+                                                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.medio.titulo }}</p>
                                                                                         </div>
                                                                                     </a>
                                                                                 </div>
@@ -1048,9 +1050,9 @@ file that was distributed with this source code.
 
                                                             {% endfor %}
                                                         {% endif %}
-                                                        {% if contenido.notas is defined and contenido.notas|length > 0 %}
+                                                        {% if object.cotnotas|length > 0 %}
                                                             <h4>Notas:</h4>
-                                                            {% for nota in contenido.notas %}
+                                                            {% for nota in object.cotnotas %}
                                                                 <h5><strong>{{ nota.titulo }}</strong></h5>
                                                                 {{ nota.contenido|raw }}
                                                             {% endfor %}

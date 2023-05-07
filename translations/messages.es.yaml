@@ -4,7 +4,7 @@ tab_precio: precio
 tab_incluidos: incluidos
 tab_horario: horario
 tab_terminos: 'términos'
-cotización: 'cotización'
+cotizacion: 'cotización'
 nombre: nombre
 namelist: 'relación de pasajeros'
 nombres: nombres
@@ -34,7 +34,7 @@ la_tarifa_tiene_una_validez_de_3_dias_hasta_el: La tarifa tiene una validez de 3
 tarifa_base: tarifa base
 dolares: dolares
 tarifa_en_soles_al_tipo_de_cambio_referencial_de: tarifa en soles al tipo de cambio referencial de
-del_dia: of
+del_dia: del dia
 tickets_y_documentos: tickets y documentos
 varios: varios
 alojamiento: alojamiento

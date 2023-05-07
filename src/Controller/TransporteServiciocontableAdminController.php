@@ -6,7 +6,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Service\MainVariableproceso;
-use App\Service\MainTipocambio;
+use App\Service\TipocambioManager;
 
 class TransporteServiciocontableAdminController extends CRUDAdminController
 {
@@ -16,7 +16,7 @@ class TransporteServiciocontableAdminController extends CRUDAdminController
         return [
                 'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
                 'App\Service\MainVariableproceso' => MainVariableproceso::class,
-                'App\Service\MainTipocambio' => MainTipocambio::class
+                'App\Service\TipocambioManager' => TipocambioManager::class
             ] + parent::getSubscribedServices();
     }
     

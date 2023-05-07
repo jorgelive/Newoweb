@@ -7,7 +7,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Service\MainVariableproceso;
-use App\Service\MainTipocambio;
+use App\Service\TipocambioManager;
 
 class ComprobanteComprobanteAdminController extends CRUDAdminController
 {
@@ -16,7 +16,7 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
         return [
                 'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
                 'App\Service\MainVariableproceso' => MainVariableproceso::class,
-                'App\Service\MainTipocambio' => MainTipocambio::class
+                'App\Service\TipocambioManager' => TipocambioManager::class
             ] + parent::getSubscribedServices();
     }
 
@@ -261,7 +261,7 @@ class ComprobanteComprobanteAdminController extends CRUDAdminController
         $tipoCambioFactor = 1;
 
         if($object->getMoneda()->getId() != 1){
-            $tipoCambio = $this->container->get('App\Service\MainTipocambio')->getTipodecambio($fechaEmision);
+            $tipoCambio = $this->container->get('App\Service\TipocambioManager')->getTipodecambio($fechaEmision);
 
             if(!$tipoCambio){
                 $this->addFlash('sonata_flash_error', sprintf('No se puede obtener la el tipo de cambio para %s del dia %s.', $object->getMoneda()->getNombre(), $fechaEmision->format('Y-m-d') ));

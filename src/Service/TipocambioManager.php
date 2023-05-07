@@ -5,7 +5,7 @@ namespace App\Service;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\MaestroTipocambio;
 
-class MainTipocambio{
+class TipocambioManager{
 
     private EntityManagerInterface $em;
 

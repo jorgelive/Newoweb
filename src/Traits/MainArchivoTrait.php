@@ -273,7 +273,7 @@ trait MainArchivoTrait
      *
      * @return bool
      */
-    public function getInModal(){
+    public function isInModal(){
         if(in_array($this->getExtension(), $this->modalTypes)){
             return true;
         }
