@@ -78,6 +78,21 @@ file that was distributed with this source code.
         .celda{display: inline-block; padding: 0 5px;}
         .celda.heading{font-weight: bold; font-size: 0.8em; vertical-align: top;}
         .titulo{font-size: 0.8em; font-weight: bold;}
+        .encabezado .box-header .box-title{font-size: 14px; line-height: initial;}
+        .boton-acordeonsuperior.acordeon-tickets {background-color: #f39c1240;}
+        .boton-acordeonsuperior {padding: 7px 10px;}
+        .boton-acordeonsuperior .panel-title>a {font-size: 14px; font-weight: bold;}
+        .nav-tabs>li>a {padding: 7px 15px;}
+        .nav-tabs-custom>.nav-tabs>li {border-top-width: 6px;}
+        .nav-tabs-custom>.nav-tabs>li.active {border-color: #3cbc43;}
+        .tab-icon{margin-right: 10px;}
+        .nav-tabs-custom>.tab-content {padding: 0;}
+        @media (max-width:768px){
+            .navbar-header{display: none;}
+            .navbar{min-height:initial;}
+            .navbar-default .navbar-nav>li>a{padding-top: 0; padding-bottom: 0; }
+        }
+
     </style>
 {% endblock %}
 
@@ -118,10 +133,10 @@ file that was distributed with this source code.
                 <div class="panel-group box box-primary" id="accordion">
                     {% if object.file.filepasajeros|length > 0 %}
                         <div class="panel panel-default hidden-print">
-                            <div class="panel-heading">
+                            <div class="panel-heading boton-acordeonsuperior">
                                 <h5 class="panel-title">
                                     <a data-toggle="collapse" data-parent="#accordion" href="#collapse1">
-                                        <i class="fas fa-users"></i> {{ 'namelist'|trans({},'messages')|capitalize }}
+                                        <i class="fas fa-users tab-icon"></i> {{ 'namelist'|trans({},'messages')|capitalize }}
                                     </a>
                                 </h5>
                             </div>
@@ -193,10 +208,10 @@ file that was distributed with this source code.
                     {% endif %}
                     {% if object.file.filedocumentos|length > 0 %}
                         <div class="panel panel-default hidden-print">
-                            <div style="background-color: rgba(0,172,214,0.18);" class="panel-heading">
+                            <div class="panel-heading boton-acordeonsuperior acordeon-tickets">
                                 <h5 class="panel-title">
-                                    <a style="font-weight: bold;" data-toggle="collapse" data-parent="#accordion" href="#collapse2">
-                                        <i class="fas fa-file"></i> {{ 'tickets_y_documentos'|trans({},'messages')|capitalize }}
+                                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse2">
+                                        <i class="fas fa-file tab-icon"></i> {{ 'tickets_y_documentos'|trans({},'messages')|capitalize }}
                                     </a>
                                 </h5>
                             </div>
@@ -230,58 +245,58 @@ file that was distributed with this source code.
                 <ul class="nav nav-tabs hidden-print" role="tablist">
                     <li class="active">
                         <a href="#tab_{{ admin.uniqid }}_itinerario" data-toggle="tab">
-                            <i class="fas fa-map" aria-hidden="true"></i>
+                            <i class="fas fa-map tab-icon" aria-hidden="true"></i>
                             <span style="font-size: 1.2em">{{ 'tab_itinerario'|trans({},'messages')|capitalize}}</span>
                         </a>
                     </li>
 
                     <li>
                         <a href="#tab_{{ admin.uniqid }}_tarifas" data-toggle="tab">
-                            <i class="fas fa-dollar-sign" aria-hidden="true"></i>
+                            <i class="fas fa-dollar-sign tab-icon" aria-hidden="true"></i>
                             <span style="font-size: 1.2em">{{ 'tab_precio'|trans({},'messages')|capitalize}}</span>
                         </a>
                     </li>
 
                     <li>
                         <a href="#tab_{{ admin.uniqid }}_incluye" data-toggle="tab">
-                            <i class="fas fa-check" aria-hidden="true"></i>
+                            <i class="fas fa-check tab-icon" aria-hidden="true"></i>
                             <span style="font-size: 1.2em">{{ 'tab_incluidos'|trans({},'messages')|capitalize}}</span>
                         </a>
                     </li>
 
                     <li>
                         <a href="#tab_{{ admin.uniqid }}_agenda" data-toggle="tab">
-                            <i class="fas fa-calendar" aria-hidden="true"></i>
+                            <i class="fas fa-calendar tab-icon" aria-hidden="true"></i>
                             <span style="font-size: 1.2em">{{ 'tab_agenda'|trans({},'messages')|capitalize}}</span>
                         </a>
                     </li>
 
                     <li>
                         <a href="#tab_{{ admin.uniqid }}_politica" data-toggle="tab">
-                            <i class="fas fa-exclamation" aria-hidden="true"></i>
+                            <i class="fas fa-exclamation tab-icon" aria-hidden="true"></i>
                             <span style="font-size: 1.2em">{{ 'tab_terminos'|trans({},'messages')|capitalize}}</span>
                         </a>
                     </li>
                 </ul>
 
-                <div class="tab-content">
+                <div class="tab-content no-padding">
 
                     <div class="tab-pane fade in active" id="tab_{{ admin.uniqid }}_itinerario">
-                        {% include 'cotizacion_cotservicio_admin/show__itinerario.html.twig' %}
+                        {% include 'cotizacion_cotizacion_admin/show__itinerario.html.twig' %}
                     </div>
 
-                    <div class="tab-pane fade in active" id="tab_{{ admin.uniqid }}_tarifas">
-                        {% include 'cotizacion_cotservicio_admin/show__tarifas.html.twig' %}
+                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_tarifas">
+                        {% include 'cotizacion_cotizacion_admin/show__tarifas.html.twig' %}
                     </div>
 
-                    <div class="tab-pane fade in active" id="tab_{{ admin.uniqid }}_incluye">
-                        {% include 'cotizacion_cotservicio_admin/show__incluye.html.twig' %}
+                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_incluye">
+                        {% include 'cotizacion_cotizacion_admin/show__incluye.html.twig' %}
                     </div>
 
-                    <div class="tab-pane fade in active" id="tab_{{ admin.uniqid }}_agenda">
+                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_agenda">
                         <div class="box-body container-fluid">
                             <div class="sonata-ba-collapsed-fields">
-                                <div class="box-body table-responsive no-padding">
+                                <div class="box-body table-responsive">
                                     <h3 class="visible-print">{{ 'tab_agenda'|trans({}, 'messages')|capitalize}}</h3>
                                     {% if tabs.agenda.componentes is defined and tabs.agenda.componentes|length > 0%}
                                         <ul class="fa-ul">
@@ -308,11 +323,13 @@ file that was distributed with this source code.
                         </div>
                     </div>
 
-                    <div class="tab-pane fade in active" id="tab_{{ admin.uniqid }}_politica">
+                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_politica">
                         <div class="box-body container-fluid">
                             <div class="sonata-ba-collapsed-fields">
-                                <h3 class="visible-print">{{ 'tab_terminos'|trans({}, 'messages')|capitalize}}</h3>
-                                <div class="ck-content">{{ object.cotpolitica.contenido|raw }}</div>
+                                <div class="box-body table-responsive">
+                                    <h3 class="visible-print">{{ 'tab_terminos'|trans({}, 'messages')|capitalize}}</h3>
+                                    <div class="ck-content">{{ object.cotpolitica.contenido|raw }}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
