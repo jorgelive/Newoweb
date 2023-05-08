@@ -67,10 +67,10 @@
                         <h3 class="visible-print">Servicios incluidos</h3>
                         <ul class="list-unstyled">
                             {% for incluido in tabs.incluye.incluidos %}
-                                <li><h4 style="font-weight: bold;">{{ incluido.tituloItinerario }}:</h4>
+                                <li><h5 class="titulo-incluye">{{ incluido.tituloItinerario }}:</h5>
                                     <ul class="fa-ul" style="margin-left: 1.2em;">
                                         {% for tipotarifa in incluido.tipotarifas %}
-                                            <li><h4>{{ tipotarifa.tituloTipotarifa }}</h4> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
+                                            <li><h5 style="font-weight: 600;">{{ tipotarifa.tituloTipotarifa }}</h5> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
                                                 <ul class="fa-ul">
                                                     {% for componente in tipotarifa.componentes %}
                                                         <li><i style="color: {{ componente.listacolor }};" class="fa-li fas {{ componente.listaclase }}"></i> {{ componente.titulo }} {% if componente.cantidadComponente > 1 %} <span style="font-weight: bold;"> x {{ componente.cantidadComponente }} {% if incluido.caso == 'hotel' %}  {{ 'noches'|trans({},'messages') }} {% else %} {{ 'dias'|trans({},'messages') }} {% endif %}</span>{% endif %} ({{ componente.fecha }})
