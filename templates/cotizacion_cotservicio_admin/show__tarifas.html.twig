@@ -341,7 +341,7 @@
                                     </p>
                                     <p>{{ 'tarifa_en_soles_al_tipo_de_cambio_referencial_de'|trans({},'messages')|capitalize }}
                                         <span style="font-weight: bold; color: #1B6129;">
-                                            {{ cotizacion.tipocambio.venta }}
+                                            {{ cotizacion.tipocambio.compra/2 + cotizacion.tipocambio.venta/2 }}
                                         </span>
                                         {{ 'del_dia'|trans({},'messages') }}
                                         <span style="font-weight: bold; color: #1B6129;">

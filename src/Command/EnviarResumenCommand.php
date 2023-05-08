@@ -145,7 +145,7 @@ class EnviarResumenCommand extends Command
 
         $servicios = $qb->getQuery()->getResult();
 
-        $existeServicios = true;
+        $existeServicios = false;
         $serviciosOrdenados = ['serviciosHoy' => [], 'serviciosManana' => []];
         foreach ($servicios as $servicio) {
             if($servicio->getFechahorainicio()->format('Y-m-d') == $hoy->format('Y-m-d')){

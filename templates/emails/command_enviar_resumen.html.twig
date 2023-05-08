@@ -100,10 +100,10 @@
     {% endfor %}
 
 {% else %}
-    <p style="font-size: 1.3em; color: indigo;">No hay reservas ingresando o saliendo para el dia de mañana y pasado mañana.</p>
+    <p style="font-size: 1.3em; color: indigo;">No hay reservas ingresando o saliendo para el dia de hoy ni mañana.</p>
 {% endif %}
 
-<h3>Toures y excursiones: </h3>
+<h3>Toures y excursiones:</h3>
 {% if serviciosordenados|length > 0 %}
     {% for tipo in serviciosordenados %}
         {% if tipo|length > 0 %}
@@ -150,8 +150,7 @@
             </table>
         {% endif %}
     {% endfor %}
-
 {% else %}
-    <p style="font-size: 1.3em; color: indigo;">No hay reservas ingresando o saliendo para el dia de mañana y pasado mañana.</p>
+    <p style="font-size: 1.3em; color: indigo;">No hay servicios para el dia de hoy ni mañana.</p>
 {% endif %}
 
