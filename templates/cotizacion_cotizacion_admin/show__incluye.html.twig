@@ -67,7 +67,7 @@
                         <h3 class="visible-print">Servicios incluidos</h3>
                         <ul class="list-unstyled">
                             {% for incluido in tabs.incluye.incluidos %}
-                                <li><h5 class="titulo-incluye">{{ incluido.tituloItinerario }}:</h5>
+                                <li><h4 class="titulo-verde">{{ incluido.tituloItinerario }}:</h4>
                                     <ul class="fa-ul" style="margin-left: 1.2em;">
                                         {% for tipotarifa in incluido.tipotarifas %}
                                             <li><h5 style="font-weight: 600;">{{ tipotarifa.tituloTipotarifa }}</h5> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}

@@ -236,7 +236,7 @@
 
                         <h3 class="visible-print">{{ 'precio_de_venta'|trans({},'messages')|capitalize }}</h3>
 
-                        <h4>{{ 'precio_por_pasajero'|trans({},'messages')|capitalize }}:</h4>
+                        <h4 class="titulo-verde">{{ 'precio_por_pasajero'|trans({},'messages')|capitalize }}:</h4>
                         <ul style="list-style-type: none; padding-left: 18px">
 
                             {% for rango in tabs.tarifas.rangos %}
@@ -281,10 +281,10 @@
                                             <li>
                                                 <p>
                                                     {{ tarifaresumen.tipoTarTitulo }}:
-                                                    <span style="font-size: 1.2em; font-weight: bold; color: #1B6129;">
+                                                    <span class="titulo-verde" style="font-size: 1.1em;">
                                                         US$ {{ tarifaresumen.ventadolares }}
                                                     </span>
-                                                    {% if object.file.pais.id == 117 %} {{ 'o'|trans({},'messages') }} <span style="font-weight: bold; color: #1B6129;">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
+                                                    {% if object.file.pais.id == 117 %} {{ 'o'|trans({},'messages') }} <span class="titulo-verde">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
                                                 </p>
                                             </li>
                                         {% endfor %}
@@ -295,14 +295,14 @@
 
                         {% if object.estadocotizacion.id != 6 %}
 
-                            <h4 style="margin-top: 15px;">{{ 'total'|trans({},'messages')|capitalize}}: </h4>
+                            <h4 class="titulo-verde" style="margin-top: 15px;">{{ 'total'|trans({},'messages')|capitalize}}: </h4>
 
                             <ul style="list-style-type: none; padding-left: 18px;">
                                 {%  for resumenitem in tabs.tarifas.resumen | filter (resumenitem => resumenitem.oculto is same as (false)) %}
                                     <li>
                                         <p>
                                             {{ resumenitem.titulo }}:
-                                            <span style="font-size: 1.2em; font-weight: bold; color: #1B6129;">
+                                            <span class="titulo-verde" style="font-size: 1.1em;">
                                                  US$ {{ resumenitem.ventadolares }}
                                             </span>
                                             {% if object.file.pais.id == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
@@ -320,7 +320,7 @@
 
                         {% if object.estadocotizacion.id != 6 or object.file.pais.id == 117 %}
 
-                            <h4 style="margin-top: 15px;">{{ 'notas'|trans({},'messages')|capitalize }}: </h4>
+                            <h5 style="margin-top: 15px;">{{ 'notas'|trans({},'messages')|capitalize }}: </h5>
                             <div>
                                 <p>
                                     {{ 'la_tarifa'|trans({},'messages')|capitalize }} <span style="font-weight: bold;">{{ 'no_incluye_impuestos'|trans({},'messages') }}</span>, {{ 'consulte_la_exoneracion'|trans({},'messages') }}.
