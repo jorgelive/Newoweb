@@ -4,6 +4,10 @@ tab_precio: price
 tab_incluidos: includes
 tab_agenda: schedule
 tab_terminos: terms
+tab_valores: Values
+tab_internoincluye: includes (I)
+tab_operativa: operations
+tab_mensajes: providers
 cotizacion: quotation
 nombre: name
 namelist: name list

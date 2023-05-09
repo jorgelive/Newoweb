@@ -4,6 +4,10 @@ tab_precio: precio
 tab_incluidos: incluidos
 tab_agenda: horario
 tab_terminos: 'términos'
+tab_valores: valores
+tab_internoincluye: incluye (I)
+tab_operativa: operativa
+tab_mensajes: proveedores
 cotizacion: 'cotización'
 nombre: nombre
 namelist: 'relación de pasajeros'

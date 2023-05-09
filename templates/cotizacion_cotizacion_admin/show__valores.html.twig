@@ -1,0 +1,211 @@
+<div class="box-body container-fluid">
+    <div class="sonata-ba-collapsed-fields">
+        <div class="box-body table-responsive">
+            <h3 class="visible-print">{{ 'tab_valores'|trans({}, 'messages')|capitalize}}</h3>
+            <h4><strong>Resumen General</strong> al <span style="font-size: 0.7em;"> {{ object.comision|number_format(2, '.', '')}}% </span></h4>
+            <div class="box-body table-responsive no-padding">
+                <table class="table table-bordered table-striped sonata-ba-list">
+                    <thead>
+                    <tr class="sonata-ba-list-field-header">
+                        <th class="text-center">
+                            Ganancia<br />S/.
+                        </th>
+                        <th class="text-center">
+                            Ganancia<br />$
+                        </th>
+                        <th class="text-center">
+                            Típo
+                        </th>
+                        <th class="text-center">
+                            Costo<br />S/.
+                        </th>
+                        <th class="text-center">
+                            Costo<br />$
+                        </th>
+                        <th class="text-center">
+                            Venta<br />S/.
+                        </th>
+                        <th class="text-center">
+                            Venta<br />$
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {%  for resumenitem in tabs.resumenDeClasificado %}
+                        <tr>
+                            <td class="text-right" style="font-weight: bold; color: #1B6129;">
+                                {{ resumenitem.gananciasoles }}
+                            </td>
+                            <td class="text-right" style="font-weight: bold; color: #1B6129;">
+                                {{ resumenitem.gananciadolares }}
+                            </td>
+                            <td style="color: {{ resumenitem.listacolor }}">
+                                {{ resumenitem.titulo }}
+                            </td>
+                            <td class="text-right">
+                                {{ resumenitem.montosoles }}
+                            </td>
+                            <td class="text-right">
+                                {{ resumenitem.montodolares }}
+                            </td>
+                            <td class="text-right">
+                                {{ resumenitem.ventasoles }}
+                            </td>
+                            <td class="text-right">
+                                {{ resumenitem.ventadolares }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <br />
+            <h4><strong>Por tipo de pasajero</strong></h4>
+            {% for rango in tabs.tarifasClasificadas %}
+                <h4>
+                    {{ rango.tipoPaxNombre }} <strong>x {{ rango.cantidad }}</strong>
+                </h4>
+                {% if rango.edadMin is defined or rango.edadMax is defined%}
+                    <p>
+                        {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
+                            de {{ rango.edadMin }} años
+                            {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                &nbsp;<br />(con carné de estudiante válido y vigente)
+                            {% endif %}
+
+                        {% else %}
+                            {% if rango.edadMin is defined %}
+                                desde {{ rango.edadMin }} años
+                            {% endif %}
+
+                            {% if rango.edadMax is defined %}
+                                hasta {{ rango.edadMax }} años
+                                {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                    <br />(con carné de estudiante válido y vigente)
+                                {% endif %}
+                            {% endif %}
+
+                        {% endif %}
+
+                    </p>
+                {% endif %}
+
+                {% if rango.tituloPersistente is defined %}
+                    <h5>{{ rango.tituloPersistente }}</h5>
+                {% endif %}
+                <div style="margin-left: 15px;" class="box-body table-responsive no-padding">
+                    <table class="table table-bordered table-striped sonata-ba-list">
+                        <thead>
+                        <tr class="sonata-ba-list-field-header">
+                            <th>
+                                Monto Cotizado
+                            </th>
+                            <th>
+                                Tipo
+                            </th>
+                            <th>
+                                Componente (Tarifa)
+                            </th>
+                            <th>
+                                Servicio
+                            </th>
+                            <th class="text-right">
+                                Venta soles
+                            </th>
+                            <th class="text-right">
+                                Venta dolares
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {%  for tarifadetalle in rango.tarifas %}
+                        <tr>
+                            <td style="font-weight: bold;  color: #1B6129;">
+                                {% if tarifadetalle.cantidadComponente > 1 %}
+                                    {{ tarifadetalle.cantidadComponente }} x&nbsp;
+                                {% endif %}
+                                {{ tarifadetalle.montoOriginal }}&nbsp;{{ tarifadetalle.monedaOriginal }}
+                                {% if tarifadetalle.prorrateado %}
+                                    &nbsp;(P)
+                                {% else %}
+                                    &nbsp;(U)
+                                {% endif %}
+                            </td>
+                            <td style="color: {{ tarifadetalle.tipoTarListacolor }};">
+                                {{ tarifadetalle.tipoTarTitulo }}
+                            </td>
+                            <td>
+                                {{ tarifadetalle.nombreComponente }} ({{ tarifadetalle.nombre }})
+                            </td>
+                            <td>
+                                {{ tarifadetalle.nombreServicio }}
+                            </td>
+                            <td class="text-right">
+                                {{ tarifadetalle.ventasoles }}
+                            </td>
+                            <td class="text-right">
+                                {{ tarifadetalle.ventadolares }}
+                            </td>
+
+                            {% endfor %}
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <br />
+                <div style="margin-left: 30px;" class="box-body table-responsive no-padding">
+                    <table class="table table-bordered table-striped sonata-ba-list">
+                        <thead>
+                        <tr class="sonata-ba-list-field-header">
+                            <th>
+                                Tipo
+                            </th>
+                            <th>
+                                Tipo para Pax
+                            </th>
+                            <th class="text-right">
+                                Costo Soles
+                            </th>
+                            <th class="text-right">
+                                Costo Dolares
+                            </th>
+                            <th class="text-right">
+                                Venta soles
+                            </th>
+                            <th class="text-right">
+                                Venta dolares
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {%  for tarifaresumen in rango.resumen %}
+                        <tr>
+                            <td style="color: {{ tarifaresumen.tipoTarListacolor }}">
+                                {{ tarifaresumen.tipoTarNombre }}
+                            </td>
+                            <td style="color: {{ tarifaresumen.tipoTarListacolor }}">
+                                {{ tarifaresumen.tipoTarTitulo }}
+                            </td>
+                            <td class="text-right">
+                                {{ tarifaresumen.montosoles }}
+                            </td>
+                            <td class="text-right">
+                                {{ tarifaresumen.montodolares }}
+                            </td>
+                            <td class="text-right">
+                                {{ tarifaresumen.ventasoles }}
+                            </td>
+                            <td class="text-right">
+                                {{ tarifaresumen.ventadolares }}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <br />
+            {% endfor %}
+
+        </div>
+    </div>
+</div>

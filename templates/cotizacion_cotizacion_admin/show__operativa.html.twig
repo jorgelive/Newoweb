@@ -1,0 +1,78 @@
+<div class="box-body container-fluid">
+    <div class="sonata-ba-collapsed-fields">
+        <div class="box-body table-responsive">
+            <h3 class="visible-print">{{ 'tab_operativa'|trans({}, 'messages')|capitalize}}</h3>
+            {% if object.cotservicios is defined and object.cotservicios|length > 0%}
+                <ul class="fila servicio">
+                    {% for servicio in object.cotservicios %}
+                        <li>
+                            <div class="celda heading">Ser</div>
+                            <div class="celda">
+                                <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ servicio.servicio.nombre }}</div></div>
+                                <div class="celda"><div class="titulo">Itinerario</div><div class="contenido">{{ servicio.itinerario.nombre|length > 30 ? servicio.itinerario.nombre|slice(0, 30) ~ '...' : servicio.itinerario.nombre }}</div></div>
+                                <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ servicio.fechahorainicio|date("H:i") }}</span> <span>{{ servicio.fechahorainicio|date("Y-m-d") }}</span></div></div>
+                                <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ servicio.fechahorafin|date("H:i") }}</span> <span>{{ servicio.fechahorafin|date("Y-m-d") }}</span></div></div>
+                            </div>
+                            {% if servicio.cotcomponentes is defined and servicio.cotcomponentes|length > 0%}
+                                <ul class="fila componente">
+                                    {% for componente in servicio.cotcomponentes %}
+                                        <li>
+                                            <div class="celda heading">Com</div>
+                                            <div class="celda">
+                                                <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ componente.componente.nombre }}</div></div>
+                                                <div class="celda"><div class="titulo">#</div><div class="contenido">{{ componente.cantidad }}</div></div>
+                                                <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ componente.fechahorainicio|date("H:i") }}</span> <span>{{ componente.fechahorainicio|date("Y-m-d") }}</span></div></div>
+                                                <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: seagreen;">{{ componente.fechahorafin|date("H:i") }}</span> <span>{{ componente.fechahorafin|date("Y-m-d") }}</span></div></div>
+                                                <div class="celda"><div class="titulo">Estado</div><div class="contenido estadocomponente" style="color: {{ componente.estadocotcomponente.color }};">{{ componente.estadocotcomponente.nombre }}</div></div>
+                                                {% if componente.componente.componenteitems is defined and componente.componente.componenteitems|length > 0%}
+                                                    <div class="celda">
+                                                        <div class="titulo">Items</div>
+                                                        <div class="contenido">
+                                                            {% for item in componente.componente.componenteitems %}
+                                                                {% if loop.first == false  %},{% endif%}
+                                                                {{ item.titulo }}
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            {% if componente.cottarifas is defined and componente.cottarifas|length > 0%}
+                                                <ul class="fila tarifa">
+                                                    {% for tarifa in componente.cottarifas %}
+                                                        <li>
+                                                            <div class="celda heading">Tar</div>
+                                                            <div class="celda">
+                                                                <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ tarifa.tarifa.nombre }}</div></div>
+                                                                <div class="celda"><div class="titulo">#</div><div class="contenido">{{ tarifa.cantidad }}</div></div>
+                                                                <div class="celda"><div class="titulo">Proveedor</div><div class="contenido" style="color: dodgerblue">{% if tarifa.provider is not null %}{{ tarifa.provider.nombre }}{% else %}-{% endif %}</div></div>
+                                                                <div class="celda"><div class="titulo">Tipo</div><div class="contenido" style="color: {{ tarifa.tarifa.tipotarifa.listacolor }};">{{ tarifa.tarifa.tipotarifa.nombre }}</div></div>
+                                                            </div>
+                                                            {% if tarifa.cottarifadetalles is defined and tarifa.cottarifadetalles|length > 0%}
+                                                                <ul class="fila detalle">
+                                                                    {% for detalle in tarifa.cottarifadetalles %}
+                                                                        <li>
+                                                                            <div class="celda heading">Det</div>
+                                                                            <div class="celda">
+                                                                                <div class="celda"><div class="titulo">Detalle</div><div class="contenido">{{ detalle.detalle }}</div></div>
+                                                                                <div class="celda"><div class="titulo">Tipo</div><div class="contenido">{{ detalle.tipotarifadetalle.nombre }}</div></div>
+                                                                            </div>
+                                                                        </li>
+                                                                    {% endfor %}
+                                                                </ul>
+                                                            {% endif %}
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+        </div>
+    </div>
+</div>

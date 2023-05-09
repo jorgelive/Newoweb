@@ -80,14 +80,14 @@ class CotizacionResumen
         $datosCotizacion['tipocambio'] = $this->tipocambio;
 
         if($this->cotizacionClasificador->clasificar($cotizacion, $this->tipocambio)){
-            $datosTabs['tarifas']['rangos'] = $this->cotizacionClasificador->getTarifasClasificadas();
-            $datosTabs['tarifas']['resumen'] = $this->cotizacionClasificador->getResumenDeClasificado();
+            $datosTabs['tarifasClasificadas'] = $this->cotizacionClasificador->getTarifasClasificadas();
+            $datosTabs['resumenDeClasificado'] = $this->cotizacionClasificador->getResumenDeClasificado();
         }else{
             $this->mensaje = $this->cotizacionClasificador->getMensaje();
             return false;
         }
-        $datosTabs['itinerario']['itinerarios'] = $this->cotizacionItinerario->getItinerario($cotizacion);
-        $datosTabs['itinerario']['proveedores'] = $this->mensajeProveedor->getMensajesParaCotizacion($id);//$tempProveedores;
+        $datosTabs['itinerarios'] = $this->cotizacionItinerario->getItinerario($cotizacion);
+        $datosTabs['proveedores'] = $this->mensajeProveedor->getMensajesParaCotizacion($id);//$tempProveedores;
         $datosTabs['incluye'] = $this->cotizacionIncluye->getDatos($cotizacion);
         $datosTabs['agenda'] = $this->cotizacionAgenda->getAgenda($cotizacion);
 
