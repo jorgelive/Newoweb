@@ -54,8 +54,8 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
             ->add('unit', null, [
                 'label' => 'Unidad'
             ])
-            ->add('unitclasemedio', null, [
-                    'label' => 'Clase'
+            ->add('unittipocaracteristica', null, [
+                    'label' => 'Tipo'
                 ]
             )
             ->add('nombre')
@@ -77,8 +77,8 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
             ->add('unit', null, [
                 'label' => 'Unidad'
             ])
-            ->add('unitclasemedio', null, [
-                    'label' => 'Clase'
+            ->add('unittipocaracteristica', null, [
+                    'label' => 'Tipo'
                 ]
             )
             ->add('webThumbPath', 'string', [
@@ -124,8 +124,8 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
         }
 
         $formMapper
-            ->add('unitclasemedio', null, [
-                    'label' => 'Clase'
+            ->add('unittipocaracteristica', null, [
+                    'label' => 'Tipo'
             ])
             ->add('nombre', null, [
                 'attr' => ['class' => 'uploadedimage']
@@ -194,8 +194,8 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                 ]
             )
             ->add('enlace')
-            ->add('unitclasemedio', null, [
-                    'label' => 'Clase'
+            ->add('unittipocaracteristica', null, [
+                    'label' => 'Tipo'
                 ]
             )
             ->add('nombre')

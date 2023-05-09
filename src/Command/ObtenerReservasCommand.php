@@ -128,7 +128,7 @@ class ObtenerReservasCommand extends Command
                         $insertar = true;
                     }elseif($canal == 3){ //booking
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 2);  //ya no Pendiente (1)
-                        $temp['nombre'] = str_replace('Closed - Not available', '', $event->summary) . 'Completar Booking';
+                        $temp['nombre'] = str_replace('CLOSED - Not available', '', $event->summary) . 'Completar Booking';
                         $temp['enlace'] = '';
                         $insertar = true;
                     }

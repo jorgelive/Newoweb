@@ -55,12 +55,12 @@ class ReservaUnitmedio
     protected $unit;
 
     /**
-     * @var \App\Entity\ReservaUnitclasemedio
+     * @var \App\Entity\ReservaUnittipocaracteristica
      *
-     * @ORM\ManyToOne(targetEntity="ReservaUnitclasemedio", inversedBy="unitmedios")
-     * @ORM\JoinColumn(name="unitclasemedio_id", referencedColumnName="id", nullable=false)
+     * @ORM\ManyToOne(targetEntity="ReservaUnittipocaracteristica", inversedBy="unitmedios")
+     * @ORM\JoinColumn(name="unittipocaracteristica_id", referencedColumnName="id", nullable=false)
      */
-    protected $unitclasemedio;
+    protected $unittipocaracteristica;
 
     /**
      * @var \DateTime $creado
@@ -94,7 +94,7 @@ class ReservaUnitmedio
         return $this;
     }
 
-    public function getTranslations()
+    public function getTranslations(): ?ArrayCollection
     {
         return $this->translations;
     }
@@ -107,10 +107,7 @@ class ReservaUnitmedio
         }
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         if(empty($this->getUnitclasemedio()) || empty($this->getNombre())){
             return sprintf("Id: %s.", $this->getId());
@@ -119,132 +116,67 @@ class ReservaUnitmedio
     }
 
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): int
     {
         return $this->id;
     }
 
-
-    /**
-     * Set unit
-     *
-     * @param \App\Entity\Reservaunit $unit
-     *
-     * @return ReservaUnitmedio
-     */
-    public function setUnit(\App\Entity\Reservaunit $unit)
+    public function setUnit(?Reservaunit $unit):  self
     {
         $this->unit = $unit;
 
         return $this;
     }
 
-    /**
-     * Get unit
-     *
-     * @return \App\Entity\ReservaUnit
-     */
-    public function getUnit()
+    public function getUnit(): ?ReservaUnit
     {
         return $this->unit;
     }
 
-    /**
-     * Set unitclasemedio
-     *
-     * @param \App\Entity\Reservaunitclasemedio $unitclasemedio
-     *
-     * @return ReservaUnitmedio
-     */
-    public function setUnitclasemedio(\App\Entity\Reservaunitclasemedio $unitclasemedio = null)
+    public function getUnittipocaracteristica(): ?ReservaUnittipocaracteristica
     {
-        $this->unitclasemedio = $unitclasemedio;
+        return $this->unittipocaracteristica;
+    }
+
+    public function setUnittipocaracteristica(?ReservaUnittipocaracteristica $unittipocaracteristica): self
+    {
+        $this->unittipocaracteristica = $unittipocaracteristica;
 
         return $this;
     }
 
-    /**
-     * Get unitclasemedio
-     *
-     * @return \App\Entity\ReservaUnitclasemedio
-     */
-    public function getUnitclasemedio()
-    {
-        return $this->unitclasemedio;
-    }
-
-
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     * @return ReservaUnitmedio
-     */
-    public function setCreado($creado)
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
 
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     * @return ReservaUnitmedio
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
 
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Set titulo.
-     *
-     * @param string $titulo
-     *
-     * @return ReservaUnitmedio
-     */
-    public function setTitulo($titulo)
+    public function setTitulo(?string $titulo): self
     {
         $this->titulo = $titulo;
     
         return $this;
     }
 
-    /**
-     * Get titulo.
-     *
-     * @return string
-     */
-    public function getTitulo()
+    public function getTitulo(): ?string
     {
         return $this->titulo;
     }

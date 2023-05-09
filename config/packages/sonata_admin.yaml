@@ -51,6 +51,9 @@ sonata_admin:
                 icon: '<i class="fa fa-map"></i>'
                 items:
                     - app.admin.reservareserva
+                    - app.admin.reservaunit
+                    - app.admin.reservaunitcaracteristica
+                    - app.admin.reservaunittipocaracteristica
                     - app.admin.reservachanel
                     - app.admin.reservaestado
                     - app.admin.reservadetalle
@@ -59,11 +62,7 @@ sonata_admin:
                     - app.admin.reservatipoimporte
                     - app.admin.reservapago
                     - app.admin.reservaestablecimiento
-                    - app.admin.reservaunit
-                    - app.admin.reservaunitcaracteristica
-                    - app.admin.reservaunittipocaracteristica
                     - app.admin.reservaunitmedio
-                    - app.admin.reservaunitclasemedio
                     - app.admin.reservaunitnexo
 
             app.admin.group.maestro:

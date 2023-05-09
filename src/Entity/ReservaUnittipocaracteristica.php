@@ -58,6 +58,13 @@ class ReservaUnittipocaracteristica
     private $unitcaracteristicas;
 
     /**
+     * @var \Doctrine\Common\Collections\Collection
+     *
+     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitmedio", mappedBy="unittipocaracteristica", cascade={"persist","remove"}, orphanRemoval=true)
+     */
+    private $unitmedios;
+
+    /**
      * @var \DateTime $creado
      *
      * @Gedmo\Timestampable(on="create")
@@ -81,6 +88,7 @@ class ReservaUnittipocaracteristica
     public function __construct() {
         $this->reservas = new ArrayCollection();
         $this->unitcaracteristicas = new ArrayCollection();
+        $this->unitmedios = new ArrayCollection();
         $this->translations = new ArrayCollection();
     }
 
@@ -174,6 +182,33 @@ class ReservaUnittipocaracteristica
         }
 
         return $this;
+    }
+
+    public function addUnitmedio(ReservaUnitmedio $unitmedio): self
+    {
+        $unitmedio->setUnittipocaracteristica($this);
+
+        $this->unitmedios[] = $unitmedio;
+
+        return $this;
+    }
+
+    public function removeUnitmedio(Reservaunitmedio $unitmedio): self
+    {
+
+        if($this->unitmedios->removeElement($unitmedio)) {
+            // set the owning side to null (unless already changed)
+            if($unitmedio->getUnittipocaracteristica() === $this) {
+                $unitmedio->setUnittipocaracteristica(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getUnitmedios(): ArrayCollection
+    {
+        return $this->unitmedios;
     }
 
 

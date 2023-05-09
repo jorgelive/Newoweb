@@ -11,17 +11,13 @@
     <style>
 
         div.encabezado td {white-space: normal !important;}
-
         body > div.wrapper > header > nav > div.navbar-custom-menu > ul > li > a { background-color: white; }
         body > div > header > nav > div.navbar-left > div > ol > li.active {max-width: 250px; white-space: nowrap;}
-
         @media print
         {
             .locale_switcher {display: none !important;}
             .tab-content > .tab-pane {display: block !important; opacity: 1 !important; visibility: visible !important;}
         }
-
-
 
 
     </style>
@@ -36,7 +32,7 @@
 
     <div class="row">
         <div class="col-md-12 ">
-            <div class="box box-primary">
+            <div class="encabezado box box-primary">
                 <div class="box-body table-responsive no-padding">
                     <table class="table">
                         <tbody>
@@ -48,45 +44,42 @@
                             <th>Descripción</th>
                             <td>{{ object.descripcion }}</td>
                         </tr>
-                        <tr class="sonata-ba-view-container">
-                            <th>Dirección</th>
-                            <td>
-                                {{ object.establecimiento.direccion }} ({{ object.referencia }})
 
-
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colspan="2">
-                                <div id="gmap-canvas-{{ object.id }}">
-                                    <iframe id="gmap-frame-{{ object.id }}" src="https://maps.google.com/maps?q={{ object.establecimiento.direccion|escape('url') }}&t=&z=17&ie=UTF8&iwloc=&output=embed" scrolling="no" marginheight="0" marginwidth="0">
-                                    </iframe>
-                                </div>
-                                <style>
-                                    #gmap-label-{{ object.id }} {margin-top: 5px; font-weight: 600;}
-                                    #gmap-frame-{{ object.id }} {border: none; width: 100%; height: 100%;}
-                                    #gmap-canvas-{{ object.id }} {overflow:hidden; background:none!important; max-width: 600px; width: 100%; height:500px;}
-                                </style>
-                            </td>
-                        </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {% if object.unitcaracteristicas is defined or object.unitmedios is defined %}
-                <div class="panel-group box box-primary" id="accordion">
-                    {% if object.unitcaracteristicas is defined and object.unitcaracteristicas|length > 0 %}
-                        <div class="panel panel-default">
-                            <div class="panel-heading">
-                                <h5 class="panel-title">
-                                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse1">
-                                        Caracteristicas
-                                    </a>
-                                </h5>
-                            </div>
-                            <div id="collapse1" class="panel-collapse collapse in">
-                                <div class="panel-body">
+            <div class="nav-tabs-custom">
+
+                <ul class="nav nav-tabs hidden-print" role="tablist">
+                    <li class="active">
+                        <a href="#tab_{{ admin.uniqid }}_caracteristicas" data-toggle="tab">
+                            <i style="color: #58954e;" class="fas fa-dollar-sign tab-icon" aria-hidden="true"></i>
+                            <span>{{ 'tab_caracteristicas'|trans({},'messages')|capitalize}}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#tab_{{ admin.uniqid }}_fotos" data-toggle="tab">
+                            <i style="color: #954e8d" class="fas fa-map tab-icon" aria-hidden="true"></i>
+                            <span>{{ 'tab_fotos'|trans({},'messages')|capitalize}}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#tab_{{ admin.uniqid }}_ubicacion" data-toggle="tab">
+                            <i style="color: #954e8d" class="fas fa-map tab-icon" aria-hidden="true"></i>
+                            <span>{{ 'tab_ubicacion'|trans({},'messages')|capitalize}}</span>
+                        </a>
+                    </li>
+                </ul>
+                <div class="tab-content no-padding">
+
+                    <div class="tab-pane fade in active" id="tab_{{ admin.uniqid }}_caracteristicas">
+
+                        <div class="box-body container-fluid">
+                            <div class="sonata-ba-collapsed-fields">
+                                <div class="box-body table-responsive">
+                                    <h3 class="visible-print">{{ 'tab_caracteristicas'|trans({}, 'messages')|capitalize}}</h3>
                                     {% for caracteristica in object.unitcaracteristicas %}
                                         <div class="caracteristicalabel"><h4>{{ caracteristica.unittipocaracteristica.titulo }}</h4></div>
                                         <div class="caracteristicacontent ck-content">{{ caracteristica.contenido | raw }}</div>
@@ -94,18 +87,13 @@
                                 </div>
                             </div>
                         </div>
-                    {% endif %}
-                    {% if object.unitmedios is defined and object.unitmedios|length > 0 %}
-                        <div class="panel panel-default">
-                            <div class="panel-heading">
-                                <h5 class="panel-title">
-                                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse2">
-                                        Fotos y videos
-                                    </a>
-                                </h5>
-                            </div>
-                            <div id="collapse2" class="panel-collapse collapse">
-                                <div class="panel-body">
+
+                    </div>
+                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_fotos">
+                        <div class="box-body container-fluid">
+                            <div class="sonata-ba-collapsed-fields">
+                                <div class="box-body table-responsive">
+                                    <h3 class="visible-print">{{ 'tab_fotos'|trans({}, 'messages')|capitalize}}</h3>
                                     <div class="container-fluid hidden-print">
                                         {% for archivo in object.unitmedios %}
                                             {% if loop.index0 % 2 == 0 %}
@@ -113,8 +101,8 @@
                                             {% endif %}
                                             <div class="col-xs-12 col-sm-6">
                                                 <div class="thumbnail">
-                                                    <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ archivo.unitclasemedio.nombre }}"{% else %} target="_blank" {% endif %}>
-                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" style="width:100%">
+                                                    <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ archivo.unittipocaracteristica.nombre }}"{% else %} target="_blank" {% endif %}>
+                                                        {# <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" style="width:100%">#}
                                                         <div class="caption">
                                                             <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
                                                         </div>
@@ -127,11 +115,38 @@
                                         {% endfor %}
                                     </div>
                                 </div>
+                                </div>
                             </div>
                         </div>
-                    {% endif %}
+
+                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_ubicacion">
+                        <div class="box-body container-fluid">
+                            <div class="sonata-ba-collapsed-fields">
+                                <div class="box-body table-responsive">
+                                    <h3 class="visible-print">{{ 'tab_ubicacion'|trans({}, 'messages')|capitalize}}</h3>
+                                    <h5>Dirección</h5>
+                                    <p>
+                                        {{ object.establecimiento.direccion }} ({{ object.referencia }})
+
+
+                                    </p>
+                                    <div id="gmap-canvas-{{ object.id }}">
+                                        <iframe id="gmap-frame-{{ object.id }}" src="https://maps.google.com/maps?q={{ object.establecimiento.direccion|escape('url') }}&t=&z=17&ie=UTF8&iwloc=&output=embed" scrolling="no" marginheight="0" marginwidth="0">
+                                        </iframe>
+                                    </div>
+                                    <style>
+                                        #gmap-label-{{ object.id }} {margin-top: 5px; font-weight: 600;}
+                                        #gmap-frame-{{ object.id }} {border: none; width: 100%; height: 100%;}
+                                        #gmap-canvas-{{ object.id }} {overflow:hidden; background:none!important; max-width: 600px; width: 100%; height:500px;}
+                                    </style>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-            {% endif %}
+            </div>
 
 
         </div>
