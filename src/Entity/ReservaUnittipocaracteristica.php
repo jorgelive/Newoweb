@@ -51,14 +51,14 @@ class ReservaUnittipocaracteristica
     private $titulo;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var ArrayCollection
      *
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitcaracteristica", mappedBy="unittipocaracteristica", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $unitcaracteristicas;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var ArrayCollection
      *
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitmedio", mappedBy="unittipocaracteristica", cascade={"persist","remove"}, orphanRemoval=true)
      */

@@ -25,5 +25,5 @@ return [
     Stof\DoctrineExtensionsBundle\StofDoctrineExtensionsBundle::class => ['all' => true],
     Sonata\TranslationBundle\SonataTranslationBundle::class => ['all' => true],
     Knp\DoctrineBehaviors\DoctrineBehaviorsBundle::class => ['all' => true],
-    Knp\Bundle\PaginatorBundle\KnpPaginatorBundle::class => ['all' => true]
+    Knp\Bundle\PaginatorBundle\KnpPaginatorBundle::class => ['all' => true],
 ];
