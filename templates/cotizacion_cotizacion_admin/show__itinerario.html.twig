@@ -10,9 +10,9 @@
                     <h5><span style="font-weight: 600;">{{ itinerario.fecha|format_datetime('full', 'none')}}</span>&nbsp;-&nbsp;<span>{{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}</span></h5>
                     {% for item in itinerario.fechaitems %}
                         {% if item.titulo is defined %}
-                            <h5 style="font-weight: bold;">{{ item.titulo }} - {{ item.tituloDia }}</h5>
+                            <h5 style="font-weight: bold; color: #016c8d;">{{ item.titulo }} - {{ item.tituloDia }}</h5>
                         {% else%}
-                            <h5 style="font-weight: bold; color: #ff8e60;">{{ item.tituloDia }}</h5>
+                            <h5 style="font-weight: bold; color: #016c8d;">{{ item.tituloDia }}</h5>
                         {% endif%}
                         <div class="ck-content itinerariodescripcion">{{ item.descripcion|raw }}</div>
                         <div class="container-fluid hidden-print">

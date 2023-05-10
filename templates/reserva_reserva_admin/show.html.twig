@@ -38,6 +38,12 @@
                             <th>{{ 'canal'|trans({}, 'messages')|capitalize}}</th>
                             <td>{{ object.chanel.nombre }} ({{ object.estado.nombre|trans({}, 'messages') }})</td>
                         </tr>
+                        {% if action != 'resumen' and object.enlace is not empty %}
+                            <tr class="sonata-ba-view-container">
+                                <th>{{ 'link'|trans({}, 'messages')|capitalize}}</th>
+                                <td><a href="{{ object.enlace }}" target="_blank">Enlace</a></td>
+                            </tr>
+                        {% endif %}
 
                         </tbody>
                     </table>
