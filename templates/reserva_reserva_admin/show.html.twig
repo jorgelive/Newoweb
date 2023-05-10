@@ -89,6 +89,7 @@
                             <div class="sonata-ba-collapsed-fields">
                                 <div class="box-body table-responsive">
                                     <h3 class="visible-print">{{ caracteristica.unittipocaracteristica.titulo }}</h3>
+                                    <div class="caracteristicacontent ck-content">{{ caracteristica.contenido | raw }}</div>
                                     <div class="container-fluid hidden-print">
                                         {% if 1 == 2  %}<div>{% endif %} {# para equilibrar en phpstorm #}
                                         {% set abierto = false %}
@@ -118,7 +119,6 @@
                                         {% endfor %}
                                         {% if abierto == true %}</div>{% endif %}
                                     </div>
-                                    <div class="caracteristicacontent ck-content">{{ caracteristica.contenido | raw }}</div>
                                 </div>
                             </div>
                         </div>

@@ -6,6 +6,7 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
+use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
@@ -74,13 +75,37 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('unit', null, [
-                'label' => 'Unidad'
-            ])
-            ->add('unittipocaracteristica', null, [
-                    'label' => 'Tipo'
+            ->add('unit', FieldDescriptionInterface::TYPE_CHOICE, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'unit']],
+                'label' => 'Alojamiento',
+                'editable' => true,
+                'class' => 'App\Entity\ReservaUnit',
+                'required' => true,
+                'choices' => [
+                    1 => '#1 Centro Cusco',
+                    2 => '#2 Centro Cusco',
+                    3 => '#3 Centro Cusco',
+                    4 => '#4 Centro Cusco',
+                    5 => '#5 Centro Cusco',
                 ]
-            )
+            ])
+            ->add('unittipocaracteristica', FieldDescriptionInterface::TYPE_CHOICE, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'unittipocaracteristica']],
+                'label' => 'Tipo',
+                'editable' => true,
+                'class' => 'App\Entity\ReservaUnittipocaracteristica',
+                'required' => true,
+                'choices' => [
+                    1 => 'Descrición',
+                    2 => 'Briefing',
+                    3 => 'Galería'
+
+                ]
+            ])
             ->add('webThumbPath', 'string', [
                     'label' => 'Archivo',
                     'template' => 'base_sonata_admin/list_image.html.twig'

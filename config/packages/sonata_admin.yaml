@@ -52,6 +52,7 @@ sonata_admin:
                 items:
                     - app.admin.reservareserva
                     - app.admin.reservaunit
+                    - app.admin.reservaunitmedio
                     - app.admin.reservaunitcaracteristica
                     - app.admin.reservaunittipocaracteristica
                     - app.admin.reservachanel
@@ -62,7 +63,6 @@ sonata_admin:
                     - app.admin.reservatipoimporte
                     - app.admin.reservapago
                     - app.admin.reservaestablecimiento
-                    - app.admin.reservaunitmedio
                     - app.admin.reservaunitnexo
 
             app.admin.group.maestro:

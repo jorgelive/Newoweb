@@ -21,7 +21,7 @@
                         <tbody>
                         <tr class="sonata-ba-view-container">
                             <th>{{ 'alojamiento'|trans({}, 'messages')|capitalize}}</th>
-                            <td>{{ object.establecimiento.nombre }} {{ object.unit.nombre }}</td>
+                            <td>{{ object.establecimiento.nombre }} {{ object.nombre }}</td>
                         </tr>
                         <tr class="sonata-ba-view-container">
                             <td colspan="2">{{ object.descripcion }}</td>
@@ -35,12 +35,16 @@
 
                 <ul class="nav nav-tabs hidden-print" role="tablist">
                     {% for index, caracteristica in object.unitcaracteristicas %}
-                    <li {% if loop.first %} class="active"{% endif %}>
-                        <a href="#tab_{{ admin.uniqid }}_{{ index }}" data-toggle="tab">
-                            <i style="color: #58954e;" class="fas fa-info tab-icon" aria-hidden="true"></i>
-                            <span>{{ caracteristica.unittipocaracteristica.titulo }}</span>
-                        </a>
-                    </li>
+
+                        {% if not (caracteristica.unittipocaracteristica.id == 2 and action == 'resumen') %}
+                            <li {% if loop.first %} class="active"{% endif %}>
+                                <a href="#tab_{{ admin.uniqid }}_{{ index }}" data-toggle="tab">
+                                    <i style="color: #58954e;" class="fas fa-info tab-icon" aria-hidden="true"></i>
+                                    <span>{{ caracteristica.unittipocaracteristica.titulo }}</span>
+                                </a>
+                            </li>
+                        {% endif %}
+
                     {% endfor %}
                     <li>
                         <a href="#tab_{{ admin.uniqid }}_ubicacion" data-toggle="tab">
@@ -51,47 +55,49 @@
                 </ul>
                 <div class="tab-content no-padding">
                     {% for index, caracteristica in object.unitcaracteristicas %}
+                        {% if not (caracteristica.unittipocaracteristica.id == 2 and action == 'resumen') %}
+                            <div class="tab-pane fade {% if loop.first %}in active{% endif %}" id="tab_{{ admin.uniqid }}_{{ index }}">
 
-                    <div class="tab-pane fade {% if loop.first %}in active{% endif %}" id="tab_{{ admin.uniqid }}_{{ index }}">
-
-                        <div class="box-body container-fluid">
-                            <div class="sonata-ba-collapsed-fields">
-                                <div class="box-body table-responsive">
-                                    <h3 class="visible-print">{{ caracteristica.unittipocaracteristica.titulo }}</h3>
-                                    <div class="container-fluid hidden-print">
-                                        {% if 1 == 2  %}<div>{% endif %} {# para equilibrar en phpstorm #}
-                                        {% set abierto = false %}
-                                        {% for archivo in caracteristica.unittipocaracteristica.unitmedios %}
-                                            {% if archivo.unit.id == object.id %}
-                                                {% set counter = ( counter | default(0) ) + 1 %}
-                                                {% if counter % 2 == 0 %}
-                                                    <div class="row">
-                                                    {% set abierto = true %}
-                                                {% endif %}
-                                                <div class="col-xs-12 col-sm-6">
-                                                    <div class="thumbnail">
-                                                        <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ archivo.unittipocaracteristica.nombre }}"{% else %} target="_blank" {% endif %}>
-                                                            <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" style="width:100%">
-                                                            <div class="caption">
-                                                                <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
-                                                            </div>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                                {% if counter % 2 == 0 %}
+                                <div class="box-body container-fluid">
+                                    <div class="sonata-ba-collapsed-fields">
+                                        <div class="box-body table-responsive">
+                                            <h3 class="visible-print">{{ caracteristica.unittipocaracteristica.titulo }}</h3>
+                                            <div class="caracteristicacontent ck-content">{{ caracteristica.contenido | raw }}</div>
+                                            <div class="container-fluid hidden-print">
+                                                {% if 1 == 2  %}<div>{% endif %} {# para equilibrar en phpstorm #}
                                                     {% set abierto = false %}
-                                                    </div>
-                                                {% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if abierto == true %}</div>{% endif %}
-                                    </div>
-                                    <div class="caracteristicacontent ck-content">{{ caracteristica.contenido | raw }}</div>
-                                </div>
-                            </div>
-                        </div>
+                                                    {% for archivo in caracteristica.unittipocaracteristica.unitmedios %}
+                                                        {% if archivo.unit.id == object.id %}
+                                                            {% set counter = ( counter | default(0) ) + 1 %}
+                                                            {% if counter % 2 == 0 %}
+                                                                <div class="row">
+                                                                {% set abierto = true %}
+                                                            {% endif %}
+                                                            <div class="col-xs-12 col-sm-6">
+                                                                <div class="thumbnail">
+                                                                    <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ archivo.unittipocaracteristica.nombre }}"{% else %} target="_blank" {% endif %}>
+                                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" style="width:100%">
+                                                                        <div class="caption">
+                                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
+                                                                        </div>
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                            {% if counter % 2 == 0 %}
+                                                                {% set abierto = false %}
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    {% if abierto == true %}</div>{% endif %}
+                                            </div>
 
-                    </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        {% endif %}
                     {% endfor %}
 
                     <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_ubicacion">

@@ -1,10 +1,5 @@
 security:
 
-    enable_authenticator_manager: true
-    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
-    #password_hashers:
-    #    Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
-    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     role_hierarchy:
 
         ROLE_USER:                    [PUBLIC_ACCESS]
@@ -16,7 +11,6 @@ security:
         ROLE_COTIZACIONES_EDITOR:     [ROLE_ADMIN]
         ROLE_OPERACIONES_EDITOR:      [ROLE_ADMIN]
         ROLE_SUPER_ADMIN:             [ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH, ROLE_FIT_EDITOR, ROLE_TRANSPORTES_EDITOR, ROLE_CARGA, ROLE_ADMINISTRACION_EDITOR, ROLE_RESERVAS_EDITOR, ROLE_COTIZACIONES_EDITOR, ROLE_OPERACIONES_EDITOR]
-
 
     password_hashers:
         Sonata\UserBundle\Model\UserInterface: auto
