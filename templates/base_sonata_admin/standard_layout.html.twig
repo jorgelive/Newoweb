@@ -70,6 +70,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@5.11.0/main.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@5.11.0/locales-all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js"></script>
 
     <script>
         $(document).ready(function() {
@@ -81,6 +82,15 @@
                 document.querySelector(".select2-container--open .select2-search__field").focus()
             })
         });
+
+            function copyToClipboard(texto) {
+            var $temp = $("<input>")
+            $("body").append($temp);
+            $temp.val(texto).select();
+            document.execCommand("copy");
+            $temp.remove();
+        }
+
     </script>
 {% endblock %}
 

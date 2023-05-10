@@ -34,6 +34,7 @@ class ReservaReservaAdmin extends AbstractAdmin
     {
         $buttonList['clonar'] = ['template' => 'reserva_reserva_admin/clonar_button.html.twig'];
         $buttonList['extender'] = ['template' => 'reserva_reserva_admin/extender_button.html.twig'];
+        $buttonList['resumen'] = ['template' => 'reserva_reserva_admin/resumen_button.html.twig'];
         return $buttonList;
     }
 

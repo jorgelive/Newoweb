@@ -61,6 +61,7 @@ class ReservaUnittipocaracteristica
      * @var ArrayCollection
      *
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitmedio", mappedBy="unittipocaracteristica", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OrderBy({"prioridad" = "ASC"})
      */
     private $unitmedios;
 

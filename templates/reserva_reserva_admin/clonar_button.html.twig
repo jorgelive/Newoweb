@@ -1,8 +1,21 @@
 {% if object is defined and admin.isGranted('edit', object) and admin.hasRoute('clonar') and object.id is not null %}
     <li>
-        <a class="sonata-action-element" href="{{ admin.generateObjectUrl('clonar', object) }}">
+        <a id="clonarLink-{{ object.id }}" class="sonata-action-element" href="{{ admin.generateObjectUrl('clonar', object) }}">
             <i class="fa fa-clone" aria-hidden="true"></i>
             Clonar
         </a>
+        <script>
+            $("#clonarLink-{{ object.id }}").click(function(e) {
+                e.preventDefault();
+                var $link = $(this);
+
+                bootbox.confirm("Esta seguro que desea clonar la reserva?", function(result) {
+                    if (result == true) {
+                        document.location.assign($link.attr('data-href'));
+                    }
+                });
+            });
+        </script>
     </li>
+
 {% endif %}

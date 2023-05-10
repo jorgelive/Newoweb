@@ -1,0 +1,8 @@
+{% if object is defined and admin.isGranted('show', object) and admin.hasRoute('resumen') and object.id is not null %}
+    <li>
+        <a class="sonata-action-element" onclick="copyToClipboard('{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}')">
+            <i class="fa fa-file-text" aria-hidden="true"></i>
+            Copiar al portapapeles
+        </a>
+    </li>
+{% endif %}
