@@ -18,15 +18,10 @@ use Symfony\Component\HttpClient\HttpClient;
 
 
 
-#[AsCommand(name: 'app:enviar-resumen')]
+#[AsCommand(name: 'app:enviar-resumen', description: 'Envia resumen a correo electrónico.')]
 class EnviarResumenCommand extends Command
 {
-    protected static $defaultName = 'app:enviar-resumen';
-
-    protected static $defaultDescription = 'Envia resumen a correo electrónico.';
-
     private EntityManagerInterface $entityManager;
-
 
     public function __construct(EntityManagerInterface $entityManager, TransportInterface $mailer, ParameterBagInterface $params)
     {

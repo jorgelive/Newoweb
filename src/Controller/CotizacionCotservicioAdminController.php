@@ -20,34 +20,6 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
-    public function showAction(Request $request): Response
-    {
-        $object = $this->assertObjectExists($request, true);
-        \assert(null !== $object);
-
-        $this->checkParentChildAssociation($request, $object);
-
-        $this->admin->checkAccess('show', $object);
-
-        $preResponse = $this->preShow($request, $object);
-        if (null !== $preResponse) {
-            return $preResponse;
-        }
-
-        $this->admin->setSubject($object);
-
-        $fields = $this->admin->getShow();
-
-        $template = $this->templateRegistry->getTemplate('show');
-
-        return $this->renderWithExtraParams($template, [
-            'action' => 'show',
-            'object' => $object,
-            'elements' => $fields,
-        ]);
-    }
-
-
     /**
      *
      */

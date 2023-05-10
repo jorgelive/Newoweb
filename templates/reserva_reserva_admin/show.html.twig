@@ -1,0 +1,162 @@
+{% extends 'base_sonata_admin/show.html.twig' %}
+
+
+
+{% block stylesheets %}
+    {{ parent() }}
+
+    <style>
+
+
+    </style>
+{% endblock %}
+
+{% block show %}
+
+<div class="sonata-ba-view">
+    {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
+    <div class="row">
+        <div class="col-md-12 ">
+
+            <div class="encabezado box box-primary">
+                <div class="box-body table-responsive no-padding">
+                    <table class="table">
+                        <tbody>
+                        <tr class="sonata-ba-view-container">
+                            <th>{{ 'nombre'|trans({}, 'messages')|capitalize}}</th>
+                            <td>{{ object.nombre }} x{{ object.cantidadadultos }}{% if object.cantidadninos > 0 %}+{{ object.cantidadninos }} {% endif %}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>{{ 'fecha_ingreso'|trans({}, 'messages')|capitalize}}</th>
+                            <td>{{ 'desde'|trans({}, 'messages')|capitalize}} {{ object.fechahorainicio | date('Y-m-d H:i') }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>{{ 'fecha_salida'|trans({}, 'messages')|capitalize}}</th>
+                            <td>{{ 'hasta'|trans({}, 'messages')|capitalize}} {{ object.fechahorafin | date('Y-m-d H:i') }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>{{ 'canal'|trans({}, 'messages')|capitalize}}</th>
+                            <td>{{ object.chanel.nombre }} ({{ object.estado.nombre|trans({}, 'messages') }})</td>
+                        </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="encabezado box box-primary">
+                <div class="box-body table-responsive no-padding">
+                    <table class="table">
+                        <tbody>
+                        <tr class="sonata-ba-view-container">
+                            <th>{{ 'alojamiento'|trans({}, 'messages')|capitalize}}</th>
+                            <td>{{ object.unit.establecimiento.nombre }} {{ object.unit.nombre }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+
+                            <td colspan="2">{{ object.unit.descripcion }}</td>
+                        </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="nav-tabs-custom">
+
+                <ul class="nav nav-tabs hidden-print" role="tablist">
+                    {% for index, caracteristica in object.unit.unitcaracteristicas %}
+                    <li {% if loop.first %} class="active"{% endif %}>
+                        <a href="#tab_{{ admin.uniqid }}_{{ index }}" data-toggle="tab">
+                            <i style="color: #58954e;" class="fas fa-info tab-icon" aria-hidden="true"></i>
+                            <span>{{ caracteristica.unittipocaracteristica.titulo }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                    <li>
+                        <a href="#tab_{{ admin.uniqid }}_ubicacion" data-toggle="tab">
+                            <i style="color: #954e8d" class="fas fa-map tab-icon" aria-hidden="true"></i>
+                            <span>{{ 'tab_ubicacion'|trans({},'messages')|capitalize}}</span>
+                        </a>
+                    </li>
+                </ul>
+                <div class="tab-content no-padding">
+                    {% for index, caracteristica in object.unit.unitcaracteristicas %}
+
+                    <div class="tab-pane fade {% if loop.first %}in active{% endif %}" id="tab_{{ admin.uniqid }}_{{ index }}">
+
+                        <div class="box-body container-fluid">
+                            <div class="sonata-ba-collapsed-fields">
+                                <div class="box-body table-responsive">
+                                    <h3 class="visible-print">{{ caracteristica.unittipocaracteristica.titulo }}</h3>
+                                    <div class="container-fluid hidden-print">
+                                        {% if 1 == 2  %}<div>{% endif %} {# para equilibrar en phpstorm #}
+                                        {% set abierto = false %}
+                                        {% for archivo in caracteristica.unittipocaracteristica.unitmedios %}
+                                            {% if archivo.unit.id == object.unit.id %}
+                                                {% set counter = ( counter | default(0) ) + 1 %}
+
+                                                {% if counter % 2 == 0 %}
+                                                    <div class="row">
+                                                    {% set abierto = true %}
+                                                {% endif %}
+                                                <div class="col-xs-12 col-sm-6">
+                                                    <div class="thumbnail">
+                                                        <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ archivo.unittipocaracteristica.nombre }}"{% else %} target="_blank" {% endif %}>
+                                                            <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" style="width:100%">
+                                                            <div class="caption">
+                                                                <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                                {% if counter % 2 == 0 %}
+                                                    {% set abierto = false %}
+                                                    </div>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if abierto == true %}</div>{% endif %}
+                                    </div>
+                                    <div class="caracteristicacontent ck-content">{{ caracteristica.contenido | raw }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    {% endfor %}
+
+                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_ubicacion">
+                        <div class="box-body container-fluid">
+                            <div class="sonata-ba-collapsed-fields">
+                                <div class="box-body table-responsive">
+                                    <h3 class="visible-print">{{ 'tab_ubicacion'|trans({}, 'messages')|capitalize}}</h3>
+                                    {{ 'tab_ubicacion'|trans({}, 'messages')|capitalize}}
+                                    <p>
+                                        {{ object.unit.establecimiento.direccion }} ({{ object.unit.referencia }})
+                                    </p>
+                                    <div id="gmap-canvas-{{ object.id }}">
+                                        <iframe id="gmap-frame-{{ object.id }}" src="https://maps.google.com/maps?q={{ object.unit.establecimiento.direccion|escape('url') }}&t=&z=17&ie=UTF8&iwloc=&output=embed" scrolling="no" marginheight="0" marginwidth="0">
+                                        </iframe>
+                                    </div>
+                                    <style>
+                                        #gmap-label-{{ object.id }} {margin-top: 5px; font-weight: 600;}
+                                        #gmap-frame-{{ object.id }} {border: none; width: 100%; height: 100%;}
+                                        #gmap-canvas-{{ object.id }} {overflow:hidden; background:none!important; max-width: 600px; width: 100%; height:500px;}
+                                    </style>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+
+</div>
+
+    {{ sonata_block_render_event('sonata.admin.show.bottom', { 'admin': admin, 'object': object }) }}
+{% endblock %}

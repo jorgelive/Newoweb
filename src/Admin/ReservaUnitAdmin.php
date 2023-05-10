@@ -61,8 +61,8 @@ class ReservaUnitAdmin extends AbstractAdmin
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
-                    'detalle' => [
-                        'template' => 'reserva_unit_admin\list__action_detalle.html.twig'
+                    'resumen' => [
+                        'template' => 'reserva_unit_admin\list__action_resumen.html.twig'
                     ],
                     'edit' => [],
                     'delete' => [],
@@ -147,7 +147,7 @@ class ReservaUnitAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('ical', $this->getRouterIdParameter() . '/ical');
-        $collection->add('detalle', $this->getRouterIdParameter() . '/detalle');
+        $collection->add('resumen', $this->getRouterIdParameter() . '/resumen');
         $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
 
     }

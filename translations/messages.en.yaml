@@ -8,6 +8,7 @@ tab_valores: Values
 tab_internoincluye: includes (I)
 tab_operativa: operations
 tab_mensajes: providers
+tab_ubicacion: location
 cotizacion: quotation
 nombre: name
 namelist: name list

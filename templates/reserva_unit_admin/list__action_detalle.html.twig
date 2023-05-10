@@ -1,8 +1,0 @@
-{% if admin.isGranted('show', object) and admin.hasRoute('detalle') %}
-    <a href="{{ admin.generateObjectUrl('detalle', object) }}"
-       class="btn btn-sm btn-success"
-       title="Detalle">
-        <i class="fa fa-info" aria-hidden="true"></i>
-        Detalle
-    </a>
-{% endif %}

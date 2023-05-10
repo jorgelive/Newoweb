@@ -8,6 +8,7 @@ tab_valores: valores
 tab_internoincluye: incluye (I)
 tab_operativa: operativa
 tab_mensajes: proveedores
+tab_ubicacion: 'ubicación'
 cotizacion: 'cotización'
 nombre: nombre
 namelist: 'relación de pasajeros'
@@ -46,3 +47,9 @@ cualquier_nacionalidad: cualquier nacionalidad
 total: total
 dias: dias
 noches: noches
+fecha_ingreso: ingreso
+desde: desde
+fecha_salida: salida
+hasta: hasta
+canal: canal
+Confirmado: Confirmado

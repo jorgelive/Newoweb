@@ -476,7 +476,7 @@ services:
         calls:
             - [ setTemplate, [edit, cotizacion_cotservicio_admin\edit.html.twig]]
             - [ setTemplate, [list, cotizacion_cotservicio_admin\list.html.twig]]
-            - [ setTemplate, [show, cotizacion_cotservicio_admin\show.html.twig]]
+            - [ setTemplate, [show, cotizacion_cotservicio_admin\show.html.twig]] overrided en controlador
         public: true
 
     app.admin.cotizacioncotcomponente:
@@ -878,7 +878,8 @@ services:
                 group: Reserva
                 label: Reservas de alojamiento
         calls:
-            - [ setTemplate, [list, reserva_reserva_admin\list.html.twig]]
+            - [ setTemplate, [list, reserva_reserva_admin/list.html.twig]]
+            - [ setTemplate, [show, reserva_reserva_admin/show.html.twig]]
         public: true
 
     app.admin.reservachanel:
@@ -982,6 +983,8 @@ services:
               group: Reserva
               label: Unidad
               show_mosaic_button: false
+        calls:
+            - [ setTemplate, [show, reserva_unit_admin/show.html.twig]]
         public: true
 
     app.admin.reservaunitcaracteristica:

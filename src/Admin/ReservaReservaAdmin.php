@@ -234,6 +234,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
+                    'resumen' => [
+                        'template' => 'reserva_reserva_admin\list__action_resumen.html.twig'
+                    ],
                     'edit' => [],
                     'delete' => [],
                     'clonar' => [
@@ -377,6 +380,7 @@ class ReservaReservaAdmin extends AbstractAdmin
         $collection->add('ical', 'ical');
         $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
         $collection->add('extender', $this->getRouterIdParameter() . '/extender');
+        $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
     }
 
 }

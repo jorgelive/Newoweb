@@ -109,10 +109,10 @@ class ReservaUnitmedio
 
     public function __toString(): string
     {
-        if(empty($this->getUnitclasemedio()) || empty($this->getNombre())){
+        if(empty($this->getUnittipocaracteristica()) || empty($this->getNombre())){
             return sprintf("Id: %s.", $this->getId());
         }
-        return sprintf('%s: %s', $this->getUnitclasemedio()->getNombre(), $this->getNombre());
+        return sprintf('%s: %s', $this->getUnittipocaracteristica()->getNombre(), $this->getNombre());
     }
 
 

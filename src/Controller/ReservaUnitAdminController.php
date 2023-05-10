@@ -79,7 +79,7 @@ class ReservaUnitAdminController extends CRUDAdminController
 
     }
 
-    public function detalleAction(Request $request = null): Response | RedirectResponse
+    public function resumenAction(Request $request = null): Response | RedirectResponse
     {
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
@@ -97,17 +97,18 @@ class ReservaUnitAdminController extends CRUDAdminController
 
         $fields = $this->admin->getShow();
 
-        $template = 'reserva_unit_admin/detalle.html.twig';
+        //$template = $this->templateRegistry->getTemplate('show'); es privado en la clase padre
+        $template = 'reserva_unit_admin/show.html.twig';
 
         return $this->renderWithExtraParams($template,
             [
                 'object' => $object,
-                'action' => 'detalle',
+                'action' => 'resumen',
                 'elements' => $fields,
-
             ]);
 
     }
+
 
     public function icalAction(Request $request = null): Response
     {

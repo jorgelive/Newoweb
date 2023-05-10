@@ -13,15 +13,10 @@ use Symfony\Component\HttpClient\HttpClient;
 
 
 
-#[AsCommand(name: 'app:obtener-reservas')]
+#[AsCommand(name: 'app:obtener-reservas', description: 'Obtiene las reservas de Airbnb.')]
 class ObtenerReservasCommand extends Command
 {
-    protected static $defaultName = 'app:obtener-reservas';
-
-    protected static $defaultDescription = 'Obtiene las reservas de Airbnb.';
-
     private $entityManager;
-
 
     public function __construct(EntityManagerInterface $entityManager)
     {

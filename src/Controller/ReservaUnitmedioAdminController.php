@@ -19,7 +19,6 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
 
     public function traducirAction(Request $request)
     {
-
         $object = $this->assertObjectExists($request, true);
         $id = $object->getId();
         if($request->getDefaultLocale() == $request->getLocale()){

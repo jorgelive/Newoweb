@@ -206,7 +206,7 @@ class ReservaUnittipocaracteristica
         return $this;
     }
 
-    public function getUnitmedios(): ArrayCollection
+    public function getUnitmedios(): Collection
     {
         return $this->unitmedios;
     }

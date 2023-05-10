@@ -49,13 +49,16 @@ security:
     # Note: Only the *first* access control that matches will be used
 
     access_control:
-        #todo eliminar el fallback a cotizacion antigua
         - { path: ^/app/cotizacioncotservicio/ical$, role: PUBLIC_ACCESS }
+
         - { path: ^/app/reservareserva/ical$, role: PUBLIC_ACCESS }
+        - { path: ^/app/reservareserva/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
+
         - { path: ^/app/reservaunit/\d*/ical$, role: PUBLIC_ACCESS }
         - { path: ^/app/reservaunit/\d*/detalle$, role: PUBLIC_ACCESS }
-        - { path: ^/app/cotizacioncotizacion/\d*/resumen$, role: PUBLIC_ACCESS }
+
         - { path: ^/app/cotizacioncotizacion/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
+
         - { path: ^/app/fitdieta/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
 
         # Admin login page needs to be accessed without credential

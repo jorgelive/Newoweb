@@ -1,8 +1,4 @@
-{% extends '@SonataAdmin/CRUD/base_show.html.twig' %}
-
-{% block title %}
-    {{admin.toString(object)}}
-{% endblock %}
+{% extends 'base_sonata_admin/show.html.twig' %}
 
 {% block stylesheets %}
     {{ parent() }}
@@ -56,12 +52,6 @@
             left:10%;
         }
 
-        @media print
-        {
-            .locale_switcher {display: none !important;}
-            .tab-content > .tab-pane {display: block !important; opacity: 1 !important; visibility: visible !important;}
-        }
-
         .fila{list-style: none;}
         .fila.servicio{padding-inline-start: 0; margin: 5px;}
         .fila li {list-style: none; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; border-left: 1px solid #ccc; margin-bottom: 5px;}
@@ -73,19 +63,8 @@
         .boton-acordeonsuperior {padding: 7px 10px;}
         .boton-acordeonsuperior .panel-title>a {font-size: 14px; font-weight: 600;}
         .boton-acordeonsuperior .panel-title>a:hover {color: gray;}
-        .nav-tabs>li>a {padding: 7px 15px;}
-        .nav-tabs-custom>.nav-tabs>li {border-top-width: 6px;}
-        .nav-tabs-custom>.nav-tabs>li.active {border-color: #58954e;}
-        .tab-icon{margin-right: 5px;}
-        .nav-tabs-custom>.tab-content {padding: 0;}
-        .nav-tabs-custom>.nav-tabs>li>a {padding: 5px;}
+
         .titulo-verde {font-weight: bold; color: #58954e;}
-        .nav-tabs-custom>.nav-tabs>li>a>span{font-size: 1.1em;}
-        @media (max-width:768px){
-            .navbar-header{display: none;}
-            .navbar{min-height:initial;}
-            .navbar-default .navbar-nav>li>a{padding-top: 0; padding-bottom: 0; }
-        }
 
     </style>
 {% endblock %}
