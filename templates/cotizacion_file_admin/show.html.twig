@@ -196,7 +196,7 @@
                                                 </td>
                                                 {% endif %}
                                                 <td class="celda-titulo" style="white-space: initial;">
-                                                    <a href="{{ admin.generateObjectUrl('resumen', object, {'token': object.token}) }}">{{ cotizacion.titulo }} {% if action == 'resumen' %} ({{ cotizacion.numeropasajeros }} pasajeros) {% endif %}</a>
+                                                    <a href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">{{ cotizacion.titulo }} {% if action == 'resumen' %} ({{ cotizacion.numeropasajeros }} pasajeros) {% endif %}</a>
                                                 </td>
                                                 {% if action != 'resumen' %}
                                                 <td>
