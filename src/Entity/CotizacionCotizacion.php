@@ -20,41 +20,31 @@ class CotizacionCotizacion
 {
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id;
 
     /**
-     * @var ArrayCollection
-     *
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotizacionTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
-    protected $translations;
+    protected ?Collection $translations;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=20)
      */
-    private $token;
+    private ?string $token;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=255)
      */
-    private $nombre;
+    private ?string $nombre;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(type="string", length=512)
+     * @ORM\Column(type="text")
      */
-    private $titulo;
+    private ?string $resumen;
 
     /**
      * @var int
@@ -64,104 +54,79 @@ class CotizacionCotizacion
     private $numeropasajeros;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="decimal", precision=5, scale=2, nullable=false)
      */
-    private $comision = '20.00';
-
+    private ?string $comision = '20.00';
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="decimal", precision=5, scale=2, nullable=false)
      */
-    private $adelanto = '50.00';
+    private ?string $adelanto = '50.00';
 
     /**
-     * @var \App\Entity\CotizacionEstadocotizacion
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionEstadocotizacion")
      * @ORM\JoinColumn(name="estadocotizacion_id", referencedColumnName="id", nullable=false)
      */
-    protected $estadocotizacion;
+    protected ?CotizacionEstadocotizacion $estadocotizacion;
 
     /**
-     * @var \App\Entity\CotizacionFile
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionFile", inversedBy="cotizaciones")
      * @ORM\JoinColumn(name="file_id", referencedColumnName="id", nullable=false)
      */
-    protected $file;
+    protected ?CotizacionFile $file;
 
     /**
-     * @var \App\Entity\CotizacionCotpolitica
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionCotpolitica", inversedBy="cotizaciones")
      * @ORM\JoinColumn(name="cotpolitica_id", referencedColumnName="id", nullable=false)
      */
-    protected $cotpolitica;
+    protected ?CotizacionCotpolitica $cotpolitica;
 
     /**
-     * @var \App\Entity\CotizacionCotnota
-     *
      * @ORM\ManyToMany(targetEntity="App\Entity\CotizacionCotnota", inversedBy="cotizaciones")
      * @ORM\JoinTable(name="cotizacion_cotnota",
      *      joinColumns={@ORM\JoinColumn(name="cotizacion_id", referencedColumnName="id")},
      *      inverseJoinColumns={@ORM\JoinColumn(name="cotnota_id", referencedColumnName="id")}
      * )
      */
-    protected $cotnotas;
+    protected ?Collection $cotnotas;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotservicio", mappedBy="cotizacion", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fechahorainicio" = "ASC"})
      */
-    private $cotservicios;
+    private ?Collection $cotservicios;
 
     /**
-     * @var \DateTime $fecha
-     *
      * @ORM\Column(type="date")
      */
-    private $fecha;
+    private ?\DateTime $fecha;
 
     /**
-     * @var \DateTime $fechaingreso
-     *
      * @ORM\Column(type="datetime", nullable=true)
      */
-    private $fechaingreso;
+    private ?\DateTime $fechaingreso;
 
     /**
-     * @var \DateTime $fechasalida
-     *
      * @ORM\Column(type="datetime", nullable=true)
      */
-    private $fechasalida;
+    private ?\DateTime $fechasalida;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
     /**
      * @Gedmo\Locale
      */
-    private $locale;
+    private ?string$locale;
 
     public function __construct() {
         $this->cotservicios = new ArrayCollection();
@@ -186,10 +151,7 @@ class CotizacionCotizacion
         }
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         if(empty($this->getFile())){
             return $this->getTitulo() ?? sprintf("Id: %s.", $this->getId()) ?? '';
@@ -206,207 +168,103 @@ class CotizacionCotizacion
         }
     }
 
-    /**
-     * Get resumen
-     *
-     * @return string
-     */
-    public function getResumen()
+    public function getTitulo(): string
     {
-        if(empty($this->getFile())){
-            return $this->getTitulo() ?? sprintf("Id: %s.", $this->getId()) ?? '';
-        }
-
-        return sprintf("%s : %s.", $this->getFile()->getNombre(), $this->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        return substr(strip_tags($this->resumen), 0, 100) . '...';
     }
 
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set token
-     *
-     * @param string $token
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setToken($token)
+    public function setToken(?string $token): self
     {
         $this->token = $token;
 
         return $this;
     }
 
-    /**
-     * Get token
-     *
-     * @return string
-     */
-    public function getToken()
+    public function getToken(): ?string
     {
         return $this->token;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setNombre($nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
     
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set numeropasajeros
-     *
-     * @param integer $numeropasajeros
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setNumeropasajeros($numeropasajeros)
+    public function setNumeropasajeros(?int $numeropasajeros): self
     {
         $this->numeropasajeros = $numeropasajeros;
     
         return $this;
     }
 
-    /**
-     * Get numeropasajeros
-     *
-     * @return integer
-     */
-    public function getNumeropasajeros()
+    public function getNumeropasajeros(): ?int
     {
         return $this->numeropasajeros;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setCreado($creado)
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
     
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
     
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Set estadocotizacion
-     *
-     * @param \App\Entity\CotizacionEstadocotizacion $estadocotizacion
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setEstadocotizacion(\App\Entity\CotizacionEstadocotizacion $estadocotizacion)
+    public function setEstadocotizacion(?CotizacionEstadocotizacion $estadocotizacion): self
     {
         $this->estadocotizacion = $estadocotizacion;
     
         return $this;
     }
 
-    /**
-     * Get estadocotizacion
-     *
-     * @return \App\Entity\CotizacionEstadocotizacion
-     */
-    public function getEstadocotizacion()
+
+    public function getEstadocotizacion(): ?CotizacionEstadocotizacion
     {
         return $this->estadocotizacion;
     }
 
-    /**
-     * Set file
-     *
-     * @param \App\Entity\CotizacionFile $file
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setFile(\App\Entity\CotizacionFile $file)
+    public function setFile(?CotizacionFile $file): self
     {
         $this->file = $file;
     
         return $this;
     }
 
-    /**
-     * Get file
-     *
-     * @return \App\Entity\CotizacionFile
-     */
-    public function getFile()
+    public function getFile(): ?CotizacionFile
     {
         return $this->file;
     }
 
-    /**
-     * Add cotservicio
-     *
-     * @param \App\Entity\CotizacionCotservicio $cotservicio
-     *
-     * @return CotizacionCotizacion
-     */
-    public function addCotservicio(\App\Entity\CotizacionCotservicio $cotservicio)
+    public function addCotservicio(CotizacionCotservicio $cotservicio): self
     {
         $cotservicio->setCotizacion($this);
 
@@ -415,109 +273,53 @@ class CotizacionCotizacion
         return $this;
     }
 
-    /**
-     * Remove cotservicio
-     *
-     * @param \App\Entity\CotizacionCotservicio $cotservicio
-     */
-    public function removeCotservicio(\App\Entity\CotizacionCotservicio $cotservicio)
+    public function removeCotservicio(CotizacionCotservicio $cotservicio)
     {
         $this->cotservicios->removeElement($cotservicio);
     }
 
-    /**
-     * Get cotservicios
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getCotservicios()
+    public function getCotservicios(): Collection
     {
         return $this->cotservicios;
     }
 
-    /**
-     * Set comision.
-     *
-     * @param string $comision
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setComision($comision)
+    public function setComision(?string $comision): self
     {
         $this->comision = $comision;
     
         return $this;
     }
 
-    /**
-     * Get comision.
-     *
-     * @return string
-     */
-    public function getComision()
+    public function getComision(): ?string
     {
         return $this->comision;
     }
 
-
-
-    /**
-     * Set adelanto.
-     *
-     * @param string $adelanto
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setAdelanto($adelanto)
+    public function setAdelanto(?string $adelanto): self
     {
         $this->adelanto = $adelanto;
 
         return $this;
     }
 
-    /**
-     * Get adelanto.
-     *
-     * @return string
-     */
-    public function getAdelanto()
+    public function getAdelanto(): ?string
     {
         return $this->adelanto;
     }
 
-    /**
-     * Set cotpolitica.
-     *
-     * @param \App\Entity\CotizacionCotpolitica|null $cotpolitica
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setCotpolitica(\App\Entity\CotizacionCotpolitica $cotpolitica = null)
+    public function setCotpolitica(?CotizacionCotpolitica $cotpolitica): self
     {
         $this->cotpolitica = $cotpolitica;
     
         return $this;
     }
 
-    /**
-     * Get cotpolitica.
-     *
-     * @return \App\Entity\CotizacionCotpolitica|null
-     */
-    public function getCotpolitica()
+    public function getCotpolitica(): ?CotizacionCotpolitica
     {
         return $this->cotpolitica;
     }
 
-
-    /**
-     * Add cotnota.
-     *
-     * @param \App\Entity\CotizacionCotnota $cotnota
-     *
-     * @return CotizacionCotizacion
-     */
-    public function addCotnota(\App\Entity\CotizacionCotnota $cotnota)
+    public function addCotnota(CotizacionCotnota $cotnota): self
     {
         //notajg: no setear el componente ni uilizar by_reference = false en el admin en el owner(en que tiene inversed)
 
@@ -526,123 +328,63 @@ class CotizacionCotizacion
         return $this;
     }
 
-    /**
-     * Remove cotnota.
-     *
-     * @param \App\Entity\CotizacionCotnota $cotnota
-     *
-     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
-     */
-    public function removeCotnota(\App\Entity\CotizacionCotnota $cotnota)
+    public function removeCotnota(CotizacionCotnota $cotnota)
     {
         return $this->cotnotas->removeElement($cotnota);
     }
 
-    /**
-     * Get cotnotas.
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getCotnotas()
+    public function getCotnotas(): Collection
     {
         return $this->cotnotas;
     }
 
-    /**
-     * Set titulo.
-     *
-     * @param string|null $titulo
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setTitulo($titulo = null)
+
+    public function setResumen(?string $resumen = null): self
     {
-        $this->titulo = $titulo;
+        $this->resumen = $resumen;
     
         return $this;
     }
 
-    /**
-     * Get titulo.
-     *
-     * @return string|null
-     */
-    public function getTitulo()
+    public function getResumen(): ?string
     {
-        return $this->titulo;
+        return $this->resumen;
     }
 
-    /**
-     * Set fecha.
-     *
-     * @param date $fecha
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setFecha($fecha)
-    {
 
+    public function setFecha(\DateTime $fecha): self
+    {
         $this->fecha = $fecha;
 
         return $this;
     }
 
-    /**
-     * Get fecha.
-     *
-     * @return \datetime|null
-     */
-    public function getFecha()
+    public function getFecha(): ?\DateTime
     {
         return $this->fecha;
     }
 
-    /**
-     * Set fechaingreso.
-     *
-     * @param \datetime $fechaingreso
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setFechaingreso($fechaingreso)
+    public function setFechaingreso(?\DateTime $fechaingreso): self
     {
-
         $this->fechaingreso = $fechaingreso;
 
         return $this;
     }
 
-    /**
-     * Get fechaingreso.
-     *
-     * @return \datetime|null
-     */
-    public function getFechaingreso()
+    public function getFechaingreso(): ?\DateTime
     {
         return $this->fechaingreso;
     }
 
-    /**
-     * Set fechasalida.
-     *
-     * @param \datetime $fechasalida
-     *
-     * @return CotizacionCotizacion
-     */
-    public function setFechasalida($fechasalida)
-    {
 
+    public function setFechasalida(?\DateTime $fechasalida): self
+    {
         $this->fechasalida = $fechasalida;
 
         return $this;
     }
 
-    /**
-     * Get fechasalida.
-     *
-     * @return \datetime|null
-     */
-    public function getFechasalida()
+    public function getFechasalida(): ?\DateTime
     {
         return $this->fechasalida;
     }

@@ -118,8 +118,7 @@ class CotizacionFileAdmin extends AbstractAdmin
         $formMapper
             ->add('nombre')
             ->add('pais')
-            ->add('idioma')
-            ->add('pauta');
+            ->add('idioma');
 
         if($this->getRequest()->get('pcode') != 'app.admin.cotizacioncotizacion'){
             $formMapper
@@ -156,7 +155,6 @@ class CotizacionFileAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('pais')
             ->add('idioma')
-            ->add('pauta')
             ->add('filepasajeros', null, [
                 'label' => 'Name List'
             ])

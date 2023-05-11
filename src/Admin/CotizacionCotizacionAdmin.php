@@ -140,9 +140,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 ]
             ])
             ->add('nombre')
-            ->add('titulo', null, [
-                'label' => 'Título'
-            ])
             ->add('numeropasajeros', null, [
                 'label' => 'Cantidad de pasajeros'
             ])
@@ -181,10 +178,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ])
             ->add('nombre', null, [
                 'editable' => true,
-            ])
-            ->add('titulo', null, [
-                'label' => 'Título',
-                'editable' => true
             ])
             ->add('numeropasajeros', null, [
                 'label' => 'Num Pax'
@@ -259,8 +252,10 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd'
             ])
-            ->add('titulo', null, [
-                'label' => 'Título'
+            ->add('resumen', null, [
+                'label' => 'Resumen',
+                'required' => false,
+                'attr' => ['class' => 'ckeditor']
             ])
             ->add('numeropasajeros', null, [
                 'label' => 'Num Pax'
@@ -309,8 +304,8 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'format' => 'Y/m/d'
             ])
             ->add('nombre')
-            ->add('titulo', null, [
-                'label' => 'Título'
+            ->add('resumen', null, [
+                'label' => 'Resumen'
             ])
             ->add('numeropasajeros', null, [
                 'label' => 'Cantidad de pasajeros'

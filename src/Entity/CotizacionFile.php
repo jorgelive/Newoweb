@@ -57,11 +57,6 @@ class CotizacionFile
     protected $pais;
 
     /**
-     * @ORM\Column(name="pauta", type="text", nullable=true)
-     */
-    private $pauta;
-
-    /**
      * @var \App\Entity\MaestroIdioma
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\MaestroIdioma")
@@ -426,30 +421,6 @@ class CotizacionFile
     public function getFiledocumentos()
     {
         return $this->filedocumentos;
-    }
-
-    /**
-     * Set pauta.
-     *
-     * @param string $pauta
-     *
-     * @return CotizacionFile
-     */
-    public function setPauta($pauta = null)
-    {
-        $this->pauta = $pauta;
-    
-        return $this;
-    }
-
-    /**
-     * Get pauta.
-     *
-     * @return string
-     */
-    public function getPauta()
-    {
-        return $this->pauta;
     }
 
 }
