@@ -1,5 +1,16 @@
 {% extends 'base_sonata_admin/show.html.twig' %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+
+        .celda-titulo {white-space: normal;}
+        .celda-titulo>a {color: #58954e; font-weight: 600;}
+        .celda-titulo>a:hover {color: #75c568;}
+
+    </style>
+{% endblock %}
+
 {% block show %}
 
 <div class="sonata-ba-view">
@@ -23,10 +34,6 @@
                         <tr class="sonata-ba-view-container">
                             <th>Idioma</th>
                             <td>{{ object.idioma.nombre }}</td>
-                        </tr>
-                        <tr class="sonata-ba-view-container">
-                            <th>Pauta</th>
-                            <td>{{ object.pauta }}</td>
                         </tr>
                         </tbody>
                     </table>
@@ -153,62 +160,74 @@
                                     <table class="table table-bordered table-striped sonata-ba-list">
                                         <thead>
                                         <tr class="sonata-ba-list-field-header">
+                                            {% if action != 'resumen' %}
                                             <th>
                                                 Nombres
                                             </th>
+                                            {% endif %}
                                             <th>
                                                 Titulo
                                             </th>
+                                            {% if action != 'resumen' %}
                                             <th>
-                                                Cantidad de pasajeros
+                                                #Pax
                                             </th>
                                             <th>
                                                 Comisión
                                             </th>
+                                            {% endif %}
                                             <th>
                                                 Estado
                                             </th>
+                                            {% if action != 'resumen' %}
                                             <th>
                                                 Acciones
                                             </th>
+                                            {% endif %}
+
                                         </tr>
                                         </thead>
                                         <tbody>
                                         {% for cotizacion in object.cotizaciones %}
                                             <tr>
+                                                {% if action != 'resumen' %}
                                                 <td>
                                                     {{ cotizacion.nombre }}
                                                 </td>
-                                                <td>
-                                                    {{ cotizacion.titulo }}
+                                                {% endif %}
+                                                <td class="celda-titulo" style="white-space: initial;">
+                                                    <a href="{{ admin.generateObjectUrl('resumen', object, {'token': object.token}) }}">{{ cotizacion.titulo }} {% if action == 'resumen' %} ({{ cotizacion.numeropasajeros }} pasajeros) {% endif %}</a>
                                                 </td>
+                                                {% if action != 'resumen' %}
                                                 <td>
                                                     {{ cotizacion.numeropasajeros }}
                                                 </td>
                                                 <td>
                                                     {{ cotizacion.comision }}
                                                 </td>
+                                                {% endif %}
                                                 <td>
                                                     {{ cotizacion.estadocotizacion.nombre }}
                                                 </td>
+                                                {% if action != 'resumen' %}
                                                 <td>
                                                     <div class="btn-group">
                                                         <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">
                                                             <i class="fa fa-info" aria-hidden="true"></i>
                                                             Resumen
                                                         </a>
-
                                                         <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_show', {'id': cotizacion.id}) }}">
                                                             <i class="fa fa-eye" aria-hidden="true"></i>
                                                             Mostrar
                                                         </a>
-
                                                         <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_edit', {'id': cotizacion.id}) }}">
                                                             <i class="fa fa-pencil" aria-hidden="true"></i>
                                                             Editar
                                                         </a>
+
                                                     </div>
                                                 </td>
+                                                {% endif %}
                                             </tr>
                                         {% endfor %}
                                         </tbody>

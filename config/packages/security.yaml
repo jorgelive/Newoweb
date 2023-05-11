@@ -53,6 +53,8 @@ security:
 
         - { path: ^/app/cotizacioncotizacion/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
 
+        - { path: ^/app/cotizacionfile/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
+
         - { path: ^/app/fitdieta/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
 
         # Admin login page needs to be accessed without credential

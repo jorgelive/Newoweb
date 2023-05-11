@@ -32,6 +32,7 @@ class CotizacionFileAdmin extends AbstractAdmin
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
+        $buttonList['resumen'] = ['template' => 'cotizacion_file_admin/resumen_button.html.twig'];
         $buttonList['archivodcc'] = ['template' => 'cotizacion_file_admin/archivodcc_button.html.twig'];
         $buttonList['archivopr'] = ['template' => 'cotizacion_file_admin/archivopr_button.html.twig'];
         $buttonList['archivocon'] = ['template' => 'cotizacion_file_admin/archivocon_button.html.twig'];
@@ -88,6 +89,9 @@ class CotizacionFileAdmin extends AbstractAdmin
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
+                    'resumen' => [
+                        'template' => 'cotizacion_file_admin\list__action_resumen.html.twig'
+                    ],
                     'archivodcc' => [
                         'template' => 'cotizacion_file_admin\list__action_archivodcc.html.twig'
                     ],
@@ -167,8 +171,10 @@ class CotizacionFileAdmin extends AbstractAdmin
 
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
+        $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
         $collection->add('archivodcc', $this->getRouterIdParameter() . '/archivodcc');
         $collection->add('archivopr', $this->getRouterIdParameter() . '/archivopr');
         $collection->add('archivocon', $this->getRouterIdParameter() . '/archivocon');
     }
+
 }
