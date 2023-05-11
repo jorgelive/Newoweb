@@ -285,8 +285,11 @@ services:
 
     app.eventlistener.cotizacion_cotizacion_doctrine_event_listener:
         class: App\EventListener\CotizacionCotizacionDoctrineEventListener
+        #arguments: ['@App\Service\CotizacionResumen']
         tags:
             - { name: doctrine.event_listener, event: prePersist }
+            - { name: doctrine.event_listener, event: postPersist }
+            - { name: doctrine.event_listener, event: postUpdate }
 
     app.eventlistener.reserva_reserva_doctrine_event_listener:
         class: App\EventListener\ReservaReservaDoctrineEventListener
