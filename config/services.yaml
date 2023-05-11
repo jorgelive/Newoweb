@@ -283,6 +283,11 @@ services:
         tags:
             - { name: doctrine.event_listener, event: prePersist }
 
+    app.eventlistener.cotizacion_file_doctrine_event_listener:
+        class: App\EventListener\CotizacionFileDoctrineEventListener
+        tags:
+            - { name: doctrine.event_listener, event: prePersist }
+
     app.eventlistener.cotizacion_cotizacion_doctrine_event_listener:
         class: App\EventListener\CotizacionCotizacionDoctrineEventListener
         #arguments: ['@App\Service\CotizacionResumen']

@@ -52,7 +52,7 @@ class CotizacionCotizacion
     /**
      * @var string
      *
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=512)
      */
     private $titulo;
 
