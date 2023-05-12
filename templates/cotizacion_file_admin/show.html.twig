@@ -231,13 +231,13 @@
                                                             <li class="col-lg-12 col-md-12 col-sm-4 col-xs-12">
                                                                 <div class="ck-content">{{ cotizacion.resumen|raw }}</div>
                                                             </li>
+                                                            <li style="text-align: right" class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                                                                <span class="fechas-mono">I: {{ cotizacion.fechaingreso|date('Y-m-d') }}</span><br />
+                                                                <span class="fechas-mono">C: {{ cotizacion.fecha|date('Y-m-d') }}</span>
+                                                            </li>
                                                             <li class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
                                                                 {{ cotizacion.codigo }}<br/>
                                                                 {{ cotizacion.estadocotizacion.nombre }}
-                                                            </li>
-                                                            <li class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                                                                <span class="fechas-mono">I: {{ cotizacion.fechaingreso|date('Y-m-d') }}</span><br />
-                                                                <span class="fechas-mono">C: {{ cotizacion.fecha|date('Y-m-d') }}</span>
                                                             </li>
                                                             <li class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
                                                                 <div class="btn-group">
