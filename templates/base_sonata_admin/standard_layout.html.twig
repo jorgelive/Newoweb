@@ -57,6 +57,9 @@
         body > div > header > nav > div.navbar-left > div > ol > li.active {max-width: 250px; white-space: nowrap;}
         section.content .btn-group > .btn {min-width: 80px;}
 
+        .thumbnail-fluid img.in-modal.portrait {width: 60%;}
+        .thumbnail-fluid img.in-modal.landscape {width: 100%;}
+
         ul.listaordenada, ul.sonata-ba-show-one-to-many { list-style: none; padding: 0; margin: 0;}
         ul.listaordenada li, ul.sonata-ba-show-one-to-many li{ padding-left: 16px; position: relative;}
         ul.listaordenada li::before, ul.sonata-ba-show-one-to-many li::before { content:"\25CF"; color:#F68A39; font-weight:bold; font-size:18px; text-align:right; padding-right:6px; width:10px; position: absolute; left: 0; top: -0.2em;}
@@ -84,9 +87,19 @@
             $(document).on("select2:open", () => {
                 document.querySelector(".select2-container--open .select2-search__field").focus()
             })
+
+                $('.thumbnail-fluid img.in-modal')
+                    .each(function() {
+                        var $this = $(this);
+                        if ($this.width() > $this.height()) {
+                            $this.addClass('landscape');
+                        } else {
+                            $this.addClass('portrait');
+                        }
+                    });
         });
 
-            function copyToClipboard(texto) {
+        function copyToClipboard(texto) {
             var $temp = $("<input>")
             $("body").append($temp);
             $temp.val(texto).select();

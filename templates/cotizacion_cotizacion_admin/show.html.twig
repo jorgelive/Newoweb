@@ -198,9 +198,9 @@
                                         {% for archivo in object.file.filedocumentos %}
                                             {% if (action == 'show' or (action == 'resumen' and archivo.tipofiledocumento.interno == false )) %}
                                             <div class="col-xs-4 col-sm-2">
-                                                <div class="thumbnail">
+                                                <div class="thumbnail thumbnail-fluid">
                                                     <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
-                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.nombre }}" {% if archivo.inModal == true %}style="width:100%"{% endif %}>
+                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.nombre }}" {% if archivo.inModal == true %}class="in-modal"{% endif %}>
                                                         <div class="caption">
                                                             <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.nombre }}</p>
                                                         </div>

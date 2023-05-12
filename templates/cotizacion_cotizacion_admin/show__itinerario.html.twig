@@ -21,9 +21,9 @@
                                     <div class="row">
                                 {% endif %}
                                 <div class="col-xs-12 col-sm-6">
-                                    <div class="thumbnail">
+                                    <div class="thumbnail-fluid">
                                         <a href="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webPath|raw }}{% else %}{{ archivo.medio.webPath|raw }}{% endif %}"{% if archivo.medio.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.tituloDia }}"{% else %} target="_blank" {% endif %}>
-                                            <img src="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webThumbPath|raw }}{% else %}{{ archivo.medio.webThumbPath|raw }}{% endif %}" alt="{{ archivo.medio.titulo }}" {% if archivo.medio.inModal == true %}style="width:100%"{% endif %}>
+                                            <img src="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webThumbPath|raw }}{% else %}{{ archivo.medio.webThumbPath|raw }}{% endif %}" alt="{{ archivo.medio.titulo }}" {% if archivo.medio.inModal == true %}class="in-modal"{% endif %}>
                                             <div class="caption">
                                                 <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.medio.titulo }}</p>
                                             </div>

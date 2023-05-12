@@ -127,9 +127,9 @@
                                     <div class="container-fluid">
                                         {% for archivo in object.filedocumentos %}
                                             <div class="col-xs-4 col-sm-2">
-                                                <div class="thumbnail">
+                                                <div class="thumbnail thumbnail-fluid">
                                                     <a href="{{ app.request.getSchemeAndHttpHost() ~ archivo.webpath|raw }}"{% if archivo.inmodal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
-                                                        <img src="{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}" alt="{{ archivo.nombre }}" style="width:100%">
+                                                        <img src="{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}" alt="{{ archivo.nombre }}" {% if archivo.inModal == true %}class="in-modal"{% endif %}>
                                                         <div class="caption">
                                                             <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.nombre }}</p>
                                                         </div>

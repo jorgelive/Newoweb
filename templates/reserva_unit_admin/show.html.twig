@@ -73,9 +73,9 @@
                                                                 {% set abierto = true %}
                                                             {% endif %}
                                                             <div class="col-xs-12 col-sm-6">
-                                                                <div class="thumbnail">
+                                                                <div class="thumbnail thumbnail-fluid">
                                                                     <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ archivo.unittipocaracteristica.nombre }}"{% else %} target="_blank" {% endif %}>
-                                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" style="width:100%">
+                                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.titulo }}" {% if archivo.inModal == true %}class="in-modal"{% endif %}>
                                                                         <div class="caption">
                                                                             <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
                                                                         </div>
@@ -104,10 +104,10 @@
                             <div class="sonata-ba-collapsed-fields">
                                 <div class="box-body table-responsive">
                                     <h3 class="visible-print">{{ 'tab_ubicacion'|trans({}, 'messages')|capitalize}}</h3>
-                                    <p>
-                                        {{ object.establecimiento.direccion }}
+                                    <p style="font-size: 1.2em">
+                                        {{ 'direccion'|trans({}, 'messages')|capitalize}}: {{ object.establecimiento.direccion }}
                                     </p>
-                                    <p>
+                                    <p style="font-size: 1.1em">
                                         {{ 'referencia'|trans({}, 'messages')|capitalize}}: {{ object.referencia }}
                                     </p>
                                     <div id="gmap-canvas-{{ object.id }}">
