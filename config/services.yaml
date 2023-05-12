@@ -512,7 +512,7 @@ services:
                 model_class: App\Entity\ViewCotizacionCotcomponenteAlerta
                 manager_type: orm
                 group: Cotizacion
-                label: Alerta de Componente
+                label: Alertas
         public: true
 
     app.admin.cotizacioncottarifa:

@@ -123,6 +123,17 @@ class ViewCotizacionCotcomponenteAlertaAdmin extends AbstractAdmin
                 'label' => 'Alerta',
                 'format' => 'Y/m/d H:i'
             ])
+            ->add(ListMapper::NAME_ACTIONS, null, [
+                'label' => 'Acciones',
+                'actions' => [
+                    'show_cotizacion' => [
+                        'template' => 'view_cotizacion_cotcomponente_alerta_admin\list__action_show_cotizacion.html.twig'
+                    ],
+                    'show_componente' => [
+                        'template' => 'view_cotizacion_cotcomponente_alerta_admin\list__action_show_componente.html.twig'
+                    ],
+                ],
+            ])
 
         ;
     }

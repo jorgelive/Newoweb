@@ -1,0 +1,11 @@
+{% if admin.isGranted('show', object) %}
+    <a href="{{ url('admin_app_cotizacioncotizacion_show', {'id': object.cotservicio.cotizacion.id }) }}"
+       class="btn btn-sm btn-success"
+       title="Mostrar cotización">
+        <i class="fa fa-info" aria-hidden="true"></i>
+        Cotización
+    </a>
+{% endif %}
+
+
+
