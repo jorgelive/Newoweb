@@ -70,6 +70,22 @@ trait MainArchivoTrait
      * @ORM\Column(name="prioridad", type="integer", nullable=true)
      */
     private $prioridad;
+    
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="ancho", type="integer", nullable=true)
+     */
+    private $ancho;
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="altura", type="integer", nullable=true)
+     */
+    private $altura;
+
+
 
     /**
      * @Assert\File(maxSize = "6M")
@@ -244,6 +260,50 @@ trait MainArchivoTrait
         }else{
             return '';
         }
+    }
+
+    /**
+     * Set ancho.
+     *
+     * @param int|null $ancho
+     */
+    public function setAncho($ancho = null)
+    {
+        $this->ancho = $ancho;
+
+        return $this;
+    }
+
+    /**
+     * Get ancho.
+     *
+     * @return int|null
+     */
+    public function getAncho()
+    {
+        return $this->ancho;
+    }
+
+    /**
+     * Set altura.
+     *
+     * @param int|null $altura
+     */
+    public function setAltura($altura = null)
+    {
+        $this->altura = $altura;
+
+        return $this;
+    }
+
+    /**
+     * Get altura.
+     *
+     * @return int|null
+     */
+    public function getAltura()
+    {
+        return $this->altura;
     }
 
     /**
