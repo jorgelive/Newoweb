@@ -24,7 +24,7 @@ class CotizacionCotizacion
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private ?int $id;
+    private ?int $id = null;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotizacionTranslation", mappedBy="object", cascade={"persist", "remove"})
