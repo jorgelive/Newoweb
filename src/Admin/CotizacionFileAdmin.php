@@ -11,12 +11,21 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 
 class CotizacionFileAdmin extends AbstractAdmin
 {
 
     public $vars;
+
+    private $tokenStorage;
+
+    public function __construct(TokenStorageInterface $tokenStorage)
+    {
+        $this->tokenStorage = $tokenStorage;
+
+    }
 
     public function configure(): void
     {
@@ -32,13 +41,23 @@ class CotizacionFileAdmin extends AbstractAdmin
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
-        $buttonList['resumen'] = ['template' => 'cotizacion_file_admin/resumen_button.html.twig'];
-        $buttonList['archivodcc'] = ['template' => 'cotizacion_file_admin/archivodcc_button.html.twig'];
-        $buttonList['archivopr'] = ['template' => 'cotizacion_file_admin/archivopr_button.html.twig'];
-        $buttonList['archivocon'] = ['template' => 'cotizacion_file_admin/archivocon_button.html.twig'];
 
+        if(empty($this->tokenStorage->getToken())){
+            $buttonList['show'] = ['template' => 'cotizacion_file_admin/adminview_button.html.twig'];
+        }else{
+            if($action != 'resumen'){
+                $buttonList['resumen'] = ['template' => 'cotizacion_file_admin/resumen_button.html.twig'];
+            }elseif($action == 'resumen'){
+                $buttonList['show'] = ['template' => 'cotizacion_file_admin/show_button.html.twig'];
+            }
+            $buttonList['archivodcc'] = ['template' => 'cotizacion_file_admin/archivodcc_button.html.twig'];
+            $buttonList['archivopr'] = ['template' => 'cotizacion_file_admin/archivopr_button.html.twig'];
+            $buttonList['archivocon'] = ['template' => 'cotizacion_file_admin/archivocon_button.html.twig'];
+        }
         return $buttonList;
     }
+
+
 
     /**
      * @param DatagridMapper $datagridMapper

@@ -456,6 +456,8 @@ services:
 
     app.admin.cotizacioncotizacion:
         class: App\Admin\CotizacionCotizacionAdmin
+        arguments:
+            - '@security.token_storage'
         tags:
             -
                 name: sonata.admin

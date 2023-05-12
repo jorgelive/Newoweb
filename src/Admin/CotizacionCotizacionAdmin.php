@@ -16,11 +16,20 @@ use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\Form\Type\DatePickerType;
 use Sonata\Form\Type\DateRangePickerType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 class CotizacionCotizacionAdmin extends AbstractAdmin
 {
 
     public $vars;
+
+    private $tokenStorage;
+
+    public function __construct(TokenStorageInterface $tokenStorage)
+    {
+        $this->tokenStorage = $tokenStorage;
+
+    }
 
     public function configure(): void
     {
@@ -39,6 +48,19 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
+        if(empty($this->tokenStorage->getToken())){
+            $buttonList['show'] = ['template' => 'cotizacion_file_admin/adminview_button.html.twig'];
+        }else{
+            if($action != 'resumen'){
+                $buttonList['resumen'] = ['template' => 'cotizacion_cotizacion_admin/resumen_button.html.twig'];
+            }elseif($action == 'resumen'){
+                $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/show_button.html.twig'];
+            }
+            $buttonList['fileshow'] = ['template' => 'cotizacion_cotizacion_admin/fileshow_button.html.twig'];
+        }
+
+
+
         if($action == 'resumen'){
             $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/adminview_button.html.twig'];
         }else{

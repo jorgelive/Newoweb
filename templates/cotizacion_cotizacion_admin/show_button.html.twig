@@ -1,0 +1,8 @@
+{% if object is defined and admin.hasRoute('show') and object.id is not null %}
+    <li>
+        <a class="sonata-action-element" href="{{ admin.generateObjectUrl('show', object) }}">
+            <i class="fa fa-newspaper-o" aria-hidden="true"></i>
+            Mostrar
+        </a>
+    </li>
+{% endif %}

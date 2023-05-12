@@ -4,9 +4,8 @@
     {{ parent() }}
     <style>
 
-        .celda-titulo {white-space: normal;}
-        .celda-titulo>a {color: #58954e; font-weight: 600;}
-        .celda-titulo>a:hover {color: #75c568;}
+
+        ul.lista-cotizacion { list-style: none; padding: 0; margin: 0;}
 
     </style>
 {% endblock %}
@@ -18,7 +17,7 @@
     {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
 
     <div class="row">
-        <div class="col-md-12 ">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
             <div class="box box-primary">
                 <div class="box-body table-responsive no-padding">
                     <table class="table">
@@ -157,81 +156,106 @@
                             </div>
                             <div id="collapse3" class="panel-collapse collapse in">
                                 <div class="panel-body table-responsive no-padding">
-                                    <table class="table table-bordered table-striped sonata-ba-list">
-                                        <thead>
-                                        <tr class="sonata-ba-list-field-header">
-                                            {% if action != 'resumen' %}
-                                            <th>
-                                                Nombres
-                                            </th>
-                                            {% endif %}
-                                            <th>
-                                                Titulo
-                                            </th>
-                                            {% if action != 'resumen' %}
-                                            <th>
-                                                #Pax
-                                            </th>
-                                            <th>
-                                                Comisión
-                                            </th>
-                                            {% endif %}
-                                            <th>
-                                                Estado
-                                            </th>
-                                            {% if action != 'resumen' %}
-                                            <th>
-                                                Acciones
-                                            </th>
-                                            {% endif %}
-
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {% for cotizacion in object.cotizaciones %}
-                                            <tr>
-                                                {% if action != 'resumen' %}
-                                                <td>
-                                                    {{ cotizacion.nombre }}
-                                                </td>
-                                                {% endif %}
-                                                <td class="celda-titulo" style="white-space: initial;">
-                                                    <a href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">{{ cotizacion.titulo }} {% if action == 'resumen' %} ({{ cotizacion.numeropasajeros }} pasajeros) {% endif %}</a>
-                                                </td>
-                                                {% if action != 'resumen' %}
-                                                <td>
-                                                    {{ cotizacion.numeropasajeros }}
-                                                </td>
-                                                <td>
-                                                    {{ cotizacion.comision }}
-                                                </td>
-                                                {% endif %}
-                                                <td>
-                                                    {{ cotizacion.estadocotizacion.nombre }}
-                                                </td>
-                                                {% if action != 'resumen' %}
-                                                <td>
-                                                    <div class="btn-group">
-                                                        <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">
-                                                            <i class="fa fa-info" aria-hidden="true"></i>
-                                                            Resumen
-                                                        </a>
-                                                        <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_show', {'id': cotizacion.id}) }}">
-                                                            <i class="fa fa-eye" aria-hidden="true"></i>
-                                                            Mostrar
-                                                        </a>
-                                                        <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_edit', {'id': cotizacion.id}) }}">
-                                                            <i class="fa fa-pencil" aria-hidden="true"></i>
-                                                            Editar
-                                                        </a>
-
-                                                    </div>
-                                                </td>
-                                                {% endif %}
+                                    {% if action != 'resumen' %}
+                                        <table class="table table-bordered table-striped sonata-ba-list">
+                                            <thead>
+                                            <tr class="sonata-ba-list-field-header">
+                                                <th>
+                                                    Cod
+                                                </th>
+                                                <th>
+                                                    Nombres
+                                                </th>
+                                                <th>
+                                                    #Pax
+                                                </th>
+                                                <th>
+                                                    Comisión
+                                                </th>
+                                                <th>
+                                                    Fechas
+                                                </th>
+                                                <th>
+                                                    Acciones
+                                                </th>
                                             </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                            {% for cotizacion in object.cotizaciones %}
+                                                <tr>
+                                                    <td style="white-space: nowrap;">
+                                                        {{ cotizacion.codigo }}<br \>{{ cotizacion.estadocotizacion.nombre }}
+                                                    </td>
+                                                    <td style="white-space: normal;">
+                                                        {{ cotizacion.nombre }}
+                                                    </td>
+                                                    <td>
+                                                        {{ cotizacion.numeropasajeros }}
+                                                    </td>
+                                                    <td>
+                                                        {{ cotizacion.comision }}
+                                                    </td>
+                                                    <td>
+                                                        <span class="fechas-mono">I: {{ cotizacion.fechaingreso|date('Y-m-d') }}</span><br />
+                                                        <span class="fechas-mono">C: {{ cotizacion.fecha|date('Y-m-d') }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="btn-group">
+                                                            <a class="btn btn-sm btn-primary view_link" href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">
+                                                                <i class="fa fa-info" aria-hidden="true"></i>
+                                                                Resumen
+                                                            </a>
+                                                            <a class="btn btn-sm btn-success view_link" href="{{ path('admin_app_cotizacioncotizacion_show', {'id': cotizacion.id}) }}">
+                                                                <i class="fa fa-eye" aria-hidden="true"></i>
+                                                                Mostrar
+                                                            </a>
+                                                            <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_edit', {'id': cotizacion.id}) }}">
+                                                                <i class="fa fa-pencil" aria-hidden="true"></i>
+                                                                Editar
+                                                            </a>
+
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        <table class="table table-bordered table-striped sonata-ba-list">
+                                            <tbody>
+                                            {% for cotizacion in object.cotizaciones %}
+                                                <tr>
+                                                    <td style="white-space: normal;">
+
+                                                        <ul class="lista-cotizacion">
+                                                            <li class="col-lg-12 col-md-12 col-sm-4 col-xs-12">
+                                                                <div class="ck-content">{{ cotizacion.resumen|raw }}</div>
+                                                            </li>
+                                                            <li class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                                                                {{ cotizacion.codigo }}<br/>
+                                                                {{ cotizacion.estadocotizacion.nombre }}
+                                                            </li>
+                                                            <li class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                                                                <span class="fechas-mono">I: {{ cotizacion.fechaingreso|date('Y-m-d') }}</span><br />
+                                                                <span class="fechas-mono">C: {{ cotizacion.fecha|date('Y-m-d') }}</span>
+                                                            </li>
+                                                            <li class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                                                                <div class="btn-group">
+                                                                <a class="btn btn-sm btn-primary view_link" href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">
+                                                                    <i class="fa fa-info" aria-hidden="true"></i>
+                                                                    Mostrar
+                                                                </a>
+                                                                </div>
+                                                            </li>
+
+                                                        </ul>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

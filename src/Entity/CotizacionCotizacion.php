@@ -170,9 +170,8 @@ class CotizacionCotizacion
 
     public function getTitulo(): string
     {
-        return substr(strip_tags($this->resumen), 0, 100) . '...';
+        return substr(str_replace("&nbsp;", '', strip_tags($this->resumen)), 0, 100) . '...';
     }
-
 
     public function getId(): ?int
     {
@@ -184,6 +183,11 @@ class CotizacionCotizacion
         $this->token = $token;
 
         return $this;
+    }
+
+    public function getCodigo(): ?string
+    {
+        return 'OPC-'.sprintf('%05d', $this->id);
     }
 
     public function getToken(): ?string

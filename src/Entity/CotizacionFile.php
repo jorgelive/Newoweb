@@ -68,6 +68,7 @@ class CotizacionFile
      * @var \Doctrine\Common\Collections\Collection
      *
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotizacion", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OrderBy({"fecha" = "ASC"})
      */
     private $cotizaciones;
 

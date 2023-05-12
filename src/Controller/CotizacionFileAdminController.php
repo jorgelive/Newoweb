@@ -21,7 +21,7 @@ class CotizacionFileAdminController extends CRUDAdminController
                 'App\Service\MainVariableproceso' => MainVariableproceso::class,
                 'App\Service\MainArchivoexcel' => MainArchivoexcel::class,
                 'App\Service\MainArchivozip' => MainArchivozip::class,
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
+                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
             ] + parent::getSubscribedServices();
     }
 
