@@ -86,7 +86,7 @@ class CotizacionItinerario
             }
         }
         //primero es el importante por dia si no hubera importantes se coje el titulo
-        if(empty($tituloItinerario)){
+        if(empty($tituloItinerario) && !empty($cotservicio->getItinerario()->getTitulo())){
             $tituloItinerario = $cotservicio->getItinerario()->getTitulo();
         }
 
