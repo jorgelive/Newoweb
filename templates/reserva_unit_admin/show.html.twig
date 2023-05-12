@@ -5,7 +5,6 @@
 
     <style>
 
-
     </style>
 {% endblock %}
 
@@ -105,9 +104,11 @@
                             <div class="sonata-ba-collapsed-fields">
                                 <div class="box-body table-responsive">
                                     <h3 class="visible-print">{{ 'tab_ubicacion'|trans({}, 'messages')|capitalize}}</h3>
-                                    {{ 'tab_ubicacion'|trans({}, 'messages')|capitalize}}
                                     <p>
-                                        {{ object.establecimiento.direccion }} ({{ object.referencia }})
+                                        {{ object.establecimiento.direccion }}
+                                    </p>
+                                    <p>
+                                        {{ 'referencia'|trans({}, 'messages')|capitalize}}: {{ object.referencia }}
                                     </p>
                                     <div id="gmap-canvas-{{ object.id }}">
                                         <iframe id="gmap-frame-{{ object.id }}" src="https://maps.google.com/maps?q={{ object.establecimiento.direccion|escape('url') }}&t=&z=17&ie=UTF8&iwloc=&output=embed" scrolling="no" marginheight="0" marginwidth="0">

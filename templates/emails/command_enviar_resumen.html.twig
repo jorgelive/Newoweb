@@ -8,19 +8,16 @@
     <table style="margin-left: 15px; border-collapse: collapse;">
         <tr style="border-bottom: 1px solid steelblue;">
             <th>
-                Estado
-            </th>
-            <th>
-                Fecha
-            </th>
-            <th>
-                File
+                Datos
             </th>
             <th>
                 Servicio
             </th>
             <th>
                 Componente
+            </th>
+            <th>
+                Cotización
             </th>
         </tr>
         {% for alerta in alertas %}
@@ -30,20 +27,19 @@
                  {% else %}
                      {% set color = 'darkorange' %}
                  {% endif %}
-                <td style="padding: 0 4px 0 4px; color: {{ color }}">
-                    {{ alerta.nombreEstado }}
-                </td>
                 <td style="padding: 0 4px 0 4px;">
-                    {{ alerta.fechaHoraInicio|date("Y-m-d H:i") }}
-                </td>
-                <td style="padding: 0 4px 0 4px;">
+                    {{ alerta.fechaHoraInicio|date("Y-m-d H:i") }}<br />
+                    <span style="color: {{ color }}">{{ alerta.nombreEstado }}</span><br />
                     {{ alerta.nombreFile }}
                 </td>
                 <td style="padding: 0 4px 0 4px;">
-                    <a href="{{ url('admin_app_cotizacioncotservicio_edit', {'id': alerta.idServicio }) }}">{{alerta.nombreServicio}}</a>
+                    {{alerta.nombreServicio}} <a style="font-size: 0.8em" href="{{ url('admin_app_cotizacioncotservicio_edit', {'id': alerta.idServicio }) }}">Editar</a>
                 </td>
                 <td style="padding: 0 4px 0 4px;">
-                    {{alerta.nombreComponente}}
+                    {{alerta.nombreComponente}} <a style="font-size: 0.8em" href="{{ url('admin_app_cotizacioncotcomponente_show', {'id': alerta.id }) }}">Enviar reconfirmación</a>
+                </td>
+                <td style="padding: 0 4px 0 4px;">
+                    {{alerta.codigoCotizacion}} <a  style="font-size: 0.8em" href="{{ url('admin_app_cotizacioncotizacion_show', {'id': alerta.idCotizacion }) }}">Mostrar</a>
                 </td>
             </tr>
         {% endfor %}

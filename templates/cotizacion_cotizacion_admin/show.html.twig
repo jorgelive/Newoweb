@@ -67,7 +67,7 @@
         .boton-acordeonsuperior .panel-title>a {font-size: 14px; font-weight: 600;}
         .boton-acordeonsuperior .panel-title>a:hover {color: gray;}
 
-        .titulo-verde {font-weight: bold; color: #58954e;}
+        .titulo-verde {font-weight: bold; color: #1B6129;}
 
     </style>
 {% endblock %}
@@ -229,7 +229,7 @@
 
                     <li>
                         <a href="#tab_{{ admin.uniqid }}_tarifas" data-toggle="tab">
-                            <i style="color: #58954e;" class="fas fa-dollar-sign tab-icon" aria-hidden="true"></i>
+                            <i style="color: #1B6129;" class="fas fa-dollar-sign tab-icon" aria-hidden="true"></i>
                             <span>{{ 'tab_precio'|trans({},'messages')|capitalize}}</span>
                         </a>
                     </li>
@@ -258,7 +258,7 @@
                     {% if action == 'show' %}
                         <li>
                             <a href="#tab_{{ admin.uniqid }}_valores" data-toggle="tab">
-                                <i style="color: #58954e;" class="fas fa-money-bill tab-icon" aria-hidden="true"></i>
+                                <i style="color: #1B6129;" class="fas fa-money-bill tab-icon" aria-hidden="true"></i>
                                 <span>{{ 'tab_valores'|trans({},'messages')|capitalize}}</span>
                             </a>
                         </li>
@@ -323,7 +323,7 @@
                                                             {{ 'inicio'|trans({},'messages')|capitalize }}: <span style="font-weight: bold">{{ componente.fechahorainicio|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
                                                         </li>
                                                         <li>
-                                                            <i class="fa-li fas fa-calendar-check" style="color: green;"></i>
+                                                            <i class="fa-li fas fa-calendar-check" style="color: #1B6129;"></i>
                                                             {{ 'fin'|trans({},'messages')|capitalize }}: <span style="font-weight: bold">{{ componente.fechahorafin|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
                                                         </li>
                                                     </ul>

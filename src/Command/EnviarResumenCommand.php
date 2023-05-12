@@ -53,11 +53,14 @@ class EnviarResumenCommand extends Command
         if(count($componenteAlertas) > 0){
 
             foreach($componenteAlertas as $id => $componenteAlerta){
+                $alertas[$id]['id'] = $componenteAlerta->getId();
                 $alertas[$id]['idEstado'] = $componenteAlerta->getEstadocotcomponente()->getNombre();
                 $alertas[$id]['nombreEstado'] = $componenteAlerta->getEstadocotcomponente()->getNombre();
                 $alertas[$id]['fechaHoraInicio'] = $componenteAlerta->getFechahorainicio();
                 $alertas[$id]['nombreFile'] = $componenteAlerta->getCotservicio()->getCotizacion()->getFile()->getNombre() . ' x' . $componenteAlerta->getCotservicio()->getCotizacion()->getNumeropasajeros();
                 $alertas[$id]['idServicio'] = $componenteAlerta->getCotservicio()->getId();
+                $alertas[$id]['idCotizacion'] = $componenteAlerta->getCotservicio()->getCotizacion()->getId();
+                $alertas[$id]['codigoCotizacion'] = $componenteAlerta->getCotservicio()->getCotizacion()->getCodigo();
                 $alertas[$id]['nombreServicio'] = $componenteAlerta->getCotservicio()->getServicio()->getNombre();
                 $alertas[$id]['nombreComponente'] = $componenteAlerta->getComponente()->getNombre();
                 $alertas[$id]['fechaAlerta'] = $componenteAlerta->getFechaalerta();
