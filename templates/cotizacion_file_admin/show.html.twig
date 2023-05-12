@@ -223,7 +223,7 @@
                                     {% else %}
                                         <table class="table table-bordered table-striped sonata-ba-list">
                                             <tbody>
-                                            {% for cotizacion in object.cotizaciones %}
+                                            {% for cotizacion in object.cotizaciones | filter(cotizacion => cotizacion.estadocotizacion.id in [1, 3, 6]) %}
                                                 <tr>
                                                     <td style="white-space: normal;">
 

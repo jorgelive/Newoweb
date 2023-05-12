@@ -42,7 +42,7 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
     {
         $sortValues[DatagridInterface::PAGE] = 1;
         $sortValues[DatagridInterface::SORT_ORDER] = 'DESC';
-        $sortValues[DatagridInterface::SORT_BY] = 'modificado';
+        $sortValues[DatagridInterface::SORT_BY] = 'id';
     }
 
 
@@ -56,15 +56,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             }elseif($action == 'resumen'){
                 $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/show_button.html.twig'];
             }
-            $buttonList['fileshow'] = ['template' => 'cotizacion_cotizacion_admin/fileshow_button.html.twig'];
-        }
-
-
-
-        if($action == 'resumen'){
-            $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/adminview_button.html.twig'];
-        }else{
-            $buttonList['resumen'] = ['template' => 'cotizacion_cotizacion_admin/resumen_button.html.twig'];
             $buttonList['fileshow'] = ['template' => 'cotizacion_cotizacion_admin/fileshow_button.html.twig'];
         }
         return $buttonList;
@@ -231,6 +222,11 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ])
             ->add('fechasalida', null, [
                 'label' => 'Salida',
+                'format' => 'Y/m/d H:i',
+                'sortable' => true
+            ])
+            ->add('modificado', null, [
+                'label' => 'Modificación',
                 'format' => 'Y/m/d H:i',
                 'sortable' => true
             ])
