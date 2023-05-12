@@ -84,11 +84,12 @@ class CotizacionItinerario
             }else{
                 $tituloItinerario = reset($itinerarioFechaAux) ?? '';
             }
-            //primero es el importante por dia si no hubera importantes se coje el titulo
-            if(empty($tituloItinerario)){
-                $tituloItinerario = $cotservicio->getItinerario()->getTitulo();
-            }
         }
+        //primero es el importante por dia si no hubera importantes se coje el titulo
+        if(empty($tituloItinerario)){
+            $tituloItinerario = $cotservicio->getItinerario()->getTitulo();
+        }
+
         return $tituloItinerario;
     }
 
