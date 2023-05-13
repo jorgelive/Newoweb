@@ -21,7 +21,7 @@
                                     <div class="row">
                                 {% endif %}
                                 <div class="col-xs-12 col-sm-6">
-                                    <div class="thumbnail-fluid">
+                                    <div class="thumbnail thumbnail-fluid">
                                         <a href="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webPath|raw }}{% else %}{{ archivo.medio.webPath|raw }}{% endif %}"{% if archivo.medio.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.tituloDia }}"{% else %} target="_blank" {% endif %}>
                                             <img src="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webThumbPath|raw }}{% else %}{{ archivo.medio.webThumbPath|raw }}{% endif %}"
                                                  alt="{{ archivo.medio.titulo }}"
