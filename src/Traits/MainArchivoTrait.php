@@ -70,7 +70,7 @@ trait MainArchivoTrait
      * @ORM\Column(name="prioridad", type="integer", nullable=true)
      */
     private $prioridad;
-    
+
     /**
      * @var int
      *
@@ -307,6 +307,22 @@ trait MainArchivoTrait
     }
 
     /**
+     * Get aspectratio.
+     *
+     * @return int|null
+     */
+    public function getAspectratio()
+    {
+        if(empty($this->ancho) || empty($this->altura)){
+            return $this->altura;
+        }
+
+        return ($this->ancho / $this->altura);
+    }
+
+
+
+    /**
      * Set prioridad.
      *
      * @param int|null $prioridad
@@ -348,9 +364,7 @@ trait MainArchivoTrait
     public function setArchivo(UploadedFile $archivo = null)
     {
         $this->saveOldFilesInfo();
-
         $this->archivo = $archivo;
-
     }
 
     /**
@@ -369,31 +383,56 @@ trait MainArchivoTrait
      */
     public function preUpload()
     {
+        //si se envia archivo
         if(null !== $this->getArchivo()) {
             $this->saveOldFilesInfo();
             $this->extension = $this->getArchivo()->getClientOriginalExtension();
             if(!$this->getNombre()){
                 $this->nombre = preg_replace('/\.[^.]*$/', '', $this->getArchivo()->getClientOriginalName());
             }
+
+            //obtenemos las dimensiones del archivo subido para determinar el acho y alto del futuro archivo
+
+            $imageInfo = getimagesize($this->getArchivo()->getPathname());
+            //false si no es imagen
+            if($imageInfo){
+                list($anchoOriginal, $alturaOriginal) = $imageInfo;
+                $aspectRatio = $anchoOriginal / $alturaOriginal;
+
+                //si es mas ancho
+                if($aspectRatio >= 1) {
+                    $this->setAncho((int)$this->imageSize['image']['width']);
+                    $this->setAltura((int)($this->imageSize['image']['width'] / $aspectRatio));
+                    //si es mas alto
+                } else {
+                    $this->setAltura((int)$this->imageSize['image']['height']);
+                    $this->setAncho((int)($this->imageSize['image']['height'] * $aspectRatio));
+                }
+            }else{
+                $this->setAncho(null);
+                $this->setAltura(null);
+            }
+
             //limpiamos enlace si es que hay archivo
             $this->setToken(mt_rand());
             $this->setEnlace(null);
             $this->setEnlacecode(null);
             $this->setEnlaceurl(null);
             $this->setEnlacethumburl(null);
-
+        //si se envia enlace
         }elseif(null !== $this->getEnlace()){
 
             $enlaceValido = false;
 
             $this->saveOldFilesInfo();
-
+            //si es youtibe
             if(preg_match($this->pregYoutube, $this->getEnlace(), $matches) == 1){
                 $this->setExtension('youtube');
                 $this->setEnlacecode($matches[1]);
                 $this->setEnlaceurl('https://www.youtube.com/embed/' . $matches[1]);
                 $this->setEnlacethumburl('https://img.youtube.com/vi/' . $matches[1] . '/hqdefault.jpg');
                 $enlaceValido = true;
+            //si es vimeo
             }elseif(preg_match($this->pregVimeo, $this->getEnlace(), $matches) == 1){
                 $hash = unserialize(@file_get_contents('http://vimeo.com/api/v2/video/' . $matches[1] . ".php"));
                 if($hash !== false){
@@ -402,28 +441,23 @@ trait MainArchivoTrait
                     $this->setEnlaceurl('https://player.vimeo.com/video/' . $hash[0]['id']);
                     $this->setEnlacethumburl($hash[0]['thumbnail_medium']);
                     $enlaceValido = true;
-                }else{
-                    $this->setExtension(null);
-                    $this->setEnlace(null);
-                    $this->setEnlacecode(null);
-                    $this->setEnlaceurl(null);
-                    $this->setEnlacethumburl(null);
                 }
-            }else{ //se ha invalidado el enlace, lo quitamos
-                $this->setEnlace(null);
-                if($this->getExtension() == 'initial' || in_array($this->getExtension(), $this->externalTypes)){
-                    $this->setExtension(null);
-                    $this->setEnlace(null);
-                    $this->setEnlacecode(null);
-                    $this->setEnlaceurl(null);
-                    $this->setEnlacethumburl(null);
-                }
+
             }
-            //si cambia de archivo a enlace borramos los archivos, no se borra nada si es que esta en estado inicial (carga) o ya era enlace
+            //si el enlace es invalido y se esta enviando por primera vez
+            if($enlaceValido == false){
+                $this->setEnlace(null);
+                $this->setEnlacecode(null);
+                $this->setEnlaceurl(null);
+                $this->setEnlacethumburl(null);
+            }
+            //Si cambia de archivo a enlace borramos los archivos, no se borra nada si es que esta en estado inicial (carga) o ya era enlace
             if($enlaceValido === true
                 && !empty($this->oldFile['extension'])
                 && !in_array($this->oldFile['extension'], array_merge($this->externalTypes, ['initial']))
                 ){
+                $this->setAncho(null);
+                $this->setAltura(null);
                 $this->removeOldFiles();
             }
         }else{
@@ -459,11 +493,9 @@ trait MainArchivoTrait
         $this->setArchivo(null);
     }
 
-
     public function generarImagen($image, $path, $ancho, $alto): bool
     {
         // Create Imagick object
-
         $im = new \Imagick();
         $im->readImage($image->getPathname()); //Read the file
         $im->setCompressionQuality(95);
@@ -480,7 +512,6 @@ trait MainArchivoTrait
         }
         //return $im->writeImages('C:\wamp\temp', true);
         return $im->writeImages($path . '/' . $this->id . '_' . $this->getToken() . '.' . $this->getExtension(), true);
-
     }
 
     /**
@@ -610,8 +641,6 @@ trait MainArchivoTrait
 
         return 'developer';
     }
-
-
 
     public function refreshModificado(): void
     {
