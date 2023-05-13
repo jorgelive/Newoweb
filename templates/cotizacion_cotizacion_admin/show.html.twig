@@ -200,7 +200,10 @@
                                             <div class="col-xs-4 col-sm-2">
                                                 <div class="thumbnail thumbnail-fluid">
                                                     <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
-                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}" alt="{{ archivo.nombre }}" {% if archivo.inModal == true %}class="in-modal"{% endif %}>
+                                                        <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}"
+                                                             alt="{{ archivo.nombre }}"
+                                                             class="{% if archivo.inModal == true %}in-modal{% endif %} {% if archivo.aspectRatio is not null and archivo.aspectRatio < 1 %}portrait{% elseif archivo.aspectRatio >= 1 %}landscape{% endif %}"
+                                                        >
                                                         <div class="caption">
                                                             <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.nombre }}</p>
                                                         </div>

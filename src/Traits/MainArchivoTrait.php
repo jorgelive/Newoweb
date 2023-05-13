@@ -311,10 +311,10 @@ trait MainArchivoTrait
      *
      * @return int|null
      */
-    public function getAspectratio()
+    public function getAspectRatio()
     {
         if(empty($this->ancho) || empty($this->altura)){
-            return $this->altura;
+            return null;
         }
 
         return ($this->ancho / $this->altura);
