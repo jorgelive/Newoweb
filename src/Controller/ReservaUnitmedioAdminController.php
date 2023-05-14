@@ -95,14 +95,14 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
     public function ajaxcrearAction(Request $request): Response
     {
         if(!$this->isXmlHttpRequest($request)){
-            return $this->renderJson(null, Response::HTTP_METHOD_NOT_ALLOWED);
+            return $this->renderJson(['error' => 'El método no es válido'], Response::HTTP_METHOD_NOT_ALLOWED);
         };
         $this->admin->checkAccess('create');
         //decodificamos el contenido crudo
 
         parse_str($request->getContent(), $parsedContent);
         if(!isset($parsedContent['json'])){
-            return $this->renderJson(null, Response::HTTP_BAD_REQUEST);
+            return $this->renderJson(['error' => 'No se ha podido convertir el requerimiento en variables'], Response::HTTP_BAD_REQUEST);
         }
 
         $data = json_decode($parsedContent['json']);
@@ -112,7 +112,7 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
             str_replace('data:' . $data->type .';base64,', '', $data->file)
         );
         if(!file_put_contents($filename , $dataFileDec)){
-            return $this->renderJson('', Response::HTTP_BAD_REQUEST);
+            return $this->renderJson(['error' => 'No se ha podido escribir el archivo temporal'], Response::HTTP_BAD_REQUEST);
         }
         $fakeUpload = new UploadedFile($filename, $data->name, $data->type, null, true); //test por el ajax
 
@@ -132,7 +132,7 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
 
         $thumbRaw = file_get_contents($unitMedio->getInternalThumbPath());
         if($thumbRaw == false){
-            return $this->renderJson(null, Response::HTTP_NOT_FOUND);
+            return $this->renderJson(['error' => 'No se ha podido leer el achivo de miniatura.'], Response::HTTP_NOT_FOUND);
         }
 
         $tipoThumb = $unitMedio->getTipoThumb();

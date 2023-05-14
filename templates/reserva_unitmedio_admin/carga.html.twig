@@ -99,7 +99,6 @@
                 var file = JSON.parse(decodeURIComponent(settings.data.split(/json=/)[1]));
 
                 let identificador = "file-" + (!!$("progress").length ? $("progress").length : "0");
-                alert (identificador);
                 var progress = $("<progress />", {
                     "class": identificador,
                     "min": 0,
