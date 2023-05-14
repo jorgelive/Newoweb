@@ -111,8 +111,8 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
         $dataFileDec = base64_decode(
             str_replace('data:' . $data->type .';base64,', '', $data->file)
         );
-        if(!file_put_contents($filename , $dataFileDec)){
-            return $this->renderJson(['error' => 'No se ha podido escribir el archivo temporal'], Response::HTTP_BAD_REQUEST);
+        if(!file_put_contents($filename, $dataFileDec)){
+            return $this->renderJson(['error' => 'No se ha podido escribir el archivo temporal ' . $filename], Response::HTTP_BAD_REQUEST);
         }
         $fakeUpload = new UploadedFile($filename, $data->name, $data->type, null, true); //test por el ajax
 
