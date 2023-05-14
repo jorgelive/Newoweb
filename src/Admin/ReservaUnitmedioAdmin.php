@@ -28,21 +28,30 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
     protected function configureDefaultSortValues(array &$sortValues): void
     {
         $sortValues[DatagridInterface::PAGE] = 1;
-        $sortValues[DatagridInterface::SORT_ORDER] = 'ASC';
-        $sortValues[DatagridInterface::SORT_BY] = 'prioridad';
+        $sortValues[DatagridInterface::SORT_ORDER] = 'DESC';
+        $sortValues[DatagridInterface::SORT_BY] = 'id';
     }
 
     protected function configureFilterParameters(array $parameters): array
     {
-        if(!isset($parameters['unit'])){
+        /*
+         * if(!isset($parameters['unit'])){
             $parameters = array_merge([
                 'unit' => [
                     'value' => 1
                 ]
             ], $parameters);
         }
+        */
 
         return $parameters;
+    }
+
+    protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
+    {
+        $buttonList['carga'] = ['template' => 'reserva_unitmedio_admin/carga_button.html.twig'];
+
+        return $buttonList;
     }
 
     /**
@@ -250,6 +259,8 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
+        $collection->add('carga', 'carga');
+        $collection->add('ajaxcrear', 'ajaxcrear');
     }
 
 }

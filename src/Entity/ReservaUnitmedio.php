@@ -50,7 +50,7 @@ class ReservaUnitmedio
      * @var \App\Entity\ReservaUnit
      *
      * @ORM\ManyToOne(targetEntity="ReservaUnit", inversedBy="unitmedios")
-     * @ORM\JoinColumn(name="unit_id", referencedColumnName="id", nullable=false)
+     * @ORM\JoinColumn(name="unit_id", referencedColumnName="id", nullable=true)
      */
     protected $unit;
 
@@ -58,7 +58,7 @@ class ReservaUnitmedio
      * @var \App\Entity\ReservaUnittipocaracteristica
      *
      * @ORM\ManyToOne(targetEntity="ReservaUnittipocaracteristica", inversedBy="unitmedios")
-     * @ORM\JoinColumn(name="unittipocaracteristica_id", referencedColumnName="id", nullable=false)
+     * @ORM\JoinColumn(name="unittipocaracteristica_id", referencedColumnName="id", nullable=true)
      */
     protected $unittipocaracteristica;
 

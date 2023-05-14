@@ -2,10 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\ReservaUnitmedio;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 use Google\Cloud\Translate\V2\TranslateClient;
+use Symfony\Component\HttpFoundation\Response;
 
 class ReservaUnitmedioAdminController extends CRUDAdminController
 {
@@ -17,7 +20,7 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
-    public function traducirAction(Request $request)
+    public function traducirAction(Request $request): Response
     {
         $object = $this->assertObjectExists($request, true);
         $id = $object->getId();
@@ -66,4 +69,90 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
         return new RedirectResponse($this->admin->generateUrl('list'));
 
     }
+
+    public function cargaAction(Request $request): Response
+    {
+        $this->admin->checkAccess('create');
+
+        //$template = $this->templateRegistry->getTemplate('show'); es privado en la clase padre
+        $template = 'reserva_unitmedio_admin/carga.html.twig';
+
+        $newObject = $this->admin->getNewInstance();
+
+        return $this->renderWithExtraParams($template,
+            [
+                'object' => $newObject,
+                'action' => 'carga',
+                'objectId' => null
+                //'elements' => $fields,
+            ]);
+
+
+
+
+    }
+
+    public function ajaxcrearAction(Request $request): Response
+    {
+        if(!$this->isXmlHttpRequest($request)){
+            return $this->renderJson(null, Response::HTTP_METHOD_NOT_ALLOWED);
+        };
+        $this->admin->checkAccess('create');
+        //decodificamos el contenido crudo
+
+        parse_str($request->getContent(), $parsedContent);
+        if(!isset($parsedContent['json'])){
+            return $this->renderJson(null, Response::HTTP_BAD_REQUEST);
+        }
+
+        $data = json_decode($parsedContent['json']);
+        $filename = ini_get('upload_tmp_dir') . '/' . mt_rand() . '_' . $data->name;
+
+        $dataFileDec = base64_decode(
+            str_replace('data:' . $data->type .';base64,', '', $data->file)
+        );
+        if(!file_put_contents($filename , $dataFileDec)){
+            return $this->renderJson('', Response::HTTP_BAD_REQUEST);
+        }
+        $fakeUpload = new UploadedFile($filename, $data->name, $data->type, null, true); //test por el ajax
+
+        $unitMedio = new ReservaUnitmedio();
+        $unitMedio->setArchivo($fakeUpload);
+        $unitMedio->setNombre(pathinfo($data->name, PATHINFO_FILENAME));
+        $unitMedio->setTitulo(pathinfo($data->name, PATHINFO_FILENAME));
+
+        // tell Doctrine you want to (eventually) save the Product (no queries yet)
+
+        $em = $this->container->get('doctrine.orm.default_entity_manager');
+
+        $em->persist($unitMedio);
+
+        // actually executes the queries (i.e. the INSERT query)
+        $em->flush();
+
+        $thumbRaw = file_get_contents($unitMedio->getInternalThumbPath());
+        if($thumbRaw == false){
+            return $this->renderJson(null, Response::HTTP_NOT_FOUND);
+        }
+
+        $tipoThumb = $unitMedio->getTipoThumb();
+
+        $renderDataType = '';
+        if(empty($tipoThumb)){
+            return $this->renderJson(null, Response::HTTP_NOT_FOUND);
+        }elseif ($tipoThumb == 'image'){
+            $renderDataType = 'data:' . $data->type .';base64,';
+        }elseif ($tipoThumb == 'icon'){
+            $renderDataType = 'data:image/png;base64,';
+        }
+
+        $result['file'] = $renderDataType . base64_encode($thumbRaw);
+        $result['type'] = $data->type;
+        $result['aspectRatio'] = $unitMedio->getAspectRatio();
+        $result['name'] = $unitMedio->getNombre();
+
+        return $this->renderJson($result, Response::HTTP_OK);
+
+    }
+
 }

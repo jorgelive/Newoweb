@@ -488,6 +488,10 @@ trait MainArchivoTrait
             unlink($this->getArchivo()->getPathname());
         }else{
             $this->getArchivo()->move($this->getInternalDir(), $this->id . '_' . $this->getToken() . '.' . $this->extension);
+            //reemplazamos para que funcione con ajax
+            //$oldFile = $this->getArchivo()->getRealPath();
+            //$newFile = $this->getInternalDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
+            //\rename($oldFile, $newFile)
         }
 
         $this->setArchivo(null);
@@ -584,21 +588,35 @@ trait MainArchivoTrait
         return $this->path;
     }
 
+    public function getTipoThumb(): string
+    {
+        if($this->extension === null){
+            return '';
+        }elseif(in_array($this->extension, $this->resizableTypes)){
+            return 'image';
+        }else{
+            return 'icon';
+        }
+    }
+
     public function getInternalThumbPath(): string
     {
-        if($this->getExtension() === null || empty($this->getInternalThumbDir())){
+        if($this->extension === null){
             return '';
+        }elseif(in_array($this->extension, $this->resizableTypes)){
+            return $this->getInternalThumbDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
+        }elseif(in_array($this->getExtension(), $this->externalTypes)){
+            return $this->getInternalThumbDir() ?? '';
+        }else{
+            return $this->getInternalThumbDir() . '/' . $this->getIcon($this->extension) . '.png';
         }
-        return $this->getInternalThumbDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
+
     }
 
     protected function getInternalThumbDir(): string
     {
-        if(in_array($this->getExtension(), $this->resizableTypes)){
+        return $this->internalPublicDir . $this->getWebThumbDir();
 
-            return $this->internalPublicDir . $this->getWebThumbDir();
-        }
-        return '';
     }
 
     //acceso desde twig
