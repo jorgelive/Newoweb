@@ -551,7 +551,7 @@ trait MainArchivoTrait
             unlink($this->oldFile['image']);
             $this->oldFile['image'] = '';
         }
-        if(!empty($this->oldFile['thumb']) && file_exists($this->oldFile['thumb'])){
+        if(!empty($this->oldFile['thumb']) && file_exists($this->oldFile['thumb']) && $this->getTipoThumb() == 'image'){
             unlink($this->oldFile['thumb']);
             $this->oldFile['thumb'] = '';
         }
