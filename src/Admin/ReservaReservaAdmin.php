@@ -41,11 +41,11 @@ class ReservaReservaAdmin extends AbstractAdmin
     protected function configureFilterParameters(array $parameters): array
     {
 
-        if(!isset($parameters['fechahorainicio'])){
+        if(!isset($parameters['fechahorafin'])){
             $fecha = new \DateTime();
             $fechaFinal = new \DateTime('now +1 month');
             $parameters = array_merge([
-                'fechahorainicio' => [
+                'fechahorafin' => [
                     'value' => [
                         'start' => $fecha->format('Y/m/d'),
                         'end' => $fechaFinal->format('Y/m/d')
@@ -99,7 +99,48 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('estado')
             ->add('nombre')
             ->add('fechahorainicio', CallbackFilter::class,[
-                'label' => 'Fecha de inicio',
+                'label' => 'Check-in',
+                'callback' => function($queryBuilder, $alias, $field, $filterData) {
+
+                    $valor = $filterData->getValue();
+                    if(!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
+                        return false;
+                    }
+                    $fechaMasUno = clone ($valor['end']);
+                    $fechaMasUno->add(new \DateInterval('P1D'));
+
+                    if(empty($filterData->getType())){
+                        $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
+                        $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
+                        $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
+                        $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
+                        return true;
+                    }else{
+                        return false;
+                    }
+                },
+                'field_type' => DateRangePickerType::class,
+                'field_options' => [
+                    'field_options_start' => [
+                        'dp_use_current' => true,
+                        'dp_show_today' => true,
+                        'format'=> 'yyyy/MM/dd'
+                    ],
+                    'field_options_end' => [
+                        'dp_use_current' => true,
+                        'dp_show_today' => true,
+                        'format'=> 'yyyy/MM/dd'
+                    ]
+                ],
+                'operator_type' => ChoiceType::class,
+                'operator_options' => [
+                    'choices' => [
+                        'Igual a' => 0
+                    ]
+                ]
+            ])
+            ->add('fechahorafin', CallbackFilter::class,[
+                'label' => 'Check-out',
                 'callback' => function($queryBuilder, $alias, $field, $filterData) {
 
                     $valor = $filterData->getValue();
@@ -150,11 +191,11 @@ class ReservaReservaAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('fechahorainicio', null, [
-                'label' => 'Inicio',
+                'label' => 'Check-in',
                 'format' => 'Y/m/d H:i'
             ])
             ->add('fechahorafin', null, [
-                'label' => 'Fin',
+                'label' => 'Check-out',
                 'format' => 'Y/m/d H:i'
             ])
             ->add('unit', FieldDescriptionInterface::TYPE_CHOICE, [
@@ -263,12 +304,12 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('estado')
             ->add('nombre')
             ->add('fechahorainicio', DateTimePickerType::class, [
-                'label' => 'Inicio',
+                'label' => 'Check-in',
                 'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd HH:mm'
             ])
             ->add('fechahorafin', DateTimePickerType::class, [
-                'label' => 'Fin',
+                'label' => 'Check-out',
                 'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd HH:mm'
             ])
@@ -326,11 +367,11 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('estado')
             ->add('nombre')
             ->add('fechahorainicio', null, [
-                'label' => 'Inicio',
+                'label' => 'Check-in',
                 'format' => 'Y/m/d H:i'
             ])
             ->add('fechahorafin', null, [
-                'label' => 'Fin',
+                'label' => 'Check-out',
                 'format' => 'Y/m/d H:i'
             ])
             ->add('cantidadadultos', null, [
