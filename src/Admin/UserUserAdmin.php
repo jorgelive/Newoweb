@@ -49,14 +49,6 @@ class UserUserAdmin extends SonataUserAdmin
         $list
             ->add('firstname')
             ->add('lastname')
-            ->add(ListMapper::NAME_ACTIONS, 'actions', [
-                'actions' => [
-                    'show' => [],
-                    'edit' => [],
-                    'delete' => [],
-                ],
-                'label' => 'Acciones'
-            ])
         ;
 
     }

@@ -51,7 +51,7 @@
 
 {% block show %}
 <div class="sonata-ba-view">
-    {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin }) }}
+    {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
 
     <div class="container-fluid">
         <div class="row">
@@ -76,17 +76,11 @@
                     <div id="uploads" class="panel-body table-responsive no-padding">
                     </div>
                 </div>
-
             </div>
         </div>
-
     </div>
-
-
 </div>
     {{ sonata_block_render_event('sonata.admin.show.bottom', { 'admin': admin }) }}
-
-
 
     <script>
         var display = $("#uploads");
