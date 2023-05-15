@@ -106,7 +106,7 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
         }
 
         $data = json_decode($parsedContent['json']);
-        $filename = ini_get('upload_tmp_dir') . '/' . mt_rand() . '_' . $data->name;
+        $filename = \sys_get_temp_dir() . '/' . mt_rand() . '_' . $data->name;
 
         $dataFileDec = base64_decode(
             str_replace('data:' . $data->type .';base64,', '', $data->file)
