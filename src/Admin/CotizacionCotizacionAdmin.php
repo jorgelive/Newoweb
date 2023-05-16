@@ -37,14 +37,12 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         $this->setFormTheme([0 => 'cotizacion_cotizacion_admin/form_admin_fields.html.twig']);
     }
 
-
     protected function configureDefaultSortValues(array &$sortValues): void
     {
         $sortValues[DatagridInterface::PAGE] = 1;
-        $sortValues[DatagridInterface::SORT_ORDER] = 'DESC';
-        $sortValues[DatagridInterface::SORT_BY] = 'id';
+        $sortValues[DatagridInterface::SORT_ORDER] = 'ASC';
+        $sortValues[DatagridInterface::SORT_BY] = 'fechaingreso';
     }
-
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
@@ -61,6 +59,21 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         return $buttonList;
     }
 
+    protected function configureFilterParameters(array $parameters): array
+    {
+        //si no hay filtro
+        if(count($parameters) <= 4){ //cuando no hay filtro existen 4 parametros
+            $parameters = array_merge([
+                'estadocotizacion' => [
+                    'value' => 3,
+                    //'type' => 1
+                ]
+            ], $parameters);
+        }
+
+        return $parameters;
+    }
+
 
     /**
      * @param DatagridMapper $datagridMapper
@@ -70,6 +83,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('file')
+            ->add('estadocotizacion', null, [
+                'label' => 'Estado'
+            ])
             ->add('fechaingreso', CallbackFilter::class,[
                 'label' => 'Fecha de ingreso',
                 'callback' => function($queryBuilder, $alias, $field, $filterData) {
@@ -155,9 +171,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('numeropasajeros', null, [
                 'label' => 'Cantidad de pasajeros'
-            ])
-            ->add('estadocotizacion', null, [
-                'label' => 'Estado'
             ])
             ->add('cotpolitica', null, [
                 'label' => 'Política'
