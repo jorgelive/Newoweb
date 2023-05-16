@@ -42,6 +42,11 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('id')
             ->add('componente')
             ->add('nombre')
+            ->add('moneda')
+            ->add('monto')
+            ->add('titulo', TranslationFieldFilter::class, [
+                'label' => 'Título'
+            ])
             ->add('nombremostrar',  null, [
                 'label' => 'Nombre para proveedor'
             ])
@@ -54,35 +59,12 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('modalidadtarifa', null, [
                 'label' => 'Modalidad'
             ])
-            ->add('titulo', TranslationFieldFilter::class, [
-                'label' => 'Título'
-            ])
-            ->add('moneda')
-            ->add('monto')
-            ->add('validezinicio', null, [
-                'label' => 'Inicio'
-            ])
-            ->add('validezfin', null, [
-                'label' => 'Fin'
-            ])
             ->add('prorrateado')
             ->add('tipopax', null, [
                 'label' => 'Tipo de paaajero'
             ])
             ->add('tipotarifa', null, [
                 'label' => 'Típo de tarifa'
-            ])
-            ->add('capacidadmin', null, [
-                'label' => 'Cantidad min'
-            ])
-            ->add('capacidadmax', null, [
-                'label' => 'Cantidad max'
-            ])
-            ->add('edadmin', null, [
-                'label' => 'Edad min'
-            ])
-            ->add('edadmax', null, [
-                'label' => 'Edad max'
             ])
         ;
     }
@@ -100,6 +82,26 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'sort_parent_association_mappings' => [['fieldName' => 'componente']]
             ])
             ->add('nombre', null, [
+                'editable' => true
+            ])
+            ->add('moneda', FieldDescriptionInterface::TYPE_CHOICE, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'moneda']],
+                'label' => 'Categoria de tour',
+                'editable' => true,
+                'class' => 'App\Entity\MaestroMoneda',
+                'required' => false,
+                'choices' => [
+                    1 => 'Soles',
+                    2 => 'Dólares'
+                ]
+            ])
+            ->add('monto', null, [
+                'editable' => true
+            ])
+            ->add('titulo', null, [
+                'label' => 'Título',
                 'editable' => true
             ])
             ->add('nombremostrar',  null, [
@@ -139,34 +141,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
                     2 => 'Compartido'
                 ]
             ])
-            ->add('titulo', null, [
-                'label' => 'Título',
-                'editable' => true
-            ])
-            ->add('moneda', FieldDescriptionInterface::TYPE_CHOICE, [
-                'sortable' => true,
-                'sort_field_mapping' => ['fieldName' => 'nombre'],
-                'sort_parent_association_mappings' => [['fieldName' => 'moneda']],
-                'label' => 'Categoria de tour',
-                'editable' => true,
-                'class' => 'App\Entity\MaestroMoneda',
-                'required' => false,
-                'choices' => [
-                    1 => 'Soles',
-                    2 => 'Dólares'
-                ]
-            ])
-            ->add('monto', null, [
-                'editable' => true
-            ])
-            ->add('validezinicio', null, [
-                'label' => 'Inicio',
-                'format' => 'Y/m/d'
-            ])
-            ->add('validezfin', null, [
-                'label' => 'Fin',
-                'format' => 'Y/m/d'
-            ])
             ->add('prorrateado', null, [
                 'editable' => true
             ])
@@ -182,6 +156,14 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
                 'sort_parent_association_mappings' => [['fieldName' => 'tipotarifa']]
             ])
+            ->add('edadmin', null, [
+                'label' => 'Edad min',
+                'editable' => true
+            ])
+            ->add('edadmax', null, [
+                'label' => 'Edad max',
+                'editable' => true
+            ])
             ->add('capacidadmin', null, [
                 'label' => 'Cantidad min',
                 'editable' => true
@@ -190,13 +172,13 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'label' => 'Cantidad max',
                 'editable' => true
             ])
-            ->add('edadmin', null, [
-                'label' => 'Edad min',
-                'editable' => true
+            ->add('validezinicio', null, [
+                'label' => 'Inicio',
+                'format' => 'Y/m/d'
             ])
-            ->add('edadmax', null, [
-                'label' => 'Edad max',
-                'editable' => true
+            ->add('validezfin', null, [
+                'label' => 'Fin',
+                'format' => 'Y/m/d'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -225,7 +207,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
         ){
             $formMapper->add('componente');
         }
-
         $formMapper
             ->add('nombre')
             ->add('nombremostrar',  null, [
@@ -368,6 +349,11 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('id')
             ->add('componente')
             ->add('nombre')
+            ->add('moneda')
+            ->add('monto')
+            ->add('titulo', null, [
+                'label' => 'Título'
+            ])
             ->add('nombremostrar',  null, [
                 'label' => 'Nombre para proveedor'
             ])
@@ -383,19 +369,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('modalidadtarifa', null, [
                 'label' => 'Modalidad'
             ])
-            ->add('titulo', null, [
-                'label' => 'Título'
-            ])
-            ->add('moneda')
-            ->add('monto')
-            ->add('validezinicio', null, [
-                'label' => 'Inicio',
-                'format' => 'Y/m/d'
-            ])
-            ->add('validezfin', null, [
-                'label' => 'Fin',
-                'format' => 'Y/m/d'
-            ])
             ->add('prorrateado')
             ->add('tipopax', null, [
                 'label' => 'Típo de pasajero'
@@ -403,17 +376,25 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('tipotarifa', null, [
                 'label' => 'Tipo de tarifa'
             ])
+            ->add('edadmin', null, [
+                'label' => 'Edad min'
+            ])
+            ->add('edadmax', null, [
+                'label' => 'Edad max'
+            ])
             ->add('capacidadmin', null, [
                 'label' => 'Cantidad min'
             ])
             ->add('capacidadmax', null, [
                 'label' => 'Cantidad max'
             ])
-            ->add('edadmin', null, [
-                'label' => 'Edad min'
+            ->add('validezinicio', null, [
+                'label' => 'Inicio',
+                'format' => 'Y/m/d'
             ])
-            ->add('edadmax', null, [
-                'label' => 'Edad max'
+            ->add('validezfin', null, [
+                'label' => 'Fin',
+                'format' => 'Y/m/d'
             ])
         ;
     }
