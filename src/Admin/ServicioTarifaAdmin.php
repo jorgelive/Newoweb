@@ -209,6 +209,9 @@ class ServicioTarifaAdmin extends AbstractAdmin
         }
         $formMapper
             ->add('nombre')
+            ->add('moneda')
+            ->add('monto')
+            ->add('prorrateado')
             ->add('nombremostrar',  null, [
                 'label' => 'Nombre para proveedor'
             ])
@@ -231,9 +234,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
-            ->add('moneda')
-            ->add('monto')
-            ->add('prorrateado')
             ->add('tipotarifa', null, [
                 'label' => 'Tipo de tarifa'
             ])

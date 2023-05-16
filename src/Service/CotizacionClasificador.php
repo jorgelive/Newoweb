@@ -376,7 +376,50 @@ class CotizacionClasificador
 
         //si despues del proceso hay tarifas muestro error
         if(count($claseTarifas) > 0 && $ejecucion == 10){
-            $this->mensaje = sprintf('Hay tarifas que no pudieron ser clasificadas despues de %d ejecuciones, revise: %s.', $ejecucion, reset($claseTarifas)['tarifa']['nombreServicio'] . ' - ' . reset($claseTarifas)['tarifa']['nombreComponente'] . ' - ' . reset($claseTarifas)['tarifa']['nombre']);
+
+            $tarifasdisplay = '';
+            foreach ($this->tarifasClasificadas as $currentTarifa):
+                $tarifasdisplay .= '[';
+                if(isset($currentTarifa['edadMin'])) {
+                    $tarifasdisplay .= 'min:' . $currentTarifa['edadMin'];
+                }
+                if(isset($currentTarifa['edadMax'])) {
+                    $tarifasdisplay .= ', max :' . $currentTarifa['edadMax'];
+                }
+                if(isset($currentTarifa['tipoPaxNombre'])){
+                    $tarifasdisplay .= ', tipo: ' . $currentTarifa['tipoPaxNombre'];
+                }
+                if(isset($currentTarifa['cantidadRestante'])){
+                    $tarifasdisplay .= ', restante: ' . $currentTarifa['cantidadRestante'];
+                }
+                if(isset($currentTarifa['tarifas'])){
+                    $tarifasdisplay .= ', contenido: ' . count($currentTarifa['tarifas']);
+                }
+                $tarifasdisplay .= '] ';
+            endforeach;
+
+            $tarifaEnError = reset($claseTarifas);
+
+            $tarifaEnErrorDisplay = $tarifaEnError['tarifa']['nombreServicio']
+                . ' - ' . $tarifaEnError['tarifa']['nombreComponente']
+                . ' - ' . $tarifaEnError['tarifa']['nombre'];
+
+            if (isset($tarifaEnError['tarifa']['edadMin'])){
+                $tarifaEnErrorDisplay .= ' - min: ' . $tarifaEnError['tarifa']['edadMin'];
+            }
+            if (isset($tarifaEnError['tarifa']['edadMax'])){
+                $tarifaEnErrorDisplay .= ' - max: ' . $tarifaEnError['tarifa']['edadMax'];
+            }
+            if (isset($tarifaEnError['tarifa']['tipoPaxNombre'])){
+                $tarifaEnErrorDisplay .= ' - tipo: ' . $tarifaEnError['tarifa']['tipoPaxNombre'];
+            }
+
+            if (!empty($tarifasdisplay)){
+                $tarifaEnErrorDisplay .= ' - clasificación actual: ' . $tarifasdisplay;
+            }
+
+
+            $this->mensaje = sprintf('Hay tarifas que no pudieron ser clasificadas despues de %d ejecuciones, revise: %s.', $ejecucion, $tarifaEnErrorDisplay);
         }
     }
 
