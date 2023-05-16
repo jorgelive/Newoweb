@@ -143,10 +143,18 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'label' => 'Título',
                 'editable' => true
             ])
-            ->add('moneda', null, [
+            ->add('moneda', FieldDescriptionInterface::TYPE_CHOICE, [
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
-                'sort_parent_association_mappings' => [['fieldName' => 'moneda']]
+                'sort_parent_association_mappings' => [['fieldName' => 'moneda']],
+                'label' => 'Categoria de tour',
+                'editable' => true,
+                'class' => 'App\Entity\MaestroMoneda',
+                'required' => false,
+                'choices' => [
+                    1 => 'Soles',
+                    2 => 'Dólares'
+                ]
             ])
             ->add('monto', null, [
                 'editable' => true
