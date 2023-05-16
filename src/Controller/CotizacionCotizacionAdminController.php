@@ -115,6 +115,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
                 ], null);
         }else{
+            $errores = $this->container->get('App\Service\CotizacionResumen')->getMensaje();
             $this->addFlash('sonata_flash_error', $this->container->get('App\Service\CotizacionResumen')->getMensaje());
             return new RedirectResponse($this->admin->generateUrl('list'));
         }

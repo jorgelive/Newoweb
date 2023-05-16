@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\MaestroTipocambio;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use App\Entity\CotizacionCotizacion;
 
@@ -11,6 +12,7 @@ class CotizacionClasificador
 
     private TranslatorInterface $translator;
     private CotizacionCotizacion $cotizacion;
+    private RequestStack $requestStack;
 
     private int $edadMin = 0;
     private int $edadMax = 120;
@@ -19,14 +21,13 @@ class CotizacionClasificador
     //Es el resumen final de todos los pasajeros de tarifas costos v netas por tipo de tarifa incluido no incluido, etc 
     private array $resumenDeClasificado = [];
 
-    private string $mensaje;
-
     private CotizacionItinerario $cotizacionItinerario;
 
-    function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario)
+    function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario, RequestStack $requestStack,)
     {
         $this->translator = $translator;
         $this->cotizacionItinerario = $cotizacionItinerario;
+        $this->requestStack = $requestStack;
     }
 
     public function clasificar(CotizacionCotizacion $cotizacion, MaestroTipocambio $tipocambio): bool
@@ -94,7 +95,8 @@ class CotizacionClasificador
                                     $tempArrayTarifa['montosoles'] = $tempArrayTarifa['montounitario'];
                                     $tempArrayTarifa['montodolares'] = number_format((float)($tempArrayTarifa['montounitario'] / ($tipocambio->getCompra()/2 + $tipocambio->getVenta()/2)), 2, '.', '');
                                 }else{
-                                    $this->mensaje = 'La aplicación solo puede utilizar Soles y dólares en las tarifas.';
+                                    $this->requestStack->getSession()->getFlashBag()->add('error', 'La aplicación solo puede utilizar Soles y dólares en las tarifas.');
+
                                     return false;
                                 }
 
@@ -157,40 +159,44 @@ class CotizacionClasificador
                             endforeach;
 
 //punto de ingreso a la clasificacion $this->obtenerTarifasComponente >>> $this->procesarTarifa  >>> $this->modificarClasificacion
-                            $this->obtenerTarifasComponente($tempArrayComponente['tarifas'], $this->cotizacion->getNumeropasajeros());
-
-                            if(!empty($this->mensaje)){
+                            //suspendemos la ejecución si encontramos error
+                            if(!$this->obtenerTarifasComponente($tempArrayComponente['tarifas'], $this->cotizacion->getNumeropasajeros())){
                                 return false;
                             }
-                            
+
                             unset($tempArrayComponente);
 
                             //no he sumado prorrateados puede ir en blanco para el caso de que solo exista prorrateado y cuadre con la cantidad de pasajeros
                             if($cantidadComponente > 0 && $cantidadComponente != $cotizacion->getNumeropasajeros()){
-                                $this->mensaje = sprintf('La cantidad de pasajeros por componente no coincide con la cantidad de pasajeros en %s %s %s.', $servicio->getFechahorainicio()->format('Y/m/d'), $servicio->getServicio()->getNombre(), $componente->getComponente()->getNombre());
+                                $this->requestStack->getSession()->getFlashBag()->add('error', sprintf('La cantidad de pasajeros por componente no coincide con la cantidad de pasajeros en %s %s %s.', $servicio->getFechahorainicio()->format('Y/m/d'), $servicio->getServicio()->getNombre(), $componente->getComponente()->getNombre()));
+
                                 return false;
                             }
                             unset($cantidadComponente);
 
                         }else{
-                            $this->mensaje = sprintf('El componente no tiene tarifa en %s %s %s.', $servicio->getFechahorainicio()->format('Y/m/d'), $servicio->getServicio()->getNombre(), $componente->getComponente()->getNombre());
+                            $this->requestStack->getSession()->getFlashBag()->add('error', sprintf('El componente no tiene tarifa en %s %s %s.', $servicio->getFechahorainicio()->format('Y/m/d'), $servicio->getServicio()->getNombre(), $componente->getComponente()->getNombre()));
+
                             return false;
                         }
                     endforeach;
                 }else{
-                    $this->mensaje = sprintf('El servicio no tiene componente en %s %s.', $servicio->getFechahorainicio()->format('Y/m/d'), $servicio->getServicio()->getNombre());
+                    $this->requestStack->getSession()->getFlashBag()->add('error', sprintf('El servicio no tiene componente en %s %s.', $servicio->getFechahorainicio()->format('Y/m/d'), $servicio->getServicio()->getNombre()));
+
                     return false;
                 }
             endforeach;
         }else{
-            $this->mensaje = 'La cotización no tiene servicios.';
+            $this->requestStack->getSession()->getFlashBag()->add('error', 'La cotización no tiene servicios.');
+
             return false;
         }
 //Hacemos disponible los datos de la cotización para el resumen de las tarifas.
 
 
         if(empty($this->tarifasClasificadas)) {
-            $this->mensaje = 'No se pudieron clasificar las tarifas.';
+            $this->requestStack->getSession()->getFlashBag()->add('error', 'No se pudieron clasificar las tarifas.');
+
             return false;
             
         }
@@ -209,11 +215,6 @@ class CotizacionClasificador
         return true;
     }
 
-    public function getMensaje(): string
-    {
-        return $this->mensaje;
-    }
-
     public function getTarifasClasificadas(): array
     {
         return $this->tarifasClasificadas;
@@ -224,7 +225,7 @@ class CotizacionClasificador
         return $this->resumenDeClasificado;
     }
 
-    private function obtenerTarifasComponente(array $componente, int $cantidadTotalPasajeros): void
+    private function obtenerTarifasComponente(array $componente, int $cantidadTotalPasajeros): bool
     {
         $claseTarifas = [];
         $tiposAux = [];
@@ -277,10 +278,14 @@ class CotizacionClasificador
         endforeach;
 
         if(count($claseTarifas) > 0){
-            $this->procesarTarifa($claseTarifas, 0, $cantidadTotalPasajeros);
+            if($this->procesarTarifa($claseTarifas, 0, $cantidadTotalPasajeros)){
+                $this->resetClasificacionTarifas();
+                return true;
+            };
             //Al final de la ejecucion la cantidad restante sera la cantidad de la clase,
-            $this->resetClasificacionTarifas();
         }
+
+        return false;
     }
 
     private function resetClasificacionTarifas(): void
@@ -292,7 +297,7 @@ class CotizacionClasificador
         unset($clase);
     }
 
-    private function procesarTarifa(array $claseTarifas, int $ejecucion, int $cantidadTotalPasajeros): void
+    private function procesarTarifa(array $claseTarifas, int $ejecucion, int $cantidadTotalPasajeros): bool
     {
         $ejecucion++;
 
@@ -371,7 +376,9 @@ class CotizacionClasificador
         unset($clase);
 
         if($ejecucion <= 10 && count($claseTarifas) > 0){
-            $this->procesarTarifa($claseTarifas, $ejecucion, $cantidadTotalPasajeros);
+            if(!$this->procesarTarifa($claseTarifas, $ejecucion, $cantidadTotalPasajeros)){
+                return false;
+            }
         }
 
         //si despues del proceso hay tarifas muestro error
@@ -379,23 +386,20 @@ class CotizacionClasificador
 
             $tarifasdisplay = '';
             foreach ($this->tarifasClasificadas as $currentTarifa):
-                $tarifasdisplay .= '[';
+                $tarifasdisplayArray = [];
                 if(isset($currentTarifa['edadMin'])) {
-                    $tarifasdisplay .= 'min:' . $currentTarifa['edadMin'];
+                    $tarifasdisplayArray[] = 'min:' . $currentTarifa['edadMin'];
                 }
                 if(isset($currentTarifa['edadMax'])) {
-                    $tarifasdisplay .= ', max :' . $currentTarifa['edadMax'];
+                    $tarifasdisplayArray[] = 'max :' . $currentTarifa['edadMax'];
                 }
                 if(isset($currentTarifa['tipoPaxNombre'])){
-                    $tarifasdisplay .= ', tipo: ' . $currentTarifa['tipoPaxNombre'];
+                    $tarifasdisplayArray[] = 'tipo: ' . $currentTarifa['tipoPaxNombre'];
                 }
                 if(isset($currentTarifa['cantidadRestante'])){
-                    $tarifasdisplay .= ', restante: ' . $currentTarifa['cantidadRestante'];
+                    $tarifasdisplayArray[] = 'cantidad restante: ' . $currentTarifa['cantidadRestante'];
                 }
-                if(isset($currentTarifa['tarifas'])){
-                    $tarifasdisplay .= ', contenido: ' . count($currentTarifa['tarifas']);
-                }
-                $tarifasdisplay .= '] ';
+                $tarifasdisplay .= '[' . implode(', ', $tarifasdisplayArray) . '] ';
             endforeach;
 
             $tarifaEnError = reset($claseTarifas);
@@ -414,13 +418,14 @@ class CotizacionClasificador
                 $tarifaEnErrorDisplay .= ' - tipo: ' . $tarifaEnError['tarifa']['tipoPaxNombre'];
             }
 
+            $this->requestStack->getSession()->getFlashBag()->add('error', sprintf('No se pudo clasificar: %s.', $tarifaEnErrorDisplay));
             if (!empty($tarifasdisplay)){
-                $tarifaEnErrorDisplay .= ' - clasificación actual: ' . $tarifasdisplay;
+                $this->requestStack->getSession()->getFlashBag()->add('error', 'Clasificación actual: ' . $tarifasdisplay);
             }
-
-
-            $this->mensaje = sprintf('Hay tarifas que no pudieron ser clasificadas despues de %d ejecuciones, revise: %s.', $ejecucion, $tarifaEnErrorDisplay);
+            return false;
         }
+
+        return true;
     }
 
     private function modificarClasificacion(array &$clase, int $voterIndex): void

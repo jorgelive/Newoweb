@@ -25,8 +25,6 @@ class CotizacionResumen
     private array $clasificacionTarifas = [];
     private array $resumendeClasificado = [];
 
-    private string $mensaje;
-
     private TipocambioManager $tipocambioManager;
     private MaestroTipocambio $tipocambio;
     private CotizacionItinerario $cotizacionItinerario;
@@ -63,7 +61,8 @@ class CotizacionResumen
             ->find($id);
 
         if(!$cotizacion){
-            $this->mensaje = sprintf('No se puede encontrar el objeto con el identificador : %s', $id);
+            $this->requestStack->getSession()->getFlashBag()->add('error', sprintf('No se puede encontrar el objeto con el identificador : %s', $id));
+
             return false;
         }
 
@@ -72,7 +71,8 @@ class CotizacionResumen
         $this->tipocambio = $this->tipocambioManager->getTipodecambio($cotizacion->getFecha());
 
         if(empty($this->tipocambio->getId())){
-            $this->mensaje = sprintf('No se puede obtener el tipo de cambio del dia %s.',  $cotizacion->getFecha()->format('Y-m-d') );
+            $this->requestStack->getSession()->getFlashBag()->add('error', sprintf('No se puede obtener el tipo de cambio del dia %s.',  $cotizacion->getFecha()->format('Y-m-d')));
+
             return false;
         }
 
@@ -83,7 +83,7 @@ class CotizacionResumen
             $datosTabs['tarifasClasificadas'] = $this->cotizacionClasificador->getTarifasClasificadas();
             $datosTabs['resumenDeClasificado'] = $this->cotizacionClasificador->getResumenDeClasificado();
         }else{
-            $this->mensaje = $this->cotizacionClasificador->getMensaje();
+            //los mensajes de error ya estan el el flash bag
             return false;
         }
         $datosTabs['itinerarios'] = $this->cotizacionItinerario->getItinerario($cotizacion);
@@ -106,11 +106,6 @@ class CotizacionResumen
     public function getDatosCotizacion(): array
     {
         return $this->datosCotizacion;
-    }
-
-    public function getMensaje(): string
-    {
-        return $this->mensaje;
     }
 
 }

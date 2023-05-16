@@ -15,7 +15,6 @@ class CotizacionIncluye
 
     private CotizacionItinerario $cotizacionItinerario;
 
-
     function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario)
     {
         $this->translator = $translator;

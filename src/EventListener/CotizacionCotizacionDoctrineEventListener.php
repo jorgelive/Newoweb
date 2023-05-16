@@ -36,9 +36,8 @@ class CotizacionCotizacionDoctrineEventListener
     {
         $entity = $args->getEntity();
         if($entity instanceof CotizacionCotizacion){
-            if(!$this->cotizacionResumen->procesar($entity->getId())){
-                $this->requestStack->getSession()->getFlashBag()->add('error', $this->cotizacionResumen->getMensaje());
-            }
+            //De haber error los mensajes iran al flashblag
+            $this->cotizacionResumen->procesar($entity->getId());
         }
     }
 
@@ -47,9 +46,8 @@ class CotizacionCotizacionDoctrineEventListener
         $entity = $args->getEntity();
 
         if($entity instanceof CotizacionCotizacion){
-            if(!$this->cotizacionResumen->procesar($entity->getId())){
-                $this->requestStack->getSession()->getFlashBag()->add('error', $this->cotizacionResumen->getMensaje());
-            }
+            //De haber error los mensajes iran al flashblag
+            $this->cotizacionResumen->procesar($entity->getId());
         }
     }
 }

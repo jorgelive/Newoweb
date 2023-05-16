@@ -12,13 +12,11 @@ class CotizacionAgenda
     private TranslatorInterface $translator;
     private CotizacionItinerario $cotizacionItinerario;
 
-
     function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario)
     {
         $this->translator = $translator;
         $this->cotizacionItinerario = $cotizacionItinerario;
     }
-
 
     public function getAgenda(CotizacionCotizacion $cotizacion): array
     {
