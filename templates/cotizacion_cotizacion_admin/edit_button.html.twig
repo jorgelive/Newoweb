@@ -1,0 +1,8 @@
+{% if object is defined and object.id is not null and admin.isGranted('edit', object) and admin.hasRoute('edit')%}
+    <li>
+        <a class="sonata-action-element" href="{{ admin.generateObjectUrl('edit', object) }}">
+            <i class="fa fa-edit" aria-hidden="true"></i>
+            Editar
+        </a>
+    </li>
+{% endif %}

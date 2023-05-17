@@ -1,4 +1,4 @@
-{% if admin.isGranted('EDIT', object) and admin.hasRoute('clonar') %}
+{% if admin.isGranted('edit', object) and admin.hasRoute('clonar') %}
     <a href="#"
        class="btn btn-sm btn-warning edit_link"
        data-toggle="modal"
@@ -41,12 +41,12 @@
 
                                     function replaceUrlParam(url, paramName, paramValue){
                                         var pattern = new RegExp('(\\?|\\&)('+paramName+'=).*?(&|$)')
-                                        var newUrl=url
-                                        if(url.search(pattern)>=0){
+                                        var newUrl = url
+                                        if(url.search(pattern) >= 0){
                                             newUrl = url.replace(pattern,'$1$2' + paramValue + '$3');
                                         }
                                         else{
-                                            newUrl = newUrl + (newUrl.indexOf('?')>0 ? '&' : '?') + paramName + '=' + paramValue
+                                            newUrl = newUrl + (newUrl.indexOf('?') > 0 ? '&' : '?') + paramName + '=' + paramValue
                                         }
                                         return newUrl
                                     }

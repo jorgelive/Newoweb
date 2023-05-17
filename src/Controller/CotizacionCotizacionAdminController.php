@@ -79,13 +79,12 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $this->admin->create($newObject);
         $this->addFlash('sonata_flash_' . $mensajeTyoe, $mensaje);
 
-        return new RedirectResponse($this->admin->generateUrl('list'));
+        return new RedirectResponse($this->admin->generateUrl('edit', ['id' => $newObject->getId()]));
 
     }
 
     public function showAction(Request $request): Response | RedirectResponse
     {
-
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
 
@@ -115,8 +114,6 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
                 ], null);
         }else{
-            $errores = $this->container->get('App\Service\CotizacionResumen')->getMensaje();
-            $this->addFlash('sonata_flash_error', $this->container->get('App\Service\CotizacionResumen')->getMensaje());
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
@@ -164,7 +161,6 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
                 ], null);
         }else{
-            $this->addFlash('sonata_flash_error', $this->container->get('App\Service\CotizacionResumen')->getMensaje());
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
     }

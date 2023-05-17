@@ -9,9 +9,21 @@
                 e.preventDefault();
                 var $link = $(this);
 
-                bootbox.confirm("Esta seguro que desea clonar la reserva?", function(result) {
-                    if (result == true) {
-                        document.location.assign($link.attr('data-href'));
+                bootbox.confirm({
+                    message: 'Esta seguro que desea clonar la reserva?',
+                    buttons: {
+                        confirm: {
+                            label: 'Si',
+                            className: 'btn-danger'
+                        },
+                        cancel: {
+                            label: 'No',
+                        }
+                    },
+                    callback: function (result) {
+                        if (result === true) {
+                            document.location.assign($link.attr('href'));
+                        }
                     }
                 });
             });
