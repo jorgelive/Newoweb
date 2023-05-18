@@ -227,7 +227,7 @@ class CotizacionClasificador
 
     private function obtenerTarifasComponente(array $componente, int $cantidadTotalPasajeros): bool
     {
-        $claseTarifas = [];
+        $tarifasParaClasificar = [];
         $tiposAux = [];
 
 //se ejecuta bucle para detectar tipo duplicado
@@ -257,12 +257,12 @@ class CotizacionClasificador
 
             $temp['tipo'] = $tipo;
 
-//el titulo persistente es para mostrar el nombre de la tarifa en la clasificacion por rangos en caso por ejemplo de comunidad andina
+//el título persistente es para mostrar el nombre de la tarifa en la clasificación por rangos en caso por ejemplo de comunidad andina
             if(isset($tarifa['titulo'])){
-                $temp['tituloONombre'] = $tarifa['titulo'];
+                $temp[''] = $tarifa['titulo'];
             }else{
-                //fallback pero no deberia ocurrir mostrar el nombre al pasajerpo
-                $temp['tituloONombre'] = $tarifa['nombre'];
+                //fallback posiblemente el motivo sera un opcional
+                $temp['tituloOTipoTarifa'] = $tarifa['tipoTarTitulo'];
             }
             $temp['tituloPersistente'] = false;
             //si existe
@@ -271,14 +271,14 @@ class CotizacionClasificador
             }
 
             $temp['tarifa'] = $tarifa;
-            $claseTarifas[] = $temp;
+            $tarifasParaClasificar[] = $temp;
 
             $tiposAux[] = $tipo;
 
         endforeach;
 
-        if(count($claseTarifas) > 0){
-            if($this->procesarTarifa($claseTarifas, 0, $cantidadTotalPasajeros)){
+        if(count($tarifasParaClasificar) > 0){
+            if($this->procesarTarifa($tarifasParaClasificar, $cantidadTotalPasajeros)){
                 $this->resetClasificacionTarifas();
                 return true;
             };
@@ -297,94 +297,60 @@ class CotizacionClasificador
         unset($clase);
     }
 
-    private function procesarTarifa(array $claseTarifas, int $ejecucion, int $cantidadTotalPasajeros): bool
+    private function procesarTarifa(array $tarifasParaClasificar, int $cantidadTotalPasajeros): bool
     {
-        $ejecucion++;
 
         if(empty($this->tarifasClasificadas)){
 
             $cantidadTemporal = 0;
-            foreach($claseTarifas as &$clase):
+            foreach($tarifasParaClasificar as &$tarifaParaClasificar):
 
                 $auxClase = [];
-                $auxClase['tipo'] = $clase['tipo'];
-                $auxClase['cantidad'] = $clase['cantidad'];
-                $auxClase['cantidadRestante'] = $clase['cantidad'];
-                $auxClase['tipoPaxId'] = $clase['tipoPaxId'];
-                $auxClase['tipoPaxNombre'] = $clase['tipoPaxNombre'];
-                $auxClase['tipoPaxTitulo'] = $clase['tipoPaxTitulo'];
-                if(isset($clase['edadMin'])){
-                    $auxClase['edadMin'] = $clase['edadMin'];
+                $auxClase['tipo'] = $tarifaParaClasificar['tipo'];
+                $auxClase['cantidad'] = $tarifaParaClasificar['cantidad'];
+                $auxClase['cantidadRestante'] = $tarifaParaClasificar['cantidad'];
+                $auxClase['tipoPaxId'] = $tarifaParaClasificar['tipoPaxId'];
+                $auxClase['tipoPaxNombre'] = $tarifaParaClasificar['tipoPaxNombre'];
+                $auxClase['tipoPaxTitulo'] = $tarifaParaClasificar['tipoPaxTitulo'];
+                if(isset($tarifaParaClasificar['edadMin'])){
+                    $auxClase['edadMin'] = $tarifaParaClasificar['edadMin'];
                 }
-                if(isset($clase['edadMax'])){
-                    $auxClase['edadMax'] = $clase['edadMax'];
+                if(isset($tarifaParaClasificar['edadMax'])){
+                    $auxClase['edadMax'] = $tarifaParaClasificar['edadMax'];
                 }
 
-                unset($clase['tarifa']['cantidad']);
-                unset($clase['tarifa']['montototal']);
-                if($cantidadTemporal > 0 && $cantidadTotalPasajeros == $clase['cantidad']){
+                unset($tarifaParaClasificar['tarifa']['cantidad']);
+                unset($tarifaParaClasificar['tarifa']['montototal']);
+                if($cantidadTemporal > 0 && $cantidadTotalPasajeros == $tarifaParaClasificar['cantidad']){
                     continue;
                 }
 
                 $this->tarifasClasificadas[] = $auxClase;
-                $cantidadTemporal += $clase['cantidad'];
+                $cantidadTemporal += $tarifaParaClasificar['cantidad'];
 
                 if($cantidadTemporal >= $cantidadTotalPasajeros){
                     break;
                 }
             endforeach;
-            unset($clase);
+            unset($tarifaParaClasificar);
         }
 
-        foreach($claseTarifas as $keyClase => &$clase):
+        foreach($tarifasParaClasificar as $keyClase => &$tarifaParaClasificar):
 
-            $voterIndex = $this->voter($clase);
-            //es -1 si no encuentra
-            if($voterIndex >= 0){
-                //paso el array principal para adicionar elemento como esta por referencia
-                if($this->modificarClasificacionMatch($clase, $voterIndex, $clase['tituloPersistente']) > 0){
-                    //repasamos
-                    $voterIndex = $this->voter($clase);
-                    if($voterIndex >= 0){
-                        if($this->modificarClasificacionMatch($clase, $voterIndex, $clase['tituloPersistente']) > 0){
-                            //segundo repaso
-                            $voterIndex = $this->voter($clase);
-                            if($voterIndex >= 0){
-                                if($this->modificarClasificacionMatch($clase, $voterIndex, $clase['tituloPersistente']) > 0){
-                                    //tercer repaso
-                                    $voterIndex = $this->voter($clase);
-                                    if($voterIndex >= 0){
-                                        $this->modificarClasificacionMatch($clase, $voterIndex, $clase['tituloPersistente']);
-                                        if($clase['cantidad'] < 1){
-                                            unset($claseTarifas[$keyClase]);
-                                        }
-                                    }
-
-                                }
-                                if($clase['cantidad'] < 1){
-                                    unset($claseTarifas[$keyClase]);
-                                }
-                            }
-
-                        }
-                        if($clase['cantidad'] < 1){
-                            unset($claseTarifas[$keyClase]);
-                        }
-                    }
-
-                }
-                if($clase['cantidad'] < 1){
-                    unset($claseTarifas[$keyClase]);
-                }
+            $ejecucion = 0;
+            //paso el array principal para adicionar elemento como esta por referencia
+            //es funcion recursiva
+            $this->clasificarTarifas($tarifaParaClasificar, $ejecucion, $tarifaParaClasificar['tituloPersistente']);
+            if($tarifaParaClasificar['cantidad'] < 1){
+                unset($tarifasParaClasificar[$keyClase]);
             }
-
 
         endforeach;
         //destruimos la referencia
-        unset($clase);
+        unset($tarifaParaClasificar);
         
-        //si despues del proceso hay tarifas muestro error
-        if(count($claseTarifas) > 0){
+        //si despues del proceso quedan tarifas sin clasificarmuestro error
+        if(count($tarifasParaClasificar) > 0){
 
             $tarifasdisplay = '';
             foreach ($this->tarifasClasificadas as $currentTarifa):
@@ -404,7 +370,7 @@ class CotizacionClasificador
                 $tarifasdisplay .= '[' . implode(', ', $tarifasdisplayArray) . '] ';
             endforeach;
 
-            $tarifaEnError = reset($claseTarifas);
+            $tarifaEnError = reset($tarifasParaClasificar);
 
             $tarifaEnErrorDisplay = $tarifaEnError['tarifa']['nombreServicio']
                 . ' - ' . $tarifaEnError['tarifa']['nombreComponente']
@@ -430,20 +396,29 @@ class CotizacionClasificador
         return true;
     }
 
-    private function modificarClasificacionMatch(array &$clase, int $voterIndex, bool $tituloPersistente = false): int
+    private function clasificarTarifas(array &$tarifaParaClasificar, int $ejecucion, bool $tituloPersistente = false): int
     {
+        $ejecucion++;
+
+        $voterIndex = $this->voter($tarifaParaClasificar);
+
+        if($voterIndex < 0){
+            //no procesamos
+            $this->requestStack->getSession()->getFlashBag()->add('error', 'no se ha realizacio el proceso de clasiticación por tarifa que no corresponde');
+            return $tarifaParaClasificar['cantidad'];
+        }
 
         if($tituloPersistente === true){
             //si hubiera ya un titulo lo concatenamos
             if(isset($this->tarifasClasificadas[$voterIndex]['tituloPersistente'])){
-                $this->tarifasClasificadas[$voterIndex]['tituloPersistente'] = sprintf('%s %s', $this->tarifasClasificadas[$voterIndex]['tituloPersistente'], $clase['tituloONombre']);
+                $this->tarifasClasificadas[$voterIndex]['tituloPersistente'] = sprintf('%s %s', $this->tarifasClasificadas[$voterIndex]['tituloPersistente'], $tarifaParaClasificar['tituloOTipoTarifa']);
             }else{
-                $this->tarifasClasificadas[$voterIndex]['tituloPersistente'] = $clase['tituloONombre'];
+                $this->tarifasClasificadas[$voterIndex]['tituloPersistente'] = $tarifaParaClasificar['tituloOTipoTarifa'];
             }
         }
 
-        //tarifa temporal para crear una nueva o reemplazar la existente
-        $temp = $this->tarifasClasificadas[$voterIndex];
+        //copia de tarifa para mofificar y crear una nueva o reemplazar la existente
+        $copiaDeTarifaSeleccionada = $this->tarifasClasificadas[$voterIndex];
         $edadMaxima = $this->edadMax;
         $edadMinima = $this->edadMin;
 
@@ -454,82 +429,87 @@ class CotizacionClasificador
             $edadMaxima = $this->tarifasClasificadas[$voterIndex]['edadMax'];
         }
 
-        if(isset($clase['edadMin']) && $clase['edadMin'] > $edadMinima){
-            $temp['edadMin'] = $clase['edadMin'];
+        if(isset($tarifaParaClasificar['edadMin']) && $tarifaParaClasificar['edadMin'] > $edadMinima){
+            $copiaDeTarifaSeleccionada['edadMin'] = $tarifaParaClasificar['edadMin'];
         }
-        if(isset($clase['edadMax']) && $clase['edadMax'] < $edadMaxima){
-            $temp['edadMax'] = $clase['edadMax'];
+        if(isset($tarifaParaClasificar['edadMax']) && $tarifaParaClasificar['edadMax'] < $edadMaxima){
+            $copiaDeTarifaSeleccionada['edadMax'] = $tarifaParaClasificar['edadMax'];
         }
         //cambio de generico a nacionalidad
-        if($clase['tipoPaxId'] != 0){
-            $temp['tipoPaxId'] = $clase['tipoPaxId'];
-            $temp['tipoPaxNombre'] = $clase['tipoPaxNombre'];
-            $temp['tipoPaxTitulo'] = $clase['tipoPaxTitulo'];
+        if($tarifaParaClasificar['tipoPaxId'] != 0){
+            $copiaDeTarifaSeleccionada['tipoPaxId'] = $tarifaParaClasificar['tipoPaxId'];
+            $copiaDeTarifaSeleccionada['tipoPaxNombre'] = $tarifaParaClasificar['tipoPaxNombre'];
+            $copiaDeTarifaSeleccionada['tipoPaxTitulo'] = $tarifaParaClasificar['tipoPaxTitulo'];
         }
 
-        $temp['tipo'] = $clase['tipo'];
-        $temp['cantidad'] = $clase['cantidad'];
-        $temp['cantidadRestante'] = $clase['cantidad'];
+        $copiaDeTarifaSeleccionada['tipo'] = $tarifaParaClasificar['tipo'];
+        $copiaDeTarifaSeleccionada['cantidad'] = $tarifaParaClasificar['cantidad'];
+        $copiaDeTarifaSeleccionada['cantidadRestante'] = $tarifaParaClasificar['cantidad'];
 
-        if($clase['cantidad'] == $this->tarifasClasificadas[$voterIndex]['cantidad']){
+        if($tarifaParaClasificar['cantidad'] == $this->tarifasClasificadas[$voterIndex]['cantidad']){
             //la cantidad del proceso actual, no queda nada
-            $clase['cantidad'] = 0;
+            $tarifaParaClasificar['cantidad'] = 0;
 
             //reemplazamos con la version modificada
-            $temp['cantidadRestante'] = 0;
-            $temp['tarifas'][] = $clase['tarifa'];
-            $this->tarifasClasificadas[$voterIndex] = $temp;
+            $copiaDeTarifaSeleccionada['cantidadRestante'] = 0;
+            $copiaDeTarifaSeleccionada['tarifas'][] = $tarifaParaClasificar['tarifa'];
+            $this->tarifasClasificadas[$voterIndex] = $copiaDeTarifaSeleccionada;
 
 
-        }elseif($clase['cantidad'] < $this->tarifasClasificadas[$voterIndex]['cantidad']){
+        }elseif($tarifaParaClasificar['cantidad'] < $this->tarifasClasificadas[$voterIndex]['cantidad']){
             //Creamos una nueva con la version modificada
-            $temp['cantidadRestante'] = 0;
-            $temp['tarifas'][] = $clase['tarifa'];
-            $this->tarifasClasificadas[] = $temp;
+            $copiaDeTarifaSeleccionada['cantidadRestante'] = 0;
+            $copiaDeTarifaSeleccionada['tarifas'][] = $tarifaParaClasificar['tarifa'];
+            $this->tarifasClasificadas[] = $copiaDeTarifaSeleccionada;
 
             //a lo que resta le quitamos la cantidad
-            $this->tarifasClasificadas[$voterIndex]['cantidad'] = $this->tarifasClasificadas[$voterIndex]['cantidad'] - $clase['cantidad'];
-            $this->tarifasClasificadas[$voterIndex]['cantidadRestante'] = $this->tarifasClasificadas[$voterIndex]['cantidadRestante'] - $clase['cantidad'];
+            $this->tarifasClasificadas[$voterIndex]['cantidad'] = $this->tarifasClasificadas[$voterIndex]['cantidad'] - $tarifaParaClasificar['cantidad'];
+            $this->tarifasClasificadas[$voterIndex]['cantidadRestante'] = $this->tarifasClasificadas[$voterIndex]['cantidadRestante'] - $tarifaParaClasificar['cantidad'];
 
             //la cantidad del proceso actual, no queda nada (lo devolvemos al final porque se usa)
-            $clase['cantidad'] = 0;
+            $tarifaParaClasificar['cantidad'] = 0;
 
-        }elseif($clase['cantidad'] > $this->tarifasClasificadas[$voterIndex]['cantidad']){
-            //lo que quedara despues de clasificar
-            $clase['cantidad'] = $clase['cantidad'] - $this->tarifasClasificadas[$voterIndex]['cantidadRestante'];
+        }elseif($tarifaParaClasificar['cantidad'] > $this->tarifasClasificadas[$voterIndex]['cantidad']){
+            //lo que quedara después de clasificar
+            $tarifaParaClasificar['cantidad'] = $tarifaParaClasificar['cantidad'] - $this->tarifasClasificadas[$voterIndex]['cantidadRestante'];
 
-            //solo modifico tipo
-            if(isset($clase['edadMin']) && $clase['edadMin'] > $edadMinima){
-                $this->tarifasClasificadas[$voterIndex]['edadMin'] = $clase['edadMin'];
+            //solo ajusto los valores
+            if(isset($tarifaParaClasificar['edadMin']) && $tarifaParaClasificar['edadMin'] > $edadMinima){
+                $this->tarifasClasificadas[$voterIndex]['edadMin'] = $tarifaParaClasificar['edadMin'];
             }
 
-            if(isset($clase['edadMax']) && $clase['edadMax'] < $edadMaxima){
-                $this->tarifasClasificadas[$voterIndex]['edadMax'] = $clase['edadMax'];
+            if(isset($tarifaParaClasificar['edadMax']) && $tarifaParaClasificar['edadMax'] < $edadMaxima){
+                $this->tarifasClasificadas[$voterIndex]['edadMax'] = $tarifaParaClasificar['edadMax'];
             }
 
-            if($clase['tipoPaxId'] != 0){
-                $this->tarifasClasificadas[$voterIndex]['tipoPaxId'] = $clase['tipoPaxId'];
-                $this->tarifasClasificadas[$voterIndex]['tipoPaxNombre'] = $clase['tipoPaxNombre'];
-                $this->tarifasClasificadas[$voterIndex]['tipoPaxTitulo'] = $clase['tipoPaxTitulo'];
+            if($tarifaParaClasificar['tipoPaxId'] != 0){
+                $this->tarifasClasificadas[$voterIndex]['tipoPaxId'] = $tarifaParaClasificar['tipoPaxId'];
+                $this->tarifasClasificadas[$voterIndex]['tipoPaxNombre'] = $tarifaParaClasificar['tipoPaxNombre'];
+                $this->tarifasClasificadas[$voterIndex]['tipoPaxTitulo'] = $tarifaParaClasificar['tipoPaxTitulo'];
             }
 
             $this->tarifasClasificadas[$voterIndex]['cantidadRestante'] = 0;
-            $this->tarifasClasificadas[$voterIndex]['tarifas'][] = $clase['tarifa'];
+            $this->tarifasClasificadas[$voterIndex]['tarifas'][] = $tarifaParaClasificar['tarifa'];
         }
 
-        return $clase['cantidad'];
+        if($tarifaParaClasificar['cantidad'] > 0 && $ejecucion < 10){
+            $tarifaParaClasificar['cantidad'] = $this->clasificarTarifas($tarifaParaClasificar, $ejecucion, $tituloPersistente);
+        }
+
+        return $tarifaParaClasificar['cantidad'];
     }
 
-    private function voter(array $clase): int
+    private function voter(array $tarifaParaClasificar): int
     {
-        $clasificacion = $this->tarifasClasificadas;
+        $clasificacionActual = $this->tarifasClasificadas;
 
         $voterArray = [];
 
-        foreach($clasificacion as $keyTarifa => $tarifaClasificada):
+        foreach($clasificacionActual as $keyTarifa => $tarifaClasificada):
 
             $voterArray[$keyTarifa] = 0;
 
+            //completamos con los valores por defecto
             if(!isset($tarifaClasificada['edadMin'])){
                 $tarifaClasificada['edadMin'] = $this->edadMin;
             }
@@ -538,39 +518,39 @@ class CotizacionClasificador
                 $tarifaClasificada['edadMax'] = $this->edadMax;
             }
 
-            if(!isset($clase['edadMin'])){
-                $clase['edadMin'] = $this->edadMin;
+            if(!isset($tarifaParaClasificar['edadMin'])){
+                $tarifaParaClasificar['edadMin'] = $this->edadMin;
             }
 
-            if(!isset($clase['edadMax'])){
-                $clase['edadMax'] = $this->edadMax;
+            if(!isset($tarifaParaClasificar['edadMax'])){
+                $tarifaParaClasificar['edadMax'] = $this->edadMax;
             }
 
             if(($tarifaClasificada['cantidadRestante'] > 0) &&
                 (
-                    $clase['tipoPaxId'] == $tarifaClasificada['tipoPaxId'] ||
-                    $clase['tipoPaxId'] == 0 ||
+                    $tarifaParaClasificar['tipoPaxId'] == $tarifaClasificada['tipoPaxId'] ||
+                    $tarifaParaClasificar['tipoPaxId'] == 0 ||
                     $tarifaClasificada['tipoPaxId'] == 0
                 )
-                && $clase['edadMin'] <= $tarifaClasificada['edadMax']
-                && $clase['edadMax'] >= $tarifaClasificada['edadMin']
+                && $tarifaParaClasificar['edadMin'] <= $tarifaClasificada['edadMax']
+                && $tarifaParaClasificar['edadMax'] >= $tarifaClasificada['edadMin']
 
             ){
                 $voterArray[$keyTarifa] += 0.1;
-                if($clase['edadMin'] == $tarifaClasificada['edadMin']){
-                    $voterArray[$keyTarifa] += 1.5;
+                if($tarifaParaClasificar['edadMin'] == $tarifaClasificada['edadMin']){
+                    $voterArray[$keyTarifa] += 1;
                 }else{
-                    $voterArray[$keyTarifa] += 1 / abs($clase['edadMin'] - $tarifaClasificada['edadMin']);
+                    $voterArray[$keyTarifa] += 1 / abs($tarifaParaClasificar['edadMin'] - $tarifaClasificada['edadMin']);
                 }
 
-                if($clase['edadMax'] == $tarifaClasificada['edadMax']){
-                    $voterArray[$keyTarifa] += 1.5;
+                if($tarifaParaClasificar['edadMax'] == $tarifaClasificada['edadMax']){
+                    $voterArray[$keyTarifa] += 1;
                 }else{
-                    $voterArray[$keyTarifa] += 1 / abs($clase['edadMax'] - $tarifaClasificada['edadMax']);
+                    $voterArray[$keyTarifa] += 1 / abs($tarifaParaClasificar['edadMax'] - $tarifaClasificada['edadMax']);
                 }
 
-                if($tarifaClasificada['cantidad'] == $clase['cantidad']){
-                    $voterArray[$keyTarifa] += 0.5;
+                if($tarifaClasificada['cantidad'] == $tarifaParaClasificar['cantidad']){
+                    $voterArray[$keyTarifa] += 0.3;
                 }
             }
         endforeach;
