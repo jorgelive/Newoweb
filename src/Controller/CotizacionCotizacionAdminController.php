@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 class CotizacionCotizacionAdminController extends CRUDAdminController
 {
 
+    private EntityManagerInterface $entityManager;
     var $clasificacionTarifas = [];
     var $resumenClasificado = [];
     var $cotizacionResumen;
@@ -25,8 +26,13 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
     public function clonarAction(Request $request): RedirectResponse
     {
-
         $object = $this->assertObjectExists($request, true);
+
+        if(!$object) {
+            throw $this->createNotFoundException('Unable to find the object.');
+        }
+
+        $this->admin->checkAccess('create', $object);
 
         if(!empty($request->query->get('fechainicio'))){
             try {
@@ -43,18 +49,11 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
             $mensajeTyoe = 'success';
         }
 
-        $id = $object->getId();
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        if(!$object) {
-            throw $this->createNotFoundException(sprintf('Unable to find the object with id: %s', $id));
-        }
-
-        $this->admin->checkAccess('create', $object);
+        $this->entityManager = $this->container->get('doctrine.orm.default_entity_manager');
 
         $newObject = clone $object;
         $newObject->setNombre($object->getNombre().' (Clone)');
-        $newObject->setEstadocotizacion($em->getReference('App\Entity\CotizacionEstadocotizacion', 1));
+        $newObject->setEstadocotizacion($this->entityManager->getReference('App\Entity\CotizacionEstadocotizacion', 1));
 
         foreach($newObject->getCotservicios() as $cotservicio):
             //en la primera iteracion considerando que el orden es por fecha de inicio
@@ -72,7 +71,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
                     $cotcomponente->getFechaHoraInicio()->add($interval);
                     $cotcomponente->getFechaHoraFin()->add($interval);
                 }
-                $cotcomponente->setEstadocotcomponente($em->getReference('App\Entity\CotizacionEstadocotcomponente', 1));
+                $cotcomponente->setEstadocotcomponente($this->entityManager->getReference('App\Entity\CotizacionEstadocotcomponente', 1));
             endforeach;
         endforeach;
 
