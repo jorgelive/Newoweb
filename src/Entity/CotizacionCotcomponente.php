@@ -53,7 +53,6 @@ class CotizacionCotcomponente
      * @var \Doctrine\Common\Collections\Collection
      *
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCottarifa", mappedBy="cotcomponente", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"tipotarifa" = "ASC"})
      */
     private $cottarifas;
 
