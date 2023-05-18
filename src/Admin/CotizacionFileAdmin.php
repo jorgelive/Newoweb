@@ -53,6 +53,7 @@ class CotizacionFileAdmin extends AbstractAdmin
             $buttonList['archivodcc'] = ['template' => 'cotizacion_file_admin/archivodcc_button.html.twig'];
             $buttonList['archivopr'] = ['template' => 'cotizacion_file_admin/archivopr_button.html.twig'];
             $buttonList['archivocon'] = ['template' => 'cotizacion_file_admin/archivocon_button.html.twig'];
+            $buttonList['resumenclipboard'] = ['template' => 'cotizacion_file_admin/resumenclipboard_button.html.twig'];
         }
         return $buttonList;
     }

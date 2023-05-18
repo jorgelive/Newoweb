@@ -55,6 +55,7 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/show_button.html.twig'];
                 $buttonList['edit'] = ['template' => 'cotizacion_cotizacion_admin/edit_button.html.twig'];
             }
+            $buttonList['resumenclipboard'] = ['template' => 'cotizacion_cotizacion_admin/resumenclipboard_button.html.twig'];
             $buttonList['clonar'] = ['template' => 'cotizacion_cotizacion_admin/clonar_button.html.twig'];
             $buttonList['fileshow'] = ['template' => 'cotizacion_cotizacion_admin/fileshow_button.html.twig'];
         }

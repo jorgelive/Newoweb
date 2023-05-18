@@ -61,6 +61,25 @@
         .thumbnail-fluid img.in-modal.landscape {width: 100%;}
         .thumbnail-fluid .caption .small.text-center {margin: 0;}
 
+        .tooltip-trigger:hover {cursor:pointer;}
+        #tooltipdiv{
+            position: fixed;
+            width: 220px;
+            height: 30px;
+            top: 30%;
+            left: 50%;
+            margin-top: -15px; /* Negative half of height. */
+            margin-left: -110px; /* Negative half of width. */
+            border-radius: 5px;
+            text-align: center;
+            padding: 5px;
+            background: #ffde5a;
+            font-weight: 600;
+            filter: drop-shadow(0 3px 5px #ccc);
+            line-height: 1.5;
+            z-index: 1000;
+        }
+
         ul.listaordenada, ul.sonata-ba-show-one-to-many { list-style: none; padding: 0; margin: 0;}
         ul.listaordenada li, ul.sonata-ba-show-one-to-many li{ padding-left: 16px; position: relative;}
         ul.listaordenada li::before, ul.sonata-ba-show-one-to-many li::before { content:"\25CF"; color:#F68A39; font-weight:bold; font-size:18px; text-align:right; padding-right:6px; width:10px; position: absolute; left: 0; top: -0.2em;}
@@ -89,15 +108,33 @@
                 document.querySelector(".select2-container--open .select2-search__field").focus()
             })
 
-        });
+            $('.tooltip-trigger').on( "click", function() {
+                let link = $(this).data('link');
+                if(typeof link == 'undefined'){
+                    console.log('No esta puesto el atributo data-link');
+                    return;
+                }
 
-        function copyToClipboard(texto) {
-            var $temp = $("<input>")
-            $("body").append($temp);
-            $temp.val(texto).select();
-            document.execCommand("copy");
-            $temp.remove();
-        }
+                let $temp = $("<input>")
+                $("body").append($temp);
+                $temp.val(link).select();
+                document.execCommand("copy");
+                $temp.remove();
+
+                let tooltiptext = $(this).data('tooltiptext')
+                if(typeof tooltiptext == 'undefined'){
+                    console.log('No esta puesto el atributo tooltiptext');
+                    return;
+                }
+
+                var $tooltipdiv = $('<div id="tooltipdiv">' + tooltiptext + '</div>')
+                $(".content-wrapper").prepend($tooltipdiv);
+                setTimeout(function() {
+                    $("#tooltipdiv").fadeOut(300, function() { $(this).remove(); })
+
+                }, 600);
+            });
+        });
 
     </script>
 {% endblock %}
