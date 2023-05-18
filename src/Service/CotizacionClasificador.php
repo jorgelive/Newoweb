@@ -346,27 +346,45 @@ class CotizacionClasificador
                     //repasamos
                     $voterIndex = $this->voter($clase);
                     if($voterIndex >= 0){
-                        $this->modificarClasificacionMatch($clase, $voterIndex, $clase['tituloPersistente']);
+                        if($this->modificarClasificacionMatch($clase, $voterIndex, $clase['tituloPersistente']) > 0){
+                            //segundo repaso
+                            $voterIndex = $this->voter($clase);
+                            if($voterIndex >= 0){
+                                if($this->modificarClasificacionMatch($clase, $voterIndex, $clase['tituloPersistente']) > 0){
+                                    //tercer repaso
+                                    $voterIndex = $this->voter($clase);
+                                    if($voterIndex >= 0){
+                                        $this->modificarClasificacionMatch($clase, $voterIndex, $clase['tituloPersistente']);
+                                        if($clase['cantidad'] < 1){
+                                            unset($claseTarifas[$keyClase]);
+                                        }
+                                    }
+
+                                }
+                                if($clase['cantidad'] < 1){
+                                    unset($claseTarifas[$keyClase]);
+                                }
+                            }
+
+                        }
+                        if($clase['cantidad'] < 1){
+                            unset($claseTarifas[$keyClase]);
+                        }
                     }
+
+                }
+                if($clase['cantidad'] < 1){
+                    unset($claseTarifas[$keyClase]);
                 }
             }
-            if($clase['cantidad'] < 1){
-                unset($claseTarifas[$keyClase]);
-            }
+
 
         endforeach;
         //destruimos la referencia
         unset($clase);
-
-
-        if($ejecucion <= 10 && count($claseTarifas) > 0){
-            if(!$this->procesarTarifa($claseTarifas, $ejecucion, $cantidadTotalPasajeros)){
-                return false;
-            }
-        }
-
+        
         //si despues del proceso hay tarifas muestro error
-        if(count($claseTarifas) > 0 && $ejecucion == 10){
+        if(count($claseTarifas) > 0){
 
             $tarifasdisplay = '';
             foreach ($this->tarifasClasificadas as $currentTarifa):
