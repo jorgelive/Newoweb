@@ -21,7 +21,7 @@
             </th>
         </tr>
         {% for alerta in alertas %}
-            <tr style="border-bottom: 1px solid steelblue;">
+            <tr style="border-bottom: 1px solid #016c8d;">
                  {% if alerta.idEstado == 1 %}
                      {% set color = 'darkred' %}
                  {% else %}
@@ -45,7 +45,7 @@
         {% endfor %}
     </table>
 {% else %}
-    <p style="font-size: 1.3em; color: darkgreen">Los servicios próximos se encuentran confirmados y reconfirmados.</p>
+    <p style="font-size: 1.3em; color: #1B6129;">Los servicios próximos se encuentran confirmados y reconfirmados.</p>
 {% endif %}
 
 <h3>Ingresos y salidas de apartamentos: </h3>

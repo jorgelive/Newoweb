@@ -259,7 +259,7 @@ class CotizacionClasificador
 
 //el título persistente es para mostrar el nombre de la tarifa en la clasificación por rangos en caso por ejemplo de comunidad andina
             if(isset($tarifa['titulo'])){
-                $temp[''] = $tarifa['titulo'];
+                $temp['tituloOTipoTarifa'] = $tarifa['titulo'];
             }else{
                 //fallback posiblemente el motivo sera un opcional
                 $temp['tituloOTipoTarifa'] = $tarifa['tipoTarTitulo'];
