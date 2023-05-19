@@ -87,7 +87,7 @@ class CotizacionClasificador
                                 }
 
                                 $tempArrayTarifa['moneda'] = $tarifa->getMoneda()->getId();
-                                //dolares = 2
+                                //dólares = 2
                                 if($tarifa->getMoneda()->getId() == 2){
                                     $tempArrayTarifa['montosoles'] = number_format((float)($tempArrayTarifa['montounitario'] * ($tipocambio->getCompra()/2 + $tipocambio->getVenta()/2)), 2, '.', '');
                                     $tempArrayTarifa['montodolares'] = $tempArrayTarifa['montounitario'];
@@ -193,12 +193,10 @@ class CotizacionClasificador
         }
 //Hacemos disponible los datos de la cotización para el resumen de las tarifas.
 
-
         if(empty($this->tarifasClasificadas)) {
             $this->requestStack->getSession()->getFlashBag()->add('error', 'No se pudieron clasificar las tarifas.');
 
             return false;
-            
         }
         //ordenar
         usort($this->tarifasClasificadas, function($a, $b){
@@ -282,7 +280,7 @@ class CotizacionClasificador
                 $this->resetClasificacionTarifas();
                 return true;
             };
-            //Al final de la ejecucion la cantidad restante sera la cantidad de la clase,
+            //Al final de la ejecución la cantidad restante sera la cantidad de la clase,
         }
 
         return false;
@@ -339,7 +337,7 @@ class CotizacionClasificador
 
             $ejecucion = 0;
             //paso el array principal para adicionar elemento como esta por referencia
-            //es funcion recursiva
+            //es función recursiva
             $this->clasificarTarifas($tarifaParaClasificar, $ejecucion, $tarifaParaClasificar['tituloPersistente']);
             if($tarifaParaClasificar['cantidad'] < 1){
                 unset($tarifasParaClasificar[$keyClase]);
@@ -349,26 +347,41 @@ class CotizacionClasificador
         //destruimos la referencia
         unset($tarifaParaClasificar);
         
-        //si despues del proceso quedan tarifas sin clasificarmuestro error
+        //si después del proceso quedan tarifas sin clasificar muestro error
         if(count($tarifasParaClasificar) > 0){
-
             $tarifasdisplay = '';
+            //hacemos el resumen de las tarifas
+            //suponemos que no hay espacio
+            $menorCantidadRestante = 0;
             foreach ($this->tarifasClasificadas as $currentTarifa):
                 $tarifasdisplayArray = [];
                 if(isset($currentTarifa['edadMin'])) {
-                    $tarifasdisplayArray[] = 'min:' . $currentTarifa['edadMin'];
+                    $tarifasdisplayArray[] = 'E min:' . $currentTarifa['edadMin'];
                 }
                 if(isset($currentTarifa['edadMax'])) {
-                    $tarifasdisplayArray[] = 'max :' . $currentTarifa['edadMax'];
+                    $tarifasdisplayArray[] = 'E max :' . $currentTarifa['edadMax'];
                 }
                 if(isset($currentTarifa['tipoPaxNombre'])){
                     $tarifasdisplayArray[] = 'tipo: ' . $currentTarifa['tipoPaxNombre'];
+                }
+                if(isset($currentTarifa['cantidad'])){
+                    $tarifasdisplayArray[] = 'cantidad: ' . $currentTarifa['cantidad'];
                 }
                 if(isset($currentTarifa['cantidadRestante'])){
                     $tarifasdisplayArray[] = 'cantidad restante: ' . $currentTarifa['cantidadRestante'];
                 }
                 $tarifasdisplay .= '[' . implode(', ', $tarifasdisplayArray) . '] ';
+                //
+                if ($currentTarifa['cantidadRestante'] > $menorCantidadRestante){
+                    $menorCantidadRestante = $currentTarifa['cantidadRestante'];
+                }
             endforeach;
+
+            if($menorCantidadRestante == 0){
+                $this->requestStack->getSession()->getFlashBag()->add('error', 'No hay espacio en las tarifas, verifique la cantidad total de pasajeros del componente.');
+            }else{
+                $this->requestStack->getSession()->getFlashBag()->add('error', 'Hay tarifas que no se acomodan a las clases actuales.');
+            }
 
             $tarifaEnError = reset($tarifasParaClasificar);
 
@@ -377,14 +390,16 @@ class CotizacionClasificador
                 . ' - ' . $tarifaEnError['tarifa']['nombre'];
 
             if (isset($tarifaEnError['tarifa']['edadMin'])){
-                $tarifaEnErrorDisplay .= ' - min: ' . $tarifaEnError['tarifa']['edadMin'];
+                $tarifaEnErrorDisplay .= ' - E min: ' . $tarifaEnError['tarifa']['edadMin'];
             }
             if (isset($tarifaEnError['tarifa']['edadMax'])){
-                $tarifaEnErrorDisplay .= ' - max: ' . $tarifaEnError['tarifa']['edadMax'];
+                $tarifaEnErrorDisplay .= ' - E max: ' . $tarifaEnError['tarifa']['edadMax'];
             }
             if (isset($tarifaEnError['tarifa']['tipoPaxNombre'])){
                 $tarifaEnErrorDisplay .= ' - tipo: ' . $tarifaEnError['tarifa']['tipoPaxNombre'];
             }
+
+            $tarifaEnErrorDisplay .= ' - cantidad a clasificar: ' . $tarifaEnError['cantidad'];
 
             $this->requestStack->getSession()->getFlashBag()->add('error', sprintf('No se pudo clasificar: %s.', $tarifaEnErrorDisplay));
             if (!empty($tarifasdisplay)){
@@ -402,9 +417,21 @@ class CotizacionClasificador
 
         $voterIndex = $this->voter($tarifaParaClasificar);
 
-        if($voterIndex < 0){
+        if($voterIndex < 0
+            && $this->cotizacion->getNumeropasajeros() == $tarifaParaClasificar['cantidad']
+        ) {
+            //si hubieran dos tarifas prorrateadas en el mismo componente
+            //entonces es prorrateado y le damos una segunda oportunidad y lo distribuimos.
+            foreach ($this->tarifasClasificadas as &$claseTarifa) {
+                $claseTarifa['tarifas'][] = $tarifaParaClasificar['tarifa'];
+            }
+            $tarifaParaClasificar['cantidad'] = 0;
+            //eliminamos la referencia
+            unset ($claseTarifa);
+            return $tarifaParaClasificar['cantidad'];
+        }elseif($voterIndex < 0 ){
             //no procesamos
-            $this->requestStack->getSession()->getFlashBag()->add('error', 'no se ha realizacio el proceso de clasiticación por tarifa que no corresponde');
+            $this->requestStack->getSession()->getFlashBag()->add('error', 'Existen tarifas que no se puedieron clasificar.');
             return $tarifaParaClasificar['cantidad'];
         }
 
@@ -435,7 +462,7 @@ class CotizacionClasificador
         if(isset($tarifaParaClasificar['edadMax']) && $tarifaParaClasificar['edadMax'] < $edadMaxima){
             $copiaDeTarifaSeleccionada['edadMax'] = $tarifaParaClasificar['edadMax'];
         }
-        //cambio de generico a nacionalidad
+        //cambio de genérico a nacionalidad
         if($tarifaParaClasificar['tipoPaxId'] != 0){
             $copiaDeTarifaSeleccionada['tipoPaxId'] = $tarifaParaClasificar['tipoPaxId'];
             $copiaDeTarifaSeleccionada['tipoPaxNombre'] = $tarifaParaClasificar['tipoPaxNombre'];
