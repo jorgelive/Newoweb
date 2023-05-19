@@ -5,6 +5,7 @@ namespace App\Admin;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
+use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
@@ -62,7 +63,7 @@ class ServicioComponenteAdmin extends AbstractAdmin
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
                 'sort_parent_association_mappings' => [['fieldName' => 'tipocomponente']]
             ])
-            ->add('duracion', null, [
+            ->add('duracion', FieldDescriptionInterface::TYPE_STRING, [
                 'label' => 'Duración',
                 'row_align' => 'right',
                 'editable' => true

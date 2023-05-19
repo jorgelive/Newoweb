@@ -6,6 +6,7 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
+use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\Form\Type\CollectionType;
@@ -71,9 +72,10 @@ class ServicioItinerarioAdmin extends AbstractAdmin
                 'format' => 'H:i',
                 'row_align' => 'right'
             ])
-            ->add('duracion', null, [
+            ->add('duracion', FieldDescriptionInterface::TYPE_STRING, [
                 'label' => 'Duración',
-                'row_align' => 'right'
+                'row_align' => 'right',
+                'editable' => true
             ])
             ->add('itinerariodias', null, [
                 'label' => 'Dias'
