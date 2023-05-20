@@ -12,6 +12,18 @@
                 bootbox.confirm({
                     title: "Esta seguro que desea clonar el servicio a otra cotización? (Opcionalmente cambie la fecha de inicio)",
                     message:
+                        '<div id="sonata-ba-field-containerb-cotizacion-{{ object.id }}" class="form-group">' +
+
+                            '<label class="control-label required" for="b_cotizacion-{{ object.id }}">Cotización de destino</label>' +
+
+                            '<div class="sonata-ba-field sonata-ba-field-standard-natural">' +
+                                '<div class="input-group">' +
+                                    '<div class="input-group date">' +
+                                        '<input type="text" id="b_cotizacion-{{ object.id }}" name="cotizacion" class="form-control">' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
                         '<div id="sonata-ba-field-containerb-fechainicio-{{ object.id }}" class="form-group">' +
 
                             '<label class="control-label required" for="b_fechainicio-{{ object.id }}">Fecha de inicio</label>' +
@@ -23,19 +35,6 @@
                                             '<span class="input-group-addon">' +
                                                 '<span class="fa-calendar fa"></span>' +
                                             '</span>' +
-                                    '</div>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-
-                        '<div id="sonata-ba-field-containerb-cotizacion-{{ object.id }}" class="form-group">' +
-
-                            '<label class="control-label required" for="b_cotizacion-{{ object.id }}">Cotización de destino</label>' +
-
-                            '<div class="sonata-ba-field sonata-ba-field-standard-natural">' +
-                                '<div class="input-group">' +
-                                    '<div class="input-group date" id="dpb_cotizacion-{{ object.id }}">' +
-                                        '<input type="text" id="b_cotizacion-{{ object.id }}" name="cotizacion" class="form-control">' +
                                     '</div>' +
                                 '</div>' +
                             '</div>' +

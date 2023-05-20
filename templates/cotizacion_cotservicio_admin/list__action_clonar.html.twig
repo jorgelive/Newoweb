@@ -15,8 +15,21 @@
                     <h4 class="modal-title" id="myModalLabel-{{ object.id }}">Clonar</h4>
                 </div>
                 <div class="modal-body">
-                    <p>Esta seguro que desea clonar esta cotización? (Opcionalmente cambie la fecha de inicio de los servicios)</p>
+                    <p>Esta seguro que desea clonar el servicio a otra cotización? (Opcionalmente cambie la fecha de inicio)</p>
 
+                    <div id="sonata-ba-field-container-cotizacion-{{ object.id }}" class="form-group">
+
+                        <label class="control-label required" for="cotizacion-{{ object.id }}">Cotización</label>
+
+                        <div class="sonata-ba-field sonata-ba-field-standard-natural">
+
+                            <div class="input-group">
+                                <div class="input-group">
+                                    <input type="text" id="cotizacion-{{ object.id }}" name="cotizacion_id" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div id="sonata-ba-field-container-fechainicio-{{ object.id }}" class="form-group">
 
                         <label class="control-label required" for="fechainicio-{{ object.id }}">Fecha de inicio</label>
@@ -27,7 +40,8 @@
                                 <div class="input-group date" id="dp_fechainicio-{{ object.id }}">
                                     <input type="text" id="fechainicio-{{ object.id }}" name="fechainicio" class="sonata-medium-date form-control" data-date-format="YYYY/MM/DD">
                                     <span class="input-group-addon">
-                                        <span class="fa-calendar fa"></span>
+                                        <span class="fa-calendar fa">
+                                        </span>
                                     </span>
                                 </div>
                             </div>
@@ -35,7 +49,6 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-
                     <div class="form-group"> <!-- Submit button -->
                         <a id="lk_clonar-{{ object.id }}" href="{{ admin.generateObjectUrl('clonar', object) }}"
                            class="btn btn-danger"
@@ -50,6 +63,7 @@
         </div>
         <script type="text/javascript">
             jQuery(function ($) {
+
                 $('#dp_fechainicio-{{ object.id }}').datetimepicker({"pickTime":false,"pickDate":true,"useCurrent":true,"minDate":"{{ 'now'|date('Y/m/d')|escape('js') }}","maxDate":null,"language":"es","disabledDates":[],"enabledDates":[],"icons":{"time":"fa fa-clock-o","date":"fa fa-calendar","up":"fa fa-chevron-up","down":"fa fa-chevron-down"},"useStrict":false,"sideBySide":false,"daysOfWeekDisabled":[],"collapse":true,"calendarWeeks":false,"viewMode":"days","minViewMode":"days","showToday":true,"useSeconds":false}).on('dp.change', function (ev) {
                     $('#fechainicio-{{ object.id }}').change();
                 });
@@ -70,11 +84,18 @@
                 let paramsString = $('#lk_clonar-{{ object.id }}').attr('href');
                 $('#lk_clonar-{{ object.id }}').attr('href', replaceUrlParam(paramsString, 'fechainicio', ''));
 
+                paramsString = $('#lk_clonar-{{ object.id }}').attr('href');
+                $('#lk_clonar-{{ object.id }}').attr('href', replaceUrlParam(paramsString, 'cotizacion_id', ''));
+
+
                 $('#fechainicio-{{ object.id }}').on('input change',function(e){
                     let paramsString = $('#lk_clonar-{{ object.id }}').attr('href');
-
                     $('#lk_clonar-{{ object.id }}').attr('href', replaceUrlParam(paramsString, 'fechainicio', encodeURIComponent($(this).val())));
-                    //console.log(replaceUrlParam(paramsString, 'fechainicio', encodeURIComponent($(this).val())));
+                })
+
+                $('#cotizacion-{{ object.id }}').on('input change',function(e){
+                    let paramsString = $('#lk_clonar-{{ object.id }}').attr('href');
+                    $('#lk_clonar-{{ object.id }}').attr('href', replaceUrlParam(paramsString, 'cotizacion_id', encodeURIComponent($(this).val())));
                 })
             });
         </script>

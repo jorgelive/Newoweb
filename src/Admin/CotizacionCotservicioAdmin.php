@@ -145,7 +145,9 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
                 'actions' => [
                     'show' => [],
                     'edit' => [],
-                    'delete' => []
+                    'delete' => [],'clonar' => [
+                        'template' => 'cotizacion_cotservicio_admin\list__action_clonar.html.twig'
+                    ]
                 ]
             ])
         ;
