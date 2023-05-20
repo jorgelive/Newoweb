@@ -30,7 +30,7 @@ class ServicioItinerarioController extends AbstractController
     {
         //?q=&_per_page=10&_page=1&field=tarifa&_=1513629738031
         $em = $this->container->get('doctrine.orm.default_entity_manager');
-        $itinerario=$em
+        $itinerario = $em
             ->getRepository('App\Entity\ServicioItinerario')
             ->find($id);
 

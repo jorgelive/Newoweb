@@ -37,7 +37,6 @@ class ViewCotizacionCotcomponenteAlertaAdmin extends AbstractAdmin
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
-            ->add('id')
             ->add('cotservicio.cotizacion',  null, [
                 'label' => 'Cotización'
             ])
@@ -110,6 +109,9 @@ class ViewCotizacionCotcomponenteAlertaAdmin extends AbstractAdmin
                 'label' => 'Inicio',
                 'format' => 'Y/m/d H:i'
             ])
+            ->add('cotservicio.cotizacion',  null, [
+                'label' => 'Cotización'
+            ])
             ->add('cotservicio', null, [
                 'label' => 'Servicio',
                 'route' => ['name' => 'edit']
@@ -126,9 +128,6 @@ class ViewCotizacionCotcomponenteAlertaAdmin extends AbstractAdmin
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
-                    'show_cotizacion' => [
-                        'template' => 'view_cotizacion_cotcomponente_alerta_admin\list__action_show_cotizacion.html.twig'
-                    ],
                     'show_componente' => [
                         'template' => 'view_cotizacion_cotcomponente_alerta_admin\list__action_show_componente.html.twig'
                     ],

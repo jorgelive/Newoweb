@@ -124,15 +124,14 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
-            ->add('id')
             ->add('fechahorainicio', null, [
                 'label' => 'Inicio',
                 'format' => 'Y/m/d H:i'
             ])
-            ->add('servicio')
             ->add('cotizacion', null, [
                 'label' => 'Cotización'
             ])
+            ->add('servicio')
             ->add('cotcomponentes', null, [
                 'label' => 'Componentes',
                 'associated_property' => 'nombre',
@@ -276,6 +275,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('ical', 'ical');
+        $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
     }
 
     protected function configureExportFields(): array
@@ -287,6 +287,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
     {
         if($action == 'show'){
             $buttonList['cotizacionshow'] = ['template' => 'cotizacion_cotservicio_admin/cotizacionshow_button.html.twig'];
+            $buttonList['clonar'] = ['template' => 'cotizacion_cotservicio_admin/clonar_button.html.twig'];
         }
         return $buttonList;
     }

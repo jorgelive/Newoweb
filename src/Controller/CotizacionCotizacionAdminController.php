@@ -24,13 +24,9 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
-    public function clonarAction(Request $request): RedirectResponse
+    public function clonarAction(Request $request): Response
     {
         $object = $this->assertObjectExists($request, true);
-
-        if(!$object) {
-            throw $this->createNotFoundException('Unable to find the object.');
-        }
 
         $this->admin->checkAccess('create', $object);
 

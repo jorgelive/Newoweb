@@ -47,7 +47,6 @@ class CotizacionFilepasajeroAdmin extends AbstractAdmin
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
-            ->add('id')
             ->add('file', null, [
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
@@ -171,7 +170,6 @@ class CotizacionFilepasajeroAdmin extends AbstractAdmin
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper
-            ->add('id')
             ->add('file')
             ->add('nombre')
             ->add('apellido')

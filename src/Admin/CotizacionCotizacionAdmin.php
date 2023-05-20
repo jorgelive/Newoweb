@@ -77,10 +77,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         return $parameters;
     }
 
-
-    /**
-     * @param DatagridMapper $datagridMapper
-     */
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
@@ -184,9 +180,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param ListMapper $listMapper
-     */
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
@@ -265,9 +258,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param FormMapper $formMapper
-     */
     protected function configureFormFields(FormMapper $formMapper): void
     {
 
@@ -325,9 +315,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         $this->vars['cottarifas']['tarifapath'] = 'app_servicio_tarifa_ajaxinfo';
     }
 
-    /**
-     * @param ShowMapper $showMapper
-     */
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper

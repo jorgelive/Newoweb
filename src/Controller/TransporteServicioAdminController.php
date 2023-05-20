@@ -5,6 +5,7 @@ namespace App\Controller;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 class TransporteServicioAdminController extends CRUDAdminController
 {
@@ -16,16 +17,12 @@ class TransporteServicioAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
-    public function clonarAction(Request $request = null)
+    public function clonarAction(Request $request): Response
     {
 
         $object = $this->assertObjectExists($request, true);
-        $id = $object->getId();
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
 
-        if(!$object) {
-            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
-        }
+        $em = $this->container->get('doctrine.orm.default_entity_manager');
 
         $this->admin->checkAccess('create', $object);
 

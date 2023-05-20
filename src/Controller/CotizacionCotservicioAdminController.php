@@ -24,21 +24,34 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
             ] + parent::getSubscribedServices();
     }
 
-    public function clonarAction(Request $request): RedirectResponse
+    public function clonarAction(Request $request): Response
     {
-
         $object = $this->assertObjectExists($request, true);
 
-        if(!$object) {
-            throw $this->createNotFoundException(sprintf('Unable to find the object'));
-        }
-
         $this->admin->checkAccess('create', $object);
+        $this->entityManager = $this->container->get('doctrine.orm.default_entity_manager');
+
+        if(!empty($request->query->get('cotizacion_id'))){
+
+            $cotizacion = $this->entityManager
+                ->getRepository('App\Entity\CotizacionCotizacion')
+                ->find($request->query->get('cotizacion_id'));
+
+            if (!empty($cotizacion)){
+                $this->addFlash('sonata_flash_success', 'Se ha insertado el servicio a la cotización: ' . sprintf("OPC%05s", $request->query->get('cotizacion_id')));
+            } else {
+                $this->addFlash('sonata_flash_error', 'File incorrecto, no se ha clonado el objeto');
+                return new RedirectResponse($request->headers->get('referer'));
+            }
+        }else{
+            $this->addFlash('sonata_flash_info', 'Se ha clonado el servicio dentro de la misma cotización');
+
+        }
 
         if(!empty($request->query->get('fechainicio'))){
             try {
                 $newFechaInicio = new \DateTime($request->query->get('fechainicio'));
-                $this->addFlash('sonata_flash_success', 'Cotización clonada correctamente, se ha cambiado la fecha de inicio de los servicios');
+                $this->addFlash('sonata_flash_success', 'Servicio clonado correctamente, se ha cambiado la fecha de inicio de los servicios');
 
             } catch (\Exception $e) {
                 $newFechaInicio = new \DateTime('today');
@@ -46,31 +59,14 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
             }
         }else{
             $this->addFlash('sonata_flash_success', 'Cotización clonada correctamente, se ha mantenido la fecha de los servicios');
-
         }
-
-        if(!empty($request->query->get('cotizacion_id'))){
-            $cotizacionReference = $this->entityManager->getReference('App\Entity\CotizacioCotizacion', $request->query->get('cotizacion_id'));
-
-            if (!empty($cotizacionReference)){
-                $this->addFlash('sonata_flash_success', 'Se ha insertado el servicio a la cotización: ' . sprintf("OPC%05s", $request->query->get('cotizacion_id')));
-            } else {
-                $this->addFlash('sonata_flash_info', 'File incorrecto, el servicio se ha clonado dentro de la misma cotización');
-            }
-        }else{
-            $this->addFlash('sonata_flash_info', 'Se ha clonadeo es servicio dentro de la misma cotización');
-
-        }
-
-        $this->entityManager = $this->container->get('doctrine.orm.default_entity_manager');
 
         $this->admin->checkAccess('create', $object);
 
         $newObject = clone $object;
-        //$newObject->setNombre($object->getNombre().' (Clone)');
 
-        if(isset($cotizacionReference) && empty($cotizacionReference)){
-            $newObject->setCotizacion($cotizacionReference);
+        if(isset($cotizacion) && !empty($cotizacion)){
+            $newObject->setCotizacion($cotizacion);
         }
 
         $oldFechaInicio = new \DateTime($object->getFechaHoraInicio()->format('Y-m-d'));
@@ -90,7 +86,7 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
 
         $this->admin->create($newObject);
 
-        return new RedirectResponse($this->admin->generateUrl('list'));
+        return new RedirectResponse($this->generateUrl('admin_app_cotizacioncotizacion_edit', ['id' => $cotizacion->getId()]));
     }
 
     public function icalAction(Request $request): Response

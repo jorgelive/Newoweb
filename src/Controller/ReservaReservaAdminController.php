@@ -55,16 +55,11 @@ class ReservaReservaAdminController extends CRUDAdminController
 
     }
 
-    public function clonarAction(Request $request = null)
+    public function clonarAction(Request $request): Response
     {
         $object = $this->assertObjectExists($request, true);
-        $id = $object->getId();
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        if(!$object) {
-            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
-        }
 
         $this->admin->checkAccess('create', $object);
 
@@ -79,7 +74,7 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $this->addFlash('sonata_flash_success', 'Reserva clonada correctamente');
 
-        return new RedirectResponse($this->admin->generateUrl('list'));
+        return new RedirectResponse($this->admin->generateUrl('edit', ['id' => $newObject->getId()]));
 
     }
 
@@ -113,7 +108,7 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $this->addFlash('sonata_flash_success', 'Reserva extendida correctamente');
 
-        return new RedirectResponse($this->admin->generateUrl('list'));
+        return new RedirectResponse($this->admin->generateUrl('edit', ['id' => $newObject->getId()]));
 
     }
 
