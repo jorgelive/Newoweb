@@ -35,7 +35,7 @@ class TransporteServicioAdmin extends AbstractAdmin
 
     protected function configureFilterParameters(array $parameters): array
     {
-        if(!isset($parameters['fechahorainicio'])){
+        if(count($parameters) <= 4){
             $fecha = new \DateTime();
 
             $parameters = array_merge([

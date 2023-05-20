@@ -41,7 +41,7 @@ class ReservaReservaAdmin extends AbstractAdmin
     protected function configureFilterParameters(array $parameters): array
     {
 
-        if(!isset($parameters['fechahorafin'])){
+        if(count($parameters) <= 4){
             $fecha = new \DateTime();
             $fechaFinal = new \DateTime('now +1 month');
             $parameters = array_merge([
@@ -53,9 +53,7 @@ class ReservaReservaAdmin extends AbstractAdmin
                     'type' => 0
                 ]
             ], $parameters);
-        }
 
-        if(!isset($parameters['estado'])){
             $parameters = array_merge([
                 'estado' => [
                     'value' => 3,

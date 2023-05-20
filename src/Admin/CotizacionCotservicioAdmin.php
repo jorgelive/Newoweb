@@ -41,7 +41,9 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
 
     protected function configureFilterParameters(array $parameters): array
     {
-        if(!isset($parameters['fechahorainicio']) && !isset($parameters['cotizacion'])){
+
+        //if(!isset($parameters['fechahorainicio']) && !isset($parameters['cotizacion'])){
+        if(count($parameters) <= 4){
             $fecha = new \DateTime();
 
             $parameters = array_merge([
@@ -52,9 +54,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
                     ]
                 ]
             ], $parameters);
-        }
 
-        if(!isset($parameters['cotizacion__estadocotizacion']) && !isset($parameters['cotizacion'])){
             $parameters = array_merge([
                 'cotizacion__estadocotizacion' => [
                     'value' => 3

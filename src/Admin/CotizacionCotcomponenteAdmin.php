@@ -41,7 +41,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
 
     protected function configureFilterParameters(array $parameters): array
     {
-        if(!isset($parameters['fechahorainicio']) && !isset($parameters['cotservicio__cotizacion'])){
+        if(count($parameters) <= 4){
             $fecha = new \DateTime();
 
             $parameters = array_merge([
@@ -52,9 +52,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                     ]
                 ]
             ], $parameters);
-        }
 
-        if(!isset($parameters['cotservicio__cotizacion__estadocotizacion']) &&  !isset($parameters['cotservicio__cotizacion'])){
             $parameters = array_merge([
                 'cotservicio__cotizacion__estadocotizacion' => [
                     'value' => 3
@@ -65,9 +63,6 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
         return $parameters;
     }
 
-    /**
-     * @param DatagridMapper $datagridMapper
-     */
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
@@ -125,9 +120,6 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param ListMapper $listMapper
-     */
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
@@ -162,9 +154,6 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param FormMapper $formMapper
-     */
     protected function configureFormFields(FormMapper $formMapper): void
     {
         if($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'
@@ -308,9 +297,6 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
         );
     }
 
-    /**
-     * @param ShowMapper $showMapper
-     */
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper
