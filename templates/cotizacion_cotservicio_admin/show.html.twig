@@ -4,6 +4,7 @@
     {{ parent() }}
 
     <style>
+        .datos-generales{margin: 10px;}
         .fila{list-style: none;}
         .fila.servicio{padding-inline-start: 0; margin: 5px;}
         .fila li {list-style: none; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; border-left: 1px solid #ccc; margin-bottom: 5px;}
@@ -19,6 +20,10 @@
 
     {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
     <div class="panel panel-default hidden-print">
+        <div class="datos-generales">
+            <p>File: <span style="font-size: 1.1em; font-weight: 600;">{{ object.cotizacion.file.nombre }} x{{ object.cotizacion.numeropasajeros }} ({{ object.cotizacion.estadocotizacion.nombre }})</span></p>
+            <p>Cotizacion: <span style="font-size: 1.1em; font-weight: 600; color: #1B6129;">{{ object.cotizacion.numerocotizacion }}</span></p>
+        </div>
         <ul class="fila servicio">
         <li>
             <div class="celda heading">Ser</div>

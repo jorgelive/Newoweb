@@ -22,68 +22,39 @@
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@5.11.0/main.min.css" rel="stylesheet" />
     <link href="{{ asset('/app/ckeditor/content-styles.css') }}" rel="stylesheet" />
     <style>
-        @media (max-width: 767px) {
-            .skin-black .main-header > .logo {
-                background-color: #ffffff;
-                color: #222222;
-                border-bottom: 1px solid #222222;
 
+        {# Modificaciones para el encabezado, Bredcrumb y otros #}
+        .main-header { height: 100px; }
+        .main-header .logo { height: 100px; }
+        .main-header .logo img { max-width: unset; }
+        .main-sidebar, .left-side { padding-top: 100px; }
+        .fc-toolbar h2 { font-size: 20px; padding-top: 10px; }
+        div.encabezado td { white-space: normal !important; }
+        body > div.wrapper > header > nav > div.navbar-custom-menu > ul > li > a { background-color: white; }
+        body > div > header > nav > div.navbar-left > div > ol > li.active { max-width: 250px; white-space: nowrap; }
+        section.content .btn-group > .btn { min-width: 80px; }
+        @media screen and (max-width: 767px) {
+            .table-responsive > .table > tbody > tr > td, .table-responsive > .table > tbody > tr > th, .table-responsive > .table > tfoot > tr > td, .table-responsive > .table > tfoot > tr > th, .table-responsive > .table > thead > tr > td, .table-responsive > .table > thead > tr > th {
+                white-space: normal !important;
             }
-            .skin-black .main-header > .logo:hover {
-                background-color: #ffffff;
-                color: #222222;
-                border-bottom: 1px solid #222222;
-            }
-
-            .skin-black .main-header > .logo span {
-                color: #222222;
-                font-size: 80%;
-                margin-top: 10px;
-                font-weight: bold;
-
-            }
+            .skin-black .main-header > .logo { background-color: #ffffff; color: #222222; border-bottom: 1px solid #222222;}
+            .skin-black .main-header > .logo:hover { background-color: #ffffff; color: #222222; border-bottom: 1px solid #222222;}
+            .skin-black .main-header > .logo span { color: #222222; font-size: 80%; margin-top: 10px; font-weight: bold;}
         }
 
-        {# Modificaciones para el encabezado y Bredcrumb #}
-        .main-header {height: 100px;}
-        .main-header .logo {height: 100px;}
-        .main-header .logo img {max-width: unset;}
-        .main-sidebar, .left-side {padding-top: 100px;}
-        .fc-toolbar h2 {font-size: 20px; padding-top: 10px;}
-        div.encabezado td {white-space: normal !important;}
-        .fechas-mono {font-size: 0.9em; font-family: monospace; white-space: nowrap}
+        .fechas-mono {font-size: 0.9em; font-family: monospace; white-space: nowrap; }
 
-        body > div.wrapper > header > nav > div.navbar-custom-menu > ul > li > a { background-color: white; }
-        body > div > header > nav > div.navbar-left > div > ol > li.active {max-width: 250px; white-space: nowrap;}
-        section.content .btn-group > .btn {min-width: 80px;}
-
-        .thumbnail-fluid img.in-modal.portrait {width: 60%;}
-        .thumbnail-fluid img.in-modal.landscape {width: 100%;}
-        .thumbnail-fluid .caption .small.text-center {margin: 0;}
+        .thumbnail-fluid img.in-modal.portrait { width: 60%; }
+        .thumbnail-fluid img.in-modal.landscape { width: 100%; }
+        .thumbnail-fluid .caption .small.text-center { margin: 0; }
 
         .tooltip-trigger:hover {cursor:pointer;}
-        #tooltipdiv{
-            position: fixed;
-            width: 220px;
-            height: 30px;
-            top: 30%;
-            left: 50%;
-            margin-top: -15px; /* Negative half of height. */
-            margin-left: -110px; /* Negative half of width. */
-            border-radius: 5px;
-            text-align: center;
-            padding: 5px;
-            background: #ffde5a;
-            font-weight: 600;
-            filter: drop-shadow(0 3px 5px #ccc);
-            line-height: 1.5;
-            z-index: 1000;
-        }
+        #tooltipdiv{ position: fixed; width: 220px; height: 30px; top: 30%; left: 50%; margin-top: -15px; /* Negative half of height. */ margin-left: -110px; /* Negative half of width. */ border-radius: 5px; text-align: center; padding: 5px; background: #ffde5a; font-weight: 600; filter: drop-shadow(0 3px 5px #ccc); line-height: 1.5; z-index: 1000; }
 
-        ul.listaordenada, ul.sonata-ba-show-one-to-many { list-style: none; padding: 0; margin: 0;}
-        ul.listaordenada li, ul.sonata-ba-show-one-to-many li{ padding-left: 16px; position: relative;}
-        ul.listaordenada li::before, ul.sonata-ba-show-one-to-many li::before { content:"\25CF"; color:#F68A39; font-weight:bold; font-size:18px; text-align:right; padding-right:6px; width:10px; position: absolute; left: 0; top: -0.2em;}
-        ul.listaordenada li a, ul.sonata-ba-show-one-to-many li a {padding-bottom: 5px; display: block;}
+        ul.listaordenada, ul.sonata-ba-show-one-to-many { list-style: none; padding: 0; margin: 0; }
+        ul.listaordenada li, ul.sonata-ba-show-one-to-many li{ padding-left: 16px; position: relative; }
+        ul.listaordenada li::before, ul.sonata-ba-show-one-to-many li::before { content:"\25CF"; color:#F68A39; font-weight:bold; font-size:18px; text-align:right; padding-right:6px; width:10px; position: absolute; left: 0; top: -0.2em; }
+        ul.listaordenada li a, ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
     </style>
 {% endblock %}
 

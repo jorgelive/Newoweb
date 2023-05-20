@@ -129,7 +129,7 @@ class CotizacionCotcomponente
         }else{
             $infocomponente = $this->getComponente()->getNombre();
         }
-        return sprintf('%s x%s: %s', $this->getCotservicio()->getCotizacion()->getFile()->getNombre(), $this->getCotservicio()->getCotizacion()->getNumeropasajeros(), $infocomponente);
+        return $infocomponente;
     }
 
     /**

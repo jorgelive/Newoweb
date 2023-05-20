@@ -5,6 +5,7 @@ namespace App\Admin;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
+use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
@@ -36,16 +37,17 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
-            ->add('id')
             ->add('file')
-            ->add('nombre')
+            ->add('nombre', null, [
+                'editable' => true
+            ])
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento',
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
                 'sort_parent_association_mappings' => [['fieldName' => 'tipofiledocumento']],
             ])
-            ->add('webThumbPath', 'string', [
+            ->add('webThumbPath', FieldDescriptionInterface::TYPE_STRING, [
                     'label' => 'Archivo',
                     'template' => 'base_sonata_admin/list_image.html.twig'
                 ]
@@ -125,7 +127,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
                 'label' => 'Tipo de documento'
             ])
             ->add('prioridad')
-            ->add('webThumbPath', 'string', [
+            ->add('webThumbPath', FieldDescriptionInterface::TYPE_STRING, [
                     'label' => 'Archivo',
                     'template' => 'base_sonata_admin/show_image.html.twig'
                 ]

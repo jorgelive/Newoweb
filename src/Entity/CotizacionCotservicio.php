@@ -118,8 +118,7 @@ class CotizacionCotservicio
         if(empty($this->getServicio())){
             return sprintf("Id: %s.", $this->getId()) ?? '';
         }
-        return sprintf('%s x%s: %s', $this->getCotizacion()->getFile()->getNombre(), $this->getCotizacion()->getNumeropasajeros(), $this->getServicio()->getNombre());
-
+        return $this->getServicio()->getNombre();
     }
 
 

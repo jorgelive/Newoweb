@@ -4,12 +4,14 @@
     {{ parent() }}
 
     <style>
+        .datos-generales{margin: 10px;}
         .fila{list-style: none;}
         .fila.servicio{padding-inline-start: 0; margin: 5px;}
         .fila li {list-style: none; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; border-left: 1px solid #ccc; margin-bottom: 5px;}
         .celda{display: inline-block; padding: 0 5px;}
         .celda.heading{font-weight: bold; font-size: 0.8em; vertical-align: top;}
-        .titulo{font-size: 0.8em; font-weight: bold;}    </style>
+        .titulo{font-size: 0.8em; font-weight: bold;}
+    </style>
 {% endblock %}
 
 {% block show %}
@@ -19,6 +21,10 @@
     {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
 
     <div class="panel panel-default hidden-print">
+        <div class="datos-generales">
+            <p>File: <span style="font-size: 1.1em; font-weight: 600;">{{ object.cotservicio.cotizacion.file.nombre }} x{{ object.cotservicio.cotizacion.numeropasajeros }} ({{ object.cotservicio.cotizacion.estadocotizacion.nombre }})</span></p>
+            <p>Cotizacion: <span style="font-size: 1.1em; font-weight: 600; color: #1B6129;">{{ object.cotservicio.cotizacion.numerocotizacion }}</span></p>
+        </div>
         <ul class="fila servicio">
             <li>
                 <div class="celda heading">Ser</div>
@@ -93,7 +99,7 @@
                     {% set whatsappText = 'Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase *reconfirmar* los siguientes servicios:\n\n'%}
                     {% set emailMensaje = '<p>Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase <span style="font-weight: bold;">reconfirmar</span> los siguientes servicios:</p>'%}
 
-                    <h4>Pax: <span style="font-weight: bold;"> {{ object.cotservicio.cotizacion.file.nombre }} x{{ object.cotservicio.cotizacion.numeropasajeros }}</span> ({{ object.cotservicio.cotizacion.file.pais.nombre }} - {{ object.cotservicio.cotizacion.file.idioma.nombre }})</h4>
+                    {# <h4>Pax: <span style="font-weight: bold;"> {{ object.cotservicio.cotizacion.file.nombre }} x{{ object.cotservicio.cotizacion.numeropasajeros }}</span> ({{ object.cotservicio.cotizacion.file.pais.nombre }} - {{ object.cotservicio.cotizacion.file.idioma.nombre }})</h4> #}
                     {% set whatsappText = whatsappText ~ 'Pax: *' ~ object.cotservicio.cotizacion.file.nombre ~ ' x' ~ object.cotservicio.cotizacion.numeropasajeros ~ '* (' ~ object.cotservicio.cotizacion.file.pais.nombre ~ '-' ~ object.cotservicio.cotizacion.file.idioma.nombre ~ ')' ~ '\n\n' %}
                     {% set emailMensaje = emailMensaje ~ '<h4>Pax: <span style="font-weight: bold;">' ~ object.cotservicio.cotizacion.file.nombre ~ ' x' ~ object.cotservicio.cotizacion.numeropasajeros ~ '</span> (' ~ object.cotservicio.cotizacion.file.pais.nombre ~ '-' ~ object.cotservicio.cotizacion.file.idioma.nombre ~ ')' ~ '</h4>' %}
 

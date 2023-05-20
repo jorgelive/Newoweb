@@ -71,21 +71,15 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
-            ->add('id')
             ->add('cotservicio.cotizacion',  null, [
                 'label' => 'Cotización'
             ])
             ->add('cotservicio.cotizacion.estadocotizacion',  null, [
                 'label' => 'Estado cotización'
             ])
-            ->add('cotservicio', null, [
-                'label' => 'Servicio'
-            ])
-            ->add('componente')
             ->add('estadocotcomponente', null, [
                 'label' => 'Estado del componente'
             ])
-            ->add('cantidad')
             ->add('fechahorainicio', CallbackFilter::class,[
                 'label' => 'Fecha de inicio',
                 'callback' => function($queryBuilder, $alias, $field, $filterData) {
@@ -137,10 +131,12 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
-            ->add('id')
             ->add('fechahorainicio', null, [
                 'label' => 'Inicio',
                 'format' => 'Y/m/d H:i'
+            ])
+            ->add('cotservicio.cotizacion',  null, [
+                'label' => 'Cotización'
             ])
             ->add('cotservicio', null, [
                 'label' => 'Servicio'
@@ -171,8 +167,6 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
      */
     protected function configureFormFields(FormMapper $formMapper): void
     {
-
-
         if($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'
             && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotizacion'
             && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotservicio'

@@ -155,14 +155,19 @@ class CotizacionCotizacion
     {
 
         if($this->getEstadocotizacion()->getId() == 6){
-            return sprintf("%05d - %s", $this->getId(), $this->getTitulo());
+            return sprintf("%s - %s", $this->getNumerocotizacion(), $this->getTitulo());
 
         }elseif($this->getEstadocotizacion()->getId() == 1){ //generalmente los pendientes se envian por whatsapp, no muestro el estado
-            return sprintf("%05d %s x%s", $this->getId(), $this->getFile()->getNombre(), $this->getNumeropasajeros());
+            return sprintf("%s %s x%s", $this->getNumerocotizacion(), $this->getFile()->getNombre(), $this->getNumeropasajeros());
 
         }else{
-            return sprintf("%05d %s x%s (%s)", $this->getId(), $this->getFile()->getNombre(), $this->getNumeropasajeros(), $this->getEstadocotizacion()->getNombre());
+            return sprintf("%s %s x%s (%s)", $this->getNumerocotizacion(), $this->getFile()->getNombre(), $this->getNumeropasajeros(), $this->getEstadocotizacion()->getNombre());
         }
+    }
+
+    public function getNumerocotizacion(): string
+    {
+        return sprintf("OPC%05d", $this->getId());
     }
 
     public function getTitulo(): string
