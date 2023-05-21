@@ -18,6 +18,9 @@ use Doctrine\Common\Collections\ArrayCollection;
  */
 class ReservaUnittipocaracteristica
 {
+    public const DB_VALOR_DESCRIPCION = 1;
+    public const DB_VALOR_BRIEFING = 2;
+    public const DB_VALOR_GALERIA = 3;
 
     /**
      * @var int

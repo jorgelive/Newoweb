@@ -14,6 +14,18 @@ use Gedmo\Mapping\Annotation as Gedmo;
  */
 class ServicioTipocomponente
 {
+
+    public const DB_VALOR_TICKET = 1;
+    public const DB_VALOR_GUIADO = 2;
+    public const DB_VALOR_TRANSPORTE = 3;
+    public const DB_VALOR_ALOJAMIENTO = 4;
+    public const DB_VALOR_ALIMENTACION = 5;
+    public const DB_VALOR_EXCURSION_POOL = 6;
+    public const DB_VALOR_EXCURSION_PRIVADA = 7;
+    public const DB_VALOR_PERSONAL_EXTRA = 8;
+    public const DB_VALOR_EXTRAS = 9;
+    public const DB_VALOR_VUELO = 10;
+
     /**
      * @var int
      *

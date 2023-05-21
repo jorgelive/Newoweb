@@ -126,7 +126,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
-        if($object->getEstadocotizacion()->isOcultoResumen()){
+        if($object->getEstadocotizacion()->isNopublico()){
             $this->addFlash('sonata_flash_error', 'La cotización no se muestra en resumen, redirigido a "Mostrar"');
             return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
         }

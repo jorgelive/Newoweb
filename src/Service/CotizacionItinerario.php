@@ -6,6 +6,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use App\Entity\CotizacionCotizacion;
 use App\Entity\CotizacionCotservicio;
+use App\Entity\CotizacionEstadocotizacion;
 
 class CotizacionItinerario
 {
@@ -14,14 +15,13 @@ class CotizacionItinerario
 
     public function getItinerario(CotizacionCotizacion $cotizacion): array
     {
+
         $this->cotizacion = $cotizacion;
 
         $itinerario = [];
         if($cotizacion->getCotservicios()->count() > 0) {
 
             foreach ($cotizacion->getCotservicios() as $cotservicio):
-
-                $itinerarioFechaAux = [];
 
                 if ($cotservicio->getItinerario()->getItinerariodias()->count() > 0) {
 

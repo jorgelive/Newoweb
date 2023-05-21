@@ -21,7 +21,7 @@
                                                                     <ul style="list-style: none; padding-left: 20px;">
                                                                         {% for detalle in tarifa.detalles %}
                                                                             <li>
-                                                                                {% if detalle.tipoId == 4 %}
+                                                                                {% if detalle.tipoId == constant('App\\Entity\\ServicioTipotarifadetalle::DB_VALOR_SITIO_WEB') %}
                                                                                     <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
                                                                                 {% else %}
                                                                                     {{ detalle.contenido }}

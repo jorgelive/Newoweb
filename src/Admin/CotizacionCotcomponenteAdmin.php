@@ -165,7 +165,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                 'label' => 'Servicio'
             ]);
         }
-        //oculto en la edicion el componente y la cantidad
+        //oculto en la edición el componente y la cantidad
         if(!($this->isCurrentRoute('edit') && $this->getRoot()->getClass() == 'App\Entity\CotizacionCotcomponente')
         ){
             $formMapper

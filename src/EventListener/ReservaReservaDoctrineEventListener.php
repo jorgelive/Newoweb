@@ -1,6 +1,7 @@
 <?php
 namespace App\EventListener;
 
+use App\Entity\ReservaChanel;
 use App\Entity\ReservaReserva;
 use Doctrine\ORM\Event\LifecycleEventArgs;
 use App\Service\MainVariableproceso;
@@ -31,7 +32,7 @@ class ReservaReservaDoctrineEventListener
                 $entity->setEnlace($this->cleanUrl($entity->getEnlace()));
             }
 
-            if($entity->getChanel()->getId() == 1){
+            if($entity->getChanel()->getId() == ReservaChanel::DB_VALOR_DIRECTO){
                 $entity->setManual(true);
             }
 
@@ -47,7 +48,7 @@ class ReservaReservaDoctrineEventListener
                 $entity->setEnlace($this->cleanUrl($entity->getEnlace()));
             }
 
-            if($entity->getChanel()->getId() == 1){
+            if($entity->getChanel()->getId() == ReservaChanel::DB_VALOR_DIRECTO){
                 $entity->setManual(true);
             }
         }

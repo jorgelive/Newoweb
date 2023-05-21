@@ -14,6 +14,11 @@ use Gedmo\Mapping\Annotation as Gedmo;
  */
 class CotizacionEstadocotcomponente
 {
+
+    public const DB_VALOR_PENDIENTE = 1;
+    public const DB_VALOR_CONFIRMADO = 2;
+    public const DB_VALOR_RECONFIRMADO = 3;
+
     /**
      * @var int
      *

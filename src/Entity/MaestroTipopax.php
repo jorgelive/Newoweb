@@ -17,6 +17,9 @@ use Gedmo\Mapping\Annotation as Gedmo;
  */
 class MaestroTipopax
 {
+    public const DB_VALOR_PERUANO = 1;
+    public const DB_VALOR_EXTRANJERO = 2;
+
     /**
      * @var int
      *

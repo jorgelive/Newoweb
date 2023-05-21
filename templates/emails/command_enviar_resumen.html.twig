@@ -22,7 +22,7 @@
         </tr>
         {% for alerta in alertas %}
             <tr style="border-bottom: 1px solid #016c8d;">
-                 {% if alerta.idEstado == 1 %}
+                 {% if alerta.idEstado == constant('App\\Entity\\CotizacionEstadocotcomponente::DB_VALOR_PENDIENTE') %}
                      {% set color = 'darkred' %}
                  {% else %}
                      {% set color = 'darkorange' %}

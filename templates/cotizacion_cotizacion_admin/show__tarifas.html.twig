@@ -46,14 +46,14 @@
                         </p>
 
                         <ul style="list-style-type: none; padding-left: 18px;">
-                            {% for tarifaresumen in rango.resumen | filter(tarifaresumen => tarifaresumen.ventasoles > 0 and tarifaresumen.tipoTarOculto == false) %}
+                            {% for tarifaresumen in rango.resumen | filter(tarifaresumen => tarifaresumen.ventasoles > 0 and tarifaresumen.tipoTarOcultoenresumen == false) %}
                                 <li>
                                     <p>
                                         {{ tarifaresumen.tipoTarTitulo }}:
                                         <span class="titulo-verde" style="font-size: 1.1em;">
                                                         US$ {{ tarifaresumen.ventadolares }}
                                                     </span>
-                                        {% if object.file.pais.id == 117 %} {{ 'o'|trans({},'messages') }} <span class="titulo-verde">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
+                                        {% if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %} {{ 'o'|trans({},'messages') }} <span class="titulo-verde">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
                                     </p>
                                 </li>
                             {% endfor %}
@@ -67,17 +67,17 @@
                 <h4 class="titulo-verde" style="margin-top: 15px;">{{ 'total'|trans({},'messages')|capitalize}}: </h4>
 
                 <ul style="list-style-type: none; padding-left: 18px;">
-                    {%  for resumenitem in tabs.resumenDeClasificado | filter (resumenitem => resumenitem.oculto is same as (false)) %}
+                    {%  for resumenitem in tabs.resumenDeClasificado | filter (resumenitem => resumenitem.ocultoenresumen is same as (false)) %}
                         <li>
                             <p>
                                 {{ resumenitem.titulo }}:
                                 <span class="titulo-verde" style="font-size: 1.1em;">
                                                  US$ {{ resumenitem.ventadolares }}
                                             </span>
-                                {% if object.file.pais.id == 117 %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
+                                {% if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %} o <span style="font-weight: bold; color: #1B6129;">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
 
                                 <br>{{ 'reserve_con_el'|trans({},'messages') }} {{ object.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
-                                {% if object.file.pais.id == 117 %}
+                                {% if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %}
                                     {{ 'o'|trans({},'messages') }} S/.{{ resumenitem.adelantosoles }}
                                 {% endif %}
                                 )
@@ -87,7 +87,7 @@
                 </ul>
             {% endif %}
 
-            {% if object.estadocotizacion.id != 6 or object.file.pais.id == 117 %}
+            {% if object.estadocotizacion.id != 6 or object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %}
 
                 <h5 style="margin-top: 15px;">{{ 'notas'|trans({},'messages')|capitalize }}: </h5>
                 <div>
@@ -102,7 +102,7 @@
                         </p>
                     {% endif %}
 
-                    {% if object.file.pais.id == 117 %}
+                    {% if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %}
                         <p>{{ 'tarifa_base'|trans({},'messages')|capitalize }}:
                             <span style="font-weight: bold;">
                                             {{ 'dolares'|trans({},'messages')|upper }}

@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-
+use App\Entity\MaestroPais;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
@@ -234,7 +234,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('Y-m-d');
 
             $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigocon();
-            if($filePasajero->getPais()->getId() == 117){//si es peruano pongo Lima
+            if($filePasajero->getPais()->getId() == MaestroPais::DB_VALOR_PERU){//si es peruano pongo Lima
                 $resultados[$key]['ciudad'] = 'Lima';
             }else{
                 $resultados[$key]['ciudad'] = '';

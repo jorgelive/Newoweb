@@ -154,10 +154,10 @@ class CotizacionCotizacion
     public function __toString(): string
     {
 
-        if($this->getEstadocotizacion()->getId() == 6){
+        if($this->getEstadocotizacion()->getId() == CotizacionEstadocotizacion::DB_VALOR_PLANTILLA){
             return sprintf("%s - %s", $this->getNumerocotizacion(), $this->getTitulo());
 
-        }elseif($this->getEstadocotizacion()->getId() == 1){ //generalmente los pendientes se envian por whatsapp, no muestro el estado
+        }elseif($this->getEstadocotizacion()->getId() == CotizacionEstadocotizacion::DB_VALOR_PENDIENTE){
             return sprintf("%s %s x%s", $this->getNumerocotizacion(), $this->getFile()->getNombre(), $this->getNumeropasajeros());
 
         }else{

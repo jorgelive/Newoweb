@@ -4,6 +4,7 @@ namespace App\Service;
 
 use PhpParser\Node\Expr\Array_;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use App\Entity\ServicioTipocomponente;
 
 class MainVariableproceso
 {

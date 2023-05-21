@@ -18,6 +18,13 @@ use Gedmo\Translatable\Translatable;
 class ServicioTipotarifadetalle
 {
 
+    public const DB_VALOR_PROVEEDOR = 1;
+    public const DB_VALOR_DETALLES = 2;
+    public const DB_VALOR_PROVEEDOR_INTERNO = 3;
+    public const DB_VALOR_SITIO_WEB = 4;
+    public const DB_VALOR_TARIFA_NEGOCIADA = 5;
+    public const DB_VALOR_INFORMACION_OPERATIVA = 6;
+
     /**
      * @var int
      *

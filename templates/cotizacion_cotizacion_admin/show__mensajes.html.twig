@@ -19,7 +19,9 @@
                         {% for componente in proveedor.componentes %}
                             <p>
                                 {% set emailMensaje = emailMensaje ~ '<p>' %}
-                                {% if componente.tipoComponenteId == 1  or componente.tipoComponenteId == 4 or componente.tipoComponenteId == 6 %} {# tickets 1 hoteles 4 pool 6#}
+                                {% if componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_TICKET')
+                                    or componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_ALOJAMIENTO')
+                                    or componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_EXCURSION_POOL') %} {# tickets 1 hoteles 4 pool 6#}
                                     <span style="font-weight: bold;">{{ componente.fechaHoraInicio|date("Y-m-d") }}</span>
                                     {% set whatsappText = whatsappText ~ '*' ~ componente.fechaHoraInicio|date("Y-m-d") ~ '*' %}
                                     {% set emailMensaje = emailMensaje ~ '<span style="font-weight: bold;">' ~ componente.fechaHoraInicio|date("Y-m-d") ~ '</span>' %}
@@ -32,12 +34,12 @@
                                 {{ componente.componenteNombre }}
                                 {% set whatsappText = whatsappText ~ ' ' ~ componente.componenteNombre %}
                                 {% set emailMensaje = emailMensaje ~ ' ' ~ componente.componenteNombre %}
-                                {% if componente.componenteCantidad > 1 or componente.tipoComponenteId == 4 %} {# 4 mostrar siempre si es hotel #}
+                                {% if componente.componenteCantidad > 1 or componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_ALOJAMIENTO') %} {# 4 mostrar siempre si es hotel #}
                                     <span style="font-weight: bold;">x{{ componente.componenteCantidad }}</span>
                                     {% set whatsappText = whatsappText ~ ' *x' ~ componente.componenteCantidad ~ '*' %}
                                     {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">x' ~ componente.componenteCantidad ~ '</span>' %}
                                 {% endif %}
-                                {% if componente.tipoComponenteId == 4 %} {# 4 hotel #}
+                                {% if componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_ALOJAMIENTO') %} {# 4 hotel #}
                                     noches
                                     {% set whatsappText = whatsappText ~ ' noches' %}
                                     {% set emailMensaje = emailMensaje ~ ' noches' %}

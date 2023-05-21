@@ -17,6 +17,10 @@ use Doctrine\Common\Collections\ArrayCollection;
 class ReservaChanel
 {
 
+    public const DB_VALOR_DIRECTO = 1;
+    public const DB_VALOR_AIRBNB = 2;
+    public const DB_VALOR_BOOKING = 3;
+
     /**
      * @var int
      *

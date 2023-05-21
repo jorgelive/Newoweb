@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\ServicioTipocomponente;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use App\Entity\CotizacionCotizacion;
@@ -45,7 +46,7 @@ class CotizacionIncluye
 
 //Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
                                 if(
-                                    $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId() == 4 //hoteles
+                                    $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId() == ServicioTipocomponente::DB_VALOR_ALOJAMIENTO
                                 ){
                                     $servicioId = -4; //se ordenara por este valor
                                     $datos['internoIncluidos'][$servicioId]['caso'] = 'hotel';

@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\ServicioTipocomponente;
 use Doctrine\ORM\EntityManagerInterface;
 
 class MensajeProveedor{
@@ -118,7 +119,7 @@ class MensajeProveedor{
 
                                 // procesamos hoteles
                                 if(
-                                    $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId() == 4 //hoteles
+                                    $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId() == ServicioTipocomponente::DB_VALOR_ALOJAMIENTO
                                 ){
                                     $tempHoteles[$tarifa->getId()]['fechaHoraInicio'] = $componente->getFechahorainicio();
                                     $tempHoteles[$tarifa->getId()]['fechaHoraFin'] = $componente->getFechahorafin();
@@ -163,7 +164,7 @@ class MensajeProveedor{
             //ordenamos por el indice
             ksort($proveedor['componentes']);
             foreach($proveedor['componentes'] as $componente):
-                if($componente['tipoComponenteId'] == 4){ //tipo 4 hoteles
+                if($componente['tipoComponenteId'] == ServicioTipocomponente::DB_VALOR_ALOJAMIENTO){
                     //no modificamos si es hotel
                     continue;
                 }

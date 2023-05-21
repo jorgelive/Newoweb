@@ -14,6 +14,9 @@ use Gedmo\Mapping\Annotation as Gedmo;
  */
 class MaestroSexo
 {
+    public const DB_VALOR_MASCULINO = 1;
+    public const DB_VALOR_FEMENINO = 2;
+
     /**
      * @var int
      *

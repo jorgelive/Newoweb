@@ -72,9 +72,7 @@ class TransporteServiciocontableAdmin extends AbstractAdmin
                         $queryBuilder->setParameter('fechahora', $value['value']);
                         return true;
                     }
-
                     return;
-
                 },
                 'field_type' => DatePickerType::class,
                 'field_options' => [

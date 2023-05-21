@@ -18,6 +18,8 @@ use Gedmo\Translatable\Translatable;
 class ServicioModalidadtarifa
 {
 
+    public const DB_VALOR_PRIVADO = 1;
+    public const DB_VALOR_COMPARTIDO = 2;
     /**
      * @var int
      *

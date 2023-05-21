@@ -13,6 +13,9 @@ use Gedmo\Mapping\Annotation as Gedmo;
  */
 class MaestroMoneda
 {
+    public const DB_VALOR_SOL = 1;
+    public const DB_VALOR_DOLAR = 2;
+
     /**
      * @ORM\Id
      * @ORM\Column(type="integer")

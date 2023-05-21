@@ -48,11 +48,12 @@ class ServicioTipotarifa
     private $comisionable = true;
 
     /**
+     * Ocultoenresumen en resumen
      * @var bool
      *
      * @ORM\Column(type="boolean", options={"default": 0})
      */
-    private $oculto = false;
+    private $ocultoenresumen = false;
 
     /**
      * @var bool
@@ -284,27 +285,27 @@ class ServicioTipotarifa
     }
 
     /**
-     * Set oculto.
+     * Set ocultoenresumen.
      *
-     * @param bool $oculto
+     * @param bool $ocultoenresumen
      *
      * @return ServicioTipotarifa
      */
-    public function setOculto($oculto)
+    public function setOcultoenresumen($ocultoenresumen)
     {
-        $this->oculto = $oculto;
+        $this->ocultoenresumen = $ocultoenresumen;
 
         return $this;
     }
 
     /**
-     * Is oculto.
+     * Is ocultoenresumen.
      *
      * @return bool
      */
-    public function isOculto(): ?bool
+    public function isOcultoenresumen(): ?bool
     {
-        return $this->oculto;
+        return $this->ocultoenresumen;
     }
 
     /**

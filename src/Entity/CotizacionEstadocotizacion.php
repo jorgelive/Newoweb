@@ -14,6 +14,14 @@ use Gedmo\Mapping\Annotation as Gedmo;
  */
 class CotizacionEstadocotizacion
 {
+    public const DB_VALOR_PENDIENTE = 1;
+    public const DB_VALOR_ARCHIVADO = 2;
+    public const DB_VALOR_CONFIRMADO = 3;
+    public const DB_VALOR_OPERADO = 4;
+    public const DB_VALOR_CANCELADO = 5;
+    public const DB_VALOR_PLANTILLA = 6;
+    public const DB_VALOR_WAITING = 7;
+
     /**
      * @var int
      *
@@ -35,7 +43,7 @@ class CotizacionEstadocotizacion
      *
      * @ORM\Column(type="boolean", options={"default": 0})
      */
-    private $ocultoresumen;
+    private $nopublico;
 
     /**
      * @var \DateTime $creado
@@ -97,27 +105,27 @@ class CotizacionEstadocotizacion
     }
 
     /**
-     * Set ocultoresumen
+     * Set nopublico
      *
-     * @param boolean $ocultoresumen
+     * @param boolean $nopublico
      *
      * @return CotizacionEstadocotizacion
      */
-    public function setOcultoresumen($ocultoresumen)
+    public function setNopublico($nopublico)
     {
-        $this->ocultoresumen = $ocultoresumen;
+        $this->nopublico = $nopublico;
 
         return $this;
     }
 
     /**
-     * Is ocultoresumen
+     * Is nopublico
      *
      * @return boolean
      */
-    public function isOcultoresumen(): ?bool
+    public function isNopublico(): ?bool
     {
-        return $this->ocultoresumen;
+        return $this->nopublico;
     }
 
     /**

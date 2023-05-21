@@ -37,7 +37,7 @@
                                                                         {% if not loop.first %}
                                                                             &nbsp;
                                                                         {% endif %}
-                                                                        {% if detalle.tipoId == 4 %}
+                                                                        {% if detalle.tipoId == constant('App\\Entity\\ServicioTipotarifadetalle::DB_VALOR_SITIO_WEB') %}
                                                                             <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
                                                                         {% else %}
                                                                             <span>{{ detalle.contenido }}</span>

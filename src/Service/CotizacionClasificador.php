@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\MaestroMoneda;
 use App\Entity\MaestroTipocambio;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -88,10 +89,10 @@ class CotizacionClasificador
 
                                 $tempArrayTarifa['moneda'] = $tarifa->getMoneda()->getId();
                                 //dólares = 2
-                                if($tarifa->getMoneda()->getId() == 2){
+                                if($tarifa->getMoneda()->getId() == MaestroMoneda::DB_VALOR_DOLAR){
                                     $tempArrayTarifa['montosoles'] = number_format((float)($tempArrayTarifa['montounitario'] * ($tipocambio->getCompra()/2 + $tipocambio->getVenta()/2)), 2, '.', '');
                                     $tempArrayTarifa['montodolares'] = $tempArrayTarifa['montounitario'];
-                                }elseif($tarifa->getMoneda()->getId() == 1){
+                                }elseif($tarifa->getMoneda()->getId() == MaestroMoneda::DB_VALOR_SOL){
                                     $tempArrayTarifa['montosoles'] = $tempArrayTarifa['montounitario'];
                                     $tempArrayTarifa['montodolares'] = number_format((float)($tempArrayTarifa['montounitario'] / ($tipocambio->getCompra()/2 + $tipocambio->getVenta()/2)), 2, '.', '');
                                 }else{
@@ -151,7 +152,7 @@ class CotizacionClasificador
                                 $tempArrayTarifa['tipoTarTitulo'] = $tarifa->getTipotarifa()->getTitulo();
                                 $tempArrayTarifa['tipoTarListacolor'] = $tarifa->getTipotarifa()->getListacolor();
 //no muestra el precio al pasajero
-                                $tempArrayTarifa['tipoTarOculto'] = $tarifa->getTipotarifa()->isOculto();
+                                $tempArrayTarifa['tipoTarOcultoenresumen'] = $tarifa->getTipotarifa()->isOcultoenresumen();
 
                                 $tempArrayComponente['tarifas'][] = $tempArrayTarifa;
                                 unset($tempArrayTarifa);
@@ -598,12 +599,12 @@ class CotizacionClasificador
                 $clase['resumen'][$tarifa['tipoTarId']]['tipoTarNombre'] = $tarifa['tipoTarNombre'];
                 $clase['resumen'][$tarifa['tipoTarId']]['tipoTarTitulo'] = $tarifa['tipoTarTitulo'];
                 $clase['resumen'][$tarifa['tipoTarId']]['tipoTarListacolor'] = $tarifa['tipoTarListacolor'];
-                $clase['resumen'][$tarifa['tipoTarId']]['tipoTarOculto'] = $tarifa['tipoTarOculto'];
+                $clase['resumen'][$tarifa['tipoTarId']]['tipoTarOcultoenresumen'] = $tarifa['tipoTarOcultoenresumen'];
 
                 $this->resumenDeClasificado[$tarifa['tipoTarId']]['nombre'] = $tarifa['tipoTarNombre'];
                 $this->resumenDeClasificado[$tarifa['tipoTarId']]['titulo'] = $tarifa['tipoTarTitulo'];
                 $this->resumenDeClasificado[$tarifa['tipoTarId']]['listacolor'] = $tarifa['tipoTarListacolor'];
-                $this->resumenDeClasificado[$tarifa['tipoTarId']]['oculto'] = $tarifa['tipoTarOculto'];
+                $this->resumenDeClasificado[$tarifa['tipoTarId']]['ocultoenresumen'] = $tarifa['tipoTarOcultoenresumen'];
 
                 if(!isset($this->resumenDeClasificado[$tarifa['tipoTarId']]['montosoles'])){
                     $this->resumenDeClasificado[$tarifa['tipoTarId']]['montosoles'] = 0;

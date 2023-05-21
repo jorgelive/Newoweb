@@ -29,7 +29,9 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
                 'label' => 'Clase'
             ])
             ->add('comisionable')
-            ->add('oculto')
+            ->add('ocultoenresumen', null, [
+                'label' => 'Oculto en resumen'
+            ])
             ->add('mostrarcostoincluye', null, [
                 'label' => 'Costo en incluye'
             ])
@@ -61,7 +63,8 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
             ->add('comisionable', null, [
                 'editable' => true
             ])
-            ->add('oculto', null, [
+            ->add('ocultoenresumen', null, [
+                'label' => 'Oculto en resumen',
                 'editable' => true
             ])
             ->add('mostrarcostoincluye', null, [
@@ -96,7 +99,9 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
                 'label' => 'Clase'
             ])
             ->add('comisionable')
-            ->add('oculto')
+            ->add('ocultoenresumen', null, [
+                'label' => 'Oculto en resumen'
+            ])
             ->add('mostrarcostoincluye', null, [
                 'label' => 'Costo en incluye'
             ])
@@ -121,7 +126,9 @@ class ServicioTipotarifaAdmin extends AbstractAdmin
                 'label' => 'Clase'
             ])
             ->add('comisionable')
-            ->add('oculto')
+            ->add('ocultoenresumen', null, [
+                'label' => 'Oculto en resumen'
+            ])
             ->add('mostrarcostoincluye', null, [
                 'label' => 'Costo en incluye'
             ])

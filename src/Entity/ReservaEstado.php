@@ -16,6 +16,10 @@ use Gedmo\Mapping\Annotation as Gedmo;
  */
 class ReservaEstado
 {
+    public const DB_VALOR_PENDIENTE = 1;
+    public const DB_VALOR_CONFIRMADO = 2;
+    public const DB_VALOR_CANCELADO = 3;
+
     /**
      * @var int
      *
