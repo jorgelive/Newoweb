@@ -6,6 +6,7 @@ use App\Entity\ReservaChanel;
 use App\Service\IcalGenerator;
 use App\Service\MainVariableproceso;
 use Google\Cloud\Translate\V2\TranslateClient;
+use Proxies\__CG__\App\Entity\ReservaEstado;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
@@ -132,7 +133,7 @@ class ReservaUnitAdminController extends CRUDAdminController
             ->andWhere('DATE(rr.fechahorafin) >= :fechahorafin')
             ->orderBy('rr.fechahorainicio', 'ASC')
             ->setParameter('unit', $id)
-            ->setParameter('estado', 2)
+            ->setParameter('estado', ReservaEstado::DB_VALOR_CONFIRMADO)
             ->setParameter('fechahorafin', $ahora->format('Y-m-d'));
         ;
 

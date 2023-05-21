@@ -247,7 +247,7 @@ class ServicioTarifa
         if(!empty($this->getTipopax())
             && !empty($this->getTipopax()->getId())
         ){
-            $vars[] = '(' . strtoupper(substr($this->getTipopax()->getNombre(), 0,2) . ')');
+            $vars[] = '(' . strtoupper(substr($this->getTipopax()->getNombre(), 0, 2) . ')');
         }
         if(count($vars) > 0){
             $varchain = ' | ' . implode(' ', $vars);

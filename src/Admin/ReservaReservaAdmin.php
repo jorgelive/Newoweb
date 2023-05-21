@@ -2,6 +2,8 @@
 
 namespace App\Admin;
 
+use App\Entity\ReservaChanel;
+use App\Entity\ReservaEstado;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
@@ -74,7 +76,7 @@ class ReservaReservaAdmin extends AbstractAdmin
         $fin = new \DateTime( 'tomorrow + 1day');
         $fin = $fin->add(\DateInterval::createFromDateString('10 hours'));
 
-        $estadoReference = $entityManager->getReference('App\Entity\ReservaEstado', 2);
+        $estadoReference = $entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);
         $object->setEstado($estadoReference);
         $object->setFechahorainicio($inicio);
         $object->setFechahorafin($fin);
@@ -221,9 +223,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'class' => 'App\Entity\ReservaEstado',
                 'required' => true,
                 'choices' => [
-                    1 => 'Pendiente',
-                    2 => 'Confirmado',
-                    3 => 'Cancelado'
+                    ReservaEstado::DB_VALOR_PENDIENTE => 'Pendiente',
+                    ReservaEstado::DB_VALOR_CONFIRMADO => 'Confirmado',
+                    ReservaEstado::DB_VALOR_CANCELADO => 'Cancelado'
                 ]
             ])
             ->add('chanel', FieldDescriptionInterface::TYPE_CHOICE, [
@@ -235,9 +237,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'class' => 'App\Entity\ReservaChanel',
                 'required' => true,
                 'choices' => [
-                    1 => 'Directo',
-                    2 => 'Airbnb',
-                    3 => 'Booking'
+                    ReservaChanel::DB_VALOR_DIRECTO => 'Directo',
+                    ReservaChanel::DB_VALOR_AIRBNB => 'Airbnb',
+                    ReservaChanel::DB_VALOR_BOOKING => 'Booking'
                 ]
             ])
             ->add('manual', null, [

@@ -17,6 +17,11 @@ use Gedmo\Mapping\Annotation as Gedmo;
  */
 class MaestroCategoriatour
 {
+    public const DB_VALOR_ESTANDAR = 1;
+    public const DB_VALOR_ECONOMICO = 2;
+    public const DB_VALOR_SUPERIOR = 3;
+    public const DB_VALOR_PREMIUM = 4;
+    
     /**
      * @var int
      *

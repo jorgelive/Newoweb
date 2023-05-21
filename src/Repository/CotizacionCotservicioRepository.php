@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Repository;
+use App\Entity\CotizacionEstadocotizacion;
 use App\Entity\UserUser;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -53,7 +54,7 @@ class CotizacionCotservicioRepository extends \Doctrine\ORM\EntityRepository
 
         $qb->setParameter('firstDate', $data['from'])
             ->setParameter('lastDate', $data['to'])
-            ->setParameter('estados', [3, 4]);
+            ->setParameter('estados', [CotizacionEstadocotizacion::DB_VALOR_CONFIRMADO, CotizacionEstadocotizacion::DB_VALOR_OPERADO]);
 
         return $qb;
 

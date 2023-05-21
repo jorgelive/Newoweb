@@ -2,6 +2,9 @@
 
 namespace App\Admin;
 
+use App\Entity\MaestroCategoriatour;
+use App\Entity\MaestroMoneda;
+use App\Entity\ServicioModalidadtarifa;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
@@ -93,8 +96,8 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'class' => 'App\Entity\MaestroMoneda',
                 'required' => false,
                 'choices' => [
-                    1 => 'Soles',
-                    2 => 'Dólares'
+                    MaestroMoneda::DB_VALOR_SOL => 'Soles',
+                    MaestroMoneda::DB_VALOR_DOLAR => 'Dólares'
                 ]
             ])
             ->add('monto', null, [
@@ -123,10 +126,10 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'editable' => true,
                 'class' => 'App\Entity\MaestroCategoriatour',
                 'choices' => [
-                    1 => 'Estandar',
-                    2 => 'Económico',
-                    3 => 'Superior',
-                    4 => 'Premium'
+                    MaestroCategoriatour::DB_VALOR_ESTANDAR => 'Estandar',
+                    MaestroCategoriatour::DB_VALOR_ECONOMICO => 'Económico',
+                    MaestroCategoriatour::DB_VALOR_SUPERIOR => 'Superior',
+                    MaestroCategoriatour::DB_VALOR_PREMIUM => 'Premium'
                 ]
             ])
             ->add('modalidadtarifa', FieldDescriptionInterface::TYPE_CHOICE, [
@@ -137,8 +140,8 @@ class ServicioTarifaAdmin extends AbstractAdmin
                 'editable' => true,
                 'class' => 'App\Entity\ServicioModalidadtarifa',
                 'choices' => [
-                    1 => 'Privado',
-                    2 => 'Compartido'
+                    ServicioModalidadtarifa::DB_VALOR_PRIVADO => 'Privado',
+                    ServicioModalidadtarifa::DB_VALOR_COMPARTIDO => 'Compartido'
                 ]
             ])
             ->add('prorrateado', null, [

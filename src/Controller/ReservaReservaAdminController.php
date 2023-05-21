@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\ReservaChanel;
+use App\Entity\ReservaEstado;
 use App\Service\IcalGenerator;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -66,8 +68,8 @@ class ReservaReservaAdminController extends CRUDAdminController
         $newObject = clone $object;
 
         $newObject->setUid('cl-' . $object->getUid());
-        $newObject->setChanel($em->getReference('App\Entity\ReservaChanel', 1));
-        $newObject->setEstado($em->getReference('App\Entity\ReservaEstado', 2));
+        $newObject->setChanel($em->getReference('App\Entity\ReservaChanel', ReservaChanel::DB_VALOR_DIRECTO));
+        $newObject->setEstado($em->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
 
         $newObject->setNombre($object->getNombre() . ' (Clone)');
         $this->admin->create($newObject);
@@ -100,8 +102,8 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $newObject->setFechahorainicio($nuevaFechaInicial);
         $newObject->setUid('ad-' . $object->getUid());
-        $newObject->setChanel($em->getReference('App\Entity\ReservaChanel', 1));
-        $newObject->setEstado($em->getReference('App\Entity\ReservaEstado', 2));
+        $newObject->setChanel($em->getReference('App\Entity\ReservaChanel', ReservaChanel::DB_VALOR_DIRECTO));
+        $newObject->setEstado($em->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
         $newObject->setFechahorafin($nuevaFechaFinal);
         $newObject->setNombre($object->getNombre() . ' (Adicional)');
         $this->admin->create($newObject);
@@ -123,7 +125,7 @@ class ReservaReservaAdminController extends CRUDAdminController
             ->where('rr.estado = :estado')
             ->andWhere('DATE(rr.fechahorafin) >= :fechahorafin')
             ->orderBy('rr.fechahorainicio', 'ASC')
-            ->setParameter('estado', 2)
+            ->setParameter('estado', ReservaEstado::DB_VALOR_CONFIRMADO)
             ->setParameter('fechahorafin', $ahora->sub(new \DateInterval('P7D'))->format('Y-m-d'));
         ;
 

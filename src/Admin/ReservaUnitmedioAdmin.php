@@ -2,6 +2,7 @@
 
 namespace App\Admin;
 
+use App\Entity\ReservaUnittipocaracteristica;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
@@ -109,9 +110,9 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                 'class' => 'App\Entity\ReservaUnittipocaracteristica',
                 'required' => true,
                 'choices' => [
-                    1 => 'Descrición',
-                    2 => 'Briefing',
-                    3 => 'Galería'
+                    ReservaUnittipocaracteristica::DB_VALOR_DESCRIPCION => 'Descrición',
+                    ReservaUnittipocaracteristica::DB_VALOR_BRIEFING => 'Briefing',
+                    ReservaUnittipocaracteristica::DB_VALOR_GALERIA => 'Galería'
 
                 ]
             ])

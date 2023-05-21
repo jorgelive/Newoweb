@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\CotizacionEstadocotcomponente;
+use App\Entity\CotizacionEstadocotizacion;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use App\Service\CotizacionResumen;
@@ -49,7 +51,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
         $newObject = clone $object;
         $newObject->setNombre($object->getNombre().' (Clone)');
-        $newObject->setEstadocotizacion($this->entityManager->getReference('App\Entity\CotizacionEstadocotizacion', 1));
+        $newObject->setEstadocotizacion($this->entityManager->getReference('App\Entity\CotizacionEstadocotizacion', CotizacionEstadocotizacion::DB_VALOR_PENDIENTE));
 
         foreach($newObject->getCotservicios() as $cotservicio):
             //en la primera iteracion considerando que el orden es por fecha de inicio
@@ -67,7 +69,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
                     $cotcomponente->getFechaHoraInicio()->add($interval);
                     $cotcomponente->getFechaHoraFin()->add($interval);
                 }
-                $cotcomponente->setEstadocotcomponente($this->entityManager->getReference('App\Entity\CotizacionEstadocotcomponente', 1));
+                $cotcomponente->setEstadocotcomponente($this->entityManager->getReference('App\Entity\CotizacionEstadocotcomponente', CotizacionEstadocotcomponente::DB_VALOR_PENDIENTE));
             endforeach;
         endforeach;
 

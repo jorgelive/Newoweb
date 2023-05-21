@@ -2,6 +2,7 @@
 
 namespace App\Admin;
 
+use App\Entity\CotizacionEstadocotizacion;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
@@ -218,12 +219,13 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'class' => 'App\Entity\CotizacionEstadocotizacion',
                 'required' => true,
                 'choices' => [
-                    1 => 'Pendiente',
-                    2 => 'Archivado',
-                    3 => 'Confirmado',
-                    4 => 'Operado',
-                    5 => 'Cancelado',
-                    6 => 'Plantilla'
+                    CotizacionEstadocotizacion::DB_VALOR_PENDIENTE => 'Pendiente',
+                    CotizacionEstadocotizacion::DB_VALOR_ARCHIVADO => 'Archivado',
+                    CotizacionEstadocotizacion::DB_VALOR_CONFIRMADO => 'Confirmado',
+                    CotizacionEstadocotizacion::DB_VALOR_OPERADO => 'Operado',
+                    CotizacionEstadocotizacion::DB_VALOR_CANCELADO => 'Cancelado',
+                    CotizacionEstadocotizacion::DB_VALOR_PLANTILLA => 'Plantilla',
+                    CotizacionEstadocotizacion::DB_VALOR_WAITING => 'Waiting'
                 ]
             ])
             ->add('file.filedocumentos', null, [

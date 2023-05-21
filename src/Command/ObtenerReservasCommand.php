@@ -116,7 +116,7 @@ class ObtenerReservasCommand extends Command
 
                     if($canal == ReservaChanel::DB_VALOR_AIRBNB && $event->summary != 'Airbnb (Not available)'){
 
-                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 2);
+                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);
                         $temp['nombre'] = 'Completar Airbnb';
                         if($num_found = preg_match_all('~[a-z]+://\S+~', $event->description, $out))
                         {
@@ -124,7 +124,7 @@ class ObtenerReservasCommand extends Command
                         }
                         $insertar = true;
                     }elseif($canal == ReservaChanel::DB_VALOR_BOOKING){
-                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', 2);  //ya no Pendiente (1)
+                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);  //ya no Pendiente (1)
                         $temp['nombre'] = str_replace('CLOSED - Not available', '', $event->summary) . 'Completar Booking';
                         $temp['enlace'] = '';
                         $insertar = true;
@@ -159,16 +159,16 @@ class ObtenerReservasCommand extends Command
                     if(!in_array($currentReserva->getUid(), $uidsArray)){
                         //cancelamos la reserva si ya no esta presente
                         if($currentReserva->getEstado()->getId() != 3){
-                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 3));
+                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CANCELADO));
                             $output->writeln(sprintf('Cancelando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
                         }
                     }elseif($currentReserva->getEstado()->getId() == ReservaEstado::DB_VALOR_CANCELADO){
                         //reponemos si la desaparición fue temporal
                         $output->writeln(sprintf('Reactivando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
                         if($currentReserva->getChanel()->getId() == ReservaChanel::DB_VALOR_AIRBNB){
-                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 2));
+                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
                         }elseif($currentReserva->getChanel()->getId() == ReservaChanel::DB_VALOR_BOOKING){
-                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', 2)); //Ya no pendiente (1)
+                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO)); //Ya no pendiente (1)
                         }
                     }
                 }

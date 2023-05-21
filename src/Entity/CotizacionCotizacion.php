@@ -157,9 +157,8 @@ class CotizacionCotizacion
         if($this->getEstadocotizacion()->getId() == CotizacionEstadocotizacion::DB_VALOR_PLANTILLA){
             return sprintf("%s - %s", $this->getNumerocotizacion(), $this->getTitulo());
 
-        }elseif($this->getEstadocotizacion()->getId() == CotizacionEstadocotizacion::DB_VALOR_PENDIENTE){
+        }elseif($this->getEstadocotizacion()->getId() == CotizacionEstadocotizacion::DB_VALOR_PENDIENTE || $this->getEstadocotizacion()->getId() == CotizacionEstadocotizacion::DB_VALOR_WAITING){
             return sprintf("%s %s x%s", $this->getNumerocotizacion(), $this->getFile()->getNombre(), $this->getNumeropasajeros());
-
         }else{
             return sprintf("%s %s x%s (%s)", $this->getNumerocotizacion(), $this->getFile()->getNombre(), $this->getNumeropasajeros(), $this->getEstadocotizacion()->getNombre());
         }

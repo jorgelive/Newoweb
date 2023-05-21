@@ -64,14 +64,14 @@ class CotizacionClasificador
                                         ), 2, '.', '');
                                     $tempArrayTarifa['montototal'] = number_format(
                                         (float)($tarifa->getMonto() * $tarifa->getCantidad() * $componente->getCantidad()
-                                        ),2, '.', '');
+                                        ), 2, '.', '');
                                     $tempArrayTarifa['cantidad'] = (int)($this->cotizacion->getNumeropasajeros());
                                     $tempArrayTarifa['prorrateado'] = true;
 
                                 }else{
                                     $tempArrayTarifa['montounitario'] = number_format(
                                         (float)($tarifa->getMonto() * $componente->getCantidad()
-                                        ),2, '.', '');
+                                        ), 2, '.', '');
                                     $tempArrayTarifa['montototal'] = number_format(
                                         (float)($tarifa->getMonto() * $componente->getCantidad() * $tarifa->getCantidad()
                                         ), 2, '.', '');

@@ -16,6 +16,7 @@ class MaestroPais
 {
 
     public const DB_VALOR_PERU = 117;
+
     /**
      * @var int
      *

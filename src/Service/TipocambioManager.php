@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\MaestroMoneda;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\MaestroTipocambio;
 
@@ -42,9 +43,9 @@ class TipocambioManager{
     private function insertTipo(array $tipo, \DateTime $fecha): MaestroTipocambio
     {
 
-        $moneda = $this->em->getReference('App\Entity\MaestroMoneda', 2);
+        $moneda = $this->em->getReference('App\Entity\MaestroMoneda', MaestroMoneda::DB_VALOR_DOLAR);
 
-        $entity = new \App\Entity\MaestroTipocambio();
+        $entity = new MaestroTipocambio();
         $entity->setCompra($tipo['compra']);
         $entity->setVenta($tipo['venta']);
         $entity->setFecha($fecha);
