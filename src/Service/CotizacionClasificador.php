@@ -24,7 +24,7 @@ class CotizacionClasificador
 
     private CotizacionItinerario $cotizacionItinerario;
 
-    function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario, RequestStack $requestStack,)
+    function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario, RequestStack $requestStack)
     {
         $this->translator = $translator;
         $this->cotizacionItinerario = $cotizacionItinerario;
@@ -90,11 +90,11 @@ class CotizacionClasificador
                                 $tempArrayTarifa['moneda'] = $tarifa->getMoneda()->getId();
                                 //dólares = 2
                                 if($tarifa->getMoneda()->getId() == MaestroMoneda::DB_VALOR_DOLAR){
-                                    $tempArrayTarifa['montosoles'] = number_format((float)($tempArrayTarifa['montounitario'] * ($tipocambio->getCompra()/2 + $tipocambio->getVenta()/2)), 2, '.', '');
+                                    $tempArrayTarifa['montosoles'] = number_format((float)($tempArrayTarifa['montounitario'] * (float)$tipocambio->getPromedio()), 2, '.', '');
                                     $tempArrayTarifa['montodolares'] = $tempArrayTarifa['montounitario'];
                                 }elseif($tarifa->getMoneda()->getId() == MaestroMoneda::DB_VALOR_SOL){
                                     $tempArrayTarifa['montosoles'] = $tempArrayTarifa['montounitario'];
-                                    $tempArrayTarifa['montodolares'] = number_format((float)($tempArrayTarifa['montounitario'] / ($tipocambio->getCompra()/2 + $tipocambio->getVenta()/2)), 2, '.', '');
+                                    $tempArrayTarifa['montodolares'] = number_format((float)($tempArrayTarifa['montounitario'] / (float)$tipocambio->getPromedio()), 2, '.', '');
                                 }else{
                                     $this->requestStack->getSession()->getFlashBag()->add('error', 'La aplicación solo puede utilizar Soles y dólares en las tarifas.');
 

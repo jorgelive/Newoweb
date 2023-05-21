@@ -12,7 +12,20 @@
                                     <h5 style="font-weight: 600;">{{ tipotarifa.tituloTipotarifa }}</h5> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
                                     <ul class="fa-ul">
                                         {% for componente in tipotarifa.componentes %}
-                                            <li><i style="color: {{ componente.listacolor }};" class="fa-li fas {{ componente.listaclase }}"></i> {{ componente.titulo }} {% if componente.cantidadComponente > 1 %} <span style="font-weight: bold;"> x {{ componente.cantidadComponente }} {% if incluido.caso == 'hotel' %}  {{ 'noches'|trans({},'messages') }} {% else %} {{ 'dias'|trans({},'messages') }} {% endif %}</span>{% endif %} ({{ componente.fecha }})
+                                            <li><i style="color: {{ componente.listacolor }};" class="fa-li fas {{ componente.listaclase }}"></i>
+                                                {{ componente.titulo }}
+                                                {% if componente.cantidadComponente > 1 %}
+                                                    <span style="font-weight: bold;"> x {{ componente.cantidadComponente }}
+                                                        {% if incluido.caso == 'hotel' %}
+                                                            {{ 'noches'|trans({},'messages') }}
+                                                        {% else %}
+                                                            {{ 'dias'|trans({},'messages') }}
+                                                        {% endif %}
+                                                    </span>
+                                                {% endif %}
+                                                {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                                                    ({{ componente.fecha }})
+                                                {% endif %}
                                                 {% if componente.tarifas is defined %}
                                                     <ul style="list-style: none; padding-left: 20px;">
                                                         {% for tarifa in componente.tarifas %}

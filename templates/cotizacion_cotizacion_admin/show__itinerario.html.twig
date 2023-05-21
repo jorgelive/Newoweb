@@ -4,10 +4,22 @@
         <div class="panel-body table-responsive">
             <h3 class="visible-print">Itinerario</h3>
             {% if tabs.itinerarios is defined and tabs.itinerarios|length > 0 %}
-
                 {% for itinerario in tabs.itinerarios %}
-
-                    <h5><span style="font-weight: 600;">{{ itinerario.fecha|format_datetime('full', 'none')}}</span>&nbsp;-&nbsp;<span>{{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}</span></h5>
+                    <h5>
+                        {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                            <span style="font-size: 1.15em; font-weight: 600;">
+                                {{ itinerario.fecha|format_datetime('full', 'none')|capitalize}}
+                            </span>
+                            &nbsp;-&nbsp;
+                            <span>
+                                {{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}
+                            </span>
+                        {% else %}
+                            <span style="font-size: 1.15em; font-weight: 600;">
+                                {{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}
+                            </span>
+                        {% endif %}
+                    </h5>
                     {% for item in itinerario.fechaitems %}
                         {% if item.titulo is defined %}
                             <h5 style="font-weight: bold; color: #016c8d;">{{ item.titulo }} - {{ item.tituloDia }}</h5>
@@ -15,6 +27,7 @@
                             <h5 style="font-weight: bold; color: #016c8d;">{{ item.tituloDia }}</h5>
                         {% endif%}
                         <div class="ck-content itinerariodescripcion">{{ item.descripcion|raw }}</div>
+                        {% if item.archivos is defined and item.archivos|length > 0 %}
                         <div class="container-fluid hidden-print">
                             {% for archivo in item.archivos %}
                                 {% if loop.index0 % 2 == 0 %}
@@ -38,6 +51,7 @@
                                 {% endif %}
                             {% endfor %}
                         </div>
+                        {% endif %}
                         {% if item.nota is defined %}
                             <div class="ck-content itinerarionota post-it">{{ item.nota|raw }}</div>
                         {% endif %}

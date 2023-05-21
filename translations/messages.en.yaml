@@ -47,3 +47,11 @@ cualquier_nacionalidad: any country
 total: total
 dias: days
 noches: nights
+fecha_ingreso: check_in
+desde: from
+fecha_salida: check-out
+hasta: to
+canal: chanel
+dia_libre_titulo: 'Free day'
+dia_libre_contenido: 'You can go to see other places of your interest, request excursion options for this day or do something at your leisure.'
+

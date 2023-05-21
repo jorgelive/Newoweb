@@ -26,7 +26,6 @@ class MaestroTipocambioAdmin extends AbstractAdmin
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
-            ->add('id')
             ->add('fecha')
             ->add('moneda')
             ->add('compra')
@@ -41,13 +40,13 @@ class MaestroTipocambioAdmin extends AbstractAdmin
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
-            ->add('id')
             ->add('fecha',null, [
                 'format' => 'Y/m/d'
             ])
             ->add('moneda')
             ->add('compra')
             ->add('venta')
+            ->add('promedio')
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -90,7 +89,7 @@ class MaestroTipocambioAdmin extends AbstractAdmin
             ->add('moneda')
             ->add('compra')
             ->add('venta')
+            ->add('promedio')
         ;
     }
-
 }

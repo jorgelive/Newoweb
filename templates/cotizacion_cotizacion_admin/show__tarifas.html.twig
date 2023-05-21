@@ -94,28 +94,28 @@
                     <p>
                         {{ 'la_tarifa'|trans({},'messages')|capitalize }} <span style="font-weight: bold;">{{ 'no_incluye_impuestos'|trans({},'messages') }}</span>, {{ 'consulte_la_exoneracion'|trans({},'messages') }}.
                     </p>
-                    {% if object.estadocotizacion.id != 6 %}
+                    {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
                         <p>{{ 'la_tarifa_tiene_una_validez_de_3_dias_hasta_el'|trans({},'messages')|capitalize }}
                             <span style="font-weight: bold;">
-                                            {{ object.fecha|date_modify("+3 day")|date("d/m/Y") }}
-                                        </span>
+                                {{ object.fecha|date_modify("+3 day")|date("d/m/Y") }}
+                            </span>
                         </p>
                     {% endif %}
 
                     {% if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %}
                         <p>{{ 'tarifa_base'|trans({},'messages')|capitalize }}:
                             <span style="font-weight: bold;">
-                                            {{ 'dolares'|trans({},'messages')|upper }}
-                                        </span>
+                                {{ 'dolares'|trans({},'messages')|upper }}
+                            </span>
                         </p>
                         <p>{{ 'tarifa_en_soles_al_tipo_de_cambio_referencial_de'|trans({},'messages')|capitalize }}
                             <span style="font-weight: bold; color: #1B6129;">
-                                            {{ cotizacion.tipocambio.compra/2 + cotizacion.tipocambio.venta/2 }}
-                                        </span>
+                                {{ cotizacion.tipocambio.promedioredondeado }}
+                            </span>
                             {{ 'del_dia'|trans({},'messages') }}
                             <span style="font-weight: bold; color: #1B6129;">
-                                             {{ object.fecha | date("d/m/Y") }}
-                                        </span>
+                                {{ cotizacion.tipocambio.fecha | date("Y-m-d") }}
+                            </span>
                         </p>
                     {% endif %}
                 </div>

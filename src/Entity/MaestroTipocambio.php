@@ -16,57 +16,42 @@ class MaestroTipocambio
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var \App\Entity\MaestroMoneda
-     *
      * @ORM\ManyToOne(targetEntity="MaestroMoneda", inversedBy="tipocambios")
      * @ORM\JoinColumn(name="moneda_id", referencedColumnName="id", nullable=false)
      */
-    protected $moneda;
+    protected ?MaestroMoneda $moneda;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(name="fecha", type="date")
      */
-    private $fecha;
+    private ?\DateTime $fecha;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="decimal", precision=10, scale=3)
      */
-    private $compra;
+    private ?string $compra;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="decimal", precision=10, scale=3)
      */
-    private $venta;
+    private ?string $venta;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         if(is_null($this->getFecha())) {
             return sprintf("Id: %s.", $this->getId());
@@ -75,157 +60,89 @@ class MaestroTipocambio
         return $this->getFecha()->format('Y-m-d');
     }
 
+    public function getPromedio(): string
+    {
+        return (string)(( (float)$this->getCompra() + (float)$this->getVenta() ) / 2);
+    }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getPromedioredondeado(): string
+    {
+        return (string)(round(( (float)$this->getCompra() + (float)$this->getVenta() ) / 2, 2));
+    }
+
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set fecha
-     *
-     * @param \DateTime $fecha
-     *
-     * @return MaestroTipocambio
-     */
-    public function setFecha($fecha)
+    public function setFecha(\DateTime $fecha): self
     {
         $this->fecha = $fecha;
 
         return $this;
     }
 
-    /**
-     * Get fecha
-     *
-     * @return \DateTime
-     */
-    public function getFecha()
+    public function getFecha(): ?\DateTime
     {
         return $this->fecha;
     }
 
-    /**
-     * Set compra
-     *
-     * @param string $compra
-     *
-     * @return MaestroTipocambio
-     */
-    public function setCompra($compra)
+    public function setCompra(?string $compra): self
     {
         $this->compra = $compra;
 
         return $this;
     }
 
-    /**
-     * Get compra
-     *
-     * @return string
-     */
-    public function getCompra()
+    public function getCompra(): ?string
     {
         return $this->compra;
     }
 
-    /**
-     * Set venta
-     *
-     * @param string $venta
-     *
-     * @return MaestroTipocambio
-     */
-    public function setVenta($venta)
+    public function setVenta(?string $venta): self
     {
         $this->venta = $venta;
 
         return $this;
     }
 
-    /**
-     * Get venta
-     *
-     * @return string
-     */
-    public function getVenta()
+    public function getVenta(): ?string
     {
         return $this->venta;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return MaestroTipocambio
-     */
-    public function setCreado($creado)
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
 
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return MaestroTipocambio
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
 
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Set moneda
-     *
-     * @param \App\Entity\MaestroMoneda $moneda
-     *
-     * @return MaestroTipocambio
-     */
-    public function setMoneda(\App\Entity\MaestroMoneda $moneda = null)
+    public function setMoneda(?MaestroMoneda $moneda): self
     {
         $this->moneda = $moneda;
 
         return $this;
     }
 
-    /**
-     * Get moneda
-     *
-     * @return \App\Entity\MaestroMoneda
-     */
-    public function getMoneda()
+    public function getMoneda(): ?MaestroMoneda
     {
         return $this->moneda;
     }

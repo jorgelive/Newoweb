@@ -52,4 +52,5 @@ desde: desde
 fecha_salida: salida
 hasta: hasta
 canal: canal
-Confirmado: Confirmado
+dia_libre_titulo: 'Dia Libre'
+dia_libre_contenido: 'Puede descansar, conocer otros lugares de interés o solicitar opciones de excursiones para este dia.'

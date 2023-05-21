@@ -53,10 +53,15 @@
                                 </tr>
                             {% endif %}
                             <tr class="sonata-ba-view-container">
-                                <th>{{ 'nombre'|trans({},'messages')|capitalize }}</th>
-                                <td>{{ object.file.nombre }} x {{ object.numeropasajeros }} - {{ object.file.pais.nombre }}
-                                    <span class="idioma">({{ object.file.idioma.nombre }})</span>
-                                    <span class="codigo">{{ object.codigo }}</span></td>
+                                {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                                    <th>{{ 'nombre'|trans({},'messages')|capitalize }}</th>
+                                    <td>{{ object.file.nombre }} x {{ object.numeropasajeros }} - {{ object.file.pais.nombre }}
+                                        <span class="idioma">({{ object.file.idioma.nombre }})</span>
+                                        <span class="codigo">{{ object.codigo }}</span>
+                                    </td>
+                                {% else %}
+                                    <td><span class="codigo">{{ object.codigo }}</span></td>
+                                {% endif %}
                             </tr>
                         </tbody>
                     </table>
@@ -204,12 +209,14 @@
                         </a>
                     </li>
 
+                    {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
                     <li>
                         <a href="#tab_{{ admin.uniqid }}_agenda" data-toggle="tab">
                             <i style="color: #ffa751" class="fas fa-calendar tab-icon" aria-hidden="true"></i>
                             <span>{{ 'tab_agenda'|trans({},'messages')|capitalize}}</span>
                         </a>
                     </li>
+                    {% endif %}
 
                     <li>
                         <a href="#tab_{{ admin.uniqid }}_politica" data-toggle="tab">
@@ -268,36 +275,11 @@
                         {% include 'cotizacion_cotizacion_admin/show__incluye.html.twig' %}
                     </div>
 
-
+                    {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
                     <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_agenda">
-                        <div class="box-body container-fluid">
-                            <div class="sonata-ba-collapsed-fields">
-                                <div class="box-body table-responsive">
-                                    <h3 class="visible-print">{{ 'tab_agenda'|trans({}, 'messages')|capitalize}}</h3>
-                                    {% if tabs.agenda.componentes is defined and tabs.agenda.componentes|length > 0%}
-                                        <ul class="fa-ul">
-                                            {% for componente in tabs.agenda.componentes | filter(componente => componente.fechahorainicio != componente.fechahorafin ) %}
-                                                <li style="margin-bottom: 10px">
-                                                    <i class="fa-li fas fa-map"></i>
-                                                    {{ componente.titulo }} en {{ componente.tituloItinerario }}
-                                                    <ul class="fa-ul">
-                                                        <li>
-                                                            <i class="fa-li fas fa-calendar" style="color: orange;"></i>
-                                                            {{ 'inicio'|trans({},'messages')|capitalize }}: <span style="font-weight: bold">{{ componente.fechahorainicio|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
-                                                        </li>
-                                                        <li>
-                                                            <i class="fa-li fas fa-calendar-check" style="color: #1B6129;"></i>
-                                                            {{ 'fin'|trans({},'messages')|capitalize }}: <span style="font-weight: bold">{{ componente.fechahorafin|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
-                                                        </li>
-                                                    </ul>
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
+                        {% include 'cotizacion_cotizacion_admin/show__agenda.html.twig' %}
                     </div>
+                    {% endif %}
 
                     <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_politica">
                         <div class="box-body container-fluid">

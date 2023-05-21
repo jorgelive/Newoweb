@@ -1,0 +1,27 @@
+<div class="box-body container-fluid">
+    <div class="sonata-ba-collapsed-fields">
+        <div class="box-body table-responsive">
+            <h3 class="visible-print">{{ 'tab_agenda'|trans({}, 'messages')|capitalize}}</h3>
+            {% if tabs.agenda.componentes is defined and tabs.agenda.componentes|length > 0%}
+                <ul class="fa-ul">
+                    {% for componente in tabs.agenda.componentes | filter(componente => componente.fechahorainicio != componente.fechahorafin ) %}
+                        <li style="margin-bottom: 10px">
+                            <i class="fa-li fas fa-map"></i>
+                            {{ componente.titulo }} en {{ componente.tituloItinerario }}
+                            <ul class="fa-ul">
+                                <li>
+                                    <i class="fa-li fas fa-calendar" style="color: orange;"></i>
+                                    {{ 'inicio'|trans({},'messages')|capitalize }}: <span style="font-weight: bold">{{ componente.fechahorainicio|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
+                                </li>
+                                <li>
+                                    <i class="fa-li fas fa-calendar-check" style="color: #1B6129;"></i>
+                                    {{ 'fin'|trans({},'messages')|capitalize }}: <span style="font-weight: bold">{{ componente.fechahorafin|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
+                                </li>
+                            </ul>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+</div>
