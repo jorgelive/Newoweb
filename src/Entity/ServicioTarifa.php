@@ -64,6 +64,12 @@ class ServicioTarifa
      * @ORM\Column(type="string", length=100, nullable=true)
      */
     private $titulo;
+    /**
+     * @var string
+     *
+     * @ORM\Column(type="string", columnDefinition= "varchar(100) AS (titulo) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
+     */
+    private $titulooriginal;
 
     /**
      * @var MaestroMoneda
@@ -462,6 +468,11 @@ class ServicioTarifa
     public function getTitulo(): ?string
     {
         return $this->titulo;
+    }
+
+    public function getTitulooriginal(): ?string
+    {
+        return $this->titulooriginal;
     }
 
     public function setTipotarifa(?ServicioTipotarifa $tipotarifa = null): self
