@@ -79,7 +79,7 @@ class MensajeProveedor{
                                     $tempProveedores[$providerId]['nombre'] = $providerName;
                                     $tempProveedores[$providerId]['nombreMostrar'] = $providerNameMostrar;
 
-                                    //comunes que se sobreescriben si es que pertenecen al mismo commponente, ya no queremos filas distitas ahora usan el mismo $indiceComponentesProveedor
+                                    //comunes que se sobreescriben si es que pertenecen al mismo componente, ya no queremos filas distintas ahora usan el mismo $indiceComponentesProveedor
 
                                     $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['fechaHoraInicio'] = $componente->getFechahorainicio();
                                     $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['fechaHoraFin'] = $componente->getFechahorafin();
@@ -87,6 +87,8 @@ class MensajeProveedor{
                                     $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tipoComponenteNombre'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getNombre();
                                     $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tipoComponentePrioridad'] = $tarifa->getTarifa()->getComponente()->getTipocomponente()->getPrioridadparaproveedor();
                                     $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['componenteNombre'] = $componente->getComponente()->getNombre();
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['componenteEstadoNombre'] = $componente->getEstadoCotcomponente()->getNombre();
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['componenteEstadoColor'] = $componente->getEstadoCotcomponente()->getColor();
                                     $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['componenteCantidad'] = (int)($componente->getCantidad());
 
                                     if(!empty($tarifa->getTarifa()->getNombremostrar())){

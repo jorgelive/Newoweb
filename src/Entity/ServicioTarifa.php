@@ -64,6 +64,7 @@ class ServicioTarifa
      * @ORM\Column(type="string", length=100, nullable=true)
      */
     private $titulo;
+
     /**
      * @var string
      *

@@ -181,6 +181,7 @@ class ReservaReserva
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
+            $this->setToken(mt_rand());
 
         }
     }

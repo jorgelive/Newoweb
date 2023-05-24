@@ -153,6 +153,23 @@
                     $(this).addClass('ckrendered');
                 }
             });
+
+            $('.ckeditorread').each(function() {
+                if(!$(this).hasClass('ckrendered')){
+                    ClassicEditor.create(this, {
+                        toolbar: {
+                            shouldNotGroupWhenFull: true
+                        },
+                        readOnly: true
+                    }).then(editor => {
+                        //console.log( editor );
+                        editor.enableReadOnlyMode('my-feature-id') // make the editor read-only right after initialization
+                    }).catch( error => {
+                        //console.error( error );
+                    });
+                    $(this).addClass('ckrendered');
+                }
+            });
         });
 
         $(document).ready(function() {
@@ -170,6 +187,21 @@
                         shouldNotGroupWhenFull: true
                     }
                 });
+                $(this).addClass('ckrendered');
+            });
+
+            $('.ckeditorread').each(function (index, value) {
+                ClassicEditor.create(this, {
+                    toolbar: {
+                        shouldNotGroupWhenFull: true
+                    }
+                }).then(editor => {
+                    //console.log( editor );
+                    editor.enableReadOnlyMode('my-feature-id') // make the editor read-only right after initialization
+                }).catch( error => {
+                    //console.error( error );
+                });
+
                 $(this).addClass('ckrendered');
             });
         });

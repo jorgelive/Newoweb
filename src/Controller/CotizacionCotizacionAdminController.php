@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\CotizacionEstadocotcomponente;
 use App\Entity\CotizacionEstadocotizacion;
+use Google\Cloud\Translate\V2\TranslateClient;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use App\Service\CotizacionResumen;
@@ -77,6 +78,50 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $this->addFlash('sonata_flash_' . $mensajeTyoe, $mensaje);
 
         return new RedirectResponse($this->admin->generateUrl('edit', ['id' => $newObject->getId()]));
+
+    }
+
+    public function traducirAction(Request $request)
+    {
+
+        $object = $this->assertObjectExists($request, true);
+        $id = $object->getId();
+        if($request->getDefaultLocale() == $request->getLocale()){
+            $this->addFlash('sonata_flash_error', 'El idioma actual debe ser diferente al idioma por defecto de la aplicación');
+
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
+
+        $this->admin->checkAccess('edit', $object);
+
+        $em = $this->container->get('doctrine.orm.default_entity_manager');
+
+        $cotizacionDL = $em->getRepository('App\Entity\CotizacionCotizacion')->find($id);
+        $cotizacionDL->setLocale($request->getDefaultLocale());
+        $em->refresh($cotizacionDL);
+
+        $resumenDL = $cotizacionDL->getResumen();
+
+        $cotizacionDL->setLocale($request->getLocale());
+        $em->refresh($cotizacionDL);
+
+        $translate = new TranslateClient([
+            'key' => $this->getParameter('google_translate_key')
+        ]);
+
+        if(!empty($resumenDL)) {
+            $resumenTL = $translate->translate($resumenDL, [
+                'target' => $request->getLocale(),
+                'source' => $request->getDefaultLocale()
+            ]);
+            $object->setResumen($resumenTL['text']);
+        }
+
+        $existingObject = $this->admin->update($object);
+
+        $this->addFlash('sonata_flash_success', 'La cotización traducida correctamente');
+
+        return new RedirectResponse($this->admin->generateUrl('list'));
 
     }
 

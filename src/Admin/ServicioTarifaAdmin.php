@@ -72,9 +72,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param ListMapper $listMapper
-     */
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
@@ -110,7 +107,7 @@ class ServicioTarifaAdmin extends AbstractAdmin
 
         if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()){
             $listMapper
-            ->add('titulooriginal', FieldDescriptionInterface::TYPE_STRING, [
+            ->add('titulooriginal', null, [
                 'label' => 'Título original',
             ]);
         }
@@ -210,9 +207,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param FormMapper $formMapper
-     */
     protected function configureFormFields(FormMapper $formMapper): void
     {
         if($this->getRoot()->getClass() != 'App\Entity\ServicioServicio'
@@ -364,9 +358,6 @@ class ServicioTarifaAdmin extends AbstractAdmin
 
     }
 
-    /**
-     * @param ShowMapper $showMapper
-     */
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper
@@ -377,7 +368,15 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ->add('monto')
             ->add('titulo', null, [
                 'label' => 'Título'
-            ])
+            ]);
+        if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()){
+            $showMapper
+                ->add('titulooriginal', null, [
+                    'label' => 'Título original',
+                ]);
+        }
+
+        $showMapper
             ->add('nombremostrar',  null, [
                 'label' => 'Nombre para proveedor'
             ])

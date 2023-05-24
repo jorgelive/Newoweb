@@ -28,10 +28,6 @@ class ReservaUnitcaracteristicaAdminController extends CRUDAdminController
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
-        if(!$object) {
-            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
-        }
-
         $this->admin->checkAccess('edit', $object);
 
         $em = $this->container->get('doctrine.orm.default_entity_manager');
@@ -59,7 +55,7 @@ class ReservaUnitcaracteristicaAdminController extends CRUDAdminController
 
         $existingObject = $this->admin->update($object);
 
-        $this->addFlash('sonata_flash_success', 'Característica de la unidad traducida correctamente');
+        $this->addFlash('sonata_flash_success', 'La característica de la unidad traducida correctamente');
 
         return new RedirectResponse($this->admin->generateUrl('list'));
 

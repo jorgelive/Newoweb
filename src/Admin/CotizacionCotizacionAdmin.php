@@ -254,6 +254,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                     ],
                     'clonar' => [
                         'template' => 'cotizacion_cotizacion_admin\list__action_clonar.html.twig'
+                    ],
+                    'traducir' => [
+                        'template' => 'cotizacion_cotizacion_admin/list__action_traducir.html.twig'
                     ]
                 ]
             ])
@@ -282,7 +285,18 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'label' => 'Resumen',
                 'required' => false,
                 'attr' => ['class' => 'ckeditor']
-            ])
+            ]);
+
+        if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+            $formMapper
+                ->add('resumenoriginal', null, [
+                    'label' => 'Resumen original',
+                    'attr' => ['class' => 'ckeditorread'],
+                    'disabled' => true
+                ]);
+        }
+
+        $formMapper
             ->add('numeropasajeros', null, [
                 'label' => 'Num Pax'
             ])
@@ -351,9 +365,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
 
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
-
         $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
         $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
         $collection->add('email', $this->getRouterIdParameter() . '/email');
+        $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
     }
 }

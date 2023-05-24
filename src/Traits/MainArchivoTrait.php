@@ -391,16 +391,30 @@ trait MainArchivoTrait
                 $this->nombre = preg_replace('/\.[^.]*$/', '', $this->getArchivo()->getClientOriginalName());
             }
 
-            //obtenemos las dimensiones del archivo subido para determinar el acho y alto del futuro archivo
+            //obtenemos las dimensiones del archivo subido para determinar el ancho y alto del futuro archivo
+
+            $exifInfo = exif_read_data($this->getArchivo()->getPathname());
 
             $imageInfo = getimagesize($this->getArchivo()->getPathname());
-            //false si no es imagen
-            if($imageInfo){
-                list($anchoOriginal, $alturaOriginal) = $imageInfo;
-                $aspectRatio = $anchoOriginal / $alturaOriginal;
 
-                //si es mas ancho
+            if($exifInfo || $imageInfo) {
+                //false si no es imagen
+
+                //preferimos la los valores de exif para determinar la orientación
+                if($exifInfo){
+                    //cuando el valor de orientación es 6 u 8 la información del ancho y alto aparecen invertidas
+                    if(in_array($exifInfo['Orientation'], [6, 8])){
+                        $aspectRatio = $exifInfo['ImageLength'] / $exifInfo['ImageWidth'];
+                    }else{
+                        $aspectRatio = $exifInfo['ImageWidth'] / $exifInfo['ImageLength'];
+                    }
+                }elseif($imageInfo) {
+                    list($anchoOriginal, $alturaOriginal) = $imageInfo;
+                    $aspectRatio = $anchoOriginal / $alturaOriginal;
+                }
+
                 if($aspectRatio >= 1) {
+                    //si es mas ancho
                     $this->setAncho((int)$this->imageSize['image']['width']);
                     $this->setAltura((int)($this->imageSize['image']['width'] / $aspectRatio));
                     //si es mas alto

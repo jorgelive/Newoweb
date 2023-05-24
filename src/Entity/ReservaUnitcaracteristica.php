@@ -43,6 +43,13 @@ class ReservaUnitcaracteristica
     private $contenido;
 
     /**
+     * @var string
+     *
+     * @ORM\Column(type="text", columnDefinition= "longtext AS (contenido) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
+     */
+    private $contenidooriginal;
+
+    /**
      * @var \App\Entity\ReservaUnittipocaracteristica
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnittipocaracteristica", inversedBy="unitcaracteristicas")
@@ -89,7 +96,7 @@ class ReservaUnitcaracteristica
      */
     public function __toString()
     {
-        return $this->getUnittipocaracteristica()->getNombre() . ' : ' . $this->getContenido();
+        return $this->getUnittipocaracteristica()->getNombre() . ' : ' . strip_tags($this->getContenido());
     }
 
     public function setLocale(?string $locale): self
@@ -127,6 +134,11 @@ class ReservaUnitcaracteristica
         $this->contenido = $contenido;
 
         return $this;
+    }
+
+    public function getContenidooriginal(): ?string
+    {
+        return $this->contenidooriginal;
     }
 
     public function getCreado(): ?\DateTimeInterface

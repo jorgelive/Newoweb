@@ -5,10 +5,12 @@ namespace App\Admin;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
+use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 
 class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
 {
@@ -18,9 +20,6 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
         $this->classnameLabel = "Unidad caracteristica";
     }
 
-    /**
-     * @param DatagridMapper $datagridMapper
-     */
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
@@ -29,15 +28,10 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ->add('unittipocaracteristica', null, [
                 'label' => 'Tipo'
             ])
-            ->add('contenido', TranslationFieldFilter::class, [
-
-            ])
+            ->add('contenido', TranslationFieldFilter::class, [])
         ;
     }
 
-    /**
-     * @param ListMapper $listMapper
-     */
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
@@ -48,7 +42,15 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ])
             ->add('contenido', null, [
                 'template' => 'base_sonata_admin/list_html.html.twig'
-            ])
+            ]);
+        if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+            $listMapper
+                ->add('contenidooriginal', null, [
+                    'label' => 'Contenido original',
+                    'template' => 'base_sonata_admin/list_html.html.twig'
+                ]);
+        }
+        $listMapper
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -63,9 +65,6 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param FormMapper $formMapper
-     */
     protected function configureFormFields(FormMapper $formMapper): void
     {
         if($this->getRoot()->getClass() != 'App\Entity\ReservaUnit'){
@@ -81,13 +80,19 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ->add('contenido', null, [
                 'required' => false,
                 'attr' => ['class' => 'ckeditor']
-            ])
-        ;
+            ]);
+
+        if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+            $formMapper
+                ->add('contenidooriginal', null, [
+                'label' => 'Contenido original',
+                'attr' => ['class' => 'ckeditorread'],
+                'disabled' => true
+            ]);
+        }
+
     }
 
-    /**
-     * @param ShowMapper $showMapper
-     */
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper
@@ -98,8 +103,14 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ])
             ->add('contenido', null, [
                 'safe' => true
-            ])
-        ;
+            ]);
+        if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+            $showMapper
+                ->add('contenidooriginal', null, [
+                    'label' => 'Contenido original',
+                    'safe' => true
+                ]);
+        }
     }
 
     protected function configureRoutes(RouteCollectionInterface $collection): void

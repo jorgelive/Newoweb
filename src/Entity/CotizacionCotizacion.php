@@ -42,9 +42,17 @@ class CotizacionCotizacion
     private ?string $nombre;
 
     /**
+     * @Gedmo\Translatable
      * @ORM\Column(type="text")
      */
     private ?string $resumen;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(type="text", columnDefinition= "longtext AS (resumen) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
+     */
+    private $resumenoriginal;
 
     /**
      * @var int
@@ -126,7 +134,7 @@ class CotizacionCotizacion
     /**
      * @Gedmo\Locale
      */
-    private ?string$locale;
+    private ?string $locale = null;
 
     public function __construct() {
         $this->cotservicios = new ArrayCollection();
@@ -172,6 +180,26 @@ class CotizacionCotizacion
     public function getTitulo(): string
     {
         return substr(str_replace("&nbsp;", '', strip_tags($this->resumen)), 0, 100) . '...';
+    }
+
+    public function setLocale(?string $locale): self
+    {
+        $this->locale = $locale;
+
+        return $this;
+    }
+
+    public function getTranslations()
+    {
+        return $this->translations;
+    }
+
+    public function addTranslation(CotizacionCotizacionTranslation $translation)
+    {
+        if (!$this->translations->contains($translation)) {
+            $this->translations[] = $translation;
+            $translation->setObject($this);
+        }
     }
 
     public function getId(): ?int
@@ -354,6 +382,11 @@ class CotizacionCotizacion
     public function getResumen(): ?string
     {
         return $this->resumen;
+    }
+
+    public function getResumenoriginal(): ?string
+    {
+        return $this->resumenoriginal;
     }
 
 

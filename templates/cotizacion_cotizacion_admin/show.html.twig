@@ -19,7 +19,7 @@
         .celda.heading{font-weight: bold; font-size: 0.8em; vertical-align: top;}
         .titulo{font-size: 0.8em; font-weight: bold;}
         .generales-box .box-header {display: none;}
-        .generales-box .box-body .resumen-text {border-radius: 5px; font-size: 1.1em; padding: 7px 7px 0 7px; background-color: rgba(147, 184, 255, 0.2)}
+        .generales-box .box-body .resumen-text {min-height: 20px; margin: 10px 0; border-radius: 5px; font-size: 1.1em; padding: 7px 7px 0 7px; background-color: rgba(147, 184, 255, 0.2)}
         .generales-box .box-body .codigo {color: #58954e; float: right; font-size: 1.1em; font-weight: 600;}
         .generales-box .box-body .idioma {color: #710000;}
         .boton-acordeonsuperior.acordeon-tickets {background-color: #f39c1240;}
@@ -66,7 +66,10 @@
                         </tbody>
                     </table>
                     <div class="box-body container-fluid">
-                    <div class="resumen-text ck-content">{{ object.resumen|raw }}</div>
+                        <div class="resumen-text ck-content">{{ object.resumen|raw }}</div>
+                        {% if app.request.locale != app.request.defaultLocale %}
+                            <div style="opacity: 0.6;" class="resumen-text ck-content">{{ object.resumenoriginal|raw }}</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
