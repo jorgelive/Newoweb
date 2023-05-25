@@ -39,6 +39,19 @@ class CotizacionClasificador
                 if($servicio->getCotcomponentes()->count() > 0){
                     foreach($servicio->getCotcomponentes() as $componente):
                         if($componente->getCottarifas()->count() > 0){
+                            //alertamos si es que existen servicios con más de 20 dias de distancia
+                            if(!isset($existeAlertaDiferencia)){
+                                $existeAlertaDiferencia = false;
+                            }
+                            if(!isset($fechaHoraPrimerServicio)){
+                                $fechaHoraPrimerServicio = $componente->getFechahorainicio();
+                            }else{
+                                $diff = (int)$componente->getFechahorainicio()->diff($fechaHoraPrimerServicio)->format('%a');
+                                if($diff > 20 && $existeAlertaDiferencia === false){
+                                    $this->requestStack->getSession()->getFlashBag()->add('warning', 'Existen servicios fuera del periodo de operación.');
+                                    $existeAlertaDiferencia = true;
+                                }
+                            }
 
                             $cantidadComponente = 0;
                             $tempArrayComponente = [];

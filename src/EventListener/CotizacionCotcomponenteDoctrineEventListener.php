@@ -2,42 +2,59 @@
 namespace App\EventListener;
 
 use App\Entity\CotizacionCotcomponente;
-use Doctrine\ORM\Event\LifecycleEventArgs;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Event\PostPersistEventArgs;
+use Doctrine\ORM\Event\PostUpdateEventArgs;
 
 class CotizacionCotcomponenteDoctrineEventListener
 {
+    private EntityManagerInterface $entityManager;
 
-    public function postPersist(LifecycleEventArgs $args)
+    function __construct(EntityManagerInterface $entityManager)
     {
-        $entity = $args->getEntity();
+        $this->entityManager = $entityManager;
+    }
+
+
+    public function postPersist(PostPersistEventArgs $args)
+    {
+        $entity = $args->getObject();
         if($entity instanceof CotizacionCotcomponente){
-            $this->actualizarCotservicio($args, $entity);
+            $this->actualizarCotservicio($entity);
         }
     }
 
-    public function postUpdate(LifecycleEventArgs $args)
+    public function postUpdate(PostUpdateEventArgs $args)
     {
-        $entity = $args->getEntity();
+        $entity = $args->getObject();
         if($entity instanceof CotizacionCotcomponente){
-            $this->actualizarCotservicio($args, $entity);
+            $this->actualizarCotservicio($entity);
         }
     }
 
-    private function actualizarCotservicio(LifecycleEventArgs $args, CotizacionCotcomponente $entity)
+    private function actualizarCotservicio(CotizacionCotcomponente $entity)
     {
         $cotservicio = $entity->getCotservicio();
 
         $oldFechahoraInicio = $cotservicio->getFechahorainicio();
         $oldFechahoraFin = $cotservicio->getFechahorafin();
-        $newFechahoraInicio = $cotservicio->getCotcomponentes()->first()->getFechahorainicio();
+
         $cotcomponentes = $cotservicio->getCotcomponentes();
+
         foreach ($cotcomponentes as $cotcomponente){
-            if(!isset($newFechahoraFin) || $cotcomponente->getFechahorafin() > $newFechahoraFin){
-                $newFechahoraFin = $cotcomponente->getFechahorafin();
+            if(!isset($newFechahoraInicio)){
+                $newFechahoraInicio = $cotcomponente->getFechahorainicio();
+            }elseif($cotcomponente->getFechahorainicio() < $newFechahoraInicio){
+                $newFechahoraInicio = $cotcomponente->getFechahorainicio();
             }
 
+            if(!isset($newFechahoraFin)){
+                $newFechahoraFin = $cotcomponente->getFechahorafin();
+            }elseif($cotcomponente->getFechahorafin() > $newFechahoraFin){
+                $newFechahoraFin = $cotcomponente->getFechahorafin();
+            }
         }
-        //$newFechahoraFin = $cotservicio->getCotcomponentes()->last()->getFechahorafin();
+
         $modificado = false;
         if($oldFechahoraInicio != $newFechahoraInicio ){
             $modificado = true;
@@ -49,9 +66,8 @@ class CotizacionCotcomponenteDoctrineEventListener
         }
 
         if($modificado){
-            $em = $args->getEntityManager();
-            $em->persist($cotservicio);
-            $em->flush();
+            $this->entityManager->persist($cotservicio);
+            $this->entityManager->flush();
         }
     }
 }
