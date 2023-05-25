@@ -50,7 +50,7 @@ class CRUDAdminController extends BaseController
             $session = $this->container->get('request_stack')->getSession();
             $last_list = $session->get('last_list');
 
-            if(!strstr($last_list['route'], $current_admin) && !empty($last_list['route'])) {
+            if(!empty($last_list) && !empty($last_list['route']) && !strstr($last_list['route'], $current_admin)) {
                 $response = new RedirectResponse(
                     $this->container->get('router')->generate(
                         $last_list['route'],
