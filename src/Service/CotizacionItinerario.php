@@ -49,7 +49,7 @@ class CotizacionItinerario
 
                         $nroDia = (int)$primeraFecha->diff($currentDate)->format('%d') + 1;
 
-                        //se sobreescriben en cada iteracion
+                        //se sobreescriben en cada iteración
                         $itinerario[$fecha->format('ymd')]['fecha'] = $fecha;
                         $itinerario[$fecha->format('ymd')]['nroDia'] = $nroDia;
 
@@ -120,7 +120,7 @@ class CotizacionItinerario
                 $tituloItinerario = reset($itinerarioFechaAux) ?? '';
             }
         }
-        //primero es el importante por dia si no hubera importantes se coje el titulo
+        //primero es el importante por dia si no hubiera importantes se coge el título
         if(empty($tituloItinerario) && !empty($cotservicio->getItinerario()->getTitulo())){
             $tituloItinerario = $cotservicio->getItinerario()->getTitulo();
         }

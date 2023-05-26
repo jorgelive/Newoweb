@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\ServicioTipocomponente;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use App\Entity\CotizacionCotizacion;
 
@@ -16,10 +17,14 @@ class CotizacionIncluye
 
     private CotizacionItinerario $cotizacionItinerario;
 
-    function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario)
+    private RequestStack $requestStack;
+
+
+    function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario, RequestStack $requestStack)
     {
         $this->translator = $translator;
         $this->cotizacionItinerario = $cotizacionItinerario;
+        $this->requestStack = $requestStack;
     }
 
     function getDatos(CotizacionCotizacion $cotizacion): array
@@ -44,6 +49,13 @@ class CotizacionIncluye
 
                                 $tempArrayInternoIncluye = [];
 
+                                if ($tarifa->getTarifa()->getComponente()->getId() != $componente->getComponente()->getId()){
+                                    $this->requestStack->getSession()->getFlashBag()->add(
+                                        'warning',
+                                        sprintf('Tarifas que no corresponden al componente revise la tarifa %s que corresponde al componente %s pero se encuentra bajo %s.', $tarifa->getTarifa()->getNombre(), $tarifa->getTarifa()->getComponente()->getNombre(), $componente->getComponente()->getNombre())
+                                    );
+
+                                }
 //Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
                                 if(
                                     $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId() == ServicioTipocomponente::DB_VALOR_ALOJAMIENTO
