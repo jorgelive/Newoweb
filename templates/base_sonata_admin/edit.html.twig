@@ -149,7 +149,14 @@
                         toolbar: {
                             shouldNotGroupWhenFull: true
                         }
+                    }).then(editor => {
+                        $(".btn-success").click(function(){
+                            editor.updateSourceElement();
+                        });
+                    }).catch( error => {
+                        //console.error( error );
                     });
+
                     $(this).addClass('ckrendered');
                 }
             });
@@ -162,11 +169,14 @@
                         },
                         readOnly: true
                     }).then(editor => {
-                        //console.log( editor );
+                        $(".btn-success").click(function(){
+                            editor.updateSourceElement();
+                        });
                         editor.enableReadOnlyMode('my-feature-id') // make the editor read-only right after initialization
                     }).catch( error => {
                         //console.error( error );
                     });
+
                     $(this).addClass('ckrendered');
                 }
             });
@@ -186,6 +196,12 @@
                     toolbar: {
                         shouldNotGroupWhenFull: true
                     }
+                }).then(editor => {
+                    $(".btn-success").click(function(){
+                        editor.updateSourceElement();
+                    });
+                }).catch( error => {
+                    //console.error( error );
                 });
                 $(this).addClass('ckrendered');
             });
@@ -196,7 +212,9 @@
                         shouldNotGroupWhenFull: true
                     }
                 }).then(editor => {
-                    //console.log( editor );
+                    $(".btn-success").click(function(){
+                        editor.updateSourceElement();
+                    });
                     editor.enableReadOnlyMode('my-feature-id') // make the editor read-only right after initialization
                 }).catch( error => {
                     //console.error( error );
