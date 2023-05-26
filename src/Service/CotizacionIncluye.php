@@ -163,7 +163,7 @@ class CotizacionIncluye
                                             }
 
                                             $tempArrayIncluye['mostrarcostoincluye'] = false;
-                                            if($tarifa->getTipotarifa()->isMostrarcostoincluye() ===true && !(empty($tarifa->getMonto()) || empty($tarifa->getMoneda()))){
+                                            if($tarifa->getTipotarifa()->isMostrarcostoincluye() ===true && $tarifa->getMonto() != '0.00'){
                                                 $tempArrayIncluye['mostrarcostoincluye'] = true;
                                                 $tempArrayIncluye['simboloMoneda'] = $tarifa->getMoneda()->getSimbolo();
                                                 $tempArrayIncluye['costo'] = $tarifa->getMonto();
