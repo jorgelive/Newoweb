@@ -223,7 +223,8 @@ class ReservaReservaAdmin extends AbstractAdmin
                 ]
             ])
             ->add('nota', null, [
-                'label' => 'Nota'
+                'label' => 'Nota',
+                'editable' => true
             ])
             ->add('chanel', FieldDescriptionInterface::TYPE_CHOICE, [
                 'sortable' => true,
