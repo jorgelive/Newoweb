@@ -82,9 +82,6 @@ class ReservaReservaAdmin extends AbstractAdmin
         $object->setFechahorafin($fin);
     }
 
-    /**
-     * @param DatagridMapper $datagridMapper
-     */
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
@@ -183,9 +180,6 @@ class ReservaReservaAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param ListMapper $listMapper
-     */
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
@@ -227,6 +221,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                     ReservaEstado::DB_VALOR_CONFIRMADO => 'Confirmado',
                     ReservaEstado::DB_VALOR_CANCELADO => 'Cancelado'
                 ]
+            ])
+            ->add('nota', null, [
+                'label' => 'Nota'
             ])
             ->add('chanel', FieldDescriptionInterface::TYPE_CHOICE, [
                 'sortable' => true,
@@ -292,9 +289,6 @@ class ReservaReservaAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param FormMapper $formMapper
-     */
     protected function configureFormFields(FormMapper $formMapper): void
     {
         $formMapper
@@ -324,8 +318,8 @@ class ReservaReservaAdmin extends AbstractAdmin
             ])
             ->add('manual')
             ->add('enlace')
-            ->add('descripcion', null, [
-                'label' => 'Descripción'
+            ->add('nota', null, [
+                'label' => 'Nota'
             ])
             ->add('detalles', CollectionType::class, [
                 'by_reference' => false,
@@ -351,9 +345,6 @@ class ReservaReservaAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param ShowMapper $showMapper
-     */
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper
@@ -389,8 +380,8 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'template' => 'base_sonata_admin/show_url.html.twig'
             ])
             ->add('manual')
-            ->add('descripcion', null, [
-                'label' => 'Descripción'
+            ->add('nota', null, [
+                'label' => 'Nota'
             ])
             ->add('detalles', null, [
                 'label' => 'Detalles',

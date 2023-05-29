@@ -52,7 +52,7 @@ class CotizacionIncluye
                                 if ($tarifa->getTarifa()->getComponente()->getId() != $componente->getComponente()->getId()){
                                     $this->requestStack->getSession()->getFlashBag()->add(
                                         'warning',
-                                        sprintf('Tarifas que no corresponden al componente revise la tarifa %s que corresponde al componente %s pero se encuentra bajo %s.', $tarifa->getTarifa()->getNombre(), $tarifa->getTarifa()->getComponente()->getNombre(), $componente->getComponente()->getNombre())
+                                        sprintf('Tarifas que no corresponden al componente revise la tarifa <<%s>> que corresponde al componente <<%s>> pero se encuentra bajo <<%s>>.', $tarifa->getTarifa()->getNombre(), $tarifa->getTarifa()->getComponente()->getNombre(), $componente->getComponente()->getNombre())
                                     );
 
                                 }

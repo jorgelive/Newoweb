@@ -59,7 +59,7 @@ class ReservaReserva
      *
      * @ORM\Column(type="string", length=255, nullable=true)
      */
-    private $descripcion;
+    private $nota;
 
     /**
      * @var int
@@ -252,14 +252,14 @@ class ReservaReserva
         return $this;
     }
 
-    public function getDescripcion(): ?string
+    public function getNota(): ?string
     {
-        return $this->descripcion;
+        return $this->nota;
     }
 
-    public function setDescripcion(?string $descripcion): self
+    public function setNota(?string $nota): self
     {
-        $this->descripcion = $descripcion;
+        $this->nota = $nota;
 
         return $this;
     }
