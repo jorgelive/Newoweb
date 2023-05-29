@@ -56,16 +56,21 @@
                             {% if action != 'resumen' and object.telefono is not empty %}
                                 <tr class="sonata-ba-view-container">
                                     <td colspan="2">
+                                        <a href="tel:{{ object.telefono }}"
+                                           class="btn btn-sm btn-success">
+                                            <i class="fa fa-phone" aria-hidden="true"></i>
+                                            Llamar
+                                        </a>
                                         <a data-text="{{ object.telefono }}"
                                            data-tooltiptext="Copiado al portapapeles"
                                            class="btn btn-sm btn-success clipboard-trigger">
                                             <i class="fa fa-file-text" aria-hidden="true"></i>
-                                            Copiar teléfono
+                                            Copiar
                                         </a>
                                         <a href="https://wa.me/{{object.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}"
                                            class="btn btn-sm btn-success edit_link">
                                             <i class="fa fa-whatsapp" aria-hidden="true"></i>
-                                            Enviar whatsapp
+                                            Whatsapp
                                         </a>
                                         {% if object.chanel.id == constant('App\\Entity\\ReservaChanel::DB_VALOR_BOOKING') and object.nota is empty %}
                                             {% set whatsappText = 'Hola ' ~ object.nombre ~ ', un gusto saludarlo(a).\n\nLe escribo con la finalidad de solicitar la reconfirmación del alojamiento que usted reservo en la ciudad del *Cusco*' %}
@@ -76,7 +81,7 @@
                                             <a href="https://wa.me/{{object.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
                                                class="btn btn-sm btn-success edit_link">
                                                 <i class="fa fa-whatsapp" aria-hidden="true"></i>
-                                                Enviar reconfirmación
+                                                Reconfirmación
                                             </a>
                                         {% endif %}
                                     </td>

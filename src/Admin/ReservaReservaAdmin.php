@@ -247,7 +247,8 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'editable' => true
             ])
             ->add('telefono', null, [
-                'label' => 'Teléfono'
+                'label' => 'Teléfono',
+                'editable' => true
             ])
             ->add('enlace', null, [
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],
