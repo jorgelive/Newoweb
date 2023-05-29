@@ -18,153 +18,120 @@ class ReservaReserva
 {
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=20)
      */
-    private $token;
+    private ?string $token;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=100)
      */
-    private $uid;
+    private ?string $uid;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=255)
      */
-    private $nombre;
+    private ?string $nombre;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=255, nullable=true)
      */
-    private $enlace;
+    private ?string $enlace;
 
     /**
-     * @var string
-     *
+     * @ORM\Column(type="string", length=30, nullable=true)
+     */
+    private ?string $telefono;
+
+    /**
      * @ORM\Column(type="string", length=255, nullable=true)
      */
-    private $nota;
+    private ?string $nota;
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      */
-    private $cantidadadultos = 1;
+    private ?int $cantidadadultos = 1;
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      */
-    private $cantidadninos = 0;
+    private ?int $cantidadninos = 0;
 
     /**
      * @ORM\Column(type="boolean")
      */
-    private $manual = true;
+    private bool $manual = true;
 
     /**
-     * @var \App\Entity\ReservaChanel
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaChanel", inversedBy="reservas")
      * @ORM\JoinColumn(name="chanel_id", referencedColumnName="id", nullable=false)
      */
-    protected $chanel;
+    protected ?ReservaChanel $chanel;
 
     /**
-     * @var \App\Entity\ReservaUnitnexo
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnitnexo", inversedBy="reservas")
      * @ORM\JoinColumn(name="unitnexo_id", referencedColumnName="id", nullable=true)
      */
-    protected $unitnexo;
+    protected ?ReservaUnitnexo $unitnexo;
 
     /**
-     * @var \App\Entity\ReservaUnit
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnit", inversedBy="reservas")
      * @ORM\JoinColumn(name="unit_id", referencedColumnName="id", nullable=false)
      */
-    protected $unit;
+    protected ?ReservaUnit $unit;
 
     /**
-     * @var \App\Entity\ReservaEstado
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaEstado", inversedBy="reservas")
      * @ORM\JoinColumn(name="estado_id", referencedColumnName="id", nullable=false)
      */
-    protected $estado;
+    protected ?ReservaEstado $estado;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaDetalle", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"id" = "ASC"})
      */
-    private $detalles;
+    private ?Collection $detalles;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaImporte", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fecha" = "ASC"})
      */
-    private $importes;
+    private ?Collection $importes;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaPago", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fecha" = "ASC"})
      */
-    private $pagos;
+    private ?Collection $pagos;
 
     /**
-     * @var \DateTime $fechahorainicio
-     *
      * @ORM\Column(type="datetime")
      */
-    private $fechahorainicio;
+    private ?\DateTime $fechahorainicio;
 
     /**
-     * @var \DateTime $fechahorafin
-     *
      * @ORM\Column(type="datetime")
      */
-    private $fechahorafin;
+    private ?\DateTime $fechahorafin;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
     /**
      * Constructor
@@ -176,7 +143,8 @@ class ReservaReserva
         $this->importes = new ArrayCollection();
     }
 
-    public function __clone() {
+    public function __clone()
+    {
         if($this->id) {
             $this->id = null;
             $this->setCreado(null);
@@ -186,10 +154,7 @@ class ReservaReserva
         }
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         return sprintf("%s: %s - %s", $this->getFechahorainicio()->format('Y/m/d'), $this->getChanel()->getNombre(), $this->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
@@ -250,6 +215,18 @@ class ReservaReserva
         $this->enlace = $enlace;
 
         return $this;
+    }
+
+    public function setTelefono(?string $telefono): self
+    {
+        $this->telefono = $telefono;
+
+        return $this;
+    }
+
+    public function getTelefono(): ?string
+    {
+        return $this->telefono;
     }
 
     public function getNota(): ?string

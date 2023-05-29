@@ -21,28 +21,67 @@
                 <div class="box-body table-responsive no-padding">
                     <table class="table">
                         <tbody>
-                        <tr class="sonata-ba-view-container">
-                            <th>{{ 'nombre'|trans({}, 'messages')|capitalize}}</th>
-                            <td>{{ object.nombre }} x{{ object.cantidadadultos }}{% if object.cantidadninos > 0 %}+{{ object.cantidadninos }} {% endif %}</td>
-                        </tr>
-                        <tr class="sonata-ba-view-container">
-                            <th>{{ 'fecha_ingreso'|trans({}, 'messages')|capitalize}}</th>
-                            <td>{{ 'desde'|trans({}, 'messages')|capitalize}} {{ object.fechahorainicio | date('Y-m-d H:i') }}</td>
-                        </tr>
-                        <tr class="sonata-ba-view-container">
-                            <th>{{ 'fecha_salida'|trans({}, 'messages')|capitalize}}</th>
-                            <td>{{ 'hasta'|trans({}, 'messages')|capitalize}} {{ object.fechahorafin | date('Y-m-d H:i') }}</td>
-                        </tr>
-                        <tr class="sonata-ba-view-container">
-                            <th>{{ 'canal'|trans({}, 'messages')|capitalize}}</th>
-                            <td>{{ object.chanel.nombre }} ({{ object.estado.nombre|trans({}, 'messages') }})</td>
-                        </tr>
-                        {% if action != 'resumen' and object.enlace is not empty %}
                             <tr class="sonata-ba-view-container">
-                                <th>{{ 'link'|trans({}, 'messages')|capitalize}}</th>
-                                <td><a href="{{ object.enlace }}" target="_blank">Enlace</a></td>
+                                <th>{{ 'nombre'|trans({}, 'messages')|capitalize}}</th>
+                                <td>
+                                    {{ object.nombre }} x{{ object.cantidadadultos }}
+                                    {% if object.cantidadninos > 0 %}+{{ object.cantidadninos }}{% endif %}
+
+                                </td>
                             </tr>
-                        {% endif %}
+                            <tr class="sonata-ba-view-container">
+                                <th>{{ 'fecha_ingreso'|trans({}, 'messages')|capitalize}}</th>
+                                <td>{{ 'desde'|trans({}, 'messages')|capitalize}} {{ object.fechahorainicio | date('Y-m-d H:i') }}</td>
+                            </tr>
+                            <tr class="sonata-ba-view-container">
+                                <th>{{ 'fecha_salida'|trans({}, 'messages')|capitalize}}</th>
+                                <td>{{ 'hasta'|trans({}, 'messages')|capitalize}} {{ object.fechahorafin | date('Y-m-d H:i') }}</td>
+                            </tr>
+                            <tr class="sonata-ba-view-container">
+                                <th>{{ 'canal'|trans({}, 'messages')|capitalize}}</th>
+                                <td>{{ object.chanel.nombre }} ({{ object.estado.nombre|trans({}, 'messages') }})</td>
+                            </tr>
+                            {% if action != 'resumen' and object.enlace is not empty %}
+                                <tr class="sonata-ba-view-container">
+                                    <th>{{ 'link'|trans({}, 'messages')|capitalize}}</th>
+                                    <td><a href="{{ object.enlace }}" target="_blank">Enlace</a></td>
+                                </tr>
+                            {% endif %}
+                            {% if action != 'resumen' and object.nota is not empty %}
+                                <tr class="sonata-ba-view-container">
+                                    <th>{{ 'nota'|trans({}, 'messages')|capitalize}}</th>
+                                    <td>{{ object.nota }}</td>
+                                </tr>
+                            {% endif %}
+                            {% if action != 'resumen' and object.telefono is not empty %}
+                                <tr class="sonata-ba-view-container">
+                                    <td colspan="2">
+                                        <a data-text="{{ object.telefono }}"
+                                           data-tooltiptext="Copiado al portapapeles"
+                                           class="btn btn-sm btn-success clipboard-trigger">
+                                            <i class="fa fa-file-text" aria-hidden="true"></i>
+                                            Copiar teléfono
+                                        </a>
+                                        <a href="https://wa.me/{{object.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}"
+                                           class="btn btn-sm btn-success edit_link">
+                                            <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                                            Enviar whatsapp
+                                        </a>
+                                        {% if object.chanel.id == constant('App\\Entity\\ReservaChanel::DB_VALOR_BOOKING') and object.nota is empty %}
+                                            {% set whatsappText = 'Hola ' ~ object.nombre ~ ', un gusto saludarlo(a).\n\nLe escribo con la finalidad de solicitar la reconfirmación del alojamiento que usted reservo en la ciudad del *Cusco*' %}
+                                            {% set whatsappText = whatsappText ~ ' entre el día ' ~ object.fechahorainicio | date('Y-m-d') ~ ' y el día ' ~ object.fechahorainicio | date('Y-m-d') ~ '.\n\n'%}
+                                            {% set whatsappText = whatsappText ~ 'Por favor sirvase reconfirmar su llegada respondiendo a este mensaje, asi mismo indicarnos su *hora de llegada* y de preferencia su *numero de vuelo* o medio de transporte para poder coordinar la entrega del departamento.\n\n' %}
+                                            {% set whatsappText = whatsappText ~ '*De no tener respuesta a este mensaje* nos veremos en la necesidad de hacer disponibles las fechas que reservo para otros huéspedes.\n\n Muchas Gracias.' %}
+
+                                            <a href="https://wa.me/{{object.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                                               class="btn btn-sm btn-success edit_link">
+                                                <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                                                Enviar reconfirmación
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endif %}
 
                         </tbody>
                     </table>

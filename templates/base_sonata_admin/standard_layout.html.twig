@@ -48,7 +48,7 @@
         .thumbnail-fluid img.in-modal.landscape { width: 100%; }
         .thumbnail-fluid .caption .small.text-center { margin: 0; }
 
-        .tooltip-trigger:hover {cursor:pointer;}
+        .clipboard-trigger:hover {cursor:pointer;}
         #tooltipdiv{ position: fixed; width: 220px; height: 30px; top: 30%; left: 50%; margin-top: -15px; /* Negative half of height. */ margin-left: -110px; /* Negative half of width. */ border-radius: 5px; text-align: center; padding: 5px; background: #ffde5a; font-weight: 600; filter: drop-shadow(0 3px 5px #ccc); line-height: 1.5; z-index: 1000; }
 
         ul.listaordenada, ul.sonata-ba-show-one-to-many { list-style: none; padding: 0; margin: 0; }
@@ -78,16 +78,16 @@
                 document.querySelector(".select2-container--open .select2-search__field").focus()
             })
 
-            $('.tooltip-trigger').on( "click", function() {
-                let link = $(this).data('link');
-                if(typeof link == 'undefined'){
-                    console.log('No esta puesto el atributo data-link');
+            $('.clipboard-trigger').on( "click", function() {
+                let text = $(this).data('text');
+                if(typeof text == 'undefined'){
+                    console.log('No esta puesto el atributo data-text');
                     return;
                 }
 
                 let $temp = $("<input>")
                 $("body").append($temp);
-                $temp.val(link).select();
+                $temp.val(text).select();
                 document.execCommand("copy");
                 $temp.remove();
 

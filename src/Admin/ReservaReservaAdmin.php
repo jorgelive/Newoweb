@@ -222,6 +222,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                     ReservaEstado::DB_VALOR_CANCELADO => 'Cancelado'
                 ]
             ])
+            ->add('manual', null, [
+                'editable' => true
+            ])
             ->add('nota', null, [
                 'label' => 'Nota',
                 'editable' => true
@@ -240,16 +243,15 @@ class ReservaReservaAdmin extends AbstractAdmin
                     ReservaChanel::DB_VALOR_BOOKING => 'Booking'
                 ]
             ])
-            ->add('manual', null, [
-                'editable' => true
-            ])
             ->add('nombre', null, [
                 'editable' => true
             ])
+            ->add('telefono', null, [
+                'label' => 'Teléfono'
+            ])
             ->add('enlace', null, [
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],
-                'template' => 'base_sonata_admin/list_url.html.twig',
-                'editable' => true
+                'template' => 'base_sonata_admin/list_url.html.twig'
             ])
             ->add('detalles', null, [
                 'label' => 'Detalles',
@@ -297,6 +299,7 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Alojamiento'
             ])
             ->add('estado')
+            ->add('manual')
             ->add('nombre')
             ->add('fechahorainicio', DateTimePickerType::class, [
                 'label' => 'Check-in',
@@ -317,8 +320,10 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('chanel', null, [
                 'label' => 'Canal'
             ])
-            ->add('manual')
             ->add('enlace')
+            ->add('telefono', null, [
+                'label' => 'Teléfono'
+            ])
             ->add('nota', null, [
                 'label' => 'Nota'
             ])
@@ -357,6 +362,7 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Canal'
             ])
             ->add('estado')
+            ->add('manual')
             ->add('nombre')
             ->add('fechahorainicio', null, [
                 'label' => 'Check-in',
@@ -380,7 +386,10 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],
                 'template' => 'base_sonata_admin/show_url.html.twig'
             ])
-            ->add('manual')
+
+            ->add('telefono', null, [
+                'label' => 'Teléfono'
+            ])
             ->add('nota', null, [
                 'label' => 'Nota'
             ])

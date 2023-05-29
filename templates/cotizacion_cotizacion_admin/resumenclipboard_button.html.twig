@@ -1,8 +1,8 @@
 {% if object is defined and admin.isGranted('show', object) and admin.hasRoute('resumen') and object.id is not null %}
     <li>
-        <a data-link="{{ url('admin_app_cotizacioncotizacion_resumen', {'id': object.id, 'token': object.token}) }}"
+        <a data-text="{{ url('admin_app_cotizacioncotizacion_resumen', {'id': object.id, 'token': object.token}) }}"
            data-tooltiptext="Copiado al portapapeles"
-           class="tooltip-trigger sonata-action-element">
+           class="clipboard-trigger sonata-action-element">
             <i class="fa fa-file-text" aria-hidden="true"></i>
             Copiar al portapapeles
         </a>
