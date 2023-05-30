@@ -5,6 +5,8 @@ use App\Entity\ReservaChanel;
 use App\Entity\ReservaReserva;
 use Doctrine\ORM\Event\LifecycleEventArgs;
 use App\Service\MainVariableproceso;
+use Doctrine\ORM\Event\PrePersistEventArgs;
+use Doctrine\ORM\Event\PreUpdateEventArgs;
 
 class ReservaReservaDoctrineEventListener
 {
@@ -14,21 +16,19 @@ class ReservaReservaDoctrineEventListener
     public function __construct(MainVariableproceso $mainVariableproceso)
     {
         $this->mainVariableproceso = $mainVariableproceso;
-
     }
 
-    public function prePersist(LifecycleEventArgs $args)
+    public function prePersist(PrePersistEventArgs $args)
     {
-        $entity = $args->getEntity();
+        $entity = $args->getObject();
         if($entity instanceof ReservaReserva) {
 
-            if(!$entity->getToken()) {
-                $entity->setToken(mt_rand());
-            }
-            if(!$entity->getUid()) {
-                $entity->setUid(sprintf('%06d', $entity->getUnit()->getId()) . '-' . sprintf('%06d', $entity->getChanel()->getId()) . '-' . sprintf('%012d', mt_rand()) . '@openperu.pe');
-            }
-            if(!empty($entity->getEnlace())){
+            $entity->setToken(mt_rand());
+
+            $entity->setUid(sprintf('%06d', $entity->getUnit()->getId()) . '-' . sprintf('%06d', $entity->getChanel()->getId()) . '-' . sprintf('%012d', mt_rand()) . '@openperu.pe');
+
+            $rpEnlace = new \ReflectionProperty($entity, 'enlace');
+            if($rpEnlace->isInitialized($entity)){
                 $entity->setEnlace($this->cleanUrl($entity->getEnlace()));
             }
 
@@ -39,9 +39,9 @@ class ReservaReservaDoctrineEventListener
         }
     }
 
-    public function preUpdate(LifecycleEventArgs $args)
+    public function preUpdate(PreUpdateEventArgs $args)
     {
-        $entity = $args->getEntity();
+        $entity = $args->getObject();
         if($entity instanceof ReservaReserva) {
 
             if(!empty($entity->getEnlace())){
