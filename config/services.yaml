@@ -888,6 +888,7 @@ services:
                 group: Reserva
                 label: Reservas de alojamiento
         calls:
+            - [ setTemplate, [edit, reserva_reserva_admin/edit.html.twig]]
             - [ setTemplate, [list, reserva_reserva_admin/list.html.twig]]
             - [ setTemplate, [show, reserva_reserva_admin/show.html.twig]]
         public: true
