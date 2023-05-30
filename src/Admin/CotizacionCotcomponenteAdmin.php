@@ -72,6 +72,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
             ->add('cotservicio.cotizacion.estadocotizacion',  null, [
                 'label' => 'Estado cotización'
             ])
+            ->add('componente')
             ->add('estadocotcomponente', null, [
                 'label' => 'Estado del componente'
             ])
@@ -131,9 +132,13 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
                 'label' => 'Cotización'
             ])
             ->add('cotservicio', null, [
-                'label' => 'Servicio'
+                'label' => 'Servicio cotizado'
             ])
-            ->add('componente')
+            ->add('componente', null, [
+                'sortable' => true,
+                'sort_field_mapping' => ['fieldName' => 'nombre'],
+                'sort_parent_association_mappings' => [['fieldName' => 'componente']]
+            ])
             ->add('cantidad')
 
             ->add('fechahorafin', null, [

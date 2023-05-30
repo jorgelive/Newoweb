@@ -76,7 +76,7 @@
                                             {% set whatsappText = 'Hola ' ~ object.nombre ~ ', un gusto saludarlo(a).\n\nLe escribo con la finalidad de solicitar la reconfirmación del alojamiento que usted reservo en la ciudad del *Cusco*' %}
                                             {% set whatsappText = whatsappText ~ ' entre el día ' ~ object.fechahorainicio | date('Y-m-d') ~ ' y el día ' ~ object.fechahorainicio | date('Y-m-d') ~ '.\n\n'%}
                                             {% set whatsappText = whatsappText ~ 'Por favor sirvase reconfirmar su llegada respondiendo a este mensaje, asi mismo indicarnos su *hora de llegada* y de preferencia su *numero de vuelo* o medio de transporte para poder coordinar la entrega del departamento.\n\n' %}
-                                            {% set whatsappText = whatsappText ~ '*De no tener respuesta a este mensaje* nos veremos en la necesidad de hacer disponibles las fechas que reservo para otros huéspedes.\n\n Muchas Gracias.' %}
+                                            {% set whatsappText = whatsappText ~ '*De no tener respuesta a este mensaje* nos veremos en la necesidad de hacer disponibles las fechas que reservo para otros huéspedes.\n\nMuchas Gracias.' %}
 
                                             <a href="https://wa.me/{{object.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
                                                class="btn btn-sm btn-success edit_link">

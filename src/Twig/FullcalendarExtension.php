@@ -100,7 +100,14 @@ class FullcalendarExtension extends AbstractExtension
         var s = $("<select style=\"margin-top: 10px; margin-left: 10px;\" id=\"calendarSelector\" />");
         
         s.change(function() {
+            //elimina la vista
             calendar.removeAllEvents();
+            
+            let removeEvents = calendar.getEventSources();
+            removeEvents.forEach(event => {
+                 event.remove(); // elimina los recursos
+            });
+            
             calendar.addEventSource(data[s.val()]['event']);
             resourceUrl = data[s.val()]['resource'];
             calendar.setOption('resourceAreaHeaderContent', data[s.val()]['nombre']);
@@ -149,7 +156,7 @@ class FullcalendarExtension extends AbstractExtension
                     type: 'resourceTimeline',
                     duration: { days: 1 },
                     buttonText: 'Dia',
-                    resourceAreaWidth: '150px'
+                    resourceAreaWidth: '100px'
                 },
                 resourceTimelineOneMonth: {
                     type: 'resourceTimeline',
@@ -157,15 +164,17 @@ class FullcalendarExtension extends AbstractExtension
                     buttonText: 'Mes Line',
                     slotMinWidth: 60,
                     slotDuration: '12:00:00',
-                    resourceAreaWidth: '150px',
+                    resourceAreaWidth: '100px',
                     contentHeight: 350                  
                 }
             },
             dateClick: function(info) {
+                //alert(calendar.view.type);
                 calendar.changeView('resourceTimelineOneDay');
                 calendar.gotoDate(info.date)
             },
             eventClick: function(info) {
+                
                 clickCnt++;         
                 if(clickCnt === 1) {
                     oneClickTimer = setTimeout(function() {

@@ -19,6 +19,12 @@ use Doctrine\Common\Collections\ArrayCollection;
 class ReservaUnit
 {
 
+    public const DB_VALOR_N1 = 1;
+    public const DB_VALOR_N2 = 2;
+    public const DB_VALOR_N3 = 3;
+    public const DB_VALOR_N4 = 4;
+    public const DB_VALOR_N5 = 5;
+
     /**
      * @var int
      *

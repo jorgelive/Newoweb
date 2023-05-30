@@ -2,6 +2,7 @@
 
 namespace App\Admin;
 
+use App\Entity\ReservaUnit;
 use App\Entity\ReservaUnittipocaracteristica;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
@@ -55,9 +56,6 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
         return $buttonList;
     }
 
-    /**
-     * @param DatagridMapper $datagridMapper
-     */
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
@@ -78,9 +76,6 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param ListMapper $listMapper
-     */
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
@@ -94,11 +89,11 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                 'class' => 'App\Entity\ReservaUnit',
                 'required' => true,
                 'choices' => [
-                    1 => '#1 Centro Cusco',
-                    2 => '#2 Centro Cusco',
-                    3 => '#3 Centro Cusco',
-                    4 => '#4 Centro Cusco',
-                    5 => '#5 Centro Cusco',
+                    ReservaUnit::DB_VALOR_N1 => '#1 Cusco Inti',
+                    ReservaUnit::DB_VALOR_N2 => '#2 Cusco Inti',
+                    ReservaUnit::DB_VALOR_N3 => '#3 Cusco Inti',
+                    ReservaUnit::DB_VALOR_N4 => '#4 Cusco Inti',
+                    ReservaUnit::DB_VALOR_N5 => '#5 Cusco Inti'
                 ]
             ])
             ->add('unittipocaracteristica', FieldDescriptionInterface::TYPE_CHOICE, [
@@ -146,9 +141,6 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param FormMapper $formMapper
-     */
     protected function configureFormFields(FormMapper $formMapper): void
     {
 
@@ -213,9 +205,6 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
         );
     }
 
-    /**
-     * @param ShowMapper $showMapper
-     */
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper

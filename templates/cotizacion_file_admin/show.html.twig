@@ -163,56 +163,71 @@
 
                                     <table class="table table-bordered table-striped sonata-ba-list">
                                         <tbody>
-                                        {% for cotizacion in object.cotizaciones | filter(cotizacion => cotizacion.estadocotizacion.id in [1, 3, 6]) %}
-                                            <tr>
-                                                <td style="white-space: normal; {% if not loop.first %}border-top: #3c8dbc 3px solid;{% endif %} ">
+                                        {% set continue = false %}
+                                        {% set existe = false %}
+                                        {# for cotizacion in object.cotizaciones | filter(cotizacion => cotizacion.estadocotizacion.id in [1, 3, 6]) #}
+                                        {% for cotizacion in object.cotizaciones %}
+                                            {% if action == 'resumen' and cotizacion.estadocotizacion.id not in [1, 3, 6] %}
+                                                {% set continue = true %}
+                                            {% endif %}
+                                            {% if not continue %}
+                                                {% set existe = true %}
+                                                <tr>
+                                                    <td style="white-space: normal; {% if not loop.first %}border-top: #3c8dbc 3px solid;{% endif %} ">
 
-                                                    <ul class="lista-cotizacion">
-                                                        {% if action != 'resumen' %}
-                                                        <li class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                                            <div style="font-size: 1.07em; color: #555; margin-bottom: 10px;" class="ck-content">{{ cotizacion.nombre }}</div>
-                                                        </li>
-                                                        {% endif %}
-                                                        <li class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                                            <div style="font-size: 1.07em; color: #003d72;"class="ck-content">{{ cotizacion.resumen|raw }}</div>
-                                                        </li>
-                                                        <li style="text-align: right" class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                                                            <p class="no-margin cotcodigo">{{ cotizacion.codigo }}</p>
-                                                            <p class="no-margin fechas-mono">I:{{ cotizacion.fechaingreso|date('Y-m-d') }}</p>
-                                                            <p class="no-margin fechas-mono">C:{{ cotizacion.fecha|date('Y-m-d') }}</p>
-                                                        </li>
-                                                        <li class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                                                            <div style="margin-left: 7px;">
-                                                                <p class="no-margin cotestado">{{ cotizacion.estadocotizacion.nombre }}</p>
-                                                                <p class="no-margin cotcantidad">x{{ cotizacion.numeropasajeros }}</p>
-                                                            </div>
-                                                        </li>
-                                                        <li class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                                                            <div class="btn-group">
-                                                                <a class="btn btn-sm btn-primary view_link" href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">
-                                                                    <i class="fa fa-info" aria-hidden="true"></i>
-                                                                    {% if action != 'resumen' %}Resumen{% else %}Mostrar{% endif %}
-                                                                </a>
-                                                                {% if action != 'resumen' %}
-                                                                <a class="btn btn-sm btn-success view_link" href="{{ path('admin_app_cotizacioncotizacion_show', {'id': cotizacion.id}) }}">
-                                                                    <i class="fa fa-eye" aria-hidden="true"></i>
-                                                                    Mostrar
-                                                                </a>
-                                                                <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_edit', {'id': cotizacion.id}) }}">
-                                                                    <i class="fa fa-pencil" aria-hidden="true"></i>
-                                                                    Editar
-                                                                </a>
-                                                                {% endif %}
-                                                            </div>
-                                                        </li>
+                                                        <ul class="lista-cotizacion">
+                                                            {% if action != 'resumen' %}
+                                                            <li class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                                                <div style="font-size: 1.07em; color: #555; margin-bottom: 10px;" class="ck-content">{{ cotizacion.nombre }}</div>
+                                                            </li>
+                                                            {% endif %}
+                                                            <li class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                                                <div style="font-size: 1.07em; color: #003d72;"class="ck-content">{{ cotizacion.resumen|raw }}</div>
+                                                            </li>
+                                                            <li style="text-align: right" class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                                                                <p class="no-margin cotcodigo">{{ cotizacion.codigo }}</p>
+                                                                <p class="no-margin fechas-mono">I:{{ cotizacion.fechaingreso|date('Y-m-d') }}</p>
+                                                                <p class="no-margin fechas-mono">C:{{ cotizacion.fecha|date('Y-m-d') }}</p>
+                                                            </li>
+                                                            <li class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                                                                <div style="margin-left: 7px;">
+                                                                    <p class="no-margin cotestado">{{ cotizacion.estadocotizacion.nombre }}</p>
+                                                                    <p class="no-margin cotcantidad">x{{ cotizacion.numeropasajeros }}</p>
+                                                                </div>
+                                                            </li>
+                                                            <li class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                                                                <div class="btn-group">
+                                                                    <a class="btn btn-sm btn-primary view_link" href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">
+                                                                        <i class="fa fa-info" aria-hidden="true"></i>
+                                                                        {% if action != 'resumen' %}Resumen{% else %}Mostrar{% endif %}
+                                                                    </a>
+                                                                    {% if action != 'resumen' %}
+                                                                    <a class="btn btn-sm btn-success view_link" href="{{ path('admin_app_cotizacioncotizacion_show', {'id': cotizacion.id}) }}">
+                                                                        <i class="fa fa-eye" aria-hidden="true"></i>
+                                                                        Mostrar
+                                                                    </a>
+                                                                    <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_edit', {'id': cotizacion.id}) }}">
+                                                                        <i class="fa fa-pencil" aria-hidden="true"></i>
+                                                                        Editar
+                                                                    </a>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </li>
 
-                                                    </ul>
-                                                </td>
-                                            </tr>
+                                                        </ul>
+                                                    </td>
+                                                </tr>
+                                            {% endif %}
+                                            {% if continue %}
+                                                {% set continue = false %}
+                                            {% endif %}
                                         {% endfor %}
+                                        {% if not existe %}
+                                            <div class="panel-body"><p>No se encontraron registros</p></div>
+                                        {% endif %}
+
                                         </tbody>
                                     </table>
-
 
                                 </div>
                             </div>

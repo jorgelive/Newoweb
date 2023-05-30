@@ -4,6 +4,7 @@ namespace App\Admin;
 
 use App\Entity\ReservaChanel;
 use App\Entity\ReservaEstado;
+use App\Entity\ReservaUnit;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
@@ -201,11 +202,11 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'class' => 'App\Entity\ReservaUnit',
                 'required' => true,
                 'choices' => [
-                    1 => '#1 Centro Cusco',
-                    2 => '#2 Centro Cusco',
-                    3 => '#3 Centro Cusco',
-                    4 => '#4 Centro Cusco',
-                    5 => '#5 Centro Cusco',
+                    ReservaUnit::DB_VALOR_N1 => '#1 Cusco Inti',
+                    ReservaUnit::DB_VALOR_N2 => '#2 Cusco Inti',
+                    ReservaUnit::DB_VALOR_N3 => '#3 Cusco Inti',
+                    ReservaUnit::DB_VALOR_N4 => '#4 Cusco Inti',
+                    ReservaUnit::DB_VALOR_N5 => '#5 Cusco Inti'
                 ]
             ])
             ->add('estado', FieldDescriptionInterface::TYPE_CHOICE, [
