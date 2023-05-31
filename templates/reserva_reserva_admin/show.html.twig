@@ -67,7 +67,7 @@
                                             <i class="fa fa-file-text" aria-hidden="true"></i>
                                             Copiar
                                         </a>
-                                        <a href="https://wa.me/{{object.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}"
+                                        <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}"
                                            class="btn btn-sm btn-success edit_link">
                                             <i class="fa fa-whatsapp" aria-hidden="true"></i>
                                             Whatsapp
@@ -78,7 +78,7 @@
                                             {% set whatsappText = whatsappText ~ 'Por favor sirvase reconfirmar su llegada respondiendo a este mensaje, asi mismo indicarnos su *hora de llegada* y de preferencia su *numero de vuelo* o medio de transporte para poder coordinar la entrega del departamento.\n\n' %}
                                             {% set whatsappText = whatsappText ~ '*De no tener respuesta a este mensaje* nos veremos en la necesidad de hacer disponibles las fechas que reservo para otros huéspedes.\n\nMuchas Gracias.' %}
 
-                                            <a href="https://wa.me/{{object.telefono|replace({'+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                                            <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
                                                class="btn btn-sm btn-success edit_link">
                                                 <i class="fa fa-whatsapp" aria-hidden="true"></i>
                                                 Reconfirmación
