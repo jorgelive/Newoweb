@@ -33,9 +33,8 @@
             <div class="nav-tabs-custom">
 
                 <ul class="nav nav-tabs hidden-print" role="tablist">
-
+                    {% set inicializado = false %}
                     {% for index, caracteristica in object.unitcaracteristicas %}
-                        {% set inicializado = false %}
                         {% if not (
                             caracteristica.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_BRIEFING')
                             and action == 'resumen'
@@ -48,7 +47,6 @@
                             </li>
                             {% set inicializado = true %}
                         {% endif %}
-
                     {% endfor %}
                     <li>
                         <a href="#tab_{{ admin.uniqid }}_ubicacion" data-toggle="tab">
