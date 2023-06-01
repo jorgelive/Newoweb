@@ -33,18 +33,20 @@
             <div class="nav-tabs-custom">
 
                 <ul class="nav nav-tabs hidden-print" role="tablist">
-                    {% for index, caracteristica in object.unitcaracteristicas %}
 
+                    {% for index, caracteristica in object.unitcaracteristicas %}
+                        {% set inicializado = false %}
                         {% if not (
                             caracteristica.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_BRIEFING')
                             and action == 'resumen'
                             ) %}
-                            <li {% if loop.first %} class="active"{% endif %}>
+                            <li {% if not inicializado %} class="active"{% endif %}>
                                 <a href="#tab_{{ admin.uniqid }}_{{ index }}" data-toggle="tab">
-                                    <i style="color: #58954e;" class="fas fa-info tab-icon" aria-hidden="true"></i>
+                                    <i style="color: {{ caracteristica.unittipocaracteristica.iconcolor }};" class="fas {{ caracteristica.unittipocaracteristica.iconclase }} tab-icon" aria-hidden="true"></i>
                                     <span>{{ caracteristica.unittipocaracteristica.titulo }}</span>
                                 </a>
                             </li>
+                            {% set inicializado = true %}
                         {% endif %}
 
                     {% endfor %}

@@ -12,9 +12,6 @@ use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
 {
 
-    /**
-     * @param DatagridMapper $datagridMapper
-     */
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
@@ -23,12 +20,15 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('titulo', TranslationFieldFilter::class, [
                 'label' => 'Título'
             ])
+            ->add('iconcolor', null, [
+                'label' => 'Color del ícono'
+            ])
+            ->add('iconclase', null, [
+                'label' => 'Clase del ícono'
+            ])
         ;
     }
 
-    /**
-     * @param ListMapper $listMapper
-     */
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
@@ -37,6 +37,14 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('titulo', null, [
                 'label' => 'Título',
                 'editable' => true
+            ])
+            ->add('iconcolor', null, [
+                'editable' => true,
+                'label' => 'Color del ícono'
+            ])
+            ->add('iconclase', null, [
+                'editable' => true,
+                'label' => 'Clase del ícono'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -49,9 +57,6 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param FormMapper $formMapper
-     */
     protected function configureFormFields(FormMapper $formMapper): void
     {
         $formMapper
@@ -59,12 +64,15 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('titulo', null, [
                 'label' => 'Título'
             ])
+            ->add('iconcolor', null, [
+                'label' => 'Color del ícono'
+            ])
+            ->add('iconclase', null, [
+                'label' => 'Clase del ícono'
+            ])
         ;
     }
 
-    /**
-     * @param ShowMapper $showMapper
-     */
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper
@@ -72,6 +80,12 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('titulo', null, [
                 'label' => 'Título'
+            ])
+            ->add('iconcolor', null, [
+                'label' => 'Color del ícono'
+            ])
+            ->add('iconclase', null, [
+                'label' => 'Clase del ícono'
             ])
         ;
     }

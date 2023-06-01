@@ -54,6 +54,20 @@ class ReservaUnittipocaracteristica
     private $titulo;
 
     /**
+     * @var string
+     *
+     * @ORM\Column(type="string", length=30, nullable=true)
+     */
+    private $iconcolor;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(type="string", length=30, nullable=true)
+     */
+    private $iconclase;
+
+    /**
      * @var ArrayCollection
      *
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitcaracteristica", mappedBy="unittipocaracteristica", cascade={"persist","remove"}, orphanRemoval=true)
@@ -124,6 +138,30 @@ class ReservaUnittipocaracteristica
     public function getTitulo(): ?string
     {
         return $this->titulo;
+    }
+
+    public function setIconcolor(?string $iconcolor): self
+    {
+        $this->iconcolor = $iconcolor;
+
+        return $this;
+    }
+
+    public function getIconcolor(): ?string
+    {
+        return $this->iconcolor;
+    }
+
+    public function setIconclase(?string $iconclase): self
+    {
+        $this->iconclase = $iconclase;
+
+        return $this;
+    }
+
+    public function getIconclase(): ?string
+    {
+        return $this->iconclase;
     }
 
     public function setTitulo(string $titulo): self

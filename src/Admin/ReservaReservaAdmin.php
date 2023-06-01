@@ -336,13 +336,6 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'edit' => 'inline',
                 'inline' => 'table'
             ])
-            ->add('importes', CollectionType::class, [
-                'by_reference' => false,
-                'label' => 'Precio'
-            ], [
-                'edit' => 'inline',
-                'inline' => 'table'
-            ])
             ->add('pagos', CollectionType::class, [
                 'by_reference' => false,
                 'label' => 'Cobranzas'
@@ -350,6 +343,14 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'edit' => 'inline',
                 'inline' => 'table'
             ])
+            ->add('importes', CollectionType::class, [
+                'by_reference' => false,
+                'label' => 'Precio'
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table'
+            ])
+
         ;
     }
 
@@ -402,13 +403,6 @@ class ReservaReservaAdmin extends AbstractAdmin
                     'fieldName' => 'id'
                 ]
             ])
-            ->add('importes', null, [
-                'label' => 'Precios',
-                'associated_property' => 'resumen',
-                'sort_field_mapping' => [
-                    'fieldName' => 'fecha'
-                ]
-            ])
             ->add('pagos', null, [
                 'label' => 'Cobranzas',
                 'associated_property' => 'resumen',
@@ -416,7 +410,13 @@ class ReservaReservaAdmin extends AbstractAdmin
                     'fieldName' => 'fecha'
                 ]
             ])
-
+            ->add('importes', null, [
+                'label' => 'Precios',
+                'associated_property' => 'resumen',
+                'sort_field_mapping' => [
+                    'fieldName' => 'fecha'
+                ]
+            ])
         ;
     }
 

@@ -42,7 +42,11 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ])
             ->add('contenido', null, [
                 'template' => 'base_sonata_admin/list_html.html.twig'
-            ]);
+            ])
+            ->add('prioridad',null, [
+                'editable' => true
+            ])
+        ;
         if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $listMapper
                 ->add('contenidooriginal', null, [
@@ -61,8 +65,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
                         'template' => 'reserva_unitcaracteristica_admin/list__action_traducir.html.twig'
                     ]
                 ],
-            ])
-        ;
+            ]);
     }
 
     protected function configureFormFields(FormMapper $formMapper): void
@@ -80,15 +83,17 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ->add('contenido', null, [
                 'required' => false,
                 'attr' => ['class' => 'ckeditor']
-            ]);
+            ])
+            ->add('prioridad')
+        ;
 
         if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $formMapper
                 ->add('contenidooriginal', null, [
-                'label' => 'Contenido original',
-                'attr' => ['class' => 'ckeditorread'],
-                'disabled' => true
-            ]);
+                    'label' => 'Contenido original',
+                    'attr' => ['class' => 'ckeditorread'],
+                    'disabled' => true
+                ]);
         }
 
     }
@@ -103,7 +108,9 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ])
             ->add('contenido', null, [
                 'safe' => true
-            ]);
+            ])
+            ->add('prioridad')
+        ;
         if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $showMapper
                 ->add('contenidooriginal', null, [

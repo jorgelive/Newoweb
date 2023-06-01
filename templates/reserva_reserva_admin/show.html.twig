@@ -1,7 +1,5 @@
 {% extends 'base_sonata_admin/show.html.twig' %}
 
-
-
 {% block stylesheets %}
     {{ parent() }}
 
@@ -17,7 +15,7 @@
     <div class="row">
         <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
 
-            <div class="encabezado box box-primary">
+            <div class="box box-primary">
                 <div class="box-body table-responsive no-padding">
                     <table class="table">
                         <tbody>
@@ -28,6 +26,10 @@
                                     {% if object.cantidadninos > 0 %}+{{ object.cantidadninos }}{% endif %}
 
                                 </td>
+                            </tr>
+                            <tr class="sonata-ba-view-container">
+                                <th>{{ 'alojamiento'|trans({}, 'messages')|capitalize}}</th>
+                                <td><span style="font-weight: 600;">{{ object.unit.establecimiento.nombre }} {{ object.unit.nombre }}</span> - {{ object.unit.descripcion }}</td>
                             </tr>
                             <tr class="sonata-ba-view-container">
                                 <th>{{ 'fecha_ingreso'|trans({}, 'messages')|capitalize}}</th>
@@ -93,31 +95,108 @@
                 </div>
             </div>
 
-            <div class="encabezado box box-primary">
-                <div class="box-body table-responsive no-padding">
-                    <table class="table">
-                        <tbody>
-                        <tr class="sonata-ba-view-container">
-                            <th>{{ 'alojamiento'|trans({}, 'messages')|capitalize}}</th>
-                            <td>{{ object.unit.establecimiento.nombre }} {{ object.unit.nombre }}</td>
-                        </tr>
-                        <tr class="sonata-ba-view-container">
-
-                            <td colspan="2">{{ object.unit.descripcion }}</td>
-                        </tr>
-
-                        </tbody>
-                    </table>
+            {% if action != 'resumen' and object.detalles is not empty %}
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h4 class="box-title">
+                            {{ 'detalles'|trans({}, 'messages')|capitalize}}
+                        </h4>
+                    </div>
+                    <div class="box-body table-responsive no-padding">
+                        <table class="table">
+                            <thead>
+                                <tr class="sonata-ba-view-container">
+                                    <th>{{ 'tipo'|trans({}, 'messages')|capitalize}}</th>
+                                    <th>{{ 'personal'|trans({}, 'messages')|capitalize}}</th>
+                                    <th>{{ 'detalle'|trans({}, 'messages')|capitalize}}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detalle in object.detalles %}
+                                    <tr class="sonata-ba-view-container">
+                                        <td>{{ detalle.tipodetalle.nombre }}</td>
+                                        <td>{{ detalle.user.username }}</td>
+                                        <td>{{ detalle.nota }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
+
+            {% if action != 'resumen' and object.pagos is not empty %}
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h4 class="box-title">
+                            {{ 'cobranzas'|trans({}, 'messages')|capitalize}}
+                        </h4>
+                    </div>
+                    <div class="box-body table-responsive no-padding">
+                        <table class="table">
+                            <thead>
+                            <tr class="sonata-ba-view-container">
+                                <th>{{ 'fecha'|trans({}, 'messages')|capitalize}}</th>
+                                <th>{{ 'personal'|trans({}, 'messages')|capitalize}}</th>
+                                <th>{{ 'moneda'|trans({}, 'messages')|capitalize}}</th>
+                                <th>{{ 'monto'|trans({}, 'messages')|capitalize}}</th>
+                                <th>{{ 'nota'|trans({}, 'messages')|capitalize}}</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for pago in object.pagos %}
+                                <tr class="sonata-ba-view-container">
+                                    <td>{{ pago.fecha | date('Y-m-d') }}</td>
+                                    <td>{{ pago.user.username }}</td>
+                                    <td>{{ pago.moneda.nombre }}</td>
+                                    <td>{{ pago.monto }}</td>
+                                    <td>{{ pago.nota }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if action != 'resumen' and object.importes is not empty %}
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h4 class="box-title">
+                            {{ 'precio'|trans({}, 'messages')|capitalize}}
+                        </h4>
+                    </div>
+                    <div class="box-body table-responsive no-padding">
+                        <table class="table">
+                            <thead>
+                            <tr class="sonata-ba-view-container">
+                                <th>{{ 'tipo'|trans({}, 'messages')|capitalize}}</th>
+                                <th>{{ 'moneda'|trans({}, 'messages')|capitalize}}</th>
+                                <th>{{ 'monto'|trans({}, 'messages')|capitalize}}</th>
+                                <th>{{ 'nota'|trans({}, 'messages')|capitalize}}</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for importe in object.importes %}
+                                <tr class="sonata-ba-view-container">
+                                    <td>{{ importe.tipoimporte.nombre }}</td>
+                                    <td>{{ importe.moneda.nombre }}</td>
+                                    <td>{{ importe.monto }}</td>
+                                    <td>{{ importe.nota }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
 
             <div class="nav-tabs-custom">
-
                 <ul class="nav nav-tabs hidden-print" role="tablist">
                     {% for index, caracteristica in object.unit.unitcaracteristicas %}
                     <li {% if loop.first %} class="active"{% endif %}>
                         <a href="#tab_{{ admin.uniqid }}_{{ index }}" data-toggle="tab">
-                            <i style="color: #58954e;" class="fas fa-info tab-icon" aria-hidden="true"></i>
+                            <i style="color: {{ caracteristica.unittipocaracteristica.iconcolor }};" class="fas {{ caracteristica.unittipocaracteristica.iconclase }} tab-icon" aria-hidden="true"></i>
                             <span>{{ caracteristica.unittipocaracteristica.titulo }}</span>
                         </a>
                     </li>

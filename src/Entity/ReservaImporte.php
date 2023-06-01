@@ -42,13 +42,6 @@ class ReservaImporte
     protected $tipoimporte;
 
     /**
-     * @var \DateTime $fecha
-     *
-     * @ORM\Column(type="date")
-     */
-    private $fecha;
-
-    /**
      * @var \App\Entity\MaestroMoneda
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\MaestroMoneda")
@@ -109,18 +102,6 @@ class ReservaImporte
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function getFecha(): ?\DateTimeInterface
-    {
-        return $this->fecha;
-    }
-
-    public function setFecha(\DateTimeInterface $fecha): self
-    {
-        $this->fecha = $fecha;
-
-        return $this;
     }
 
     public function getMonto(): ?string

@@ -58,6 +58,13 @@ class ReservaUnitcaracteristica
     protected $unittipocaracteristica;
 
     /**
+     * @var int
+     *
+     * @ORM\Column(name="prioridad", type="integer", nullable=true)
+     */
+    private $prioridad;
+
+    /**
      * @var \App\Entity\ReservaUnit
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnit", inversedBy="unitcaracteristicas")
@@ -96,7 +103,7 @@ class ReservaUnitcaracteristica
      */
     public function __toString()
     {
-        return $this->getUnittipocaracteristica()->getNombre() . ' : ' . strip_tags($this->getContenido());
+        return substr(str_replace("&nbsp;", '', strip_tags($this->getContenido())), 0, 100) . '...';
     }
 
     public function setLocale(?string $locale): self
@@ -175,6 +182,18 @@ class ReservaUnitcaracteristica
         $this->unittipocaracteristica = $unittipocaracteristica;
 
         return $this;
+    }
+
+    public function setPrioridad(?int $prioridad): self
+    {
+        $this->prioridad = $prioridad;
+
+        return $this;
+    }
+
+    public function getPrioridad(): ?int
+    {
+        return $this->prioridad;
     }
 
     public function getUnit(): ?ReservaUnit

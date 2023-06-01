@@ -22,7 +22,9 @@ class ReservaImporteAdmin extends AbstractAdmin
     {
         $datagridMapper
             ->add('id')
-            ->add('fecha')
+            ->add('moneda')
+            ->add('monto')
+            ->add('nota')
         ;
     }
 
@@ -35,9 +37,6 @@ class ReservaImporteAdmin extends AbstractAdmin
             ->add('id')
             ->add('tipoimporte', null, [
                 'label' => 'Tipo de importe'
-            ])
-            ->add('fecha', null, [
-                'format' => 'Y-m-d'
             ])
             ->add('moneda')
             ->add('monto')
@@ -60,12 +59,6 @@ class ReservaImporteAdmin extends AbstractAdmin
     {
         $ahora = new \DateTime('now');
         $formMapper
-            ->add('fecha', DatePickerType::class, [
-                'label' => 'Fecha',
-                'dp_show_today' => true,
-                'format'=> 'yyyy/MM/dd',
-                'dp_default_date' => $ahora->format('Y-m-d')
-            ])
             ->add('tipoimporte', null, [
                 'label' => 'Tipo de importe'
             ])
@@ -78,15 +71,6 @@ class ReservaImporteAdmin extends AbstractAdmin
             $ahora = new \DateTime('now');
 
             $form
-                ->add('fecha', DatePickerType::class, [
-                    'label' => 'Fecha',
-                    'dp_show_today' => true,
-                    'format'=> 'yyyy/MM/dd',
-                    'dp_default_date' => $ahora->format('Y-m-d'),
-                    'attr' => [
-                        'style' => 'min-width: 100px;'
-                    ]
-                ])
                 ->add('monto', null, [
                     'label' => 'Monto',
                     'attr' => [
@@ -124,9 +108,6 @@ class ReservaImporteAdmin extends AbstractAdmin
             ->add('id')
             ->add('tipoimporte', null, [
                 'label' => 'Tipo de importe'
-            ])
-            ->add('fecha', null, [
-                'format' => 'Y-m-d'
             ])
             ->add('moneda')
             ->add('monto')

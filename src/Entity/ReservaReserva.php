@@ -101,7 +101,6 @@ class ReservaReserva
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaImporte", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"fecha" = "ASC"})
      */
     private ?Collection $importes;
 
