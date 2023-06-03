@@ -34,6 +34,13 @@ class ReservaUnitnexo
     private $enlace;
 
     /**
+     * @var string
+     *
+     * @ORM\Column(type="string", length=30, nullable=true)
+     */
+    private $related;
+
+    /**
      * @var \App\Entity\ReservaChanel
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaChanel", inversedBy="unitnexos")
@@ -104,6 +111,18 @@ class ReservaUnitnexo
     public function setEnlace(string $enlace): self
     {
         $this->enlace = $enlace;
+
+        return $this;
+    }
+
+    public function getRelated(): ?string
+    {
+        return $this->related;
+    }
+
+    public function setRelated(string $related): self
+    {
+        $this->related = $related;
 
         return $this;
     }

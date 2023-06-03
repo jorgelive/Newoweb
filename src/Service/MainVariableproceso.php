@@ -19,11 +19,19 @@ class MainVariableproceso
     public function prependtofile($file, $text): bool
     {
 
+        //w+ lectura y escritura si no exista la crea
         $file_to_read = @fopen($file, "r");
-        $old_text = @fread($file_to_read, 8184); // max 1024
-        @fclose($file_to_read);
+        if(!$file_to_read){
+            $file_to_create = fopen($file, "w");
+            @fclose($file_to_create);
+            $old_text = '';
+        }else{
+            $old_text = @fread($file_to_read, 32736);
+            @fclose($file_to_read);
+        }
         $file_to_write = fopen($file, "w");
         fwrite($file_to_write, $text . $old_text);
+        @fclose($file_to_write);
         return true;
     }
 

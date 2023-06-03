@@ -1038,6 +1038,7 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ReservaUnitnexo
+              controller: App\Controller\ReservaUnitnexoAdminController
               manager_type: orm
               group: Reserva
               label: Nexos
