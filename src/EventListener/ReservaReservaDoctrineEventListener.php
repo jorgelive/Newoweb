@@ -25,7 +25,12 @@ class ReservaReservaDoctrineEventListener
 
             $entity->setToken(mt_rand());
 
-            $entity->setUid(sprintf('%06d', $entity->getUnit()->getId()) . '-' . sprintf('%06d', $entity->getChanel()->getId()) . '-' . sprintf('%012d', mt_rand()) . '@openperu.pe');
+            $rpUid = new \ReflectionProperty($entity, 'uid');
+            if(!$rpUid->isInitialized($entity)
+                || ( $rpUid->isInitialized($entity) && empty($entity->getUid()) )
+            ){
+                $entity->setUid(sprintf('%06d', $entity->getUnit()->getId()) . '-' . sprintf('%06d', $entity->getChanel()->getId()) . '-' . sprintf('%012d', mt_rand()) . '@openperu.pe');
+            }
 
             $rpEnlace = new \ReflectionProperty($entity, 'enlace');
             if($rpEnlace->isInitialized($entity)){

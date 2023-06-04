@@ -23,15 +23,15 @@
                     <table class="table">
                         <tbody>
                         <tr class="sonata-ba-view-container">
-                            <th>Nombre</th>
+                            <th>{{ 'nombre'|trans({},'messages')|capitalize }}</th>
                             <td>{{ object.nombre }}</td>
                         </tr>
                         <tr class="sonata-ba-view-container">
-                            <th>Pais</th>
+                            <th>{{ 'pais'|trans({},'messages')|capitalize }}</th>
                             <td>{{ object.pais.nombre }}</td>
                         </tr>
                         <tr class="sonata-ba-view-container">
-                            <th>Idioma</th>
+                            <th>{{ 'idioma'|trans({},'messages')|capitalize }}</th>
                             <td>{{ object.idioma.nombre }}</td>
                         </tr>
                         {% if action != 'resumen' and object.telefono is not empty %}
@@ -69,7 +69,7 @@
                             <div class="panel-heading">
                                 <h5 class="panel-title">
                                     <a data-toggle="collapse" data-parent="#accordion" href="#collapse1">
-                                        Relación de pasajeros
+                                        {{ 'namelist'|trans({},'messages')|capitalize }}
                                     </a>
                                 </h5>
                             </div>
@@ -79,28 +79,28 @@
                                         <thead>
                                         <tr class="sonata-ba-list-field-header">
                                             <th>
-                                                Nombres
+                                                {{ 'nombres'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Apellidos
+                                                {{ 'apellidos'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Pais
+                                                {{ 'pais'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Sexo
+                                                {{ 'sexo'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Tipo doc.
+                                                {{ 'tipodoc'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Número doc.
+                                                {{ 'numerodoc'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Fecha nacimiento
+                                                {{ 'fechanacimiento'|trans({},'messages')|capitalize }}
                                             </th>
                                             <th>
-                                                Edad
+                                                {{ 'edad'|trans({},'messages')|capitalize }}
                                             </th>
                                         </tr>
                                         </thead>
