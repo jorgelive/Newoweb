@@ -22,7 +22,7 @@
         {% block notice %}
             {% include '@SonataTwig/FlashMessage/render.html.twig' %}
         {% endblock notice %}
-        {{ fullcalendar({'Conductor' : 'transporte_servicio_conductor', 'Unidad' : 'transporte_servicio_unidad', 'Cliente' : 'transporte_servicio_cliente'}) }}
+        {{ fullcalendar('transporte_servicio_admin', {'Conductor' : 'transporte_servicio_conductor', 'Unidad' : 'transporte_servicio_unidad', 'Cliente' : 'transporte_servicio_cliente'}) }}
     {% else %}
         {{ parent() }}
     {% endif %}

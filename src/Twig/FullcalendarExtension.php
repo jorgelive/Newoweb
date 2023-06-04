@@ -50,7 +50,7 @@ class FullcalendarExtension extends AbstractExtension
         return $this->_router->generate('app_fullcalendar_load_resource', ['calendar' => $calendar]);
     }
 
-    public function fullcalendar($calendars, $defaultView = null, $views = [], $allDaySlot = false)
+    public function fullcalendar($caller, $calendars, $defaultView = null, $views = [], $allDaySlot = false)
     {
         if(empty($views)){
             $views = ['timeGridWeek', 'dayGridMonth', 'listMonth', 'resourceTimelineOneDay'];
@@ -142,6 +142,12 @@ class FullcalendarExtension extends AbstractExtension
         
         let clickCnt = 0;
         
+        var calDefaultViewStr = "$caller" + "calDefaultView";
+        var calDefaultScrollStr = "$caller" + "calDefaultScroll";
+        var calDefaultDateStr = "$caller" + "calDefaultDate";
+        
+        var defaultView = (localStorage.getItem(calDefaultViewStr) !== null ? localStorage.getItem(calDefaultViewStr) : '$defaultView');
+        //alert(localStorage.getItem(calDefaultViewStr));
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
@@ -150,7 +156,7 @@ class FullcalendarExtension extends AbstractExtension
                 center: 'title',
                 right: '$views'
             },
-            initialView: '$defaultView',
+            initialView: defaultView,
             views: {
                 resourceTimelineOneDay: {
                     type: 'resourceTimeline',
@@ -169,29 +175,47 @@ class FullcalendarExtension extends AbstractExtension
                 }
             },
             dateClick: function(info) {
-                //alert(calendar.view.type);
-                calendar.changeView('resourceTimelineOneDay');
-                calendar.gotoDate(info.date)
+                //seleccionamos la fecha del click;
+                localStorage.setItem(calDefaultDateStr, info.startStr);
+                clickCnt++;
+                if(clickCnt === 1) {
+                    oneClickTimer = setTimeout(function() {
+                        clickCnt = 0;
+                        
+                    }, 400);
+                } else if(clickCnt === 2) {
+                    clearTimeout(oneClickTimer);
+                    clickCnt = 0;
+                    calendar.changeView('resourceTimelineOneDay');
+                    calendar.gotoDate(info.date);
+                }
+                /*if(calendar.view.type != 'resourceTimelineOneMonth'){
+                    calendar.changeView('resourceTimelineOneDay');
+                    calendar.gotoDate(info.date)
+                }*/
             },
             eventClick: function(info) {
-                
+                //seleccionamos la fecha del evento;
+                localStorage.setItem(calDefaultDateStr, info.event.startStr);
+                //console.log(calendar)
+
                 clickCnt++;         
                 if(clickCnt === 1) {
                     oneClickTimer = setTimeout(function() {
                         clickCnt = 0;
                         if(typeof info.event.extendedProps.urlshow !== 'undefined') {
-                            window.open(info.event.extendedProps.urlshow, '_blank');
-                            //window.location.href = info.event.extendedProps.urlshow;
+                            //window.open(info.event.extendedProps.urlshow, '_blank');
+                            window.location.href = info.event.extendedProps.urlshow;
                         }
                     }, 400);
                 } else if(clickCnt === 2) {
                     clearTimeout(oneClickTimer);
                     clickCnt = 0;
                     if(typeof info.event.extendedProps.urledit !== 'undefined') {
-                        window.open(info.event.extendedProps.urledit, '_blank');
-                        //window.location.href = info.event.extendedProps.urledit;
+                        //window.open(info.event.extendedProps.urledit, '_blank');
+                        window.location.href = info.event.extendedProps.urledit;
                     }
-                }     
+                }  
             },
             resourceAreaHeaderContent: '$defaultLabel',
             locale: 'es',
@@ -201,20 +225,44 @@ class FullcalendarExtension extends AbstractExtension
             refetchResourcesOnNavigate: true,
             resources: function(fetchInfo, successCallback, failureCallback) {
                 getResources(fetchInfo.start, fetchInfo.end, fetchInfo.timezone, function(resources) {
-                    setTimeout(function(){ // Timeout
-                        $(".fc-day-today").attr("id","scrollTo"); // Set an ID for the current day..
-                        if(typeof $("#scrollTo").position() != 'undefined'){
-                            $(".fc-scroller").animate({
-                                scrollLeft: $("#scrollTo").position().left // Scroll to this ID
-                            }, 2000);
-                        }
-                    }, 500);
-                    successCallback(resources);
+                    
+                    if(localStorage.getItem(calDefaultScrollStr) === null){
+                        setTimeout(function(){ // Timeout
+                            $(".fc-day-today").attr("id","scrollTo"); // Set an ID for the current day..
+                            
+                            if(typeof $("#scrollTo").position() != 'undefined'){
+                                $(".fc-scroller").animate({
+                                    scrollLeft: $("#scrollTo").position().left // Scroll to this ID
+                                }, 2000);
+                            }
+                        }, 500);
+                    }
+                    successCallback(resources)
                 });
             },
             events: '$defaultEventUrl'
         });
+        
+        
         calendar.render();
+        
+         $(".fc-scroller").on( "scroll", function() {
+             
+             localStorage.setItem(calDefaultViewStr, calendar.view.type);
+             localStorage.setItem(calDefaultDateStr, calendar.view.activeStart.toString());
+             localStorage.setItem(calDefaultScrollStr,  $(this).scrollLeft());
+             //console.log(calendar.view.activeStart.toString());
+         });
+        
+        
+        if(localStorage.getItem(calDefaultDateStr) !== null){
+            let defaulDate = new Date(localStorage.getItem(calDefaultDateStr));
+            calendar.gotoDate(defaulDate);
+             $(".fc-scroller").animate({
+                scrollLeft: localStorage.getItem(calDefaultScrollStr) // Scroll to this ID
+             }, 2000);
+            //console.log(localStorage.getItem(calDefaultScrollStr));
+        }
  
     });
 
