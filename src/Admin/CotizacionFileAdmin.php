@@ -70,6 +70,9 @@ class CotizacionFileAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('pais')
             ->add('idioma')
+            ->add('telefono', null, [
+                'label' => 'Teléfono'
+            ])
         ;
     }
 
@@ -92,6 +95,10 @@ class CotizacionFileAdmin extends AbstractAdmin
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
                 'sort_parent_association_mappings' => [['fieldName' => 'idioma']],
+            ])
+            ->add('telefono', null, [
+                'label' => 'Teléfono',
+                'editable' => true
             ])
             ->add('filedocumentos', null, [
                 'label' => 'Documentos'
@@ -138,8 +145,12 @@ class CotizacionFileAdmin extends AbstractAdmin
         $formMapper
             ->add('nombre')
             ->add('pais')
-            ->add('idioma');
+            ->add('idioma')
+            ->add('telefono', null, [
+                'label' => 'Teléfono'
+            ]);
 
+        //no mostrar en la vista de selección
         if($this->getRequest()->get('pcode') != 'app.admin.cotizacioncotizacion'){
             $formMapper
                 ->add('filepasajeros', CollectionType::class, [
@@ -175,6 +186,9 @@ class CotizacionFileAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('pais')
             ->add('idioma')
+            ->add('telefono', null, [
+                'label' => 'Teléfono'
+            ])
             ->add('filepasajeros', null, [
                 'label' => 'Name List'
             ])

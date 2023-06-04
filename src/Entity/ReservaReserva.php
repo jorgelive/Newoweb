@@ -73,25 +73,25 @@ class ReservaReserva
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaChanel", inversedBy="reservas")
      * @ORM\JoinColumn(name="chanel_id", referencedColumnName="id", nullable=false)
      */
-    protected ?ReservaChanel $chanel;
+    private ?ReservaChanel $chanel;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnitnexo", inversedBy="reservas")
      * @ORM\JoinColumn(name="unitnexo_id", referencedColumnName="id", nullable=true)
      */
-    protected ?ReservaUnitnexo $unitnexo;
+    private ?ReservaUnitnexo $unitnexo;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnit", inversedBy="reservas")
      * @ORM\JoinColumn(name="unit_id", referencedColumnName="id", nullable=false)
      */
-    protected ?ReservaUnit $unit;
+    private ?ReservaUnit $unit;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaEstado", inversedBy="reservas")
      * @ORM\JoinColumn(name="estado_id", referencedColumnName="id", nullable=false)
      */
-    protected ?ReservaEstado $estado;
+    private ?ReservaEstado $estado;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaDetalle", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)

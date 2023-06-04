@@ -63,6 +63,28 @@
                                     <td><span class="codigo">{{ object.codigo }}</span></td>
                                 {% endif %}
                             </tr>
+                            {% if action != 'resumen' and object.file.telefono is not empty %}
+                                <tr class="sonata-ba-view-container">
+                                    <td colspan="2">
+                                        <a href="tel:{{ object.file.telefono }}"
+                                           class="btn btn-sm btn-success">
+                                            <i class="fa fa-phone" aria-hidden="true"></i>
+                                            Llamar
+                                        </a>
+                                        <a data-text="{{ object.file.telefono }}"
+                                           data-tooltiptext="Copiado al portapapeles"
+                                           class="btn btn-sm btn-success clipboard-trigger">
+                                            <i class="fa fa-file-text" aria-hidden="true"></i>
+                                            Copiar número
+                                        </a>
+                                        <a href="https://wa.me/{{object.file.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}"
+                                           class="btn btn-sm btn-success edit_link">
+                                            <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                                            Whatsapp
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                     <div class="box-body container-fluid">

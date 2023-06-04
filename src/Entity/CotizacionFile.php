@@ -20,26 +20,20 @@ class CotizacionFile
 
     /**
      * Para el calendario
-     * @var string
-     *
      */
-    private $color;
+    private ?string $color;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=20)
      */
-    private $token;
+    private ?string $token;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
      * @var string
@@ -49,70 +43,59 @@ class CotizacionFile
     private $nombre;
 
     /**
-     * @var \App\Entity\MaestroPais
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\MaestroPais")
      * @ORM\JoinColumn(name="pais_id", referencedColumnName="id", nullable=false)
      */
-    protected $pais;
+    private ?MaestroPais $pais;
 
     /**
-     * @var \App\Entity\MaestroIdioma
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\MaestroIdioma")
      * @ORM\JoinColumn(name="idioma_id", referencedColumnName="id", nullable=false)
      */
-    protected $idioma;
+    private ?MaestroIdioma $idioma;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
+     * @ORM\Column(type="string", length=30, nullable=true)
+     */
+    private ?string $telefono;
+
+    /**
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotizacion", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"id" = "DESC"})
      */
-    private $cotizaciones;
+    private ?Collection $cotizaciones;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionFiledocumento", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"prioridad" = "ASC"})
      */
-    private $filedocumentos;
+    private ?Collection $filedocumentos;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionFilepasajero", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
      */
-    private $filepasajeros;
+    private ?Collection $filepasajeros;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->cotizaciones = new ArrayCollection();
         $this->filepasajeros = new ArrayCollection();
         $this->filedocumentos = new ArrayCollection();
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
@@ -126,153 +109,89 @@ class CotizacionFile
     }
 
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Get color
-     *
-     * @return string
-     */
-    public function getColor(){
+    public function getColor(): ?string
+    {
         return $this->color;
     }
 
-    /**
-     * Set token
-     *
-     * @param string $token
-     *
-     * @return CotizacionFile
-     */
-    public function setToken($token)
+    public function setToken(?string $token): self
     {
         $this->token = $token;
 
         return $this;
     }
 
-    /**
-     * Get token
-     *
-     * @return string
-     */
-    public function getToken()
+    public function getToken(): ?string
     {
         return $this->token;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return CotizacionFile
-     */
-    public function setNombre($nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
     
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set pais
-     *
-     * @param \App\Entity\MaestroPais $pais
-     *
-     * @return CotizacionFile
-     */
-    public function setPais(\App\Entity\MaestroPais $pais = null)
+    public function setPais(MaestroPais $pais): self
     {
         $this->pais = $pais;
     
         return $this;
     }
 
-    /**
-     * Get pais
-     *
-     * @return \App\Entity\MaestroPais
-     */
-    public function getPais()
+    public function getPais(): ?MaestroPais
     {
         return $this->pais;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionFile
-     */
-    public function setCreado($creado)
+    public function setTelefono(?string $telefono): self
+    {
+        $this->telefono = $telefono;
+
+        return $this;
+    }
+
+    public function getTelefono(): ?string
+    {
+        return $this->telefono;
+    }
+
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
     
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionFile
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
     
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Add cotizacion
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     *
-     * @return CotizacionFile
-     */
-    public function addCotizacion(\App\Entity\CotizacionCotizacion $cotizacion)
+    public function addCotizacion(?CotizacionCotizacion $cotizacion): self
     {
         $cotizacion->setFile($this);
 
@@ -284,78 +203,45 @@ class CotizacionFile
 
     /**
      * Add cotizacione por inflector ingles
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     *
-     * @return CotizacionFile
      */
-    public function addCotizacione(\App\Entity\CotizacionCotizacion $cotizacion){
+    public function addCotizacione(CotizacionCotizacion $cotizacion): self
+    {
         return $this->addCotizacion($cotizacion);
     }
 
-    /**
-     * Remove cotizacion
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     */
-    public function removeCotizacion(\App\Entity\CotizacionCotizacion $cotizacion)
+
+    public function removeCotizacion(CotizacionCotizacion $cotizacion): bool
     {
-        $this->cotizaciones->removeElement($cotizacion);
+        return $this->cotizaciones->removeElement($cotizacion);
     }
 
     /**
      * Remove cotizacione por inflector ingles
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
      */
-    public function removeCotizacione(\App\Entity\CotizacionCotizacion $cotizacion)
+    public function removeCotizacione(CotizacionCotizacion $cotizacion): bool
     {
-        $this->removeCotizacion($cotizacion);
+        return $this->removeCotizacion($cotizacion);
     }
 
 
-    /**
-     * Get cotizaciones
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getCotizaciones()
+    public function getCotizaciones(): ?Collection
     {
         return $this->cotizaciones;
     }
 
-    /**
-     * Set idioma.
-     *
-     * @param \App\Entity\MaestroIdioma|null $idioma
-     *
-     * @return CotizacionFile
-     */
-    public function setIdioma(\App\Entity\MaestroIdioma $idioma = null)
+    public function setIdioma(?MaestroIdioma $idioma): self
     {
         $this->idioma = $idioma;
     
         return $this;
     }
 
-    /**
-     * Get idioma.
-     *
-     * @return \App\Entity\MaestroIdioma|null
-     */
-    public function getIdioma()
+    public function getIdioma(): ?MaestroIdioma
     {
         return $this->idioma;
     }
 
-    /**
-     * Add filepasajero.
-     *
-     * @param \App\Entity\CotizacionFilepasajero $filepasajero
-     *
-     * @return CotizacionFile
-     */
-    public function addFilepasajero(\App\Entity\CotizacionFilepasajero $filepasajero)
+    public function addFilepasajero(CotizacionFilepasajero $filepasajero): self
     {
         $filepasajero->setFile($this);
 
@@ -364,36 +250,17 @@ class CotizacionFile
         return $this;
     }
 
-    /**
-     * Remove filepasajero.
-     *
-     * @param \App\Entity\CotizacionFilepasajero $filepasajero
-     *
-     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
-     */
-    public function removeFilepasajero(\App\Entity\CotizacionFilepasajero $filepasajero)
+    public function removeFilepasajero(CotizacionFilepasajero $filepasajero): bool
     {
         return $this->filepasajeros->removeElement($filepasajero);
     }
 
-    /**
-     * Get filepasajeros.
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getFilepasajeros()
+    public function getFilepasajeros(): Collection
     {
         return $this->filepasajeros;
     }
 
-    /**
-     * Add filedocumento.
-     *
-     * @param \App\Entity\CotizacionFiledocumento $filedocumento
-     *
-     * @return CotizacionFile
-     */
-    public function addFiledocumento(\App\Entity\CotizacionFiledocumento $filedocumento)
+    public function addFiledocumento(CotizacionFiledocumento $filedocumento): self
     {
         $filedocumento->setFile($this);
 
@@ -402,24 +269,12 @@ class CotizacionFile
         return $this;
     }
 
-    /**
-     * Remove filedocumento.
-     *
-     * @param \App\Entity\CotizacionFiledocumento $filedocumento
-     *
-     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
-     */
-    public function removeFiledocumento(\App\Entity\CotizacionFiledocumento $filedocumento)
+    public function removeFiledocumento(CotizacionFiledocumento $filedocumento): bool
     {
         return $this->filedocumentos->removeElement($filedocumento);
     }
 
-    /**
-     * Get filedocumentos.
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getFiledocumentos()
+    public function getFiledocumentos(): ?Collection
     {
         return $this->filedocumentos;
     }

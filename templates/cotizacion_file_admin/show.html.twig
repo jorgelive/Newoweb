@@ -34,6 +34,29 @@
                             <th>Idioma</th>
                             <td>{{ object.idioma.nombre }}</td>
                         </tr>
+                        {% if action != 'resumen' and object.telefono is not empty %}
+                            <tr class="sonata-ba-view-container">
+                                <td colspan="2">
+                                    <a href="tel:{{ object.telefono }}"
+                                       class="btn btn-sm btn-success">
+                                        <i class="fa fa-phone" aria-hidden="true"></i>
+                                        Llamar
+                                    </a>
+                                    <a data-text="{{ object.telefono }}"
+                                       data-tooltiptext="Copiado al portapapeles"
+                                       class="btn btn-sm btn-success clipboard-trigger">
+                                        <i class="fa fa-file-text" aria-hidden="true"></i>
+                                        Copiar número
+                                    </a>
+                                    <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}"
+                                       class="btn btn-sm btn-success edit_link">
+                                        <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                                        Whatsapp
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endif %}
+
                         </tbody>
                     </table>
                 </div>
