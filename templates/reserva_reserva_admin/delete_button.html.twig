@@ -1,0 +1,9 @@
+{% if object is defined and admin.isGranted('delete', object) and admin.hasRoute('delete') and object.id is not null %}
+    <li>
+        <a id="deleteLink-{{ object.id }}" class="sonata-action-element" href="{{ admin.generateObjectUrl('delete', object) }}">
+            <i class="fa fa-eraser" aria-hidden="true"></i>
+            Borrar
+        </a>
+    </li>
+
+{% endif %}

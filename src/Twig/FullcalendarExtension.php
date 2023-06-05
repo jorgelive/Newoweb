@@ -152,6 +152,7 @@ class FullcalendarExtension extends AbstractExtension
         var calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             customButtons: {
+                
                 hoyButton: {
                     text: 'Hoy',
                     click: function() {
@@ -168,6 +169,9 @@ class FullcalendarExtension extends AbstractExtension
                         }
                     }
                 }
+            },
+            datesSet: event => {
+                localStorage.setItem(calDefaultDateStr, event.startStr);
             },
             headerToolbar: {
                 left: 'hoyButton prev,next',
@@ -193,8 +197,8 @@ class FullcalendarExtension extends AbstractExtension
                 }
             },
             dateClick: function(info) {
-                //seleccionamos la fecha del click;
-                localStorage.setItem(calDefaultDateStr, info.startStr);
+                //ya no seleccionamos la fecha del click;
+                //localStorage.setItem(calDefaultDateStr, info.startStr);
                 clickCnt++;
                 if(clickCnt === 1) {
                     oneClickTimer = setTimeout(function() {
@@ -209,8 +213,8 @@ class FullcalendarExtension extends AbstractExtension
                 }
             },
             eventClick: function(info) {
-                //seleccionamos la fecha del evento;
-                localStorage.setItem(calDefaultDateStr, info.event.startStr);
+                //ya no seleccionamos la fecha del evento;
+                //localStorage.setItem(calDefaultDateStr, info.event.startStr);
 
                 clickCnt++;         
                 if(clickCnt === 1) {

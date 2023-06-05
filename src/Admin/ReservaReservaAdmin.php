@@ -35,6 +35,7 @@ class ReservaReservaAdmin extends AbstractAdmin
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
+        $buttonList['delete'] = ['template' => 'reserva_reserva_admin/delete_button.html.twig'];
         $buttonList['clonar'] = ['template' => 'reserva_reserva_admin/clonar_button.html.twig'];
         $buttonList['extender'] = ['template' => 'reserva_reserva_admin/extender_button.html.twig'];
         $buttonList['resumenclipboard'] = ['template' => 'reserva_reserva_admin/resumen_clipboard_button.html.twig'];
