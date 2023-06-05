@@ -154,7 +154,7 @@ class FullcalendarExtension extends AbstractExtension
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
-            initialDate: '$initialdate',
+            initialDate: initialDate,
             customButtons: {
                 
                 hoyButton: {
