@@ -3,6 +3,7 @@
 namespace App\Twig;
 use Symfony\Component\Routing\RouterInterface;
 use \Twig\Extension\AbstractExtension;
+use function Symfony\Component\HttpKernel\Log\format;
 
 class FullcalendarExtension extends AbstractExtension
 {
@@ -91,6 +92,8 @@ class FullcalendarExtension extends AbstractExtension
             $allDaySlot = 'false';
         }
 
+        $initialdate = (new \DateTime('today'))->format('Y-m-d');
+
         $script = <<<JS
 
 
@@ -147,10 +150,11 @@ class FullcalendarExtension extends AbstractExtension
         var calDefaultDateStr = "$caller" + "calDefaultDate";
         
         var defaultView = (localStorage.getItem(calDefaultViewStr) !== null ? localStorage.getItem(calDefaultViewStr) : '$defaultView');
-
+        var initialDate = (localStorage.getItem(calDefaultdateStr) !== null ? localStorage.getItem(calDefaultDateStr) : '$initialdate');
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            initialDate: "2012-05-25"
             customButtons: {
                 
                 hoyButton: {
