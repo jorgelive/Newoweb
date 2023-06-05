@@ -268,17 +268,15 @@ class FullcalendarExtension extends AbstractExtension
         
          $(".fc-scroller").on( "scroll", function() {
              localStorage.setItem(calDefaultViewStr, calendar.view.type);
-             localStorage.setItem(calDefaultDateStr, calendar.view.activeStart.toString());
+             // no usar toString, ya no necesaria la funcion
+             // localStorage.setItem(calDefaultDateStr, calendar.view.activeStart.toString());
              localStorage.setItem(calDefaultScrollStr,  $(this).scrollLeft());
          });
          
-        if(localStorage.getItem(calDefaultDateStr) !== null){
-            let defaulDate = new Date(localStorage.getItem(calDefaultDateStr));
-            calendar.gotoDate(defaulDate);
+        if(localStorage.getItem(calDefaultScrollStr) !== null){
              $(".fc-scroller").animate({
                 scrollLeft: localStorage.getItem(calDefaultScrollStr) // Scroll to this ID
              }, 2000);
-
         }
     });
 
