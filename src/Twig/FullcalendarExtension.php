@@ -147,12 +147,30 @@ class FullcalendarExtension extends AbstractExtension
         var calDefaultDateStr = "$caller" + "calDefaultDate";
         
         var defaultView = (localStorage.getItem(calDefaultViewStr) !== null ? localStorage.getItem(calDefaultViewStr) : '$defaultView');
-        //alert(localStorage.getItem(calDefaultViewStr));
+
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            customButtons: {
+                hoyButton: {
+                    text: 'Hoy',
+                    click: function() {
+                        calendar.today();
+                        
+                        if(calendar.view.type == 'resourceTimelineOneMonth'){
+                            $(".fc-day-today").attr("id","scrollTo"); // Set an ID for the current day..
+                                
+                            if(typeof $("#scrollTo").position() != 'undefined'){
+                                $(".fc-scroller").animate({
+                                    scrollLeft: $("#scrollTo").position().left // Scroll to this ID
+                                }, 2000);
+                            }
+                        }
+                    }
+                }
+            },
             headerToolbar: {
-                left: 'today prev,next',
+                left: 'hoyButton prev,next',
                 center: 'title',
                 right: '$views'
             },
@@ -189,15 +207,10 @@ class FullcalendarExtension extends AbstractExtension
                     calendar.changeView('resourceTimelineOneDay');
                     calendar.gotoDate(info.date);
                 }
-                /*if(calendar.view.type != 'resourceTimelineOneMonth'){
-                    calendar.changeView('resourceTimelineOneDay');
-                    calendar.gotoDate(info.date)
-                }*/
             },
             eventClick: function(info) {
                 //seleccionamos la fecha del evento;
                 localStorage.setItem(calDefaultDateStr, info.event.startStr);
-                //console.log(calendar)
 
                 clickCnt++;         
                 if(clickCnt === 1) {
@@ -243,27 +256,22 @@ class FullcalendarExtension extends AbstractExtension
             events: '$defaultEventUrl'
         });
         
-        
         calendar.render();
         
          $(".fc-scroller").on( "scroll", function() {
-             
              localStorage.setItem(calDefaultViewStr, calendar.view.type);
              localStorage.setItem(calDefaultDateStr, calendar.view.activeStart.toString());
              localStorage.setItem(calDefaultScrollStr,  $(this).scrollLeft());
-             //console.log(calendar.view.activeStart.toString());
          });
-        
-        
+         
         if(localStorage.getItem(calDefaultDateStr) !== null){
             let defaulDate = new Date(localStorage.getItem(calDefaultDateStr));
             calendar.gotoDate(defaulDate);
              $(".fc-scroller").animate({
                 scrollLeft: localStorage.getItem(calDefaultScrollStr) // Scroll to this ID
              }, 2000);
-            //console.log(localStorage.getItem(calDefaultScrollStr));
+
         }
- 
     });
 
 JS;
