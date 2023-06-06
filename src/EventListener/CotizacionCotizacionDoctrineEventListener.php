@@ -4,6 +4,9 @@ namespace App\EventListener;
 use App\Entity\CotizacionCotizacion;
 use App\Service\CotizacionResumen;
 use Doctrine\ORM\Event\LifecycleEventArgs;
+use Doctrine\ORM\Event\PostPersistEventArgs;
+use Doctrine\ORM\Event\PostUpdateEventArgs;
+use Doctrine\ORM\Event\PrePersistEventArgs;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 class CotizacionCotizacionDoctrineEventListener
@@ -21,29 +24,26 @@ class CotizacionCotizacionDoctrineEventListener
 
     }
 
-    public function prePersist(LifecycleEventArgs $args)
+    public function prePersist(PrePersistEventArgs $args)
     {
-        $entity = $args->getEntity();
+        $entity = $args->getObject();
         if($entity instanceof CotizacionCotizacion){
-            if(!$entity->getToken()) {
-                $entity->setToken(mt_rand());
-            }
-
+            $entity->setToken(mt_rand());
         }
     }
 
-    public function postPersist(LifecycleEventArgs $args)
+    public function postPersist(PostPersistEventArgs $args)
     {
-        $entity = $args->getEntity();
+        $entity = $args->getObject();
         if($entity instanceof CotizacionCotizacion){
             //De haber error los mensajes iran al flashblag
             $this->cotizacionResumen->procesar($entity->getId());
         }
     }
 
-    public function postUpdate(LifecycleEventArgs $args)
+    public function postUpdate(PostUpdateEventArgs $args)
     {
-        $entity = $args->getEntity();
+        $entity = $args->getObject();
 
         if($entity instanceof CotizacionCotizacion){
             //De haber error los mensajes iran al flashblag

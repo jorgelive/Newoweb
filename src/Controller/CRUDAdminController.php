@@ -12,6 +12,19 @@ use Symfony\Component\Mime\Email;
 
 class CRUDAdminController extends BaseController
 {
+    function makeIcalResponse($calendar, $status): Response
+    {
+        $mimeType = $calendar->getContentType();
+        $filename = $calendar->getFilename();
+
+        $response = new Response();
+        $response->headers->set('Content-Type', sprintf('%s; charset=utf-8', $mimeType));
+        $response->headers->set('Content-Disposition', sprintf('attachment; filename="%s', $filename));
+        $response->setContent($calendar->export());
+        $response->setStatusCode($status);
+        return $response;
+    }
+
     function emailAction(Request $request, TransportInterface $mailer): RedirectResponse
     {
         $object = $this->assertObjectExists($request, true);
@@ -26,7 +39,6 @@ class CRUDAdminController extends BaseController
             ->priority(Email::PRIORITY_HIGH)
             ->subject(urldecode($emaiInfo['titulo']))
             ->html(urldecode($emaiInfo['mensaje']));
-
         try {
             $mailer->send($email);
         }catch (TransportExceptionInterface $e) {

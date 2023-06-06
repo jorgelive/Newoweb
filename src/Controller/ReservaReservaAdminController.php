@@ -158,20 +158,6 @@ class ReservaReservaAdminController extends CRUDAdminController
         }
         $status = Response::HTTP_OK;
         return $this->makeIcalResponse($calendar, $status);
-
-    }
-
-    function makeIcalResponse($calendar, $status): Response
-    {
-        $mimeType = $calendar->getContentType();
-        $filename = $calendar->getFilename();
-
-        $response = new Response();
-        $response->headers->set('Content-Type', sprintf('%s; charset=utf-8', $mimeType));
-        $response->headers->set('Content-Disposition', sprintf('attachment; filename="%s', $filename));
-        $response->setContent($calendar->export());
-        $response->setStatusCode($status);
-        return $response;
     }
 
 }

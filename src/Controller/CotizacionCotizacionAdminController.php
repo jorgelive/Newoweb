@@ -78,12 +78,10 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $this->addFlash('sonata_flash_' . $mensajeTyoe, $mensaje);
 
         return new RedirectResponse($this->admin->generateUrl('edit', ['id' => $newObject->getId()]));
-
     }
 
     public function traducirAction(Request $request)
     {
-
         $object = $this->assertObjectExists($request, true);
         $id = $object->getId();
         if($request->getDefaultLocale() == $request->getLocale()){
@@ -163,7 +161,6 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
     function resumenAction(Request $request): Response | RedirectResponse
     {
-
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
 

@@ -10,9 +10,8 @@ class CotizacionFileDoctrineEventListener
     {
         $entity = $args->getObject();
         if($entity instanceof CotizacionFile){
-            if(!$entity->getToken()) {
-                $entity->setToken(mt_rand());
-            }
+            $entity->setToken(mt_rand());
+
         }
     }
 }
