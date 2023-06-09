@@ -245,6 +245,35 @@ class ReservaReservaAdmin extends AbstractAdmin
                     ReservaChanel::DB_VALOR_BOOKING => 'Booking'
                 ]
             ])
+            ->add(ListMapper::NAME_ACTIONS, null, [
+                'label' => 'Acciones',
+                'actions' => [
+                    'show' => [],
+                    'resumen' => [
+                        'template' => 'reserva_reserva_admin\list__action_resumen.html.twig'
+                    ],
+                    'edit' => [],
+                    'delete' => [],
+                    'clonar' => [
+                        'template' => 'reserva_reserva_admin/list__action_clonar.html.twig'
+                    ],
+                    'extender' => [
+                        'template' => 'reserva_reserva_admin/list__action_extender.html.twig'
+                    ],
+                    'llamar' => [
+                        'template' => 'reserva_reserva_admin/list__action_llamar.html.twig'
+                    ],
+                    'copiar_portapapeles' => [
+                        'template' => 'reserva_reserva_admin/list__action_copiar_portapapeles.html.twig'
+                    ],
+                    'whatsapp' => [
+                        'template' => 'reserva_reserva_admin/list__action_whatsapp.html.twig'
+                    ],
+                    'reconfirmar' => [
+                        'template' => 'reserva_reserva_admin/list__action_whatsapp_confirmar.html.twig'
+                    ]
+                ]
+            ])
             ->add('nombre', null, [
                 'editable' => true
             ])
@@ -275,23 +304,7 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Creación',
                 'format' => 'Y/m/d H:i'
             ])
-            ->add(ListMapper::NAME_ACTIONS, null, [
-                'label' => 'Acciones',
-                'actions' => [
-                    'show' => [],
-                    'resumen' => [
-                        'template' => 'reserva_reserva_admin\list__action_resumen.html.twig'
-                    ],
-                    'edit' => [],
-                    'delete' => [],
-                    'clonar' => [
-                        'template' => 'reserva_reserva_admin/list__action_clonar.html.twig'
-                    ],
-                    'extender' => [
-                        'template' => 'reserva_reserva_admin/list__action_extender.html.twig'
-                    ]
-                ]
-            ])
+
         ;
     }
 

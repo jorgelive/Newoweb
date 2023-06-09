@@ -1,0 +1,18 @@
+{% if admin.isGranted('show', object) and admin.hasRoute('resumen') and object.telefono is not empty and object.chanel.id == constant('App\\Entity\\ReservaChanel::DB_VALOR_BOOKING') and object.nota is empty %}
+    {% set whatsappText = 'Hola ' ~ object.nombre ~ ', muchas gracias por su reserva!.\n\n' %}
+    {% set whatsappText = whatsappText ~ 'Para reconfirmar su reserva le solicitamos que nos brinde su *número de vuelo* o *medio de transporte* y *hora de llegada* a las Casitas del Centro Histórico Cusco / Apartamentos Centro Cusco Inti para programar la entrega de las llaves, lo puede hacer respondiendo a este mensaje.\n\n' %}
+    {% set whatsappText = whatsappText ~ 'Nosotros brindamos *traslados y tours* a nuestros huéspedes con tarifas especiales y damos *asesoría gratuita*.\n\n' %}
+    {% set whatsappText = whatsappText ~ 'Por favor tomar en cuenta:\n\n' %}
+    {% set whatsappText = whatsappText ~ 'Check-in: Desde ' ~ object.fechahorainicio | date('Y-m-d') ~ ' *14:00*\n' %}
+    {% set whatsappText = whatsappText ~ 'Check-out: Hasta ' ~ object.fechahorafin | date('Y-m-d') ~ ' *10:00*\n\n' %}
+    {% set whatsappText = whatsappText ~ 'Si el departamento esa listo antes del Check-in, nosotros encantados de recibirlos sin ningun costo (Coordinar un día antes).\n\n' %}
+    {% set whatsappText = whatsappText ~ 'También puede solicitar el servicio de "llegada anticipada" (Early Check-in) y "salida tarde" (Late Check-out) con un costo adicional, respondiendo a este mensaje, con este servicio nosotros haríamos que el día anterior o posterior no sean reservables por otros clientes (estes servicio es de acuerdo a disponibilidad).\n\n' %}
+    {% set whatsappText = whatsappText ~ 'Saludos cordiales\n\n' %}
+    {% set whatsappText = whatsappText ~ 'Centro Cusco Inti / Casitas Acogedoras en el Centro de Cusco' %}
+    <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+       class="btn btn-sm btn-success"
+       title="Confirmar">
+        <i class="fa fa-whatsapp" aria-hidden="true"></i>
+        Confirmar
+    </a>
+{% endif %}

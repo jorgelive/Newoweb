@@ -1,0 +1,9 @@
+{% if admin.isGranted('show', object) and admin.hasRoute('resumen') and object.telefono is not empty %}
+    <a data-text="{{ object.telefono }}"
+       data-tooltiptext="Copiado al portapapeles"
+       class="btn btn-sm btn-success clipboard-trigger"
+       title="Llamar">
+        <i class="fa fa-file-text" aria-hidden="true"></i>
+        Copiar #
+    </a>
+{% endif %}

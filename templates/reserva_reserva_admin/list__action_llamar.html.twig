@@ -1,0 +1,8 @@
+{% if admin.isGranted('show', object) and admin.hasRoute('resumen') and object.telefono is not empty %}
+    <a href="tel:{{ object.telefono }}"
+       class="btn btn-sm btn-success"
+       title="Llamar">
+        <i class="fa fa-phone" aria-hidden="true"></i>
+        Llamar
+    </a>
+{% endif %}
