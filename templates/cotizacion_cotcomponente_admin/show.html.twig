@@ -185,8 +185,13 @@
                                 {% endif %}
 
                             </p>
-                            {% set whatsappText = whatsappText ~ '\n' %}
+                            {% set whatsappText = whatsappText ~ '' %}
                             {% set emailMensaje = emailMensaje ~ '</p>' %}
+                            {% if object.cotservicio.cotizacion.file.telefono is not empty %}
+                                <p>Teléfono del Cliente: <span style="font-weight: 600;">{{ object.cotservicio.cotizacion.file.telefono }}</span></p>
+                                {% set whatsappText = whatsappText ~ '\n\nTeléfono del Cliente: *' ~ object.cotservicio.cotizacion.file.telefono ~ '*'%}
+                                {% set emailMensaje = emailMensaje ~ '<p>Teléfono del Cliente: <span style="font-weight: 600;">' ~ object.cotservicio.cotizacion.file.telefono ~ '</span></p>' %}
+                            {% endif %}
                         {% endfor %}
                     {% endif %}
                     {% if proveedor.telefono is defined %}

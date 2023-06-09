@@ -10,7 +10,7 @@
     {% set whatsappText = whatsappText ~ 'Saludos cordiales\n\n' %}
     {% set whatsappText = whatsappText ~ 'Centro Cusco Inti / Casitas Acogedoras en el Centro de Cusco' %}
     <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
-       class="btn btn-sm btn-success"
+       target="_blank" class="btn btn-sm btn-success"
        title="Confirmar">
         <i class="fa fa-whatsapp" aria-hidden="true"></i>
         Confirmar
