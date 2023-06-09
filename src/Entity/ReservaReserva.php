@@ -27,32 +27,32 @@ class ReservaReserva
     /**
      * @ORM\Column(type="string", length=20)
      */
-    private ?string $token;
+    private ?string $token = null;
 
     /**
      * @ORM\Column(type="string", length=100)
      */
-    private ?string $uid;
+    private ?string $uid = null;
 
     /**
      * @ORM\Column(type="string", length=255)
      */
-    private ?string $nombre;
+    private ?string $nombre = null;
 
     /**
      * @ORM\Column(type="string", length=255, nullable=true)
      */
-    private ?string $enlace;
+    private ?string $enlace = null;
 
     /**
      * @ORM\Column(type="string", length=30, nullable=true)
      */
-    private ?string $telefono;
+    private ?string $telefono = null;
 
     /**
      * @ORM\Column(type="string", length=255, nullable=true)
      */
-    private ?string $nota;
+    private ?string $nota = null;
 
     /**
      * @ORM\Column(type="integer")
@@ -97,18 +97,18 @@ class ReservaReserva
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaDetalle", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"id" = "ASC"})
      */
-    private ?Collection $detalles;
+    private Collection $detalles;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaImporte", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
      */
-    private ?Collection $importes;
+    private Collection $importes;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\ReservaPago", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fecha" = "ASC"})
      */
-    private ?Collection $pagos;
+    private Collection $pagos;
 
     /**
      * @ORM\Column(type="datetime")
@@ -149,7 +149,6 @@ class ReservaReserva
             $this->setCreado(null);
             $this->setModificado(null);
             $this->setToken(mt_rand());
-
         }
     }
 
@@ -264,24 +263,24 @@ class ReservaReserva
         return $this;
     }
 
-    public function getFechahorainicio(): ?\DateTimeInterface
+    public function getFechahorainicio(): ?\DateTime
     {
         return $this->fechahorainicio;
     }
 
-    public function setFechahorainicio(\DateTimeInterface $fechahorainicio): self
+    public function setFechahorainicio(?\DateTime $fechahorainicio): self
     {
         $this->fechahorainicio = $fechahorainicio;
 
         return $this;
     }
 
-    public function getFechahorafin(): ?\DateTimeInterface
+    public function getFechahorafin(): ?\DateTime
     {
         return $this->fechahorafin;
     }
 
-    public function setFechahorafin(\DateTimeInterface $fechahorafin): self
+    public function setFechahorafin(?\DateTime $fechahorafin): self
     {
         $this->fechahorafin = $fechahorafin;
 
@@ -293,31 +292,31 @@ class ReservaReserva
         return $this->manual;
     }
 
-    public function setManual(bool $manual): self
+    public function setManual(?bool $manual): self
     {
         $this->manual = $manual;
 
         return $this;
     }
 
-    public function getCreado(): ?\DateTimeInterface
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    public function setCreado(?\DateTimeInterface $creado): self
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
 
         return $this;
     }
 
-    public function getModificado(): ?\DateTimeInterface
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
 
-    public function setModificado(?\DateTimeInterface $modificado): self
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
 
@@ -372,9 +371,6 @@ class ReservaReserva
         return $this;
     }
 
-    /**
-     * @return Collection<int, ReservaDetalle>
-     */
     public function getDetalles(): Collection
     {
         return $this->detalles;
@@ -402,9 +398,6 @@ class ReservaReserva
         return $this;
     }
 
-    /**
-     * @return Collection<int, ReservaImporte>
-     */
     public function getImportes(): Collection
     {
         return $this->importes;
@@ -432,9 +425,6 @@ class ReservaReserva
         return $this;
     }
 
-    /**
-     * @return Collection<int, ReservaPago>
-     */
     public function getPagos(): Collection
     {
         return $this->pagos;

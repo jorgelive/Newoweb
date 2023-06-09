@@ -98,6 +98,29 @@ class CotizacionItinerario
         return $itinerarioConLibres;
     }
 
+    public function getMainPhoto(CotizacionCotservicio $cotservicio): string
+    {
+
+        if ($cotservicio->getItinerario()->getItinerariodias()->count() > 0) {
+
+            foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia):
+
+                if($dia->isImportante() === true || $cotservicio->getItinerario()->getItinerariodias()->count() === 1){
+                    if($dia->getItidiaarchivos()->count() > 0){
+                        foreach ($dia->getItidiaarchivos() as $archivo):
+
+                        endforeach;
+                    }
+
+                }
+
+            endforeach;
+        }
+
+
+        return $tituloItinerario;
+    }
+
     public function getTituloItinerario(\DateTime $fecha, CotizacionCotservicio $cotservicio): string
     {
         $itinerarioFechaAux = $this->getItinerarioFechaAux($cotservicio);

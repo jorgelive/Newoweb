@@ -27,68 +27,51 @@ class ServicioTipocomponente
     public const DB_VALOR_VUELO = 10;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=50)
      */
-    private $nombre;
+    private ?string $nombre = null;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(type="boolean", options={"default": 0})
      */
-    private $dependeduracion;
+    private ?bool $dependeduracion = false;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(type="boolean", options={"default": 0})
      */
-    private $agendable;
+    private ?bool $agendable = false;
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer", nullable=false, options={"default":1})
      */
-    protected $prioridadparaproveedor;
+    protected ?int $prioridadparaproveedor = null;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
 
-    public function getId(): int
+    public function getId(): ?int
     {
         return $this->id;
     }

@@ -18,7 +18,6 @@ use Doctrine\Common\Collections\ArrayCollection;
  */
 class ServicioTarifa
 {
-
     /**
      * @var int
      *

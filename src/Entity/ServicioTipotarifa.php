@@ -16,6 +16,13 @@ use Gedmo\Translatable\Translatable;
  */
 class ServicioTipotarifa
 {
+    public const DB_VALOR_NORMAL = 1;
+    public const DB_VALOR_OPCIONAL = 2;
+    public const DB_VALOR_CTA_PAX = 3;
+    public const DB_VALOR_CTA_PAX_ASISTENCIA = 4;
+    public const DB_VALOR_NO_NECESARIO = 5;
+    public const DB_VALOR_CORTESIA = 6;
+
     /**
      * @var int
      *

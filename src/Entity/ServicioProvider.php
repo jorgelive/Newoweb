@@ -19,79 +19,60 @@ class ServicioProvider
 {
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=30)
      */
-    private $nombre;
+    private ?string $nombre = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=100)
      */
-    private $nombremostrar;
+    private ?string $nombremostrar = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=100, nullable=true)
      */
-    private $direccion;
+    private $direccion = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=30, nullable=true)
      */
-    private $telefono;
+    private ?string $telefono = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=40, nullable=true)
      */
-    private $email;
+    private ?string $email = null;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
      * @ORM\OneToMany(targetEntity="App\Entity\ServicioTarifa", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"nombre" = "ASC"})
      */
-    private $tarifas;
+    private Collection $tarifas;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
+
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCottarifa", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
      */
-    private $cottarifas;
+    private Collection $cottarifas;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
 
     /**
@@ -212,7 +193,7 @@ class ServicioProvider
         $this->tarifas->removeElement($tarifa);
     }
 
-    public function getTarifas(): ?\Doctrine\Common\Collections\Collection
+    public function getTarifas(): ?Collection
     {
         return $this->tarifas;
     }
@@ -231,7 +212,7 @@ class ServicioProvider
         $this->cottarifas->removeElement($cottarifa);
     }
 
-    public function getCottarifas(): ?\Doctrine\Common\Collections\Collection
+    public function getCottarifas(): ?Collection
     {
         return $this->cottarifas;
     }

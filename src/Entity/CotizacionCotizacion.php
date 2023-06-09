@@ -45,21 +45,17 @@ class CotizacionCotizacion
      * @Gedmo\Translatable
      * @ORM\Column(type="text")
      */
-    private ?string $resumen;
+    private ?string $resumen = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="text", columnDefinition= "longtext AS (resumen) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
      */
-    private $resumenoriginal;
+    private ?string $resumenoriginal = null;
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      */
-    private $numeropasajeros;
+    private ?int $numeropasajeros = null;
 
     /**
      * @ORM\Column(type="decimal", precision=5, scale=2, nullable=false)
@@ -102,7 +98,7 @@ class CotizacionCotizacion
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotservicio", mappedBy="cotizacion", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fechahorainicio" = "ASC"})
      */
-    private ?Collection $cotservicios;
+    private Collection $cotservicios;
 
     /**
      * @ORM\Column(type="date")
@@ -354,7 +350,7 @@ class CotizacionCotizacion
 
     public function addCotnota(CotizacionCotnota $cotnota): self
     {
-        //notajg: no setear el componente ni uilizar by_reference = false en el admin en el owner(en que tiene inversed)
+        //notajg: no setear el componente ni utilizar by_reference = false en el admin en el owner(en que tiene inversed)
 
         $this->cotnotas[] = $cotnota;
     

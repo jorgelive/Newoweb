@@ -25,180 +25,122 @@ class ServicioItidiaarchivo
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var \App\Entity\ServicioItinerariodia
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\ServicioItinerariodia", inversedBy="itidiaarchivos")
      * @ORM\JoinColumn(name="itinerariodia_id", referencedColumnName="id", nullable=false)
      */
-    protected $itinerariodia;
+    protected ?ServicioItinerariodia $itinerariodia;
 
     /**
-     * @var \App\Entity\MaestroMedio
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\MaestroMedio")
      * @ORM\JoinColumn(name="medio_id", referencedColumnName="id", nullable=false)
      */
-    private $medio;
+    private ?MaestroMedio $medio;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="prioridad", type="integer", nullable=true)
      */
-    private $prioridad;
+    private ?int $prioridad = null;
 
     /**
-     * @var \DateTime $creado
-     *
+     * @ORM\Column(type="boolean", options={"default": 0})
+     */
+    private ?bool $portada = false;
+
+    /**
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->getMedio()->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
-
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set itinerariodia
-     *
-     * @param \App\Entity\ServicioItinerariodia $itinerariodia
-     *
-     * @return ServicioItidiaarchivo
-     */
-    public function setItinerariodia(\App\Entity\ServicioItinerariodia $itinerariodia = null)
+    public function setItinerariodia(?ServicioItinerariodia $itinerariodia):  self
     {
         $this->itinerariodia = $itinerariodia;
 
         return $this;
     }
 
-    /**
-     * Get itinerariodia
-     *
-     * @return \App\Entity\ServicioItinerariodia
-     */
-    public function getItinerariodia()
+    public function getItinerariodia(): ?ServicioItinerariodia
     {
         return $this->itinerariodia;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     * @return ServicioItidiaarchivo
-     */
-    public function setCreado($creado)
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
 
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     * @return ServicioItidiaarchivo
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
 
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Set prioridad.
-     *
-     * @param int|null $prioridad
-     *
-     * @return ServicioItidiaarchivo
-     */
-    public function setPrioridad($prioridad = null)
+    public function setPrioridad(?int $prioridad): self
     {
         $this->prioridad = $prioridad;
     
         return $this;
     }
 
-    /**
-     * Get prioridad.
-     *
-     * @return int|null
-     */
-    public function getPrioridad()
+    public function getPrioridad(): ?int
     {
         return $this->prioridad;
     }
 
-    /**
-     * Set medio.
-     *
-     * @param \App\Entity\MaestroMedio|null $medio
-     *
-     * @return ServicioItidiaarchivo
-     */
-    public function setMedio(\App\Entity\MaestroMedio $medio = null)
+    public function setMedio(?MaestroMedio $medio): self
     {
         $this->medio = $medio;
     
         return $this;
     }
 
-    /**
-     * Get medio.
-     *
-     * @return \App\Entity\MaestroMedio|null
-     */
-    public function getMedio()
+    public function getMedio(): ?MaestroMedio
     {
         return $this->medio;
+    }
+
+    public function setPortada(?bool $portada): self
+    {
+        $this->portada = $portada;
+
+        return $this;
+    }
+
+    public function isPortada(): ?bool
+    {
+        return $this->portada;
     }
 }

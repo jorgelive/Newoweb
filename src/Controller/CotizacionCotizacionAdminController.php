@@ -7,7 +7,7 @@ use App\Entity\CotizacionEstadocotizacion;
 use Google\Cloud\Translate\V2\TranslateClient;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-use App\Service\CotizacionResumen;
+use App\Service\CotizacionProceso;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,13 +17,13 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
     private EntityManagerInterface $entityManager;
     var $clasificacionTarifas = [];
     var $resumenClasificado = [];
-    var $cotizacionResumen;
+    var $cotizacionProceso;
 
     public static function getSubscribedServices(): array
     {
         return [
                 'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
-                'App\Service\CotizacionResumen' => CotizacionResumen::class,
+                'App\Service\CotizacionProceso' => CotizacionProceso::class,
             ] + parent::getSubscribedServices();
     }
 
@@ -144,10 +144,10 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $template = 'cotizacion_cotizacion_admin/show.html.twig';
         //falla en producciom $template = $this->templateRegistry->getTemplate('show');
 
-        if($this->container->get('App\Service\CotizacionResumen')->procesar($object->getId())){
+        if($this->container->get('App\Service\CotizacionProceso')->procesar($object->getId())){
             return $this->renderWithExtraParams($template,
-                ['cotizacion' => $this->container->get('App\Service\CotizacionResumen')->getDatosCotizacion(),
-                    'tabs' => $this->container->get('App\Service\CotizacionResumen')->getDatosTabs(),
+                ['cotizacion' => $this->container->get('App\Service\CotizacionProceso')->getDatosCotizacion(),
+                    'tabs' => $this->container->get('App\Service\CotizacionProceso')->getDatosTabs(),
                     'object' => $object,
                     'action' => 'show',
                     'elements' => $fields
@@ -190,10 +190,10 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
         $template = 'cotizacion_cotizacion_admin/show.html.twig';
 
-        if($this->container->get('App\Service\CotizacionResumen')->procesar($object->getId())){
+        if($this->container->get('App\Service\CotizacionProceso')->procesar($object->getId())){
             return $this->renderWithExtraParams($template,
-                ['cotizacion' => $this->container->get('App\Service\CotizacionResumen')->getDatosCotizacion(),
-                    'tabs' => $this->container->get('App\Service\CotizacionResumen')->getDatosTabs(),
+                ['cotizacion' => $this->container->get('App\Service\CotizacionProceso')->getDatosCotizacion(),
+                    'tabs' => $this->container->get('App\Service\CotizacionProceso')->getDatosTabs(),
                     'object' => $object,
                     'action' => 'resumen',
                     'elements' => $fields,

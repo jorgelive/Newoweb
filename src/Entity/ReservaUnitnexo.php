@@ -120,7 +120,7 @@ class ReservaUnitnexo
         return $this->related;
     }
 
-    public function setRelated(string $related): self
+    public function setRelated(?string $related): self
     {
         $this->related = $related;
 

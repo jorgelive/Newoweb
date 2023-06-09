@@ -2,7 +2,7 @@
 namespace App\EventListener;
 
 use App\Entity\CotizacionCotizacion;
-use App\Service\CotizacionResumen;
+use App\Service\CotizacionProceso;
 use Doctrine\ORM\Event\LifecycleEventArgs;
 use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
@@ -12,13 +12,13 @@ use Symfony\Component\HttpFoundation\RequestStack;
 class CotizacionCotizacionDoctrineEventListener
 {
 
-    private CotizacionResumen $cotizacionResumen;
+    private CotizacionProceso $cotizacionProceso;
 
     private RequestStack $requestStack;
 
-    public function __construct(CotizacionResumen $cotizacionResumen, RequestStack $requestStack)
+    public function __construct(CotizacionProceso $cotizacionProceso, RequestStack $requestStack)
     {
-        $this->cotizacionResumen = $cotizacionResumen;
+        $this->cotizacionProceso = $cotizacionProceso;
 
         $this->requestStack = $requestStack;
 
@@ -37,7 +37,7 @@ class CotizacionCotizacionDoctrineEventListener
         $entity = $args->getObject();
         if($entity instanceof CotizacionCotizacion){
             //De haber error los mensajes iran al flashblag
-            $this->cotizacionResumen->procesar($entity->getId());
+            $this->cotizacionProceso->procesar($entity->getId());
         }
     }
 
@@ -47,7 +47,7 @@ class CotizacionCotizacionDoctrineEventListener
 
         if($entity instanceof CotizacionCotizacion){
             //De haber error los mensajes iran al flashblag
-            $this->cotizacionResumen->procesar($entity->getId());
+            $this->cotizacionProceso->procesar($entity->getId());
         }
     }
 }

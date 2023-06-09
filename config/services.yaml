@@ -290,7 +290,7 @@ services:
 
     app.eventlistener.cotizacion_cotizacion_doctrine_event_listener:
         class: App\EventListener\CotizacionCotizacionDoctrineEventListener
-        #arguments: ['@App\Service\CotizacionResumen']
+        #arguments: ['@App\Service\CotizacionProceso']
         tags:
             - { name: doctrine.event_listener, event: prePersist }
             - { name: doctrine.event_listener, event: postPersist }

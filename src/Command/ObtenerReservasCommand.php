@@ -70,7 +70,8 @@ class ObtenerReservasCommand extends Command
                     $ical->initUrl($nexo->getEnlace());
                 } catch (\Exception $e) {
                     $output->writeln(sprintf('Excepción capturada: %s',  $e->getMessage()));
-                    return Command::FAILURE;
+                    //return Command::FAILURE;
+                    continue;
                 }
 
                 $canal = $nexo->getChanel()->getId(); //2: Airbnb 3:Booking

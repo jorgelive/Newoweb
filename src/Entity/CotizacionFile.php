@@ -63,18 +63,18 @@ class CotizacionFile
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotizacion", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"id" = "DESC"})
      */
-    private ?Collection $cotizaciones;
+    private Collection $cotizaciones;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionFiledocumento", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"prioridad" = "ASC"})
      */
-    private ?Collection $filedocumentos;
+    private Collection $filedocumentos;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\CotizacionFilepasajero", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
      */
-    private ?Collection $filepasajeros;
+    private Collection $filepasajeros;
 
     /**
      * @Gedmo\Timestampable(on="create")

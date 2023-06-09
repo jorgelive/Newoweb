@@ -27,6 +27,9 @@ class ServicioItidiaarchivoAdmin extends AbstractAdmin
                 'label' => 'Multimedia'
             ])
             ->add('prioridad')
+            ->add('portada',  null, [
+                'label' => 'Portada'
+            ])
         ;
     }
 
@@ -44,7 +47,13 @@ class ServicioItidiaarchivoAdmin extends AbstractAdmin
             ->add('medio', null, [
                 'label' => 'Multimedia'
             ])
-            ->add('prioridad')
+            ->add('prioridad', null, [
+                'editable' => true
+            ])
+            ->add('portada',  null, [
+                'label' => 'Portada',
+                'editable' => true
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -76,6 +85,9 @@ class ServicioItidiaarchivoAdmin extends AbstractAdmin
                 'label' => 'Multimedia'
             ])
             ->add('prioridad')
+            ->add('portada',  null, [
+                'label' => 'Portada'
+            ])
         ;
     }
 
@@ -90,6 +102,9 @@ class ServicioItidiaarchivoAdmin extends AbstractAdmin
                 'label' => 'Multimedia'
             ])
             ->add('prioridad')
+            ->add('portada',  null, [
+                'label' => 'Portada'
+            ])
         ;
     }
 

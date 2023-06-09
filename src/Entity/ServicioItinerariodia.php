@@ -21,95 +21,73 @@ class ServicioItinerariodia
 {
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var ArrayCollection
-     *
      * @ORM\OneToMany(targetEntity="App\Entity\ServicioItinerariodiaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
-    protected $translations;
+    protected Collection $translations;
 
     /**
-     * @var \App\Entity\ServicioItinerario
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\ServicioItinerario", inversedBy="itinerariodias")
      * @ORM\JoinColumn(name="itinerario_id", referencedColumnName="id", nullable=false)
      */
-    protected $itinerario;
+    protected ?ServicioItinerario $itinerario;
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      */
-    private $dia = 1;
+    private ?int $dia = 1;
 
     /**
-     * @var string
-     *
      * @Gedmo\Translatable
      * @ORM\Column(type="string", length=100)
      */
-    private $titulo;
+    private ?string $titulo = null;
 
     /**
-     * @var bool
-     *
-     * @ORM\Column(type="boolean", options={"default": 1})
+     * @ORM\Column(type="boolean", options={"default": 0})
      */
-    private $importante;
+    private ?bool $importante = false;
 
     /**
-     * @var string
-     *
      * @Gedmo\Translatable
      * @ORM\Column(type="text", nullable=true)
      */
-    private $contenido;
+    private ?string $contenido = null;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
      * @ORM\OneToMany(targetEntity="App\Entity\ServicioItidiaarchivo", mappedBy="itinerariodia", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"prioridad" = "ASC"})
      */
-    private $itidiaarchivos;
+    private Collection $itidiaarchivos;
 
     /**
-     * @var \App\Entity\ServicioNotaitinerariodia
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\ServicioNotaitinerariodia", inversedBy="itinerariodias")
      * @ORM\JoinColumn(name="notaitinerariodia_id", referencedColumnName="id", nullable=true)
      */
-    protected $notaitinerariodia;
+    protected ?ServicioNotaitinerariodia $notaitinerariodia;
 
     /**
      * @Gedmo\Locale
      */
-    private $locale;
+    private ?string $locale = null;
 
     /**
      * Constructor
@@ -144,7 +122,7 @@ class ServicioItinerariodia
         return $this;
     }
 
-    public function getTranslations()
+    public function getTranslations(): Collection
     {
         return $this->translations;
     }
@@ -157,179 +135,90 @@ class ServicioItinerariodia
         }
     }
 
-
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->getTitulo() ?? sprintf('Dia %d: %s', $this->getDia(), $this->getItinerario()->getNombre());
     }
 
-
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set dia
-     *
-     * @param integer $dia
-     *
-     * @return ServicioItinerariodia
-     */
-    public function setDia($dia)
+    public function setDia(?int $dia): self
     {
         $this->dia = $dia;
     
         return $this;
     }
 
-    /**
-     * Get dia
-     *
-     * @return integer
-     */
-    public function getDia()
+    public function getDia(): ?int
     {
         return $this->dia;
     }
 
-    /**
-     * Set titulo
-     *
-     * @param string $titulo
-     *
-     * @return ServicioItinerariodia
-     */
-    public function setTitulo($titulo)
+    public function setTitulo(?string $titulo): self
     {
         $this->titulo = $titulo;
     
         return $this;
     }
 
-    /**
-     * Get titulo
-     *
-     * @return string
-     */
-    public function getTitulo()
+    public function getTitulo(): ?string
     {
         return $this->titulo;
     }
 
-    /**
-     * Set contenido
-     *
-     * @param string $contenido
-     *
-     * @return ServicioItinerariodia
-     */
-    public function setContenido($contenido)
+    public function setContenido(?string $contenido): self
     {
         $this->contenido = $contenido;
     
         return $this;
     }
 
-    /**
-     * Get contenido
-     *
-     * @return string
-     */
-    public function getContenido()
+    public function getContenido(): ?string
     {
         return $this->contenido;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return ServicioItinerariodia
-     */
-    public function setCreado($creado)
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
     
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): \DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return ServicioItinerariodia
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
     
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): \DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Set itinerario
-     *
-     * @param \App\Entity\ServicioItinerario $itinerario
-     *
-     * @return ServicioItinerariodia
-     */
-    public function setItinerario(\App\Entity\ServicioItinerario $itinerario = null)
+    public function setItinerario(?ServicioItinerario $itinerario): self
     {
         $this->itinerario = $itinerario;
     
         return $this;
     }
 
-    /**
-     * Get itinerario
-     *
-     * @return \App\Entity\ServicioItinerario
-     */
-    public function getItinerario()
+    public function getItinerario(): ?ServicioItinerario
     {
         return $this->itinerario;
     }
 
 
-    /**
-     * Add itidiaarchivo.
-     *
-     * @param \App\Entity\ServicioItidiaarchivo $itidiaarchivo
-     *
-     * @return ServicioItinerariodia
-     */
-    public function addItidiaarchivo(\App\Entity\ServicioItidiaarchivo $itidiaarchivo)
+    public function addItidiaarchivo(ServicioItidiaarchivo $itidiaarchivo): self
     {
         $itidiaarchivo->setItinerariodia($this);
 
@@ -338,72 +227,35 @@ class ServicioItinerariodia
         return $this;
     }
 
-    /**
-     * Remove itidiaarchivo.
-     *
-     * @param \App\Entity\ServicioItidiaarchivo $itidiaarchivo
-     *
-     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
-     */
-    public function removeItidiaarchivo(\App\Entity\ServicioItidiaarchivo $itidiaarchivo)
+    public function removeItidiaarchivo(ServicioItidiaarchivo $itidiaarchivo): bool
     {
         return $this->itidiaarchivos->removeElement($itidiaarchivo);
     }
 
-    /**
-     * Get itidiaarchivos.
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getItidiaarchivos()
+    public function getItidiaarchivos(): Collection
     {
         return $this->itidiaarchivos;
     }
 
-    /**
-     * Set notaitinerariodia
-     *
-     * @param \App\Entity\ServicioNotaitinerariodia $notaitinerariodia
-     *
-     * @return ServicioItinerariodia
-     */
-    public function setNotaitinerariodia(\App\Entity\ServicioNotaitinerariodia $notaitinerariodia = null)
+    public function setNotaitinerariodia(ServicioNotaitinerariodia $notaitinerariodia): self
     {
         $this->notaitinerariodia = $notaitinerariodia;
 
         return $this;
     }
 
-    /**
-     * Get notaitinerariodia
-     *
-     * @return \App\Entity\ServicioNotaitinerariodia
-     */
-    public function getNotaitinerariodia()
+    public function getNotaitinerariodia(): ?ServicioNotaitinerariodia
     {
         return $this->notaitinerariodia;
     }
 
-
-    /**
-     * Set importante.
-     *
-     * @param bool $importante
-     *
-     * @return ServicioItinerariodia
-     */
-    public function setImportante($importante)
+    public function setImportante(?bool $importante): self
     {
         $this->importante = $importante;
     
         return $this;
     }
 
-    /**
-     * Is importante.
-     *
-     * @return bool
-     */
     public function isImportante(): ?bool
     {
         return $this->importante;
