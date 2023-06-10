@@ -154,9 +154,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
             ->add('unittipocaracteristica', null, [
                     'label' => 'Tipo'
             ])
-            ->add('nombre', null, [
-                'attr' => ['class' => 'uploadedimage']
-            ])
+            ->add('nombre')
             ->add('titulo', null, [
                 'label' => 'Título'
             ])

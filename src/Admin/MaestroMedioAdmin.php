@@ -86,9 +86,7 @@ class MaestroMedioAdmin extends AbstractAdmin
                     'label' => 'Clase'
                 ]
             )
-            ->add('nombre', null, [
-                'attr' => ['class' => 'uploadedimage']
-            ])
+            ->add('nombre')
             ->add('titulo', null, [
                 'label' => 'Título'
             ])

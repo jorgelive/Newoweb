@@ -151,7 +151,7 @@ class CotizacionFileAdmin extends AbstractAdmin
             ]);
 
         //no mostrar en la vista de selección
-        if($this->getRequest()->get('pcode') != 'app.admin.cotizacioncotizacion'){
+        //if($this->getRequest()->get('pcode') != 'app.admin.cotizacioncotizacion'){
             $formMapper
                 ->add('filepasajeros', CollectionType::class, [
                     'by_reference' => false,
@@ -167,7 +167,7 @@ class CotizacionFileAdmin extends AbstractAdmin
                     'edit' => 'inline',
                     'inline' => 'table'
                 ]);
-        }
+        //}
 
         $this->vars['cotservicios']['serviciopath'] = 'app_servicio_servicio_ajaxinfo';
         $this->vars['cotcomponentes']['componentepath'] = 'app_servicio_componente_ajaxinfo';

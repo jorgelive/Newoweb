@@ -76,9 +76,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
             $formMapper->add('file');
         }
         $formMapper
-            ->add('nombre', null, [
-                'attr' => ['class' => 'uploadedimage']
-            ])
+            ->add('nombre')
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento'
             ])
@@ -95,7 +93,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
                     'label' => 'Nombre',
                     'attr' => [
                         'style' => 'width: 150px;',
-                        'attr' => ['class' => 'uploadedimage']
+                        'class' => 'uploadedimage'
                     ]
                 ])
             ;

@@ -393,9 +393,13 @@ trait MainArchivoTrait
 
             //obtenemos las dimensiones del archivo subido para determinar el ancho y alto del futuro archivo
 
-            $exifInfo = exif_read_data($this->getArchivo()->getPathname());
-
             $imageInfo = getimagesize($this->getArchivo()->getPathname());
+            $exifInfo = false;
+
+            if($imageInfo){
+                //prevenimos el warning sino es image
+                $exifInfo = exif_read_data($this->getArchivo()->getPathname());
+            }
 
             if($exifInfo || $imageInfo) {
                 //false si no es imagen
