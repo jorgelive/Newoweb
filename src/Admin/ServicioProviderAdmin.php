@@ -7,6 +7,7 @@ use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
+use Sonata\Form\Type\CollectionType;
 
 
 class ServicioProviderAdmin extends AbstractAdmin
@@ -60,6 +61,9 @@ class ServicioProviderAdmin extends AbstractAdmin
                 'label' => 'E-Mail',
                 'editable' => true
             ])
+            ->add('providermedios', null, [
+                'label' => 'Multimedia'
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -90,6 +94,13 @@ class ServicioProviderAdmin extends AbstractAdmin
             ->add('email', null, [
                 'label' => 'E-Mail'
             ])
+            ->add('providermedios', CollectionType::class, [
+                'by_reference' => false,
+                'label' => 'Multimedia',
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table'
+            ])
         ;
     }
 
@@ -112,6 +123,9 @@ class ServicioProviderAdmin extends AbstractAdmin
             ])
             ->add('email', null, [
                 'label' => 'E-Mail'
+            ])
+            ->add('providermedios', null, [
+                'label' => 'Multimedia'
             ])
         ;
     }

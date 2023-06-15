@@ -28,7 +28,7 @@ class ReservaDetalle
     /**
      * @var \App\Entity\ReservaReserva
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaReserva", inversedBy="detalles")
+     * @ORM\ManyToOne(targetEntity="ReservaReserva", inversedBy="detalles")
      * @ORM\JoinColumn(name="reserva_id", referencedColumnName="id", nullable=false)
      */
     protected $reserva;
@@ -36,7 +36,7 @@ class ReservaDetalle
     /**
      * @var \App\Entity\ReservaTipodetallle
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaTipodetalle")
+     * @ORM\ManyToOne(targetEntity="ReservaTipodetalle")
      * @ORM\JoinColumn(name="tipodetalle_id", referencedColumnName="id", nullable=false)
      */
     protected $tipodetalle;
@@ -44,7 +44,7 @@ class ReservaDetalle
     /**
      * @var \App\Entity\UserUser
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\UserUser")
+     * @ORM\ManyToOne(targetEntity="UserUser")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=true)
      */
     protected $user;

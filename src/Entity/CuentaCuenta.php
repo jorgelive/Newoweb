@@ -35,7 +35,7 @@ class CuentaCuenta
     /**
      * @var \App\Entity\MaestroMoneda
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroMoneda")
+     * @ORM\ManyToOne(targetEntity="MaestroMoneda")
      * @ORM\JoinColumn(name="moneda_id", referencedColumnName="id", nullable=false)
      */
     protected $moneda;
@@ -43,7 +43,7 @@ class CuentaCuenta
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\CuentaPeriodo", mappedBy="cuenta", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CuentaPeriodo", mappedBy="cuenta", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fechainicio" = "DESC"})
      */
     private $periodos;

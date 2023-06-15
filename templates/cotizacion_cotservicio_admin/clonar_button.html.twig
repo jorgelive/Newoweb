@@ -1,4 +1,4 @@
-{% if object is defined and object.id is not null and admin.isGranted('edit', object) and admin.hasRoute('clonar')%}
+{% if object is defined and object.id is not null and admin.isGranted('EDIT', object) and admin.hasRoute('clonar')%}
     <li>
         <a id="clonarLink-{{ object.id }}" class="sonata-action-element" href="{{ admin.generateObjectUrl('clonar', object) }}">
             <i class="fa fa-clone" aria-hidden="true"></i>

@@ -36,7 +36,7 @@ class FitMedidaalimento
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\FitAlimento", mappedBy="medidaalimento")
+     * @ORM\OneToMany(targetEntity="FitAlimento", mappedBy="medidaalimento")
      */
     private $alimentos;
 

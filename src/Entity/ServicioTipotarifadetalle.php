@@ -37,7 +37,7 @@ class ServicioTipotarifadetalle
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioTipotarifadetalleTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="ServicioTipotarifadetalleTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 

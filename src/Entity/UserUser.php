@@ -65,14 +65,14 @@ class UserUser extends BaseUser
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\CuentaMovimiento", mappedBy="user", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CuentaMovimiento", mappedBy="user", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $movimientos;
 
     /**
      * @var \App\Entity\TransporteConductor
      *
-     * @ORM\OneToOne(targetEntity="App\Entity\TransporteConductor", mappedBy="user")
+     * @ORM\OneToOne(targetEntity="TransporteConductor", mappedBy="user")
      */
     private $conductor;
 

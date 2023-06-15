@@ -27,7 +27,7 @@ class CotizacionCottarifadetalle
     /**
      * @var \App\Entity\CotizacionCottarifa
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionCottarifa", inversedBy="cottarifadetalles")
+     * @ORM\ManyToOne(targetEntity="CotizacionCottarifa", inversedBy="cottarifadetalles")
      * @ORM\JoinColumn(name="cottarifa_id", referencedColumnName="id", nullable=false)
      */
     protected $cottarifa;
@@ -43,7 +43,7 @@ class CotizacionCottarifadetalle
     /**
      * @var \App\Entity\ServicioTipotarifadetalle
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioTipotarifadetalle")
+     * @ORM\ManyToOne(targetEntity="ServicioTipotarifadetalle")
      * @ORM\JoinColumn(name="tipotarifadetalle_id", referencedColumnName="id", nullable=false)
      */
     protected $tipotarifadetalle;

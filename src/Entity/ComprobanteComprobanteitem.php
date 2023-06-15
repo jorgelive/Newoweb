@@ -22,7 +22,7 @@ class ComprobanteComprobanteitem
     /**
      * @var \App\Entity\ComprobanteComprobante
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ComprobanteComprobante", inversedBy="comprobanteitems")
+     * @ORM\ManyToOne(targetEntity="ComprobanteComprobante", inversedBy="comprobanteitems")
      * @ORM\JoinColumn(name="comprobante_id", referencedColumnName="id", nullable=false)
      */
     private $comprobante;
@@ -35,7 +35,7 @@ class ComprobanteComprobanteitem
     /**
      * @var \App\Entity\ComprobanteProductoservicio
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ComprobanteProductoservicio")
+     * @ORM\ManyToOne(targetEntity="ComprobanteProductoservicio")
      * @ORM\JoinColumn(name="productoservicio_id", referencedColumnName="id", nullable=false)
      */
     private $productoservicio;

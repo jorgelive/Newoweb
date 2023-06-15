@@ -26,100 +26,75 @@ class ReservaUnit
     public const DB_VALOR_N5 = 5;
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="ReservaUnitTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
-    protected $translations;
+    protected Collection $translations;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=255)
      */
-    private $nombre;
+    private ?string $nombre = null;
 
     /**
-     * @var string
      * @Gedmo\Translatable
      * @ORM\Column(type="string", length=255)
      */
-    private $descripcion;
+    private ?string $descripcion = null;
 
     /**
-     * @var string
      * @Gedmo\Translatable
      * @ORM\Column(type="string", length=255)
      */
-    private $referencia;
+    private ?string $referencia = null;
 
     /**
-     * @var \App\Entity\ReservaEstablecimiento
-     *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaEstablecimiento", inversedBy="units")
+     * @ORM\ManyToOne(targetEntity="ReservaEstablecimiento", inversedBy="units")
      * @ORM\JoinColumn(name="establecimiento_id", referencedColumnName="id", nullable=false)
      */
-    protected $establecimiento;
+    protected ?ReservaEstablecimiento $establecimiento;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaReserva", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
      */
-    private $reservas;
+    private Collection $reservas;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitnexo", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaUnitnexo", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
      */
-    private $unitnexos;
+    private Collection $unitnexos;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitcaracteristica", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaUnitcaracteristica", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"prioridad" = "ASC"})
      */
-    private $unitcaracteristicas;
+    private Collection $unitcaracteristicas;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitmedio", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaUnitmedio", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"prioridad" = "ASC"})
      */
-    private $unitmedios;
+    private Collection $unitmedios;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
-    private $locale;
+    private ?string $locale = null;
 
     public function __construct() {
         $this->reservas = new ArrayCollection();
@@ -130,10 +105,7 @@ class ReservaUnit
 
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         return sprintf('%s %s',$this->getNombre(), $this->getEstablecimiento()->getNombre());
     }
@@ -241,9 +213,6 @@ class ReservaUnit
         return $this;
     }
 
-    /**
-     * @return Collection<int, ReservaReserva>
-     */
     public function getReservas(): Collection
     {
         return $this->reservas;
@@ -271,9 +240,6 @@ class ReservaUnit
         return $this;
     }
 
-    /**
-     * @return Collection<int, ReservaUnitnexo>
-     */
     public function getUnitnexos(): Collection
     {
         return $this->unitnexos;
@@ -301,9 +267,6 @@ class ReservaUnit
         return $this;
     }
 
-    /**
-     * @return Collection<int, ReservaUnitcaracteristica>
-     */
     public function getUnitcaracteristicas(): Collection
     {
         return $this->unitcaracteristicas;
@@ -331,16 +294,12 @@ class ReservaUnit
         return $this;
     }
 
-    /**
-     * @return Collection<int, ReservaUnitmedio>
-     */
     public function getUnitmedios(): Collection
     {
         return $this->unitmedios;
     }
 
-
-    public function addUnitmedio(\App\Entity\ReservaUnitmedio $unitmedio): self
+    public function addUnitmedio(ReservaUnitmedio $unitmedio): self
     {
         $unitmedio->setUnit($this);
 
@@ -349,18 +308,16 @@ class ReservaUnit
         return $this;
     }
 
-    public function removeUnitmedio(\App\Entity\Reservaunitmedio $unitmedio): self
+    public function removeUnitmedio(Reservaunitmedio $unitmedio): self
     {
-
         if($this->unitmedios->removeElement($unitmedio)) {
-            //el orphan removal se encarga de quitar el elemento
-            //if($unitmedio->getUnit() === $this) {
-            //    $unitmedio->setUnit(null);
-            //}
+
+            if($unitmedio->getUnit() === $this) {
+               $unitmedio->setUnit(null);
+            }
         }
 
         return $this;
     }
-
 
 }

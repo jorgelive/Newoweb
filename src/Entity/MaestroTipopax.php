@@ -32,7 +32,7 @@ class MaestroTipopax
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\MaestroTipopaxTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="MaestroTipopaxTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 

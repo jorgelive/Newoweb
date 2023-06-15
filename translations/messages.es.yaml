@@ -9,6 +9,7 @@ tab_internoincluye: incluye (I)
 tab_operativa: operativa
 tab_mensajes: proveedores
 tab_ubicacion: 'ubicación'
+tab_resumen: 'resumen'
 cotizacion: 'cotización'
 nombre: nombre
 namelist: 'relación de pasajeros'
@@ -54,3 +55,4 @@ hasta: hasta
 canal: canal
 dia_libre_titulo: 'Dia Libre'
 dia_libre_contenido: 'Puede descansar, conocer otros lugares de interés o solicitar opciones de excursiones para este dia.'
+otros_servicios: otros servicios

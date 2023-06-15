@@ -96,7 +96,7 @@ class CotizacionProceso
         $datosTabs['itinerarios'] = $this->cotizacionItinerario->getItinerario($this->cotizacion);
         $datosTabs['proveedores'] = $this->mensajeProveedor->getMensajesParaCotizacion($id);
         $datosTabs['incluye'] = $this->cotizacionIncluye->getDatos($this->cotizacion);
-        //$datosTabs['resumen'] = $this->cotizacionResumen->getDatos($this->cotizacion);
+        $datosTabs['resumen'] = $this->cotizacionResumen->getDatos($this->cotizacion);
         $datosTabs['agenda'] = $this->cotizacionAgenda->getAgenda($this->cotizacion);
 
         $this->datosCotizacion = $datosCotizacion;

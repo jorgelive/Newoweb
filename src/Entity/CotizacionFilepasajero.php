@@ -41,7 +41,7 @@ class CotizacionFilepasajero
     /**
      * @var \App\Entity\MaestroPais
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroPais")
+     * @ORM\ManyToOne(targetEntity="MaestroPais")
      * @ORM\JoinColumn(name="pais_id", referencedColumnName="id", nullable=false)
      */
     protected $pais;
@@ -49,7 +49,7 @@ class CotizacionFilepasajero
     /**
      * @var \App\Entity\MaestroSexo
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroSexo")
+     * @ORM\ManyToOne(targetEntity="MaestroSexo")
      * @ORM\JoinColumn(name="sexo_id", referencedColumnName="id", nullable=false)
      */
     protected $sexo;
@@ -57,7 +57,7 @@ class CotizacionFilepasajero
     /**
      * @var \App\Entity\MaestroTipodocumento
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroTipodocumento")
+     * @ORM\ManyToOne(targetEntity="MaestroTipodocumento")
      * @ORM\JoinColumn(name="tipodocumento_id", referencedColumnName="id", nullable=false)
      */
     protected $tipodocumento;
@@ -79,7 +79,7 @@ class CotizacionFilepasajero
     /**
      * @var \App\Entity\CotizacionFile
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionFile", inversedBy="filepasajeros")
+     * @ORM\ManyToOne(targetEntity="CotizacionFile", inversedBy="filepasajeros")
      * @ORM\JoinColumn(name="file_id", referencedColumnName="id", nullable=false)
      */
     protected $file;

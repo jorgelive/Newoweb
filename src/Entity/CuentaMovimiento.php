@@ -45,7 +45,7 @@ class CuentaMovimiento
     /**
      * @var \App\Entity\UserUser
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\UserUser", inversedBy="movimientos")
+     * @ORM\ManyToOne(targetEntity="UserUser", inversedBy="movimientos")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
     protected $user;
@@ -53,7 +53,7 @@ class CuentaMovimiento
     /**
      * @var \App\Entity\CuentaCentro
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CuentaCentro", inversedBy="movimientos")
+     * @ORM\ManyToOne(targetEntity="CuentaCentro", inversedBy="movimientos")
      * @ORM\JoinColumn(name="centro_id", referencedColumnName="id", nullable=true)
      */
     protected $centro;
@@ -61,7 +61,7 @@ class CuentaMovimiento
     /**
      * @var \App\Entity\CuentaClase
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CuentaClase", inversedBy="movimientos")
+     * @ORM\ManyToOne(targetEntity="CuentaClase", inversedBy="movimientos")
      * @ORM\JoinColumn(name="clase_id", referencedColumnName="id", nullable=false)
      */
     protected $clase;

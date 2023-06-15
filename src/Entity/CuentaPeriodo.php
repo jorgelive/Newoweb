@@ -36,7 +36,7 @@ class CuentaPeriodo
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\CuentaMovimiento", mappedBy="periodo", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CuentaMovimiento", mappedBy="periodo", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fechahora" = "ASC"})
      */
     private $movimientos;

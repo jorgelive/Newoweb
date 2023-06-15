@@ -74,7 +74,7 @@ class TransporteUnidad
     /**
      * @var \App\Entity\CuentaCentro
      *
-     * @ORM\OneToOne(targetEntity="App\Entity\CuentaCentro", mappedBy="unidad")
+     * @ORM\OneToOne(targetEntity="CuentaCentro", mappedBy="unidad")
      */
     private $centro;
 

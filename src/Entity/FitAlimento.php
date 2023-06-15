@@ -69,7 +69,7 @@ class FitAlimento
     /**
      * @var \App\Entity\FitTipoalimento
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\FitTipoalimento", inversedBy="alimentos")
+     * @ORM\ManyToOne(targetEntity="FitTipoalimento", inversedBy="alimentos")
      * @ORM\JoinColumn(name="tipoalimento_id", referencedColumnName="id", nullable=false)
      */
     protected $tipoalimento;
@@ -77,7 +77,7 @@ class FitAlimento
     /**
      * @var \App\Entity\FitMedidaalimento
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\FitMedidaalimento", inversedBy="alimentos")
+     * @ORM\ManyToOne(targetEntity="FitMedidaalimento", inversedBy="alimentos")
      * @ORM\JoinColumn(name="mediaalimento_id", referencedColumnName="id", nullable=false)
      */
     protected $medidaalimento;

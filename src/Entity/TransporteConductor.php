@@ -62,7 +62,7 @@ class TransporteConductor
     /**
      * @var \App\Entity\UserUser
      *
-     * @ORM\OneToOne(targetEntity="App\Entity\UserUser", inversedBy="conductor")
+     * @ORM\OneToOne(targetEntity="UserUser", inversedBy="conductor")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
     private $user;

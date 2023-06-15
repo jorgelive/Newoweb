@@ -31,7 +31,7 @@ class MaestroClasemedio
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\MaestroClasemedioTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="MaestroClasemedioTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 
@@ -53,7 +53,7 @@ class MaestroClasemedio
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\MaestroMedio", mappedBy="clasemedio", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="MaestroMedio", mappedBy="clasemedio", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $medios;
 

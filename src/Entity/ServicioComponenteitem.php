@@ -31,7 +31,7 @@ class ServicioComponenteitem
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioComponenteitemTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="ServicioComponenteitemTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 
@@ -67,7 +67,7 @@ class ServicioComponenteitem
     /**
      * @var \App\Entity\ServicioComponente
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioComponente", inversedBy="componenteitems")
+     * @ORM\ManyToOne(targetEntity="ServicioComponente", inversedBy="componenteitems")
      * @ORM\JoinColumn(name="componente_id", referencedColumnName="id", nullable=false)
      */
     protected $componente;

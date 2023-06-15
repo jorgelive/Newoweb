@@ -56,6 +56,10 @@ class CotizacionResumen
 
             foreach($cotizacion->getCotservicios() as $servicio):
 
+                $mainPhoto = $this->cotizacionItinerario->getMainPhoto($servicio);
+
+                $fotos = $this->cotizacionItinerario->getFotos($servicio);
+
                 if($servicio->getCotcomponentes()->count() > 0){
 
                     foreach($servicio->getCotcomponentes() as $componente):
@@ -64,72 +68,104 @@ class CotizacionResumen
 
                             foreach($componente->getCottarifas() as $tarifa):
 
-                                if($tarifa->getTipotarifa()->getId() != ServicioTipotarifa::DB_VALOR_NORMAL){
+                                if($tarifa->getTipotarifa()->isOcultoenresumen()){
                                     continue;
                                 }
-//Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
+
                                 if(
+                                    //hoteles: se toma en cuenta la fecha del componente
                                     $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId() == ServicioTipocomponente::DB_VALOR_ALOJAMIENTO
+                                    && $componente->getComponente()->getComponenteitems()->count() > 0
                                 ){
-                                    $servicioId = -4; //se ordenara por este valor
-                                    $datos['resumen'][$servicioId]['caso'] = 'hotel';
-                                    $datos['resumen'][$servicioId]['tituloItinerario'] = ucfirst($this->translator->trans('alojamiento', [], 'messages'));
+                                    $tarifaId = $tarifa->getId();
 
-                                } elseif(!empty($this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio))){
-                                    $servicioId = $servicio->getId();
-                                    $datos['resumen'][$servicioId]['caso'] = 'normal';
-                                    $datos['resumen'][$servicioId]['tituloItinerario'] = $this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio);
-                                }else{
-                                    $servicioId = -1;
-                                    $datos['resumen'][$servicioId]['caso'] = 'varios';
-                                    $datos['resumen'][$servicioId]['tituloItinerario'] = ucfirst($this->translator->trans('varios', [], 'messages'));
-                                }
-
-
-                                $datos['resumen'][$servicioId]['fechaHoraInicio'] = $servicio->getFechaHoraInicio();
-                                $datos['resumen'][$servicioId]['fechaHoraFin'] = $servicio->getFechaHoraFin();
-
-
-                                $datos['resumen'][$servicioId]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
-
-                                if($componente->getComponente()->getComponenteitems()->count() > 0){
-//Pongo el título del itinerario que ya definí para los internos
-
+                                    $tempArrayHotelItems = [];
                                     foreach($componente->getComponente()->getComponenteitems() as $item){
-
-                                        $datos['resumen'][$servicioId]['componentes'][$componente->getId() . '-' . $item->getId()]['cantidadComponente'] = $componente->getCantidad();
-                                        $datos['resumen'][$servicioId]['componentes'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
-                                        $datos['resumen'][$servicioId]['componentes'][$componente->getId() . '-' . $item->getId()]['listaclase'] = $tarifa->getTipotarifa()->getListaclase();
-                                        $datos['resumen'][$servicioId]['componentes'][$componente->getId() . '-' . $item->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
-
-                                        if(!empty($componente->getFechahorainicio())){
-                                            $datos['resumen'][$servicioId]['componentes'][$componente->getId() . '-' . $item->getId()]['fecha'] = $componente->getFechahorainicio()->format('Y-m-d');
-                                        }
+                                        $tempArrayHotelItems[] = $item->getTitulo();
+                                    }
+                                    $datos['alojamientos'][$tarifaId]['titulo'] = implode(', ', $tempArrayHotelItems);
+                                    if(!empty($tarifa->getTarifa()->getTitulo())){
+                                        $datos['alojamientos'][$tarifaId]['tarifaTitulo'] = $tarifa->getTarifa()->getTitulo();
                                     }
 
-                                }
+                                    if(!empty($tarifa->getProvider())){
+                                        $datos['alojamientos'][$tarifaId]['proveedor'] = $tarifa->getProvider();
+                                    }
 
+                                    $datos['alojamientos'][$tarifaId]['fechahoraInicio'] = $componente->getFechahoraInicio();
+                                    $datos['alojamientos'][$tarifaId]['fechahoraFin'] = $componente->getFechahoraFin();
+
+                                    $datos['alojamientos'][$tarifaId]['fechaInicio'] = $componente->getFechaInicio();
+                                    $datos['alojamientos'][$tarifaId]['fechaFin'] = $componente->getFechaFin();
+
+                                    $duracionDiff = (int)date_diff($datos['alojamientos'][$tarifaId]['fechaInicio'], $datos['alojamientos'][$tarifaId]['fechaFin'])->format('%d');
+                                    if($duracionDiff == 1){
+                                        $diferenciaUnidadStr = $this->translator->trans('noche', [], 'messages');
+                                    }else{
+                                        $diferenciaUnidadStr = $this->translator->trans('noches', [], 'messages');
+                                    }
+                                    $datos['alojamientos'][$tarifaId]['duracionStr'] = $duracionDiff . ' ' . $diferenciaUnidadStr;
+
+                                } elseif(
+                                    //servicios con foto: se toma en cuenta la fecha del servicio
+                                    //!empty($mainPhoto) &&
+                                    !empty($this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio))
+                                    && $componente->getComponente()->getComponenteitems()->count() > 0
+                                ){
+                                    $servicioId = $servicio->getId();
+
+                                    $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
+
+                                    foreach($componente->getComponente()->getComponenteitems() as $item){
+                                        $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['cantidadComponente'] = $componente->getCantidad();
+                                        $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
+                                        $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listaclase'] = $tarifa->getTipotarifa()->getListaclase();
+                                        $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
+                                    }
+
+                                    $datos['serviciosConTituloItinerario'][$servicioId]['tituloItinerario'] = $this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio);
+                                    $datos['serviciosConTituloItinerario'][$servicioId]['mainPhoto'] = $mainPhoto;
+                                    $datos['serviciosConTituloItinerario'][$servicioId]['fotos'] = $fotos;
+
+                                    $datos['serviciosConTituloItinerario'][$servicioId]['fechahoraInicio'] = $servicio->getFechahoraInicio();
+                                    $datos['serviciosConTituloItinerario'][$servicioId]['fechahoraFin'] = $servicio->getFechahoraFin();
+
+                                    $datos['serviciosConTituloItinerario'][$servicioId]['fechaInicio'] = $servicio->getFechaInicio();
+                                    $datos['serviciosConTituloItinerario'][$servicioId]['fechaFin'] = $servicio->getFechaFin();
+
+                                    $duracionDiff = (int)date_diff($datos['serviciosConTituloItinerario'][$servicioId]['fechahoraInicio'], $datos['serviciosConTituloItinerario'][$servicioId]['fechahoraFin'])->format('%h');
+                                    if($duracionDiff >= 24){
+                                        //reemplazamos duración diff
+                                        $duracionDiff = (int)date_diff($datos['serviciosConTituloItinerario'][$servicioId]['fechaInicio'], $datos['serviciosConTituloItinerario'][$servicioId]['fechaFin'])->format('%d');
+
+                                        if($duracionDiff > 1){
+                                            $diferenciaUnidadStr = $this->translator->trans('dias', [], 'messages');
+                                        }else{
+                                            $diferenciaUnidadStr = $this->translator->trans('dia', [], 'messages');
+                                        }
+                                        $datos['serviciosConTituloItinerario'][$servicioId]['duracionStr'] = $duracionDiff . ' ' . $diferenciaUnidadStr;
+
+                                    }else{
+                                        if($duracionDiff === 1){
+                                            $diferenciaUnidadStr = $this->translator->trans('hora', [], 'messages');
+                                        }else{
+                                            $diferenciaUnidadStr = $this->translator->trans('horas', [], 'messages');
+                                        }
+                                        $datos['serviciosConTituloItinerario'][$servicioId]['duracionStr'] = $duracionDiff . ' ' . $diferenciaUnidadStr;
+
+                                    }
+                                } else{
+                                    $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
+                                    foreach($componente->getComponente()->getComponenteitems() as $item){
+                                        $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
+                                    }
+                                }
                             endforeach;
                         }
-
                     endforeach;
                 }
             endforeach;
-//Ordenamos el varios al final
-            if(isset($datos['resumen'][-1])){
-                $datos['resumen'][] = $datos['resumen'][-1];
-                unset($datos['resumen'][-1]);
-            }
-
-//ponemos los hoteles al inicio
-            if(isset($datos['resumen'][-4])){
-                $hoteles = $datos['resumen'][-4];
-                unset($datos['resumen'][-4]);
-                array_unshift($datos['resumen'], $hoteles);
-            }
-
         }
-
         return $datos;
     }
 }

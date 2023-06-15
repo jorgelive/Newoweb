@@ -31,7 +31,7 @@ class CotizacionCotpolitica
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotpoliticaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="CotizacionCotpoliticaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 
@@ -53,7 +53,7 @@ class CotizacionCotpolitica
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotizacion", mappedBy="cotpolitica", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CotizacionCotizacion", mappedBy="cotpolitica", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $cotizaciones;
 

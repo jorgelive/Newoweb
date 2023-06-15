@@ -28,12 +28,12 @@ class ServicioItinerariodia
     private ?int $id = null;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioItinerariodiaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="ServicioItinerariodiaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected Collection $translations;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioItinerario", inversedBy="itinerariodias")
+     * @ORM\ManyToOne(targetEntity="ServicioItinerario", inversedBy="itinerariodias")
      * @ORM\JoinColumn(name="itinerario_id", referencedColumnName="id", nullable=false)
      */
     protected ?ServicioItinerario $itinerario;
@@ -73,13 +73,13 @@ class ServicioItinerariodia
     private ?\DateTime $modificado;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioItidiaarchivo", mappedBy="itinerariodia", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ServicioItidiaarchivo", mappedBy="itinerariodia", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"prioridad" = "ASC"})
      */
     private Collection $itidiaarchivos;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioNotaitinerariodia", inversedBy="itinerariodias")
+     * @ORM\ManyToOne(targetEntity="ServicioNotaitinerariodia", inversedBy="itinerariodias")
      * @ORM\JoinColumn(name="notaitinerariodia_id", referencedColumnName="id", nullable=true)
      */
     protected ?ServicioNotaitinerariodia $notaitinerariodia;

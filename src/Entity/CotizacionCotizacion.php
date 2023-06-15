@@ -27,7 +27,7 @@ class CotizacionCotizacion
     private ?int $id = null;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotizacionTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="CotizacionCotizacionTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected ?Collection $translations;
 
@@ -68,25 +68,25 @@ class CotizacionCotizacion
     private ?string $adelanto = '50.00';
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionEstadocotizacion")
+     * @ORM\ManyToOne(targetEntity="CotizacionEstadocotizacion")
      * @ORM\JoinColumn(name="estadocotizacion_id", referencedColumnName="id", nullable=false)
      */
     protected ?CotizacionEstadocotizacion $estadocotizacion;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionFile", inversedBy="cotizaciones")
+     * @ORM\ManyToOne(targetEntity="CotizacionFile", inversedBy="cotizaciones")
      * @ORM\JoinColumn(name="file_id", referencedColumnName="id", nullable=false)
      */
     protected ?CotizacionFile $file;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionCotpolitica", inversedBy="cotizaciones")
+     * @ORM\ManyToOne(targetEntity="CotizacionCotpolitica", inversedBy="cotizaciones")
      * @ORM\JoinColumn(name="cotpolitica_id", referencedColumnName="id", nullable=false)
      */
     protected ?CotizacionCotpolitica $cotpolitica;
 
     /**
-     * @ORM\ManyToMany(targetEntity="App\Entity\CotizacionCotnota", inversedBy="cotizaciones")
+     * @ORM\ManyToMany(targetEntity="CotizacionCotnota", inversedBy="cotizaciones")
      * @ORM\JoinTable(name="cotizacion_cotnota",
      *      joinColumns={@ORM\JoinColumn(name="cotizacion_id", referencedColumnName="id")},
      *      inverseJoinColumns={@ORM\JoinColumn(name="cotnota_id", referencedColumnName="id")}
@@ -95,7 +95,7 @@ class CotizacionCotizacion
     protected ?Collection $cotnotas;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotservicio", mappedBy="cotizacion", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CotizacionCotservicio", mappedBy="cotizacion", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fechahorainicio" = "ASC"})
      */
     private Collection $cotservicios;

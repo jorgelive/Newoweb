@@ -43,7 +43,7 @@ class ReservaUnitnexo
     /**
      * @var \App\Entity\ReservaChanel
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaChanel", inversedBy="unitnexos")
+     * @ORM\ManyToOne(targetEntity="ReservaChanel", inversedBy="unitnexos")
      * @ORM\JoinColumn(name="chanel_id", referencedColumnName="id", nullable=false)
      */
     protected $chanel;
@@ -51,7 +51,7 @@ class ReservaUnitnexo
     /**
      * @var \App\Entity\ReservaUnit
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnit", inversedBy="unitnexos")
+     * @ORM\ManyToOne(targetEntity="ReservaUnit", inversedBy="unitnexos")
      * @ORM\JoinColumn(name="unit_id", referencedColumnName="id", nullable=false)
      */
     protected $unit;
@@ -59,7 +59,7 @@ class ReservaUnitnexo
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaReserva", mappedBy="unitnexo", cascade={"persist","remove"})
+     * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="unitnexo", cascade={"persist","remove"})
      */
     private $reservas;
 

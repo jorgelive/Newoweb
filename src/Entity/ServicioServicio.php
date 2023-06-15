@@ -32,7 +32,7 @@ class ServicioServicio
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioServicioTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="ServicioServicioTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 
@@ -76,7 +76,7 @@ class ServicioServicio
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\ManyToMany(targetEntity="App\Entity\ServicioComponente", inversedBy="servicios")
+     * @ORM\ManyToMany(targetEntity="ServicioComponente", inversedBy="servicios")
      * @ORM\JoinTable(name="servicio_componente",
      *      joinColumns={@ORM\JoinColumn(name="servicio_id", referencedColumnName="id")},
      *      inverseJoinColumns={@ORM\JoinColumn(name="componente_id", referencedColumnName="id")}
@@ -87,7 +87,7 @@ class ServicioServicio
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioItinerario", mappedBy="servicio", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ServicioItinerario", mappedBy="servicio", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"nombre" = "ASC"})
      */
     private $itinerarios;

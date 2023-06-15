@@ -49,7 +49,7 @@ class ReservaEstado
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaReserva", mappedBy="estado", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="estado", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $reservas;
 

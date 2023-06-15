@@ -23,7 +23,7 @@ class TransporteServicio
     /**
      * @var \App\Entity\UserDependencia
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\UserDependencia")
+     * @ORM\ManyToOne(targetEntity="UserDependencia")
      * @ORM\JoinColumn(name="dependencia_id", referencedColumnName="id", nullable=false)
      */
     protected $dependencia;

@@ -44,7 +44,7 @@ class ServicioComponente
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioComponenteitem", mappedBy="componente", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ServicioComponenteitem", mappedBy="componente", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"titulo" = "ASC"})
      */
     private $componenteitems;
@@ -52,7 +52,7 @@ class ServicioComponente
     /**
      * @var \App\Entity\ServicioServicio
      *
-     * @ORM\ManyToMany(targetEntity="App\Entity\ServicioServicio", mappedBy="componentes")
+     * @ORM\ManyToMany(targetEntity="ServicioServicio", mappedBy="componentes")
      * @ORM\JoinTable(name="servicio_componente",
      *      joinColumns={@ORM\JoinColumn(name="componente_id", referencedColumnName="id")},
      *      inverseJoinColumns={@ORM\JoinColumn(name="servicio_id", referencedColumnName="id")}
@@ -63,7 +63,7 @@ class ServicioComponente
     /**
      * @var \App\Entity\ServicioTipocomponente
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioTipocomponente")
+     * @ORM\ManyToOne(targetEntity="ServicioTipocomponente")
      * @ORM\JoinColumn(name="tipocomponente_id", referencedColumnName="id", nullable=false)
      */
     protected $tipocomponente;
@@ -78,7 +78,7 @@ class ServicioComponente
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioTarifa", mappedBy="componente", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ServicioTarifa", mappedBy="componente", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"nombre" = "ASC"})
      */
     private $tarifas;

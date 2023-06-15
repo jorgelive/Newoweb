@@ -31,7 +31,7 @@ class ServicioItinerario
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioItinerarioTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="ServicioItinerarioTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 
@@ -82,7 +82,7 @@ class ServicioItinerario
     /**
      * @var \App\Entity\ServicioServicio
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioServicio", inversedBy="itinerarios")
+     * @ORM\ManyToOne(targetEntity="ServicioServicio", inversedBy="itinerarios")
      * @ORM\JoinColumn(name="servicio_id", referencedColumnName="id", nullable=false)
      */
     protected $servicio;
@@ -90,7 +90,7 @@ class ServicioItinerario
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioItinerariodia", mappedBy="itinerario", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ServicioItinerariodia", mappedBy="itinerario", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $itinerariodias;
 

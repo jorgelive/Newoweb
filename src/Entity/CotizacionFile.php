@@ -43,13 +43,13 @@ class CotizacionFile
     private $nombre;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroPais")
+     * @ORM\ManyToOne(targetEntity="MaestroPais")
      * @ORM\JoinColumn(name="pais_id", referencedColumnName="id", nullable=false)
      */
     private ?MaestroPais $pais;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroIdioma")
+     * @ORM\ManyToOne(targetEntity="MaestroIdioma")
      * @ORM\JoinColumn(name="idioma_id", referencedColumnName="id", nullable=false)
      */
     private ?MaestroIdioma $idioma;
@@ -60,19 +60,19 @@ class CotizacionFile
     private ?string $telefono;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotizacion", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CotizacionCotizacion", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"id" = "DESC"})
      */
     private Collection $cotizaciones;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionFiledocumento", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CotizacionFiledocumento", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"prioridad" = "ASC"})
      */
     private Collection $filedocumentos;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionFilepasajero", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CotizacionFilepasajero", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private Collection $filepasajeros;
 

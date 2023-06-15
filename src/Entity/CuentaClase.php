@@ -35,7 +35,7 @@ class CuentaClase
     /**
      * @var \App\Entity\CuentaTipo
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CuentaTipo", inversedBy="clases")
+     * @ORM\ManyToOne(targetEntity="CuentaTipo", inversedBy="clases")
      * @ORM\JoinColumn(name="tipo_id", referencedColumnName="id", nullable=false)
      */
     protected $tipo;
@@ -43,7 +43,7 @@ class CuentaClase
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\CuentaMovimiento", mappedBy="clase", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CuentaMovimiento", mappedBy="clase", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $movimientos;
 

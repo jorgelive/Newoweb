@@ -3,8 +3,9 @@
 namespace App\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+use JetBrains\PhpStorm\Pure;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Gedmo\Translatable\Translatable;
@@ -15,17 +16,17 @@ use App\Traits\MainArchivoTrait;
 /**
  * MaestroMedio
  *
- * @ORM\Table(name="res_unitmedio")
+ * @ORM\Table(name="ser_providermedio")
  * @ORM\Entity
  * @ORM\HasLifecycleCallbacks
- * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnitmedioTranslation")
+ * @Gedmo\TranslationEntity(class="App\Entity\ServicioProvidermedioTranslation")
  */
-class ReservaUnitmedio
+class ServicioProvidermedio
 {
 
     use MainArchivoTrait;
 
-    private string $path = '/carga/reservaunitmedio';
+    private string $path = '/carga/servicioprovidermedio';
 
     /**
      * @ORM\Id
@@ -46,16 +47,10 @@ class ReservaUnitmedio
     private ?string $titulo = null;
 
     /**
-     * @ORM\ManyToOne(targetEntity="ReservaUnit", inversedBy="unitmedios")
-     * @ORM\JoinColumn(name="unit_id", referencedColumnName="id", nullable=true)
+     * @ORM\ManyToOne(targetEntity="ServicioProvider", inversedBy="providermedios")
+     * @ORM\JoinColumn(name="provider_id", referencedColumnName="id", nullable=true)
      */
-    protected ?ReservaUnit $unit;
-
-    /**
-     * @ORM\ManyToOne(targetEntity="ReservaUnittipocaracteristica", inversedBy="unitmedios")
-     * @ORM\JoinColumn(name="unittipocaracteristica_id", referencedColumnName="id", nullable=true)
-     */
-    protected ?ReservaUnittipocaracteristica $unittipocaracteristica;
+    protected ServicioProvider $provider;
 
     /**
      * @Gedmo\Timestampable(on="create")
@@ -72,7 +67,7 @@ class ReservaUnitmedio
     /**
      * @Gedmo\Locale
      */
-    private ?string $locale = null;
+    private $locale;
 
     public function __construct()
     {
@@ -101,10 +96,10 @@ class ReservaUnitmedio
 
     public function __toString(): string
     {
-        if(empty($this->getUnittipocaracteristica()) || empty($this->getNombre())){
+        if(empty($this->getNombre())){
             return sprintf("Id: %s.", $this->getId());
         }
-        return sprintf('%s: %s', $this->getUnittipocaracteristica()->getNombre(), $this->getNombre());
+        return sprintf('%s', $this->getNombre());
     }
 
 
@@ -113,29 +108,18 @@ class ReservaUnitmedio
         return $this->id;
     }
 
-    public function setUnit(?ReservaUnit $unit):  self
+    public function setProvider(?ServicioProvider $provider):  self
     {
-        $this->unit = $unit;
+        $this->provider = $provider;
 
         return $this;
     }
 
-    public function getUnit(): ?ReservaUnit
+    public function getProvider(): ?ServicioProvider
     {
-        return $this->unit;
+        return $this->provider;
     }
 
-    public function getUnittipocaracteristica(): ?ReservaUnittipocaracteristica
-    {
-        return $this->unittipocaracteristica;
-    }
-
-    public function setUnittipocaracteristica(?ReservaUnittipocaracteristica $unittipocaracteristica): self
-    {
-        $this->unittipocaracteristica = $unittipocaracteristica;
-
-        return $this;
-    }
 
     public function setCreado(?\DateTime $creado): self
     {

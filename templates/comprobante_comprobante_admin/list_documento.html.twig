@@ -12,7 +12,7 @@ file that was distributed with this source code.
 {% extends '@SonataAdmin/CRUD/base_list_field.html.twig' %}
 
 {% block field %}
-    {%- if value is not empty and object.url is defined -%}
+    {% if value is not empty and object.url is defined %}
         &nbsp;
         <a href="#"
            class="edit_link"
@@ -56,9 +56,9 @@ file that was distributed with this source code.
             </div>
         </div>
 
-    {%- elseif value is not empty -%}
+    {% elseif value is not empty %}
         {{ value }}
-    {%- else -%}
+    {% else %}
 
-    {%- endif -%}
+    {% endif %}
 {% endblock %}

@@ -2,12 +2,14 @@
 
 namespace App\Service;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use App\Entity\CotizacionCotizacion;
 use App\Entity\CotizacionCotservicio;
-use App\Entity\CotizacionEstadocotizacion;
+use App\Entity\ServicioItidiaarchivo;
 use function Symfony\Component\HttpKernel\Log\format;
 
 class CotizacionItinerario
@@ -98,27 +100,71 @@ class CotizacionItinerario
         return $itinerarioConLibres;
     }
 
-    public function getMainPhoto(CotizacionCotservicio $cotservicio): string
+    public function getMainPhoto(CotizacionCotservicio $cotservicio): ?ServicioItidiaarchivo
     {
-
+        $primeroIsSet = false;
+        $primerArchivo = null;
         if ($cotservicio->getItinerario()->getItinerariodias()->count() > 0) {
-
             foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia):
-
-                if($dia->isImportante() === true || $cotservicio->getItinerario()->getItinerariodias()->count() === 1){
+                if($cotservicio->getItinerario()->getItinerariodias()->count() === 1){
                     if($dia->getItidiaarchivos()->count() > 0){
-                        foreach ($dia->getItidiaarchivos() as $archivo):
+                        foreach ($dia->getItidiaarchivos() as $key => $archivo):
 
+                            if($dia->isImportante()){
+                                if ($key === 0) {
+                                    $primerArchivo = $archivo;
+                                    $primeroIsSet = true;
+                                }
+                            }
+                            if($archivo->isPortada()){
+                                return $archivo;
+                            }
                         endforeach;
                     }
-
                 }
-
             endforeach;
         }
 
+        if($primeroIsSet){
+            return $primerArchivo;
+        }
 
-        return $tituloItinerario;
+        return null;
+    }
+
+
+    public function getFotos(CotizacionCotservicio $cotservicio): ?Collection
+    {
+        $fotos = new ArrayCollection();
+        $settedPortada = false;
+        if ($cotservicio->getItinerario()->getItinerariodias()->count() > 0) {
+            foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia):
+                if($cotservicio->getItinerario()->getItinerariodias()->count() === 1){
+                    if($dia->getItidiaarchivos()->count() > 0){
+                        foreach ($dia->getItidiaarchivos() as $key => $archivo):
+
+                            if($archivo->isPortada()){
+                                $settedPortada = true;
+                            }
+                            $fotos->add($archivo);
+
+                            if($dia->isImportante()){
+                                if ($key === 0) {
+                                    $importantFirstIndex = $fotos->indexOf($fotos->current());
+                                    $importantFirst = $fotos->current();
+                                }
+                            }
+                        endforeach;
+                    }
+                }
+            endforeach;
+        }
+
+        if(!$fotos->isEmpty() && $settedPortada === false ){
+            $importantFirst->setPortada(true);
+            $fotos->set($importantFirstIndex, $importantFirst);
+        }
+        return $fotos;
     }
 
     public function getTituloItinerario(\DateTime $fecha, CotizacionCotservicio $cotservicio): string

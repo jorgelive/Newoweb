@@ -40,14 +40,14 @@ class ReservaChanel
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaReserva", mappedBy="chanel", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="chanel", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $reservas;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitnexo", mappedBy="chanel", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaUnitnexo", mappedBy="chanel", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $unitnexos;
 

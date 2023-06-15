@@ -30,7 +30,7 @@ class ServicioTarifa
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioTarifaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="ServicioTarifaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 
@@ -74,7 +74,7 @@ class ServicioTarifa
     /**
      * @var MaestroMoneda
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroMoneda")
+     * @ORM\ManyToOne(targetEntity="MaestroMoneda")
      */
     protected $moneda;
 
@@ -130,7 +130,7 @@ class ServicioTarifa
     /**
      * @var ServicioTipotarifa
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioTipotarifa")
+     * @ORM\ManyToOne(targetEntity="ServicioTipotarifa")
      * @ORM\JoinColumn(name="tipotarifa_id", referencedColumnName="id", nullable=false)
      */
     protected $tipotarifa;
@@ -138,7 +138,7 @@ class ServicioTarifa
     /**
      * @var ServicioModalidadtarifa
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioModalidadtarifa")
+     * @ORM\ManyToOne(targetEntity="ServicioModalidadtarifa")
      * @ORM\JoinColumn(name="modalidadtarifa_id", referencedColumnName="id", nullable=true)
      */
     protected $modalidadtarifa;
@@ -146,7 +146,7 @@ class ServicioTarifa
     /**
      * @var ServicioComponente
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioComponente", inversedBy="tarifas")
+     * @ORM\ManyToOne(targetEntity="ServicioComponente", inversedBy="tarifas")
      * @ORM\JoinColumn(name="componente_id", referencedColumnName="id", nullable=false)
      */
     protected $componente;
@@ -154,7 +154,7 @@ class ServicioTarifa
     /**
      * @var MaestroCategoriatour
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroCategoriatour")
+     * @ORM\ManyToOne(targetEntity="MaestroCategoriatour")
      * @ORM\JoinColumn(name="categoriatour_id", referencedColumnName="id", nullable=true)
      */
     protected $categoriatour;
@@ -162,14 +162,14 @@ class ServicioTarifa
     /**
      * @var MaestroTipopax
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroTipopax")
+     * @ORM\ManyToOne(targetEntity="MaestroTipopax")
      */
     protected $tipopax;
 
     /**
      * @var \App\Entity\ServicioProvider
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioProvider", inversedBy="tarifas")
+     * @ORM\ManyToOne(targetEntity="ServicioProvider", inversedBy="tarifas")
      * @ORM\JoinColumn(name="provider_id", referencedColumnName="id", nullable=true)
      */
     protected $provider;

@@ -1134,6 +1134,18 @@ services:
                 show_mosaic_button: false
         public: true
 
+    app.admin.servicioprovidermedio:
+        class: App\Admin\ServicioProvidermedioAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Entity\ServicioProvidermedio
+              controller: App\Controller\ServicioProvidermedioAdminController
+              manager_type: orm
+              group: Servicio
+              label: Proveedor Multimedia
+              show_mosaic_button: false
+        public: true
+
     app.admin.servicioitinerariodia:
         class: App\Admin\ServicioItinerariodiaAdmin
         tags:

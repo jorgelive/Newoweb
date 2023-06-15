@@ -70,42 +70,42 @@ class ReservaReserva
     private bool $manual = true;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaChanel", inversedBy="reservas")
+     * @ORM\ManyToOne(targetEntity="ReservaChanel", inversedBy="reservas")
      * @ORM\JoinColumn(name="chanel_id", referencedColumnName="id", nullable=false)
      */
     private ?ReservaChanel $chanel;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnitnexo", inversedBy="reservas")
+     * @ORM\ManyToOne(targetEntity="ReservaUnitnexo", inversedBy="reservas")
      * @ORM\JoinColumn(name="unitnexo_id", referencedColumnName="id", nullable=true)
      */
     private ?ReservaUnitnexo $unitnexo;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnit", inversedBy="reservas")
+     * @ORM\ManyToOne(targetEntity="ReservaUnit", inversedBy="reservas")
      * @ORM\JoinColumn(name="unit_id", referencedColumnName="id", nullable=false)
      */
     private ?ReservaUnit $unit;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaEstado", inversedBy="reservas")
+     * @ORM\ManyToOne(targetEntity="ReservaEstado", inversedBy="reservas")
      * @ORM\JoinColumn(name="estado_id", referencedColumnName="id", nullable=false)
      */
     private ?ReservaEstado $estado;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaDetalle", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaDetalle", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"id" = "ASC"})
      */
     private Collection $detalles;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaImporte", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaImporte", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private Collection $importes;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaPago", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaPago", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fecha" = "ASC"})
      */
     private Collection $pagos;

@@ -23,7 +23,7 @@ class ComprobanteComprobante
     /**
      * @var \App\Entity\UserDependencia
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\UserDependencia")
+     * @ORM\ManyToOne(targetEntity="UserDependencia")
      * @ORM\JoinColumn(name="dependencia_id", referencedColumnName="id", nullable=false)
      */
     private $dependencia;
@@ -31,14 +31,14 @@ class ComprobanteComprobante
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ComprobanteComprobanteitem", mappedBy="comprobante", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ComprobanteComprobanteitem", mappedBy="comprobante", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $comprobanteitems;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\TransporteServiciocontable", mappedBy="comprobante", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="TransporteServiciocontable", mappedBy="comprobante", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $serviciocontables;
 
@@ -50,7 +50,7 @@ class ComprobanteComprobante
     /**
      * @var \App\Entity\MaestroMoneda
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroMoneda")
+     * @ORM\ManyToOne(targetEntity="MaestroMoneda")
      * @ORM\JoinColumn(name="moneda_id", referencedColumnName="id", nullable=false)
      */
     private $moneda;

@@ -34,7 +34,7 @@ class MaestroCategoriatour
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\MaestroCategoriatourTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="MaestroCategoriatourTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 

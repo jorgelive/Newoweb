@@ -9,6 +9,7 @@ tab_internoincluye: includes (I)
 tab_operativa: operations
 tab_mensajes: providers
 tab_ubicacion: location
+tab_resumen: summary
 cotizacion: quotation
 nombre: name
 namelist: name list
@@ -54,4 +55,4 @@ hasta: to
 canal: chanel
 dia_libre_titulo: 'Free day'
 dia_libre_contenido: 'You can go to see other places of your interest, request excursion options for this day or do something at your leisure.'
-
+otros_servicios: other services

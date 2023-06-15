@@ -28,7 +28,7 @@ class ReservaImporte
     /**
      * @var \App\Entity\ReservaReserva
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaReserva", inversedBy="importes")
+     * @ORM\ManyToOne(targetEntity="ReservaReserva", inversedBy="importes")
      * @ORM\JoinColumn(name="reserva_id", referencedColumnName="id", nullable=false)
      */
     protected $reserva;
@@ -36,7 +36,7 @@ class ReservaImporte
     /**
      * @var \App\Entity\ReservaTipoimporte
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaTipoimporte")
+     * @ORM\ManyToOne(targetEntity="ReservaTipoimporte")
      * @ORM\JoinColumn(name="tipoimporte_id", referencedColumnName="id", nullable=false)
      */
     protected $tipoimporte;
@@ -44,7 +44,7 @@ class ReservaImporte
     /**
      * @var \App\Entity\MaestroMoneda
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroMoneda")
+     * @ORM\ManyToOne(targetEntity="MaestroMoneda")
      * @ORM\JoinColumn(name="moneda_id", referencedColumnName="id", nullable=false)
      */
     protected $moneda;

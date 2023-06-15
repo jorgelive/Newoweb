@@ -28,7 +28,7 @@ class CotizacionCotcomponente
     /**
      * @var \App\Entity\CotizacionCotservicio
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionCotservicio", inversedBy="cotcomponentes")
+     * @ORM\ManyToOne(targetEntity="CotizacionCotservicio", inversedBy="cotcomponentes")
      * @ORM\JoinColumn(name="cotservicio_id", referencedColumnName="id", nullable=false)
      */
     protected $cotservicio;
@@ -36,7 +36,7 @@ class CotizacionCotcomponente
     /**
      * @var \App\Entity\ServicioComponente
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioComponente")
+     * @ORM\ManyToOne(targetEntity="ServicioComponente")
      * @ORM\JoinColumn(name="componente_id", referencedColumnName="id", nullable=false)
      */
     protected $componente;
@@ -44,7 +44,7 @@ class CotizacionCotcomponente
     /**
      * @var \App\Entity\CotizacionEstadocotcomponente
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionEstadocotcomponente")
+     * @ORM\ManyToOne(targetEntity="CotizacionEstadocotcomponente")
      * @ORM\JoinColumn(name="estadocotcomponente_id", referencedColumnName="id", nullable=false)
      */
     protected $estadocotcomponente;
@@ -52,7 +52,7 @@ class CotizacionCotcomponente
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCottarifa", mappedBy="cotcomponente", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CotizacionCottarifa", mappedBy="cotcomponente", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $cottarifas;
 
@@ -351,6 +351,11 @@ class CotizacionCotcomponente
         return $this->fechahorainicio;
     }
 
+    public function getFechainicio(): ?\DateTime
+    {
+        return (new \DateTime($this->fechahorainicio->format('Y-m-d')));
+    }
+
     /**
      * Set fechahorafin.
      *
@@ -373,5 +378,10 @@ class CotizacionCotcomponente
     public function getFechahorafin()
     {
         return $this->fechahorafin;
+    }
+
+    public function getFechafin(): ?\DateTime
+    {
+        return (new \DateTime($this->fechahorafin->format('Y-m-d')));
     }
 }

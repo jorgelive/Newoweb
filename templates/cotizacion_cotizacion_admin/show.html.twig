@@ -9,25 +9,30 @@
         h4{font-size: 16px}
 
         .post-it { max-width:450px; position:relative; background:#ffa; overflow:hidden; margin:15px auto 30px auto; padding:20px; border-radius:0 0 0 30px/45px; box-shadow: inset 0 -40px 40px rgba(0,0,0,0.2), inset 0 25px 10px rgba(0,0,0,0.2), 0 5px 6px 5px rgba(0,0,0,0.2); font-family: 'Permanent Marker', cursive; line-height:1.7em; font-size: 0.9em; -webkit-mask-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA5JREFUeNpiYGBgAAgwAAAEAAGbA+oJAAAAAElFTkSuQmCC); color:#130d6b; }
-        .post-it:before { content:""; display:block; position:absolute; width:20px; height:25px; background:#ffa; box-shadow: 3px -2px 10px rgba(0,0,0,0.2), inset 15px -15px 15px rgba(0,0,0,0.3); left:0; bottom:0; z-index:2; transform:skewX(25deg);}
+        .post-it:before { content:""; display:block; position:absolute; width:20px; height:25px; background:#ffa; box-shadow: 3px -2px 10px rgba(0,0,0,0.2), inset 15px -15px 15px rgba(0,0,0,0.3); left:0; bottom:0; z-index:2; transform:skewX(25deg); }
         .post-it:after { content:""; display:block; position:absolute; width:75%; height:20px; border-top:3px solid #130d6b; border-radius: 50% ; bottom:0; left:10%; }
 
-        .fila{list-style: none;}
-        .fila.servicio{padding-inline-start: 0; margin: 5px;}
-        .fila li {list-style: none; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; border-left: 1px solid #ccc; margin-bottom: 5px;}
-        .celda{display: inline-block; padding: 0 5px;}
-        .celda.heading{font-weight: bold; font-size: 0.8em; vertical-align: top;}
-        .titulo{font-size: 0.8em; font-weight: bold;}
-        .generales-box .box-header {display: none;}
-        .generales-box .box-body .resumen-text {min-height: 20px; margin: 10px 0; border-radius: 5px; font-size: 1.1em; padding: 7px 7px 0 7px; background-color: rgba(147, 184, 255, 0.2)}
-        .generales-box .box-body .codigo {color: #58954e; float: right; font-size: 1.1em; font-weight: 600;}
-        .generales-box .box-body .idioma {color: #710000;}
-        .boton-acordeonsuperior.acordeon-tickets {background-color: #f39c1240;}
-        .boton-acordeonsuperior {padding: 7px 10px;}
-        .boton-acordeonsuperior .panel-title>a {font-size: 14px; font-weight: 600;}
-        .boton-acordeonsuperior .panel-title>a:hover {color: gray;}
+        #tab-{{ admin.uniqid }}-operativa .fila { list-style: none; }
+        #tab-{{ admin.uniqid }}-operativa .fila.servicio { padding-inline-start: 0; margin: 5px; }
+        #tab-{{ admin.uniqid }}-operativa .fila li { list-style: none; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; border-left: 1px solid #ccc; margin-bottom: 5px; }
+        #tab-{{ admin.uniqid }}-operativa .celda { display: inline-block; padding: 0 5px; }
+        #tab-{{ admin.uniqid }}-operativa .celda.heading { font-weight: bold; font-size: 0.8em; vertical-align: top; }
 
-        .titulo-verde {font-weight: bold; color: #1B6129;}
+        #tab-{{ admin.uniqid }}-resumen .resumen-item { padding: 5px 0; border-bottom: 1px #ccc solid; }
+        #tab-{{ admin.uniqid }}-resumen .resumen-servicios p.componente-incluye { margin-top: 10px; }
+        
+        .titulo{font-size: 0.8em; font-weight: bold; }
+        .generales-box .box-header { display: none; }
+        .generales-box .box-body .resumen-text { min-height: 20px; margin: 10px 0; border-radius: 5px; font-size: 1.1em; padding: 7px 7px 0 7px; background-color: rgba(147, 184, 255, 0.2) }
+        .generales-box .box-body .codigo { color: #58954e; float: right; font-size: 1.1em; font-weight: 600; }
+        .generales-box .box-body .idioma { color: #710000; }
+
+        .boton-acordeonsuperior.acordeon-tickets { background-color: #f39c1240; }
+        .boton-acordeonsuperior { padding: 7px 10px; }
+        .boton-acordeonsuperior .panel-title>a { font-size: 14px; font-weight: 600; }
+        .boton-acordeonsuperior .panel-title>a:hover { color: gray; }
+
+        .titulo-verde { font-weight: bold; color: #1B6129; }
 
     </style>
 {% endblock %}
@@ -213,22 +218,30 @@
             <div class="nav-tabs-custom">
 
                 <ul class="nav nav-tabs hidden-print" role="tablist">
+
                     <li class="active">
-                        <a href="#tab_{{ admin.uniqid }}_itinerario" data-toggle="tab">
+                        <a href="#tab-{{ admin.uniqid }}-resumen" data-toggle="tab">
+                            <i style="color: #954e8d" class="fas fa-list tab-icon" aria-hidden="true"></i>
+                            <span>{{ 'tab_resumen'|trans({},'messages')|capitalize}}</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="#tab-{{ admin.uniqid }}-itinerario" data-toggle="tab">
                             <i style="color: #954e8d" class="fas fa-map tab-icon" aria-hidden="true"></i>
                             <span>{{ 'tab_itinerario'|trans({},'messages')|capitalize}}</span>
                         </a>
                     </li>
 
                     <li>
-                        <a href="#tab_{{ admin.uniqid }}_tarifas" data-toggle="tab">
+                        <a href="#tab-{{ admin.uniqid }}-tarifas" data-toggle="tab">
                             <i style="color: #1B6129;" class="fas fa-dollar-sign tab-icon" aria-hidden="true"></i>
                             <span>{{ 'tab_precio'|trans({},'messages')|capitalize}}</span>
                         </a>
                     </li>
 
                     <li>
-                        <a href="#tab_{{ admin.uniqid }}_incluye" data-toggle="tab">
+                        <a href="#tab-{{ admin.uniqid }}-incluye" data-toggle="tab">
                             <i style="color: #ff9090" class="fas fa-check tab-icon" aria-hidden="true"></i>
                             <span>{{ 'tab_incluidos'|trans({},'messages')|capitalize}}</span>
                         </a>
@@ -236,7 +249,7 @@
 
                     {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
                     <li>
-                        <a href="#tab_{{ admin.uniqid }}_agenda" data-toggle="tab">
+                        <a href="#tab-{{ admin.uniqid }}-agenda" data-toggle="tab">
                             <i style="color: #ffa751" class="fas fa-calendar tab-icon" aria-hidden="true"></i>
                             <span>{{ 'tab_agenda'|trans({},'messages')|capitalize}}</span>
                         </a>
@@ -244,7 +257,7 @@
                     {% endif %}
 
                     <li>
-                        <a href="#tab_{{ admin.uniqid }}_politica" data-toggle="tab">
+                        <a href="#tab-{{ admin.uniqid }}-politica" data-toggle="tab">
                             <i class="fas fa-exclamation tab-icon" aria-hidden="true"></i>
                             <span>{{ 'tab_terminos'|trans({},'messages')|capitalize}}</span>
                         </a>
@@ -252,7 +265,7 @@
 
                     {% if action == 'show' %}
                         <li>
-                            <a href="#tab_{{ admin.uniqid }}_valores" data-toggle="tab">
+                            <a href="#tab-{{ admin.uniqid }}-valores" data-toggle="tab">
                                 <i style="color: #1B6129;" class="fas fa-money-bill tab-icon" aria-hidden="true"></i>
                                 <span>{{ 'tab_valores'|trans({},'messages')|capitalize}}</span>
                             </a>
@@ -261,7 +274,7 @@
 
                     {% if action == 'show' %}
                         <li>
-                            <a href="#tab_{{ admin.uniqid }}_internoincluye" data-toggle="tab">
+                            <a href="#tab-{{ admin.uniqid }}-internoincluye" data-toggle="tab">
                                 <i style="color: #ff9090" class="fas fa-check-double tab-icon" aria-hidden="true"></i>
                                 <span>{{ 'tab_internoincluye'|trans({},'messages')|capitalize}}</span>
                             </a>
@@ -270,7 +283,7 @@
 
                     {% if action == 'show' %}
                     <li>
-                        <a href="#tab_{{ admin.uniqid }}_operativa" data-toggle="tab">
+                        <a href="#tab-{{ admin.uniqid }}-operativa" data-toggle="tab">
                             <i style="color: #954e8d" class="fas fa-map tab-icon" aria-hidden="true"></i>
                             <span>{{ 'tab_operativa'|trans({},'messages')|capitalize}}</span>
                         </a>
@@ -278,7 +291,7 @@
                     {% endif %}
                     {% if action == 'show' %}
                     <li>
-                        <a href="#tab_{{ admin.uniqid }}_mensajes" data-toggle="tab">
+                        <a href="#tab-{{ admin.uniqid }}-mensajes" data-toggle="tab">
                             <i class="fas fa-envelope tab-icon" aria-hidden="true"></i>
                             <span>{{ 'tab_mensajes'|trans({},'messages')|capitalize}}</span>
                         </a>
@@ -288,25 +301,30 @@
 
                 <div class="tab-content no-padding">
 
-                    <div class="tab-pane fade in active" id="tab_{{ admin.uniqid }}_itinerario">
+                    <div class="tab-pane fade in active" id="tab-{{ admin.uniqid }}-resumen">
+                        {% include 'cotizacion_cotizacion_admin/show__resumen.html.twig' %}
+                    </div>
+
+
+                    <div class="tab-pane fade in" id="tab-{{ admin.uniqid }}-itinerario">
                         {% include 'cotizacion_cotizacion_admin/show__itinerario.html.twig' %}
                     </div>
 
-                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_tarifas">
+                    <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-tarifas">
                         {% include 'cotizacion_cotizacion_admin/show__tarifas.html.twig' %}
                     </div>
 
-                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_incluye">
+                    <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-incluye">
                         {% include 'cotizacion_cotizacion_admin/show__incluye.html.twig' %}
                     </div>
 
                     {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
-                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_agenda">
+                    <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-agenda">
                         {% include 'cotizacion_cotizacion_admin/show__agenda.html.twig' %}
                     </div>
                     {% endif %}
 
-                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_politica">
+                    <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-politica">
                         <div class="box-body container-fluid">
                             <div class="sonata-ba-collapsed-fields">
                                 <div class="box-body table-responsive">
@@ -318,25 +336,25 @@
                     </div>
 
                     {% if action == 'show' %}
-                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_valores">
+                    <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-valores">
                         {% include 'cotizacion_cotizacion_admin/show__valores.html.twig' %}
                     </div>
                     {% endif %}
 
                     {% if action == 'show' %}
-                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_internoincluye">
+                    <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-internoincluye">
                         {% include 'cotizacion_cotizacion_admin/show__internoincluye.html.twig' %}
                     </div>
                     {% endif %}
 
                     {% if action == 'show' %}
-                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_operativa">
+                    <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-operativa">
                         {% include 'cotizacion_cotizacion_admin/show__operativa.html.twig' %}
                     </div>
                     {% endif %}
 
                     {% if action == 'show' %}
-                    <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_mensajes">
+                    <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-mensajes">
                         {% include 'cotizacion_cotizacion_admin/show__mensajes.html.twig' %}
                     </div>
                     {% endif %}

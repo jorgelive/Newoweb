@@ -37,7 +37,7 @@ class MaestroMedio
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\MaestroMedioTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="MaestroMedioTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 

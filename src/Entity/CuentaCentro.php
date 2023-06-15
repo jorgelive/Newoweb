@@ -42,7 +42,7 @@ class CuentaCentro
     /**
      * @var \App\Entity\TransporteUnidad
      *
-     * @ORM\OneToOne(targetEntity="App\Entity\TransporteUnidad", inversedBy="centro")
+     * @ORM\OneToOne(targetEntity="TransporteUnidad", inversedBy="centro")
      * @ORM\JoinColumn(name="unidad_id", referencedColumnName="id", nullable=true)
      */
     protected $unidad;
@@ -50,7 +50,7 @@ class CuentaCentro
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\CuentaMovimiento", mappedBy="centro", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CuentaMovimiento", mappedBy="centro", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fechahora" = "DESC"})
      */
     private $movimientos;

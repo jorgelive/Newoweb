@@ -42,7 +42,7 @@ class CotizacionCotservicio
     /**
      * @var \App\Entity\CotizacionCotizacion
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionCotizacion", inversedBy="cotservicios")
+     * @ORM\ManyToOne(targetEntity="CotizacionCotizacion", inversedBy="cotservicios")
      * @ORM\JoinColumn(name="cotizacion_id", referencedColumnName="id", nullable=false)
      */
     protected $cotizacion;
@@ -50,7 +50,7 @@ class CotizacionCotservicio
     /**
      * @var \App\Entity\ServicioServicio
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioServicio")
+     * @ORM\ManyToOne(targetEntity="ServicioServicio")
      * @ORM\JoinColumn(name="servicio_id", referencedColumnName="id", nullable=false)
      */
     protected $servicio;
@@ -58,7 +58,7 @@ class CotizacionCotservicio
     /**
      * @var \App\Entity\SErvicioItinerario
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioItinerario")
+     * @ORM\ManyToOne(targetEntity="ServicioItinerario")
      * @ORM\JoinColumn(name="itinerario_id", referencedColumnName="id", nullable=false)
      */
     protected $itinerario;
@@ -66,7 +66,7 @@ class CotizacionCotservicio
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCotcomponente", mappedBy="cotservicio", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CotizacionCotcomponente", mappedBy="cotservicio", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fechahorainicio" = "ASC"})
      */
     private $cotcomponentes;
@@ -168,6 +168,11 @@ class CotizacionCotservicio
         return $this->fechahorainicio;
     }
 
+    public function getFechainicio(): ?\DateTime
+    {
+        return (new \DateTime($this->fechahorainicio->format('Y-m-d')));
+    }
+
     /**
      * Set fechahorafin
      *
@@ -190,6 +195,11 @@ class CotizacionCotservicio
     public function getFechahorafin()
     {
         return $this->fechahorafin;
+    }
+
+    public function getFechafin(): ?\DateTime
+    {
+        return (new \DateTime($this->fechahorafin->format('Y-m-d')));
     }
 
     /**

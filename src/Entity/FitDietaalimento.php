@@ -33,7 +33,7 @@ class FitDietaalimento
     /**
      * @var \App\Entity\FitDietacomida
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\FitDietacomida", inversedBy="dietaalimentos")
+     * @ORM\ManyToOne(targetEntity="FitDietacomida", inversedBy="dietaalimentos")
      * @ORM\JoinColumn(name="dietacomida_id", referencedColumnName="id", nullable=false)
      */
     protected $dietacomida;
@@ -41,7 +41,7 @@ class FitDietaalimento
     /**
      * @var \App\Entity\FitAlimento
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\FitAlimento")
+     * @ORM\ManyToOne(targetEntity="FitAlimento")
      * @ORM\JoinColumn(name="alimento_id", referencedColumnName="id", nullable=false)
      */
     protected $alimento;

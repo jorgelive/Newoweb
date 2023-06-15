@@ -49,7 +49,7 @@ class MainArchivo
     /**
      * @var \App\Entity\UserUser
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\UserUser")
+     * @ORM\ManyToOne(targetEntity="UserUser")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
     private $user;

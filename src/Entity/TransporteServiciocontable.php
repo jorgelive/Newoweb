@@ -30,7 +30,7 @@ class TransporteServiciocontable
     /**
      * @var \App\Entity\ComprobanteComprobante
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ComprobanteComprobante", inversedBy="serviciocontables")
+     * @ORM\ManyToOne(targetEntity="ComprobanteComprobante", inversedBy="serviciocontables")
      * @ORM\JoinColumn(name="comprobante_id", referencedColumnName="id", nullable=false)
      */
     private $comprobante;

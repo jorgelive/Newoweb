@@ -35,7 +35,7 @@ class CuentaTipo
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\CuentaClase", mappedBy="tipo", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="CuentaClase", mappedBy="tipo", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $clases;
 

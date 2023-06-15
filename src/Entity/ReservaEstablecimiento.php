@@ -57,7 +57,7 @@ class ReservaEstablecimiento
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnit", mappedBy="establecimiento", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaUnit", mappedBy="establecimiento", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $units;
 

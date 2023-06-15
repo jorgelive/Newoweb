@@ -30,7 +30,7 @@ class ReservaUnitcaracteristica
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitcaracteristicaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="ReservaUnitcaracteristicaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 
@@ -52,7 +52,7 @@ class ReservaUnitcaracteristica
     /**
      * @var \App\Entity\ReservaUnittipocaracteristica
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnittipocaracteristica", inversedBy="unitcaracteristicas")
+     * @ORM\ManyToOne(targetEntity="ReservaUnittipocaracteristica", inversedBy="unitcaracteristicas")
      * @ORM\JoinColumn(name="unittipocaracteristica_id", referencedColumnName="id", nullable=false)
      */
     protected $unittipocaracteristica;
@@ -67,7 +67,7 @@ class ReservaUnitcaracteristica
     /**
      * @var \App\Entity\ReservaUnit
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnit", inversedBy="unitcaracteristicas")
+     * @ORM\ManyToOne(targetEntity="ReservaUnit", inversedBy="unitcaracteristicas")
      * @ORM\JoinColumn(name="unit_id", referencedColumnName="id", nullable=false)
      */
     protected $unit;

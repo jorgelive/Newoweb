@@ -54,7 +54,7 @@ class CotizacionCotnota
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\ManyToMany(targetEntity="App\Entity\CotizacionCotizacion", mappedBy="cotnotas", cascade={"persist","remove"})
+     * @ORM\ManyToMany(targetEntity="CotizacionCotizacion", mappedBy="cotnotas", cascade={"persist","remove"})
      * @ORM\JoinTable(name="cotizacion_cotnota",
      *      joinColumns={@ORM\JoinColumn(name="cotnota_id", referencedColumnName="id")},
      *      inverseJoinColumns={@ORM\JoinColumn(name="cotizacion_id", referencedColumnName="id")}

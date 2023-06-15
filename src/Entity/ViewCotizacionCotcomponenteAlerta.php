@@ -33,7 +33,7 @@ class ViewCotizacionCotcomponenteAlerta
     /**
      * @var \App\Entity\CotizacionCotservicio
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionCotservicio")
+     * @ORM\ManyToOne(targetEntity="CotizacionCotservicio")
      * @ORM\JoinColumn(name="cotservicio_id", referencedColumnName="id", nullable=false)
      */
     protected $cotservicio;
@@ -41,7 +41,7 @@ class ViewCotizacionCotcomponenteAlerta
     /**
      * @var \App\Entity\ServicioComponente
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioComponente")
+     * @ORM\ManyToOne(targetEntity="ServicioComponente")
      * @ORM\JoinColumn(name="componente_id", referencedColumnName="id", nullable=false)
      */
     protected $componente;
@@ -49,7 +49,7 @@ class ViewCotizacionCotcomponenteAlerta
     /**
      * @var \App\Entity\CotizacionEstadocotcomponente
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionEstadocotcomponente")
+     * @ORM\ManyToOne(targetEntity="CotizacionEstadocotcomponente")
      * @ORM\JoinColumn(name="estadocotcomponente_id", referencedColumnName="id", nullable=false)
      */
     protected $estadocotcomponente;

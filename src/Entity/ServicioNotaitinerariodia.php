@@ -32,7 +32,7 @@ class ServicioNotaitinerariodia
     /**
      * @var ArrayCollection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioNotaitinerariodiaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="ServicioNotaitinerariodiaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 
@@ -53,7 +53,7 @@ class ServicioNotaitinerariodia
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioItinerariodia", mappedBy="notaitinerariodia", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ServicioItinerariodia", mappedBy="notaitinerariodia", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"id" = "ASC"})
      */
     private $itinerariodias;

@@ -31,7 +31,7 @@ class CotizacionFiledocumento
     /**
      * @var \App\Entity\CotizacionTipofiledocumento
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionTipofiledocumento")
+     * @ORM\ManyToOne(targetEntity="CotizacionTipofiledocumento")
      * @ORM\JoinColumn(name="tipofiledocumento_id", referencedColumnName="id", nullable=false)
      */
     private $tipofiledocumento;
@@ -39,7 +39,7 @@ class CotizacionFiledocumento
     /**
      * @var \App\Entity\CotizacionFile
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\CotizacionFile", inversedBy="filedocumentos")
+     * @ORM\ManyToOne(targetEntity="CotizacionFile", inversedBy="filedocumentos")
      * @ORM\JoinColumn(name="file_id", referencedColumnName="id", nullable=false)
      */
     protected $file;

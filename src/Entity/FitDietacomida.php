@@ -28,7 +28,7 @@ class FitDietacomida
     /**
      * @var \App\Entity\FitDieta
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\FitDieta", inversedBy="dietacomidas")
+     * @ORM\ManyToOne(targetEntity="FitDieta", inversedBy="dietacomidas")
      * @ORM\JoinColumn(name="dieta_id", referencedColumnName="id", nullable=false)
      */
     protected $dieta;
@@ -36,7 +36,7 @@ class FitDietacomida
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="App\Entity\FitDietaalimento", mappedBy="dietacomida", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="FitDietaalimento", mappedBy="dietacomida", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $dietaalimentos;
 

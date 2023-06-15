@@ -28,7 +28,7 @@ class ReservaPago
     /**
      * @var \App\Entity\ReservaReserva
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaReserva", inversedBy="pagos")
+     * @ORM\ManyToOne(targetEntity="ReservaReserva", inversedBy="pagos")
      * @ORM\JoinColumn(name="reserva_id", referencedColumnName="id", nullable=false)
      */
     protected $reserva;
@@ -43,7 +43,7 @@ class ReservaPago
     /**
      * @var \App\Entity\MaestroMoneda
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroMoneda")
+     * @ORM\ManyToOne(targetEntity="MaestroMoneda")
      * @ORM\JoinColumn(name="moneda_id", referencedColumnName="id", nullable=false)
      */
     protected $moneda;
@@ -58,7 +58,7 @@ class ReservaPago
     /**
      * @var \App\Entity\UserUser
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\UserUser")
+     * @ORM\ManyToOne(targetEntity="UserUser")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=true)
      */
     protected $user;

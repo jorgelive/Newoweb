@@ -408,9 +408,9 @@ trait MainArchivoTrait
                 if($exifInfo){
                     //cuando el valor de orientación es 6 u 8 la información del ancho y alto aparecen invertidas
                     if(in_array($exifInfo['Orientation'], [6, 8])){
-                        $aspectRatio = $exifInfo['ImageLength'] / $exifInfo['ImageWidth'];
+                        $aspectRatio = $exifInfo['ExifImageLength'] / $exifInfo['ExifImageWidth'];
                     }else{
-                        $aspectRatio = $exifInfo['ImageWidth'] / $exifInfo['ImageLength'];
+                        $aspectRatio = $exifInfo['ExifImageWidth'] / $exifInfo['ExifImageLength'];
                     }
                 }elseif($imageInfo) {
                     list($anchoOriginal, $alturaOriginal) = $imageInfo;

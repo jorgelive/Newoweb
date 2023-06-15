@@ -51,14 +51,20 @@ class ServicioProvider
     private ?string $email = null;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\ServicioTarifa", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ServicioTarifa", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"nombre" = "ASC"})
      */
     private Collection $tarifas;
 
     /**
+     * @ORM\OneToMany(targetEntity="ServicioProvidermedio", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OrderBy({"nombre" = "ASC"})
+     */
+    private Collection $providermedios;
 
-     * @ORM\OneToMany(targetEntity="App\Entity\CotizacionCottarifa", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
+    /**
+
+     * @ORM\OneToMany(targetEntity="CotizacionCottarifa", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private Collection $cottarifas;
 
@@ -81,6 +87,7 @@ class ServicioProvider
     public function __construct()
     {
         $this->tarifas = new ArrayCollection();
+        $this->providermedios = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -172,12 +179,10 @@ class ServicioProvider
         return $this;
     }
 
-
     public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
-
 
     public function addTarifa(?ServicioTarifa $tarifa): self
     {
@@ -215,6 +220,32 @@ class ServicioProvider
     public function getCottarifas(): ?Collection
     {
         return $this->cottarifas;
+    }
+
+    public function getProvidermedios(): Collection
+    {
+        return $this->providermedios;
+    }
+
+    public function addProvidermedio(ServicioProvidermedio $providermedio): self
+    {
+        $providermedio->setProvider($this);
+
+        $this->providermedios[] = $providermedio;
+
+        return $this;
+    }
+
+    public function removeProvidermedio(ServicioProvidermedio $providermedio): self
+    {
+        if($this->providermedios->removeElement($providermedio)) {
+
+            if($providermedio->getProvider() === $this) {
+                $providermedio->setProvider(null);
+            }
+        }
+
+        return $this;
     }
 
 

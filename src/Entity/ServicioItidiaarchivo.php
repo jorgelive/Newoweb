@@ -28,13 +28,13 @@ class ServicioItidiaarchivo
     private ?int $id = null;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\ServicioItinerariodia", inversedBy="itidiaarchivos")
+     * @ORM\ManyToOne(targetEntity="ServicioItinerariodia", inversedBy="itidiaarchivos")
      * @ORM\JoinColumn(name="itinerariodia_id", referencedColumnName="id", nullable=false)
      */
     protected ?ServicioItinerariodia $itinerariodia;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\MaestroMedio")
+     * @ORM\ManyToOne(targetEntity="MaestroMedio")
      * @ORM\JoinColumn(name="medio_id", referencedColumnName="id", nullable=false)
      */
     private ?MaestroMedio $medio;
