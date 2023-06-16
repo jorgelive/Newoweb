@@ -405,19 +405,30 @@ trait MainArchivoTrait
                 //false si no es imagen
 
                 //preferimos la los valores de exif para determinar la orientación
-                if($exifInfo){
+                if($exifInfo && array_key_exists('Orientation', $exifInfo)
+                    && (array_key_exists('ExifImageLength', $exifInfo) || array_key_exists('ImageLength', $exifInfo))){
                     //cuando el valor de orientación es 6 u 8 la información del ancho y alto aparecen invertidas
-                    if(in_array($exifInfo['Orientation'], [6, 8])){
-                        $aspectRatio = $exifInfo['ExifImageLength'] / $exifInfo['ExifImageWidth'];
+                    if(array_key_exists('ImageLength', $exifInfo)){
+                        if(in_array($exifInfo['Orientation'], [6, 8])){
+                            $aspectRatio = $exifInfo['ImageLength'] / $exifInfo['ImageWidth'];
+                        }else{
+                            $aspectRatio = $exifInfo['ImageWidth'] / $exifInfo['ImageLength'];
+                        }
                     }else{
-                        $aspectRatio = $exifInfo['ExifImageWidth'] / $exifInfo['ExifImageLength'];
+                        //sino se usa ExifImageLength
+                        if(in_array($exifInfo['Orientation'], [6, 8])){
+                            $aspectRatio = $exifInfo['ExifImageLength'] / $exifInfo['ExifImageWidth'];
+                        }else{
+                            $aspectRatio = $exifInfo['ExifImageWidth'] / $exifInfo['ExifImageLength'];
+                        }
                     }
+
                 }elseif($imageInfo) {
                     list($anchoOriginal, $alturaOriginal) = $imageInfo;
                     $aspectRatio = $anchoOriginal / $alturaOriginal;
                 }
 
-                if($aspectRatio >= 1) {
+                if(isset($aspectRatio) && $aspectRatio >= 1) {
                     //si es mas ancho
                     $this->setAncho((int)$this->imageSize['image']['width']);
                     $this->setAltura((int)($this->imageSize['image']['width'] / $aspectRatio));
