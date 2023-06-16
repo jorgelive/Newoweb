@@ -50,7 +50,7 @@ class ServicioProvidermedio
      * @ORM\ManyToOne(targetEntity="ServicioProvider", inversedBy="providermedios")
      * @ORM\JoinColumn(name="provider_id", referencedColumnName="id", nullable=true)
      */
-    protected ServicioProvider $provider;
+    protected ?ServicioProvider $provider;
 
     /**
      * @Gedmo\Timestampable(on="create")
