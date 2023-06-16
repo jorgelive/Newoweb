@@ -54,7 +54,6 @@
                                         {{ alojamiento.tarifaTitulo }}
                                     {% endif %}
                                 </h4>
-                                {% endif %}
                                 {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
                                     <p>Del {{ alojamiento.fechaInicio|date('Y-m-d') }} al {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
                                 {% endif %}
