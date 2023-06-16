@@ -7,56 +7,58 @@
                 {% if tabs.resumen.alojamientos is defined %}
                     {% for index_alojamiento, alojamiento in tabs.resumen.alojamientos %}
                         <li class="col-md-12 col-xs-12 resumen-item resumen-alojamiento">
-
-                            <div class="col-md-12 col-xs-12">
+                            {% if alojamiento.proveedor is defined %}
+                                <div class="col-md-3 col-sm-6 col-xs-12">
+                                    <h4 style="font-weight: 600;">{{alojamiento.proveedor.nombre}}</h4>
+                                    {% if alojamiento.proveedor.providermedios is not empty %}
+                                        <div id="carousel_{{ index_alojamiento }}" class="carousel slide" data-interval="10000" data-ride="carousel">
+                                            <!-- indicadores -->
+                                            <ol class="carousel-indicators">
+                                                {% for index_medio, medio in alojamiento.proveedor.providermedios %}
+                                                    <li data-target="#carousel_{{ index_alojamiento }}" data-slide-to="{{ index_medio }}" {% if loop.first == true  %}class="active"{% endif%}></li>
+                                                {% endfor %}
+                                            </ol>
+                                            <!-- slides -->
+                                            <div class="carousel-inner" role="listbox">
+                                                {% for medio in alojamiento.proveedor.providermedios %}
+                                                    <div class="item{% if loop.first == true  %} active{% endif%}">
+                                                        <a href="{% if medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ medio.webPath|raw }}{% else %}{{ medio.webPath|raw }}{% endif %}"{% if medio.inModal == true %} data-toggle="lightbox" data-gallery="galeria_hotel_{{ index_alojamiento }}"{% else %} target="_blank" {% endif %}>
+                                                            <img src="{% if medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ medio.webThumbPath|raw }}{% else %}{{ medio.webThumbPath|raw }}{% endif %}"
+                                                                 alt="{{ medio.titulo }}"
+                                                                 class="{% if medio.inModal == true %}in-modal{% endif %} {% if medio.aspectRatio is not null and medio.aspectRatio < 1 %}portrait{% elseif medio.aspectRatio >= 1 %}landscape{% endif %}"
+                                                            >
+                                                            <div class="carousel-caption">
+                                                                <p style="overflow-wrap: break-word;" class="small text-center">{{ medio.titulo }}</p>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                            <!-- botones -->
+                                            <a class="left carousel-control" href="#carousel_{{ index_alojamiento }}" role="button" data-slide="prev">
+                                                <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+                                                <span class="sr-only">{{ 'anterior'|trans({}, 'messages')|capitalize}}</span>
+                                            </a>
+                                            <a class="right carousel-control" href="#carousel_{{ index_alojamiento }}" role="button" data-slide="next">
+                                                <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                                                <span class="sr-only">{{ 'siguiente'|trans({}, 'messages')|capitalize}}</span>
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            <div class="col-md-9 col-sm-6 col-xs-12">
                                 <h4 class="titulo-verde">
                                     {{ alojamiento.duracionStr }} de {{ alojamiento.titulo }}:
                                     {% if alojamiento.tarifaTitulo is defined %}
                                         {{ alojamiento.tarifaTitulo }}
                                     {% endif %}
                                 </h4>
-                                <p>Del {{ alojamiento.fechaInicio|date('Y-m-d') }} al {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
+                                {% endif %}
+                                {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                                    <p>Del {{ alojamiento.fechaInicio|date('Y-m-d') }} al {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
+                                {% endif %}
                             </div>
-                            {% if alojamiento.proveedor is defined %}
-                                <div class="col-md-6 col-xs-12">
-                                    <h4 style="font-weight: 600;">{{alojamiento.proveedor.nombre}}</h4>
-                                    {% if alojamiento.proveedor.providermedios is not empty %}
-                                        <div id="carousel_{{ index_alojamiento }}" class="carousel slide" data-interval="10000" data-ride="carousel">
-                                        <!-- indicadores -->
-                                        <ol class="carousel-indicators">
-                                            {% for index_medio, medio in alojamiento.proveedor.providermedios %}
-                                                <li data-target="#carousel_{{ index_alojamiento }}" data-slide-to="{{ index_medio }}" {% if loop.first == true  %}class="active"{% endif%}></li>
-                                            {% endfor %}
-                                        </ol>
-                                        <!-- slides -->
-                                        <div class="carousel-inner" role="listbox">
-                                            {% for medio in alojamiento.proveedor.providermedios %}
-                                                <div class="item{% if loop.first == true  %} active{% endif%}">
-                                                    <a href="{% if medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ medio.webPath|raw }}{% else %}{{ medio.webPath|raw }}{% endif %}"{% if medio.inModal == true %} data-toggle="lightbox" data-gallery="galeria_hotel_{{ index_alojamiento }}"{% else %} target="_blank" {% endif %}>
-                                                        <img src="{% if medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ medio.webThumbPath|raw }}{% else %}{{ medio.webThumbPath|raw }}{% endif %}"
-                                                             alt="{{ medio.titulo }}"
-                                                             class="{% if medio.inModal == true %}in-modal{% endif %} {% if medio.aspectRatio is not null and medio.aspectRatio < 1 %}portrait{% elseif medio.aspectRatio >= 1 %}landscape{% endif %}"
-                                                        >
-                                                        <div class="carousel-caption">
-                                                            <p style="overflow-wrap: break-word;" class="small text-center">{{ medio.titulo }}</p>
-                                                        </div>
-                                                    </a>
-                                                </div>
-                                            {% endfor %}
-                                        </div>
-                                        <!-- botones -->
-                                        <a class="left carousel-control" href="#carousel_{{ index_alojamiento }}" role="button" data-slide="prev">
-                                            <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
-                                            <span class="sr-only">{{ 'anterior'|trans({}, 'messages')|capitalize}}</span>
-                                        </a>
-                                        <a class="right carousel-control" href="#carousel_{{ index_alojamiento }}" role="button" data-slide="next">
-                                            <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
-                                            <span class="sr-only">{{ 'siguiente'|trans({}, 'messages')|capitalize}}</span>
-                                        </a>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
                         </li>
                     {% endfor %}
                 {% endif %}
@@ -65,7 +67,7 @@
                     {% for index_servicio, servicioConTituloItinerario in tabs.resumen.serviciosConTituloItinerario %}
                         <li class="col-md-12 col-xs-12 resumen-item resumen-servicios">
                             {% if servicioConTituloItinerario.fotos is not empty %}
-                                <div class="col-lg-3 col-xs-6">
+                                <div class="col-md-3 col-sm-6 col-xs-12">
                                     <div id="carousel_{{ index_servicio }}" class="carousel slide" data-interval="10000" data-ride="carousel">
                                         <!-- indicadores -->
                                         <ol class="carousel-indicators">
@@ -102,15 +104,17 @@
                                 </div>
                             {% endif %}
                             
-                            <div class="{% if servicioConTituloItinerario.mainPhoto is not empty %}col-lg-3 col-xs-6{% else %}col-md-6 col-xs-12{% endif %}">
+                            <div class="{% if servicioConTituloItinerario.mainPhoto is not empty %}col-md-3 col-sm-6 col-xs-12{% else %}col-md-6 col-sm-6 col-xs-12{% endif %}">
                                 <h4 class="titulo-verde">{{ servicioConTituloItinerario.tituloItinerario }}</h4>
 
                                 {% if servicioConTituloItinerario.fechaInicio is defined %}
-                                    {% if servicioConTituloItinerario.fechaInicio != servicioConTituloItinerario.fechaFin %}
-                                        <p><span style="font-weight: 600;">Fecha Inicio:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
-                                        <p><span style="font-weight: 600;">Fecha Fin:</span> {{ servicioConTituloItinerario.fechaFin|date('Y-m-d') }}</p>
-                                    {% else %}
-                                        <p><span style="font-weight: 600;">Fecha:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
+                                    {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                                        {% if servicioConTituloItinerario.fechaInicio != servicioConTituloItinerario.fechaFin %}
+                                            <p><span style="font-weight: 600;">Fecha Inicio:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
+                                            <p><span style="font-weight: 600;">Fecha Fin:</span> {{ servicioConTituloItinerario.fechaFin|date('Y-m-d') }}</p>
+                                        {% else %}
+                                            <p><span style="font-weight: 600;">Fecha:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
+                                        {% endif %}
                                     {% endif %}
                                     {% if servicioConTituloItinerario.duracionStr is defined %}
                                         <p><span style="font-weight: 600;">Duración:</span> {{ servicioConTituloItinerario.duracionStr }}</p>
