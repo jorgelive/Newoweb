@@ -106,7 +106,7 @@ class CotizacionItinerario
         $primerArchivo = null;
         if ($cotservicio->getItinerario()->getItinerariodias()->count() > 0) {
             foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia):
-                if($cotservicio->getItinerario()->getItinerariodias()->count() === 1){
+                if($cotservicio->getItinerario()->getItinerariodias()->count() > 0){
                     if($dia->getItidiaarchivos()->count() > 0){
                         foreach ($dia->getItidiaarchivos() as $key => $archivo):
 
@@ -139,7 +139,7 @@ class CotizacionItinerario
         $settedPortada = false;
         if ($cotservicio->getItinerario()->getItinerariodias()->count() > 0) {
             foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia):
-                if($cotservicio->getItinerario()->getItinerariodias()->count() === 1){
+                if($cotservicio->getItinerario()->getItinerariodias()->count() > 0){
                     if($dia->getItidiaarchivos()->count() > 0){
                         foreach ($dia->getItidiaarchivos() as $key => $archivo):
 

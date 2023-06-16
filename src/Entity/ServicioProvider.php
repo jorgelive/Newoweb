@@ -58,7 +58,7 @@ class ServicioProvider
 
     /**
      * @ORM\OneToMany(targetEntity="ServicioProvidermedio", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"nombre" = "ASC"})
+     * @ORM\OrderBy({"prioridad" = "ASC"})
      */
     private Collection $providermedios;
 
