@@ -77,6 +77,8 @@ class CotizacionIncluye
 //Agrupo las tarifas incluidas para manejo interno
                                 $tempArrayTarifasIncluyeInterno['nombre'] = $tarifa->getTarifa()->getNombre();
                                 $tempArrayTarifasIncluyeInterno['cantidad'] = (int)($tarifa->getCantidad());
+                                $tempArrayTarifasIncluyeInterno['monto'] = $tarifa->getMonto();
+                                $tempArrayTarifasIncluyeInterno['moneda'] = $tarifa->getMoneda();
                                 if(!empty($tarifa->getTarifa()->getValidezInicio())){
                                     $tempArrayTarifasIncluyeInterno['validezInicio'] = $tarifa->getTarifa()->getValidezInicio();
                                 }

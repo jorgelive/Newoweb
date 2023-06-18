@@ -22,7 +22,7 @@
     <div class="panel panel-default hidden-print">
         <div class="datos-generales">
             <p>File: <span style="font-size: 1.1em; font-weight: 600;">{{ object.cotizacion.file.nombre }} x{{ object.cotizacion.numeropasajeros }} ({{ object.cotizacion.estadocotizacion.nombre }})</span></p>
-            <p>Cotizacion: <span style="font-size: 1.1em; font-weight: 600; color: #1B6129;">{{ object.cotizacion.numerocotizacion }}</span></p>
+            <p>Cotizacion: <span style="font-size: 1.1em; font-weight: 600; color: {{ colores.verde_oscuro }};">{{ object.cotizacion.numerocotizacion }}</span></p>
         </div>
         <ul class="fila servicio">
         <li>
@@ -31,8 +31,8 @@
 
                 <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ object.servicio.nombre }}</div></div>
                 <div class="celda"><div class="titulo">Itinerario</div><div class="contenido">{{ object.itinerario.nombre|length > 30 ? object.itinerario.nombre|slice(0, 30) ~ '...' : object.itinerario.nombre }}</div></div>
-                <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: #1B6129;">{{ object.fechahorainicio|date("H:i") }}</span> <span>{{ object.fechahorainicio|date("Y-m-d") }}</span></div></div>
-                <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: #1B6129;">{{ object.fechahorafin|date("H:i") }}</span> <span>{{ object.fechahorafin|date("Y-m-d") }}</span></div></div>
+                <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: {{ colores.verde_oscuro }};">{{ object.fechahorainicio|date("H:i") }}</span> <span>{{ object.fechahorainicio|date("Y-m-d") }}</span></div></div>
+                <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: {{ colores.verde_oscuro }};">{{ object.fechahorafin|date("H:i") }}</span> <span>{{ object.fechahorafin|date("Y-m-d") }}</span></div></div>
             </div>
             {% if object.cotcomponentes is defined and object.cotcomponentes|length > 0%}
                 <ul class="fila componente">
@@ -42,8 +42,8 @@
                             <div class="celda">
                                 <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ componente.componente.nombre }}</div></div>
                                 <div class="celda"><div class="titulo">#</div><div class="contenido">{{ componente.cantidad }}</div></div>
-                                <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: #1B6129;">{{ componente.fechahorainicio|date("H:i") }}</span> <span>{{ componente.fechahorainicio|date("Y-m-d") }}</span></div></div>
-                                <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: #1B6129;">{{ componente.fechahorafin|date("H:i") }}</span> <span>{{ componente.fechahorafin|date("Y-m-d") }}</span></div></div>
+                                <div class="celda"><div class="titulo">Inicio</div><div class="contenido"><span style="font-weight: bold; color: {{ colores.verde_oscuro }};">{{ componente.fechahorainicio|date("H:i") }}</span> <span>{{ componente.fechahorainicio|date("Y-m-d") }}</span></div></div>
+                                <div class="celda"><div class="titulo">Fin</div><div class="contenido"><span style="font-weight: bold; color: {{ colores.verde_oscuro }};">{{ componente.fechahorafin|date("H:i") }}</span> <span>{{ componente.fechahorafin|date("Y-m-d") }}</span></div></div>
                                 <div class="celda"><div class="titulo">Estado</div><div class="contenido estadocomponente" style="color: {{ componente.estadocotcomponente.color }};">{{ componente.estadocotcomponente.nombre }}</div></div>
 
                                 {% if componente.componente.componenteitems is defined and componente.componente.componenteitems|length > 0%}
@@ -67,7 +67,7 @@
                                             <div class="celda">
                                                 <div class="celda"><div class="titulo">Nombre</div><div class="contenido">{{ tarifa.tarifa.nombre }}</div></div>
                                                 <div class="celda"><div class="titulo">#</div><div class="contenido">{{ tarifa.cantidad }}</div></div>
-                                                <div class="celda"><div class="titulo">Proveedor</div><div class="contenido" style="color: #016c8d;">{% if tarifa.provider is not null %}{{ tarifa.provider.nombre }}{% else %}-{% endif %}</div></div>
+                                                <div class="celda"><div class="titulo">Proveedor</div><div class="contenido" style="color: {{ colores.azul_acero }};">{% if tarifa.provider is not null %}{{ tarifa.provider.nombre }}{% else %}-{% endif %}</div></div>
                                                 <div class="celda"><div class="titulo">Tipo</div><div class="contenido" style="color: {{ tarifa.tarifa.tipotarifa.listacolor }};">{{ tarifa.tarifa.tipotarifa.nombre }}</div></div>
                                             </div>
                                             {% if tarifa.cottarifadetalles is defined and tarifa.cottarifadetalles|length > 0%}

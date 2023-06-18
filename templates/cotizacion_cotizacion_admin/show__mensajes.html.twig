@@ -51,7 +51,7 @@
                                         {% set whatsappText = whatsappText ~ ', ' %}
                                         {% set emailMensaje = emailMensaje ~ ', ' %}
                                     {% endif %}
-                                    {% if componente.tipoComponenteId != 4 %} {# no es hotel #}
+                                    {% if componente.tipoComponenteId != constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_ALOJAMIENTO') %} {# no es hotel #}
                                         <span style="font-weight: bold;">{{ tarifa.tarifaNombre }}</span>
                                         {% set whatsappText = whatsappText ~ ' *' ~ tarifa.tarifaNombre ~ '*' %}
                                         {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">' ~ tarifa.tarifaNombre ~ '</span>' %}
@@ -71,8 +71,10 @@
                                         {% set whatsappText = whatsappText ~ ' (' ~ tarifa.tipoTarifaNombre ~ ')' %}
                                         {% set emailMensaje = emailMensaje ~ ' (' ~ tarifa.tipoTarifaNombre ~ ')' %}
                                     {% endif %}
+                                    <span style="font-weight: 600; color: {{ colores.naranja }};">({{ tarifa.moneda.simbolo }} {{ tarifa.monto }})</span>
                                 {% endfor %}
                                 <span style="color: {{ componente.componenteEstadoColor }};">{{ componente.componenteEstadoNombre }}</span>
+
 
                             </p>
                             {% set whatsappText = whatsappText ~ '\n' %}

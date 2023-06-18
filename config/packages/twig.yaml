@@ -2,6 +2,14 @@ twig:
     default_path: '%kernel.project_dir%/templates'
     globals:
         facturacion_igv_porcentaje: "%facturacion_igv_porcentaje%"
+        colores:
+            lila: "#954e8d"
+            azul_acero: "#016c8d"
+            verde_oscuro: "#1B6129"
+            verde_claro: "#58954e"
+            azul_oscuro: "#003d72"
+            naranja: "#F68A39"
+            rojo_oscuro: "#710000"
     form_themes:
         - '@SonataForm/Form/datepicker.html.twig'
 

@@ -33,10 +33,10 @@
                     <tbody>
                     {%  for resumenitem in tabs.resumenDeClasificado %}
                         <tr>
-                            <td class="text-right" style="font-weight: bold; color: #1B6129;">
+                            <td class="text-right" style="font-weight: bold; color: {{ colores.verde_oscuro }};">
                                 {{ resumenitem.gananciasoles }}
                             </td>
-                            <td class="text-right" style="font-weight: bold; color: #1B6129;">
+                            <td class="text-right" style="font-weight: bold; color: {{ colores.verde_oscuro }};">
                                 {{ resumenitem.gananciadolares }}
                             </td>
                             <td style="color: {{ resumenitem.listacolor }}">
@@ -120,7 +120,7 @@
                         <tbody>
                         {%  for tarifadetalle in rango.tarifas %}
                         <tr>
-                            <td style="font-weight: bold;  color: #1B6129;">
+                            <td style="font-weight: bold;  color: {{ colores.verde_oscuro }};">
                                 {% if tarifadetalle.cantidadComponente > 1 %}
                                     {{ tarifadetalle.cantidadComponente }} x&nbsp;
                                 {% endif %}

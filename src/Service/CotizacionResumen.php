@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\ServicioTipocomponente;
 use App\Entity\ServicioTipotarifa;
+use App\Entity\ServicioTipotarifadetalle;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -98,6 +99,15 @@ class CotizacionResumen
                                     $datos['alojamientos'][$tarifaId]['fechaInicio'] = $componente->getFechaInicio();
                                     $datos['alojamientos'][$tarifaId]['fechaFin'] = $componente->getFechaFin();
 
+                                    $datos['alojamientos'][$tarifaId]['tipoTarifa'] = $tarifa->getTipotarifa();
+                                    if($tarifa->getCottarifadetalles()->count() > 0){
+                                        foreach ($tarifa->getCottarifadetalles() as $detalle):
+                                            if($detalle->getTipotarifaDetalle()->getId() == ServicioTipotarifadetalle::DB_VALOR_DETALLES){
+                                                $datos['alojamientos'][$tarifaId]['detalles'][] = $detalle->getDetalle();
+                                            }
+                                        endforeach;
+                                    }
+
                                     $duracionDiff = (int)date_diff($datos['alojamientos'][$tarifaId]['fechaInicio'], $datos['alojamientos'][$tarifaId]['fechaFin'])->format('%d');
                                     if($duracionDiff == 1){
                                         $diferenciaUnidadStr = $this->translator->trans('noche', [], 'messages');
@@ -152,7 +162,6 @@ class CotizacionResumen
                                             $diferenciaUnidadStr = $this->translator->trans('horas', [], 'messages');
                                         }
                                         $datos['serviciosConTituloItinerario'][$servicioId]['duracionStr'] = $duracionDiff . ' ' . $diferenciaUnidadStr;
-
                                     }
                                 } else{
                                     $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();

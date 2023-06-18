@@ -14,7 +14,7 @@
                                     {{ 'inicio'|trans({},'messages')|capitalize }}: <span style="font-weight: bold">{{ componente.fechahorainicio|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
                                 </li>
                                 <li>
-                                    <i class="fa-li fas fa-calendar-check" style="color: #1B6129;"></i>
+                                    <i class="fa-li fas fa-calendar-check" style="color: {{ colores.verde_oscuro }};"></i>
                                     {{ 'fin'|trans({},'messages')|capitalize }}: <span style="font-weight: bold">{{ componente.fechahorafin|date('H:i') }}</span> {{ componente.fechahorainicio|date('Y/m/d') }}
                                 </li>
                             </ul>

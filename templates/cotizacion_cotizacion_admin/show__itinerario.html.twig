@@ -22,9 +22,9 @@
                     </h5>
                     {% for item in itinerario.fechaitems %}
                         {% if item.titulo is defined %}
-                            <h5 style="font-weight: bold; color: #016c8d;">{{ item.titulo }} - {{ item.tituloDia }}</h5>
+                            <h5 style="font-weight: bold; color: {{ colores.azul_acero }};">{{ item.titulo }} - {{ item.tituloDia }}</h5>
                         {% else%}
-                            <h5 style="font-weight: bold; color: #016c8d;">{{ item.tituloDia }}</h5>
+                            <h5 style="font-weight: bold; color: {{ colores.azul_acero }};">{{ item.tituloDia }}</h5>
                         {% endif%}
                         <div class="ck-content itinerariodescripcion">{{ item.descripcion|raw }}</div>
                         {% if item.archivos is defined and item.archivos|length > 0 %}

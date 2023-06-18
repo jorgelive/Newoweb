@@ -16,7 +16,7 @@
                                                 {% if componente.tarifas is defined %}
                                                     <ul style="list-style: none; padding-left: 20px;">
                                                         {% for tarifa in componente.tarifas %}
-                                                            <li>{{ tarifa.nombre }} {% if tarifa.cantidad > 1 %} <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span> {% endif %}
+                                                            <li>{{ tarifa.nombre }}{% if tarifa.cantidad > 1 %} <span style="font-weight: 600;">x {{ tarifa.cantidad }}</span>{% endif %} <span style="color: {{ colores.naranja }}; font-weight: 600;"> {{ tarifa.moneda.simbolo }} {{ tarifa.monto }}</span>
                                                                 {% if tarifa.detalles is defined %}
                                                                     <ul style="list-style: none; padding-left: 20px;">
                                                                         {% for detalle in tarifa.detalles %}

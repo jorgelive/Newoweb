@@ -21,11 +21,11 @@
             </th>
         </tr>
         {% for alerta in alertas %}
-            <tr style="border-bottom: 1px solid #016c8d;">
+            <tr style="border-bottom: 1px solid {{ colores.azul_acero }};">
                  {% if alerta.idEstado == constant('App\\Entity\\CotizacionEstadocotcomponente::DB_VALOR_PENDIENTE') %}
-                     {% set color = 'darkred' %}
+                     {% set color = colores.rojo_oscuro %}
                  {% else %}
-                     {% set color = 'darkorange' %}
+                     {% set color = colores.naranja %}
                  {% endif %}
                 <td style="padding: 0 4px 0 4px;">
                     <span style="white-space: nowrap; font-size: 0.8em">{{ alerta.fechaHoraInicio|date("Y-m-d H:i") }}</span><br />
@@ -45,7 +45,7 @@
         {% endfor %}
     </table>
 {% else %}
-    <p style="font-size: 1.3em; color: #1B6129;">Los servicios próximos se encuentran confirmados y reconfirmados.</p>
+    <p style="font-size: 1.3em; color: {{ colores.verde_oscuro }};">Los servicios próximos se encuentran confirmados y reconfirmados.</p>
 {% endif %}
 
 <h3>Ingresos y salidas de apartamentos: </h3>
@@ -96,7 +96,7 @@
     {% endfor %}
 
 {% else %}
-    <p style="font-size: 1.3em; color: indigo;">No hay reservas ingresando o saliendo para el dia de hoy ni mañana.</p>
+    <p style="font-size: 1.3em; color: {{ colores.lila }};">No hay reservas ingresando o saliendo para el dia de hoy ni mañana.</p>
 {% endif %}
 
 <h3>Toures y excursiones:</h3>
@@ -147,6 +147,6 @@
         {% endif %}
     {% endfor %}
 {% else %}
-    <p style="font-size: 1.3em; color: indigo;">No hay servicios para el dia de hoy ni mañana.</p>
+    <p style="font-size: 1.3em; color: {{ colores.lila }};">No hay servicios para el dia de hoy ni mañana.</p>
 {% endif %}
 

@@ -7,6 +7,29 @@
                 {% if tabs.resumen.alojamientos is defined %}
                     {% for index_alojamiento, alojamiento in tabs.resumen.alojamientos %}
                         <li class="col-md-12 col-xs-12 resumen-item resumen-alojamiento">
+
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <h4 class="titulo-verde">
+                                    {% if alojamiento.tipoTarifa.id != constant('App\\Entity\\ServicioTipotarifa::DB_VALOR_NORMAL') %}
+                                        ({{ alojamiento.tipoTarifa.nombre }})
+                                    {% endif %}
+                                    {{ alojamiento.duracionStr }} de {{ alojamiento.titulo }}:
+                                    {% if alojamiento.tarifaTitulo is defined %}
+                                        {{ alojamiento.tarifaTitulo }}
+                                    {% endif %}
+                                </h4>
+                                {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                                    <p>Del {{ alojamiento.fechaInicio|date('Y-m-d') }} al {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
+                                {% endif %}
+                                {% if alojamiento.detalles is defined %}
+                                    <ul>
+                                        {% for detalle in alojamiento.detalles %}
+                                            <li class="margin-top-10">{{ detalle }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </div>
+
                             {% if alojamiento.proveedor is defined %}
                                 <div class="col-md-3 col-sm-6 col-xs-12">
                                     <h4 style="font-weight: 600;">{{alojamiento.proveedor.nombre}}</h4>
@@ -47,17 +70,7 @@
                                     {% endif %}
                                 </div>
                             {% endif %}
-                            <div class="col-md-9 col-sm-6 col-xs-12">
-                                <h4 class="titulo-verde">
-                                    {{ alojamiento.duracionStr }} de {{ alojamiento.titulo }}:
-                                    {% if alojamiento.tarifaTitulo is defined %}
-                                        {{ alojamiento.tarifaTitulo }}
-                                    {% endif %}
-                                </h4>
-                                {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
-                                    <p>Del {{ alojamiento.fechaInicio|date('Y-m-d') }} al {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
-                                {% endif %}
-                            </div>
+
                         </li>
                     {% endfor %}
                 {% endif %}
@@ -65,9 +78,29 @@
                 {% if tabs.resumen.serviciosConTituloItinerario is defined %}
                     {% for index_servicio, servicioConTituloItinerario in tabs.resumen.serviciosConTituloItinerario %}
                         <li class="col-md-12 col-xs-12 resumen-item resumen-servicios">
+
+                            
+                            <div class="{% if servicioConTituloItinerario.mainPhoto is not empty %}col-md-3 col-sm-6 col-xs-12{% else %}col-md-6 col-sm-6 col-xs-12{% endif %}">
+                                <h4 class="titulo-verde">{{ servicioConTituloItinerario.tituloItinerario }}</h4>
+
+                                {% if servicioConTituloItinerario.fechaInicio is defined %}
+                                    {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                                        {% if servicioConTituloItinerario.fechaInicio != servicioConTituloItinerario.fechaFin %}
+                                            <p><span style="font-weight: 600;">Fecha Inicio:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
+                                            <p><span style="font-weight: 600;">Fecha Fin:</span> {{ servicioConTituloItinerario.fechaFin|date('Y-m-d') }}</p>
+                                        {% else %}
+                                            <p><span style="font-weight: 600;">Fecha:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
+                                        {% endif %}
+                                    {% endif %}
+                                    {% if servicioConTituloItinerario.duracionStr is defined %}
+                                        <p><span style="font-weight: 600;">Duración:</span> {{ servicioConTituloItinerario.duracionStr }}</p>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+
                             {% if servicioConTituloItinerario.fotos is not empty %}
                                 <div class="col-md-3 col-sm-6 col-xs-12">
-                                    <div id="carousel_{{ index_servicio }}" class="carousel slide" data-interval="10000" data-ride="carousel">
+                                    <div id="carousel_{{ index_servicio }}" class="carousel slide margin-top-10" data-interval="10000" data-ride="carousel">
                                         <!-- indicadores -->
                                         <ol class="carousel-indicators">
                                             {% for index_foto, foto in servicioConTituloItinerario.fotos %}
@@ -102,28 +135,11 @@
                                     </div>
                                 </div>
                             {% endif %}
-                            
-                            <div class="{% if servicioConTituloItinerario.mainPhoto is not empty %}col-md-3 col-sm-6 col-xs-12{% else %}col-md-6 col-sm-6 col-xs-12{% endif %}">
-                                <h4 class="titulo-verde">{{ servicioConTituloItinerario.tituloItinerario }}</h4>
 
-                                {% if servicioConTituloItinerario.fechaInicio is defined %}
-                                    {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
-                                        {% if servicioConTituloItinerario.fechaInicio != servicioConTituloItinerario.fechaFin %}
-                                            <p><span style="font-weight: 600;">Fecha Inicio:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
-                                            <p><span style="font-weight: 600;">Fecha Fin:</span> {{ servicioConTituloItinerario.fechaFin|date('Y-m-d') }}</p>
-                                        {% else %}
-                                            <p><span style="font-weight: 600;">Fecha:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
-                                        {% endif %}
-                                    {% endif %}
-                                    {% if servicioConTituloItinerario.duracionStr is defined %}
-                                        <p><span style="font-weight: 600;">Duración:</span> {{ servicioConTituloItinerario.duracionStr }}</p>
-                                    {% endif %}
-                                {% endif %}
-                            </div>
                             <div class="col-md-6 col-xs-12">
                                 {% apply spaceless %}
                                     {% for tipoTarifa in servicioConTituloItinerario.tipoTarifas %}
-                                        <p class="componente-incluye">
+                                        <p class="componente-incluye margin-top-10">
                                             <span style="font-weight: 600;">{{ tipoTarifa.tituloTipotarifa }}:</span>
                                             {% for componente in tipoTarifa.componentes %}
                                                 {{ componente.titulo }}{% if loop.last== false  %}, {% endif%}

@@ -23,7 +23,7 @@
     <div class="panel panel-default hidden-print">
         <div class="datos-generales">
             <p>File: <span style="font-size: 1.1em; font-weight: 600;">{{ object.cotservicio.cotizacion.file.nombre }} x{{ object.cotservicio.cotizacion.numeropasajeros }} ({{ object.cotservicio.cotizacion.estadocotizacion.nombre }})</span></p>
-            <p>Cotizacion: <span style="font-size: 1.1em; font-weight: 600; color: #1B6129;">{{ object.cotservicio.cotizacion.numerocotizacion }}</span></p>
+            <p>Cotizacion: <span style="font-size: 1.1em; font-weight: 600; color: {{ colores.verde_oscuro }};">{{ object.cotservicio.cotizacion.numerocotizacion }}</span></p>
         </div>
         <ul class="fila servicio">
             <li>

@@ -96,6 +96,9 @@ class MensajeProveedor{
                                     }else{
                                         $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tarifas'][$tarifa->getId()]['tarifaNombre'] = $tarifa->getTarifa()->getNombre();
                                     }
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tarifas'][$tarifa->getId()]['monto'] = $tarifa->getMonto();
+                                    $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tarifas'][$tarifa->getId()]['moneda'] = $tarifa->getMoneda();
+
 
                                     if($tarifa->getTarifa()->isProrrateado() === false){
                                         $tempProveedores[$providerId]['componentes'][$indiceComponentesProveedor]['tarifas'][$tarifa->getId()]['tarifaCantidad'] = (int)($tarifa->getCantidad());
@@ -139,16 +142,11 @@ class MensajeProveedor{
                                         if(!empty($tarifa->getProvider()->getEmail())){
                                             $tempHoteles[$tarifa->getId()]['email'] = $tarifa->getProvider()->getEmail();
                                         }
-
                                     }else{
                                         $tempHoteles[$tarifa->getId()]['nombre'] = 'No Ingresado';
                                         $tempHoteles[$tarifa->getId()]['nombreMostrar'] = 'No Ingresado';
                                     }
-
-
                                 }
-
-
                             endforeach;
                         }
                     endforeach;
@@ -195,9 +193,7 @@ class MensajeProveedor{
             $tempProveedores[] = $tempProveedores[-1];
             unset($tempProveedores[-1]);
         }
-
         return $tempProveedores;
-
     }
 
 }

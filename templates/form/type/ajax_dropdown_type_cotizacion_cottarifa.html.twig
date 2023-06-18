@@ -2,7 +2,7 @@
 
 {# change the default selection format #}
 {% block sonata_type_model_autocomplete_selection_format %}
-    '<span style="color: #1B6129;">'+item.label+'</span>'
+    '<span style="color: {{ colores.verde_oscuro }};">'+item.label+'</span>'
 {% endblock %}
 
 {% block sonata_type_model_autocomplete_dropdown_item_format %}
