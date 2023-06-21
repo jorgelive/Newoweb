@@ -6,7 +6,7 @@
             <ul class="list-unstyled">
                 {% if tabs.resumen.alojamientos is defined %}
                     {% for index_alojamiento, alojamiento in tabs.resumen.alojamientos %}
-                        <li class="col-md-12 col-xs-12 resumen-item resumen-alojamiento">
+                        <li class="col-md-12 col-xs-12 resumen-item row-line resumen-alojamiento">
 
                             <div class="col-md-6 col-sm-6 col-xs-12">
                                 <h4 class="titulo-verde">
@@ -77,10 +77,9 @@
 
                 {% if tabs.resumen.serviciosConTituloItinerario is defined %}
                     {% for index_servicio, servicioConTituloItinerario in tabs.resumen.serviciosConTituloItinerario %}
-                        <li class="col-md-12 col-xs-12 resumen-item resumen-servicios">
+                        <li class="col-md-12 col-xs-12 resumen-item row-line resumen-servicios">
 
-                            
-                            <div class="{% if servicioConTituloItinerario.mainPhoto is not empty %}col-md-3 col-sm-6 col-xs-12{% else %}col-md-6 col-sm-6 col-xs-12{% endif %}">
+                            <div class="{% if servicioConTituloItinerario.fotos is not empty %}col-md-3 col-sm-6 col-xs-12{% else %}col-md-6 col-sm-6 col-xs-12{% endif %}">
                                 <h4 class="titulo-verde">{{ servicioConTituloItinerario.tituloItinerario }}</h4>
 
                                 {% if servicioConTituloItinerario.fechaInicio is defined %}
@@ -153,7 +152,7 @@
                 {% endif %}
 
                 {% if tabs.resumen.serviciosSinTituloItinerario is defined %}
-                    <li class="col-md-12 col-xs-12 resumen-item resumen-otros-servicios">
+                    <li class="col-md-12 col-xs-12 resumen-item row-line resumen-otros-servicios">
                         <div class="col-md-6 col-xs-12">
                             <h4 class="titulo-verde">{{ 'otros_servicios'|trans({}, 'messages')|capitalize}}</h4>
                         </div>

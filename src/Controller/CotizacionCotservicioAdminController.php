@@ -15,14 +15,15 @@ use App\Service\IcalGenerator;
 class CotizacionCotservicioAdminController extends CRUDAdminController
 {
 
+
+    private IcalGenerator $icalGenerator;
+
     private EntityManagerInterface $entityManager;
 
-    public static function getSubscribedServices(): array
+    function __construct(IcalGenerator $icalGenerator, EntityManagerInterface $entityManager)
     {
-        return [
-                'App\Service\IcalGenerator' => IcalGenerator::class,
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
-            ] + parent::getSubscribedServices();
+        $this->icalGenerator = $icalGenerator;
+        $this->entityManager = $entityManager;
     }
 
     public function clonarAction(Request $request): Response
@@ -30,7 +31,6 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
         $object = $this->assertObjectExists($request, true);
 
         $this->admin->checkAccess('create', $object);
-        $this->entityManager = $this->container->get('doctrine.orm.default_entity_manager');
 
         if(!empty($request->query->get('cotizacion_id'))){
 
@@ -97,7 +97,6 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
         //\assert(null !== $object);
 
         $estado = 3; //3 Aceptado
-        $this->entityManager = $this->container->get('doctrine.orm.default_entity_manager');
 
         $qb = $this->entityManager->createQueryBuilder()
             ->select('cs')
@@ -111,7 +110,7 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
 
         $cotServicios = $qb->getQuery()->getResult();
 
-        $calendar = $this->container->get('App\Service\IcalGenerator')->setTimezone('America/Lima')->setProdid('-//OpenPeru//Cotservicio Calendar //ES')->createCalendar();
+        $calendar = $this->icalGenerator->setTimezone('America/Lima')->setProdid('-//OpenPeru//Cotservicio Calendar //ES')->createCalendar();
 
         foreach($cotServicios as $cotServicio){
 
@@ -121,7 +120,7 @@ class CotizacionCotservicioAdminController extends CRUDAdminController
                 $decripcion[] = $cotComponente->getEstadocotcomponente()->getNombre() . ' / ' . $cotComponente->getFechahorainicio()->format('h:i d-m-Y') . ' ' . $cotComponente->getComponente()->getNombre();
             }
 
-            $tempEvent = $this->container->get('App\Service\IcalGenerator')
+            $tempEvent = $this->icalGenerator
                 ->createCalendarEvent()
                 ->setStart($cotServicio->getFechahorainicio())
                 ->setEnd($cotServicio->getFechahorafin())

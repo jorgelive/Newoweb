@@ -11,18 +11,16 @@ use Symfony\Component\HttpFoundation\Response;
 class ServicioTarifaAdminController extends CRUDAdminController
 {
 
-    public static function getSubscribedServices(): array
+    private EntityManagerInterface $entityManager;
+
+    function __construct(EntityManagerInterface $entityManager)
     {
-        return [
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
-            ] + parent::getSubscribedServices();
+        $this->entityManager = $entityManager;
     }
 
     public function clonarAction(Request $request): Response
     {
         $object = $this->assertObjectExists($request, true);
-
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
 
         $this->admin->checkAccess('create', $object);
 
@@ -53,16 +51,14 @@ class ServicioTarifaAdminController extends CRUDAdminController
 
         $this->admin->checkAccess('edit', $object);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $tarifaDL = $em->getRepository('App\Entity\Serviciotarifa')->find($id);
+        $tarifaDL = $this->entityManager->getRepository('App\Entity\Serviciotarifa')->find($id);
         $tarifaDL->setLocale($request->getDefaultLocale());
-        $em->refresh($tarifaDL);
+        $this->entityManager->refresh($tarifaDL);
 
         $tituloDL = $tarifaDL->getTitulo();
 
         $tarifaDL->setLocale($request->getLocale());
-        $em->refresh($tarifaDL);
+        $this->entityManager->refresh($tarifaDL);
 
         $translate = new TranslateClient([
             'key' => $this->getParameter('google_translate_key')

@@ -57,8 +57,6 @@ class CotizacionResumen
 
             foreach($cotizacion->getCotservicios() as $servicio):
 
-                $mainPhoto = $this->cotizacionItinerario->getMainPhoto($servicio);
-
                 $fotos = $this->cotizacionItinerario->getFotos($servicio);
 
                 if($servicio->getCotcomponentes()->count() > 0){
@@ -118,7 +116,6 @@ class CotizacionResumen
 
                                 } elseif(
                                     //servicios con foto: se toma en cuenta la fecha del servicio
-                                    //!empty($mainPhoto) &&
                                     !empty($this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio))
                                     && $componente->getComponente()->getComponenteitems()->count() > 0
                                 ){
@@ -134,7 +131,6 @@ class CotizacionResumen
                                     }
 
                                     $datos['serviciosConTituloItinerario'][$servicioId]['tituloItinerario'] = $this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio);
-                                    $datos['serviciosConTituloItinerario'][$servicioId]['mainPhoto'] = $mainPhoto;
                                     $datos['serviciosConTituloItinerario'][$servicioId]['fotos'] = $fotos;
 
                                     $datos['serviciosConTituloItinerario'][$servicioId]['fechahoraInicio'] = $servicio->getFechahoraInicio();

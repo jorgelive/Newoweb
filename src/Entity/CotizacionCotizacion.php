@@ -29,7 +29,7 @@ class CotizacionCotizacion
     /**
      * @ORM\OneToMany(targetEntity="CotizacionCotizacionTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
-    protected ?Collection $translations;
+    protected Collection $translations;
 
     /**
      * @ORM\Column(type="string", length=20)
@@ -77,13 +77,13 @@ class CotizacionCotizacion
      * @ORM\ManyToOne(targetEntity="CotizacionFile", inversedBy="cotizaciones")
      * @ORM\JoinColumn(name="file_id", referencedColumnName="id", nullable=false)
      */
-    protected ?CotizacionFile $file;
+    private ?CotizacionFile $file;
 
     /**
      * @ORM\ManyToOne(targetEntity="CotizacionCotpolitica", inversedBy="cotizaciones")
      * @ORM\JoinColumn(name="cotpolitica_id", referencedColumnName="id", nullable=false)
      */
-    protected ?CotizacionCotpolitica $cotpolitica;
+    private ?CotizacionCotpolitica $cotpolitica;
 
     /**
      * @ORM\ManyToMany(targetEntity="CotizacionCotnota", inversedBy="cotizaciones")
@@ -92,13 +92,18 @@ class CotizacionCotizacion
      *      inverseJoinColumns={@ORM\JoinColumn(name="cotnota_id", referencedColumnName="id")}
      * )
      */
-    protected ?Collection $cotnotas;
+    private Collection $cotnotas;
 
     /**
      * @ORM\OneToMany(targetEntity="CotizacionCotservicio", mappedBy="cotizacion", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"fechahorainicio" = "ASC"})
      */
     private Collection $cotservicios;
+
+    /**
+     * Almacen de imagenes
+     */
+    private Collection $portadafotos;
 
     /**
      * @ORM\Column(type="date")
@@ -136,6 +141,7 @@ class CotizacionCotizacion
         $this->cotservicios = new ArrayCollection();
         $this->cotnotas = new ArrayCollection();
         $this->translations = new ArrayCollection();
+        $this->portadafotos = new ArrayCollection();
     }
 
     public function __clone() {
@@ -310,6 +316,26 @@ class CotizacionCotizacion
     public function getCotservicios(): Collection
     {
         return $this->cotservicios;
+    }
+
+    public function addPortadafoto(MaestroMedio $portadafoto): self
+    {
+        //doctrine no ejecuta el constructor
+        if(!isset($this->portadafotos)){
+            $this->portadafotos = new ArrayCollection();
+        }
+        $this->portadafotos[] = $portadafoto;
+
+        return $this;
+    }
+
+    public function getPortadafotos(): Collection
+    {
+        //doctrine no ejecuta el constructor
+        if(!isset($this->portadafotos)){
+            $this->portadafotos = new ArrayCollection();
+        }
+        return $this->portadafotos;
     }
 
     public function setComision(?string $comision): self

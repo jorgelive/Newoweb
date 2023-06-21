@@ -2,8 +2,9 @@
 namespace App\EventListener;
 
 use App\Entity\CotizacionCotizacion;
+use App\Service\CotizacionItinerario;
 use App\Service\CotizacionProceso;
-use Doctrine\ORM\Event\LifecycleEventArgs;
+use Doctrine\ORM\Event\PostLoadEventArgs;
 use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
 use Doctrine\ORM\Event\PrePersistEventArgs;
@@ -16,12 +17,17 @@ class CotizacionCotizacionDoctrineEventListener
 
     private RequestStack $requestStack;
 
-    public function __construct(CotizacionProceso $cotizacionProceso, RequestStack $requestStack)
+    private CotizacionItinerario $cotizacionItinerario;
+
+
+
+    public function __construct(CotizacionProceso $cotizacionProceso, RequestStack $requestStack, CotizacionItinerario $cotizacionItinerario)
     {
         $this->cotizacionProceso = $cotizacionProceso;
 
         $this->requestStack = $requestStack;
 
+        $this->cotizacionItinerario = $cotizacionItinerario;
     }
 
     public function prePersist(PrePersistEventArgs $args)
@@ -36,7 +42,7 @@ class CotizacionCotizacionDoctrineEventListener
     {
         $entity = $args->getObject();
         if($entity instanceof CotizacionCotizacion){
-            //De haber error los mensajes iran al flashblag
+            //De haber error los mensajes iran al flashbag
             $this->cotizacionProceso->procesar($entity->getId());
         }
     }
@@ -48,6 +54,19 @@ class CotizacionCotizacionDoctrineEventListener
         if($entity instanceof CotizacionCotizacion){
             //De haber error los mensajes iran al flashblag
             $this->cotizacionProceso->procesar($entity->getId());
+        }
+    }
+
+    public function postLoad(PostLoadEventArgs $args)
+    {
+        $entity = $args->getObject();
+        if($entity instanceof CotizacionCotizacion){
+            foreach ($entity->getCotServicios() as $servicio) :
+                $mainFoto = $this->cotizacionItinerario->getMainPhoto($servicio);
+                if(!empty($mainFoto)){
+                    $entity->addPortadafoto($mainFoto);
+                }
+            endforeach;
         }
     }
 }

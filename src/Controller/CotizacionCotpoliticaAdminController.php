@@ -10,11 +10,11 @@ use Google\Cloud\Translate\V2\TranslateClient;
 class CotizacionCotpoliticaAdminController extends CRUDAdminController
 {
 
-    public static function getSubscribedServices(): array
+    private EntityManagerInterface $entityManager;
+
+    function __construct(EntityManagerInterface $entityManager)
     {
-        return [
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
-            ] + parent::getSubscribedServices();
+        $this->entityManager = $entityManager;
     }
 
     public function traducirAction(Request $request)
@@ -34,16 +34,14 @@ class CotizacionCotpoliticaAdminController extends CRUDAdminController
 
         $this->admin->checkAccess('edit', $object);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $cotpoliticaDL = $em->getRepository('App\Entity\Cotizacioncotpolitica')->find($id);
+        $cotpoliticaDL = $this->entityManager->getRepository('App\Entity\Cotizacioncotpolitica')->find($id);
         $cotpoliticaDL->setLocale($request->getDefaultLocale());
-        $em->refresh($cotpoliticaDL);
+        $this->entityManager->refresh($cotpoliticaDL);
 
         $contenidoDL = $cotpoliticaDL->getContenido();
 
         $cotpoliticaDL->setLocale($request->getLocale());
-        $em->refresh($cotpoliticaDL);
+        $this->entityManager->refresh($cotpoliticaDL);
 
         $translate = new TranslateClient([
             'key' => $this->getParameter('google_translate_key')

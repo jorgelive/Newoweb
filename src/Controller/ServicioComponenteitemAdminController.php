@@ -10,11 +10,11 @@ use Google\Cloud\Translate\V2\TranslateClient;
 class ServicioComponenteitemAdminController extends CRUDAdminController
 {
 
-    public static function getSubscribedServices(): array
+    private EntityManagerInterface $entityManager;
+
+    function __construct(EntityManagerInterface $entityManager)
     {
-        return [
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
-            ] + parent::getSubscribedServices();
+        $this->entityManager = $entityManager;
     }
 
     public function traducirAction(Request $request)
@@ -34,16 +34,14 @@ class ServicioComponenteitemAdminController extends CRUDAdminController
 
         $this->admin->checkAccess('edit', $object);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $componenteitemDL = $em->getRepository('App\Entity\Serviciocomponenteitem')->find($id);
+        $componenteitemDL = $this->entityManager->getRepository('App\Entity\Serviciocomponenteitem')->find($id);
         $componenteitemDL->setLocale($request->getDefaultLocale());
-        $em->refresh($componenteitemDL);
+        $this->entityManager->refresh($componenteitemDL);
 
         $tituloDL = $componenteitemDL->getTitulo();
 
         $componenteitemDL->setLocale($request->getLocale());
-        $em->refresh($componenteitemDL);
+        $this->entityManager->refresh($componenteitemDL);
 
         $translate = new TranslateClient([
             'key' => $this->getParameter('google_translate_key')

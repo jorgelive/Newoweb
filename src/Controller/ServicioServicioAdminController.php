@@ -10,18 +10,16 @@ use Symfony\Component\HttpFoundation\Response;
 class ServicioServicioAdminController extends CRUDAdminController
 {
 
-    public static function getSubscribedServices(): array
+    private EntityManagerInterface $entityManager;
+
+    function __construct(EntityManagerInterface $entityManager)
     {
-        return [
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
-            ] + parent::getSubscribedServices();
+        $this->entityManager = $entityManager;
     }
 
     public function clonarAction(Request $request): Response
     {
         $object = $this->assertObjectExists($request, true);
-
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
 
         $this->admin->checkAccess('create', $object);
 

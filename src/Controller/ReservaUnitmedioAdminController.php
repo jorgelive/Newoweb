@@ -12,12 +12,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ReservaUnitmedioAdminController extends CRUDAdminController
 {
+    private EntityManagerInterface $entityManager;
 
-    public static function getSubscribedServices(): array
+    function __construct(EntityManagerInterface $entityManager)
     {
-        return [
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
-            ] + parent::getSubscribedServices();
+        $this->entityManager = $entityManager;
     }
 
     public function traducirAction(Request $request): Response
@@ -36,16 +35,14 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
 
         $this->admin->checkAccess('edit', $object);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $unitmedioDL = $em->getRepository('App\Entity\ReservaUnitmedio')->find($id);
+        $unitmedioDL = $this->entityManager->getRepository('App\Entity\ReservaUnitmedio')->find($id);
         $unitmedioDL->setLocale($request->getDefaultLocale());
-        $em->refresh($unitmedioDL);
+        $this->entityManager->refresh($unitmedioDL);
 
         $tituloDL = $unitmedioDL->getTitulo();
 
         $unitmedioDL->setLocale($request->getLocale());
-        $em->refresh($unitmedioDL);
+        $this->entityManager->refresh($unitmedioDL);
 
         $translate = new TranslateClient([
             'key' => $this->getParameter('google_translate_key')
@@ -86,10 +83,6 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
                 'objectId' => null
                 //'elements' => $fields,
             ]);
-
-
-
-
     }
 
     public function ajaxcrearAction(Request $request): Response
@@ -123,12 +116,10 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
 
         // tell Doctrine you want to (eventually) save the Product (no queries yet)
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $em->persist($unitMedio);
+        $this->entityManager->persist($unitMedio);
 
         // actually executes the queries (i.e. the INSERT query)
-        $em->flush();
+        $this->entityManager->flush();
 
         $thumbRaw = file_get_contents($unitMedio->getInternalThumbPath());
         if($thumbRaw == false){

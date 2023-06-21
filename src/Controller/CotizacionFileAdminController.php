@@ -6,6 +6,7 @@ use App\Entity\MaestroPais;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use App\Service\MainArchivoexcel;
@@ -15,14 +16,29 @@ use App\Service\MainVariableproceso;
 class CotizacionFileAdminController extends CRUDAdminController
 {
 
-    public static function getSubscribedServices(): array
+    private EntityManagerInterface $entityManager;
+
+    private MainVariableproceso $variableproceso;
+
+    private MainArchivoexcel $archivoexcel;
+
+    private MainArchivozip $archivozip;
+
+    function __construct(
+        EntityManagerInterface $entityManager,
+        MainVariableproceso $variableproceso,
+        MainArchivoexcel $archivoexcel,
+        MainArchivozip $archivozip
+    )
     {
-        return [
-                'App\Service\MainVariableproceso' => MainVariableproceso::class,
-                'App\Service\MainArchivoexcel' => MainArchivoexcel::class,
-                'App\Service\MainArchivozip' => MainArchivozip::class,
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
-            ] + parent::getSubscribedServices();
+        $this->entityManager = $entityManager;
+
+        $this->variableproceso = $variableproceso;
+
+        $this->archivoexcel = $archivoexcel;
+
+        $this->archivozip = $archivozip;
+
     }
 
     public function archivodccAction(Request $request): Response
@@ -44,9 +60,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         $this->admin->setSubject($object);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $qb = $em->createQueryBuilder()
+        $qb = $this->entityManager->createQueryBuilder()
             ->select('fp')
             ->from('App\Entity\CotizacionFilepasajero', 'fp')
             ->where('fp.file = :file')
@@ -76,7 +90,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         }
 
         if(count($resultados) <= $maxLength) {
-            return $this->container->get('App\Service\MainArchivoexcel')
+            return $this->archivoexcel
                 ->setArchivo()
                 ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
                 ->setAnchoColumna(['0:' => 20]) //['A'=>12,'B'=>'auto','0:'=>20]
@@ -86,7 +100,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             $partes = array_chunk($resultados, $maxLength);
 
             foreach($partes as $key => $parte){
-                $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
+                $archivos[$key]['path'] = $this->archivoexcel
                     ->setArchivo()
                     ->setParametrosWriter($parte, $encabezado, 'DCC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
                     ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
@@ -94,7 +108,7 @@ class CotizacionFileAdminController extends CRUDAdminController
                 $archivos[$key]['nombre'] = 'DCC_' . $object->getNombre() . '_Parte_' . $key + 1 . '.csv';
             }
 
-            return $this->container->get('App\Service\MainArchivozip')
+            return $this->archivozip
                 ->setParametros($archivos, 'DCC_' . $object->getNombre())
                 ->procesar()
                 ->getResponse();
@@ -121,9 +135,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         $this->admin->setSubject($object);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $qb = $em->createQueryBuilder()
+        $qb = $this->entityManager->createQueryBuilder()
             ->select('fp')
             ->from('App\Entity\CotizacionFilepasajero', 'fp')
             ->where('fp.file = :file')
@@ -138,14 +150,12 @@ class CotizacionFileAdminController extends CRUDAdminController
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
-        $variableProceso = $this->container->get('App\Service\MainVariableproceso');
-
         $encabezado = ['TIPO PASAJERO', 'GENERO(F/M)', 'TIPO DOC', 'NRO DOC', 'PRIMER NOMBRE', 'PRIMER APELLIDO', 'FECHA NAC', 'NACIONALIDAD'];
         foreach($filePasajeros as $key => $filePasajero){
             $resultados[$key]['tipopax'] = $filePasajero->getTipopaxperurail();
             $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
             $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigopr();
-            $resultados[$key]['numerodocumento'] = $variableProceso->stripAccents($filePasajero->getNumerodocumento());
+            $resultados[$key]['numerodocumento'] = $this->variableproceso->stripAccents($filePasajero->getNumerodocumento());
             $resultados[$key]['nombre'] = $filePasajero->getNombre();
             $resultados[$key]['apellido'] =  $filePasajero->getApellido();
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d/m/Y');
@@ -153,7 +163,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         }
 
         if(count($resultados) <= $maxLength){
-            return $this->container->get('App\Service\MainArchivoexcel')
+            return $this->archivoexcel
                 ->setArchivoBasePath('perurail.xlsx')
                 ->setArchivo()
                 ->setFilaBase(2)
@@ -164,7 +174,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             $partes = array_chunk($resultados, $maxLength);
 
             foreach($partes as $key => $parte){
-                $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
+                $archivos[$key]['path'] = $this->archivoexcel
                     ->setArchivoBasePath('perurail.xlsx')
                     ->setArchivo()
                     ->setFilaBase(2)
@@ -175,7 +185,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
             }
 
-            return $this->container->get('App\Service\MainArchivozip')
+            return $this->archivozip
                 ->setParametros($archivos, 'PERURAIL_' . $object->getNombre())
                 ->procesar()
                 ->getResponse();
@@ -202,9 +212,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
         $this->admin->setSubject($object);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $qb = $em->createQueryBuilder()
+        $qb = $this->entityManager->createQueryBuilder()
             ->select('fp')
             ->from('App\Entity\CotizacionFilepasajero', 'fp')
             ->where('fp.file = :file')
@@ -244,7 +252,7 @@ class CotizacionFileAdminController extends CRUDAdminController
         }
 
         if(count($resultados) <= $maxLength) {
-            return $this->container->get('App\Service\MainArchivoexcel')
+            return $this->archivoexcel
                 ->setArchivoBasePath('consettur.xlsx')
                 ->setArchivo()
                 ->setFilaBase(2)
@@ -255,7 +263,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             $partes = array_chunk($resultados, $maxLength);
 
             foreach($partes as $key => $parte){
-                $archivos[$key]['path'] = $this->container->get('App\Service\MainArchivoexcel')
+                $archivos[$key]['path'] = $this->archivoexcel
                     ->setArchivoBasePath('consettur.xlsx')
                     ->setArchivo()
                     ->setFilaBase(2)
@@ -266,7 +274,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
             }
 
-            return $this->container->get('App\Service\MainArchivozip')
+            return $this->archivozip
                 ->setParametros($archivos, 'consettur_' . $object->getNombre())
                 ->procesar()
                 ->getResponse();

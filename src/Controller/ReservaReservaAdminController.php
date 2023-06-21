@@ -13,12 +13,14 @@ use Symfony\Component\HttpFoundation\Response;
 class ReservaReservaAdminController extends CRUDAdminController
 {
 
-    public static function getSubscribedServices(): array
+    private IcalGenerator $icalGenerator;
+
+    private EntityManagerInterface $entityManager;
+
+    function __construct(IcalGenerator $icalGenerator, EntityManagerInterface $entityManager)
     {
-        return [
-                'App\Service\IcalGenerator' => IcalGenerator::class,
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
-            ] + parent::getSubscribedServices();
+        $this->icalGenerator = $icalGenerator;
+        $this->entityManager = $entityManager;
     }
 
     public function resumenAction(Request $request = null): Response | RedirectResponse
@@ -61,15 +63,14 @@ class ReservaReservaAdminController extends CRUDAdminController
     {
         $object = $this->assertObjectExists($request, true);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
         $this->admin->checkAccess('create', $object);
 
         $newObject = clone $object;
 
         $newObject->setUid('cl-' . $object->getUid());
-        $newObject->setChanel($em->getReference('App\Entity\ReservaChanel', ReservaChanel::DB_VALOR_DIRECTO));
-        $newObject->setEstado($em->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
+        $newObject->setChanel($this->entityManager->getReference('App\Entity\ReservaChanel', ReservaChanel::DB_VALOR_DIRECTO));
+        $newObject->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
+        $newObject->setUnitnexo(null);
 
         $newObject->setNombre($object->getNombre() . ' (Clone)');
         $this->admin->create($newObject);
@@ -77,15 +78,12 @@ class ReservaReservaAdminController extends CRUDAdminController
         $this->addFlash('sonata_flash_success', 'Reserva clonada correctamente');
 
         return new RedirectResponse($this->admin->generateUrl('edit', ['id' => $newObject->getId()]));
-
     }
 
     public function extenderAction(Request $request = null)
     {
         $object = $this->assertObjectExists($request, true);
         $id = $object->getId();
-
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
 
         if(!$object) {
             throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
@@ -102,8 +100,9 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $newObject->setFechahorainicio($nuevaFechaInicial);
         $newObject->setUid('ad-' . $object->getUid());
-        $newObject->setChanel($em->getReference('App\Entity\ReservaChanel', ReservaChanel::DB_VALOR_DIRECTO));
-        $newObject->setEstado($em->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
+        $newObject->setChanel($this->entityManager->getReference('App\Entity\ReservaChanel', ReservaChanel::DB_VALOR_DIRECTO));
+        $newObject->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
+        $newObject->setUnitnexo(null);
         $newObject->setFechahorafin($nuevaFechaFinal);
         $newObject->setNombre($object->getNombre() . ' (Adicional)');
         $this->admin->create($newObject);
@@ -118,8 +117,7 @@ class ReservaReservaAdminController extends CRUDAdminController
     {
         $ahora = new \DateTime('now');
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-        $qb = $em->createQueryBuilder()
+        $qb = $this->entityManager->createQueryBuilder()
             ->select('rr')
             ->from('App\Entity\ReservaReserva', 'rr')
             ->where('rr.estado = :estado')
@@ -131,14 +129,14 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $reservas = $qb->getQuery()->getResult();
 
-        $calendar = $this->container->get('App\Service\IcalGenerator')->setTimezone('America/Lima')->setProdid('-//OpenPeru//Cotservicio Calendar //ES')->createCalendar();
+        $calendar = $this->icalGenerator->setTimezone('America/Lima')->setProdid('-//OpenPeru//Cotservicio Calendar //ES')->createCalendar();
 
         foreach($reservas as $reserva){
 
             $fechainicioMasUno = new \DateTime($reserva->getFechahorainicio()->format('Y-m-d H:i') . '+1 hour');
             $fechafinMasUno = new \DateTime($reserva->getFechahorafin()->format('Y-m-d H:i') . '+1 hour');
 
-            $tempEvent = $this->container->get('App\Service\IcalGenerator')
+            $tempEvent = $this->icalGenerator
                 ->createCalendarEvent()
                 ->setStart($reserva->getFechahorainicio())
                 ->setEnd($fechainicioMasUno)
@@ -147,7 +145,7 @@ class ReservaReservaAdminController extends CRUDAdminController
                 ->setUid('i-' . $reserva->getUid());
             $calendar->addEvent($tempEvent);
 
-            $tempEvent = $this->container->get('App\Service\IcalGenerator')
+            $tempEvent = $this->icalGenerator
                 ->createCalendarEvent()
                 ->setStart($reserva->getFechahorafin())
                 ->setEnd($fechafinMasUno)

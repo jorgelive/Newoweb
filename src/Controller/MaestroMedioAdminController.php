@@ -10,11 +10,11 @@ use Google\Cloud\Translate\V2\TranslateClient;
 class MaestroMedioAdminController extends CRUDAdminController
 {
 
-    public static function getSubscribedServices(): array
+    private EntityManagerInterface $entityManager;
+
+    function __construct(EntityManagerInterface $entityManager)
     {
-        return [
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
-            ] + parent::getSubscribedServices();
+        $this->entityManager = $entityManager;
     }
 
     public function traducirAction(Request $request)
@@ -34,16 +34,14 @@ class MaestroMedioAdminController extends CRUDAdminController
 
         $this->admin->checkAccess('edit', $object);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $medioDL = $em->getRepository('App\Entity\MaestroMedio')->find($id);
+        $medioDL = $this->entityManager->getRepository('App\Entity\MaestroMedio')->find($id);
         $medioDL->setLocale($request->getDefaultLocale());
-        $em->refresh($medioDL);
+        $this->entityManager->refresh($medioDL);
 
         $tituloDL = $medioDL->getTitulo();
 
         $medioDL->setLocale($request->getLocale());
-        $em->refresh($medioDL);
+        $this->entityManager->refresh($medioDL);
 
         $translate = new TranslateClient([
             'key' => $this->getParameter('google_translate_key')

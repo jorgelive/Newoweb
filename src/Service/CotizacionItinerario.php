@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\MaestroMedio;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -100,7 +101,7 @@ class CotizacionItinerario
         return $itinerarioConLibres;
     }
 
-    public function getMainPhoto(CotizacionCotservicio $cotservicio): ?ServicioItidiaarchivo
+    public function getMainPhoto(CotizacionCotservicio $cotservicio): ?MaestroMedio
     {
         $primeroIsSet = false;
         $primerArchivo = null;
@@ -117,7 +118,7 @@ class CotizacionItinerario
                                 }
                             }
                             if($archivo->isPortada()){
-                                return $archivo;
+                                return $archivo->getMedio();
                             }
                         endforeach;
                     }
@@ -126,7 +127,7 @@ class CotizacionItinerario
         }
 
         if($primeroIsSet){
-            return $primerArchivo;
+            return $primerArchivo->getMedio();
         }
 
         return null;

@@ -10,16 +10,15 @@ use Google\Cloud\Translate\V2\TranslateClient;
 class ServicioItinerariodiaAdminController extends CRUDAdminController
 {
 
-    public static function getSubscribedServices(): array
+    private EntityManagerInterface $entityManager;
+
+    function __construct(EntityManagerInterface $entityManager)
     {
-        return [
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
-            ] + parent::getSubscribedServices();
+        $this->entityManager = $entityManager;
     }
 
     public function traducirAction(Request $request)
     {
-
         $object = $this->assertObjectExists($request, true);
         $id = $object->getId();
         if($request->getDefaultLocale() == $request->getLocale()){
@@ -34,17 +33,15 @@ class ServicioItinerariodiaAdminController extends CRUDAdminController
 
         $this->admin->checkAccess('edit', $object);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $itinerariodiaDL = $em->getRepository('App\Entity\Servicioitinerariodia')->find($id);
+        $itinerariodiaDL = $this->entityManager->getRepository('App\Entity\Servicioitinerariodia')->find($id);
         $itinerariodiaDL->setLocale($request->getDefaultLocale());
-        $em->refresh($itinerariodiaDL);
+        $this->entityManager->refresh($itinerariodiaDL);
 
         $tituloDL = $itinerariodiaDL->getTitulo();
         $contenidoDL = $itinerariodiaDL->getContenido();
 
         $itinerariodiaDL->setLocale($request->getLocale());
-        $em->refresh($itinerariodiaDL);
+        $this->entityManager->refresh($itinerariodiaDL);
 
         $translate = new TranslateClient([
             'key' => $this->getParameter('google_translate_key')

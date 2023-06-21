@@ -13,11 +13,11 @@ use Symfony\Component\HttpFoundation\Response;
 class ServicioProvidermedioAdminController extends CRUDAdminController
 {
 
-    public static function getSubscribedServices(): array
+    private EntityManagerInterface $entityManager;
+
+    function __construct(EntityManagerInterface $entityManager)
     {
-        return [
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class
-            ] + parent::getSubscribedServices();
+        $this->entityManager = $entityManager;
     }
 
     public function traducirAction(Request $request): Response
@@ -36,16 +36,14 @@ class ServicioProvidermedioAdminController extends CRUDAdminController
 
         $this->admin->checkAccess('edit', $object);
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-
-        $unitmedioDL = $em->getRepository('App\Entity\ServicioProvidermedio')->find($id);
+        $unitmedioDL = $this->entityManager->getRepository('App\Entity\ServicioProvidermedio')->find($id);
         $unitmedioDL->setLocale($request->getDefaultLocale());
-        $em->refresh($unitmedioDL);
+        $this->entityManager->refresh($unitmedioDL);
 
         $tituloDL = $unitmedioDL->getTitulo();
 
         $unitmedioDL->setLocale($request->getLocale());
-        $em->refresh($unitmedioDL);
+        $this->entityManager->refresh($unitmedioDL);
 
         $translate = new TranslateClient([
             'key' => $this->getParameter('google_translate_key')
@@ -117,11 +115,9 @@ class ServicioProvidermedioAdminController extends CRUDAdminController
         $unitMedio->setNombre(pathinfo($data->name, PATHINFO_FILENAME));
         $unitMedio->setTitulo(pathinfo($data->name, PATHINFO_FILENAME));
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
+        $this->entityManager->persist($unitMedio);
 
-        $em->persist($unitMedio);
-
-        $em->flush();
+        $this->entityManager->flush();
 
         $thumbRaw = file_get_contents($unitMedio->getInternalThumbPath());
         if($thumbRaw == false){
