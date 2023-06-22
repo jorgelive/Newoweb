@@ -143,7 +143,6 @@ class CotizacionItinerario
                 if($cotservicio->getItinerario()->getItinerariodias()->count() > 0){
                     if($dia->getItidiaarchivos()->count() > 0){
                         foreach ($dia->getItidiaarchivos() as $key => $archivo):
-
                             if($archivo->isPortada()){
                                 $settedPortada = true;
                             }
@@ -161,7 +160,7 @@ class CotizacionItinerario
             endforeach;
         }
 
-        if(!$fotos->isEmpty() && $settedPortada === false ){
+        if(isset($importantFirst) && isset($importantFirstIndex) && !$fotos->isEmpty() && $settedPortada === false ){
             $importantFirst->setPortada(true);
             $fotos->set($importantFirstIndex, $importantFirst);
         }

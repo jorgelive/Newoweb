@@ -51,7 +51,7 @@ class ServicioItinerarioController extends AbstractController
 
 
     #[Route('/porserviciodropdown/{servicio}', name: 'app_servicio_itinerario_porserviciodropdown', defaults: ['servicio' => null])]
-    public function porserviciodropdownAction(Request $request, $servicio)
+    public function porserviciodropdownAction(Request $request, $servicio): Response
     {
         //?q=&_per_page=10&_page=1&field=tarifa&_=1513629738031
 
@@ -81,7 +81,7 @@ class ServicioItinerarioController extends AbstractController
             $content = ['status' => 'OK', 'items' => [], 'more' => false, 'message' => 'No existe contenido.'];
             $status = Response::HTTP_OK;// Response::HTTP_NO_CONTENT;
             return $this->makeresponse($content, $status);
-        };
+        }
 
         foreach($pagination->getItems() as $key => $item):
             $resultado[$key]['id'] = $item->getId();
@@ -104,7 +104,8 @@ class ServicioItinerarioController extends AbstractController
         return $this->makeresponse($content, $status);
     }
 
-    function makeresponse($content, $status){
+    function makeresponse($content, $status): Response
+    {
         $response = new Response();
         $response->headers->set('Content-Type', 'application/json');
         $response->setContent(json_encode($content));
