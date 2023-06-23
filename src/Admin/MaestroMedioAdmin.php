@@ -3,6 +3,7 @@
 namespace App\Admin;
 
 use Sonata\AdminBundle\Admin\AbstractAdmin;
+use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
@@ -16,12 +17,23 @@ class MaestroMedioAdmin extends AbstractAdmin
 {
     public function configure(): void
     {
-        $this->classnameLabel = "Medio";
+        $this->classnameLabel = "Multimedia";
     }
 
-    /**
-     * @param DatagridMapper $datagridMapper
-     */
+    protected function configureDefaultSortValues(array &$sortValues): void
+    {
+        $sortValues[DatagridInterface::PAGE] = 1;
+        $sortValues[DatagridInterface::SORT_ORDER] = 'DESC';
+        $sortValues[DatagridInterface::SORT_BY] = 'id';
+    }
+
+    protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
+    {
+        $buttonList['carga'] = ['template' => 'maestro_medio_admin/carga_button.html.twig'];
+
+        return $buttonList;
+    }
+
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
@@ -38,9 +50,6 @@ class MaestroMedioAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param ListMapper $listMapper
-     */
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
@@ -75,9 +84,6 @@ class MaestroMedioAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param FormMapper $formMapper
-     */
     protected function configureFormFields(FormMapper $formMapper): void
     {
 
@@ -97,9 +103,6 @@ class MaestroMedioAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param ShowMapper $showMapper
-     */
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper
@@ -141,6 +144,8 @@ class MaestroMedioAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
+        $collection->add('carga', 'carga');
+        $collection->add('ajaxcrear', 'ajaxcrear');
     }
 
 }

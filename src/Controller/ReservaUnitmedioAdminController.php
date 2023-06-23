@@ -123,7 +123,7 @@ class ReservaUnitmedioAdminController extends CRUDAdminController
 
         $thumbRaw = file_get_contents($unitMedio->getInternalThumbPath());
         if($thumbRaw == false){
-            return $this->renderJson(['error' => 'No se ha podido leer el achivo de miniatura.'], Response::HTTP_NOT_FOUND);
+            return $this->renderJson(['error' => 'No se ha podido leer el archivo de miniatura.'], Response::HTTP_NOT_FOUND);
         }
 
         $tipoThumb = $unitMedio->getTipoThumb();

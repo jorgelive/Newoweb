@@ -356,23 +356,13 @@ trait MainArchivoTrait
         return false;
     }
 
-    /**
-     * Sets archivo.
-     *
-     * @param UploadedFile $archivo
-     */
-    public function setArchivo(UploadedFile $archivo = null)
+    public function setArchivo(?UploadedFile $archivo): void
     {
         $this->saveOldFilesInfo();
         $this->archivo = $archivo;
     }
 
-    /**
-     * Get archivo.
-     *
-     * @return UploadedFile
-     */
-    public function getArchivo()
+    public function getArchivo(): ?UploadedFile
     {
         return $this->archivo;
     }
@@ -480,7 +470,7 @@ trait MainArchivoTrait
                 $this->setEnlaceurl(null);
                 $this->setEnlacethumburl(null);
             }
-            //Si cambia de archivo a enlace borramos los archivos, no se borra nada si es que esta en estado inicial (carga) o ya era enlace
+            //Si cambia de archivo a enlace borramos los archivos, no se borra nada si es que está en estado inicial (carga) o ya era enlace
             if($enlaceValido === true
                 && !empty($this->oldFile['extension'])
                 && !in_array($this->oldFile['extension'], array_merge($this->externalTypes, ['initial']))
@@ -501,7 +491,7 @@ trait MainArchivoTrait
      */
     public function upload(): void
     {
-        //limpia archivos antiguos solo si no envie nuevos
+        //limpia archivos antiguos solo si no envié nuevos
         if($this->getArchivo() === null) {
             return;
         }
@@ -511,7 +501,7 @@ trait MainArchivoTrait
         $imageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
         if(in_array($this->getArchivo()->getClientMimeType(), $imageTypes)){ //getClientMimeType reemplazado por que produce error en webp
-            //debe ir antes ya que la imagen sera movida
+            //debe ir antes, ya que la imagen será movida
             $this->generarImagen($this->getArchivo(), $this->getInternalThumbDir(), $this->imageSize['thumb']['width'], $this->imageSize['thumb']['height']);
             $this->generarImagen($this->getArchivo(), $this->getInternalDir(), $this->imageSize['image']['width'], $this->imageSize['image']['height']);
             unlink($this->getArchivo()->getPathname());
@@ -576,11 +566,13 @@ trait MainArchivoTrait
     
     private function removeOldFiles(): void
     {
-        if(!empty($this->oldFile['image']) && file_exists($this->oldFile['image'])){
+        if(!empty($this->oldFile['image']) && file_exists($this->oldFile['image']) && $this->oldFile['extension'] != 'initial'){
             unlink($this->oldFile['image']);
             $this->oldFile['image'] = '';
         }
-        if(!empty($this->oldFile['thumb']) && file_exists($this->oldFile['thumb']) && $this->getTipoThumb() == 'image'){
+
+        //solo borro si es que la imagen ya esta subida no si es que es el primer upload, ya que encontrará el thumbnail
+        if(!empty($this->oldFile['thumb']) && file_exists($this->oldFile['thumb']) && $this->oldFile['extension'] != 'initial'){
             unlink($this->oldFile['thumb']);
             $this->oldFile['thumb'] = '';
         }
@@ -639,7 +631,6 @@ trait MainArchivoTrait
         }else{
             return $this->getInternalThumbDir() . '/' . $this->getIcon($this->extension) . '.png';
         }
-
     }
 
     protected function getInternalThumbDir(): string

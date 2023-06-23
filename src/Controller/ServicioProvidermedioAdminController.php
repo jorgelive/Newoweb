@@ -36,14 +36,14 @@ class ServicioProvidermedioAdminController extends CRUDAdminController
 
         $this->admin->checkAccess('edit', $object);
 
-        $unitmedioDL = $this->entityManager->getRepository('App\Entity\ServicioProvidermedio')->find($id);
-        $unitmedioDL->setLocale($request->getDefaultLocale());
-        $this->entityManager->refresh($unitmedioDL);
+        $providermedioDL = $this->entityManager->getRepository('App\Entity\ServicioProvidermedio')->find($id);
+        $providermedioDL->setLocale($request->getDefaultLocale());
+        $this->entityManager->refresh($providermedioDL);
 
-        $tituloDL = $unitmedioDL->getTitulo();
+        $tituloDL = $providermedioDL->getTitulo();
 
-        $unitmedioDL->setLocale($request->getLocale());
-        $this->entityManager->refresh($unitmedioDL);
+        $providermedioDL->setLocale($request->getLocale());
+        $this->entityManager->refresh($providermedioDL);
 
         $translate = new TranslateClient([
             'key' => $this->getParameter('google_translate_key')
@@ -62,7 +62,7 @@ class ServicioProvidermedioAdminController extends CRUDAdminController
 
         $existingObject = $this->admin->update($object);
 
-        $this->addFlash('sonata_flash_success', 'Medio de la unidad traducido correctamente');
+        $this->addFlash('sonata_flash_success', 'Medio del proveedor traducido correctamente');
 
         return new RedirectResponse($this->admin->generateUrl('list'));
 
@@ -110,21 +110,21 @@ class ServicioProvidermedioAdminController extends CRUDAdminController
         }
         $fakeUpload = new UploadedFile($filename, $data->name, $data->type, null, true); //test por el ajax
 
-        $unitMedio = new ServicioProvidermedio();
-        $unitMedio->setArchivo($fakeUpload);
-        $unitMedio->setNombre(pathinfo($data->name, PATHINFO_FILENAME));
-        $unitMedio->setTitulo(pathinfo($data->name, PATHINFO_FILENAME));
+        $providerMedio = new ServicioProvidermedio();
+        $providerMedio->setArchivo($fakeUpload);
+        $providerMedio->setNombre(pathinfo($data->name, PATHINFO_FILENAME));
+        $providerMedio->setTitulo(pathinfo($data->name, PATHINFO_FILENAME));
 
-        $this->entityManager->persist($unitMedio);
+        $this->entityManager->persist($providerMedio);
 
         $this->entityManager->flush();
 
-        $thumbRaw = file_get_contents($unitMedio->getInternalThumbPath());
+        $thumbRaw = file_get_contents($providerMedio->getInternalThumbPath());
         if($thumbRaw == false){
-            return $this->renderJson(['error' => 'No se ha podido leer el achivo de miniatura.'], Response::HTTP_NOT_FOUND);
+            return $this->renderJson(['error' => 'No se ha podido leer el archivo de miniatura.'], Response::HTTP_NOT_FOUND);
         }
 
-        $tipoThumb = $unitMedio->getTipoThumb();
+        $tipoThumb = $providerMedio->getTipoThumb();
 
         $renderDataType = '';
         if(empty($tipoThumb)){
@@ -137,8 +137,8 @@ class ServicioProvidermedioAdminController extends CRUDAdminController
 
         $result['file'] = $renderDataType . base64_encode($thumbRaw);
         $result['type'] = $data->type;
-        $result['aspectRatio'] = $unitMedio->getAspectRatio();
-        $result['name'] = $unitMedio->getNombre();
+        $result['aspectRatio'] = $providerMedio->getAspectRatio();
+        $result['name'] = $providerMedio->getNombre();
 
         return $this->renderJson($result, Response::HTTP_OK);
     }

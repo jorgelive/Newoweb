@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -12,8 +13,6 @@ use App\Traits\MainArchivoTrait;
 
 
 /**
- * MaestroMedio
- *
  * @ORM\Table(name="mae_medio")
  * @ORM\Entity
  * @ORM\HasLifecycleCallbacks
@@ -21,8 +20,6 @@ use App\Traits\MainArchivoTrait;
  */
 class MaestroMedio
 {
-
-
     use MainArchivoTrait;
 
     private $path = '/carga/maestromedio';
@@ -32,48 +29,41 @@ class MaestroMedio
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var ArrayCollection
-     *
      * @ORM\OneToMany(targetEntity="MaestroMedioTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
-    protected $translations;
+    protected Collection $translations;
 
     /**
      * @Gedmo\Translatable
      * @ORM\Column(type="string", length=255)
      */
-    private $titulo;
+    private ?string $titulo = null;
 
     /**
-     * @var \App\Entity\MaestroClasemedio
-     *
      * @ORM\ManyToOne(targetEntity="MaestroClasemedio", inversedBy="medios")
-     * @ORM\JoinColumn(name="clasemedio_id", referencedColumnName="id", nullable=false)
+     * @ORM\JoinColumn(name="clasemedio_id", referencedColumnName="id", nullable=true)
      */
-    protected $clasemedio;
+    protected ?MaestroClasemedio $clasemedio;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
     /**
      * @Gedmo\Locale
      */
-    private $locale;
+    private ?string $locale = null;
 
     public function __construct()
     {
@@ -100,10 +90,7 @@ class MaestroMedio
         }
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         if(empty($this->getClasemedio()) || empty($this->getNombre())){
             return sprintf("Id: %s.", $this->getId());
@@ -111,110 +98,56 @@ class MaestroMedio
         return sprintf('%s: %s', $this->getClasemedio()->getNombre(), $this->getNombre());
     }
 
-
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set clasemedio
-     *
-     * @param \App\Entity\MaestroClasemedio $clasemedio
-     *
-     * @return MaestroMedio
-     */
-    public function setClasemedio(\App\Entity\MaestroClasemedio $clasemedio = null)
+    public function setClasemedio(?MaestroClasemedio $clasemedio): self
     {
         $this->clasemedio = $clasemedio;
 
         return $this;
     }
 
-    /**
-     * Get clasemedio
-     *
-     * @return \App\Entity\MaestroClasemedio
-     */
-    public function getClasemedio()
+    public function getClasemedio(): ?MaestroClasemedio
     {
         return $this->clasemedio;
     }
 
-
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     * @return MaestroMedio
-     */
-    public function setCreado($creado)
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
 
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     * @return MaestroMedio
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
 
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
 
-    /**
-     * Set titulo.
-     *
-     * @param string $titulo
-     *
-     * @return MaestroMedio
-     */
-    public function setTitulo($titulo)
+    public function setTitulo(?string $titulo): self
     {
         $this->titulo = $titulo;
     
         return $this;
     }
 
-    /**
-     * Get titulo.
-     *
-     * @return string
-     */
-    public function getTitulo()
+    public function getTitulo(): ?string
     {
         return $this->titulo;
     }
-
 }
