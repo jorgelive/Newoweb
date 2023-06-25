@@ -56,12 +56,13 @@
                     </li>
                 </ul>
                 <div class="tab-content no-padding">
+                    {% set inicializado = false %}
                     {% for index, caracteristica in object.unitcaracteristicas %}
                         {% if not (
                             caracteristica.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_BRIEFING')
                             and action == 'resumen'
                             ) %}
-                            <div class="tab-pane fade {% if loop.first %}in active{% endif %}" id="tab_{{ admin.uniqid }}_{{ index }}">
+                            <div class="tab-pane fade {% if not inicializado %}in active{% endif %}" id="tab_{{ admin.uniqid }}_{{ index }}">
 
                                 <div class="box-body container-fluid">
                                     <div class="sonata-ba-collapsed-fields">
@@ -96,12 +97,11 @@
                                                     {% endfor %}
                                                     {% if abierto == true %}</div>{% endif %}
                                             </div>
-
                                         </div>
                                     </div>
                                 </div>
-
                             </div>
+                            {% set inicializado = true %}
                         {% endif %}
                     {% endfor %}
 
