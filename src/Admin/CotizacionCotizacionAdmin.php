@@ -172,6 +172,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ->add('numeropasajeros', null, [
                 'label' => 'Cantidad de pasajeros'
             ])
+            ->add('precioocultoresumen', null, [
+                'label' => 'Precio oculto'
+            ])
             ->add('cotpolitica', null, [
                 'label' => 'Política'
             ])
@@ -200,15 +203,38 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'format' => 'Y/m/d'
             ])
             ->add('nombre', null, [
-                'editable' => true,
+                'editable' => true
             ])
             ->add('numeropasajeros', null, [
                 'label' => 'Num Pax'
+            ])
+            ->add(ListMapper::NAME_ACTIONS, null, [
+                'label' => 'Acciones',
+                'actions' => [
+                    'show' => [
+                        'template' => 'cotizacion_cotizacion_admin\list__action_show.html.twig'
+                    ],
+                    'edit' => [],
+                    'delete' => [],
+                    'resumen' => [
+                        'template' => 'cotizacion_cotizacion_admin\list__action_resumen.html.twig'
+                    ],
+                    'clonar' => [
+                        'template' => 'cotizacion_cotizacion_admin\list__action_clonar.html.twig'
+                    ],
+                    'traducir' => [
+                        'template' => 'cotizacion_cotizacion_admin/list__action_traducir.html.twig'
+                    ]
+                ]
             ])
             ->add('comision', FieldDescriptionInterface::TYPE_FLOAT, [
                 'editable' => true,
                 'row_align' => 'right',
                 'label' => 'Comisión'
+            ])
+            ->add('precioocultoresumen', null, [
+                'label' => 'Precio oculto',
+                'editable' => true
             ])
             ->add('estadocotizacion', FieldDescriptionInterface::TYPE_CHOICE, [
                 'sortable' => true,
@@ -241,25 +267,7 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'format' => 'Y/m/d H:i',
                 'sortable' => true
             ])
-            ->add(ListMapper::NAME_ACTIONS, null, [
-                'label' => 'Acciones',
-                'actions' => [
-                    'show' => [
-                        'template' => 'cotizacion_cotizacion_admin\list__action_show.html.twig'
-                    ],
-                    'edit' => [],
-                    'delete' => [],
-                    'resumen' => [
-                        'template' => 'cotizacion_cotizacion_admin\list__action_resumen.html.twig'
-                    ],
-                    'clonar' => [
-                        'template' => 'cotizacion_cotizacion_admin\list__action_clonar.html.twig'
-                    ],
-                    'traducir' => [
-                        'template' => 'cotizacion_cotizacion_admin/list__action_traducir.html.twig'
-                    ]
-                ]
-            ])
+
         ;
     }
 
@@ -302,6 +310,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ])
             ->add('comision', null, [
                 'label' => 'Comisión'
+            ])
+            ->add('precioocultoresumen', null, [
+                'label' => 'Precio oculto'
             ])
             ->add('adelanto', null, [
                 'label' => 'Adelanto'

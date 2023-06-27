@@ -68,6 +68,14 @@ class CotizacionCotizacion
     private ?string $adelanto = '50.00';
 
     /**
+     * Precio Oculto en resumen
+     * @var bool
+     *
+     * @ORM\Column(type="boolean", options={"default": 0})
+     */
+    private $precioocultoresumen = false;
+
+    /**
      * @ORM\ManyToOne(targetEntity="CotizacionEstadocotizacion")
      * @ORM\JoinColumn(name="estadocotizacion_id", referencedColumnName="id", nullable=false)
      */
@@ -316,6 +324,18 @@ class CotizacionCotizacion
     public function getCotservicios(): Collection
     {
         return $this->cotservicios;
+    }
+
+    public function setPrecioocultoresumen(bool $precioocultoresumen): self
+    {
+        $this->precioocultoresumen = $precioocultoresumen;
+
+        return $this;
+    }
+
+    public function isPrecioocultoresumen(): ?bool
+    {
+        return $this->precioocultoresumen;
     }
 
     public function addPortadafoto(MaestroMedio $portadafoto): self

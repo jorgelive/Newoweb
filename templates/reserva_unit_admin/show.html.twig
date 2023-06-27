@@ -2,7 +2,6 @@
 
 {% block stylesheets %}
     {{ parent() }}
-
     <style>
 
     </style>
@@ -31,7 +30,6 @@
             </div>
 
             <div class="nav-tabs-custom">
-
                 <ul class="nav nav-tabs hidden-print" role="tablist">
                     {% set inicializado = false %}
                     {% for index, caracteristica in object.unitcaracteristicas %}
@@ -104,7 +102,6 @@
                             {% set inicializado = true %}
                         {% endif %}
                     {% endfor %}
-
                     <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_ubicacion">
                         <div class="box-body container-fluid">
                             <div class="sonata-ba-collapsed-fields">
@@ -130,10 +127,8 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
-
 
         </div>
     </div>
