@@ -16,10 +16,9 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 
 class CotizacionFileAdmin extends AbstractAdmin
 {
+    public array $vars = [];
 
-    public $vars;
-
-    private $tokenStorage;
+    private TokenStorageInterface $tokenStorage;
 
     public function __construct(TokenStorageInterface $tokenStorage)
     {
@@ -58,11 +57,6 @@ class CotizacionFileAdmin extends AbstractAdmin
         return $buttonList;
     }
 
-
-
-    /**
-     * @param DatagridMapper $datagridMapper
-     */
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
@@ -73,12 +67,12 @@ class CotizacionFileAdmin extends AbstractAdmin
             ->add('telefono', null, [
                 'label' => 'Teléfono'
             ])
+            ->add('catalogo', null, [
+                'label' => 'Catálogo'
+            ])
         ;
     }
 
-    /**
-     * @param ListMapper $listMapper
-     */
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
@@ -98,6 +92,10 @@ class CotizacionFileAdmin extends AbstractAdmin
             ])
             ->add('telefono', null, [
                 'label' => 'Teléfono',
+                'editable' => true
+            ])
+            ->add('catalogo', null, [
+                'label' => 'Catálogo',
                 'editable' => true
             ])
             ->add('filedocumentos', null, [
@@ -135,9 +133,6 @@ class CotizacionFileAdmin extends AbstractAdmin
         ;
     }
 
-    /**
-     * @param FormMapper $formMapper
-     */
     protected function configureFormFields(FormMapper $formMapper): void
     {
         $temp = $this->getRequest()->get('pcode');
@@ -148,7 +143,11 @@ class CotizacionFileAdmin extends AbstractAdmin
             ->add('idioma')
             ->add('telefono', null, [
                 'label' => 'Teléfono'
-            ]);
+            ])
+            ->add('catalogo', null, [
+                'label' => 'Catálogo'
+            ])
+        ;
 
         //no mostrar en la vista de selección
         //if($this->getRequest()->get('pcode') != 'app.admin.cotizacioncotizacion'){
@@ -176,9 +175,6 @@ class CotizacionFileAdmin extends AbstractAdmin
 
     }
 
-    /**
-     * @param ShowMapper $showMapper
-     */
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper
@@ -188,6 +184,9 @@ class CotizacionFileAdmin extends AbstractAdmin
             ->add('idioma')
             ->add('telefono', null, [
                 'label' => 'Teléfono'
+            ])
+            ->add('catalogo', null, [
+                'label' => 'Catálogo'
             ])
             ->add('filepasajeros', null, [
                 'label' => 'Name List'

@@ -23,7 +23,7 @@
                                                         {% endif %}
                                                     </span>
                                                 {% endif %}
-                                                {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                                                {% if object.file.catalogo != true %}
                                                     ({{ componente.fecha }})
                                                 {% endif %}
                                                 {% if componente.tarifas is defined %}
@@ -38,7 +38,7 @@
                                                                 {% if tarifa.categoria is defined %}
                                                                     <span style="font-size: 0.8em;font-weight: bold; color: {{ colores.azul_acero }};">Cat:</span> {{ tarifa.categoria }}
                                                                 {% endif %}
-                                                                {% if tarifa.cantidad > 1 %}
+                                                                {% if tarifa.cantidad > 1 and object.file.catalogo != true %}
                                                                     <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span>
                                                                 {% endif %}
                                                                 {% if tarifa.mostrarcostoincluye == true %}

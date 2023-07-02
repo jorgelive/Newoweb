@@ -18,7 +18,7 @@
                                         {{ alojamiento.tarifaTitulo }}
                                     {% endif %}
                                 </h4>
-                                {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                                {% if object.file.catalogo != true %}
                                     <p>Del {{ alojamiento.fechaInicio|date('Y-m-d') }} al {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
                                 {% endif %}
                                 {% if alojamiento.detalles is defined %}
@@ -83,7 +83,7 @@
                                 <h4 class="titulo-verde">{{ servicioConTituloItinerario.tituloItinerario }}</h4>
 
                                 {% if servicioConTituloItinerario.fechaInicio is defined %}
-                                    {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                                    {% if object.file.catalogo != true %}
                                         {% if servicioConTituloItinerario.fechaInicio != servicioConTituloItinerario.fechaFin %}
                                             <p><span style="font-weight: 600;">Fecha Inicio:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
                                             <p><span style="font-weight: 600;">Fecha Fin:</span> {{ servicioConTituloItinerario.fechaFin|date('Y-m-d') }}</p>

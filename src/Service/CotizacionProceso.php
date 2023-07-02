@@ -71,12 +71,14 @@ class CotizacionProceso
 
         $this->cotizacion = $cotizacionEncontrada;
 
+        $diaAUsar = $this->cotizacion->getFecha();
+
         //si es plantilla sacamos es tipo de cambio del dia
-        if($this->cotizacion->getEstadocotizacion()->getId() == CotizacionEstadocotizacion::DB_VALOR_PLANTILLA){
-            $this->tipocambio = $this->tipocambioManager->getTipodecambio(new \DateTime('today'));
-        }else{
-            $this->tipocambio = $this->tipocambioManager->getTipodecambio($this->cotizacion->getFecha());
+        if($this->cotizacion->getFile()->isCatalogo() === true){
+            $diaAUsar = new \DateTime('today');
         }
+
+        $this->tipocambio = $this->tipocambioManager->getTipodecambio($diaAUsar);
 
         if(empty($this->tipocambio->getId())){
             $this->requestStack->getSession()->getFlashBag()->add('error', sprintf('No se puede obtener el tipo de cambio del dia %s.',  $this->cotizacion->getFecha()->format('Y-m-d')));

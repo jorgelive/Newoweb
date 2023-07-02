@@ -15,7 +15,7 @@ use Sonata\AdminBundle\Route\RouteCollectionInterface;
 class FitDietaAdmin extends AbstractAdmin
 {
 
-    public $vars;
+    public array $vars = [];
 
     protected function configureDefaultSortValues(array &$sortValues): void
     {

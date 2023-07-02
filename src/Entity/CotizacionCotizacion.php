@@ -172,7 +172,7 @@ class CotizacionCotizacion
     public function __toString(): string
     {
 
-        if($this->getEstadocotizacion()->getId() == CotizacionEstadocotizacion::DB_VALOR_PLANTILLA){
+        if($this->getFile()->isCatalogo() === true){
             return sprintf("%s - %s", $this->getNumerocotizacion(), $this->getTitulo());
 
         }elseif($this->getEstadocotizacion()->getId() == CotizacionEstadocotizacion::DB_VALOR_PENDIENTE || $this->getEstadocotizacion()->getId() == CotizacionEstadocotizacion::DB_VALOR_WAITING){

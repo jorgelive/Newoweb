@@ -6,7 +6,7 @@
             {% if tabs.itinerarios is defined and tabs.itinerarios|length > 0 %}
                 {% for itinerario in tabs.itinerarios %}
                     <h5>
-                        {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                        {% if object.file.catalogo != true %}
                             <span style="font-size: 1.15em; font-weight: 600;">
                                 {{ itinerario.fecha|format_datetime('full', 'none')|capitalize}}
                             </span>

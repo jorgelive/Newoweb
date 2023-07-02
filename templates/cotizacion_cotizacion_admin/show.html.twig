@@ -54,7 +54,7 @@
                                 </tr>
                             {% endif %}
                             <tr class="sonata-ba-view-container">
-                                {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                                {% if object.file.catalogo != true %}
                                     <th>{{ 'nombre'|trans({},'messages')|capitalize }}</th>
                                     <td>{{ object.file.nombre }} x {{ object.numeropasajeros }} - {{ object.file.pais.nombre }}
                                         <span class="idioma">({{ object.file.idioma.nombre }})</span>
@@ -245,7 +245,7 @@
                         </a>
                     </li>
 
-                    {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                    {% if object.file.catalogo != true %}
                     <li>
                         <a href="#tab-{{ admin.uniqid }}-agenda" data-toggle="tab">
                             <i style="color: #ffa751" class="fas fa-calendar tab-icon" aria-hidden="true"></i>
@@ -319,7 +319,7 @@
                         {% include 'cotizacion_cotizacion_admin/show__incluye.html.twig' %}
                     </div>
 
-                    {% if object.estadocotizacion.id != constant('App\\Entity\\CotizacionEstadocotizacion::DB_VALOR_PLANTILLA') %}
+                    {% if object.file.catalogo != true %}
                     <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-agenda">
                         {% include 'cotizacion_cotizacion_admin/show__agenda.html.twig' %}
                     </div>

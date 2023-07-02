@@ -231,20 +231,23 @@
 
                                     var $select = $('select#' + providerId);
 
-                                    if(result.providerId === null || result.providerName === null){
-                                        $select.val(null).trigger('change');
-                                    } else {
-                                        var items = {id: result.providerId, text: result.providerName};
-                                        var data = $select.val() || [];    // si hubiera datos hacemos merge
+                                    //limpiamos la seleccion actual
+                                    $select.val(null).trigger('change');
 
+                                    if(result.providerId !== null && result.providerName !== null){
+                                        var items = {id: result.providerId, text: result.providerName};
+                                        // iniciamos como array vacio
+                                        var data = [];
                                         $(items).each(function () {
                                             if(!$select.find("option[value='" + this.id + "']").length) {
                                                 $select.append(new Option(this.text, this.id, true, true));
                                             }
                                             data.push(this.id);
                                         });
-
-                                        $select.val(data).trigger('change');
+                                        //si se agrego el dato
+                                        if(data.length > 0){
+                                            $select.val(data).trigger('change');
+                                        }
                                     }
 
                                     $('select#' + tipotarifaId).val(result.tipotarifa).trigger('change');

@@ -60,6 +60,11 @@ class CotizacionFile
     private ?string $telefono;
 
     /**
+     * @ORM\Column(type="boolean", options={"default": 0})
+     */
+    private bool $catalogo = false;
+
+    /**
      * @ORM\OneToMany(targetEntity="CotizacionCotizacion", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
      * @ORM\OrderBy({"id" = "DESC"})
      */
@@ -107,7 +112,6 @@ class CotizacionFile
     {
         $this->color = sprintf("#%02x%02x%02x", mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa));
     }
-
 
     public function getId(): ?int
     {
@@ -239,6 +243,18 @@ class CotizacionFile
     public function getIdioma(): ?MaestroIdioma
     {
         return $this->idioma;
+    }
+
+    public function setCatalogo(bool $catalogo): self
+    {
+        $this->catalogo = $catalogo;
+
+        return $this;
+    }
+
+    public function isCatalogo(): bool
+    {
+        return $this->catalogo;
     }
 
     public function addFilepasajero(CotizacionFilepasajero $filepasajero): self

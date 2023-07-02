@@ -22,9 +22,9 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 class CotizacionCotizacionAdmin extends AbstractAdmin
 {
 
-    public $vars;
+    public array $vars = [];
 
-    private $tokenStorage;
+    private TokenStorageInterface $tokenStorage;
 
     public function __construct(TokenStorageInterface $tokenStorage)
     {
