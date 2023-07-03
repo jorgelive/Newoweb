@@ -20,47 +20,52 @@
     <div class="row">
         <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
             <div class="box box-primary">
-                <div class="box-body table-responsive no-padding">
-                    <table class="table">
-                        <tbody>
-                        <tr class="sonata-ba-view-container">
-                            <th>{{ 'nombre'|trans({},'messages')|capitalize }}</th>
-                            <td>{{ object.nombre }}</td>
-                        </tr>
-                        <tr class="sonata-ba-view-container">
-                            <th>{{ 'pais'|trans({},'messages')|capitalize }}</th>
-                            <td>{{ object.pais.nombre }}</td>
-                        </tr>
-                        <tr class="sonata-ba-view-container">
-                            <th>{{ 'idioma'|trans({},'messages')|capitalize }}</th>
-                            <td>{{ object.idioma.nombre }}</td>
-                        </tr>
-                        {% if action != 'resumen' and object.telefono is not empty %}
-                            <tr class="sonata-ba-view-container">
-                                <td colspan="2">
-                                    <a href="tel:{{ object.telefono }}"
-                                       class="btn btn-sm btn-success">
-                                        <i class="fa fa-phone" aria-hidden="true"></i>
-                                        Llamar
-                                    </a>
-                                    <a data-text="{{ object.telefono }}"
-                                       data-tooltiptext="Copiado al portapapeles"
-                                       class="btn btn-sm btn-success clipboard-trigger">
-                                        <i class="fa fa-file-text" aria-hidden="true"></i>
-                                        Copiar número
-                                    </a>
-                                    <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}"
-                                       target="_blank" class="btn btn-sm btn-success edit_link">
-                                        <i class="fa fa-whatsapp" aria-hidden="true"></i>
-                                        Whatsapp
-                                    </a>
-                                </td>
-                            </tr>
-                        {% endif %}
-
-                        </tbody>
-                    </table>
-                </div>
+                {% if object.catalogo == false %}
+                    <div class="box-body table-responsive no-padding">
+                        <table class="table">
+                            <tbody>
+                                <tr class="sonata-ba-view-container">
+                                    <th>{{ 'nombre'|trans({},'messages')|capitalize }}</th>
+                                    <td>{{ object.nombre }}</td>
+                                </tr>
+                                <tr class="sonata-ba-view-container">
+                                    <th>{{ 'pais'|trans({},'messages')|capitalize }}</th>
+                                    <td>{{ object.pais.nombre }}</td>
+                                </tr>
+                                <tr class="sonata-ba-view-container">
+                                    <th>{{ 'idioma'|trans({},'messages')|capitalize }}</th>
+                                    <td>{{ object.idioma.nombre }}</td>
+                                </tr>
+                                {% if action != 'resumen' and object.telefono is not empty %}
+                                    <tr class="sonata-ba-view-container">
+                                        <td colspan="2">
+                                            <a href="tel:{{ object.telefono }}"
+                                               class="btn btn-sm btn-success">
+                                                <i class="fa fa-phone" aria-hidden="true"></i>
+                                                Llamar
+                                            </a>
+                                            <a data-text="{{ object.telefono }}"
+                                               data-tooltiptext="Copiado al portapapeles"
+                                               class="btn btn-sm btn-success clipboard-trigger">
+                                                <i class="fa fa-file-text" aria-hidden="true"></i>
+                                                Copiar número
+                                            </a>
+                                            <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}"
+                                               target="_blank" class="btn btn-sm btn-success edit_link">
+                                                <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                                                Whatsapp
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="box-body">
+                        <h3>{{ object.nombre }}</h3>
+                    </div>
+                {% endif %}
             </div>
 
             {% if object.filepasajeros is defined or object.filedocumentos is defined or object.cotizaciones is defined %}
@@ -177,7 +182,11 @@
                             <div class="panel-heading">
                                 <h5 class="panel-title">
                                     <a data-toggle="collapse" data-parent="#accordion" href="#collapse3">
-                                        Cotizaciones
+                                        {% if object.catalogo == false %}
+                                            {{ 'cotizaciones' | trans({},'messages') | capitalize }}
+                                        {% else %}
+                                            {{ 'excursiones' | trans({},'messages') | capitalize }}
+                                        {% endif %}
                                     </a>
                                 </h5>
                             </div>
@@ -233,8 +242,10 @@
                                                 <div class="col-md-4 col-sm-6 col-xs-12">
                                                     <div class="margin-bottom-10 col-md-12 col-sm-12 col-xs-12">
                                                         <span class="cotcodigo">{{ cotizacion.codigo }}</span>
-                                                        <span class="cotcantidad">x{{ cotizacion.numeropasajeros }}</span>
-                                                        <span class="cotestado">({{ cotizacion.estadocotizacion.nombre }})</span>
+                                                        {% if object.catalogo == false or action != 'resumen' %}
+                                                            <span class="cotcantidad">x{{ cotizacion.numeropasajeros }}</span>
+                                                            <span class="cotestado">({{ cotizacion.estadocotizacion.nombre }})</span>
+                                                        {% endif %}
                                                     </div>
                                                     {% if action != 'resumen' %}
                                                         <div class="margin-bottom-10 col-md-12 col-sm-12 col-xs-12 ck-content">
@@ -246,10 +257,16 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4 col-sm-6 col-xs-12">
+
                                                     <div style="text-align: right;" class="margin-bottom-10 col-md-12 col-sm-12 col-xs-12">
-                                                        <p class="fechas-mono">Fecha inicio:{{ cotizacion.fechaingreso|date('Y-m-d') }}</p>
-                                                        <p class="fechas-mono">Fecha cotización:{{ cotizacion.fecha|date('Y-m-d') }}</p>
+                                                        {% if object.catalogo == false %}
+                                                            <p class="fechas-mono">Fecha inicio:{{ cotizacion.fechaingreso|date('Y-m-d') }}</p>
+                                                        {% endif %}
+                                                        {% if object.catalogo == false or action != 'resumen' %}
+                                                            <p class="fechas-mono">Fecha cotización:{{ cotizacion.fecha|date('Y-m-d') }}</p>
+                                                        {% endif %}
                                                     </div>
+
                                                     <div style="text-align: right;" class="margin-bottom-10 col-md-12 col-sm-12 col-xs-12">
                                                         <div class="btn-group">
                                                             <a class="btn btn-sm btn-primary view_link" href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">
@@ -278,9 +295,6 @@
                                     {% if not existe %}
                                         <div class="panel-body col-md-12 col-sm-12 col-xs-12"><p>No se encontraron registros</p></div>
                                     {% endif %}
-
-
-
                                 </div>
                             </div>
                         </div>
