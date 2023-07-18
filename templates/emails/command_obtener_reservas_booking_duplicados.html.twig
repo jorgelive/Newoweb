@@ -1,0 +1,36 @@
+<h2>OpenPeru - Resumen</h2>
+<p>
+    Hola, se han detectado UIDs duplicados en booking!
+</p>
+
+<h3>Los Uids duplicados son: </h3>
+{% if duplicados|length > 0 %}
+    <table style="margin-left: 15px; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid steelblue;">
+            <th>
+                Alojamiento
+            </th>
+            <th>
+                Inicio
+            </th>
+            <th>
+                UID
+            </th>
+        </tr>
+        {% for duplicado in duplicados %}
+            <tr style="border-bottom: 1px solid {{ colores.azul_acero }};">
+                <td style="padding: 0 4px 0 4px;">
+                    {{duplicado.unidad.nombre }}
+                </td>
+                <td style="padding: 0 4px 0 4px;">
+                    {{duplicado.inicio|date('Y-m-d')}}
+                </td>
+                <td style="padding: 0 4px 0 4px;">
+                    {{duplicado.uid }}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p style="font-size: 1.3em; color: {{ colores.verde_oscuro }};">Los servicios próximos se encuentran confirmados y reconfirmados.</p>
+{% endif %}

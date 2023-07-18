@@ -3,6 +3,7 @@ namespace App\Command;
 
 use App\Entity\ReservaEstado;
 use Proxies\__CG__\App\Entity\ReservaChanel;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -11,8 +12,11 @@ use Symfony\Component\Console\Input\InputArgument;
 use ICal\ICal;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\ReservaReserva;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpClient\HttpClient;
-
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\Address;
 
 
 #[AsCommand(name: 'app:obtener-reservas', description: 'Obtiene las reservas de Airbnb.')]
@@ -20,9 +24,11 @@ class ObtenerReservasCommand extends Command
 {
     private $entityManager;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(EntityManagerInterface $entityManager, TransportInterface $mailer, ParameterBagInterface $params)
     {
         $this->entityManager = $entityManager;
+        $this->mailer = $mailer;
+        $this->params = $params;
 
         parent::__construct();
     }
@@ -42,7 +48,10 @@ class ObtenerReservasCommand extends Command
             '============'
         ]);
 
+        //Obtenemos todos los nexos
         $nexos = $this->entityManager->getRepository("App\Entity\ReservaUnitnexo")->findAll();
+
+        $duplicadosBooking = [];
 
         foreach($nexos as $nexo){
             if(!$nexo->isDeshabilitado()){
@@ -52,6 +61,7 @@ class ObtenerReservasCommand extends Command
                     'defaultWeekStart'            => 'MO',  // Default value
                 ));
 
+                //Obtenemos las reservas actuales
                 $qb = $this->entityManager
                     ->createQueryBuilder()
                     ->select('rr')
@@ -66,6 +76,8 @@ class ObtenerReservasCommand extends Command
                     ->setParameter('fechahorainicio', $ahora->format('Y-m-d'));
 
                 $currentReservas = $qb->getQuery()->getResult();
+
+                //obtenemos el resultado iCal
                 try {
                     $ical->initUrl($nexo->getEnlace());
                 } catch (\Exception $e) {
@@ -81,17 +93,41 @@ class ObtenerReservasCommand extends Command
                 //Guarda los uids del bucle actual para después comparar con las reservas existentes y cancelar las que ya no estén
                 $uidsArray = [];
 
-                foreach($ical->events() as $event){
+                foreach($ical->events() as $event) {
+
                     $temp = [];
                     $insertar = false;
 
-                    //Puede haber mas de una reserva con el mismo uid por lo que reemplazamos el findOneBy por findBy
+                    //Puede haber más de una reserva con el mismo uid (gracias booking!) por lo que reemplazamos el findOneBy por findBy
                     $existentes = $this->entityManager->getRepository("App\Entity\ReservaReserva")->findBy(['uid' => $event->uid]);
 
-                    $uidsArray[] = $event->uid;
+                    if(in_array($event->uid, $uidsArray) && $nexo->getChanel()->getId() == ReservaChanel::DB_VALOR_BOOKING){
+
+                        if(count($existentes) > 0) {
+                            //si ya existe lo pongo manual la no envío la alerta, como es una array hago bucle, solo debería haber un valor
+                            foreach ($existentes as $existente):
+
+                                if ($existente->isManual() === false) {
+                                    $duplicadostemp['uid'] = $event->uid;
+                                    $duplicadostemp['inicio'] = new \DateTime($event->dtstart . ' 00:00:00');
+                                    $duplicadostemp['unidad'] = $nexo->getUnit();
+                                    $duplicadosBooking[] = $duplicadostemp;
+                                }
+                            endforeach;
+                        }else{
+                            //si no existe sería raro pero por si las moscas
+                            $duplicadostemp['uid'] = $event->uid;
+                            $duplicadostemp['inicio'] = new \DateTime($event->dtstart . ' 00:00:00');
+                            $duplicadostemp['unidad'] = $nexo->getUnit();
+                            $duplicadosBooking[] = $duplicadostemp;
+                        }
+
+                    }else{
+                        $uidsArray[] = $event->uid;
+                    }
 
                     if(count($existentes) > 0){
-                        foreach ($existentes as $existente) {
+                        foreach ($existentes as $existente):
 
                             if ($existente->isManual() === true) {
                                 //si es manual no hacemos nada
@@ -106,9 +142,9 @@ class ObtenerReservasCommand extends Command
                                 $currentEndTime = $existente->getFechahorafin()->format('H:i');
                                 $existente->setFechahorafin(new \DateTime($event->dtend . ' ' . $currentEndTime));
                             }
-                        }
+                        endforeach;
 
-                        //Solo actualizamos fechas y horas, salimos del bucle ya que la reserva se encuentra presente
+                        //Solo actualizamos fechas y horas, salimos del bucle porque la reserva se encuentra presente
                         continue;
                     }
 
@@ -185,7 +221,43 @@ class ObtenerReservasCommand extends Command
             ]
         );
 
-        return Command::SUCCESS;
+        if(!empty($duplicadosBooking)
+            //solamente desde 15:20 a 15:30
+            && (int)$ahora->format('H') == 15
+            && (int)$ahora->format('i') > 20
+            && (int)$ahora->format('i') < 30
+        ){
+            $email = (new TemplatedEmail())
+                ->from(new Address($this->params->get('mailer_sender_email'), $this->params->get('mailer_sender_name')))
+                ->subject('Alerta: Reserva de booking con el mismo UID')
+                ->htmlTemplate('emails/command_obtener_reservas_booking_duplicados.html.twig')
+                ->context([
+                    'fechaHoraActual' => $ahora,
+                    'duplicados' => $duplicadosBooking
+                ]);
 
+            $receivers = explode(',', $this->params->get('mailer_alert_receivers'));
+
+            foreach ($receivers as $key => $receiver){
+                if ($key === array_key_first($receivers)) {
+                    $email->to(new Address($receiver));
+                }else{
+                    $email->addTo(new Address($receiver));
+                }
+            }
+
+            try {
+                $this->mailer->send($email);
+                //$dummy = 1;
+            }catch (TransportExceptionInterface $e) {
+                $output->writeln([
+                        'No se ha podido enviar el email!',
+                        ''
+                    ]
+                );
+                return Command::FAILURE;
+            }
+        }
+        return Command::SUCCESS;
     }
 }
