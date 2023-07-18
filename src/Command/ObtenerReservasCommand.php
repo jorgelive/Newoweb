@@ -224,8 +224,8 @@ class ObtenerReservasCommand extends Command
         if(!empty($duplicadosBooking)
             //solamente desde 15:20 a 15:30
             && (int)$ahora->format('H') == 15
-            && (int)$ahora->format('i') > 20
-            && (int)$ahora->format('i') < 30
+            && (int)$ahora->format('i') > 30
+            && (int)$ahora->format('i') < 40
         ){
             $email = (new TemplatedEmail())
                 ->from(new Address($this->params->get('mailer_sender_email'), $this->params->get('mailer_sender_name')))
