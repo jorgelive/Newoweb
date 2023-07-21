@@ -151,9 +151,9 @@
                                         {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">x' ~ tarifa.tarifaCantidad ~ '</span>' %}
                                     {% endif %}
                                     {% if tarifa.infoOperativa is defined %}
-                                        {{ tarifa.infoOperativa }}
+                                        <span style="font-weight: bold; color: {{ colores.azul_oscuro }};">{{ tarifa.infoOperativa }}</span>
                                         {% set whatsappText = whatsappText ~ ' *' ~ tarifa.infoOperativa  ~ '*' %}
-                                        {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">' ~ tarifa.infoOperativa  ~ '</span>' %}
+                                        {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold; color: {{ colores.azul_oscuro }};">' ~ tarifa.infoOperativa  ~ '</span>' %}
                                     {% endif %}
                                     {% if tarifa.tipoTarifaId != 1  %}
                                         ({{ tarifa.tipoTarifaNombre }})
