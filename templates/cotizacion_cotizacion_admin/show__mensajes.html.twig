@@ -12,8 +12,8 @@
                     {% set emailMensaje = '<p>Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase <span style="font-weight: bold;">reservar</span> los siguientes servicios:</p>'%}
 
                     <h4>Pax: <span style="font-weight: bold;"> {{ object.file.nombre }} x{{ object.numeropasajeros }}</span> ({{ object.file.pais.nombre }} - {{ object.file.idioma.nombre }})</h4>
-                    {% set whatsappText = whatsappText ~ 'Pax: *' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '* (' ~ object.file.pais.nombre ~ '-' ~ object.file.idioma.nombre ~ ')' ~ '\n\n' %}
-                    {% set emailMensaje = emailMensaje ~ '<h4>Pax: <span style="font-weight: bold;">' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '</span> (' ~ object.file.pais.nombre ~ '-' ~ object.file.idioma.nombre ~ ')' ~ '</h4>' %}
+                    {% set whatsappText = whatsappText ~ 'Pax: *' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '* (' ~ object.file.pais.nombre ~ ' - *' ~ object.file.idioma.nombre ~ '*)' ~ '\n\n' %}
+                    {% set emailMensaje = emailMensaje ~ '<h4>Pax: <span style="font-weight: bold;">' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '</span> (' ~ object.file.pais.nombre ~ ' - <span style="font-weight: bold;">' ~ object.file.idioma.nombre ~ '</span>)' ~ '</h4>' %}
 
                     {% if proveedor.componentes is defined and proveedor.componentes|length > 0%}
                         {% for componente in proveedor.componentes %}
@@ -56,15 +56,15 @@
                                         {% set whatsappText = whatsappText ~ ' *' ~ tarifa.tarifaNombre ~ '*' %}
                                         {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">' ~ tarifa.tarifaNombre ~ '</span>' %}
                                     {% endif %}
-                                    {% if tarifa.tarifaCantidad is defined %} {# depende del prorateo #}
+                                    {% if tarifa.tarifaCantidad is defined %} {# depende del prorrateo #}
                                         <span style="font-weight: bold;">x{{ tarifa.tarifaCantidad }}</span>
                                         {% set whatsappText = whatsappText ~ ' *x' ~ tarifa.tarifaCantidad ~ '*' %}
                                         {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">x' ~ tarifa.tarifaCantidad ~ '</span>' %}
                                     {% endif %}
                                     {% if tarifa.infoOperativa is defined %}
                                         {{ tarifa.infoOperativa }}
-                                        {% set whatsappText = whatsappText ~ ' ' ~ tarifa.infoOperativa %}
-                                        {% set emailMensaje = emailMensaje ~ ' ' ~ tarifa.infoOperativa %}
+                                        {% set whatsappText = whatsappText ~ ' *' ~ tarifa.infoOperativa ~ '*' %}
+                                        {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">' ~ tarifa.infoOperativa  ~ '</span>' %}
                                     {% endif %}
                                     {% if tarifa.tipoTarifaId != 1  %}
                                         ({{ tarifa.tipoTarifaNombre }})
