@@ -100,8 +100,8 @@
                     {% set emailMensaje = '<p>Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase <span style="font-weight: bold;">reconfirmar</span> los siguientes servicios:</p>'%}
 
                     {# <h4>Pax: <span style="font-weight: bold;"> {{ object.cotservicio.cotizacion.file.nombre }} x{{ object.cotservicio.cotizacion.numeropasajeros }}</span> ({{ object.cotservicio.cotizacion.file.pais.nombre }} - {{ object.cotservicio.cotizacion.file.idioma.nombre }})</h4> #}
-                    {% set whatsappText = whatsappText ~ 'Pax: *' ~ object.cotservicio.cotizacion.file.nombre ~ ' x' ~ object.cotservicio.cotizacion.numeropasajeros ~ '* (' ~ object.cotservicio.cotizacion.file.pais.nombre ~ '-' ~ object.cotservicio.cotizacion.file.idioma.nombre ~ ')' ~ '\n\n' %}
-                    {% set emailMensaje = emailMensaje ~ '<h4>Pax: <span style="font-weight: bold;">' ~ object.cotservicio.cotizacion.file.nombre ~ ' x' ~ object.cotservicio.cotizacion.numeropasajeros ~ '</span> (' ~ object.cotservicio.cotizacion.file.pais.nombre ~ '-' ~ object.cotservicio.cotizacion.file.idioma.nombre ~ ')' ~ '</h4>' %}
+                    {% set whatsappText = whatsappText ~ 'Pax: *' ~ object.cotservicio.cotizacion.file.nombre ~ ' x' ~ object.cotservicio.cotizacion.numeropasajeros ~ '* (' ~ object.cotservicio.cotizacion.file.pais.nombre ~ ' - *' ~ object.cotservicio.cotizacion.file.idioma.nombre ~ '*)' ~ '\n\n' %}
+                    {% set emailMensaje = emailMensaje ~ '<h4>Pax: <span style="font-weight: bold;">' ~ object.cotservicio.cotizacion.file.nombre ~ ' x' ~ object.cotservicio.cotizacion.numeropasajeros ~ '</span> (' ~ object.cotservicio.cotizacion.file.pais.nombre ~ ' - <span style="font-weight: bold;">' ~ object.cotservicio.cotizacion.file.idioma.nombre ~ '</span>)' ~ '</h4>' %}
 
                     {% if proveedor.componentes is defined and proveedor.componentes|length > 0%}
                         {% for componente in proveedor.componentes %}
@@ -152,8 +152,8 @@
                                     {% endif %}
                                     {% if tarifa.infoOperativa is defined %}
                                         {{ tarifa.infoOperativa }}
-                                        {% set whatsappText = whatsappText ~ ' ' ~ tarifa.infoOperativa %}
-                                        {% set emailMensaje = emailMensaje ~ ' ' ~ tarifa.infoOperativa %}
+                                        {% set whatsappText = whatsappText ~ ' *' ~ tarifa.infoOperativa  ~ '*' %}
+                                        {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">' ~ tarifa.infoOperativa  ~ '</span>' %}
                                     {% endif %}
                                     {% if tarifa.tipoTarifaId != 1  %}
                                         ({{ tarifa.tipoTarifaNombre }})
