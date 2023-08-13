@@ -13,10 +13,10 @@
                             <div class="col-md-6 col-sm-6 col-xs-12">
                                 <h4 class="titulo-verde">
 
-                                    {% set whatsappText = whatsappText ~ alojamiento.duracionStr ~ 'de'|trans({}, 'messages')  ~ alojamiento.titulo ~ '\n' %}
+                                    {% set whatsappText = whatsappText ~ '*' ~ alojamiento.duracionStr ~ ' ' ~ 'de'|trans({}, 'messages') ~ ' ' ~ alojamiento.titulo ~ '*\n' %}
                                     {{ alojamiento.duracionStr }} {{ 'de'|trans({}, 'messages') }} {{ alojamiento.titulo }}
                                     {% if alojamiento.tipoTarifa.id != constant('App\\Entity\\ServicioTipotarifa::DB_VALOR_NORMAL') %}
-                                        {% set whatsappText = whatsappText ~ ' (' ~ alojamiento.tipoTarifa.titulo ~ ') ' %}
+                                        {% set whatsappText = whatsappText ~ '*(' ~ alojamiento.tipoTarifa.titulo ~ ')* ' %}
                                         ({{ alojamiento.tipoTarifa.titulo }})
                                     {% endif %}
                                     {% if alojamiento.tarifaTitulo is defined %}
