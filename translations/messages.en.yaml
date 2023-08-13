@@ -56,3 +56,14 @@ canal: chanel
 dia_libre_titulo: 'Free day'
 dia_libre_contenido: 'You can go to see other places of your interest, request excursion options for this day or do something at your leisure.'
 otros_servicios: other services
+fecha_inicio: start date
+fecha_fin: end date
+fecha: date
+del: from
+al: to
+hora: hour
+horas: hours
+noche: night
+anterior: prev
+siguiente: next
+duracion: duration

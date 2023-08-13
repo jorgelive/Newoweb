@@ -12,20 +12,21 @@
 
                             <div class="col-md-6 col-sm-6 col-xs-12">
                                 <h4 class="titulo-verde">
+
+                                    {% set whatsappText = whatsappText ~ alojamiento.duracionStr ~ 'de'|trans({}, 'messages')  ~ alojamiento.titulo ~ '\n' %}
+                                    {{ alojamiento.duracionStr }} {{ 'de'|trans({}, 'messages') }} {{ alojamiento.titulo }}
                                     {% if alojamiento.tipoTarifa.id != constant('App\\Entity\\ServicioTipotarifa::DB_VALOR_NORMAL') %}
-                                        {% set whatsappText = whatsappText ~ '(' ~ alojamiento.tipoTarifa.titulo ~ ')\n' %}
+                                        {% set whatsappText = whatsappText ~ ' (' ~ alojamiento.tipoTarifa.titulo ~ ') ' %}
                                         ({{ alojamiento.tipoTarifa.titulo }})
                                     {% endif %}
-                                    {% set whatsappText = whatsappText ~ alojamiento.duracionStr ~ ' de ' ~ alojamiento.titulo ~ '\n' %}
-                                    {{ alojamiento.duracionStr }} de {{ alojamiento.titulo }}:
                                     {% if alojamiento.tarifaTitulo is defined %}
                                         {% set whatsappText = whatsappText ~ alojamiento.tarifaTitulo ~ '\n' %}
                                         {{ alojamiento.tarifaTitulo }}
                                     {% endif %}
                                 </h4>
                                 {% if object.file.catalogo != true %}
-                                    <p>Del {{ alojamiento.fechaInicio|date('Y-m-d') }} al {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
-                                    {% set whatsappText = whatsappText ~ 'Del: ' ~ alojamiento.fechaInicio|date('Y-m-d') ~ ' al: ' ~ alojamiento.fechaFin|date('Y-m-d') ~ '\n' %}
+                                    <p>{{ 'del'|trans({}, 'messages')|capitalize }} {{ alojamiento.fechaInicio|date('Y-m-d') }} {{ 'al'|trans({}, 'messages') }} {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
+                                    {% set whatsappText = whatsappText ~ 'del'|trans({}, 'messages')|capitalize ~ ': ' ~ alojamiento.fechaInicio|date('Y-m-d') ~ ' ' ~ 'de'|trans({}, 'messages') ~ ': ' ~ alojamiento.fechaFin|date('Y-m-d') ~ '\n' %}
                                 {% endif %}
                                 {% if alojamiento.detalles is defined %}
                                     <ul>
@@ -95,17 +96,17 @@
                                 {% if servicioConTituloItinerario.fechaInicio is defined %}
                                     {% if object.file.catalogo != true %}
                                         {% if servicioConTituloItinerario.fechaInicio != servicioConTituloItinerario.fechaFin %}
-                                            {% set whatsappText = whatsappText ~ 'Fecha Inicio:' ~ servicioConTituloItinerario.fechaInicio|date('Y-m-d') ~ '\n' %}
-                                            {% set whatsappText = whatsappText ~ 'Fecha Fin:' ~ servicioConTituloItinerario.fechaFin|date('Y-m-d') ~ '\n' %}
-                                            <p><span style="font-weight: 600;">Fecha Inicio:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
-                                            <p><span style="font-weight: 600;">Fecha Fin:</span> {{ servicioConTituloItinerario.fechaFin|date('Y-m-d') }}</p>
+                                            {% set whatsappText = whatsappText ~ 'fecha_inicio'|trans({}, 'messages')|capitalize ~ ':' ~ servicioConTituloItinerario.fechaInicio|date('Y-m-d') ~ '\n' %}
+                                            {% set whatsappText = whatsappText ~ 'fecha_fin'|trans({}, 'messages')|capitalize ~ ':' ~ servicioConTituloItinerario.fechaFin|date('Y-m-d') ~ '\n' %}
+                                            <p><span style="font-weight: 600;">{{ 'fecha_inicio'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
+                                            <p><span style="font-weight: 600;">{{ 'fecha_fin'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.fechaFin|date('Y-m-d') }}</p>
                                         {% else %}
-                                            {% set whatsappText = whatsappText ~ 'Fecha:' ~ servicioConTituloItinerario.fechaInicio|date('Y-m-d') ~ '\n' %}
-                                            <p><span style="font-weight: 600;">Fecha:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
+                                            {% set whatsappText = whatsappText ~ 'fecha'|trans({}, 'messages')|capitalize ~ ':' ~ servicioConTituloItinerario.fechaInicio|date('Y-m-d') ~ '\n' %}
+                                            <p><span style="font-weight: 600;">{{ 'fecha'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
                                         {% endif %}
                                     {% endif %}
                                     {% if servicioConTituloItinerario.duracionStr is defined %}
-                                        <p><span style="font-weight: 600;">Duración:</span> {{ servicioConTituloItinerario.duracionStr }}</p>
+                                        <p><span style="font-weight: 600;">{{ 'duracion'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.duracionStr }}</p>
                                     {% endif %}
                                 {% endif %}
                             </div>
