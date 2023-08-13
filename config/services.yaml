@@ -13,6 +13,7 @@ parameters:
     mailer_sender_name: '%env(resolve:MAILER_SENDER_EMAIL)%'
     mailer_control_email: '%env(resolve:MAILER_CONTROL_EMAIL)%'
     mailer_alert_receivers: '%env(resolve:MAILER_ALERT_RECEIVERS)%'
+    numero_default: '%env(resolve:NUMERO_DEFAULT)%'
     facturacion_ruta_prueba: 'https://www.nubefact.com/api/v1/f76cbd70-fbe8-4a66-96a9-a92d21c0a3ea'
     facturacion_token_prueba: '%env(resolve:FACTURACION_TOKEN_PRUEBA)%'
     facturacion_ruta_produccion: 'https://www.nubefact.com/api/v1/b576e284-665a-41cb-9ceb-859de41e8ba7'
@@ -22,8 +23,8 @@ parameters:
     facturacion_detraccion_texto: 'OPERACIÓN SUJETA AL SISTEMA DE PAGO DE OBLIGACIONES TRIBUTARIAS CON EL GOBIERNO CENTRAL'
     facturacion_detraccion_cuenta: '00-173-030533'
 
-    calendars:
 
+    calendars:
         reserva_reserva_no_canceladas:
             entity: 'App\Entity\ReservaReserva'
             repositorymethod: 'findCalendarNoCanceladas'

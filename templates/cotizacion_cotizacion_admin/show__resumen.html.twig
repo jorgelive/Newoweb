@@ -2,6 +2,8 @@
     <div class="sonata-ba-collapsed-fields">
         <div class="panel-body table-responsive">
             <h3 class="visible-print">{{ 'tab_resumen'|trans({}, 'messages')|capitalize}}</h3>
+            {% set whatsappText = 'Cliente: *' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '* (' ~ object.file.pais.nombre ~ ' - *' ~ object.file.idioma.nombre ~ '*)' ~ '\n' %}
+            {% set whatsappText = whatsappText ~ 'Resumen: \n\n' %}
 
             <ul class="list-unstyled">
                 {% if tabs.resumen.alojamientos is defined %}
@@ -11,20 +13,25 @@
                             <div class="col-md-6 col-sm-6 col-xs-12">
                                 <h4 class="titulo-verde">
                                     {% if alojamiento.tipoTarifa.id != constant('App\\Entity\\ServicioTipotarifa::DB_VALOR_NORMAL') %}
+                                        {% set whatsappText = whatsappText ~ '(' ~ alojamiento.tipoTarifa.nombre ~ ')\n' %}
                                         ({{ alojamiento.tipoTarifa.nombre }})
                                     {% endif %}
+                                    {% set whatsappText = whatsappText ~ alojamiento.duracionStr ~ ' de ' ~ alojamiento.titulo ~ '\n' %}
                                     {{ alojamiento.duracionStr }} de {{ alojamiento.titulo }}:
                                     {% if alojamiento.tarifaTitulo is defined %}
+                                        {% set whatsappText = whatsappText ~ alojamiento.tarifaTitulo ~ '\n' %}
                                         {{ alojamiento.tarifaTitulo }}
                                     {% endif %}
                                 </h4>
                                 {% if object.file.catalogo != true %}
                                     <p>Del {{ alojamiento.fechaInicio|date('Y-m-d') }} al {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
+                                    {% set whatsappText = whatsappText ~ 'Del: ' ~ alojamiento.fechaInicio|date('Y-m-d') ~ ' al: ' ~ alojamiento.fechaFin|date('Y-m-d') ~ '\n' %}
                                 {% endif %}
                                 {% if alojamiento.detalles is defined %}
                                     <ul>
                                         {% for detalle in alojamiento.detalles %}
                                             <li class="margin-top-10">{{ detalle }}</li>
+                                            {% set whatsappText = whatsappText ~ detalle ~ '\n' %}
                                         {% endfor %}
                                     </ul>
                                 {% endif %}
@@ -33,6 +40,8 @@
                             {% if alojamiento.proveedor is defined %}
                                 <div class="col-md-3 col-sm-6 col-xs-12">
                                     <h4 style="font-weight: 600;">{{alojamiento.proveedor.nombre}}</h4>
+                                    {% set whatsappText = whatsappText ~ '*' ~ alojamiento.proveedor.nombre ~ '* \n' %}
+
                                     {% if alojamiento.proveedor.providermedios is not empty %}
                                         <div id="carousel_{{ index_alojamiento }}" class="carousel slide" data-interval="10000" data-ride="carousel">
                                             <!-- indicadores -->
@@ -72,6 +81,7 @@
                             {% endif %}
 
                         </li>
+                        {% set whatsappText = whatsappText ~ '\n' %}
                     {% endfor %}
                 {% endif %}
 
@@ -80,14 +90,17 @@
                         <li class="col-md-12 col-xs-12 resumen-item row-line resumen-servicios">
 
                             <div class="{% if servicioConTituloItinerario.fotos is not empty %}col-md-3 col-sm-6 col-xs-12{% else %}col-md-6 col-sm-6 col-xs-12{% endif %}">
+                                {% set whatsappText = whatsappText ~ '*' ~ servicioConTituloItinerario.tituloItinerario ~ '* \n' %}
                                 <h4 class="titulo-verde">{{ servicioConTituloItinerario.tituloItinerario }}</h4>
-
                                 {% if servicioConTituloItinerario.fechaInicio is defined %}
                                     {% if object.file.catalogo != true %}
                                         {% if servicioConTituloItinerario.fechaInicio != servicioConTituloItinerario.fechaFin %}
+                                            {% set whatsappText = whatsappText ~ 'Fecha Inicio:' ~ servicioConTituloItinerario.fechaInicio|date('Y-m-d') ~ '\n' %}
+                                            {% set whatsappText = whatsappText ~ 'Fecha Fin:' ~ servicioConTituloItinerario.fechaFin|date('Y-m-d') ~ '\n' %}
                                             <p><span style="font-weight: 600;">Fecha Inicio:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
                                             <p><span style="font-weight: 600;">Fecha Fin:</span> {{ servicioConTituloItinerario.fechaFin|date('Y-m-d') }}</p>
                                         {% else %}
+                                            {% set whatsappText = whatsappText ~ 'Fecha:' ~ servicioConTituloItinerario.fechaInicio|date('Y-m-d') ~ '\n' %}
                                             <p><span style="font-weight: 600;">Fecha:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
                                         {% endif %}
                                     {% endif %}
@@ -140,37 +153,60 @@
                                     {% for tipoTarifa in servicioConTituloItinerario.tipoTarifas %}
                                         <p class="componente-incluye margin-top-10">
                                             <span style="font-weight: 600;">{{ tipoTarifa.tituloTipotarifa }}:</span>
+                                            {% set whatsappText = whatsappText ~ tipoTarifa.tituloTipotarifa ~ ': ' %}
                                             {% for componente in tipoTarifa.componentes %}
-                                                {{ componente.titulo }}{% if loop.last== false  %}, {% endif%}
+                                                {% set whatsappText = whatsappText ~ componente.titulo %}
+                                                {{ componente.titulo }}{% if loop.last== false  %}, {% set whatsappText = whatsappText ~ ', ' %}{% else %}.{% set whatsappText = whatsappText ~ '.\n' %}{% endif %}
                                             {% endfor %}
                                         </p>
                                     {% endfor %}
                                 {% endapply %}
                             </div>
                         </li>
+                        {% set whatsappText = whatsappText ~ '\n' %}
                     {% endfor %}
                 {% endif %}
 
                 {% if tabs.resumen.serviciosSinTituloItinerario is defined %}
                     <li class="col-md-12 col-xs-12 resumen-item row-line resumen-otros-servicios">
                         <div class="col-md-6 col-xs-12">
+                            {% set whatsappText = whatsappText ~ 'otros_servicios'|trans({}, 'messages')|capitalize ~ '\n\n' %}
                             <h4 class="titulo-verde">{{ 'otros_servicios'|trans({}, 'messages')|capitalize}}</h4>
+
                         </div>
                         <div class="col-md-6 col-xs-12">
                             {% apply spaceless %}
                                 {% for tipoTarifa in tabs.resumen.serviciosSinTituloItinerario.tipoTarifas %}
                                     <p>
+                                        {% set whatsappText = whatsappText ~ tipoTarifa.tituloTipotarifa ~ ': ' %}
                                         <span style="font-weight: 600;">{{ tipoTarifa.tituloTipotarifa }}:</span>
                                         {% for componente in tipoTarifa.componentes %}
-                                            {{ componente.titulo }}{% if loop.last== false  %}, {% endif%}
+                                            {% set whatsappText = whatsappText ~ componente.titulo %}
+                                            {{ componente.titulo }}{% if loop.last== false  %}, {% set whatsappText = whatsappText ~ ', ' %}{% else %}.{% set whatsappText = whatsappText ~ '.\n' %}{% endif %}
                                         {% endfor %}
                                     </p>
+                                    {% set whatsappText = whatsappText ~ '\n' %}
                                 {% endfor %}
                             {% endapply %}
                         </div>
                     </li>
                 {% endif %}
 
+                {% if action == 'show' %}
+
+                    {% if object.file.telefono is not empty %}
+                        {% set whatsappNumero = object.file.telefono %}
+                    {% else %}
+                        {% set whatsappNumero = numero_default %}
+                    {% endif %}
+                    <li>
+                        <a href="https://wa.me/{{whatsappNumero|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                           target="_blank" class="btn btn-sm btn-success margin-top-10">
+                            <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                            Enviar por Whatsapp
+                        </a>
+                    </li>
+                {% endif %}
             </ul>
         </div>
     </div>
