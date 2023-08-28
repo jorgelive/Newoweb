@@ -5,7 +5,7 @@
             <h3 class="visible-print">Itinerario</h3>
             {% if tabs.itinerarios is defined and tabs.itinerarios|length > 0 %}
                 {% for itinerario in tabs.itinerarios %}
-                    <h5>
+                    <h5 {% if not loop.first %} style="margin-top: 30px;" {% endif %}>
                         {% if object.file.catalogo != true %}
                             <span style="font-size: 1.15em; font-weight: 600;">
                                 {{ itinerario.fecha|format_datetime('full', 'none')|capitalize}}
