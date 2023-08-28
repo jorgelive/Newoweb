@@ -90,6 +90,8 @@
                             return;
                         }
 
+                        var cadenaFin = (basestr + '[end]');
+
                         var fin = $('input[name=' + cadenaFin.replace(/\[/g, '\\\[').replace(/\]/g, '\\\]') + ']');
 
                         fin.val(selector.val()).trigger('change');
