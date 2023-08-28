@@ -90,28 +90,11 @@
                             return;
                         }
 
-                        var newdatetime = new Date(selector.val());
-                        var olddatetime = new Date(selector.attr('oldvalforinicioend'));
-
-                        var diffDate = (newdatetime - olddatetime);
-
-                        var cadenaFin = (basestr + '[end]');
                         var fin = $('input[name=' + cadenaFin.replace(/\[/g, '\\\[').replace(/\]/g, '\\\]') + ']');
 
+                        fin.val(selector.val()).trigger('change');
 
-                        var timestampfin = Date.parse(fin.val());
-                        var newFechaHoraFin;
-
-                        if(isNaN(diffDate) === true || isNaN(timestampfin)){
-                            newFechaHoraFin = moment(inicio,'YYYY/MM/DD HH:mm').add(20, 'hours').format('YYYY/MM/DD HH:mm');
-                            console.log('Cambiando la fechahorainicio end de acuerdo a la duración');
-                            fin.val(newFechaHoraFin).trigger('change');
-                        }else{
-                            newFechaHoraFin = new Date(new Date(fin.val()).getTime() + diffDate);
-                            console.log('Cambiando la fechahorainicio end de acuerdo la fecha anterior');
-                            fin.val(moment(newFechaHoraFin).format('YYYY/MM/DD HH:mm')).trigger('change');
-                        }
-                        //actualizamos por la doble ejecucion
+                        //actualizamos por la doble ejecución
                         console.log('Actualizamos el valor de oldvarforfin a ' + selector.val());
                         selector.attr('oldvalforinicioend', selector.val());
                     }
