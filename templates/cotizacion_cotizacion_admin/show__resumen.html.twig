@@ -154,7 +154,7 @@
                                     {% for tipoTarifa in servicioConTituloItinerario.tipoTarifas %}
                                         <p class="componente-incluye margin-top-10">
                                             <span style="font-weight: 600;">{{ tipoTarifa.tituloTipotarifa }}:</span>
-                                            {% set whatsappText = whatsappText ~ tipoTarifa.tituloTipotarifa ~ ': ' %}
+                                            {% set whatsappText = whatsappText ~ '*' ~ tipoTarifa.tituloTipotarifa ~ ':* ' %}
                                             {% for componente in tipoTarifa.componentes %}
                                                 {% set whatsappText = whatsappText ~ componente.titulo %}
                                                 {{ componente.titulo }}{% if loop.last== false  %}, {% set whatsappText = whatsappText ~ ', ' %}{% else %}.{% set whatsappText = whatsappText ~ '.\n' %}{% endif %}

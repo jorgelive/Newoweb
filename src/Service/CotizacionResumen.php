@@ -68,7 +68,9 @@ class CotizacionResumen
                             foreach($componente->getCottarifas() as $tarifa):
 
                                 if($tarifa->getTipotarifa()->isOcultoenresumen()){
-                                    continue;
+                                    //muestro todos
+                                    //todo otro indicador
+                                    //continue;
                                 }
 
                                 if(
