@@ -54,8 +54,7 @@
                     },
                     savecurrent: function (event){
                         console.log('Llamado a actualizarFechaHora.methods.savecurrent');
-                        $(this).attr('oldvalforfin', $(this).val());
-                        $(this).attr('oldvalforcomponentes', $(this).val());
+                        $(this).attr('oldvalforinicioend', $(this).val());
                     },
                     actualizardatetime: function (event){
                         console.log('Llamado a actualizarFechaHora.methods.actualizardatetime');
@@ -87,12 +86,12 @@
                         var selector = $(this);
                         var timestampselector = Date.parse(selector.val());
 
-                        if(selector.val().length !== 16 || isNaN(timestampselector) ){
+                        if(selector.val().length !== 10 || isNaN(timestampselector) ){
                             return;
                         }
 
                         var newdatetime = new Date(selector.val());
-                        var olddatetime = new Date(selector.attr('oldvalforfin'));
+                        var olddatetime = new Date(selector.attr('oldvalforinicioend'));
 
                         var diffDate = (newdatetime - olddatetime);
 
@@ -114,7 +113,7 @@
                         }
                         //actualizamos por la doble ejecucion
                         console.log('Actualizamos el valor de oldvarforfin a ' + selector.val());
-                        selector.attr('oldvalforfin', selector.val());
+                        selector.attr('oldvalforinicioend', selector.val());
                     }
                 };
 
