@@ -132,6 +132,9 @@ class CotizacionResumen
                                         $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
                                     }
 
+                                    //primero incluidos
+                                    ksort($datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas']);
+                                    
                                     $datos['serviciosConTituloItinerario'][$servicioId]['tituloItinerario'] = $this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio);
                                     $datos['serviciosConTituloItinerario'][$servicioId]['fotos'] = $fotos;
 
