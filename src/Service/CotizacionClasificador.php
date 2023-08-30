@@ -433,7 +433,9 @@ class CotizacionClasificador
 
         if($voterIndex < 0
             && $this->cotizacion->getNumeropasajeros() == $tarifaParaClasificar['cantidad']
+            && $tarifaParaClasificar['prorrateado']
         ) {
+            //todo validar si funciona la validación de prorrateo
             //si hubieran dos tarifas prorrateadas en el mismo componente
             //entonces es prorrateado y le damos una segunda oportunidad y lo distribuimos.
             foreach ($this->tarifasClasificadas as &$claseTarifa) {
