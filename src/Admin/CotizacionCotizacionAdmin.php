@@ -172,6 +172,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ->add('numeropasajeros', null, [
                 'label' => 'Cantidad de pasajeros'
             ])
+            ->add('hoteloculto', null, [
+                'label' => 'Hotel oculto'
+            ])
             ->add('precioocultoresumen', null, [
                 'label' => 'Precio oculto'
             ])
@@ -231,6 +234,10 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'editable' => true,
                 'row_align' => 'right',
                 'label' => 'Comisión'
+            ])
+            ->add('hoteloculto', null, [
+                'label' => 'Hotel oculto',
+                'editable' => true
             ])
             ->add('precioocultoresumen', null, [
                 'label' => 'Precio oculto',
@@ -310,6 +317,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ])
             ->add('comision', null, [
                 'label' => 'Comisión'
+            ])
+            ->add('hoteloculto', null, [
+                'label' => 'Hotel oculto'
             ])
             ->add('precioocultoresumen', null, [
                 'label' => 'Precio oculto'

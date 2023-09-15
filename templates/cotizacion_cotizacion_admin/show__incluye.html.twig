@@ -50,8 +50,19 @@
                                                                         {% if not loop.first %}
                                                                             &nbsp;
                                                                         {% endif %}
+
+
                                                                         {% if detalle.tipoId == constant('App\\Entity\\ServicioTipotarifadetalle::DB_VALOR_SITIO_WEB') %}
-                                                                            <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
+
+                                                                            {% if action == 'show' or object.hoteloculto == false %}
+                                                                                <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
+                                                                            {% endif %}
+
+                                                                        {% elseif detalle.tipoId == constant('App\\Entity\\ServicioTipotarifadetalle::DB_VALOR_PROVEEDOR') %}
+                                                                            {% if action == 'show' or object.hoteloculto == false %}
+                                                                                <span>{{ detalle.contenido }}</span>
+                                                                            {% endif %}
+
                                                                         {% else %}
                                                                             <span>{{ detalle.contenido }}</span>
                                                                         {% endif %}

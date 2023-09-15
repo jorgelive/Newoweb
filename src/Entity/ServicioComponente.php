@@ -207,7 +207,7 @@ class ServicioComponente
         return $this;
     }
 
-    public function getTipocomponente(): ServicioTipocomponente
+    public function getTipocomponente(): ?ServicioTipocomponente
     {
         return $this->tipocomponente;
     }

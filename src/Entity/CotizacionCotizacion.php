@@ -68,6 +68,14 @@ class CotizacionCotizacion
     private ?string $adelanto = '50.00';
 
     /**
+     * Nombre de hotel oculto
+     * @var bool
+     *
+     * @ORM\Column(type="boolean", options={"default": 0})
+     */
+    private $hoteloculto = false;
+
+    /**
      * Precio Oculto en resumen
      * @var bool
      *
@@ -324,6 +332,19 @@ class CotizacionCotizacion
     public function getCotservicios(): Collection
     {
         return $this->cotservicios;
+    }
+
+
+    public function setHoteloculto(bool $hoteloculto): self
+    {
+        $this->hoteloculto = $hoteloculto;
+
+        return $this;
+    }
+
+    public function isHoteloculto(): ?bool
+    {
+        return $this->hoteloculto;
     }
 
     public function setPrecioocultoresumen(bool $precioocultoresumen): self
