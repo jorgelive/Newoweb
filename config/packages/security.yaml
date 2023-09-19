@@ -49,7 +49,10 @@ security:
         - { path: ^/app/reservareserva/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
 
         - { path: ^/app/reservaunit/\d*/ical$, role: PUBLIC_ACCESS }
+        # ics por tripadvisor
+        - { path: ^/app/reservaunit/\d*/ical.ics$, role: PUBLIC_ACCESS }
         - { path: ^/app/reservaunitnexo/\d*/ical$, role: PUBLIC_ACCESS }
+        - { path: ^/app/reservaunitnexo/\d*/ical.ics$, role: PUBLIC_ACCESS }
 
         - { path: ^/app/reservaunit/\d*/inventario$, role: PUBLIC_ACCESS }
         - { path: ^/app/reservaunit/\d*/resumen$, role: PUBLIC_ACCESS }
