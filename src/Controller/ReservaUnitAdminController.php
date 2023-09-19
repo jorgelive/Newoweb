@@ -140,6 +140,11 @@ class ReservaUnitAdminController extends CRUDAdminController
 
     }
 
+    public function icalicsAction(Request $request = null): Response
+    {
+        return $this->icalAction($request);
+    }
+
 
     public function icalAction(Request $request = null): Response
     {
