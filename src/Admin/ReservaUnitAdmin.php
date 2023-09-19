@@ -64,6 +64,9 @@ class ReservaUnitAdmin extends AbstractAdmin
                     'resumen' => [
                         'template' => 'reserva_unit_admin\list__action_resumen.html.twig'
                     ],
+                    'inventario' => [
+                        'template' => 'reserva_unit_admin\list__action_inventario.html.twig'
+                    ],
                     'edit' => [],
                     'delete' => [],
                     'traducir' => [
@@ -146,8 +149,9 @@ class ReservaUnitAdmin extends AbstractAdmin
 
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
-        $collection->add('ical', $this->getRouterIdParameter() . '/ical');
+        $collection->add('ical', $this->getRouterIdParameter() . '/ical.ics');
         $collection->add('resumen', $this->getRouterIdParameter() . '/resumen');
+        $collection->add('inventario', $this->getRouterIdParameter() . '/inventario');
         $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
 
     }

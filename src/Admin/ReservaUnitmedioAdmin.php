@@ -107,7 +107,8 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                 'choices' => [
                     ReservaUnittipocaracteristica::DB_VALOR_DESCRIPCION => 'Descrición',
                     ReservaUnittipocaracteristica::DB_VALOR_BRIEFING => 'Briefing',
-                    ReservaUnittipocaracteristica::DB_VALOR_GALERIA => 'Galería'
+                    ReservaUnittipocaracteristica::DB_VALOR_GALERIA => 'Galería',
+                    ReservaUnittipocaracteristica::DB_VALOR_INVENTARIO => 'Inventario'
 
                 ]
             ])

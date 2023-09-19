@@ -80,6 +80,36 @@ class ReservaUnitAdminController extends CRUDAdminController
 
     }
 
+    public function inventarioAction(Request $request = null): Response | RedirectResponse
+    {
+        $object = $this->assertObjectExists($request, true);
+        \assert(null !== $object);
+
+        $this->checkParentChildAssociation($request, $object);
+
+        //$this->admin->checkAccess('show', $object);
+
+        $preResponse = $this->preShow($request, $object);
+        if(null !== $preResponse) {
+            return $preResponse;
+        }
+
+        $this->admin->setSubject($object);
+
+        $fields = $this->admin->getShow();
+
+        //$template = $this->templateRegistry->getTemplate('show'); es privado en la clase padre
+        $template = 'reserva_unit_admin/show.html.twig';
+
+        return $this->renderWithExtraParams($template,
+            [
+                'object' => $object,
+                'action' => 'inventario',
+                'elements' => $fields,
+            ]);
+
+    }
+
     public function resumenAction(Request $request = null): Response | RedirectResponse
     {
         $object = $this->assertObjectExists($request, true);

@@ -36,7 +36,11 @@
                         {% if not (
                             caracteristica.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_BRIEFING')
                             and action == 'resumen'
-                            ) %}
+                            ) or (
+                            caracteristica.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_INVENTARIO')
+                            and action == 'resumen'
+                            )
+                        %}
                             <li {% if not inicializado %} class="active"{% endif %}>
                                 <a href="#tab_{{ admin.uniqid }}_{{ index }}" data-toggle="tab">
                                     <i style="color: {{ caracteristica.unittipocaracteristica.iconcolor }};" class="fas {{ caracteristica.unittipocaracteristica.iconclase }} tab-icon" aria-hidden="true"></i>

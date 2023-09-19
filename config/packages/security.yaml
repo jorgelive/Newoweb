@@ -51,7 +51,7 @@ security:
         - { path: ^/app/reservaunit/\d*/ical$, role: PUBLIC_ACCESS }
         - { path: ^/app/reservaunitnexo/\d*/ical$, role: PUBLIC_ACCESS }
 
-        - { path: ^/app/reservaunit/\d*/detalle$, role: PUBLIC_ACCESS }
+        - { path: ^/app/reservaunit/\d*/inventario$, role: PUBLIC_ACCESS }
         - { path: ^/app/reservaunit/\d*/resumen$, role: PUBLIC_ACCESS }
 
         - { path: ^/app/cotizacioncotizacion/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
