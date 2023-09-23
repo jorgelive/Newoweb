@@ -149,7 +149,8 @@ class ReservaUnitAdmin extends AbstractAdmin
 
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
-        $collection->add('ical', $this->getRouterIdParameter() . '/ical.ics');
+        $collection->add('icalics', $this->getRouterIdParameter() . '/ical.ics');
+        $collection->add('ical', $this->getRouterIdParameter() . '/ical');
         $collection->add('resumen', $this->getRouterIdParameter() . '/resumen');
         $collection->add('inventario', $this->getRouterIdParameter() . '/inventario');
         $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');

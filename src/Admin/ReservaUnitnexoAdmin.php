@@ -102,5 +102,6 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('ical', $this->getRouterIdParameter() . '/ical');
+        $collection->add('icalics', $this->getRouterIdParameter() . '/ical.ics');
     }
 }
