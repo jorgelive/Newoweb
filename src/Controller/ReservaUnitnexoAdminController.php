@@ -29,11 +29,6 @@ class ReservaUnitnexoAdminController extends CRUDAdminController
         $this->entityManager = $entityManager;
     }
 
-    public function icalicsAction(Request $request = null): Response
-    {
-        return $this->icalAction($request);
-    }
-
     public function icalAction(Request $request = null): Response
     {
 

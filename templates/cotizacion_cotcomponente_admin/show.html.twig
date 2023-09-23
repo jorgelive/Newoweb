@@ -195,7 +195,7 @@
                         {% endfor %}
                     {% endif %}
                     {% if proveedor.telefono is defined %}
-                        <a href="https://wa.me/{{proveedor.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                        <a href="https://api.whatsapp.com/send/?phone={{proveedor.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
                            target="_blank" class="btn btn-sm btn-success edit_link">
                             <i class="fa fa-whatsapp" aria-hidden="true"></i>
                             Enviar por Whatsapp
