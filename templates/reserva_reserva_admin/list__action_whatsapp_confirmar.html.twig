@@ -13,7 +13,7 @@
     {% set whatsappText = whatsappText ~ 'Si el departamento esa listo antes del Check-in, nosotros encantados de recibirlos sin ningun costo (Coordinar un día antes).\n\n' %}
     {% set whatsappText = whatsappText ~ 'Saludos cordiales\n\n' %}
     {% set whatsappText = whatsappText ~ 'Centro Cusco Inti / Casitas Acogedoras en el Centro de Cusco' %}
-    <a href="https://api.whatsapp.com/send/?phone={{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+    <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
        target="_blank" class="btn btn-sm btn-success"
        title="Confirmar">
         <i class="fa fa-whatsapp" aria-hidden="true"></i>

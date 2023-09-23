@@ -204,7 +204,7 @@
                         {% set whatsappNumero = numero_default %}
                     {% endif %}
                     <li>
-                        <a href="https://api.whatsapp.com/send/?phone={{whatsappNumero|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                        <a href="https://wa.me/{{whatsappNumero|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
                            target="_blank" class="btn btn-sm btn-success margin-top-10">
                             <i class="fa fa-whatsapp" aria-hidden="true"></i>
                             Enviar por Whatsapp
