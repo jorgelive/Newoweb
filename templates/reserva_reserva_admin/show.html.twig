@@ -69,7 +69,7 @@
                                             <i class="fa fa-file-text" aria-hidden="true"></i>
                                             Copiar número
                                         </a>
-                                        <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}"
+                                        <a href="https://api.whatsapp.com/send/?phone={{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}"
                                            target="_blank" class="btn btn-sm btn-success edit_link">
                                             <i class="fa fa-whatsapp" aria-hidden="true"></i>
                                             Whatsapp
@@ -85,7 +85,7 @@
                                             {% set whatsappText = whatsappText ~ 'También puede solicitar el servicio de "llegada anticipada" (Early Check-in) y "salida tarde" (Late Check-out) con un costo adicional, respondiendo a este mensaje, con este servicio nosotros haríamos que el día anterior o posterior no sean reservables por otros clientes (estes servicio es de acuerdo a disponibilidad).\n\n' %}
                                             {% set whatsappText = whatsappText ~ 'Saludos cordiales\n\n' %}
                                             {% set whatsappText = whatsappText ~ 'Centro Cusco Inti / Casitas Acogedoras en el Centro de Cusco' %}
-                                            <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                                            <a href="https://api.whatsapp.com/send/?phone={{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
                                                target="_blank" class="btn btn-sm btn-success edit_link">
                                                 <i class="fa fa-whatsapp" aria-hidden="true"></i>
                                                 Confirmar
