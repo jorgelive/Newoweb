@@ -29,7 +29,7 @@ class ViewCotizacionCotcomponenteAlertaAdmin extends AbstractAdmin
         $sortValues[DatagridInterface::SORT_ORDER] = 'ASC';
         $sortValues[DatagridInterface::SORT_BY] = 'fechahorainicio';
     }
-    
+
     /**
      * @param DatagridMapper $datagridMapper
      */

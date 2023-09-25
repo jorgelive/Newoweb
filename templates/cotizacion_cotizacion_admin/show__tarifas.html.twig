@@ -53,7 +53,7 @@
                                         <span class="titulo-verde" style="font-size: 1.1em;">
                                                         US$ {{ tarifaresumen.ventadolares }}
                                                     </span>
-                                        {% if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %} {{ 'o'|trans({},'messages') }} <span class="titulo-verde">S/.{{ tarifaresumen.ventasoles }}</span>{% endif %}
+                                        {# if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %} {{ 'o'|trans({},'messages') }} <span class="titulo-verde">S/.{{ tarifaresumen.ventasoles }}</span>{% endif #}
                                     </p>
                                 </li>
                             {% endfor %}
@@ -74,12 +74,12 @@
                                 <span class="titulo-verde" style="font-size: 1.1em;">
                                                  US$ {{ resumenitem.ventadolares }}
                                             </span>
-                                {% if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %} o <span style="font-weight: bold; color: {{ colores.verde_oscuro }};">S/.{{ resumenitem.ventasoles }}</span>{% endif %}
+                                {# if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %} o <span style="font-weight: bold; color: {{ colores.verde_oscuro }};">S/.{{ resumenitem.ventasoles }}</span>{% endif #}
 
                                 <br>{{ 'reserve_con_el'|trans({},'messages') }} {{ object.adelanto|number_format(2, '.', '')}}% (US$ {{ resumenitem.adelantodolares }}
-                                {% if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %}
+                                {# if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %}
                                     {{ 'o'|trans({},'messages') }} S/.{{ resumenitem.adelantosoles }}
-                                {% endif %}
+                                {% endif #}
                                 )
                             </p>
                         </li>
@@ -87,7 +87,7 @@
                 </ul>
             {% endif %}
 
-            {% if object.estadocotizacion.id != 6 or object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %}
+            {% if object.estadocotizacion.id != 6 %} {# or object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU')#}
 
                 <h5 style="margin-top: 15px;">{{ 'notas'|trans({},'messages')|capitalize }}: </h5>
                 <div>
@@ -102,7 +102,7 @@
                         </p>
                     {% endif %}
 
-                    {% if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %}
+                    {# if object.file.pais.id == constant('App\\Entity\\MaestroPais::DB_VALOR_PERU') %}
                         <p>{{ 'tarifa_base'|trans({},'messages')|capitalize }}:
                             <span style="font-weight: bold;">
                                 {{ 'dolares'|trans({},'messages')|upper }}
@@ -117,7 +117,7 @@
                                 {{ cotizacion.tipocambio.fecha | date("Y-m-d") }}
                             </span>
                         </p>
-                    {% endif %}
+                    {% endif #}
                 </div>
             {% endif %}
         </div>
