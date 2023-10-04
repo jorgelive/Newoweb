@@ -102,7 +102,11 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
             ])
             ->add('cantidad')
             ->add('moneda')
-            ->add('monto')
+            ->add('monto', null, [
+                'attr' => [
+                    'style' => 'min-width: 100px;'
+                ]
+            ])
             ->add('provider', ModelAutocompleteType::class, [
                 'property' => 'nombre',
                 'minimum_input_length' => 0,
