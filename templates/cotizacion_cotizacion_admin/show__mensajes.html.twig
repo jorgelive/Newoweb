@@ -99,13 +99,20 @@
                             </p>
                             {% set whatsappText = whatsappText ~ ' ' %}
                             {% set emailMensaje = emailMensaje ~ '</p>' %}
-                            {% if object.file.telefono is not empty %}
-                                <p>Teléfono del Cliente: <span style="font-weight: 600;">{{ object.file.telefono }}</span></p>
-                                {% set whatsappText = whatsappText ~ '\n\nTeléfono del Cliente: *' ~ object.file.telefono ~ '*'%}
-                                {% set emailMensaje = emailMensaje ~ '<p>Teléfono del Cliente: <span style="font-weight: 600;">' ~ object.file.telefono ~ '</span></p>' %}
-                            {% endif %}
+
                         {% endfor %}
                     {% endif %}
+
+                    {% if object.file.telefono is not empty %}
+                        <p>Teléfono del Cliente: <span style="font-weight: 600;">{{ object.file.telefono }}</span></p>
+                        {% set whatsappText = whatsappText ~ '\n\nTeléfono del Cliente: *' ~ object.file.telefono ~ '*'%}
+                        {% set emailMensaje = emailMensaje ~ '<p>Teléfono del Cliente: <span style="font-weight: 600;">' ~ object.file.telefono ~ '</span></p>' %}
+                    {% endif %}
+
+                    <p>Teléfono de Oficina OpenPeru: <span style="font-weight: 600;">{{ numero_default }}</span></p>
+                    {% set whatsappText = whatsappText ~ '\n\nTeléfono de Oficina OpenPeru: *' ~ numero_default ~ '*'%}
+                    {% set emailMensaje = emailMensaje ~ '<p>Teléfono de Oficina OpenPeru: <span style="font-weight: 600;">' ~ numero_default ~ '</span></p>' %}
+
                     {% if proveedor.telefono is defined %}
                         <a href="https://wa.me/{{proveedor.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
                            target="_blank" class="btn btn-sm btn-success edit_link">

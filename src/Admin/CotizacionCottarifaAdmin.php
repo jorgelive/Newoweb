@@ -91,7 +91,7 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
 
         $formMapper
             ->add('tarifa', ModelAutocompleteType::class, [
-                'property' => 'nombre', //no funciona ya que se cambio la ruta
+                'property' => 'nombre', //no funciona ya que se cambió la ruta
                 'template' => '/form/type/ajax_dropdown_type_cotizacion_cottarifa.html.twig',
                 'route' => ['name' => 'app_servicio_tarifa_porcomponentedropdown', 'parameters' => []],
                 'placeholder' => '',
@@ -104,7 +104,7 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
             ->add('moneda')
             ->add('monto', null, [
                 'attr' => [
-                    'style' => 'min-width: 100px;'
+                    'style' => 'min-width: 5em;'
                 ]
             ])
             ->add('provider', ModelAutocompleteType::class, [
