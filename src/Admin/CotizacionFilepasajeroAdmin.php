@@ -74,7 +74,7 @@ class CotizacionFilepasajeroAdmin extends AbstractAdmin
                 'label' => 'Fecha de nacimiento',
                 'editable' => true,
                 'row_align' => 'right',
-                'format' => 'Y/m/d'
+                'format' => 'd/m/Y'
             ])
             ->add('edad')
             ->add(ListMapper::NAME_ACTIONS, null, [

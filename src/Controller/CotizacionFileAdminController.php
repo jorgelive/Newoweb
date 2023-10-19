@@ -242,8 +242,8 @@ class CotizacionFileAdminController extends CRUDAdminController
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('Y-m-d');
 
             $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigocon();
-            if($filePasajero->getPais()->getId() == MaestroPais::DB_VALOR_PERU){//si es peruano pongo Lima
-                $resultados[$key]['ciudad'] = 'Lima';
+            if($filePasajero->getPais()->getId() == MaestroPais::DB_VALOR_PERU){//si es peruano pongo (1610) Lima
+                $resultados[$key]['ciudad'] = '1610';
             }else{
                 $resultados[$key]['ciudad'] = '';
             }

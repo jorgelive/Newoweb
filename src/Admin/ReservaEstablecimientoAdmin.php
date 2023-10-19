@@ -32,9 +32,12 @@ class ReservaEstablecimientoAdmin extends AbstractAdmin
             ->add('id')
             ->add('nombre')
             ->add('direccion', null, [
-                'label' => 'Dirección'
+                'label' => 'Dirección',
+                'editable' => true
             ])
-            ->add('referencia')
+            ->add('referencia', null, [
+                'editable' => true
+            ])
             ->add('checkin', null, [
                 'label' => 'Check In'
             ])
