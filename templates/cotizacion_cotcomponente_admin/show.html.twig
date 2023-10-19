@@ -194,7 +194,7 @@
                         {% set whatsappText = whatsappText ~ '\n\nTeléfono del Cliente: *' ~ object.cotservicio.cotizacion.file.telefono ~ '*'%}
                         {% set emailMensaje = emailMensaje ~ '<p>Teléfono del Cliente: <span style="font-weight: 600;">' ~ object.cotservicio.cotizacion.file.telefono ~ '</span></p>' %}
                     {% endif %}
-                    
+
                     <p>Teléfono de Oficina OpenPeru: <span style="font-weight: 600;">{{ numero_default }}</span></p>
                     {% set whatsappText = whatsappText ~ '\n\nTeléfono de Oficina OpenPeru: *' ~ numero_default ~ '*'%}
                     {% set emailMensaje = emailMensaje ~ '<p>Teléfono de Oficina OpenPeru: <span style="font-weight: 600;">' ~ numero_default ~ '</span></p>' %}

@@ -34,11 +34,13 @@
                     {% set inicializado = false %}
                     {% for index, caracteristica in object.unitcaracteristicas %}
                         {% if not (
+                            (
                             caracteristica.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_BRIEFING')
                             and action == 'resumen'
                             ) or (
                             caracteristica.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_INVENTARIO')
                             and action == 'resumen'
+                            )
                             )
                         %}
                             <li {% if not inicializado %} class="active"{% endif %}>
@@ -61,9 +63,16 @@
                     {% set inicializado = false %}
                     {% for index, caracteristica in object.unitcaracteristicas %}
                         {% if not (
+                            (
                             caracteristica.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_BRIEFING')
                             and action == 'resumen'
-                            ) %}
+                            ) or (
+                            caracteristica.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_INVENTARIO')
+                            and action == 'resumen'
+                            )
+                            )
+                        %}
+                            
                             <div class="tab-pane fade {% if not inicializado %}in active{% endif %}" id="tab_{{ admin.uniqid }}_{{ index }}">
 
                                 <div class="box-body container-fluid">
@@ -115,7 +124,7 @@
                                         {{ 'direccion'|trans({}, 'messages')|capitalize}}: {{ object.establecimiento.direccion }}
                                     </p>
                                     <p style="font-size: 1.1em">
-                                        {{ 'referencia'|trans({}, 'messages')|capitalize}}: {{ object.referencia }}
+                                        {{ 'referencia'|trans({}, 'messages')|capitalize}}: {{ object.establecimiento.referencia }} {{ object.referencia }}
                                     </p>
                                     <div id="gmap-canvas-{{ object.id }}">
                                         <iframe id="gmap-frame-{{ object.id }}" src="https://maps.google.com/maps?q={{ object.establecimiento.direccion|escape('url') }}&t=&z=17&ie=UTF8&iwloc=&output=embed" scrolling="no" marginheight="0" marginwidth="0">

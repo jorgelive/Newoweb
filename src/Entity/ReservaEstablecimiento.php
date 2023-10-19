@@ -13,69 +13,62 @@ use Doctrine\Common\Collections\ArrayCollection;
  *
  * @ORM\Table(name="res_establecimiento")
  * @ORM\Entity
+ * @Gedmo\TranslationEntity(class="App\Entity\ReservaEstablecimientoTranslation")
  */
 class ReservaEstablecimiento
 {
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=255)
      */
-    private $nombre;
+    private ?string $nombre = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=255)
      */
-    private $direccion;
+    private ?string $direccion = null;
 
     /**
-     * @var string
-     *
+     * @Gedmo\Translatable
+     * @ORM\Column(type="string", length=255)
+     */
+    private ?string $referencia = null;
+
+    /**
      * @ORM\Column(type="string", length=5)
      */
-    private $checkin;
+    private ?string $checkin = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=5)
      */
-    private $checkout;
+    private ?string $checkout = null;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
      * @ORM\OneToMany(targetEntity="ReservaUnit", mappedBy="establecimiento", cascade={"persist","remove"}, orphanRemoval=true)
      */
-    private $units;
+    private Collection $units;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
+
+    private ?string $locale = null;
 
     public function __construct() {
         $this->units = new ArrayCollection();
@@ -115,6 +108,18 @@ class ReservaEstablecimiento
     public function setDireccion(string $direccion): self
     {
         $this->direccion = $direccion;
+
+        return $this;
+    }
+
+    public function getReferencia(): ?string
+    {
+        return $this->referencia;
+    }
+
+    public function setReferencia(string $referencia): self
+    {
+        $this->referencia = $referencia;
 
         return $this;
     }

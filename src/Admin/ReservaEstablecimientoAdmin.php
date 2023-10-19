@@ -34,6 +34,7 @@ class ReservaEstablecimientoAdmin extends AbstractAdmin
             ->add('direccion', null, [
                 'label' => 'Dirección'
             ])
+            ->add('referencia')
             ->add('checkin', null, [
                 'label' => 'Check In'
             ])
@@ -61,6 +62,7 @@ class ReservaEstablecimientoAdmin extends AbstractAdmin
             ->add('direccion', null, [
                 'label' => 'Dirección'
             ])
+            ->add('referencia')
             ->add('checkin', null, [
                 'label' => 'Check In'
             ])
@@ -81,6 +83,7 @@ class ReservaEstablecimientoAdmin extends AbstractAdmin
             ->add('direccion', null, [
                 'label' => 'Dirección'
             ])
+            ->add('referencia')
             ->add('checkin', null, [
                 'label' => 'Check In'
             ])
