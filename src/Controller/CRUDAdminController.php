@@ -35,7 +35,7 @@ class CRUDAdminController extends BaseController
         $email = (new Email())
             ->from(new Address($this->getParameter('mailer_sender_email'), $this->getParameter('mailer_sender_name')))
             ->to(urldecode($emaiInfo['destinatario']))
-            ->cc($this->getParameter('mailer_control_email'))
+            ->bcc($this->getParameter('mailer_control_email'))
             ->priority(Email::PRIORITY_HIGH)
             ->subject(urldecode($emaiInfo['titulo']))
             ->html(urldecode($emaiInfo['mensaje']));
