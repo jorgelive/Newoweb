@@ -1,0 +1,8 @@
+{% if admin.isGranted('show', object) and admin.hasRoute('archivoju') %}
+    <a href="{{ admin.generateObjectUrl('archivoju', object) }}"
+       class="btn btn-sm btn-primary"
+       title="Formato JU">
+        <i class="fa fa-info" aria-hidden="true"></i>
+        F JU
+    </a>
+{% endif %}

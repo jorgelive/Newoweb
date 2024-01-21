@@ -21,6 +21,9 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('codigo', null, [
                 'label' => 'Código'
             ])
+            ->add('codigoju', null, [
+                'label' => 'Código JU'
+            ])
             ->add('codigoddc', null, [
                 'label' => 'Código DDC'
             ])
@@ -45,6 +48,10 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ])
             ->add('codigo', null, [
                 'label' => 'Código',
+                'editable' => true
+            ])
+            ->add('codigoju', null, [
+                'label' => 'Código JU',
                 'editable' => true
             ])
             ->add('codigoddc', null, [
@@ -80,6 +87,9 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('codigo', null, [
                 'label' => 'Código'
             ])
+            ->add('codigoju', null, [
+                'label' => 'Código JU'
+            ])
             ->add('codigoddc', null, [
                 'label' => 'Código DDC'
             ])
@@ -102,6 +112,9 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('codigo', null, [
                 'label' => 'Código'
+            ])
+            ->add('codigoju', null, [
+                'label' => 'Código JU'
             ])
             ->add('codigoddc', null, [
                 'label' => 'Código DDC'

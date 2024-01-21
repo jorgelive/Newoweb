@@ -317,6 +317,11 @@ services:
             - { name: doctrine.event_listener, event: postPersist }
             - { name: doctrine.event_listener, event: postUpdate }
 
+    app.eventListener_controller_request_kernel_event_listener:
+        class: App\EventListener\ControllerRequestKernelEventListener
+        tags:
+            - { name: kernel.event_listener, event: kernel.controller, method: onControllerRequest }
+
     app.admin.comprobantecomprobante:
         class: App\Admin\ComprobanteComprobanteAdmin
         tags:

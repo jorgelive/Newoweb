@@ -248,22 +248,11 @@ class CotizacionFilepasajero
         return $this;
     }
 
-    /**
-     * Get numerodocumento.
-     *
-     * @return string
-     */
-    public function getNumerodocumento()
+    public function getNumerodocumento(): string
     {
         return $this->numerodocumento;
     }
 
-
-    /**
-     * Get tipopaxperurail.
-     *
-     * @return int
-     */
     public function getTipopaxperurail(): int
     {
         if($this->getEdad() >= 12) {
@@ -273,12 +262,17 @@ class CotizacionFilepasajero
         }
     }
 
+    public function getCategoriaju(): int
+    {
+        if($this->getEdad() >= 18){
+            return 1;
+        }elseif($this->getEdad() >= 3 && $this->getEdad() <= 17){
+            return 3;
+        }else{
+            return 0;
+        }
+    }
 
-    /**
-     * Get categoriadcc.
-     *
-     * @return int
-     */
     public function getCategoriaddc(): int
     {
         if($this->getEdad() >= 18){

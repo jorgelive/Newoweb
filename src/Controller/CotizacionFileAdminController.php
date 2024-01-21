@@ -41,6 +41,86 @@ class CotizacionFileAdminController extends CRUDAdminController
 
     }
 
+    public function archivojuAction(Request $request): Response
+    {
+        $maxLength = 10;
+
+        $object = $this->assertObjectExists($request, true);
+
+        $this->assertObjectExists($request);
+
+        $this->checkParentChildAssociation($request, $object);
+
+        $this->admin->checkAccess('show', $object);
+
+        $preResponse = $this->preShow($request, $object);
+        if(null !== $preResponse) {
+            return $preResponse;
+        }
+
+        $this->admin->setSubject($object);
+
+        $qb = $this->entityManager->createQueryBuilder()
+            ->select('fp')
+            ->from('App\Entity\CotizacionFilepasajero', 'fp')
+            ->where('fp.file = :file')
+            ->setParameter('file', $object->getId())
+            ->orderBy('fp.id', 'ASC')
+        ;
+
+        $filePasajeros = $qb->getQuery()->getResult();
+
+        if(empty($filePasajeros)){
+            $this->addFlash('sonata_flash_error', 'El file no tiene pasajeros ingresados.');
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
+
+        $resultados = [];
+        $encabezado = ['idTicketType', 'documentType', 'document', 'gender', 'nacionality', 'name', 'lastName', 'birthday', 'file'];
+        foreach($filePasajeros as $key => $filePasajero){
+            if ($filePasajero->getCategoriaju() === 0){ continue; }
+
+            $resultados[$key]['tipo'] = $filePasajero->getCategoriaju();
+
+            $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigoju();
+            $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
+            $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
+            $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigodcc();
+            $resultados[$key]['apellido'] = $filePasajero->getApellido();
+            $resultados[$key]['nombre'] = $filePasajero->getNombre();
+            $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d-m-Y');
+            $resultados[$key]['file'] = 'F' . sprintf('%010d', $object->getId());
+
+        }
+
+        if(count($resultados) <= $maxLength) {
+            return $this->archivoexcel
+                ->setArchivo()
+                ->setParametrosWriter($resultados, $encabezado, 'JU_' . $object->getNombre(), 'xlsx')
+                ->setAnchoColumna(['0:' => 20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                ->getResponse();
+        }else{
+
+            $partes = array_chunk($resultados, $maxLength);
+
+            foreach($partes as $key => $parte){
+                $archivos[$key]['path'] = $this->archivoexcel
+                    ->setArchivo()
+                    ->setParametrosWriter($parte, $encabezado, 'JU_' . $object->getNombre(), 'xlsx')
+                    ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                    ->createFile();
+                $archivos[$key]['nombre'] = 'JU_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xlsx';
+            }
+
+            return $this->archivozip
+                ->setParametros($archivos, 'DCC_' . $object->getNombre())
+                ->procesar()
+                ->getResponse();
+
+        }
+    }
+
+
     public function archivodccAction(Request $request): Response
     {
         $maxLength = 10;

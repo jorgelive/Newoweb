@@ -161,6 +161,7 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
     function resumenAction(Request $request): Response | RedirectResponse
     {
+
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
 

@@ -15,7 +15,6 @@ class CotizacionCotcomponenteDoctrineEventListener
         $this->entityManager = $entityManager;
     }
 
-
     public function postPersist(PostPersistEventArgs $args)
     {
         $entity = $args->getObject();

@@ -15,250 +15,161 @@ use Gedmo\Mapping\Annotation as Gedmo;
 class MaestroTipodocumento
 {
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=100)
      */
-    private $nombre;
+    private ?string $nombre = null;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", length=10)
      */
-    private $codigo;
+    private ?string $codigo = null;
+
+    /**
+     * Joinnus
+     * @ORM\Column(type="string", length=5)
+     */
+    private ?string $codigoju = null;
 
     /**
      * DDC Cusco
-     * @var int
-     *
      * @ORM\Column(type="integer", length=2)
      */
-    private $codigoddc;
+    private ?int $codigoddc = null ;
 
     /**
      * Perurail
-     * @var string
-     *
      * @ORM\Column(type="string", length=5)
      */
-    private $codigopr;
+    private ?string $codigopr = null;
 
     /**
      * Consettur
-     * @var integer
      * @ORM\Column(type="integer", length=2)
      */
-    private $codigocon;
+    private ?int $codigocon = null;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
+
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return MaestroTipodocumento
-     */
-    public function setNombre($nombre)
+    public function setNombre($nombre): self
     {
         $this->nombre = $nombre;
     
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set codigo
-     *
-     * @param string $codigo
-     *
-     * @return MaestroTipodocumento
-     */
-    public function setCodigo($codigo)
+    public function setCodigo($codigo): self
     {
         $this->codigo = $codigo;
     
         return $this;
     }
 
-    /**
-     * Get codigo
-     *
-     * @return string
-     */
-    public function getCodigo()
+    public function getCodigo(): ?string
     {
         return $this->codigo;
     }
 
-    /**
-     * Set codigoddc
-     *
-     * @param int $codigoddc
-     *
-     * @return MaestroTipodocumento
-     */
-    public function setCodigoddc($codigoddc)
+    public function setCodigoju($codigoju): self
+    {
+        $this->codigoju = $codigoju;
+
+        return $this;
+    }
+
+    public function getCodigoju(): ?string
+    {
+        return $this->codigoju;
+    }
+
+    public function setCodigoddc($codigoddc): self
     {
         $this->codigoddc = $codigoddc;
 
         return $this;
     }
 
-    /**
-     * Get codigoddc
-     *
-     * @return int
-     */
-    public function getCodigoddc()
+    public function getCodigoddc(): ?int
     {
         return $this->codigoddc;
     }
 
-
-    /**
-     * Set codigopr
-     *
-     * @param string $codigopr
-     *
-     * @return MaestroTipodocumento
-     */
-    public function setCodigopr($codigopr)
+    public function setCodigopr($codigopr): self
     {
         $this->codigopr = $codigopr;
 
         return $this;
     }
 
-    /**
-     * Get codigopr
-     *
-     * @return string
-     */
-    public function getCodigopr()
+    public function getCodigopr(): ?string
     {
         return $this->codigopr;
     }
 
-    /**
-     * Set codigocon
-     *
-     * @param string $codigocon
-     *
-     * @return MaestroTipodocumento
-     */
-    public function setCodigocon($codigocon)
+    public function setCodigocon($codigocon): self
     {
         $this->codigocon = $codigocon;
 
         return $this;
     }
 
-    /**
-     * Get codigocon
-     *
-     * @return string
-     */
-    public function getCodigocon()
+    public function getCodigocon(): ?string
     {
         return $this->codigocon;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return MaestroTipodocumento
-     */
-    public function setCreado($creado)
+    public function setCreado($creado): self
     {
         $this->creado = $creado;
     
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return MaestroTipodocumento
-     */
-    public function setModificado($modificado)
+    public function setModificado($modificado): self
     {
         $this->modificado = $modificado;
     
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }
