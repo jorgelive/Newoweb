@@ -86,8 +86,8 @@ class CotizacionFileAdminController extends CRUDAdminController
             $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
             $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
             $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigodcc();
-            $resultados[$key]['apellido'] = $filePasajero->getApellido();
             $resultados[$key]['nombre'] = $filePasajero->getNombre();
+            $resultados[$key]['apellido'] = $filePasajero->getApellido();
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d-m-Y');
             $resultados[$key]['file'] = 'F' . sprintf('%010d', $object->getId());
 
@@ -113,7 +113,7 @@ class CotizacionFileAdminController extends CRUDAdminController
             }
 
             return $this->archivozip
-                ->setParametros($archivos, 'DCC_' . $object->getNombre())
+                ->setParametros($archivos, 'JU_' . $object->getNombre())
                 ->procesar()
                 ->getResponse();
 
