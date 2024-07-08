@@ -93,7 +93,10 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                     ReservaUnit::DB_VALOR_N2 => '#2 Cusco Inti',
                     ReservaUnit::DB_VALOR_N3 => '#3 Cusco Inti',
                     ReservaUnit::DB_VALOR_N4 => '#4 Cusco Inti',
-                    ReservaUnit::DB_VALOR_N5 => '#5 Cusco Inti'
+                    ReservaUnit::DB_VALOR_N5 => '#5 Cusco Inti',
+                    ReservaUnit::DB_VALOR_N6 => '#6 Casita',
+                    ReservaUnit::DB_VALOR_N7 => '#7 Casita'
+
                 ]
             ])
             ->add('unittipocaracteristica', FieldDescriptionInterface::TYPE_CHOICE, [
