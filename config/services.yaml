@@ -132,7 +132,7 @@ parameters:
             repositorymethod: 'findCalendarAceptadoEfectuado'
             resource:
                 id: 'cotservicio.cotizacion.id'
-                title: 'cotservicio.cotizacion.resumen'
+                title: 'cotservicio.cotizacion.file.nombre'
             parameters:
                 title: 'componente.nombre'
                 start: 'fechahorainicio'
@@ -153,7 +153,7 @@ parameters:
             repositorymethod: 'findCalendarAceptado'
             resource:
                 id: 'cotservicio.cotizacion.id'
-                title: 'cotservicio.cotizacion.resumen'
+                title: 'cotservicio.cotizacion.file.nombre'
             parameters:
                 title: 'componente.nombre'
                 start: 'fechahorainicio'

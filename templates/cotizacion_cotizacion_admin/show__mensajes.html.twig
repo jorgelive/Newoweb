@@ -20,6 +20,7 @@
                             <p>
                                 {% set emailMensaje = emailMensaje ~ '<p>' %}
                                 {% if componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_TICKET')
+                                    or componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_ALIMENTACION')
                                     or componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_ALOJAMIENTO')
                                     or componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_EXCURSION_POOL') %} {# tickets 1 hoteles 4 pool 6#}
                                     <span style="font-weight: bold;">{{ componente.fechaHoraInicio|date("Y-m-d") }}</span>
@@ -110,7 +111,7 @@
                     {% endif %}
 
                     <p>Teléfono de Oficina OpenPeru: <span style="font-weight: 600;">{{ numero_default }}</span></p>
-                    {% set whatsappText = whatsappText ~ '\n\nTeléfono de Oficina OpenPeru: *' ~ numero_default ~ '*'%}
+                    {% set whatsappText = whatsappText ~ '\n\nTeléfono de Oficina OpenPeru: *' ~ numero_default ~ '*\n\n'%}
                     {% set emailMensaje = emailMensaje ~ '<p>Teléfono de Oficina OpenPeru: <span style="font-weight: 600;">' ~ numero_default ~ '</span></p>' %}
                     {% set emailMensaje = emailMensaje ~ '<p>&nbsp;</p> <p>Saludos Cordiales</p> <p>Jorge Gomez</p> <p>Reservas</p> <p>OpenPeru Travel Group</p> <p>RUC: 20600633164</p>' %}
 

@@ -196,6 +196,12 @@ class FullcalendarExtension extends AbstractExtension
                     buttonText: 'Dia',
                     resourceAreaWidth: '100px'
                 },
+                resourceTimelineOneWeek: {
+                    type: 'resourceTimeline',
+                    duration: { weeks: 1 },
+                    buttonText: 'Semana',
+                    resourceAreaWidth: '100px'
+                },
                 resourceTimelineOneMonth: {
                     type: 'resourceTimeline',
                     duration: { months: 1 },
