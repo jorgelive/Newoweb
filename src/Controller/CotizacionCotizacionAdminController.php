@@ -35,11 +35,11 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
 
         if(!empty($request->query->get('fechainicio'))){
             try {
-                $newFechaInicio = new \DateTime($request->query->get('fechainicio'));
+                $newFechaInicio = new \DateTimeImmutable($request->query->get('fechainicio'));
                 $mensaje = 'Cotización clonada correctamente, se ha cambiado la fecha de inicio de los servicios';
                 $mensajeTyoe = 'success';
             } catch (\Exception $e) {
-                $newFechaInicio = new \DateTime('today');
+                $newFechaInicio = new \DateTimeImmutable('today');
                 $mensaje = 'Formato de fecha incorrecto, la cotización se ha clonado para la fecha de hoy';
                 $mensajeTyoe = 'info';
             }
@@ -51,19 +51,21 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         $this->entityManager = $this->container->get('doctrine.orm.default_entity_manager');
 
         $newObject = clone $object;
-        $newObject->setNombre($object->getNombre().' (Clone)');
+        $newObject->setNombre('(Clonado) ' . $object->getNombre());
         $newObject->setEstadocotizacion($this->entityManager->getReference('App\Entity\CotizacionEstadocotizacion', CotizacionEstadocotizacion::DB_VALOR_PENDIENTE));
 
         foreach($newObject->getCotservicios() as $cotservicio):
-            //en la primera iteracion considerando que el orden es por fecha de inicio
-            if(!isset($oldFechaInicio)){
-                $oldFechaInicio = new \DateTime($cotservicio->getFechaHoraInicio()->format('Y-m-d'));
-            }
 
             if(isset($newFechaInicio)){
-                $interval = $oldFechaInicio->diff($newFechaInicio);
-                $cotservicio->getFechaHoraInicio()->add($interval);
-                $cotservicio->getFechaHoraFin()->add($interval);
+                //solo en la primera iteracion considerando que el orden es por fecha de inicio
+                if(!isset($oldFechaInicio)){
+                    $oldFechaInicio = new \DateTimeImmutable($cotservicio->getFechaHoraInicio()->format('Y-m-d'));
+                    $interval = $oldFechaInicio->diff($newFechaInicio);
+                }
+                if(isset($interval)) {
+                    $cotservicio->getFechaHoraInicio()->add($interval);
+                    $cotservicio->getFechaHoraFin()->add($interval);
+                }
             }
             foreach($cotservicio->getCotcomponentes() as $cotcomponente):
                 if(isset($newFechaInicio) && isset($interval)) {
