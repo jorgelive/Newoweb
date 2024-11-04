@@ -153,7 +153,7 @@ class ObtenerReservasCommand extends Command
 
                     if($canal == ReservaChanel::DB_VALOR_AIRBNB && $event->summary != 'Airbnb (Not available)'){
 
-                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);
+                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_PAGO_TOTAL);
                         $temp['nombre'] = 'Completar Airbnb';
                         if($num_found = preg_match_all('~[a-z]+://\S+~', $event->description, $out))
                         {
@@ -206,6 +206,7 @@ class ObtenerReservasCommand extends Command
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
                         }elseif($currentReserva->getChanel()->getId() == ReservaChanel::DB_VALOR_BOOKING){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO)); //Ya no pendiente (1)
+                            $currentReserva->setNombre('Reactivado - ' . $currentReserva->getNombre());
                         }
                     }
                 }

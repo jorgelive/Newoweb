@@ -56,11 +56,11 @@ class ReservaUnitnexoAdminController extends CRUDAdminController
             ->select('rr')
             ->from('App\Entity\ReservaReserva', 'rr')
             ->where('rr.unit = :unit')
-            ->andWhere('rr.estado = :estado')
+            ->andWhere('rr.estado in :estado')
             ->andWhere('DATE(rr.fechahorafin) >= :fechahorafin')
             ->orderBy('rr.fechahorainicio', 'ASC')
             ->setParameter('unit', $id)
-            ->setParameter('estado', ReservaEstado::DB_VALOR_CONFIRMADO)
+            ->setParameter('estado', [ReservaEstado::DB_VALOR_CONFIRMADO, ReservaEstado::DB_VALOR_PAGO_PARCIAL, ReservaEstado::DB_VALOR_PAGO_TOTAL])
             ->setParameter('fechahorafin', $ahora->format('Y-m-d'));
         ;
 

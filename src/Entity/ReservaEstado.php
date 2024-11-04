@@ -19,6 +19,8 @@ class ReservaEstado
     public const DB_VALOR_PENDIENTE = 1;
     public const DB_VALOR_CONFIRMADO = 2;
     public const DB_VALOR_CANCELADO = 3;
+    public const DB_VALOR_PAGO_PARCIAL = 4;
+    public const DB_VALOR_PAGO_TOTAL = 5;
 
     /**
      * @var int
