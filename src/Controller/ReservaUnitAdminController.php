@@ -163,7 +163,7 @@ class ReservaUnitAdminController extends CRUDAdminController
             ->select('rr')
             ->from('App\Entity\ReservaReserva', 'rr')
             ->where('rr.unit = :unit')
-            ->andWhere('rr.estado in :estado')
+            ->andWhere('rr.estado in (:estado)')
             ->andWhere('DATE(rr.fechahorafin) >= :fechahorafin')
             ->orderBy('rr.fechahorainicio', 'ASC')
             ->setParameter('unit', $id)

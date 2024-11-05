@@ -120,7 +120,7 @@ class ReservaReservaAdminController extends CRUDAdminController
         $qb = $this->entityManager->createQueryBuilder()
             ->select('rr')
             ->from('App\Entity\ReservaReserva', 'rr')
-            ->where('rr.estado in :estado')
+            ->where('rr.estado in (:estado)')
             ->andWhere('DATE(rr.fechahorafin) >= :fechahorafin')
             ->orderBy('rr.fechahorainicio', 'ASC')
             ->setParameter('estado', [ReservaEstado::DB_VALOR_CONFIRMADO, ReservaEstado::DB_VALOR_PAGO_PARCIAL, ReservaEstado::DB_VALOR_PAGO_TOTAL])
