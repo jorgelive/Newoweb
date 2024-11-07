@@ -7,115 +7,143 @@
 
             <ul class="list-unstyled">
                 {% if tabs.resumen.alojamientos is defined %}
-                    {% for index_alojamiento, alojamiento in tabs.resumen.alojamientos %}
-                        <li class="col-md-12 col-xs-12 resumen-item row-line resumen-alojamiento">
 
-                            <div class="col-md-6 col-sm-6 col-xs-12">
-                                <h4 class="titulo-verde">
+                    <li class="col-md-12 col-sm-12 col-xs-12 resumen-item row-line resumen-alojamiento">
 
-                                    {% set whatsappText = whatsappText ~ '*' ~ alojamiento.duracionStr ~ ' ' ~ 'de'|trans({}, 'messages') ~ ' ' ~ alojamiento.titulo ~ '*\n' %}
-                                    {{ alojamiento.duracionStr }} {{ 'de'|trans({}, 'messages') }} {{ alojamiento.titulo }}
-                                    {% if alojamiento.tipoTarifa.id != constant('App\\Entity\\ServicioTipotarifa::DB_VALOR_NORMAL') %}
-                                        {% set whatsappText = whatsappText ~ '*(' ~ alojamiento.tipoTarifa.titulo ~ ')* ' %}
-                                        ({{ alojamiento.tipoTarifa.titulo }})
+                        <div class="col-md-12 col-sm-12 col-xs-12">
+                            {% set whatsappText = whatsappText ~ 'alojamiento'|trans({}, 'messages')|capitalize ~ '\n\n' %}
+                            <h5 class="titulo-verde">{{ 'alojamiento'|trans({}, 'messages')|capitalize}}</h5>
+                        </div>
+
+                        {% for index_alojamiento, alojamiento in tabs.resumen.alojamientos %}
+                            <div class="col-md-12 col-sm-12 col-xs-12">
+                                <div class="col-md-6 col-sm-6 col-xs-12">
+                                    <h5 style="font-weight: 600;">
+
+                                        {% if alojamiento.tipoTarifa.id != constant('App\\Entity\\ServicioTipotarifa::DB_VALOR_NORMAL') %}
+                                            {% set whatsappText = whatsappText ~ '*(' ~ alojamiento.tipoTarifa.titulo ~ ')* ' %}
+                                            <span style="color: {{ alojamiento.tipoTarifa.listacolor }};">({{ alojamiento.tipoTarifa.titulo }})</span>
+                                        {% endif %}
+
+                                        {% set whatsappText = whatsappText ~ '*' ~ alojamiento.duracionStr ~ ' ' ~ 'de'|trans({}, 'messages') ~ ' ' ~ alojamiento.titulo ~ '*\n' %}
+                                        {{ alojamiento.duracionStr }} {{ 'de'|trans({}, 'messages') }} {{ alojamiento.titulo }}
+
+                                        {% if alojamiento.tarifaTitulo is defined %}
+                                            {% set whatsappText = whatsappText ~ 'en' ~ alojamiento.tarifaTitulo ~ '\n' %}
+                                            {{ 'en'|trans({}, 'messages')}} {{ alojamiento.tarifaTitulo }}
+                                        {% endif %}
+                                    </p>
+                                    {# Si es que no pertenece al catalogo de tours #}
+                                    {% if object.file.catalogo != true %}
+                                        <p>{{ 'del'|trans({}, 'messages')|capitalize }} {{ alojamiento.fechaInicio|date('Y-m-d') }} {{ 'al'|trans({}, 'messages') }} {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
+                                        {% set whatsappText = whatsappText ~ 'del'|trans({}, 'messages')|capitalize ~ ': ' ~ alojamiento.fechaInicio|date('Y-m-d') ~ ' ' ~ 'de'|trans({}, 'messages') ~ ': ' ~ alojamiento.fechaFin|date('Y-m-d') ~ '\n' %}
                                     {% endif %}
-                                    {% if alojamiento.tarifaTitulo is defined %}
-                                        {% set whatsappText = whatsappText ~ alojamiento.tarifaTitulo ~ '\n' %}
-                                        {{ alojamiento.tarifaTitulo }}
-                                    {% endif %}
-                                </h4>
-                                {% if object.file.catalogo != true %}
-                                    <p>{{ 'del'|trans({}, 'messages')|capitalize }} {{ alojamiento.fechaInicio|date('Y-m-d') }} {{ 'al'|trans({}, 'messages') }} {{ alojamiento.fechaFin|date('Y-m-d') }}</p>
-                                    {% set whatsappText = whatsappText ~ 'del'|trans({}, 'messages')|capitalize ~ ': ' ~ alojamiento.fechaInicio|date('Y-m-d') ~ ' ' ~ 'de'|trans({}, 'messages') ~ ': ' ~ alojamiento.fechaFin|date('Y-m-d') ~ '\n' %}
-                                {% endif %}
-                                {% if alojamiento.detalles is defined %}
-                                    <ul>
-                                        {% for detalle in alojamiento.detalles %}
-                                            <li class="margin-top-10">{{ detalle }}</li>
-                                            {% set whatsappText = whatsappText ~ detalle ~ '\n' %}
-                                        {% endfor %}
-                                    </ul>
-                                {% endif %}
-                            </div>
-
-                            {% if alojamiento.proveedor is defined %}
-                                <div class="col-md-3 col-sm-6 col-xs-12">
-                                    {# ocultamos para resumen si es que tiene el flag #}
-                                    {% if action == 'show' or object.hoteloculto == false %}
-                                        <h4 style="font-weight: 600;">{{alojamiento.proveedor.nombre}}</h4>
-                                        {% set whatsappText = whatsappText ~ '*' ~ alojamiento.proveedor.nombre ~ '* \n' %}
-                                    {% endif %}
-
-                                    {% if alojamiento.proveedor.providermedios is not empty %}
-                                        <div id="carousel_{{ index_alojamiento }}" class="carousel slide" data-interval="10000" data-ride="carousel">
-                                            <!-- indicadores -->
-                                            <ol class="carousel-indicators">
-                                                {% for index_medio, medio in alojamiento.proveedor.providermedios %}
-                                                    <li data-target="#carousel_{{ index_alojamiento }}" data-slide-to="{{ index_medio }}" {% if loop.first == true  %}class="active"{% endif%}></li>
-                                                {% endfor %}
-                                            </ol>
-                                            <!-- slides -->
-                                            <div class="carousel-inner" role="listbox">
-                                                {% for medio in alojamiento.proveedor.providermedios %}
-                                                    <div class="item{% if loop.first == true  %} active{% endif%}">
-                                                        <a href="{% if medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ medio.webPath|raw }}{% else %}{{ medio.webPath|raw }}{% endif %}"{% if medio.inModal == true %} data-toggle="lightbox" data-gallery="galeria_hotel_{{ index_alojamiento }}"{% else %} target="_blank" {% endif %}>
-                                                            <img src="{% if medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ medio.webThumbPath|raw }}{% else %}{{ medio.webThumbPath|raw }}{% endif %}"
-                                                                 alt="{{ medio.titulo }}"
-                                                                 class="{% if medio.inModal == true %}in-modal{% endif %} {% if medio.aspectRatio is not null and medio.aspectRatio < 1 %}portrait{% elseif medio.aspectRatio >= 1 %}landscape{% endif %}"
-                                                            >
-                                                            <div class="carousel-caption">
-                                                                <p style="overflow-wrap: break-word;" class="small text-center">{{ medio.titulo }}</p>
-                                                            </div>
-                                                        </a>
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                            <!-- botones -->
-                                            <a class="left carousel-control" href="#carousel_{{ index_alojamiento }}" role="button" data-slide="prev">
-                                                <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
-                                                <span class="sr-only">{{ 'anterior'|trans({}, 'messages')|capitalize}}</span>
-                                            </a>
-                                            <a class="right carousel-control" href="#carousel_{{ index_alojamiento }}" role="button" data-slide="next">
-                                                <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
-                                                <span class="sr-only">{{ 'siguiente'|trans({}, 'messages')|capitalize}}</span>
-                                            </a>
-                                        </div>
+                                    {% if alojamiento.detalles is defined %}
+                                        <ul>
+                                            {% for detalle in alojamiento.detalles %}
+                                                <li class="margin-top-10">{{ detalle }}</li>
+                                                {% set whatsappText = whatsappText ~ detalle ~ '\n' %}
+                                            {% endfor %}
+                                        </ul>
                                     {% endif %}
                                 </div>
-                            {% endif %}
 
-                        </li>
-                        {% set whatsappText = whatsappText ~ '\n' %}
-                    {% endfor %}
+                                {% if alojamiento.proveedor is defined %}
+                                    <div class="col-md-6 col-sm-6 col-xs-12">
+                                        {# ocultamos para resumen si es que tiene el flag #}
+                                        {% if action == 'show' or object.hoteloculto == false %}
+                                            <h5 style="font-weight: 600;">{{alojamiento.proveedor.nombre}}</h5>
+                                            {% set whatsappText = whatsappText ~ '*' ~ alojamiento.proveedor.nombre ~ '* \n' %}
+                                        {% endif %}
+
+                                        {% if alojamiento.proveedor.providermedios is not empty %}
+                                            <div id="carousel_{{ index_alojamiento }}" class="carousel slide" data-interval="10000" data-ride="carousel">
+                                                <!-- indicadores -->
+                                                <ol class="carousel-indicators">
+                                                    {% for index_medio, medio in alojamiento.proveedor.providermedios %}
+                                                        <li data-target="#carousel_{{ index_alojamiento }}" data-slide-to="{{ index_medio }}" {% if loop.first == true  %}class="active"{% endif%}></li>
+                                                    {% endfor %}
+                                                </ol>
+                                                <!-- slides -->
+                                                <div class="carousel-inner" role="listbox">
+                                                    {% for medio in alojamiento.proveedor.providermedios %}
+                                                        <div class="item{% if loop.first == true  %} active{% endif%}">
+                                                            <a href="{% if medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ medio.webPath|raw }}{% else %}{{ medio.webPath|raw }}{% endif %}"{% if medio.inModal == true %} data-toggle="lightbox" data-gallery="galeria_hotel_{{ index_alojamiento }}"{% else %} target="_blank" {% endif %}>
+                                                                <img src="{% if medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ medio.webThumbPath|raw }}{% else %}{{ medio.webThumbPath|raw }}{% endif %}"
+                                                                     alt="{{ medio.titulo }}"
+                                                                     class="{% if medio.inModal == true %}in-modal{% endif %} {% if medio.aspectRatio is not null and medio.aspectRatio < 1 %}portrait{% elseif medio.aspectRatio >= 1 %}landscape{% endif %}"
+                                                                >
+                                                                <div class="carousel-caption">
+                                                                    <p style="overflow-wrap: break-word;" class="small text-center">{{ medio.titulo }}</p>
+                                                                </div>
+                                                            </a>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <!-- botones -->
+                                                <a class="left carousel-control" href="#carousel_{{ index_alojamiento }}" role="button" data-slide="prev">
+                                                    <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+                                                    <span class="sr-only">{{ 'anterior'|trans({}, 'messages')|capitalize}}</span>
+                                                </a>
+                                                <a class="right carousel-control" href="#carousel_{{ index_alojamiento }}" role="button" data-slide="next">
+                                                    <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                                                    <span class="sr-only">{{ 'siguiente'|trans({}, 'messages')|capitalize}}</span>
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+
+                                {% set whatsappText = whatsappText ~ '\n' %}
+                            </div>
+                        {% endfor %}
+                    </li>
                 {% endif %}
 
                 {% if tabs.resumen.serviciosConTituloItinerario is defined %}
                     {% for index_servicio, servicioConTituloItinerario in tabs.resumen.serviciosConTituloItinerario %}
-                        <li class="col-md-12 col-xs-12 resumen-item row-line resumen-servicios">
+                        <li class="col-md-12 col-sm-12 col-xs-12 resumen-item row-line resumen-servicios">
 
-                            <div class="{% if servicioConTituloItinerario.fotos is not empty %}col-md-3 col-sm-6 col-xs-12{% else %}col-md-6 col-sm-6 col-xs-12{% endif %}">
+                            <div class="col-md-6 col-sm-6 col-xs-12">
                                 {% set whatsappText = whatsappText ~ '*' ~ servicioConTituloItinerario.tituloItinerario ~ '* \n' %}
-                                <h4 class="titulo-verde">{{ servicioConTituloItinerario.tituloItinerario }}</h4>
+                                <h5 class="titulo-verde">{{ servicioConTituloItinerario.tituloItinerario }}</h5>
                                 {% if servicioConTituloItinerario.fechaInicio is defined %}
                                     {% if object.file.catalogo != true %}
-                                        {% if servicioConTituloItinerario.fechaInicio != servicioConTituloItinerario.fechaFin %}
-                                            {% set whatsappText = whatsappText ~ 'fecha_inicio'|trans({}, 'messages')|capitalize ~ ':' ~ servicioConTituloItinerario.fechaInicio|date('Y-m-d') ~ '\n' %}
-                                            {% set whatsappText = whatsappText ~ 'fecha_fin'|trans({}, 'messages')|capitalize ~ ':' ~ servicioConTituloItinerario.fechaFin|date('Y-m-d') ~ '\n' %}
-                                            <p><span style="font-weight: 600;">{{ 'fecha_inicio'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
-                                            <p><span style="font-weight: 600;">{{ 'fecha_fin'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.fechaFin|date('Y-m-d') }}</p>
+                                        {% if servicioConTituloItinerario.fechahorasdiferentes  == true %}
+                                            {% for item in servicioConTituloItinerario.items %}
+                                                {% set whatsappText = whatsappText ~ '*' ~ item.fechahoraInicio|date('Y-m-d H:i') ~ '*' ~ item.titulo ~ '\n' %}
+                                                <p><span style="font-weight: 600;">{{ item.fechahoraInicio|date('Y-m-d H:i') }}</span> {{ item.titulo }}</p>
+                                            {% endfor %}
                                         {% else %}
-                                            {% set whatsappText = whatsappText ~ 'fecha'|trans({}, 'messages')|capitalize ~ ':' ~ servicioConTituloItinerario.fechaInicio|date('Y-m-d') ~ '\n' %}
-                                            <p><span style="font-weight: 600;">{{ 'fecha'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.fechaInicio|date('Y-m-d') }}</p>
+                                            {% set whatsappText = whatsappText ~ '*' ~  'inicio'|trans({}, 'messages')|capitalize ~ '* :' ~ servicioConTituloItinerario.fechahoraInicio|date('Y-m-d H:i') ~ '\n' %}
+                                            <p><span style="font-weight: 600;">{{ 'inicio'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.fechahoraInicio|date('Y-m-d H:i') }}</p>
                                         {% endif %}
                                     {% endif %}
                                     {% if servicioConTituloItinerario.duracionStr is defined %}
+                                        {% set whatsappText = whatsappText ~ '\n *' ~ 'duracion'|trans({}, 'messages')|capitalize ~ '* :' ~ servicioConTituloItinerario.duracionStr ~ '\n' %}
                                         <p><span style="font-weight: 600;">{{ 'duracion'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.duracionStr }}</p>
                                     {% endif %}
                                 {% endif %}
                             </div>
 
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                {% apply spaceless %}
+                                    {% for tipoTarifa in servicioConTituloItinerario.tipoTarifas %}
+                                        <p class="componente-incluye margin-top-10">
+                                            <span style="font-weight: 600;">{{ tipoTarifa.tituloTipotarifa }}:</span>
+                                            {% set whatsappText = whatsappText ~ '*' ~ tipoTarifa.tituloTipotarifa ~ ':* ' %}
+                                            {% for componente in tipoTarifa.componentes %}
+                                                {% set whatsappText = whatsappText ~ componente.titulo %}
+                                                {{ componente.titulo }}{% if loop.last== false  %}, {% set whatsappText = whatsappText ~ ', ' %}{% else %}.{% set whatsappText = whatsappText ~ '.\n' %}{% endif %}
+                                            {% endfor %}
+                                        </p>
+                                    {% endfor %}
+                                {% endapply %}
+                            </div>
+
                             {% if servicioConTituloItinerario.fotos is not empty %}
-                                <div class="col-md-3 col-sm-6 col-xs-12">
+                            <div class="col-md-12 col-sm-12 col-xs-12">
+                                <div class="col-md-6 col-sm-9 col-xs-12 center-block" style="float: none;">
                                     <div id="carousel_{{ index_servicio }}" class="carousel slide margin-top-10" data-interval="10000" data-ride="carousel">
                                         <!-- indicadores -->
                                         <ol class="carousel-indicators">
@@ -150,35 +178,22 @@
                                         </a>
                                     </div>
                                 </div>
+                            </div>
                             {% endif %}
 
-                            <div class="col-md-6 col-xs-12">
-                                {% apply spaceless %}
-                                    {% for tipoTarifa in servicioConTituloItinerario.tipoTarifas %}
-                                        <p class="componente-incluye margin-top-10">
-                                            <span style="font-weight: 600;">{{ tipoTarifa.tituloTipotarifa }}:</span>
-                                            {% set whatsappText = whatsappText ~ '*' ~ tipoTarifa.tituloTipotarifa ~ ':* ' %}
-                                            {% for componente in tipoTarifa.componentes %}
-                                                {% set whatsappText = whatsappText ~ componente.titulo %}
-                                                {{ componente.titulo }}{% if loop.last== false  %}, {% set whatsappText = whatsappText ~ ', ' %}{% else %}.{% set whatsappText = whatsappText ~ '.\n' %}{% endif %}
-                                            {% endfor %}
-                                        </p>
-                                    {% endfor %}
-                                {% endapply %}
-                            </div>
+
                         </li>
                         {% set whatsappText = whatsappText ~ '\n' %}
                     {% endfor %}
                 {% endif %}
 
                 {% if tabs.resumen.serviciosSinTituloItinerario is defined %}
-                    <li class="col-md-12 col-xs-12 resumen-item row-line resumen-otros-servicios">
-                        <div class="col-md-6 col-xs-12">
+                    <li class="col-md-12 col-sm-12 col-xs-12 resumen-item row-line resumen-otros-servicios">
+                        <div class="col-md-12 col-sm-12 col-xs-12">
                             {% set whatsappText = whatsappText ~ 'otros_servicios'|trans({}, 'messages')|capitalize ~ '\n\n' %}
-                            <h4 class="titulo-verde">{{ 'otros_servicios'|trans({}, 'messages')|capitalize}}</h4>
-
+                            <h5 class="titulo-verde">{{ 'otros_servicios'|trans({}, 'messages')|capitalize}}</h5>
                         </div>
-                        <div class="col-md-6 col-xs-12">
+                        <div class="col-md-12 col-sm-12 col-xs-12">
                             {% apply spaceless %}
                                 {% for tipoTarifa in tabs.resumen.serviciosSinTituloItinerario.tipoTarifas %}
                                     <p>

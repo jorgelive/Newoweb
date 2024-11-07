@@ -15,7 +15,7 @@ use Gedmo\Mapping\Annotation as Gedmo;
 class ServicioTipocomponente
 {
 
-    public const DB_VALOR_TICKET = 1;
+    public const DB_VALOR_TICKET_HORARIO_FIJO = 1;
     public const DB_VALOR_GUIADO = 2;
     public const DB_VALOR_TRANSPORTE = 3;
     public const DB_VALOR_ALOJAMIENTO = 4;
@@ -25,6 +25,8 @@ class ServicioTipocomponente
     public const DB_VALOR_PERSONAL_EXTRA = 8;
     public const DB_VALOR_EXTRAS = 9;
     public const DB_VALOR_VUELO = 10;
+    public const DB_VALOR_TICKET_HORARIO_VARIABLE = 11;
+    public const DB_VALOR_TREN = 12;
 
     /**
      * @ORM\Column(name="id", type="integer")

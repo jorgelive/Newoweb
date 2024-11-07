@@ -19,7 +19,7 @@
                         {% for componente in proveedor.componentes %}
                             <p>
                                 {% set emailMensaje = emailMensaje ~ '<p>' %}
-                                {% if componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_TICKET')
+                                {% if componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_TICKET_HORARIO_VARIABLE')
                                     or componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_ALIMENTACION')
                                     or componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_ALOJAMIENTO')
                                     or componente.tipoComponenteId == constant('App\\Entity\\ServicioTipocomponente::DB_VALOR_EXCURSION_POOL') %} {# tickets 1 hoteles 4 pool 6#}

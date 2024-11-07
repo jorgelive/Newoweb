@@ -126,10 +126,22 @@ class CotizacionResumen
                                     $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
 
                                     foreach($componente->getComponente()->getComponenteitems() as $item){
-                                        $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['cantidadComponente'] = $componente->getCantidad();
+
+                                        //agrupamos por tipo de tarifa
                                         $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
-                                        $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listaclase'] = $tarifa->getTipotarifa()->getListaclase();
-                                        $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
+
+                                        //para la agenda de resumen, sin  agrupacion, se sobrescribiran por el indice
+                                        if(!isset($datos['serviciosConTituloItinerario'][$servicioId]['fechahorasdiferentes'])){
+                                            $datos['serviciosConTituloItinerario'][$servicioId]['fechahorasdiferentes'] = false;
+                                        }
+
+                                        if($tarifa->getTarifa()->getComponente()->getTipocomponente()->isAgendable()){
+                                            if($componente->getFechahoraInicio()->format('Y/m/d H:i') !=  $servicio->getFechahoraInicio()->format('Y/m/d H:i')){
+                                                $datos['serviciosConTituloItinerario'][$servicioId]['fechahorasdiferentes'] = true;
+                                            }
+                                            $datos['serviciosConTituloItinerario'][$servicioId]['items'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
+                                            $datos['serviciosConTituloItinerario'][$servicioId]['items'][$componente->getId() . '-' . $item->getId()]['fechahoraInicio'] = $componente->getFechahoraInicio();
+                                        }
                                     }
 
                                     //primero incluidos
