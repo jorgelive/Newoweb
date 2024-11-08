@@ -139,8 +139,9 @@ class CotizacionResumen
                                             if($componente->getFechahoraInicio()->format('Y/m/d H:i') !=  $servicio->getFechahoraInicio()->format('Y/m/d H:i')){
                                                 $datos['serviciosConTituloItinerario'][$servicioId]['fechahorasdiferentes'] = true;
                                             }
-                                            $datos['serviciosConTituloItinerario'][$servicioId]['items'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
-                                            $datos['serviciosConTituloItinerario'][$servicioId]['items'][$componente->getId() . '-' . $item->getId()]['fechahoraInicio'] = $componente->getFechahoraInicio();
+                                            $datos['serviciosConTituloItinerario'][$servicioId]['fechas'][$componente->getFechahoraInicio()->format('Ymd')]['fecha'] = $componente->getFechahoraInicio();
+                                            $datos['serviciosConTituloItinerario'][$servicioId]['fechas'][$componente->getFechahoraInicio()->format('Ymd')]['items'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
+                                            $datos['serviciosConTituloItinerario'][$servicioId]['fechas'][$componente->getFechahoraInicio()->format('Ymd')]['items'][$componente->getId() . '-' . $item->getId()]['fechahoraInicio'] = $componente->getFechahoraInicio();
                                         }
                                     }
 

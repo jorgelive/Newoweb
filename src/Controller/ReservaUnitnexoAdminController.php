@@ -76,7 +76,7 @@ class ReservaUnitnexoAdminController extends CRUDAdminController
             //algunas reservas no tienen nexo porque son directas
             if(!empty($reserva->getUnitnexo()) && in_array($reserva->getUnitnexo()->getId(), $idsNexoActual)){
                 $this->variableproceso->prependtofile('debug/reservasunitnexoicalhosts.txt', '                  Omitiendo reserva del dia: ' . $reserva->getFechahorainicio()->format('Y-m-d') . ', con id: '. $reserva->getId() . ', del nexo: ' . $reserva->getUnitnexo()->getId() . ', huesped: ' . $reserva->getNombre() ."\n");
-                //Si la consulta es del mismo nexo
+                //Si la consulta es del mismo nexo o los "related"
                 continue;
             }
 
