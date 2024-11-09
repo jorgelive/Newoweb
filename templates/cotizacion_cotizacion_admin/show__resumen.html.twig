@@ -121,12 +121,12 @@
                                                 </div>
                                             {% endfor %}
                                         {% else %}
-                                            {% set whatsappText = whatsappText ~ '\n*' ~  'inicio'|trans({}, 'messages')|capitalize ~ '* :' ~ servicioConTituloItinerario.fechahoraInicio|date('Y-m-d H:i') ~ '\n\n' %}
+                                            {% set whatsappText = whatsappText ~ '\n*' ~  'inicio'|trans({}, 'messages')|capitalize ~ '* :' ~ servicioConTituloItinerario.fechahoraInicio|date('Y-m-d H:i') ~ '\n' %}
                                             <p><span style="font-weight: 600;">{{ 'inicio'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.fechahoraInicio|date('Y-m-d') }} <span style="color: steelblue;">{{ servicioConTituloItinerario.fechahoraInicio|date('H:i') }}</span></p>
                                         {% endif %}
                                     {% endif %}
                                     {% if servicioConTituloItinerario.duracionStr is defined %}
-                                        {% set whatsappText = whatsappText ~ '*' ~ 'duracion'|trans({}, 'messages')|capitalize ~ '* :' ~ servicioConTituloItinerario.duracionStr ~ '\n' %}
+                                        {% set whatsappText = whatsappText ~ '\n*' ~ 'duracion'|trans({}, 'messages')|capitalize ~ '* :' ~ servicioConTituloItinerario.duracionStr ~ '\n' %}
                                         <p><span style="font-weight: 600;">{{ 'duracion'|trans({}, 'messages')|capitalize }}:</span> {{ servicioConTituloItinerario.duracionStr }}</p>
                                     {% endif %}
                                 {% endif %}

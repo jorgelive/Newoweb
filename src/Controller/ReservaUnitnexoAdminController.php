@@ -89,7 +89,7 @@ class ReservaUnitnexoAdminController extends CRUDAdminController
                 ->setEnd($fechafin)
                 ->setSummary($reserva->getNombre())
                 ->setDescription($reserva->getEnlace())
-                ->setUid($reserva->getUid());
+                ->setUid($id . '-' . $reserva->getUid());
             $calendar->addEvent($tempEvent);
         }
         $status = Response::HTTP_OK;
