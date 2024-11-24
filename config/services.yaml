@@ -322,6 +322,11 @@ services:
         tags:
             - { name: kernel.event_listener, event: kernel.controller, method: onControllerRequest }
 
+    app.eventListener_kernel_request_kernel_event_listener:
+        class: App\EventListener\KernelRequestKernelEventListener
+        tags:
+            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest,  priority: 101 }
+
     app.admin.comprobantecomprobante:
         class: App\Admin\ComprobanteComprobanteAdmin
         tags:
