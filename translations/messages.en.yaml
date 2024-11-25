@@ -43,12 +43,12 @@ tarifa_en_soles_al_tipo_de_cambio_referencial_de: the price in soles is at the e
 del_dia: of
 tickets_y_documentos: tickets and documents
 varios: others
-alojamiento: lodging
+alojamiento: accommodation
 cualquier_nacionalidad: any country
 total: total
 dias: days
 noches: nights
-fecha_ingreso: check_in
+fecha_ingreso: check-in
 desde: from
 fecha_salida: check-out
 hasta: to
@@ -67,3 +67,5 @@ noche: night
 anterior: prev
 siguiente: next
 duracion: duration
+referencia: reference
+direccion: address

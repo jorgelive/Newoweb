@@ -1,6 +1,6 @@
 sonata_translation:
     locales: ['en', 'es']
-    default_locale: 'en'
+    default_locale: 'es'
     locale_switcher: true
     # change default behavior for translated field filtering.
     default_filter_mode: 'gedmo' # must be either 'gedmo' or 'knplabs', default: gedmo

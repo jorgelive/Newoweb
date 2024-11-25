@@ -50,6 +50,11 @@ class ServicioItinerariodia
     private ?string $titulo = null;
 
     /**
+     * @ORM\Column(type="string", columnDefinition= "varchar(100) AS (titulo) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
+     */
+    private ?string $titulooriginal = null;
+
+    /**
      * @ORM\Column(type="boolean", options={"default": 0})
      */
     private ?bool $importante = false;
@@ -59,6 +64,11 @@ class ServicioItinerariodia
      * @ORM\Column(type="text", nullable=true)
      */
     private ?string $contenido = null;
+
+    /**
+     * @ORM\Column(type="text", columnDefinition= "longtext AS (contenido) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
+     */
+    private ?string $contenidooriginal = null;
 
     /**
      * @Gedmo\Timestampable(on="create")
@@ -169,6 +179,11 @@ class ServicioItinerariodia
         return $this->titulo;
     }
 
+    public function getTitulooriginal(): ?string
+    {
+        return $this->titulooriginal;
+    }
+
     public function setContenido(?string $contenido): self
     {
         $this->contenido = $contenido;
@@ -179,6 +194,11 @@ class ServicioItinerariodia
     public function getContenido(): ?string
     {
         return $this->contenido;
+    }
+
+    public function getContenidooriginal(): ?string
+    {
+        return $this->contenidooriginal;
     }
 
     public function setCreado(?\DateTime $creado): self

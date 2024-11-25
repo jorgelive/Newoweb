@@ -67,3 +67,5 @@ noche: noche
 anterior: anterior
 siguiente: siguiente
 duracion: 'duración'
+referencia: referencia
+direccion: 'dirección'

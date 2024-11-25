@@ -89,9 +89,12 @@
                         </tbody>
                     </table>
                     <div class="box-body container-fluid">
+                        {% if object.resumen is not null and object.resumen is not empty%}
                         <div class="resumen-text ck-content">{{ object.resumen|raw }}</div>
-                        {% if app.request.locale != app.request.defaultLocale %}
-                            <div style="opacity: 0.6;" class="resumen-text ck-content">{{ object.resumenoriginal|raw }}</div>
+                        {% else %}
+                            {% if app.request.locale != app.request.defaultLocale %}
+                                <div style="opacity: 0.6;" class="resumen-text ck-content">{{ object.resumenoriginal|raw }}</div>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>

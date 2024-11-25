@@ -64,12 +64,29 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
             ->add('dia')
             ->add('titulo', null, [
                 'label' => 'Título'
-            ])
-            ->add('importante')
+            ]);
+
+        if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+            $listMapper
+                ->add('titulooriginal', null, [
+                    'label' => 'Título original',
+                    'template' => 'base_sonata_admin/list_html.html.twig'
+                ]);
+        }
+
+        $listMapper->add('importante')
             ->add('contenido', null, [
                 'template' => 'base_sonata_admin/list_html.html.twig'
-            ])
-            ->add(ListMapper::NAME_ACTIONS, null, [
+            ]);
+
+        if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+            $listMapper
+                ->add('contenidooriginal', null, [
+                    'label' => 'Contenido original',
+                    'template' => 'base_sonata_admin/list_html.html.twig'
+                ]);
+        }
+        $listMapper->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
@@ -100,13 +117,30 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
             ->add('dia')
             ->add('titulo', null, [
                 'label' => 'Título'
-            ])
-            ->add('importante')
+            ]);
+            if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()){
+                $formMapper
+                    ->add('titulooriginal', null, [
+                        'label' => 'Título original',
+                        'disabled' => true
+                    ]);
+            }
+            $formMapper->add('importante')
             ->add('contenido', null, [
                 'required' => false,
                 'attr' => ['class' => 'ckeditor']
-            ])
-            ->add('itidiaarchivos', CollectionType::class, [
+            ]);
+
+            if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+                $formMapper
+                    ->add('contenidooriginal', null, [
+                        'label' => 'Contenido original',
+                        'attr' => ['class' => 'ckeditorread'],
+                        'disabled' => true
+                    ]);
+            }
+
+            $formMapper->add('itidiaarchivos', CollectionType::class, [
                 'by_reference' => false,
                 'label' => 'Archivos'
             ], [
@@ -130,12 +164,25 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
             ])
             ->add('titulo', null, [
                 'label' => 'Título'
-            ])
-            ->add('importante')
+            ]);
+            if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()){
+                $showMapper
+                    ->add('titulooriginal', null, [
+                        'label' => 'Título original',
+                    ]);
+            }
+            $showMapper->add('importante')
             ->add('contenido', null, [
                 'safe' => true
-            ])
-            ->add('itidiaarchivos', null, [
+            ]);
+            if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()){
+                $showMapper
+                    ->add('contenidooriginal', null, [
+                        'label' => 'Contenido original',
+                        'safe' => true
+                    ]);
+            }
+            $showMapper->add('itidiaarchivos', null, [
                 'label' => 'Multimedia',
                 'associated_property' => 'medio'
             ])

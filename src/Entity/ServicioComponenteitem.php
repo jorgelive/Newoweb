@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -20,78 +21,65 @@ class ServicioComponenteitem
 {
 
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var ArrayCollection
-     *
      * @ORM\OneToMany(targetEntity="ServicioComponenteitemTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
-    protected $translations;
+    protected Collection $translations;
 
     /**
-     * @var string
-     *
      * @Gedmo\Translatable
      * @ORM\Column(type="string", length=160, nullable=true)
      */
-    private $titulo;
+    private ?string $titulo = null;
 
     /**
-     * @var bool
-     *
+     * @ORM\Column(type="string", columnDefinition= "varchar(160) AS (titulo) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
+     */
+    private ?string $titulooriginal = null;
+
+    /**
      * @ORM\Column(type="boolean", options={"default": 0})
      */
-    private $nomostrartarifa;
+    private ?bool $nomostrartarifa = false;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(type="boolean", options={"default": 0})
      */
-    private $nomostrarmodalidadtarifa;
+    private ?bool $nomostrarmodalidadtarifa = false;
 
     /**
-     * @var bool
-     *
      * @ORM\Column(type="boolean", options={"default": 0})
      */
-    private $nomostrarcategoriatour;
+    private ?bool $nomostrarcategoriatour =  false;
 
     /**
-     * @var \App\Entity\ServicioComponente
-     *
      * @ORM\ManyToOne(targetEntity="ServicioComponente", inversedBy="componenteitems")
      * @ORM\JoinColumn(name="componente_id", referencedColumnName="id", nullable=false)
      */
-    protected $componente;
+    protected ?ServicioComponente $componente;
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
     /**
      * @Gedmo\Locale
      */
-    private $locale;
+    private ?string $locale = null;
 
     public function __construct()
     {
@@ -149,6 +137,11 @@ class ServicioComponenteitem
     public function getTitulo(): ?string
     {
         return $this->titulo;
+    }
+
+    public function getTitulooriginal(): ?string
+    {
+        return $this->titulooriginal;
     }
 
     public function setNomostrartarifa(?bool $nomostrartarifa): self

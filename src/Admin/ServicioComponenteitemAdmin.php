@@ -60,7 +60,16 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
             ->add('titulo', null, [
                 'label' => 'Título',
                 'editable' => true
-            ])
+            ]);
+            if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+                $listMapper
+                    ->add('titulooriginal', null, [
+                        'label' => 'Título original',
+                        'template' => 'base_sonata_admin/list_html.html.twig'
+                    ]);
+            }
+
+        $listMapper
             ->add('nomostrartarifa', null, [
                 'label' => 'No mostrar tar',
                 'editable' => true
@@ -100,7 +109,17 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
         $formMapper
             ->add('titulo', null, [
                 'label' => 'Título'
-            ])
+            ]);
+
+            if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()){
+                $formMapper
+                    ->add('titulooriginal', null, [
+                        'label' => 'Título original',
+                        'disabled' => true
+                    ]);
+            }
+
+        $formMapper
             ->add('nomostrartarifa', null, [
                 'label' => 'No mostrar tar'
             ])
@@ -122,6 +141,17 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
                     ]
                 ])
             ;
+
+            if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()){
+                $form
+                    ->add('titulooriginal', null, [
+                        'label' => 'Título original',
+                        'attr' => [
+                            'style' => 'width: 300px;'
+                        ],
+                        'disabled' => true
+                    ]);
+            }
         };
 
         $formBuilder = $formMapper->getFormBuilder();
@@ -150,7 +180,16 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
             ])
             ->add('titulo', null, [
                 'label' => 'Título'
-            ])
+            ]);
+
+        if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()){
+            $showMapper
+                ->add('titulooriginal', null, [
+                    'label' => 'Título original',
+                ]);
+        }
+
+        $showMapper
             ->add('nomostrartarifa', null, [
                 'label' => 'No mostrar tar'
             ])
