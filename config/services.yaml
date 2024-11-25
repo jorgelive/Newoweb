@@ -905,12 +905,12 @@ services:
             - [ setTemplate, [show, reserva_reserva_admin/show.html.twig]]
         public: true
 
-    app.admin.reservachanel:
-        class: App\Admin\ReservaChanelAdmin
+    app.admin.reservachannel:
+        class: App\Admin\ReservaChannelAdmin
         tags:
             -
                 name: sonata.admin
-                model_class: App\Entity\ReservaChanel
+                model_class: App\Entity\ReservaChannel
                 manager_type: orm
                 group: Reserva
                 label: Canal de reserva

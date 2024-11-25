@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\ReservaChanel;
+use App\Entity\ReservaChannel;
 use App\Service\IcalGenerator;
 use App\Service\MainVariableproceso;
 use App\Entity\ReservaEstado;
@@ -181,7 +181,7 @@ class ReservaUnitAdminController extends CRUDAdminController
 
         foreach($reservas as $reserva){
 
-            /*if($reserva->getChanel()->getId() == ReservaChanel::DB_VALOR_BOOKING && str_contains($queriedfrom, 'booking.com')){
+            /*if($reserva->getChannel()->getId() == ReservaChannel::DB_VALOR_BOOKING && str_contains($queriedfrom, 'booking.com')){
                 $variableproceso->prependtofile('debug/reservasuniticalhosts.txt', $ahora->format('Y-m-d H:i:s') . '         Omitiendo reserva de Booking.com para ' . $reserva->getFechahorainicio()->format('Y-m-d') . ', con id: '. $reserva->getId() . "\n");
                 //Si la consulta es de booking y la reserva es de booking no la mostramos
                 continue;

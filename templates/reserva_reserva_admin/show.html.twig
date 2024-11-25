@@ -41,7 +41,7 @@
                             </tr>
                             <tr class="sonata-ba-view-container">
                                 <th>{{ 'canal'|trans({}, 'messages')|capitalize}}</th>
-                                <td>{{ object.chanel.nombre }} ({{ object.estado.nombre|trans({}, 'messages') }})</td>
+                                <td>{{ object.channel.nombre }} ({{ object.estado.nombre|trans({}, 'messages') }})</td>
                             </tr>
                             {% if action != 'resumen' and object.enlace is not empty %}
                                 <tr class="sonata-ba-view-container">
@@ -74,7 +74,7 @@
                                             <i class="fa fa-whatsapp" aria-hidden="true"></i>
                                             Whatsapp
                                         </a>
-                                        {% if object.chanel.id == constant('App\\Entity\\ReservaChanel::DB_VALOR_BOOKING') and object.nota is empty %}
+                                        {% if object.channel.id == constant('App\\Entity\\ReservaChannel::DB_VALOR_BOOKING') and object.nota is empty %}
                                             {% set whatsappText = 'Hola ' ~ object.nombre ~ ', muchas gracias por su reserva!.\n\n' %}
                                             {% set whatsappText = whatsappText ~ 'Para reconfirmar su reserva le solicitamos que nos brinde su *número de vuelo* o *medio de transporte* y *hora de llegada* a las Casitas del Centro Histórico Cusco / Apartamentos Centro Cusco Inti para programar la entrega de las llaves, lo puede hacer respondiendo a este mensaje.\n\n' %}
                                             {% set whatsappText = whatsappText ~ 'Nosotros brindamos *traslados y tours* a nuestros huéspedes con tarifas especiales y damos *asesoría gratuita*.\n\n' %}

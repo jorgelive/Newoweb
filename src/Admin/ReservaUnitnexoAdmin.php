@@ -20,7 +20,7 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
             ->add('unit',  null, [
                 'label' => 'Unidad'
             ])
-            ->add('chanel', null, [
+            ->add('channel', null, [
                 'label' => 'Canal'
             ])
             ->add('enlace')
@@ -38,7 +38,7 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
             ->add('unit',  null, [
                 'label' => 'Unidad'
             ])
-            ->add('chanel', null, [
+            ->add('channel', null, [
                 'label' => 'Canal'
             ])
             ->add('enlace', null, [
@@ -69,7 +69,7 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
             ->add('unit',  null, [
                 'label' => 'Unidad'
             ])
-            ->add('chanel', null, [
+            ->add('channel', null, [
                 'label' => 'Canal'
             ])
             ->add('enlace')
@@ -88,7 +88,7 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
             ->add('unit',  null, [
                 'label' => 'Unidad'
             ])
-            ->add('chanel', null, [
+            ->add('channel', null, [
                 'label' => 'Canal'
             ])
             ->add('enlace')

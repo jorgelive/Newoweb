@@ -41,12 +41,12 @@ class ReservaUnitnexo
     private $related;
 
     /**
-     * @var \App\Entity\ReservaChanel
+     * @var \App\Entity\ReservaChannel
      *
-     * @ORM\ManyToOne(targetEntity="ReservaChanel", inversedBy="unitnexos")
-     * @ORM\JoinColumn(name="chanel_id", referencedColumnName="id", nullable=false)
+     * @ORM\ManyToOne(targetEntity="ReservaChannel", inversedBy="unitnexos")
+     * @ORM\JoinColumn(name="channel_id", referencedColumnName="id", nullable=false)
      */
-    protected $chanel;
+    protected $channel;
 
     /**
      * @var \App\Entity\ReservaUnit
@@ -95,7 +95,7 @@ class ReservaUnitnexo
      */
     public function __toString()
     {
-        return $this->getChanel()->getNombre() . ' : ' . $this->getEnlace();
+        return $this->getChannel()->getNombre() . ' : ' . $this->getEnlace();
     }
 
     public function getId(): ?int
@@ -163,14 +163,14 @@ class ReservaUnitnexo
         return $this;
     }
 
-    public function getChanel(): ?ReservaChanel
+    public function getChannel(): ?ReservaChannel
     {
-        return $this->chanel;
+        return $this->channel;
     }
 
-    public function setChanel(?ReservaChanel $chanel): self
+    public function setChannel(?ReservaChannel $channel): self
     {
-        $this->chanel = $chanel;
+        $this->channel = $channel;
 
         return $this;
     }

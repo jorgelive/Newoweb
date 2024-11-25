@@ -2,7 +2,7 @@
 
 namespace App\Admin;
 
-use App\Entity\ReservaChanel;
+use App\Entity\ReservaChannel;
 use App\Entity\ReservaEstado;
 use App\Entity\ReservaUnit;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
@@ -91,7 +91,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('unit', null, [
                 'label' => 'Alojamiento'
             ])
-            ->add('chanel', null, [
+            ->add('channel', null, [
                 'label' => 'Canal'
             ])
             ->add('manual')
@@ -235,18 +235,18 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Nota',
                 'editable' => true
             ])
-            ->add('chanel', FieldDescriptionInterface::TYPE_CHOICE, [
+            ->add('channel', FieldDescriptionInterface::TYPE_CHOICE, [
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
-                'sort_parent_association_mappings' => [['fieldName' => 'chanel']],
+                'sort_parent_association_mappings' => [['fieldName' => 'channel']],
                 'label' => 'Canal',
                 'editable' => true,
-                'class' => 'App\Entity\ReservaChanel',
+                'class' => 'App\Entity\ReservaChannel',
                 'required' => true,
                 'choices' => [
-                    ReservaChanel::DB_VALOR_DIRECTO => 'Directo',
-                    ReservaChanel::DB_VALOR_AIRBNB => 'Airbnb',
-                    ReservaChanel::DB_VALOR_BOOKING => 'Booking'
+                    ReservaChannel::DB_VALOR_DIRECTO => 'Directo',
+                    ReservaChannel::DB_VALOR_AIRBNB => 'Airbnb',
+                    ReservaChannel::DB_VALOR_BOOKING => 'Booking'
                 ]
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
@@ -337,7 +337,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('cantidadninos', null, [
                 'label' => 'Niños'
             ])
-            ->add('chanel', null, [
+            ->add('channel', null, [
                 'label' => 'Canal'
             ])
             ->add('enlace')
@@ -379,7 +379,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('unit', null, [
                 'label' => 'Alojamiento'
             ])
-            ->add('chanel', null, [
+            ->add('channel', null, [
                 'label' => 'Canal'
             ])
             ->add('estado')

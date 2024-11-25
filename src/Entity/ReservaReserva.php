@@ -70,10 +70,10 @@ class ReservaReserva
     private bool $manual = true;
 
     /**
-     * @ORM\ManyToOne(targetEntity="ReservaChanel", inversedBy="reservas")
-     * @ORM\JoinColumn(name="chanel_id", referencedColumnName="id", nullable=false)
+     * @ORM\ManyToOne(targetEntity="ReservaChannel", inversedBy="reservas")
+     * @ORM\JoinColumn(name="channel_id", referencedColumnName="id", nullable=false)
      */
-    private ?ReservaChanel $chanel;
+    private ?ReservaChannel $channel;
 
     /**
      * @ORM\ManyToOne(targetEntity="ReservaUnitnexo", inversedBy="reservas")
@@ -154,7 +154,7 @@ class ReservaReserva
 
     public function __toString(): string
     {
-        return sprintf("%s: %s - %s", $this->getFechahorainicio()->format('Y/m/d'), $this->getChanel()->getNombre(), $this->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        return sprintf("%s: %s - %s", $this->getFechahorainicio()->format('Y/m/d'), $this->getChannel()->getNombre(), $this->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
     public function getId(): ?int
@@ -188,7 +188,7 @@ class ReservaReserva
 
     public function getResumen(): ?string
     {
-        return sprintf('%s %s: %s %s', substr($this->getChanel()->getNombre(), 0, 1), $this->getNombre(), $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
+        return sprintf('%s %s: %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getNombre(), $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
     }
 
     public function getNombre(): ?string
@@ -323,14 +323,14 @@ class ReservaReserva
         return $this;
     }
 
-    public function getChanel(): ?ReservaChanel
+    public function getChannel(): ?ReservaChannel
     {
-        return $this->chanel;
+        return $this->channel;
     }
 
-    public function setChanel(?ReservaChanel $chanel): self
+    public function setChannel(?ReservaChannel $channel): self
     {
-        $this->chanel = $chanel;
+        $this->channel = $channel;
 
         return $this;
     }

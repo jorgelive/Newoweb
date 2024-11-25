@@ -2,7 +2,7 @@
 namespace App\Command;
 
 use App\Entity\ReservaEstado;
-use Proxies\__CG__\App\Entity\ReservaChanel;
+use Proxies\__CG__\App\Entity\ReservaChannel;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -67,11 +67,11 @@ class ObtenerReservasCommand extends Command
                     ->select('rr')
                     ->from('App\Entity\ReservaReserva', 'rr')
                     ->where('rr.unitnexo = :unitnexo')                    
-                    ->andWhere('rr.chanel = :chanel')
+                    ->andWhere('rr.channel = :channel')
                     ->andWhere('rr.unit = :unit')
                     ->andWhere('DATE(rr.fechahorainicio) >= :fechahorainicio')
                     ->setParameter('unitnexo', $nexo->getId())
-                    ->setParameter('chanel', $nexo->getChanel()->getId())
+                    ->setParameter('channel', $nexo->getChannel()->getId())
                     ->setParameter('unit', $nexo->getUnit()->getId())
                     ->setParameter('fechahorainicio', $ahora->format('Y-m-d'));
 
@@ -86,7 +86,7 @@ class ObtenerReservasCommand extends Command
                     continue;
                 }
 
-                $canal = $nexo->getChanel()->getId(); //2: Airbnb 3:Booking
+                $canal = $nexo->getChannel()->getId(); //2: Airbnb 3:Booking
                 $unidad = $nexo->getUnit();
                 $establecimiento = $nexo->getUnit()->getEstablecimiento();
 
@@ -101,7 +101,7 @@ class ObtenerReservasCommand extends Command
                     //Puede haber más de una reserva con el mismo uid (gracias booking!) por lo que reemplazamos el findOneBy por findBy
                     $existentes = $this->entityManager->getRepository("App\Entity\ReservaReserva")->findBy(['uid' => $event->uid]);
 
-                    if(in_array($event->uid, $uidsArray) && $nexo->getChanel()->getId() == ReservaChanel::DB_VALOR_BOOKING){
+                    if(in_array($event->uid, $uidsArray) && $nexo->getChannel()->getId() == ReservaChannel::DB_VALOR_BOOKING){
 
                         if(count($existentes) > 0) {
                             //si ya existe lo pongo manual la no envío la alerta, como es una array hago bucle, solo debería haber un valor
@@ -151,7 +151,7 @@ class ObtenerReservasCommand extends Command
                     $temp['fechahorainicio'] = new \DateTime($event->dtstart . ' ' . $establecimiento->getCheckin());
                     $temp['fechahorafin'] = new \DateTime($event->dtend . ' ' . $establecimiento->getCheckout());
 
-                    if($canal == ReservaChanel::DB_VALOR_AIRBNB && $event->summary != 'Airbnb (Not available)'){
+                    if($canal == ReservaChannel::DB_VALOR_AIRBNB && $event->summary != 'Airbnb (Not available)'){
 
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_PAGO_TOTAL);
                         $temp['nombre'] = 'Completar Airbnb';
@@ -160,7 +160,7 @@ class ObtenerReservasCommand extends Command
                             $temp['enlace'] = $out[0][0];
                         }
                         $insertar = true;
-                    }elseif($canal == ReservaChanel::DB_VALOR_BOOKING){
+                    }elseif($canal == ReservaChannel::DB_VALOR_BOOKING){
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);  //ya no Pendiente (1)
                         $temp['nombre'] = str_replace('CLOSED - Not available', '', $event->summary) . 'Completar Booking';
                         $temp['enlace'] = '';
@@ -169,7 +169,7 @@ class ObtenerReservasCommand extends Command
 
                     if($insertar === true){
                         $reserva = new ReservaReserva();
-                        $reserva->setChanel($nexo->getChanel());
+                        $reserva->setChannel($nexo->getChannel());
                         $reserva->setUnitnexo($nexo);
                         $reserva->setUnit($unidad);
                         $reserva->setEstado($temp['estado']);
@@ -197,14 +197,14 @@ class ObtenerReservasCommand extends Command
                         //cancelamos la reserva si ya no esta presente
                         if($currentReserva->getEstado()->getId() != 3){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CANCELADO));
-                            $output->writeln(sprintf('Cancelando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
+                            $output->writeln(sprintf('Cancelando la reserva de %s: %s' , $currentReserva->getChannel()->getNombre(), $currentReserva->getNombre()));
                         }
                     }elseif($currentReserva->getEstado()->getId() == ReservaEstado::DB_VALOR_CANCELADO){
                         //reponemos si la desaparición fue temporal
-                        $output->writeln(sprintf('Reactivando la reserva de %s: %s' , $currentReserva->getChanel()->getNombre(), $currentReserva->getNombre()));
-                        if($currentReserva->getChanel()->getId() == ReservaChanel::DB_VALOR_AIRBNB){
+                        $output->writeln(sprintf('Reactivando la reserva de %s: %s' , $currentReserva->getChannel()->getNombre(), $currentReserva->getNombre()));
+                        if($currentReserva->getChannel()->getId() == ReservaChannel::DB_VALOR_AIRBNB){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
-                        }elseif($currentReserva->getChanel()->getId() == ReservaChanel::DB_VALOR_BOOKING){
+                        }elseif($currentReserva->getChannel()->getId() == ReservaChannel::DB_VALOR_BOOKING){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO)); //Ya no pendiente (1)
                             $currentReserva->setNombre('Reactivado - ' . $currentReserva->getNombre());
                         }

@@ -1,4 +1,4 @@
-{% if admin.isGranted('show', object) and admin.hasRoute('resumen') and object.telefono is not empty and object.chanel.id == constant('App\\Entity\\ReservaChanel::DB_VALOR_BOOKING') and object.nota is empty %}
+{% if admin.isGranted('show', object) and admin.hasRoute('resumen') and object.telefono is not empty and object.channel.id == constant('App\\Entity\\ReservaChannel::DB_VALOR_BOOKING') and object.nota is empty %}
     {% set whatsappText = 'Hola ' ~ object.nombre ~ ', muchas gracias por su reserva!.\n\n' %}
     {% set whatsappText = whatsappText ~ 'Encantados de poder tenerlos en nuestras Casita Centro Cusco Inti.\n\n' %}
     {% set whatsappText = whatsappText ~ 'Para re-confirmar su reserva le solicitamos hacer un prepago de 50 soles o 15 dólares.\n' %}

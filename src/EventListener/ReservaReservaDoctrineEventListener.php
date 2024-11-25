@@ -1,7 +1,7 @@
 <?php
 namespace App\EventListener;
 
-use App\Entity\ReservaChanel;
+use App\Entity\ReservaChannel;
 use App\Entity\ReservaReserva;
 use Doctrine\ORM\Event\LifecycleEventArgs;
 use App\Service\MainVariableproceso;
@@ -26,14 +26,14 @@ class ReservaReservaDoctrineEventListener
             $entity->setToken(mt_rand());
 
             if(empty($entity->getUid())){
-                $entity->setUid(sprintf('%06d', $entity->getUnit()->getId()) . '-' . sprintf('%06d', $entity->getChanel()->getId()) . '-' . sprintf('%012d', mt_rand()) . '@openperu.pe');
+                $entity->setUid(sprintf('%06d', $entity->getUnit()->getId()) . '-' . sprintf('%06d', $entity->getChannel()->getId()) . '-' . sprintf('%012d', mt_rand()) . '@openperu.pe');
             }
 
             if(!empty($entity->getEnlace())){
                 $entity->setEnlace($this->cleanUrl($entity->getEnlace()));
             }
 
-            if($entity->getChanel()->getId() == ReservaChanel::DB_VALOR_DIRECTO){
+            if($entity->getChannel()->getId() == ReservaChannel::DB_VALOR_DIRECTO){
                 $entity->setManual(true);
             }
 
@@ -49,7 +49,7 @@ class ReservaReservaDoctrineEventListener
                 $entity->setEnlace($this->cleanUrl($entity->getEnlace()));
             }
 
-            if($entity->getChanel()->getId() == ReservaChanel::DB_VALOR_DIRECTO){
+            if($entity->getChannel()->getId() == ReservaChannel::DB_VALOR_DIRECTO){
                 $entity->setManual(true);
             }
         }

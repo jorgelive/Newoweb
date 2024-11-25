@@ -9,7 +9,7 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
-class ReservaChanelAdmin extends AbstractAdmin
+class ReservaChannelAdmin extends AbstractAdmin
 {
 
     /**

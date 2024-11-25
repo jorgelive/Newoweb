@@ -70,7 +70,7 @@ class ReservaUnitnexoAdminController extends CRUDAdminController
 
         $queriedfrom = gethostbyaddr($request->getClientIp());
 
-        $this->variableproceso->prependtofile('debug/reservasunitnexoicalhosts.txt', $ahora->format('Y-m-d H:i:s') . ' Para: ' . $this->reservaUnitnexo->getUnit()->getEstablecimiento()->getNombre() . ' '. $this->reservaUnitnexo->getUnit()->getNombre() . ' (unidad:' . $id . ')'. ', canal: '. $this->reservaUnitnexo->getChanel()->getNombre() . ', nexo: ' . $this->reservaUnitnexo->getId() . ', desde: ' . $queriedfrom . "\n");
+        $this->variableproceso->prependtofile('debug/reservasunitnexoicalhosts.txt', $ahora->format('Y-m-d H:i:s') . ' Para: ' . $this->reservaUnitnexo->getUnit()->getEstablecimiento()->getNombre() . ' '. $this->reservaUnitnexo->getUnit()->getNombre() . ' (unidad:' . $id . ')'. ', canal: '. $this->reservaUnitnexo->getChannel()->getNombre() . ', nexo: ' . $this->reservaUnitnexo->getId() . ', desde: ' . $queriedfrom . "\n");
 
         foreach($reservas as $reserva){
             //algunas reservas no tienen nexo porque son directas

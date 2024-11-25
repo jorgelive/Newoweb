@@ -9,12 +9,12 @@ use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\Common\Collections\ArrayCollection;
 
 /**
- * ReservaChanel
+ * ReservaChannel
  *
- * @ORM\Table(name="res_chanel")
+ * @ORM\Table(name="res_channel")
  * @ORM\Entity
  */
-class ReservaChanel
+class ReservaChannel
 {
 
     public const DB_VALOR_DIRECTO = 1;
@@ -40,14 +40,14 @@ class ReservaChanel
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="chanel", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="channel", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $reservas;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
      *
-     * @ORM\OneToMany(targetEntity="ReservaUnitnexo", mappedBy="chanel", cascade={"persist","remove"}, orphanRemoval=true)
+     * @ORM\OneToMany(targetEntity="ReservaUnitnexo", mappedBy="channel", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $unitnexos;
 
@@ -133,7 +133,7 @@ class ReservaChanel
     {
         if(!$this->reservas->contains($reserva)) {
             $this->reservas[] = $reserva;
-            $reserva->setChanel($this);
+            $reserva->setChannel($this);
         }
 
         return $this;
@@ -143,8 +143,8 @@ class ReservaChanel
     {
         if($this->reservas->removeElement($reserva)) {
             // set the owning side to null (unless already changed)
-            if($reserva->getChanel() === $this) {
-                $reserva->setChanel(null);
+            if($reserva->getChannel() === $this) {
+                $reserva->setChannel(null);
             }
         }
 
@@ -163,7 +163,7 @@ class ReservaChanel
     {
         if(!$this->unitnexos->contains($unitnexo)) {
             $this->unitnexos[] = $unitnexo;
-            $unitnexo->setChanel($this);
+            $unitnexo->setChannel($this);
         }
 
         return $this;
@@ -173,8 +173,8 @@ class ReservaChanel
     {
         if($this->unitnexos->removeElement($unitnexo)) {
             // set the owning side to null (unless already changed)
-            if($unitnexo->getChanel() === $this) {
-                $unitnexo->setChanel(null);
+            if($unitnexo->getChannel() === $this) {
+                $unitnexo->setChannel(null);
             }
         }
 

@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\ReservaChanel;
+use App\Entity\ReservaChannel;
 use App\Entity\ReservaEstado;
 use App\Service\IcalGenerator;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -68,7 +68,7 @@ class ReservaReservaAdminController extends CRUDAdminController
         $newObject = clone $object;
 
         $newObject->setUid('cl-' . $object->getUid());
-        $newObject->setChanel($this->entityManager->getReference('App\Entity\ReservaChanel', ReservaChanel::DB_VALOR_DIRECTO));
+        $newObject->setChannel($this->entityManager->getReference('App\Entity\ReservaChannel', ReservaChannel::DB_VALOR_DIRECTO));
         $newObject->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
         $newObject->setUnitnexo(null);
 
@@ -100,7 +100,7 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $newObject->setFechahorainicio($nuevaFechaInicial);
         $newObject->setUid('ad-' . $object->getUid());
-        $newObject->setChanel($this->entityManager->getReference('App\Entity\ReservaChanel', ReservaChanel::DB_VALOR_DIRECTO));
+        $newObject->setChannel($this->entityManager->getReference('App\Entity\ReservaChannel', ReservaChannel::DB_VALOR_DIRECTO));
         $newObject->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
         $newObject->setUnitnexo(null);
         $newObject->setFechahorafin($nuevaFechaFinal);
