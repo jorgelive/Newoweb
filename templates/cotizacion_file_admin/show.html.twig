@@ -150,7 +150,7 @@
                             <div class="panel-heading">
                                 <h5 class="panel-title">
                                     <a data-toggle="collapse" data-parent="#accordion" href="#collapse2">
-                                        Documentos
+                                        {{ 'tickets_y_documentos' | trans({},'messages') | capitalize }}
                                     </a>
                                 </h5>
                             </div>
@@ -266,10 +266,10 @@
 
                                                     <div style="text-align: right;" class="margin-bottom-10 col-md-12 col-sm-12 col-xs-12">
                                                         {% if object.catalogo == false %}
-                                                            <p class="fechas-mono">Fecha inicio:{{ cotizacion.fechaingreso|date('Y-m-d') }}</p>
+                                                            <p class="fechas-mono">{{ 'fecha_inicio'|trans({},'messages')|capitalize}}:{{ cotizacion.fechaingreso|date('Y-m-d') }}</p>
                                                         {% endif %}
                                                         {% if object.catalogo == false or action != 'resumen' %}
-                                                            <p class="fechas-mono">Fecha cotización:{{ cotizacion.fecha|date('Y-m-d') }}</p>
+                                                            <p class="fechas-mono">{{ 'fecha_cotizacion'|trans({},'messages')|capitalize}}:{{ cotizacion.fecha|date('Y-m-d') }}</p>
                                                         {% endif %}
                                                     </div>
 
@@ -277,16 +277,16 @@
                                                         <div class="btn-group">
                                                             <a class="btn btn-sm btn-primary view_link" href="{{ path('admin_app_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">
                                                                 <i class="fa fa-info" aria-hidden="true"></i>
-                                                                {% if action != 'resumen' %}Resumen{% else %}Mostrar{% endif %}
+                                                                {% if action != 'resumen' %}{{ 'resumen'|trans({},'messages')|capitalize}}{% else %}{{ 'mostrar'|trans({},'messages')|capitalize}}{% endif %}
                                                             </a>
                                                             {% if action != 'resumen' %}
                                                             <a class="btn btn-sm btn-success view_link" href="{{ path('admin_app_cotizacioncotizacion_show', {'id': cotizacion.id}) }}">
                                                                 <i class="fa fa-eye" aria-hidden="true"></i>
-                                                                Mostrar
+                                                                {{ 'mostrar'|trans({},'messages')|capitalize}}
                                                             </a>
                                                             <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_cotizacioncotizacion_edit', {'id': cotizacion.id}) }}">
                                                                 <i class="fa fa-pencil" aria-hidden="true"></i>
-                                                                Editar
+                                                                {{ 'editar'|trans({},'messages')|capitalize}}
                                                             </a>
                                                             {% endif %}
                                                         </div>
