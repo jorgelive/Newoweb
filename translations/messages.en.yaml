@@ -53,6 +53,7 @@ desde: from
 fecha_salida: check-out
 hasta: to
 canal: channel
+fecha_reserva: reservation date
 dia_libre_titulo: 'Free day'
 dia_libre_contenido: 'You can go to see other places of your interest, request excursion options for this day or do something at your leisure.'
 otros_servicios: other services

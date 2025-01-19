@@ -207,6 +207,13 @@ class ObtenerReservasCommand extends Command
                         }elseif($currentReserva->getChannel()->getId() == ReservaChannel::DB_VALOR_BOOKING){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO)); //Ya no pendiente (1)
                             $currentReserva->setNombre('Reactivado - ' . $currentReserva->getNombre());
+                            $currentReserva->setEnlace(null);
+                            $currentReserva->setTelefono(null);
+                            $currentReserva->setNota(null);
+                            $currentReserva->setCantidadadultos(1);
+                            $currentReserva->setCantidadninos(0);
+                            $currentReserva->setCreado($ahora);
+                            $currentReserva->setModificado($ahora);
                         }
                     }
                 }

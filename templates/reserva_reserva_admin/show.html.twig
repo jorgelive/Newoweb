@@ -43,6 +43,10 @@
                                 <th>{{ 'canal'|trans({}, 'messages')|capitalize}}</th>
                                 <td>{{ object.channel.nombre }} ({{ object.estado.nombre|trans({}, 'messages') }})</td>
                             </tr>
+                            <tr class="sonata-ba-view-container">
+                                <th>{{ 'fecha_reserva'|trans({}, 'messages')|capitalize}}</th>
+                                <td>{{ object.creado | date('Y-m-d H:i') }}</td>
+                            </tr>
                             {% if action != 'resumen' and object.enlace is not empty %}
                                 <tr class="sonata-ba-view-container">
                                     <th>{{ 'link'|trans({}, 'messages')|capitalize}}</th>
