@@ -266,10 +266,10 @@
 
                                                     <div style="text-align: right;" class="margin-bottom-10 col-md-12 col-sm-12 col-xs-12">
                                                         {% if object.catalogo == false %}
-                                                            <p class="fechas-mono">{{ 'fecha_inicio'|trans({},'messages')|capitalize}}:{{ cotizacion.fechaingreso|date('Y-m-d') }}</p>
+                                                            <p class="fechas-mono">{{ 'fecha_inicio'|trans({},'messages')|capitalize}} : {{ cotizacion.fechaingreso|date('Y-m-d') }}</p>
                                                         {% endif %}
                                                         {% if object.catalogo == false or action != 'resumen' %}
-                                                            <p class="fechas-mono">{{ 'fecha_cotizacion'|trans({},'messages')|capitalize}}:{{ cotizacion.fecha|date('Y-m-d') }}</p>
+                                                            <p class="fechas-mono">{{ 'fecha_cotizacion'|trans({},'messages')|capitalize}} : {{ cotizacion.fecha|date('Y-m-d') }}</p>
                                                         {% endif %}
                                                     </div>
 

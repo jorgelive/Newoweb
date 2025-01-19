@@ -21,6 +21,7 @@ class ReservaEstado
     public const DB_VALOR_CANCELADO = 3;
     public const DB_VALOR_PAGO_PARCIAL = 4;
     public const DB_VALOR_PAGO_TOTAL = 5;
+    public const DB_VALOR_PARA_CANCELACION = 6;
 
     /**
      * @var int

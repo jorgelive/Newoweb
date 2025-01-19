@@ -225,7 +225,8 @@ class ReservaReservaAdmin extends AbstractAdmin
                     ReservaEstado::DB_VALOR_CONFIRMADO => 'Confirmado',
                     ReservaEstado::DB_VALOR_CANCELADO => 'Cancelado',
                     ReservaEstado::DB_VALOR_PAGO_PARCIAL => 'Pago parcial',
-                    ReservaEstado::DB_VALOR_PAGO_TOTAL => 'Pago total'
+                    ReservaEstado::DB_VALOR_PAGO_TOTAL => 'Pago total',
+                    ReservaEstado::DB_VALOR_PARA_CANCELACION => 'Para Cancelacíón'
                 ]
             ])
             ->add('manual', null, [

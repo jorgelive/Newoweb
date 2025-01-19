@@ -123,7 +123,7 @@ class ReservaReservaAdminController extends CRUDAdminController
             ->where('rr.estado in (:estado)')
             ->andWhere('DATE(rr.fechahorafin) >= :fechahorafin')
             ->orderBy('rr.fechahorainicio', 'ASC')
-            ->setParameter('estado', [ReservaEstado::DB_VALOR_CONFIRMADO, ReservaEstado::DB_VALOR_PAGO_PARCIAL, ReservaEstado::DB_VALOR_PAGO_TOTAL])
+            ->setParameter('estado', [ReservaEstado::DB_VALOR_CONFIRMADO, ReservaEstado::DB_VALOR_PAGO_PARCIAL, ReservaEstado::DB_VALOR_PAGO_TOTAL, ReservaEstado::DB_VALOR_PARA_CANCELACION])
             ->setParameter('fechahorafin', $ahora->sub(new \DateInterval('P7D'))->format('Y-m-d'));
         ;
 
