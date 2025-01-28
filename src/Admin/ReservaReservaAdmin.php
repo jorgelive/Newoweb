@@ -282,6 +282,9 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('nombre', null, [
                 'editable' => true
             ])
+            ->add('calificacion', null, [
+                'editable' => true
+            ])
             ->add('telefono', null, [
                 'label' => 'Teléfono',
                 'editable' => true
@@ -322,6 +325,13 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('estado')
             ->add('manual')
             ->add('nombre')
+            ->add('calificacion')
+            ->add('telefono', null, [
+                'label' => 'Teléfono'
+            ])
+            ->add('nota', null, [
+                'label' => 'Nota'
+            ])
             ->add('fechahorainicio', DateTimePickerType::class, [
                 'label' => 'Check-in',
                 'dp_show_today' => true,
@@ -342,12 +352,7 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Canal'
             ])
             ->add('enlace')
-            ->add('telefono', null, [
-                'label' => 'Teléfono'
-            ])
-            ->add('nota', null, [
-                'label' => 'Nota'
-            ])
+
             ->add('detalles', CollectionType::class, [
                 'by_reference' => false,
                 'label' => 'Detalles'
@@ -386,6 +391,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('estado')
             ->add('manual')
             ->add('nombre')
+            ->add('califiacion')
             ->add('fechahorainicio', null, [
                 'label' => 'Check-in',
                 'format' => 'Y/m/d H:i'

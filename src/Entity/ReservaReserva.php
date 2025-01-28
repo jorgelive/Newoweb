@@ -40,6 +40,11 @@ class ReservaReserva
     private ?string $nombre = null;
 
     /**
+     * @ORM\Column(type="string", length=20)
+     */
+    private ?string $calificacion = null;
+
+    /**
      * @ORM\Column(type="string", length=255, nullable=true)
      */
     private ?string $enlace = null;
@@ -188,6 +193,10 @@ class ReservaReserva
 
     public function getResumen(): ?string
     {
+        $calificacion = $this->getCalificacion();
+        if(!empty($calificacion)){
+            return sprintf('%s %s %s: %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getNombre(), $calificacion, $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
+        }
         return sprintf('%s %s: %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getNombre(), $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
     }
 
@@ -199,6 +208,18 @@ class ReservaReserva
     public function setNombre(string $nombre): self
     {
         $this->nombre = $nombre;
+
+        return $this;
+    }
+
+    public function getCalificacion(): ?string
+    {
+        return $this->calificacion;
+    }
+
+    public function setCalificacion(string $calificacion): self
+    {
+        $this->calificacion = $calificacion;
 
         return $this;
     }
