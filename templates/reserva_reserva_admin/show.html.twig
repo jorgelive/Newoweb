@@ -27,6 +27,12 @@
 
                                 </td>
                             </tr>
+                            {% if action != 'resumen' and object.calificacion is not empty %}
+                                <tr class="sonata-ba-view-container">
+                                    <th>{{ 'calificacion'|trans({}, 'messages')|capitalize}}</th>
+                                    <td>{{ object.calificacion }}</td>
+                                </tr>
+                            {% endif %}
                             <tr class="sonata-ba-view-container">
                                 <th>{{ 'alojamiento'|trans({}, 'messages')|capitalize}}</th>
                                 <td><span style="font-weight: 600;">{{ object.unit.establecimiento.nombre }} {{ object.unit.nombre }}</span> - {{ object.unit.descripcion }}</td>
