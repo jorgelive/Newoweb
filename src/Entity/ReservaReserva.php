@@ -40,7 +40,7 @@ class ReservaReserva
     private ?string $nombre = null;
 
     /**
-     * @ORM\Column(type="string", length=20)
+     * @ORM\Column(type="string", length=20, nullable=true)
      */
     private ?string $calificacion = null;
 
@@ -195,7 +195,7 @@ class ReservaReserva
     {
         $calificacion = $this->getCalificacion();
         if(!empty($calificacion)){
-            return sprintf('%s %s %s: %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getNombre(), $calificacion, $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
+            return sprintf('%s %s | %s: %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getNombre(), $calificacion, $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
         }
         return sprintf('%s %s: %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getNombre(), $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
     }
