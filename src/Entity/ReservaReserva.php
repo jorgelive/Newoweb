@@ -217,7 +217,7 @@ class ReservaReserva
         return $this->calificacion;
     }
 
-    public function setCalificacion(string $calificacion): self
+    public function setCalificacion(?string $calificacion): self
     {
         $this->calificacion = $calificacion;
 
