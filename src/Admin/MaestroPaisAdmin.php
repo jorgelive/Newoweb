@@ -18,8 +18,8 @@ class MaestroPaisAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
-            ->add('codigodcc',  null, [
-                'label' => 'Código DCC'
+            ->add('codigomc',  null, [
+                'label' => 'Código MC'
             ])
             ->add('codigopr',  null, [
                 'label' => 'Código PR'
@@ -40,8 +40,8 @@ class MaestroPaisAdmin extends AbstractAdmin
             ->add('nombre', null, [
                 'editable' => true
             ])
-            ->add('codigodcc',  null, [
-                'label' => 'Código DCC',
+            ->add('codigomc',  null, [
+                'label' => 'Código MC',
                 'editable' => true
             ])
             ->add('codigopr',  null, [
@@ -69,8 +69,8 @@ class MaestroPaisAdmin extends AbstractAdmin
     {
         $formMapper
             ->add('nombre')
-            ->add('codigodcc',  null, [
-                'label' => 'Código DCC'
+            ->add('codigomc',  null, [
+                'label' => 'Código MC'
             ])
             ->add('codigopr',  null, [
                 'label' => 'Código PR'
@@ -89,8 +89,8 @@ class MaestroPaisAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
-            ->add('codigodcc',  null, [
-                'label' => 'Código DCC'
+            ->add('codigomc',  null, [
+                'label' => 'Código MC'
             ])
             ->add('codigopr',  null, [
                 'label' => 'Código PR'

@@ -24,7 +24,6 @@
                                 <td>
                                     {{ object.nombre }} x{{ object.cantidadadultos }}
                                     {% if object.cantidadninos > 0 %}+{{ object.cantidadninos }}{% endif %}
-
                                 </td>
                             </tr>
                             {% if action != 'resumen' and object.calificacion is not empty %}

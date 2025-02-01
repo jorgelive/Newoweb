@@ -49,7 +49,7 @@ class CotizacionFileAdmin extends AbstractAdmin
             }elseif($action == 'resumen'){
                 $buttonList['show'] = ['template' => 'cotizacion_file_admin/show_button.html.twig'];
             }
-            $buttonList['archivoju'] = ['template' => 'cotizacion_file_admin/archivoju_button.html.twig'];
+            $buttonList['archivomc'] = ['template' => 'cotizacion_file_admin/archivomc_button.html.twig'];
             $buttonList['archivodcc'] = ['template' => 'cotizacion_file_admin/archivodcc_button.html.twig'];
             $buttonList['archivopr'] = ['template' => 'cotizacion_file_admin/archivopr_button.html.twig'];
             $buttonList['archivocon'] = ['template' => 'cotizacion_file_admin/archivocon_button.html.twig'];
@@ -118,8 +118,8 @@ class CotizacionFileAdmin extends AbstractAdmin
                     'resumen' => [
                         'template' => 'cotizacion_file_admin\list__action_resumen.html.twig'
                     ],
-                    'archivoju' => [
-                        'template' => 'cotizacion_file_admin\list__action_archivoju.html.twig'
+                    'archivomc' => [
+                        'template' => 'cotizacion_file_admin\list__action_archivomc.html.twig'
                     ],
                     'archivodcc' => [
                         'template' => 'cotizacion_file_admin\list__action_archivodcc.html.twig'
@@ -207,7 +207,7 @@ class CotizacionFileAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
-        $collection->add('archivoju', $this->getRouterIdParameter() . '/archivoju');
+        $collection->add('archivomc', $this->getRouterIdParameter() . '/archivomc');
         $collection->add('archivodcc', $this->getRouterIdParameter() . '/archivodcc');
         $collection->add('archivopr', $this->getRouterIdParameter() . '/archivopr');
         $collection->add('archivocon', $this->getRouterIdParameter() . '/archivocon');

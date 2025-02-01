@@ -191,7 +191,7 @@ class CotizacionFilepasajero
         $apellidosArray = explode(' ', $this->apellido, 2);
 
         if(!isset($apellidosArray[1])){
-            return 'NR';
+            return '';
         }
         return $apellidosArray[1];
     }
@@ -259,17 +259,6 @@ class CotizacionFilepasajero
             return 1;
         }else{
             return 2;
-        }
-    }
-
-    public function getCategoriaju(): int
-    {
-        if($this->getEdad() >= 18){
-            return 1;
-        }elseif($this->getEdad() >= 3 && $this->getEdad() <= 17){
-            return 3;
-        }else{
-            return 0;
         }
     }
 

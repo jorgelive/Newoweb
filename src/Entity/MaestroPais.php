@@ -18,36 +18,32 @@ class MaestroPais
     public const DB_VALOR_PERU = 117;
 
     /**
-     * @var int
      *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var string
      *
      * @ORM\Column(type="string", length=100)
      */
-    private $nombre;
+    private ?string $nombre;
 
     /**
-     * DCC Cusco
-     * @var int
+     * MC
      *
      * @ORM\Column(type="integer", length=3)
      */
-    private $codigodcc;
+    private ?int $codigomc = null;
 
     /**
      * Perurail
-     * @var integer
      *
      * @ORM\Column(type="integer", length=3)
      */
-    private $codigopr;
+    private ?int $codigopr = null;
 
     /**
      * Consettur
@@ -55,25 +51,21 @@ class MaestroPais
      *
      * @ORM\Column(type="integer", length=40)
      */
-    private $codigocon;
+    private ?int $codigocon = null;
 
 
 
     /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTime $creado;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTime $modificado;
 
     /**
      * @return string
@@ -83,157 +75,104 @@ class MaestroPais
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return MaestroPais
-     */
-    public function setNombre(string $nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
     
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set codigodcc
-     *
-     * @param int $codigodcc
-     *
-     * @return MaestroPais
-     */
-    public function setCodigodcc(int $codigodcc)
+    public function getProcedenciaMcNombre(): string
     {
-        $this->codigodcc = $codigodcc;
+        //20 Bolivia
+        //41 Ecuador
+        //32 Colombia
+
+        if($this->id == 117){
+            return 'Peruano';
+        }elseif(in_array($this->id, [20, 41, 32])){
+            return 'Países CAN y Residente extranjero';
+        }
+        return 'Extranjero';
+    }
+
+    public function getProcedenciaMcCodigo(): int
+    {
+        if($this->id == 117){
+            return 2;
+        }elseif(in_array($this->id, [])){
+            return 3;
+        }
+        return 1;
+    }
+
+    public function setCodigomc(int $codigomc): self
+    {
+        $this->codigomc = $codigomc;
 
         return $this;
     }
 
-    /**
-     * Get codigodcc
-     *
-     * @return int
-     */
-    public function getCodigodcc()
+    public function getCodigomc(): ?int
     {
-        return $this->codigodcc;
+        return $this->codigomc;
     }
 
-    /**
-     * Set codigopr
-     *
-     * @param string $codigopr
-     *
-     * @return MaestroPais
-     */
-    public function setCodigopr(string $codigopr)
+    public function setCodigopr(string $codigopr): self
     {
         $this->codigopr = $codigopr;
 
         return $this;
     }
 
-    /**
-     * Get codigopr
-     *
-     * @return string
-     */
-    public function getCodigopr()
+    public function getCodigopr(): ?string
     {
         return $this->codigopr;
     }
 
-    /**
-     * Set codigocon
-     *
-     * @param string $codigocon
-     *
-     * @return MaestroPais
-     */
-    public function setCodigocon(string $codigocon)
+    public function setCodigocon(string $codigocon): self
     {
         $this->codigocon = $codigocon;
 
         return $this;
     }
 
-    /**
-     * Get codigocon
-     *
-     * @return string
-     */
-    public function getCodigocon()
+    public function getCodigocon(): ?string
     {
         return $this->codigocon;
     }
 
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return MaestroPais
-     */
-    public function setCreado($creado)
+    public function setCreado(?\DateTime $creado): self
     {
         $this->creado = $creado;
     
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTime
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return MaestroPais
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTime $modificado): self
     {
         $this->modificado = $modificado;
     
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTime
     {
         return $this->modificado;
     }

@@ -41,7 +41,7 @@ class CotizacionFileAdminController extends CRUDAdminController
 
     }
 
-    public function archivojuAction(Request $request): Response
+    public function archivomcAction(Request $request): Response
     {
         $maxLength = 10;
 
@@ -76,27 +76,82 @@ class CotizacionFileAdminController extends CRUDAdminController
         }
 
         $resultados = [];
-        $encabezado = ['idTicketType', 'documentType', 'document', 'gender', 'nacionality', 'name', 'lastName', 'birthday', 'file'];
+        $encabezado = [
+            'Item',
+            'Procedencia', 'idProcedencia', 'Pais', 'idPais',
+            'tarifa', 'idTarifa', 'Tipo de Documento', 'idTipoDocumento', 'Nro Documento',
+            'Fecha de nacimiento', 'Nombres', 'Apellido Paterno', 'Apellido Materno',
+            'Cod File', 'Sexo'
+        ];
+        $i = 1;
         foreach($filePasajeros as $key => $filePasajero){
-            if ($filePasajero->getCategoriaju() === 0){ continue; }
 
-            $resultados[$key]['tipo'] = $filePasajero->getCategoriaju();
+            $paisId = $filePasajero->getPais()->getId();
+            $edad = $filePasajero->getEdad();
+            $documentoId = $filePasajero->getTipodocumento()->getId();
 
-            $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigoju();
+            if ($edad < 3){ continue; }
+
+            $tarifas = [
+                'promocional' => ['nombre' => 'General Promocional', 'codigo' => 4],
+                'menor_promocional' => ['nombre' => 'Menor de edad entre 3 - 17 años Promocional', 'codigo' => 6],
+                'general' => ['nombre' => 'General', 'codigo' => 1],
+                'menor' => ['nombre' => 'Menor de edad entre 3 - 17 años', 'codigo' => 3],
+            ];
+
+            $procedencias = [
+                'peruano' => ['nombre' => 'Peruano', 'codigo' => 2],
+                'can_residente' => ['nombre' => 'Países CAN y Residente extranjero', 'codigo' => 3],
+                'extranjero' => ['nombre' => 'Extranjero', 'codigo' => 1],
+            ];
+
+            // Definir tarifa y procedencia por defecto
+            if ($paisId == 117) {
+                $procedencia = $procedencias['peruano'];
+            } elseif (in_array($paisId, [20, 41, 32]) || $documentoId == 3) {
+                $procedencia = $procedencias['can_residente'];
+            } else {
+                $procedencia = $procedencias['extranjero'];
+            }
+
+            // Determinar la tarifa
+            if ($edad >= 18) {
+                $tarifa = ($procedencia['codigo'] == 2 || $procedencia['codigo'] == 3) ? $tarifas['promocional'] : $tarifas['general'];
+            } else {
+                $tarifa = ($procedencia['codigo'] == 2 || $procedencia['codigo'] == 3) ? $tarifas['menor_promocional'] : $tarifas['menor'];
+            }
+
+            // Asignar valores finales
+            $tarifaNombre = $tarifa['nombre'];
+            $tarifaCodigo = $tarifa['codigo'];
+            $procedenciaNombre = $procedencia['nombre'];
+            $procedenciaCodigo = $procedencia['codigo'];
+
+            $resultados[$key]['correlativo'] = $i;
+            $i++;
+            $resultados[$key]['Procedencia'] = $procedenciaNombre;
+            $resultados[$key]['idProcedencia'] = $procedenciaCodigo;
+            $resultados[$key]['paisnombre'] = $filePasajero->getPais()->getNombre();
+            $resultados[$key]['paiscodigo'] = $filePasajero->getPais()->getCodigomc();
+            $resultados[$key]['tarifanombre'] = $tarifaNombre;
+            $resultados[$key]['tarifacodigo'] = $tarifaCodigo;
+            $resultados[$key]['tipodocumentonombre'] = $filePasajero->getTipodocumento()->getNombremc();
+            $resultados[$key]['tipodocumentocodigo'] = $filePasajero->getTipodocumento()->getCodigomc();
             $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
-            $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
-            $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigodcc();
-            $resultados[$key]['nombre'] = $filePasajero->getNombre();
-            $resultados[$key]['apellido'] = $filePasajero->getApellido();
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d-m-Y');
-            $resultados[$key]['file'] = 'F' . sprintf('%010d', $object->getId());
-
+            $resultados[$key]['nombre'] = $filePasajero->getNombre();
+            $resultados[$key]['apellidoPaterno'] = $filePasajero->getApellidoPaterno();
+            $resultados[$key]['apellidoMaterno'] = $filePasajero->getApellidoMaterno();
+            $resultados[$key]['file'] = 'F' . sprintf('%07d', $object->getId());
+            $resultados[$key]['sexo'] = $filePasajero->getSexo()->getNombre();
         }
 
         if(count($resultados) <= $maxLength) {
             return $this->archivoexcel
                 ->setArchivo()
-                ->setParametrosWriter($resultados, $encabezado, 'JU_' . $object->getNombre(), 'xlsx')
+                ->setColumnaBase('B')
+                ->setFilaBase(3)
+                ->setParametrosWriter($resultados, $encabezado, 'MC_' . $object->getNombre(), 'xlsx')
                 ->setAnchoColumna(['0:' => 20]) //['A'=>12,'B'=>'auto','0:'=>20]
                 ->getResponse();
         }else{
@@ -106,14 +161,16 @@ class CotizacionFileAdminController extends CRUDAdminController
             foreach($partes as $key => $parte){
                 $archivos[$key]['path'] = $this->archivoexcel
                     ->setArchivo()
-                    ->setParametrosWriter($parte, $encabezado, 'JU_' . $object->getNombre(), 'xlsx')
+                    ->setColumnaBase('B')
+                    ->setFilaBase(3)
+                    ->setParametrosWriter($parte, $encabezado, 'MC_' . $object->getNombre(), 'xlsx')
                     ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
                     ->createFile();
-                $archivos[$key]['nombre'] = 'JU_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xlsx';
+                $archivos[$key]['nombre'] = 'MC_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xlsx';
             }
 
             return $this->archivozip
-                ->setParametros($archivos, 'JU_' . $object->getNombre())
+                ->setParametros($archivos, 'MC_' . $object->getNombre())
                 ->procesar()
                 ->getResponse();
 
@@ -160,10 +217,10 @@ class CotizacionFileAdminController extends CRUDAdminController
         foreach($filePasajeros as $key => $filePasajero){
             $resultados[$key]['apellido'] = $filePasajero->getApellido();
             $resultados[$key]['nombre'] = $filePasajero->getNombre();
-            $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigoddc();
+            $resultados[$key]['tipodoumento'] = $filePasajero->getTipodocumento()->getCodigomc();
             $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d/m/Y');
-            $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigodcc();
+            $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigomc();
             $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();
             $resultados[$key]['file'] = 'F' . sprintf('%010d', $object->getId());
             $resultados[$key]['categoria'] = $filePasajero->getCategoriaddc();

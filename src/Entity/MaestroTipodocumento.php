@@ -32,16 +32,16 @@ class MaestroTipodocumento
     private ?string $codigo = null;
 
     /**
-     * Joinnus
+     * Nombre cultura
      * @ORM\Column(type="string", length=5)
      */
-    private ?string $codigoju = null;
+    private ?string $nombremc = null;
 
     /**
-     * DDC Cusco
+     * Codigo Cultura
      * @ORM\Column(type="integer", length=2)
      */
-    private ?int $codigoddc = null ;
+    private ?int $codigomc = null;
 
     /**
      * Perurail
@@ -102,28 +102,28 @@ class MaestroTipodocumento
         return $this->codigo;
     }
 
-    public function setCodigoju($codigoju): self
+    public function setNombremc($nombremc): self
     {
-        $this->codigoju = $codigoju;
+        $this->nombremc = $nombremc;
 
         return $this;
     }
 
-    public function getCodigoju(): ?string
+    public function getNombremc(): ?string
     {
-        return $this->codigoju;
+        return $this->nombremc;
     }
 
-    public function setCodigoddc($codigoddc): self
+    public function setCodigomc($codigomc): self
     {
-        $this->codigoddc = $codigoddc;
+        $this->codigomc = $codigomc;
 
         return $this;
     }
 
-    public function getCodigoddc(): ?int
+    public function getCodigomc(): ?int
     {
-        return $this->codigoddc;
+        return $this->codigomc;
     }
 
     public function setCodigopr($codigopr): self

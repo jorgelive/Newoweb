@@ -1,8 +1,0 @@
-{% if object is defined and admin.isGranted('show', object) and admin.hasRoute('archivoju') and object.id is not null %}
-    <li>
-        <a class="sonata-action-element" href="{{ admin.generateObjectUrl('archivoju', object) }}">
-            <i class="fa fa-info" aria-hidden="true"></i>
-            F JU
-        </a>
-    </li>
-{% endif %}

@@ -47,6 +47,7 @@ class MainArchivoexcel
 
 //writer
     private int $filaBase = 1;
+    private string $columnaBase = 'A';
     private string $nombre;
     private string $tipo;
     private bool $removeEnclosure;
@@ -609,6 +610,12 @@ class MainArchivoexcel
         return $this;
     }
 
+    public function setColumnaBase(string $columnaBase): self
+    {
+        $this->columnaBase = $columnaBase;
+        return $this;
+    }
+
 
     public function setParametrosWriter(array $contenido, array $encabezado = [], string $nombre = 'archivoGenerado', string $tipo = 'xlsx', bool $removeEnclosure = false): self
     {
@@ -617,10 +624,10 @@ class MainArchivoexcel
         $this->setRemoveEnclosure($removeEnclosure);
 
         if(!empty($encabezado)) {
-            $this->setFila($encabezado, 'A1');
-            $this->setFilaBase(2);
+            $this->setFila($encabezado, $this->columnaBase . $this->filaBase);
+            $this->setFilaBase($this->filaBase + 1);
         }
-        $this->setTabla($contenido, 'A' . $this->getFilaBase());
+        $this->setTabla($contenido, $this->columnaBase . $this->getFilaBase());
 
         $this->setTipo($tipo);
         return $this;

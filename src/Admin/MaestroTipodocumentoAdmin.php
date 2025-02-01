@@ -21,11 +21,11 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('codigo', null, [
                 'label' => 'Código'
             ])
-            ->add('codigoju', null, [
-                'label' => 'Código JU'
+            ->add('nombremc', null, [
+                'label' => 'Nombre MC'
             ])
-            ->add('codigoddc', null, [
-                'label' => 'Código DDC'
+            ->add('codigomc', null, [
+                'label' => 'Código MC'
             ])
             ->add('codigopr', null, [
                 'label' => 'Código PR'
@@ -50,12 +50,12 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
                 'label' => 'Código',
                 'editable' => true
             ])
-            ->add('codigoju', null, [
-                'label' => 'Código JU',
+            ->add('nombremc', null, [
+                'label' => 'Nombre MC',
                 'editable' => true
             ])
-            ->add('codigoddc', null, [
-                'label' => 'Código DDC',
+            ->add('codigomc', null, [
+                'label' => 'Código MC',
                 'editable' => true
             ])
             ->add('codigopr', null, [
@@ -87,11 +87,11 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('codigo', null, [
                 'label' => 'Código'
             ])
-            ->add('codigoju', null, [
-                'label' => 'Código JU'
+            ->add('nombremc', null, [
+                'label' => 'Nombre MC'
             ])
-            ->add('codigoddc', null, [
-                'label' => 'Código DDC'
+            ->add('codigomc', null, [
+                'label' => 'Código MC'
             ])
             ->add('codigopr', null, [
                 'label' => 'Código PR'
@@ -113,11 +113,11 @@ class MaestroTipodocumentoAdmin extends AbstractAdmin
             ->add('codigo', null, [
                 'label' => 'Código'
             ])
-            ->add('codigoju', null, [
-                'label' => 'Código JU'
+            ->add('nombremc', null, [
+                'label' => 'Nombre MC'
             ])
-            ->add('codigoddc', null, [
-                'label' => 'Código DDC'
+            ->add('codigomc', null, [
+                'label' => 'Código MC'
             ])
             ->add('codigopr', null, [
                 'label' => 'Código PR'
