@@ -195,9 +195,9 @@ class ReservaReserva
     {
         $calificacion = $this->getCalificacion();
         if(!empty($calificacion)){
-            return sprintf('%s x%s %s | %s | %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getCantidadadultos() + $this->getCantidadninos(), $this->getNombre(), $calificacion, $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
+            return sprintf('%s x %s | %s | %s | %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getCantidadadultos() + $this->getCantidadninos(), $this->getNombre(), $calificacion, $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
         }
-        return sprintf('%s x%s %s | %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getCantidadadultos() + $this->getCantidadninos(), $this->getNombre(), $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
+        return sprintf('%s x %s | %s | %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getCantidadadultos() + $this->getCantidadninos(), $this->getNombre(), $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
     }
 
     public function getNombre(): ?string
