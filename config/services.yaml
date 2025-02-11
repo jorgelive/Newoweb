@@ -498,7 +498,7 @@ services:
         calls:
             - [ setTemplate, [edit, cotizacion_cotservicio_admin\edit.html.twig]]
             - [ setTemplate, [list, cotizacion_cotservicio_admin\list.html.twig]]
-            - [ setTemplate, [show, cotizacion_cotservicio_admin\show.html.twig]] overrided en controlador
+            - [ setTemplate, [show, cotizacion_cotservicio_admin\show.html.twig]]
         public: true
 
     app.admin.cotizacioncotcomponente:
