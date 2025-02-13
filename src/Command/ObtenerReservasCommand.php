@@ -151,8 +151,10 @@ class ObtenerReservasCommand extends Command
                     $temp['fechahorainicio'] = new \DateTime($event->dtstart . ' ' . $establecimiento->getCheckin());
                     $temp['fechahorafin'] = new \DateTime($event->dtend . ' ' . $establecimiento->getCheckout());
 
-                    if($canal == ReservaChannel::DB_VALOR_AIRBNB && $event->summary != 'Airbnb (Not available)'){
-
+                    if($event->summary == 'Airbnb (Not available)'){
+                        $insertar = false;
+                    }elseif($canal == ReservaChannel::DB_VALOR_AIRBNB){
+                        $insertar = true;
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_PAGO_TOTAL);
                         $temp['nombre'] = 'Completar Airbnb';
                         if($num_found = preg_match_all('~[a-z]+://\S+~', $event->description, $out))
@@ -160,33 +162,37 @@ class ObtenerReservasCommand extends Command
                             $temp['enlace'] = $out[0][0];
                         }
                     }elseif($canal == ReservaChannel::DB_VALOR_BOOKING){
+                        $insertar = true;
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);  //ya no Pendiente (1)
                         $temp['nombre'] = str_replace('CLOSED - Not available', '', $event->summary) . 'Completar Booking';
                         $temp['enlace'] = '';
                     }elseif($canal == ReservaChannel::DB_VALOR_VRBO){
+                        $insertar = true;
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_PAGO_TOTAL);
                         $temp['nombre'] = str_replace('Reserved -', '', $event->summary) . 'Completar VRBO';
                         $temp['enlace'] = '';
                     }else{
+                        $insertar = true;
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);
                         $temp['nombre'] = $event->summary;
                         $temp['enlace'] = '';
                     }
-                    
-                    $reserva = new ReservaReserva();
-                    $reserva->setChannel($nexo->getChannel());
-                    $reserva->setUnitnexo($nexo);
-                    $reserva->setUnit($unidad);
-                    $reserva->setEstado($temp['estado']);
-                    $reserva->setManual(false);
-                    $reserva->setNombre($temp['nombre']);
-                    $reserva->setEnlace($temp['enlace']);
-                    $reserva->setUid($event->uid);
-                    $reserva->setFechahorainicio($temp['fechahorainicio']);
-                    $reserva->setFechahorafin($temp['fechahorafin']);
-                    $output->writeln('Agregando: '. $event->uid);
-                    $this->entityManager->persist($reserva);
 
+                    if($insertar){
+                        $reserva = new ReservaReserva();
+                        $reserva->setChannel($nexo->getChannel());
+                        $reserva->setUnitnexo($nexo);
+                        $reserva->setUnit($unidad);
+                        $reserva->setEstado($temp['estado']);
+                        $reserva->setManual(false);
+                        $reserva->setNombre($temp['nombre']);
+                        $reserva->setEnlace($temp['enlace']);
+                        $reserva->setUid($event->uid);
+                        $reserva->setFechahorainicio($temp['fechahorainicio']);
+                        $reserva->setFechahorafin($temp['fechahorafin']);
+                        $output->writeln('Agregando: '. $event->uid);
+                        $this->entityManager->persist($reserva);
+                    }
                 }
 
                 foreach($currentReservas as &$currentReserva){
