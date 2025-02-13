@@ -2,7 +2,7 @@
 namespace App\Command;
 
 use App\Entity\ReservaEstado;
-use Proxies\__CG__\App\Entity\ReservaChannel;
+use App\Entity\ReservaChannel;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -159,29 +159,34 @@ class ObtenerReservasCommand extends Command
                         {
                             $temp['enlace'] = $out[0][0];
                         }
-                        $insertar = true;
                     }elseif($canal == ReservaChannel::DB_VALOR_BOOKING){
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);  //ya no Pendiente (1)
                         $temp['nombre'] = str_replace('CLOSED - Not available', '', $event->summary) . 'Completar Booking';
                         $temp['enlace'] = '';
-                        $insertar = true;
+                    }elseif($canal == ReservaChannel::DB_VALOR_VRBO){
+                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_PAGO_TOTAL);
+                        $temp['nombre'] = str_replace('Reserved -', '', $event->summary) . 'Completar VRBO';
+                        $temp['enlace'] = '';
+                    }else{
+                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);
+                        $temp['nombre'] = $event->summary;
+                        $temp['enlace'] = '';
                     }
+                    
+                    $reserva = new ReservaReserva();
+                    $reserva->setChannel($nexo->getChannel());
+                    $reserva->setUnitnexo($nexo);
+                    $reserva->setUnit($unidad);
+                    $reserva->setEstado($temp['estado']);
+                    $reserva->setManual(false);
+                    $reserva->setNombre($temp['nombre']);
+                    $reserva->setEnlace($temp['enlace']);
+                    $reserva->setUid($event->uid);
+                    $reserva->setFechahorainicio($temp['fechahorainicio']);
+                    $reserva->setFechahorafin($temp['fechahorafin']);
+                    $output->writeln('Agregando: '. $event->uid);
+                    $this->entityManager->persist($reserva);
 
-                    if($insertar === true){
-                        $reserva = new ReservaReserva();
-                        $reserva->setChannel($nexo->getChannel());
-                        $reserva->setUnitnexo($nexo);
-                        $reserva->setUnit($unidad);
-                        $reserva->setEstado($temp['estado']);
-                        $reserva->setManual(false);
-                        $reserva->setNombre($temp['nombre']);
-                        $reserva->setEnlace($temp['enlace']);
-                        $reserva->setUid($event->uid);
-                        $reserva->setFechahorainicio($temp['fechahorainicio']);
-                        $reserva->setFechahorafin($temp['fechahorafin']);
-                        $output->writeln('Agregando: '. $event->uid);
-                        $this->entityManager->persist($reserva);
-                    }
                 }
 
                 foreach($currentReservas as &$currentReserva){
@@ -202,9 +207,8 @@ class ObtenerReservasCommand extends Command
                     }elseif($currentReserva->getEstado()->getId() == ReservaEstado::DB_VALOR_CANCELADO){
                         //reponemos si la desaparición fue temporal
                         $output->writeln(sprintf('Reactivando la reserva de %s: %s' , $currentReserva->getChannel()->getNombre(), $currentReserva->getNombre()));
-                        if($currentReserva->getChannel()->getId() == ReservaChannel::DB_VALOR_AIRBNB){
-                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
-                        }elseif($currentReserva->getChannel()->getId() == ReservaChannel::DB_VALOR_BOOKING){
+
+                        if($currentReserva->getChannel()->getId() == ReservaChannel::DB_VALOR_BOOKING){
                             $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO)); //Ya no pendiente (1)
                             $currentReserva->setNombre('Reactivado - ' . $currentReserva->getNombre());
                             $currentReserva->setEnlace(null);
@@ -214,6 +218,8 @@ class ObtenerReservasCommand extends Command
                             $currentReserva->setCantidadninos(0);
                             $currentReserva->setCreado($ahora);
                             $currentReserva->setModificado($ahora);
+                        }else{
+                            $currentReserva->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
                         }
                     }
                 }

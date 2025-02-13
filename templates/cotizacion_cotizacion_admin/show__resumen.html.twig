@@ -133,18 +133,16 @@
                             </div>
 
                             <div class="col-md-6 col-sm-6 col-xs-12">
-                                {% apply spaceless %}
-                                    {% for tipoTarifa in servicioConTituloItinerario.tipoTarifas %}
-                                        <p class="componente-incluye margin-top-10">
-                                            <span style="font-weight: 600;">{{ tipoTarifa.tituloTipotarifa }}:</span>
-                                            {% set whatsappText = whatsappText ~ '\n*' ~ tipoTarifa.tituloTipotarifa ~ ':* ' %}
-                                            {% for componente in tipoTarifa.componentes %}
-                                                {% set whatsappText = whatsappText ~ componente.titulo %}
-                                                {{ componente.titulo }}{% if loop.last== false  %}, {% set whatsappText = whatsappText ~ ', ' %}{% else %}.{% set whatsappText = whatsappText ~ '.\n' %}{% endif %}
-                                            {% endfor %}
-                                        </p>
-                                    {% endfor %}
-                                {% endapply %}
+                                {% for tipoTarifa in servicioConTituloItinerario.tipoTarifas %}
+                                    <p class="componente-incluye margin-top-10">
+                                        <span style="font-weight: 600;">{{ tipoTarifa.tituloTipotarifa }}:</span>
+                                        {% set whatsappText = whatsappText ~ '\n*' ~ tipoTarifa.tituloTipotarifa ~ ':* ' %}
+                                        {% for componente in tipoTarifa.componentes %}
+                                            {% set whatsappText = whatsappText ~ componente.titulo %}
+                                            {{ componente.titulo }}{% if loop.last== false  %}, {% set whatsappText = whatsappText ~ ', ' %}{% else %}.{% set whatsappText = whatsappText ~ '.\n' %}{% endif %}
+                                        {% endfor %}
+                                    </p>
+                                {% endfor %}
                             </div>
 
                             {% if servicioConTituloItinerario.fotos is not empty %}
@@ -200,19 +198,17 @@
                             <h5 class="titulo-verde">{{ 'otros_servicios'|trans({}, 'messages')|capitalize}}</h5>
                         </div>
                         <div class="col-md-12 col-sm-12 col-xs-12">
-                            {% apply spaceless %}
-                                {% for tipoTarifa in tabs.resumen.serviciosSinTituloItinerario.tipoTarifas %}
-                                    <p>
-                                        {% set whatsappText = whatsappText ~ tipoTarifa.tituloTipotarifa ~ ': ' %}
-                                        <span style="font-weight: 600;">{{ tipoTarifa.tituloTipotarifa }}:</span>
-                                        {% for componente in tipoTarifa.componentes %}
-                                            {% set whatsappText = whatsappText ~ componente.titulo %}
-                                            {{ componente.titulo }}{% if loop.last== false  %}, {% set whatsappText = whatsappText ~ ', ' %}{% else %}.{% set whatsappText = whatsappText ~ '.\n' %}{% endif %}
-                                        {% endfor %}
-                                    </p>
-                                    {% set whatsappText = whatsappText ~ '\n' %}
-                                {% endfor %}
-                            {% endapply %}
+                            {% for tipoTarifa in tabs.resumen.serviciosSinTituloItinerario.tipoTarifas %}
+                                <p>
+                                    {% set whatsappText = whatsappText ~ tipoTarifa.tituloTipotarifa ~ ': ' %}
+                                    <span style="font-weight: 600;">{{ tipoTarifa.tituloTipotarifa }}:</span>
+                                    {% for componente in tipoTarifa.componentes %}
+                                        {% set whatsappText = whatsappText ~ componente.titulo %}
+                                        {{ componente.titulo }}{% if loop.last== false  %}, {% set whatsappText = whatsappText ~ ', ' %}{% else %}.{% set whatsappText = whatsappText ~ '.\n' %}{% endif %}
+                                    {% endfor %}
+                                </p>
+                                {% set whatsappText = whatsappText ~ '\n' %}
+                            {% endfor %}
                         </div>
                     </li>
                 {% endif %}

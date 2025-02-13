@@ -8,7 +8,6 @@ For the full copyright and license information, please view the LICENSE
 file that was distributed with this source code.
 
 #}
-{% apply spaceless %}
 <select id="{{ id }}_autocomplete_input" data-sonata-select2="false"
         {%- if read_only|default(false) %} readonly="readonly"{% endif -%}
         {%- if disabled %} disabled="disabled"{% endif %}
@@ -280,4 +279,3 @@ file that was distributed with this source code.
     });
     {% endautoescape %}
 </script>
-{% endapply %}

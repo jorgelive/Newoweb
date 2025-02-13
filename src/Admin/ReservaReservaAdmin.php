@@ -248,7 +248,9 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'choices' => [
                     ReservaChannel::DB_VALOR_DIRECTO => 'Directo',
                     ReservaChannel::DB_VALOR_AIRBNB => 'Airbnb',
-                    ReservaChannel::DB_VALOR_BOOKING => 'Booking'
+                    ReservaChannel::DB_VALOR_BOOKING => 'Booking',
+                    ReservaChannel::DB_VALOR_TRIPADVISOR => 'Tripadvisor',
+                    ReservaChannel::DB_VALOR_VRBO => 'VRBO'
                 ]
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
