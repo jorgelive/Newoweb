@@ -169,7 +169,7 @@ class ObtenerReservasCommand extends Command
                     }elseif($canal == ReservaChannel::DB_VALOR_VRBO){
                         $insertar = true;
                         $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_PAGO_TOTAL);
-                        $temp['nombre'] = str_replace('Reserved -', '', $event->summary) . 'Completar VRBO';
+                        $temp['nombre'] = str_replace('Reserved -', '', $event->summary) . ' Completar VRBO';
                         $temp['enlace'] = '';
                     }else{
                         $insertar = true;
