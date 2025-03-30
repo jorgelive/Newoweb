@@ -24,6 +24,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
             ->add('id')
             ->add('file')
             ->add('nombre')
+            ->add('vencimiento')
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento'
             ])
@@ -41,6 +42,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
             ->add('nombre', null, [
                 'editable' => true
             ])
+            ->add('vencimiento')
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento',
                 'sortable' => true,
@@ -77,6 +79,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
         }
         $formMapper
             ->add('nombre')
+            ->add('vencimiento')
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento'
             ])
@@ -121,6 +124,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
             ->add('id')
             ->add('file')
             ->add('nombre')
+            ->add('vencimiento')
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento'
             ])

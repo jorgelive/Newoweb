@@ -206,11 +206,13 @@
                                                     <div class="col-md-4 col-sm-6 col-xs-12 margin-bottom-10">
                                                         <div id="carousel_{{ cotizacion.id }}" class="carousel slide" data-interval="10000" data-ride="carousel">
                                                             <!-- indicadores -->
-                                                            <ol class="carousel-indicators">
-                                                                {% for index_medio, medio in cotizacion.portadafotos %}
-                                                                    <li data-target="#carousel_{{ cotizacion.id }}" data-slide-to="{{ index_medio }}" {% if loop.first == true  %}class="active"{% endif%}></li>
-                                                                {% endfor %}
-                                                            </ol>
+                                                            {% if cotizacion.portadafotos|length < 6 %}
+                                                                <ol class="carousel-indicators">
+                                                                    {% for index_medio, medio in cotizacion.portadafotos %}
+                                                                        <li data-target="#carousel_{{ cotizacion.id }}" data-slide-to="{{ index_medio }}" {% if loop.first == true  %}class="active"{% endif%}></li>
+                                                                    {% endfor %}
+                                                                </ol>
+                                                            {% endif %}
                                                             <!-- slides -->
                                                             <div class="carousel-inner" role="listbox">
                                                                 {% for medio in cotizacion.portadafotos %}

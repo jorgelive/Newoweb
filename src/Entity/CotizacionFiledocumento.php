@@ -29,6 +29,11 @@ class CotizacionFiledocumento
     private $id;
 
     /**
+     * @ORM\Column(type="date", nullable=true)
+     */
+    private $vencimiento;
+
+    /**
      * @var \App\Entity\CotizacionTipofiledocumento
      *
      * @ORM\ManyToOne(targetEntity="CotizacionTipofiledocumento")
@@ -75,6 +80,29 @@ class CotizacionFiledocumento
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * Set vencimiento
+     *
+     * @param \DateTime $creado
+     * @return CotizacionFiledocumento
+     */
+    public function setVencimiento($vencimiento)
+    {
+        $this->vencimiento = $vencimiento;
+
+        return $this;
+    }
+
+    /**
+     * Get vencimiento
+     *
+     * @return \DateTime
+     */
+    public function getVencimiento()
+    {
+        return $this->vencimiento;
     }
 
     /**

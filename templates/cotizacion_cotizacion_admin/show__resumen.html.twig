@@ -59,11 +59,13 @@
                                         {% if alojamiento.proveedor.providermedios is not empty %}
                                             <div id="carousel_{{ index_alojamiento }}" class="carousel slide" data-interval="10000" data-ride="carousel">
                                                 <!-- indicadores -->
-                                                <ol class="carousel-indicators">
-                                                    {% for index_medio, medio in alojamiento.proveedor.providermedios %}
-                                                        <li data-target="#carousel_{{ index_alojamiento }}" data-slide-to="{{ index_medio }}" {% if loop.first == true  %}class="active"{% endif%}></li>
-                                                    {% endfor %}
-                                                </ol>
+                                                {% if alojamiento.proveedor.providermedios|length < 6 %}
+                                                    <ol class="carousel-indicators">
+                                                        {% for index_medio, medio in alojamiento.proveedor.providermedios %}
+                                                            <li data-target="#carousel_{{ index_alojamiento }}" data-slide-to="{{ index_medio }}" {% if loop.first == true  %}class="active"{% endif%}></li>
+                                                        {% endfor %}
+                                                    </ol>
+                                                {% endif %}
                                                 <!-- slides -->
                                                 <div class="carousel-inner" role="listbox">
                                                     {% for medio in alojamiento.proveedor.providermedios %}
@@ -150,11 +152,13 @@
                                 <div class="col-md-6 col-sm-9 col-xs-12 center-block" style="float: none;">
                                     <div id="carousel_{{ index_servicio }}" class="carousel slide margin-top-10" data-interval="10000" data-ride="carousel">
                                         <!-- indicadores -->
-                                        <ol class="carousel-indicators">
-                                            {% for index_foto, foto in servicioConTituloItinerario.fotos %}
-                                                <li data-target="#carousel_{{ index_servicio }}" data-slide-to="{{ index_foto }}" {% if foto.portada == true  %}class="active"{% endif%}></li>
-                                            {% endfor %}
-                                        </ol>
+                                        {% if servicioConTituloItinerario.fotos|length < 6 %}
+                                            <ol class="carousel-indicators">
+                                                {% for index_foto, foto in servicioConTituloItinerario.fotos %}
+                                                    <li data-target="#carousel_{{ index_servicio }}" data-slide-to="{{ index_foto }}" {% if foto.portada == true  %}class="active"{% endif%}></li>
+                                                {% endfor %}
+                                            </ol>
+                                        {% endif %}
                                         <!-- slides -->
                                         <div class="carousel-inner" role="listbox">
                                             {% for foto in servicioConTituloItinerario.fotos %}
