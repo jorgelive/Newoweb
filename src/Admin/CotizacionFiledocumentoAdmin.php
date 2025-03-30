@@ -8,6 +8,7 @@ use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
+use Sonata\Form\Type\DatePickerType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
@@ -79,7 +80,12 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
         }
         $formMapper
             ->add('nombre')
-            ->add('vencimiento')
+            ->add('vencimiento', DatePickerType::class, [
+                'label' => 'Vencimiento',
+                'dp_use_current' => true,
+                'dp_show_today' => true,
+                'format'=> 'yyyy/MM/dd'
+            ])
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento'
             ])
