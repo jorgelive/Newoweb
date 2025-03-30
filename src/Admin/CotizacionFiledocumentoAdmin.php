@@ -84,7 +84,8 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
                 'label' => 'Vencimiento',
                 'dp_use_current' => true,
                 'dp_show_today' => true,
-                'format'=> 'yyyy/MM/dd'
+                'format'=> 'yyyy/MM/dd',
+                'required' => false
             ])
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento'
