@@ -19,7 +19,7 @@ use Twig\Environment;
 class TareasBlockService extends AbstractBlockService
 {
 
-    private EntityManager $entityManager;
+    private EntityManagerInterface $entityManager;
     private TokenStorageInterface $tokenStorage;
     public function __construct(Environment $twig, EntityManagerInterface $entityManager, TokenStorageInterface $tokenStorage)
     {
