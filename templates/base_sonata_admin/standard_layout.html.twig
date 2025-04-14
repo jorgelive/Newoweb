@@ -24,10 +24,14 @@
     <style>
 
         {# Modificaciones para el encabezado, Bredcrumb y otros #}
-        .main-header { height: 100px; }
+        .main-header { height: 100px; position: relative !important; height: unset !important; max-height: unset !important;}
+        .main-sidebar {position: absolute !important; }
+
         .main-header .logo { height: 100px; }
         .main-header .logo img { max-width: unset; }
         .main-sidebar, .left-side { padding-top: 100px; }
+        .content-wrapper { padding-top: 0 !important; }
+
         .fc-toolbar h2 { font-size: 20px; padding-top: 10px; }
         div.encabezado td { white-space: normal !important; }
         body > div.wrapper > header > nav > div.navbar-custom-menu > ul > li > a { background-color: white; }
@@ -119,45 +123,150 @@
     </script>
 {% endblock %}
 
-{# custom languaje switcher, for not to use translatiom's bundle one #}
-{% block sonata_top_nav_menu %}
+
+
+{% block sonata_page_content %}
+      {{ sonata_block_render({
+        'type': 'app.block.tareas_block_service'
+        })
+      }}
     {{ parent() }}
-    <div class="navbar-custom-menu">
-        <ul class="nav navbar-nav">
-            {% block sonata_top_nav_menu_locale_block %}
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                        <i class="fa fa-flag fa-fw" aria-hidden="true"></i>
-                        {{ 'idioma'| trans({}, 'messages') | capitalize }}
-                        <i class="fa fa-caret-down" aria-hidden="true"></i>
-                    </a>
-                    <div class="dropdown-menu">
-                        <div class="container-fluid">
-                            <div class="row">
-                                <ul class="dropdown-menu">
-                                    <li role="presentation" class="dropdown-header">
-                                        <i class="fa fa-language"></i>
-                                        {{ 'languages'|trans({}, 'SonataTranslationBundle') }}
-                                    </li>
-                                    {% for locale in sonata_translation_locales %}
-                                        <li role="presentation" class="{{ app.request.locale == locale ? 'active' : '' }}">
-                                            <a role="menuitem" tabindex="-1" href="{{ path('sonata.translation.locale', {'locale': locale}) }}">
-                                                {{ locale|sonata_language_name(locale)|capitalize }}
-                                            </a>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
+{% endblock sonata_page_content %}
+
+
+{% block sonata_nav %}
+    <nav class="navbar navbar-top"> {# jg ya no static #}
+        <a href="#" class="sidebar-toggle fa5" data-toggle="push-menu"
+           role="button" title="{{ 'toggle_navigation'|trans({}, 'SonataAdminBundle') }}">
+            <span class="sr-only">{{ 'toggle_navigation'|trans({}, 'SonataAdminBundle') }}</span>
+        </a>
+
+        <div class="navbar-left">
+            {% block sonata_breadcrumb %}
+                <div class="hidden-xs">
+                    {% if _breadcrumb is not empty or action is defined %}
+                        <ol class="nav navbar-top-links breadcrumb">
+                            {% if _breadcrumb is empty %}
+                                {% if action is defined %}
+                                    {{ render_breadcrumbs(admin, action) }}
+                                {% endif %}
+                            {% else %}
+                                {{ _breadcrumb|raw }}
+                            {% endif %}
+                        </ol>
+                    {% endif %}
+                </div>
+            {% endblock sonata_breadcrumb %}
+        </div>
+
+        {# custom languaje switcher, for not to use translatiom's bundle one #}
+        {% block sonata_top_nav_menu %}
+            {{ parent() }}
+            <div class="navbar-custom-menu">
+                <ul class="nav navbar-nav">
+                    {% block sonata_top_nav_menu_locale_block %}
+                        <li class="dropdown">
+                            <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                                <i class="fa fa-flag fa-fw" aria-hidden="true"></i>
+                                {{ 'idioma'| trans({}, 'messages') | capitalize }}
+                                <i class="fa fa-caret-down" aria-hidden="true"></i>
+                            </a>
+                            <div class="dropdown-menu">
+                                <div class="container-fluid">
+                                    <div class="row">
+                                        <ul class="dropdown-menu">
+                                            <li role="presentation" class="dropdown-header">
+                                                <i class="fa fa-language"></i>
+                                                {{ 'languages'|trans({}, 'SonataTranslationBundle') }}
+                                            </li>
+                                            {% for locale in sonata_translation_locales %}
+                                                <li role="presentation" class="{{ app.request.locale == locale ? 'active' : '' }}">
+                                                    <a role="menuitem" tabindex="-1" href="{{ path('sonata.translation.locale', {'locale': locale}) }}">
+                                                        {{ locale|sonata_language_name(locale)|capitalize }}
+                                                    </a>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </li>
-            {% endblock %}
-        </ul>
-    </div>
-{% endblock %}
+                        </li>
+                    {% endblock %}
+                </ul>
+            </div>
+
+        {% endblock sonata_top_nav_menu %}
+    </nav>
+{% endblock sonata_nav %}
+
+ {% block sonata_page_content_nav %}
+     {% if _navbar_title is not empty
+         or _tab_menu is not empty
+         or _actions is not empty
+         or _list_filters_actions is not empty
+     %}
+         <nav class="navbar-default" role="navigation">
+             <div class="container-fluid">
+                 {% block tab_menu_navbar_header %}
+                     {% if _navbar_title is not empty %}
+                         <div class="navbar-header">
+                             <a class="navbar-brand" href="#">{{ _navbar_title|raw }}</a>
+                         </div>
+                     {% endif %}
+                 {% endblock %}
+
+                 <div class="navbar-collapse">
+                     {% if _tab_menu is not empty %}
+                         <div class="navbar-left">
+                             {{ _tab_menu|raw }}
+                         </div>
+                     {% endif %}
+
+                     {% if admin is defined and action is defined and action == 'list' and admin.listModes|length > 1 %}
+                         <div class="nav navbar-right btn-group">
+                             {% for mode, settings in admin.listModes %}
+                                 <a href="{{ admin.generateUrl('list', app.request.query.all|merge({_list_mode: mode})) }}" class="btn btn-default navbar-btn btn-sm{% if admin.getListMode() == mode %} active{% endif %}">
+                                     {# NEXT_MAJOR: Remove the if and keep the else part #}
+                                     {% if settings.icon is not defined and settings.class is defined %}
+                                         {% deprecated 'Relying on the "class" setting is deprecated since sonata-project/admin-bundle 4.9, use the "icon" setting instead' %}
+                                         <i class="{{ settings.class }}" aria-hidden="true"></i>
+                                     {% else %}
+                                         {{ settings.icon|default('')|parse_icon }}
+                                     {% endif %}
+                                 </a>
+                             {% endfor %}
+                         </div>
+                     {% endif %}
+
+                     {% block sonata_admin_content_actions_wrappers %}
+                         {% if _actions|replace({ '<li>': '', '</li>': '' })|trim is not empty %}
+                             <ul class="nav navbar-nav navbar-right">
+                                 {% if _actions|split('</a>')|length > 2 %}
+                                     <li class="dropdown sonata-actions">
+                                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ 'link_actions'|trans({}, 'SonataAdminBundle') }} <b class="caret"></b></a>
+                                         <ul class="dropdown-menu" role="menu">
+                                             {{ _actions|raw }}
+                                         </ul>
+                                     </li>
+                                 {% else %}
+                                     {{ _actions|raw }}
+                                 {% endif %}
+                             </ul>
+                         {% endif %}
+                     {% endblock sonata_admin_content_actions_wrappers %}
+
+                     {% if _list_filters_actions is not empty %}
+                         {{ _list_filters_actions|raw }}
+                     {% endif %}
+                 </div>
+             </div>
+         </nav>
+     {% endif %}
+ {% endblock sonata_page_content_nav %}
 
 {% block side_bar_after_nav %}
     {{ parent() }}
     <div class="btn-group btn-group-justified">
     </div>
-{% endblock %}
+
+{% endblock side_bar_after_nav %}

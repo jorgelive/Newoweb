@@ -327,6 +327,11 @@ services:
         tags:
             - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest,  priority: 101 }
 
+    app.block.tareas_block_service:
+        class: App\Block\TareasBlockService
+        tags:
+            - { name: sonata.block }
+
     app.admin.comprobantecomprobante:
         class: App\Admin\ComprobanteComprobanteAdmin
         tags:

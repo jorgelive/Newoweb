@@ -1,0 +1,159 @@
+{% extends sonata_block.templates.block_base %}
+
+{% block block %}
+
+        <div class="border-0 text-center text-md-left" style="padding: 0 15px 0 15px;">
+            <a href="#menu1" class="list-group-item d-inline-block collapsed" data-toggle="collapse" aria-expanded="false">
+                <i class="fa fa-dashboard"></i>
+                <span class="d-none d-md-inline">{{ settings.title }}</span>
+            </a>
+            <div class="collapse box text-left" id="menu1" data-parent="#tareas">
+
+                <h4 style="margin-left: 15px;">Ingresos y salidas de apartamentos: </h4>
+                {% if reservasordenadas|length > 0 %}
+                    {% for tipo in reservasordenadas %}
+                        {% if tipo|length > 0 %}
+                            <h4 style="margin-left: 15px;">{{ tipo.nombre }}:</h4>
+                            <table style="margin-left: 30px; border-collapse: collapse;">
+                                <tr style="border-bottom: 1px solid steelblue;">
+                                    <th>
+                                        Dep
+                                    </th>
+                                    <th>
+                                        Canal
+                                    </th>
+                                    <th>
+                                        Nombre
+                                    </th>
+                                    <th>
+                                        Adl
+                                    </th>
+                                    <th>
+                                        Chd
+                                    </th>
+                                </tr>
+                                {% for reserva in tipo.reservas %} {# siempre tiene contenido, ya no validamos #}
+                                    <tr style="border-bottom: 1px solid steelblue;">
+
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {{ reserva.unit.nombre }}
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {{ reserva.channel.nombre }}
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px; width: 150px; ">
+                                            <a href="{{ url('admin_app_reservareserva_show', {'id': reserva.id }) }}">{{ reserva.nombre }}</a>
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {{ reserva.cantidadadultos }}
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {{ reserva.cantidadninos }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% endif %}
+                    {% endfor %}
+
+                {% else %}
+                    <p style="font-size: 1em; color: {{ colores.lila }};">No hay reservas ingresando o saliendo para el dia de hoy ni mañana.</p>
+                {% endif %}
+
+                <h4 style="margin-left: 15px;">Toures y excursiones:</h4>
+                {% if serviciosordenados|length > 0 %}
+                    {% for tipo in serviciosordenados %}
+                        {% if tipo|length > 0 %}
+                            <h4 style="margin-left: 15px;">{{ tipo.nombre }}:</h4>
+                            <table style="margin-left: 30px; border-collapse: collapse;">
+                                <tr style="border-bottom: 1px solid steelblue;">
+                                    <th>
+                                        Hora
+                                    </th>
+                                    <th>
+                                        Servicio
+                                    </th>
+                                    <th>
+                                        Itinerario
+                                    </th>
+                                    <th>
+                                        Componentes
+                                    </th>
+                                </tr>
+                                {% for servicio in tipo.servicios %} {# siempre tiene contenido, ya no validamos #}
+                                    <tr style="border-bottom: 1px solid steelblue;">
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {{ servicio.fechahorainicio|date('H:i') }}
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px;">
+                                            <a href="{{ url('admin_app_reservareserva_show', {'id': servicio.id }) }}">{{ servicio.resumen }}</a>
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {{ servicio.itinerario.nombre }}
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {% if servicio.cotcomponentes|length > 0 %}
+                                                <ul>
+                                                    {% for componente in servicio.cotcomponentes %}
+                                                        <li>
+                                                            <a style="color: {{componente.estadocotcomponente.color}};">{{ componente.componente.nombre }} ({{ componente.estadocotcomponente.nombre }})</a>
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p style="margin-left: 15px; font-size: 1em; color: {{ colores.lila }};">No hay servicios para el dia de hoy ni mañana.</p>
+                {% endif %}
+
+                <h4 style="margin-left: 15px;">Componentes pendientes de confirmación: </h4>
+                {% if alertas|length > 0 %}
+                    <table style="margin-left: 15px; border-collapse: collapse;">
+                        <tr style="border-bottom: 1px solid steelblue;">
+                            <th>
+                                Datos
+                            </th>
+                            <th>
+                                Servicio
+                            </th>
+                            <th>
+                                Componente
+                            </th>
+                        </tr>
+                        {% for alerta in alertas %}
+                            <tr style="border-bottom: 1px solid {{ colores.azul_acero }};">
+                                {% if alerta.idEstado == constant('App\\Entity\\CotizacionEstadocotcomponente::DB_VALOR_PENDIENTE') %}
+                                    {% set color = colores.rojo_oscuro %}
+                                {% else %}
+                                    {% set color = colores.naranja %}
+                                {% endif %}
+                                <td style="padding: 0 4px 10px 4px;">
+                                    <span style="white-space: nowrap; font-size: 0.8em">{{ alerta.fechaHoraInicio|date("Y-m-d H:i") }}</span><br />
+                                    <span style="color: {{ color }};">{{ alerta.nombreEstado }}</span><br />
+                                    <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_cotizacioncotizacion_show', {'id': alerta.idCotizacion }) }}"><span style="font-weight: bold;">{{ alerta.nombreFile }}</span></a>
+
+                                </td>
+                                <td style="padding: 0 4px 10px 4px;">
+                                    {{alerta.nombreServicio}}<br />
+                                    <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_cotizacioncotservicio_edit', {'id': alerta.idServicio }) }}">Editar</a>
+                                </td>
+                                <td style="padding: 0 4px 10px 4px;">
+                                    {{alerta.nombreComponente}}<br />
+                                    <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_cotizacioncotcomponente_show', {'id': alerta.id }) }}">Mostrar componete</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p style="margin-left: 15px; font-size: 1.3em; color: {{ colores.verde_oscuro }};">Los servicios próximos se encuentran confirmados y reconfirmados.</p>
+                {% endif %}
+
+            </div>
+        </div>
+
+{% endblock %}

@@ -1,53 +1,57 @@
 <?php
-namespace App\Command;
 
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Input\InputArgument;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
-use Symfony\Component\Mailer\Transport\TransportInterface;
-use Symfony\Component\Mime\Address;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use App\Entity\ReservaReserva;
-use Symfony\Component\HttpClient\HttpClient;
+namespace App\Block;
 
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+
+use Sonata\BlockBundle\Block\BlockContextInterface;
+use Sonata\BlockBundle\Block\Service\AbstractBlockService;
+use Sonata\BlockBundle\Form\Mapper;
+use Sonata\BlockBundle\Model\BlockInterface;
+use Sonata\Form\Validator\ErrorElement;
+
+use Doctrine\ORM\EntityManager;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Twig\Environment;
 
 
-#[AsCommand(name: 'app:enviar-resumen', description: 'Envia resumen a correo electrónico.')]
-class EnviarResumenCommand extends Command
+class TareasBlockService extends AbstractBlockService
 {
-    private EntityManagerInterface $entityManager;
 
-    public function __construct(EntityManagerInterface $entityManager, TransportInterface $mailer, ParameterBagInterface $params)
+    private EntityManager $entityManager;
+    private TokenStorageInterface $tokenStorage;
+    public function __construct(Environment $twig, EntityManager $entityManager, TokenStorageInterface $tokenStorage)
     {
         $this->entityManager = $entityManager;
-        $this->mailer = $mailer;
-        $this->params = $params;
+        $this->tokenStorage = $tokenStorage;
 
-        parent::__construct();
+        parent::__construct($twig);
+    }
+    public function configureSettings(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'url' => false,
+            'title' => 'Tareas',
+            'template' => 'Block/Tareas.html.twig',
+            'class' => 'Tareas',
+            'icon' => false,
+            'translation_domain' => 'messages'
+        ]);
     }
 
-    protected function configure(): void
+    public function execute(BlockContextInterface $blockContext, Response $response = null): Response
     {
-        $this->setHelp('Este comando envia un resúmen por correo electrónico.');
-        //$this->addArgument('username', InputArgument::REQUIRED, 'The username of the user.');
-    }
+        // merge settings
+        $settings = $blockContext->getSettings();
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
+        if(empty($this->tokenStorage->getToken())){
+            return new Response('');
+        }
+
         $hoy = new \DateTime('now');
         $manana = new \DateTime('tomorrow');
         $pasado = new \DateTime('tomorrow + 1day');
-
-        $output->writeln([
-            sprintf('%s: Iniciando envio de mensajes...', $hoy->format('Y-m-d H:i')),
-            '============'
-        ]);
 
         $componenteAlertas = $this->entityManager->getRepository("App\Entity\ViewCotizacionCotcomponenteAlerta")->findAll();
         if(count($componenteAlertas) > 0){
@@ -162,47 +166,14 @@ class EnviarResumenCommand extends Command
         unset($servicio);
         unset($qb);
 
-        $email = (new TemplatedEmail())
-            ->from(new Address($this->params->get('mailer_sender_email'), $this->params->get('mailer_sender_name')))
-
-            ->subject(sprintf('OpenPeru - Resumen del %s', $hoy->format('Y-m-d')))
-            ->htmlTemplate('emails/command_enviar_resumen.html.twig')
-            ->context([
-                'fechaHoraActual' => new \DateTime('now'),
-                'alertas' => $alertas,
-                'reservasordenadas' => $reservasOrdenadas,
-                'serviciosordenados' => $serviciosOrdenados
-            ]);
-
-        $receivers = explode(',', $this->params->get('mailer_alert_receivers'));
-
-        foreach ($receivers as $key => $receiver){
-            if ($key === array_key_first($receivers)) {
-                $email->to(new Address($receiver));
-            }else{
-                $email->addTo(new Address($receiver));
-            }
-        }
-
-        try {
-            $this->mailer->send($email);
-            //$dummy = 1;
-        }catch (TransportExceptionInterface $e) {
-            $output->writeln([
-                    'Se ha completado el proceso con error!',
-                    ''
-                ]
-            );
-            return Command::FAILURE;
-        }
-
-        $output->writeln([
-            'Se ha completado el proceso exitosamente!',
-            ''
-            ]
-        );
-
-        return Command::SUCCESS;
-
+        return $this->renderResponse($blockContext->getTemplate(), [
+            'fechaHoraActual' => new \DateTime('now'),
+            'alertas' => $alertas,
+            'reservasordenadas' => $reservasOrdenadas,
+            'serviciosordenados' => $serviciosOrdenados,
+            'block'     => $blockContext->getBlock(),
+            'settings'  => $settings
+        ], $response);
     }
+
 }
