@@ -33,7 +33,7 @@ class TareasBlockService extends AbstractBlockService
         $resolver->setDefaults([
             'url' => false,
             'title' => 'Tareas',
-            'template' => 'block/Tareas.html.twig',
+            'template' => 'block/tareas.html.twig',
             'class' => 'Tareas',
             'icon' => false,
             'translation_domain' => 'messages'
