@@ -2,6 +2,7 @@
 
 namespace App\Block;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -11,7 +12,6 @@ use Sonata\BlockBundle\Form\Mapper;
 use Sonata\BlockBundle\Model\BlockInterface;
 use Sonata\Form\Validator\ErrorElement;
 
-use Doctrine\ORM\EntityManager;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Twig\Environment;
 
@@ -21,7 +21,7 @@ class TareasBlockService extends AbstractBlockService
 
     private EntityManager $entityManager;
     private TokenStorageInterface $tokenStorage;
-    public function __construct(Environment $twig, EntityManager $entityManager, TokenStorageInterface $tokenStorage)
+    public function __construct(Environment $twig, EntityManagerInterface $entityManager, TokenStorageInterface $tokenStorage)
     {
         $this->entityManager = $entityManager;
         $this->tokenStorage = $tokenStorage;
