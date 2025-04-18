@@ -50,12 +50,17 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
         if(empty($this->tokenStorage->getToken())){
             $buttonList['show'] = ['template' => 'cotizacion_file_admin/adminview_button.html.twig'];
         }else{
-            if($action != 'resumen'){
+
+            if($action == 'resumen'){
+                $buttonList['operaciones'] = ['template' => 'cotizacion_cotizacion_admin/operaciones_button.html.twig'];
+            }elseif($action == 'operaciones'){
                 $buttonList['resumen'] = ['template' => 'cotizacion_cotizacion_admin/resumen_button.html.twig'];
-            }elseif($action == 'resumen'){
-                $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/show_button.html.twig'];
-                $buttonList['edit'] = ['template' => 'cotizacion_cotizacion_admin/edit_button.html.twig'];
+            }elseif($action != 'resumen'){
+                $buttonList['resumen'] = ['template' => 'cotizacion_cotizacion_admin/resumen_button.html.twig'];
+                $buttonList['operaciones'] = ['template' => 'cotizacion_cotizacion_admin/operaciones_button.html.twig'];
             }
+            $buttonList['show'] = ['template' => 'cotizacion_cotizacion_admin/show_button.html.twig'];
+            $buttonList['edit'] = ['template' => 'cotizacion_cotizacion_admin/edit_button.html.twig'];
             $buttonList['resumenclipboard'] = ['template' => 'cotizacion_cotizacion_admin/resumen_clipboard_button.html.twig'];
             $buttonList['clonar'] = ['template' => 'cotizacion_cotizacion_admin/clonar_button.html.twig'];
             $buttonList['fileshow'] = ['template' => 'cotizacion_cotizacion_admin/fileshow_button.html.twig'];
@@ -222,6 +227,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                     'resumen' => [
                         'template' => 'cotizacion_cotizacion_admin\list__action_resumen.html.twig'
                     ],
+                    'operaciones' => [
+                        'template' => 'cotizacion_cotizacion_admin\list__action_operaciones.html.twig'
+                    ],
                     'clonar' => [
                         'template' => 'cotizacion_cotizacion_admin\list__action_clonar.html.twig'
                     ],
@@ -387,6 +395,7 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
+        $collection->add('operaciones', $this->getRouterIdParameter() . '/operaciones/{tokenoperaciones}');
         $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
         $collection->add('email', $this->getRouterIdParameter() . '/email');
         $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');

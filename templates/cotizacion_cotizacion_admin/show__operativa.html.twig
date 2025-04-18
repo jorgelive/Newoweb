@@ -70,9 +70,11 @@
                                     {% endfor %}
                                 </ul>
                             {% endif %}
-                            <div class="celda" style="margin-bottom: 10px;">
-                                {% include 'cotizacion_cotizacion_admin/show__action_clonar_servicio.html.twig' with {'object': servicio} %}
-                            </div>
+                            {% if action == 'show' %}
+                                <div class="celda" style="margin-bottom: 10px;">
+                                    {% include 'cotizacion_cotizacion_admin/show__action_clonar_servicio.html.twig' with {'object': servicio} %}
+                                </div>
+                            {% endif %}
                         </li>
                     {% endfor %}
                 </ul>

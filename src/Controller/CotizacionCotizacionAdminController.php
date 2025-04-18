@@ -207,5 +207,51 @@ class CotizacionCotizacionAdminController extends CRUDAdminController
         }
     }
 
+    function operacionesAction(Request $request): Response | RedirectResponse
+    {
+
+        $object = $this->assertObjectExists($request, true);
+        \assert(null !== $object);
+
+        //verificamos token
+        if($request->get('tokenoperaciones') != $object->getTokenoperaciones()){
+            $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
+
+        if($object->getEstadocotizacion()->isNopublico()){
+            $this->addFlash('sonata_flash_error', 'La cotización no se muestra en resumen, redirigido a "Mostrar"');
+            return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
+        }
+
+        $this->checkParentChildAssociation($request, $object);
+
+        //$this->admin->checkAccess('show', $object);
+
+        $preResponse = $this->preShow($request, $object);
+        if(null !== $preResponse) {
+            return $preResponse;
+        }
+
+        $this->admin->setSubject($object);
+
+        $fields = $this->admin->getShow();
+
+        $template = 'cotizacion_cotizacion_admin/show.html.twig';
+
+        if($this->container->get('App\Service\CotizacionProceso')->procesar($object->getId())){
+            return $this->renderWithExtraParams($template,
+                ['cotizacion' => $this->container->get('App\Service\CotizacionProceso')->getDatosCotizacion(),
+                    'tabs' => $this->container->get('App\Service\CotizacionProceso')->getDatosTabs(),
+                    'object' => $object,
+                    'action' => 'operaciones',
+                    'elements' => $fields,
+
+                ], null);
+        }else{
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
+    }
+
 
 }

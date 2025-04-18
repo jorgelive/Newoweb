@@ -232,7 +232,7 @@
                         </a>
                     </li>
 
-                    {% if action == 'show' or object.precioocultoresumen == false %}
+                    {% if action == 'show' or (action == 'resumen' and object.precioocultoresumen == false) %}
                         <li>
                             <a href="#tab-{{ admin.uniqid }}-tarifas" data-toggle="tab">
                                 <i style="color: {{ colores.verde_oscuro }};" class="fas fa-dollar-sign tab-icon" aria-hidden="true"></i>
@@ -257,7 +257,7 @@
                     </li>
                     {% endif %}
 
-                    {% if action == 'show' or object.precioocultoresumen == false %}
+                    {% if action == 'show' or (action == 'resumen' and object.precioocultoresumen == false) %}
                         <li>
                             <a href="#tab-{{ admin.uniqid }}-politica" data-toggle="tab">
                                 <i class="fas fa-exclamation tab-icon" aria-hidden="true"></i>
@@ -284,7 +284,7 @@
                         </li>
                     {% endif %}
 
-                    {% if action == 'show' %}
+                    {% if action == 'show' or action == 'operaciones' %}
                     <li>
                         <a href="#tab-{{ admin.uniqid }}-operativa" data-toggle="tab">
                             <i style="color: {{ colores.lila }}" class="fas fa-map tab-icon" aria-hidden="true"></i>
@@ -312,7 +312,7 @@
                         {% include 'cotizacion_cotizacion_admin/show__itinerario.html.twig' %}
                     </div>
 
-                    {% if action == 'show' or object.precioocultoresumen == false %}
+                    {% if action == 'show' or (action == 'resumen' and object.precioocultoresumen == false) %}
                         <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-tarifas">
                             {% include 'cotizacion_cotizacion_admin/show__tarifas.html.twig' %}
                         </div>
@@ -328,7 +328,7 @@
                     </div>
                     {% endif %}
 
-                    {% if action == 'show' or object.precioocultoresumen == false %}
+                    {% if action == 'show' or (action == 'resumen' and object.precioocultoresumen == false) %}
                         <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-politica">
                             <div class="box-body container-fluid">
                                 <div class="sonata-ba-collapsed-fields">
@@ -353,7 +353,7 @@
                     </div>
                     {% endif %}
 
-                    {% if action == 'show' %}
+                    {% if action == 'show' or action == 'operaciones' %}
                     <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-operativa">
                         {% include 'cotizacion_cotizacion_admin/show__operativa.html.twig' %}
                     </div>

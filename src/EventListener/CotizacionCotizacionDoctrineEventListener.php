@@ -35,6 +35,7 @@ class CotizacionCotizacionDoctrineEventListener
         $entity = $args->getObject();
         if($entity instanceof CotizacionCotizacion){
             $entity->setToken(mt_rand());
+            $entity->setTokenoperaciones(mt_rand());
         }
     }
 

@@ -1,0 +1,8 @@
+{% if admin.isGranted('show', object) and admin.hasRoute('operaciones') %}
+    <a href="{{ admin.generateObjectUrl('operaciones', object, {'tokenoperaciones': object.tokenoperaciones}) }}"
+       class="btn btn-sm btn-success"
+       title="Operaciones">
+        <i class="fa fa-info" aria-hidden="true"></i>
+        Operaciones
+    </a>
+{% endif %}

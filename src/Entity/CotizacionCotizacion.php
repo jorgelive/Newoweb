@@ -37,6 +37,11 @@ class CotizacionCotizacion
     private ?string $token;
 
     /**
+     * @ORM\Column(type="string", length=20)
+     */
+    private ?string $tokenoperaciones;
+
+    /**
      * @ORM\Column(type="string", length=255)
      */
     private ?string $nombre;
@@ -167,6 +172,7 @@ class CotizacionCotizacion
             $this->setCreado(null);
             $this->setModificado(null);
             $this->setToken(mt_rand());
+            $this->setTokenoperaciones(mt_rand());
             $newCotservicios = new ArrayCollection();
             foreach($this->cotservicios as $cotservicio) {
                 $newCotservicio = clone $cotservicio;
@@ -232,15 +238,28 @@ class CotizacionCotizacion
         return $this;
     }
 
+    public function getToken(): ?string
+    {
+        return $this->token;
+    }
+
+    public function setTokenoperaciones(?string $tokenoperaciones): self
+    {
+        $this->tokenoperaciones = $tokenoperaciones;
+
+        return $this;
+    }
+
+    public function getTokenoperaciones(): ?string
+    {
+        return $this->tokenoperaciones;
+    }
+
     public function getCodigo(): ?string
     {
         return 'OPC-'.sprintf('%05d', $this->id);
     }
 
-    public function getToken(): ?string
-    {
-        return $this->token;
-    }
 
     public function setNombre(?string $nombre): self
     {

@@ -58,6 +58,7 @@ security:
         - { path: ^/app/reservaunit/\d*/resumen$, role: PUBLIC_ACCESS }
 
         - { path: ^/app/cotizacioncotizacion/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
+        - { path: ^/app/cotizacioncotizacion/\d*/operaciones/\d*$, role: PUBLIC_ACCESS }
 
         - { path: ^/app/cotizacionfile/\d*/resumen/\d*$, role: PUBLIC_ACCESS }
 
