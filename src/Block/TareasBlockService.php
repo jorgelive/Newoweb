@@ -98,27 +98,38 @@ class TareasBlockService extends AbstractBlockService
         $reservas = $qb->getQuery()->getResult();
 
         //Para Ordenar
-        $reservasOrdenadas = ['ingresosHoy' => [], 'salidasHoy' => [], 'ingresosManana' => [], 'salidasManana' => [] ];
+        $reservasOrdenadas['hoy']['nombre']='Hoy';
+        $reservasOrdenadas['hoy']['clases']['ingresos'] = [];
+        $reservasOrdenadas['hoy']['clases']['salidas'] = [];
+
+        $reservasOrdenadas['manana']['nombre']='Mañana';
+        $reservasOrdenadas['manana']['clases']['ingresos'] = [];
+        $reservasOrdenadas['manana']['clases']['salidas'] = [];
+
         $existeReservas = false;
         foreach ($reservas as $reserva){
             if($reserva->getFechahorainicio()->format('Y-m-d') == $hoy->format('Y-m-d')){
-                $reservasOrdenadas['ingresosHoy']['nombre'] = 'Ingresando hoy';
-                $reservasOrdenadas['ingresosHoy']['reservas'][] = $reserva;
+                $reservasOrdenadas['hoy']['clases']['ingresos']['nombre'] = 'Ingresan';
+                $reservasOrdenadas['hoy']['clases']['ingresos']['icono'] = 'ingreso';
+                $reservasOrdenadas['hoy']['clases']['ingresos']['reservas'][] = $reserva;
                 $existeReservas = true;
             }
             if($reserva->getFechahorainicio()->format('Y-m-d') == $manana->format('Y-m-d')){
-                $reservasOrdenadas['ingresosManana']['nombre'] = 'Ingresando mañana';
-                $reservasOrdenadas['ingresosManana']['reservas'][] = $reserva;
+                $reservasOrdenadas['manana']['clases']['ingresos']['nombre'] = 'Ingresan';
+                $reservasOrdenadas['manana']['clases']['ingresos']['icono'] = 'ingreso';
+                $reservasOrdenadas['manana']['clases']['ingresos']['reservas'][] = $reserva;
                 $existeReservas = true;
             }
             if($reserva->getFechahorafin()->format('Y-m-d') == $hoy->format('Y-m-d')){
-                $reservasOrdenadas['salidasHoy']['nombre'] = 'Saliendo hoy';
-                $reservasOrdenadas['salidasHoy']['reservas'][] = $reserva;
+                $reservasOrdenadas['hoy']['clases']['salidas']['nombre'] = 'Salen';
+                $reservasOrdenadas['hoy']['clases']['salidas']['icono'] = 'salida';
+                $reservasOrdenadas['hoy']['clases']['salidas']['reservas'][] = $reserva;
                 $existeReservas = true;
             }
             if($reserva->getFechahorafin()->format('Y-m-d') == $manana->format('Y-m-d')){
-                $reservasOrdenadas['salidasManana']['nombre'] = 'Saliendo mañana';
-                $reservasOrdenadas['salidasManana']['reservas'][] = $reserva;
+                $reservasOrdenadas['manana']['clases']['salidas']['nombre'] = 'Salen';
+                $reservasOrdenadas['manana']['clases']['salidas']['icono'] = 'salida';
+                $reservasOrdenadas['manana']['clases']['salidas']['reservas'][] = $reserva;
                 $existeReservas = true;
             }
         }
