@@ -52,6 +52,7 @@ class TareasBlockService extends AbstractBlockService
         $hoy = new \DateTime('now');
         $manana = new \DateTime('tomorrow');
         $pasado = new \DateTime('tomorrow + 1day');
+        $traspasado = new \DateTime('tomorrow + 2day');
 
         $componenteAlertas = $this->entityManager->getRepository("App\Entity\ViewCotizacionCotcomponenteAlerta")->findAll();
         if(count($componenteAlertas) > 0){
@@ -138,6 +139,28 @@ class TareasBlockService extends AbstractBlockService
         unset($reserva);
         unset($qb);
 
+
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->select('fd')
+            ->from('App\Entity\CotizacionFiledocumento', 'fd')
+            ->innerJoin('fd.file', 'f')
+            ->innerJoin('f.cotizaciones', 'c')
+            ->innerJoin('c.estadocotizacion', 'e')
+            ->where(
+                $qb->expr()->andX(
+                    $qb->expr()->eq('e.id', 3), //confirmado
+                    $qb->expr()->gte('DATE(fd.vencimiento)', ':hoy'),
+                    $qb->expr()->lt('DATE(fd.vencimiento)', ':traspasado')
+                )
+            )
+            ->orderBy('fd.vencimiento', 'ASC')
+            ->setParameter('hoy', $hoy->format('Y-m-d'))
+            ->setParameter('traspasado', $traspasado->format('Y-m-d'));
+
+        $vencimientos = $qb->getQuery()->getResult();
+
+        unset($qb);
+
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('cs')
             ->from('App\Entity\CotizacionCotservicio', 'cs')
@@ -147,7 +170,7 @@ class TareasBlockService extends AbstractBlockService
                 $qb->expr()->andX(
                     $qb->expr()->eq('e.id', 3), //confirmado
                     $qb->expr()->gte('DATE(cs.fechahorainicio)', ':hoy'),
-                    $qb->expr()->lt('DATE(cs.fechahorainicio)', ':pasado'),
+                    $qb->expr()->lt('DATE(cs.fechahorainicio)', ':pasado')
                 )
             )
             ->orderBy('cs.fechahorainicio', 'ASC')
@@ -180,6 +203,7 @@ class TareasBlockService extends AbstractBlockService
         return $this->renderResponse($blockContext->getTemplate(), [
             'fechaHoraActual' => new \DateTime('now'),
             'alertas' => $alertas,
+            'vencimientos' => $vencimientos,
             'reservasordenadas' => $reservasOrdenadas,
             'serviciosordenados' => $serviciosOrdenados,
             'block'     => $blockContext->getBlock(),

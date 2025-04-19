@@ -4,13 +4,55 @@
 
         <div class="border-0 text-center text-md-left" style="padding: 0 15px 0 15px;">
             <a href="#menu1" class="list-group-item d-inline-block collapsed" data-toggle="collapse" aria-expanded="false">
-                <i class="fa fa-dashboard"></i>
-                <span class="d-none d-md-inline">{{ settings.title }}</span>
+                <i class="fa fa-dashboard" {% if vencimientos|length > 0 %}style="color: #a94442;"{% endif %}></i>
+                <span class="d-none d-md-inline" {% if vencimientos|length > 0 %}style="color: #a94442;"{% endif %}>{{ settings.title }}</span>
             </a>
             <div class="collapse box text-left" id="menu1">
+
+                {% if vencimientos|length > 0 %}
+                    <div class="panel panel-danger margin">
+                        <div class="panel-heading">
+                            <div style="margin-left: 10px; font-size: 16px; font-weight: bold;">
+                                Vencimientos de reservas:
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <table style="margin-left: 30px; border-collapse: collapse;">
+                                <tr style="border-bottom: 1px solid steelblue;">
+                                    <th>
+                                        Fecha
+                                    </th>
+                                    <th>
+                                        Info
+                                    </th>
+                                    <th>
+                                        Fle
+                                    </th>
+                                </tr>
+                                {% for vencimiento in vencimientos %}
+                                    <tr style="border-bottom: 1px solid steelblue;">
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {{vencimiento.vencimiento|date('Y-m-d')}}
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {{vencimiento.nombre}}
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px;">
+                                            <a href="{{ url('admin_app_cotizacionfile_show', {'id': vencimiento.file.id }) }}">
+                                                {{vencimiento.file.nombre}}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
                 <div class="panel panel-success margin">
                     <div class="panel-heading">
-                        <div style="margin-left: 10px; font-size: 16px; font-weight: bold;">Ingresos y salidas: </div>
+                        <div style="margin-left: 10px; font-size: 16px; font-weight: bold;">
+                            Ingresos y salidas:
+                        </div>
                     </div>
                     <div class="panel-body">
                         {% if reservasordenadas|length > 0 %}
@@ -70,15 +112,19 @@
                                 {% endfor %}
                             {% endif %}
                         {% endfor %}
-
                     {% else %}
-                        <p style="font-size: 1em; color: {{ colores.lila }};">No hay reservas ingresando o saliendo para el dia de hoy ni mañana.</p>
+                        <p style="font-size: 1em; color: {{ colores.lila }};">
+                            No hay reservas ingresando o saliendo para el dia de hoy ni mañana.
+                        </p>
                     {% endif %}
                     </div>
                 </div>
                 <div class="panel panel-success margin">
                     <div class="panel-heading">
-                        <div style="margin-left: 10px; font-size: 16px; font-weight: bold;">Toures y excursiones:</div>
+                        <div style="margin-left: 10px; font-size: 16px; font-weight: bold;">
+                            Toures y excursiones:
+                        </div>
+
                     </div>
                     <div class="panel-body">
                         {% if serviciosordenados|length > 0 %}
@@ -106,7 +152,7 @@
                                                 {{ servicio.fechahorainicio|date('H:i') }}
                                             </td>
                                             <td style="padding: 0 4px 0 4px;">
-                                                <a href="{{ url('admin_app_reservareserva_show', {'id': servicio.id }) }}">{{ servicio.resumen }}</a>
+                                                <a href="{{ url('admin_app_cotizacioncotservicio_show', {'id': servicio.id }) }}">{{ servicio.resumen }}</a>
                                             </td>
                                             <td style="padding: 0 4px 0 4px;">
                                                 {{ servicio.itinerario.nombre }}

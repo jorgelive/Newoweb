@@ -125,7 +125,7 @@
                             {{ servicio.fechahorainicio|date('H:i') }}
                         </td>
                         <td style="padding: 0 4px 0 4px;">
-                            <a href="{{ url('admin_app_reservareserva_show', {'id': servicio.id }) }}">{{ servicio.resumen }}</a>
+                            <a href="{{ url('admin_app_cotizacioncotservicio_show', {'id': servicio.id }) }}">{{ servicio.resumen }}</a>
                         </td>
                         <td style="padding: 0 4px 0 4px;">
                             {{ servicio.itinerario.nombre }}
