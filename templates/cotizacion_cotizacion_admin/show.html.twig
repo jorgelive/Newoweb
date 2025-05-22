@@ -330,10 +330,10 @@
 
                     {% if action == 'show' or (action == 'resumen' and object.precioocultoresumen == false) %}
                         <div class="tab-pane fade" id="tab-{{ admin.uniqid }}-politica">
-                            <div class="box-body container-fluid">
+                            <div class="no-print box-body container-fluid">
                                 <div class="sonata-ba-collapsed-fields">
                                     <div class="box-body table-responsive">
-                                        <h3 class="visible-print">{{ 'tab_terminos'|trans({}, 'messages')|capitalize}}</h3>
+                                        <h3 class="no-padding no-margin visible-print">{{ 'tab_terminos'|trans({}, 'messages')|capitalize}}</h3>
                                         <div class="ck-content">{{ object.cotpolitica.contenido|raw }}</div>
                                     </div>
                                 </div>

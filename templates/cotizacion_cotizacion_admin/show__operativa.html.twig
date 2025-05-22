@@ -1,7 +1,7 @@
 <div class="box-body container-fluid">
     <div class="sonata-ba-collapsed-fields">
         <div class="box-body table-responsive">
-            <h3 class="visible-print">{{ 'tab_operativa'|trans({}, 'messages')|capitalize}}</h3>
+            <h3 class="no-padding no-margin visible-print">{{ 'tab_operativa'|trans({}, 'messages')|capitalize}}</h3>
             {% if object.cotservicios is defined and object.cotservicios|length > 0%}
                 <ul class="fila servicio">
                     {% for servicio in object.cotservicios %}

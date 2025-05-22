@@ -1,7 +1,7 @@
-<div class="box-body container-fluid">
+<div class="no-print box-body container-fluid">
     <div class="sonata-ba-collapsed-fields">
         <div class="box-body table-responsive">
-            <h3 class="visible-print">{{ 'tab_agenda'|trans({}, 'messages')|capitalize}}</h3>
+            <h3 class="no-padding no-margin visible-print">{{ 'tab_agenda'|trans({}, 'messages')|capitalize}}</h3>
             {% if tabs.agenda.componentes is defined and tabs.agenda.componentes|length > 0%}
                 <ul class="fa-ul">
                     {% for componente in tabs.agenda.componentes | filter(componente => componente.fechahorainicio != componente.fechahorafin ) %}

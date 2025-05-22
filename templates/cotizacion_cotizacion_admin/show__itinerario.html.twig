@@ -1,8 +1,7 @@
 <div class="box-body container-fluid">
     <div class="sonata-ba-collapsed-fields">
-        <h3 class="visible-print">{{ 'tab_itinerario'|trans({}, 'messages')|capitalize}}</h3>
+        <h3 class="no-padding no-margin visible-print">{{ 'tab_itinerario'|trans({}, 'messages')|capitalize}}</h3>
         <div class="panel-body table-responsive">
-            <h3 class="visible-print">Itinerario</h3>
             {% if tabs.itinerarios is defined and tabs.itinerarios|length > 0 %}
                 {% for itinerario in tabs.itinerarios %}
                     <h5 {% if not loop.first %} style="margin-top: 30px;" {% endif %}>

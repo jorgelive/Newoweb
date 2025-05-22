@@ -222,12 +222,10 @@
                                 var tipotarifaId = $(this).attr("id").replace(/tarifa_autocomplete_input$/g, 'tipotarifa');
                                 if(result.id){
 
-                                    console.log('Se obtienen los valores monto :' + result.monto + ', moneda: ' + result.moneda + ', tipotarifa: ' + result.tipotarifa + ', prorrateado: ' + result.prorrateado + ', capacidadmax: ' + result.capacidadmax );
+                                    console.log('Se obtienen los valores -> providerId : ' + result.providerId + ', providerName : ' + result.providerName + ',, monto :' + result.monto + ', moneda: ' + result.moneda + ', tipotarifa: ' + result.tipotarifa + ', prorrateado: ' + result.prorrateado + ', capacidadmax: ' + result.capacidadmax );
 
                                     $('input#' + montoId).val(result.monto).trigger('input');
                                     $('select#' + monedaId).val(result.moneda).trigger('change');
-
-                                    console.log(result.providerId);
 
                                     var $select = $('select#' + providerId);
 
@@ -242,12 +240,19 @@
                                             if(!$select.find("option[value='" + this.id + "']").length) {
                                                 $select.append(new Option(this.text, this.id, true, true));
                                             }
-                                            data.push(this.id);
+
+                                            $select.select2("trigger", "select", {
+                                                data: { id: this.id }
+                                            });
+                                            console.log("Seleccionando el priveedor con id: " + this.id);
+                                            //$select.trigger('change');
+                                            //data.push(this.id);
                                         });
                                         //si se agrego el dato
-                                        if(data.length > 0){
-                                            $select.val(data).trigger('change');
-                                        }
+                                        //if(data.length > 0){
+                                            //$select.val(data).trigger('change');
+                                            //console.log("Seleccionando el priveedor con id: " + data);
+                                        //}
                                     }
 
                                     $('select#' + tipotarifaId).val(result.tipotarifa).trigger('change');
@@ -559,6 +564,7 @@
 
                                         if (typeof $(this).attr("duracion") !== 'undefined'){
 
+                                            $(this).attr('oldvalforfin', $(this).val());
                                             var componentdatetime = new Date(new Date($(this).val()).getTime() + diffDate);
 
                                             //console.log('newdatetime ' + newdatetime);
@@ -579,6 +585,7 @@
 
                                         if (typeof $(this).attr("duracion") !== 'undefined'){
                                             console.log('Tiene duración (' + $(this).attr("duracion") +'), cambiando fecha inicio');
+                                            $(this).attr('oldvalforfin', $(this).val());
                                             var horaAnterior = $(this).val().substr(-5, 5);
                                             var componentdatetime = new Date(new Date($(this).val()).getTime() + diffDate);
                                             var nuevaFecha = moment(componentdatetime).format('YYYY/MM/DD HH:mm').substr(0, 11);
