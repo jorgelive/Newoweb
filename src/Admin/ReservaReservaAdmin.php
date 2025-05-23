@@ -26,6 +26,12 @@ class ReservaReservaAdmin extends AbstractAdmin
         $this->classnameLabel = "Reserva";
     }
 
+    protected function configureExportFields(): array
+    {
+
+        return ['Unidad' => 'unit.nombre', 'nombre', 'Fecha Inicio' => 'fechahorainicio', 'Fecha Fin' => 'fechahorafin', 'Adultos' => 'cantidadadultos', 'Niños' => 'cantidadninos', 'Canal' => 'channel.nombre', 'Estado' => 'estado.nombre' ];
+    }
+
     protected function configureDefaultSortValues(array &$sortValues): void
     {
         $sortValues[DatagridInterface::PAGE] = 1;

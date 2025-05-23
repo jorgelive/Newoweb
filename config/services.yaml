@@ -278,6 +278,10 @@ services:
     #         - [ setVariableproceso, [ '@App\Service\MainVariableproceso' ] ]
     #         - [ setArchivoexcelFactory, [ '@App\Service\MainArchivoexcelFactory' ] ]
 
+    app.service.admin_decorating_data_source:
+        class: App\Service\AdminDecoratingDataSource
+        decorates: 'sonata.admin.data_source.orm'
+
     app.eventlistener.cuenta_movimiento_doctrine_event_listener:
         class: App\EventListener\CuentaMovimientoDoctrineEventListener
         arguments: ['@security.token_storage']
