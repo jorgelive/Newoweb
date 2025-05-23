@@ -29,7 +29,7 @@ class ReservaReservaAdmin extends AbstractAdmin
     protected function configureExportFields(): array
     {
 
-        return ['Unidad' => 'unit.nombre', 'nombre', 'Fecha Inicio' => 'fechahorainicio', 'Fecha Fin' => 'fechahorafin', 'Adultos' => 'cantidadadultos', 'Niños' => 'cantidadninos', 'Canal' => 'channel.nombre', 'Estado' => 'estado.nombre' ];
+        return ['Unidad' => 'unit.nombre', 'nombre', 'Fecha Inicio' => 'fechahorainicio', 'Fecha Fin' => 'fechahorafin', 'Adultos' => 'cantidadadultos', 'Niños' => 'cantidadninos', 'Canal' => 'channel.nombre', 'Nota' => 'nota' ];
     }
 
     protected function configureDefaultSortValues(array &$sortValues): void
