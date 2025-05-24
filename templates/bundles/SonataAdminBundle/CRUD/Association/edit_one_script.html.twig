@@ -30,9 +30,12 @@ This code manages the one-to-many association field popup
 
         var form = jQuery(this).closest('form');
 
-        if (typeof CKEDITOR !== 'undefined') {
-            for (var instanceName in CKEDITOR.instances) {
-                CKEDITOR.instances[instanceName].updateElement();
+        if (typeof editors !== 'undefined') {
+
+            for (let pair of editors) {
+                var [key, editorInstance] = pair;
+                editorInstance.updateSourceElement();
+                console.log(key + " = " + editorInstance);
             }
         }
 
