@@ -2,7 +2,9 @@
 namespace App\EventListener;
 
 use App\Entity\CotizacionCotcomponente;
+use App\Entity\CotizacionCotservicio;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
 use Doctrine\ORM\Event\PrePersistEventArgs;
@@ -17,58 +19,61 @@ class CotizacionCotcomponenteDoctrineEventListener
         $this->entityManager = $entityManager;
     }
 
-    public function prePersist(PrePersistEventArgs $args)
+    public function onFlush(OnFlushEventArgs $args)
     {
-        $entity = $args->getObject();
-        if($entity instanceof CotizacionCotcomponente){
-            $this->actualizarCotservicio($entity);
-        }
-    }
+        $uow = $this->entityManager->getUnitOfWork();
 
-    public function preUpdate(PreUpdateEventArgs $args)
-    {
-        $entity = $args->getObject();
-        if($entity instanceof CotizacionCotcomponente){
-            $this->actualizarCotservicio($entity);
-        }
-    }
+        $entities = array_merge(
+            $uow->getScheduledEntityInsertions(),
+            $uow->getScheduledEntityUpdates()
+        );
 
-    private function actualizarCotservicio(CotizacionCotcomponente $entity)
-    {
-        $cotservicio = $entity->getCotservicio();
-
-        $oldFechahoraInicio = $cotservicio->getFechahorainicio();
-        $oldFechahoraFin = $cotservicio->getFechahorafin();
-
-        $cotcomponentes = $cotservicio->getCotcomponentes();
-
-        foreach ($cotcomponentes as $cotcomponente){
-            if(!isset($newFechahoraInicio)){
-                $newFechahoraInicio = $cotcomponente->getFechahorainicio();
-            }elseif($cotcomponente->getFechahorainicio() < $newFechahoraInicio){
-                $newFechahoraInicio = $cotcomponente->getFechahorainicio();
+        foreach ($entities as $entity) {
+            if (!($entity instanceof CotizacionCotcomponente)) {
+                continue;
             }
 
-            if(!isset($newFechahoraFin)){
-                $newFechahoraFin = $cotcomponente->getFechahorafin();
-            }elseif($cotcomponente->getFechahorafin() > $newFechahoraFin){
-                $newFechahoraFin = $cotcomponente->getFechahorafin();
+            $cotservicio = $entity->getCotservicio();
+
+            $oldFechahoraInicio = $cotservicio->getFechahorainicio();
+            $oldFechahoraFin = $cotservicio->getFechahorafin();
+
+            $cotcomponentes = $cotservicio->getCotcomponentes();
+
+            foreach ($cotcomponentes as $cotcomponente){
+                if(!isset($newFechahoraInicio)){
+                    $newFechahoraInicio = $cotcomponente->getFechahorainicio();
+                }elseif($cotcomponente->getFechahorainicio() < $newFechahoraInicio){
+                    $newFechahoraInicio = $cotcomponente->getFechahorainicio();
+                }
+
+                if(!isset($newFechahoraFin)){
+                    $newFechahoraFin = $cotcomponente->getFechahorafin();
+                }elseif($cotcomponente->getFechahorafin() > $newFechahoraFin){
+                    $newFechahoraFin = $cotcomponente->getFechahorafin();
+                }
+            }
+
+            $modificado = false;
+            if($oldFechahoraInicio != $newFechahoraInicio ){
+                $modificado = true;
+                $cotservicio->setFechahorainicio($newFechahoraInicio);
+            }
+            if($oldFechahoraFin != $newFechahoraFin ){
+                $modificado = true;
+                $cotservicio->setFechahorafin($newFechahoraFin);
+            }
+
+            unset($newFechahoraInicio);
+            unset($newFechahoraFin);
+
+            if($modificado){
+                $this->entityManager->persist($cotservicio);
+                $metaData = $this->entityManager->getClassMetadata(CotizacionCotservicio::class);
+                $uow->recomputeSingleEntityChangeSet($metaData, $cotservicio);
             }
         }
 
-        $modificado = false;
-        if($oldFechahoraInicio != $newFechahoraInicio ){
-            $modificado = true;
-            $cotservicio->setFechahorainicio($newFechahoraInicio);
-        }
-        if($oldFechahoraFin != $newFechahoraFin ){
-            $modificado = true;
-            $cotservicio->setFechahorafin($newFechahoraFin);
-        }
-
-        if($modificado){
-            $this->entityManager->persist($cotservicio);
-            //$this->entityManager->flush();
-        }
     }
+
 }

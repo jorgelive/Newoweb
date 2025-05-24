@@ -312,14 +312,12 @@ services:
     app.eventlistener_cotizacion_cotservicio_doctrine_event_listener:
         class: App\EventListener\CotizacionCotservicioDoctrineEventListener
         tags:
-            - { name: doctrine.event_listener, event: prePersist }
-            - { name: doctrine.event_listener, event: preUpdate }
+            - { name: doctrine.event_listener, event: onFlush }
 
     app.eventlistener_cotizacion_cotcomponente_doctrine_event_listener:
         class: App\EventListener\CotizacionCotcomponenteDoctrineEventListener
         tags:
-            - { name: doctrine.event_listener, event: prePersist }
-            - { name: doctrine.event_listener, event: preUpdate }
+            - { name: doctrine.event_listener, event: onFlush }
 
     app.eventListener_controller_request_kernel_event_listener:
         class: App\EventListener\ControllerRequestKernelEventListener
