@@ -70,7 +70,7 @@ class CotizacionCotservicioDoctrineEventListener
 
         if($modificado){
             $this->entityManager->persist($cotizacion);
-            $this->entityManager->flush();
+            //$this->entityManager->flush();
         }
     }
 }

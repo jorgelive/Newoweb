@@ -43,7 +43,7 @@ class CotizacionCotizacionDoctrineEventListener
     {
         $entity = $args->getObject();
         if($entity instanceof CotizacionCotizacion){
-            //De haber error los mensajes iran al flashbag
+            //Procesar para mostrar los errores, De haber error los mensajes iran al flashbag
             $this->cotizacionProceso->procesar($entity->getId());
         }
     }
@@ -53,7 +53,7 @@ class CotizacionCotizacionDoctrineEventListener
         $entity = $args->getObject();
 
         if($entity instanceof CotizacionCotizacion){
-            //De haber error los mensajes iran al flashblag
+            //Procesar para mostrar los errores, De haber error los mensajes iran al flashblag
             $this->cotizacionProceso->procesar($entity->getId());
         }
     }
