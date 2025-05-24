@@ -5,6 +5,8 @@ use App\Entity\CotizacionCotcomponente;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
+use Doctrine\ORM\Event\PrePersistEventArgs;
+use Doctrine\ORM\Event\PreUpdateEventArgs;
 
 class CotizacionCotcomponenteDoctrineEventListener
 {
@@ -15,7 +17,7 @@ class CotizacionCotcomponenteDoctrineEventListener
         $this->entityManager = $entityManager;
     }
 
-    public function postPersist(PostPersistEventArgs $args)
+    public function prePersist(PrePersistEventArgs $args)
     {
         $entity = $args->getObject();
         if($entity instanceof CotizacionCotcomponente){
@@ -23,7 +25,7 @@ class CotizacionCotcomponenteDoctrineEventListener
         }
     }
 
-    public function postUpdate(PostUpdateEventArgs $args)
+    public function preUpdate(PreUpdateEventArgs $args)
     {
         $entity = $args->getObject();
         if($entity instanceof CotizacionCotcomponente){
