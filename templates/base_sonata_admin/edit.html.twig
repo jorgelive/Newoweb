@@ -152,9 +152,6 @@
                             shouldNotGroupWhenFull: true
                         }
                     }).then(editor => {
-                        $(".btn-success").click(function(){
-                            editor.updateSourceElement();
-                        });
                         editors.set(editor.id, editor);
                     }).catch( error => {
                         //console.error( error );
@@ -197,9 +194,6 @@
                         shouldNotGroupWhenFull: true
                     }
                 }).then(editor => {
-                    $(".btn-success").click(function(){
-                        editor.updateSourceElement();
-                    });
                     editors.set( editor.id, editor );
                 }).catch( error => {
                     //console.error( error );
