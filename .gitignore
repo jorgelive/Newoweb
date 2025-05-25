@@ -20,3 +20,7 @@ yarn-error.log
 
 /composer.lock
 /yarn.lock
+
+###> phpstan/phpstan ###
+phpstan.neon
+###< phpstan/phpstan ###
