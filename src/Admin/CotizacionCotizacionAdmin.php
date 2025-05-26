@@ -270,7 +270,8 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 ]
             ])
             ->add('file.filedocumentos', null, [
-                'label' => 'Documentos'
+                'label' => 'Documentos',
+                'template' => 'base_sonata_admin/list_one_to_many.html.twig'
             ])
             ->add('fechasalida', null, [
                 'label' => 'Salida',
