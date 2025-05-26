@@ -7,7 +7,7 @@
         {% if partes[1] is not defined %}
             {{- partes[0] }}
         {% else %}
-            <span style="color: indianred;">{{- partes[0] }}</span>&nbsp; {{- partes[1] }}
+            <span style="color: indianred;">{{ partes[0] }}</span> {{ " " }} {{ partes[1] }}
         {% endif %}
     </a>
 {%- endblock -%}
