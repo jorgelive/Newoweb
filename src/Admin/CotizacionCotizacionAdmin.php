@@ -223,7 +223,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                         'template' => 'cotizacion_cotizacion_admin\list__action_show.html.twig'
                     ],
                     'edit' => [],
-                    'delete' => [],
+                    'delete' => [
+                        'template' => 'base_sonata_admin\list__action_delete.html.twig'
+                    ],
                     'resumen' => [
                         'template' => 'cotizacion_cotizacion_admin\list__action_resumen.html.twig'
                     ],
@@ -242,14 +244,6 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
                 'editable' => true,
                 'row_align' => 'right',
                 'label' => 'Comisión'
-            ])
-            ->add('hoteloculto', null, [
-                'label' => 'Hotel oculto',
-                'editable' => true
-            ])
-            ->add('precioocultoresumen', null, [
-                'label' => 'Precio oculto',
-                'editable' => true
             ])
             ->add('estadocotizacion', FieldDescriptionInterface::TYPE_CHOICE, [
                 'sortable' => true,
@@ -272,6 +266,14 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ->add('file.filedocumentos', null, [
                 'label' => 'Documentos',
                 'template' => 'base_sonata_admin/list_one_to_many.html.twig'
+            ])
+            ->add('hoteloculto', null, [
+                'label' => 'Hotel oculto',
+                'editable' => true
+            ])
+            ->add('precioocultoresumen', null, [
+                'label' => 'Precio oculto',
+                'editable' => true
             ])
             ->add('fechasalida', null, [
                 'label' => 'Salida',
