@@ -15,11 +15,18 @@ file that was distributed with this source code.
     {%- if value is empty -%}
 
     {%- else -%}
-        <div class="thumbnail" style="width:120px; margin-bottom: 5px;">
-            <a href="{% if object.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ object.webPath|raw }}{% else %}{{ object.webPath|raw }}{% endif %}"{% if object.inmodal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
-                <img src="{% if object.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ value|raw }}{% else %}{{ value|raw }}{% endif %}" alt="{{ object.titulo is defined ? object.titulo : object.nombre }}" style="width:120px;">
-            </a>
-        </div>
+
+        {%- if field_description.options.noMostrarBlanco is defined
+            and field_description.options.noMostrarBlanco == true
+            and object.webPath|raw ends with "initial" -%}
+
+        {%- else -%}
+            <div class="thumbnail" style="width:120px; margin-bottom: 5px;">
+                <a href="{% if object.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ object.webPath|raw }}{% else %}{{ object.webPath|raw }}{% endif %}"{% if object.inmodal == true %} data-toggle="lightbox"{% else %} target="_blank" {% endif %}>
+                    <img src="{% if object.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ value|raw }}{% else %}{{ value|raw }}{% endif %}" alt="{{ object.titulo is defined ? object.titulo : object.nombre }}" style="width:120px;">
+                </a>
+            </div>
+        {%- endif -%}
 
     {%- endif -%}
 

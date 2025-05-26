@@ -69,7 +69,14 @@ class CotizacionFiledocumento
      */
     public function __toString()
     {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        if (empty($this->getNombre())){
+            return sprintf("Id: %s.", $this->getId());
+        }elseif(!empty($this->getVencimiento())){
+            return sprintf("%s | %s", $this->getVencimiento()->format('Y-m-d'), $this->getNombre());
+        }else{
+            return $this->getNombre();
+        }
+
     }
 
     /**

@@ -131,14 +131,17 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
             ->add('id')
             ->add('file')
             ->add('nombre')
-            ->add('vencimiento')
+            ->add('vencimiento', null, [
+                'format' => 'Y/m/d H:i'
+            ])
             ->add('tipofiledocumento', null, [
                 'label' => 'Tipo de documento'
             ])
             ->add('prioridad')
             ->add('webThumbPath', FieldDescriptionInterface::TYPE_STRING, [
                     'label' => 'Archivo',
-                    'template' => 'base_sonata_admin/show_image.html.twig'
+                    'template' => 'base_sonata_admin/show_image.html.twig',
+                    'noMostrarBlanco' => true
                 ]
             )
         ;
