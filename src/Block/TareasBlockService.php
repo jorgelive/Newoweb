@@ -154,7 +154,7 @@ class TareasBlockService extends AbstractBlockService
                 )
             )
             ->orderBy('fd.vencimiento', 'ASC')
-            ->setParameter('hoy', $hoy->format('Y-m-d'))
+            //->setParameter('hoy', $hoy->format('Y-m-d'))
             ->setParameter('traspasado', $traspasado->format('Y-m-d'));
 
         $vencimientos = $qb->getQuery()->getResult();
