@@ -149,7 +149,7 @@ class TareasBlockService extends AbstractBlockService
             ->where(
                 $qb->expr()->andX(
                     $qb->expr()->eq('e.id', 3), //confirmado
-                    $qb->expr()->gte('DATE(fd.vencimiento)', ':hoy'),
+                    //$qb->expr()->gte('DATE(fd.vencimiento)', ':hoy'), //que salgan todos
                     $qb->expr()->lt('DATE(fd.vencimiento)', ':traspasado')
                 )
             )
