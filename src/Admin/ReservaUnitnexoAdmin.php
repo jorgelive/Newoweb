@@ -24,6 +24,9 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
                 'label' => 'Canal'
             ])
             ->add('enlace')
+            ->add('distintivo', null, [
+                'label' => 'Distintivo'
+            ])
             ->add('related', null, [
                 'label' => 'Nexos relacionados'
             ])
@@ -42,6 +45,10 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
                 'label' => 'Canal'
             ])
             ->add('enlace', null, [
+                'editable' => true
+            ])
+            ->add('distintivo', null, [
+                'label' => 'Distintivo',
                 'editable' => true
             ])
             ->add('related', null, [
@@ -73,6 +80,9 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
                 'label' => 'Canal'
             ])
             ->add('enlace')
+            ->add('distintivo', null, [
+                'label' => 'Distintivo'
+            ])
             ->add('related', null, [
                 'label' => 'Nexos relacionados',
                 'help' => 'Separados por coma'
@@ -92,6 +102,9 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
                 'label' => 'Canal'
             ])
             ->add('enlace')
+            ->add('distintivo', null, [
+                'label' => 'Distintivo'
+            ])
             ->add('related', null, [
                 'label' => 'Nexos relacionados'
             ])

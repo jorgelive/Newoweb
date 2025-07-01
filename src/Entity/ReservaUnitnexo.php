@@ -41,6 +41,13 @@ class ReservaUnitnexo
     private $related;
 
     /**
+     * @var string
+     *
+     * @ORM\Column(type="string", length=10, nullable=true)
+     */
+    private $distintivo;
+
+    /**
      * @var \App\Entity\ReservaChannel
      *
      * @ORM\ManyToOne(targetEntity="ReservaChannel", inversedBy="unitnexos")
@@ -123,6 +130,18 @@ class ReservaUnitnexo
     public function setRelated(?string $related): self
     {
         $this->related = $related;
+
+        return $this;
+    }
+
+    public function getDistintivo(): ?string
+    {
+        return $this->distintivo;
+    }
+
+    public function setDistintivo(?string $distintivo): self
+    {
+        $this->distintivo = $distintivo;
 
         return $this;
     }

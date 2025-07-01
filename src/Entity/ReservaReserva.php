@@ -193,11 +193,25 @@ class ReservaReserva
 
     public function getResumen(): ?string
     {
-        $calificacion = $this->getCalificacion();
-        if(!empty($calificacion)){
-            return sprintf('%s x %s | %s | %s | %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getCantidadadultos() + $this->getCantidadninos(), $this->getNombre(), $calificacion, $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
+
+        $distintivo = '';
+
+        if(!empty($this->getUnitnexo()) && !empty($this->getUnitnexo()->getDistintivo())){
+            $distintivo = '(' . $this->getUnitnexo()->getDistintivo() . ')';
         }
-        return sprintf('%s x %s | %s | %s %s', substr($this->getChannel()->getNombre(), 0, 1), $this->getCantidadadultos() + $this->getCantidadninos(), $this->getNombre(), $this->getUnit()->getNombre(), $this->getUnit()->getEstablecimiento()->getNombre());
+
+        if($this->isManual() && $this->getChannel()->getId() != ReservaChannel::DB_VALOR_DIRECTO){
+            $canal = substr($this->getChannel()->getNombre(), 0, 1) . '(D)' . $distintivo;
+        }else{
+            $canal = substr($this->getChannel()->getNombre(), 0, 1). $distintivo;
+        }
+
+        $calificacion = $this->getCalificacion();
+
+        if(!empty($calificacion)){
+            return sprintf('%s x %s | %s | %s | %s', $canal, $this->getCantidadadultos() + $this->getCantidadninos(), $this->getNombre(), $calificacion, $this->getUnit()->getNombre());
+        }
+        return sprintf('%s x %s | %s | %s', $canal, $this->getCantidadadultos() + $this->getCantidadninos(), $this->getNombre(), $this->getUnit()->getNombre());
     }
 
     public function getNombre(): ?string
