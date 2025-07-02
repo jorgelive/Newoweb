@@ -17,6 +17,14 @@ use Doctrine\Common\Collections\ArrayCollection;
 class ReservaReserva
 {
 
+    // Lista de prefijos de países hispanohablantes
+    private array $prefijosEspanol = [
+        '+54', '+591', '+56', '+57', '+506', '+53', '+593',
+        '+503', '+34', '+502', '+504', '+52', '+505', '+507',
+        '+595', '+51', '+598', '+58',
+        '+1-787', '+1-939', '+1-809', '+1-829', '+1-849' // Puerto Rico y Rep. Dominicana
+    ];
+
     /**
      * @ORM\Column(type="integer")
      * @ORM\Id
@@ -214,6 +222,14 @@ class ReservaReserva
         return sprintf('%s x %s | %s | %s', $canal, $this->getCantidadadultos() + $this->getCantidadninos(), $this->getNombre(), $this->getUnit()->getNombre());
     }
 
+    public function getPrimerNombre(): ?string
+    {
+        $palabras = explode(' ', trim($this->getNombre()));
+
+        return $palabras[0];
+
+    }
+
     public function getNombre(): ?string
     {
         return $this->nombre;
@@ -260,6 +276,30 @@ class ReservaReserva
     public function getTelefono(): ?string
     {
         return $this->telefono;
+    }
+
+
+    public function getTelefonoNormalizado(): ?string
+    {
+        return preg_replace('/[\s\-\(\)]+/', '', $this->getTelefono());
+    }
+
+    public function getIdiomaTelefono() : string
+    {
+        // Ordenar prefijos de mayor a menor longitud para evitar errores
+        usort($this->prefijosEspanol, function($a, $b) {
+            return strlen($b) - strlen($a);
+        });
+
+        // Comparar número con cada prefijo
+        foreach ($this->prefijosEspanol as $prefijo) {
+            $prefijoSinGuiones = str_replace('-', '', $prefijo);
+            if (strpos($this->getTelefonoNormalizado(), $prefijoSinGuiones) === 0) {
+                //return $prefijo;
+                return 'es';
+            }
+        }
+        return 'en';
     }
 
     public function getNota(): ?string

@@ -86,25 +86,46 @@
                                             Whatsapp
                                         </a>
                                         {% if object.channel.id == constant('App\\Entity\\ReservaChannel::DB_VALOR_BOOKING') %}
-                                            {% set whatsappText %}
-Hola {{ object.nombre }}, muchas gracias por su reserva!.
-Para reconfirmar su reserva le solicitamos que nos brinde su *número de vuelo* o *medio de transporte* y *hora de llegada* a las Casitas del Centro Histórico Cusco / Apartamentos Centro Cusco Inti para programar la entrega de las llaves, lo puede hacer respondiendo a este mensaje.
-Nosotros brindamos *traslados y tours* a nuestros huéspedes con tarifas especiales y damos *asesoría gratuita*
-Por favor tomar en cuenta:
-Check-in: Desde {{ object.fechahorainicio | date('Y-m-d') }} *14:00*
-Check-out: Hasta {{ object.fechahorafin | date('Y-m-d') }} *10:00*
-Si el departamento esa listo antes del Check-in, nosotros encantados de recibirlos sin ningun costo (Coordinar un día antes).
-También puede solicitar el servicio de "llegada anticipada" (Early Check-in) y "salida tarde" (Late Check-out) con un costo adicional, respondiendo a este mensaje, con este servicio nosotros haríamos que el día anterior o posterior no sean reservables por otros clientes (estes servicio es de acuerdo a disponibilidad).
-Saludos cordiales
-Centro Cusco Inti / Casitas Acogedoras en el Centro de Cusco
-                                            {% endset %}
 
+                                            {% if object.idiomatelefono == 'en' %}
+                                                {% set whatsappText %}
+Hello {{ object.primernombre }}, this is Susan on behalf of Booking .com.
 
-                                            <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
-                                               target="_blank" class="btn btn-sm btn-success edit_link">
+You made a reservation at Centro Cusco Inti in the city of Cusco from {{ object.fechahorainicio | date('Y-m-d') }} to {{ object.fechahorafin | date('Y-m-d') }}.
+
+We kindly ask you to send us the *PDF confirmation file* of your reservation. You can download this file from the Booking.com app by going into your reservation and scrolling down to the section *Options -> Download for offline use*.
+
+This document contains important information such as the final price and the terms and conditions of the accommodation.
+
+At the following link, you can view the full details of your reservation, including photos, layout, and location of the reserved apartment. This matches the information shown under View apartment info in the Booking .com app:
+
+{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
+
+Once you confirm everything is correct, you can proceed with the prepayment via bank transfer, Western Union, or credit card.                                                {% endset %}
+                                            {% else %}
+                                                {% set whatsappText %}
+Hola {{ object.primernombre }}, le saluda Susan en representación de Booking .com.
+
+Usted realizó una reserva en Centro Cusco Inti, en la ciudad de Cusco, desde el {{ object.fechahorainicio | date('Y-m-d') }} hasta el {{ object.fechahorafin | date('Y-m-d') }}.
+
+Le solicitamos, por favor, enviarnos el archivo de confirmación de su reserva, el cual es un documento en formato PDF. Puede descargarlo desde la aplicación de Booking.com, ingresando a su reserva y desplazándose hacia la parte inferior, en la sección *Opciones -> Descargar para usar sin conexión*.
+
+Este archivo contiene información importante como el precio final y las condiciones del alojamiento.
+
+En el siguiente enlace podrá consultar todos los detalles de su reserva, incluyendo fotografías, distribución y ubicación del departamento reservado. Esta información coincide con la sección *Ver info del apartamento* en la aplicación de Booking .com:
+
+{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
+
+Una vez de su conformidad, podrá realizar el prepago mediante transferencia bancaria, Western Union o tarjeta de crédito.
+                                                {% endset %}
+                                            {% endif %}
+
+                                            <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|url_encode }}"
+                                               target="_blank" class="btn btn-sm btn-warning edit_link">
                                                 <i class="fa fa-whatsapp" aria-hidden="true"></i>
                                                 Confirmar
                                             </a>
+
                                         {% endif %}
                                     </td>
                                 </tr>
