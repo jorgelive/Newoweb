@@ -350,6 +350,25 @@ class ReservaReserva
         return $this;
     }
 
+    public function getCheckoutDetector(): ?int
+    {
+        $hoy = new \DateTime();
+        $hoy->setTime(0, 0, 0);
+        $mañana = clone $hoy;
+        $mañana->modify('+1 day');
+
+        $fechaComparar = clone $this->getFechahorafin();
+        $fechaComparar->setTime(0, 0, 0);
+
+        if ($fechaComparar == $hoy) {
+            return 0;
+        } elseif ($fechaComparar == $mañana) {
+            return 1;
+        } else {
+            return null;
+        }
+    }
+
     public function getFechahorafin(): ?\DateTime
     {
         return $this->fechahorafin;

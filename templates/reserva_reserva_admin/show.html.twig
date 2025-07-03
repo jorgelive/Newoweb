@@ -85,6 +85,33 @@
                                             <i class="fa fa-whatsapp" aria-hidden="true"></i>
                                             Whatsapp
                                         </a>
+                                    </td>
+                                </tr>
+                                <tr class="sonata-ba-view-container">
+                                    <td colspan="2">
+
+                                        {% if object.idiomatelefono == 'en' %}
+                                            {% set whatsappText %}
+Hello {{ object.primernombre }}, it's a pleasure to greet you.
+I'm writing to coordinate the check-out for {% if object.checkoutdetector is same as(1) %}]*tomorrow*{% elseif object.checkoutdetector is same as(0) %}*today*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}. Check-out time is at *10:00 a.m.*
+Please let me know if you'll be leaving earlier, so I can inform the cleaning lady to be there at that time to receive the keys.
+If you need it, we can store your luggage for you.
+                                            {% endset %}
+                                        {% else %}
+                                            {% set whatsappText %}
+Hola {{ object.primernombre }}, un gusto saludarte.
+Te escribo para coordinar el check-out del día {% if object.checkoutdetector is same as(1) %}de *mañana*{% elseif object.checkoutdetector is same as(0) %}de *hoy*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}. La hora de salida es a las *10:00 a.m.*
+Por favor, indícame si saldrán antes, para indicarle a la señora de limpieza y que pueda estar a esa hora para recibir las llaves.
+Si lo necesitan, podemos guardar su equipaje.
+                                            {% endset %}
+                                        {% endif %}
+
+                                        <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|url_encode }}"
+                                           target="_blank" class="btn btn-sm btn-info edit_link">
+                                            <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                                            Check Out
+                                        </a>
+
                                         {% if object.channel.id == constant('App\\Entity\\ReservaChannel::DB_VALOR_BOOKING') %}
 
                                             {% if object.idiomatelefono == 'en' %}

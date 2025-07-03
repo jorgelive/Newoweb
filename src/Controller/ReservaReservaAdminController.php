@@ -50,7 +50,7 @@ class ReservaReservaAdminController extends CRUDAdminController
         //$template = $this->templateRegistry->getTemplate('show'); es privado en la clase padre
         $template = 'reserva_reserva_admin/show.html.twig';
 
-        return $this->renderWithExtraParams($template,
+        return $this->render($template,
             [
                 'object' => $object,
                 'action' => 'resumen',
