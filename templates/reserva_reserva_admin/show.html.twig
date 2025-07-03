@@ -93,7 +93,7 @@
                                         {% if object.idiomatelefono == 'en' %}
                                             {% set whatsappText %}
 Hello {{ object.primernombre }}, it's a pleasure to greet you.
-I'm writing to coordinate the check-out for {% if object.checkoutdetector is same as(1) %}]*tomorrow*{% elseif object.checkoutdetector is same as(0) %}*today*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}. Check-out time is at *10:00 a.m.*
+I'm writing to coordinate the check-out for {% if object.checkoutdetector is same as(1) %}*tomorrow*{% elseif object.checkoutdetector is same as(0) %}*today*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}. Check-out time is at *10:00 a.m.*
 Please let me know if you'll be leaving earlier, so I can inform the cleaning lady to be there at that time to receive the keys.
 If you need it, we can store your luggage for you.
                                             {% endset %}
