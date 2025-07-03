@@ -34,7 +34,7 @@ class ReservaReservaDoctrineEventListener
             }
 
             if(!empty($entity->getTelefono())){
-                $entity->setTelefono(str_replace("\xC2\xA0", ' ', $entity->getTelefono()));
+                $entity->setTelefono(str_replace(["\xC2\xA0", "\xE2\x80\x91"], [' ', '-'], $entity->getTelefono()));
             }
 
             if($entity->getChannel()->getId() == ReservaChannel::DB_VALOR_DIRECTO){
@@ -54,7 +54,7 @@ class ReservaReservaDoctrineEventListener
             }
 
             if(!empty($entity->getTelefono())){
-                $entity->setTelefono(str_replace("\xC2\xA0", ' ', $entity->getTelefono()));
+                $entity->setTelefono(str_replace(["\xC2\xA0", "\xE2\x80\x91"], [' ', '-'], $entity->getTelefono()));
             }
 
             if($entity->getChannel()->getId() == ReservaChannel::DB_VALOR_DIRECTO){
