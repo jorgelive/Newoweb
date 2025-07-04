@@ -116,30 +116,34 @@ Si lo necesitan, podemos guardar su equipaje.
 
                                             {% if object.idiomatelefono == 'en' %}
                                                 {% set whatsappText %}
-Hello {{ object.primernombre }}, this is Susan on behalf of Booking .com.
+Hello {{ object.primernombre }}, this is Susan, reservations manager at Centro Cusco Inti in the city of Cusco.
 
-You made a reservation at Centro Cusco Inti in the city of Cusco from {{ object.fechahorainicio | date('Y-m-d') }} to {{ object.fechahorafin | date('Y-m-d') }}.
+You made a reservation from {{ object.fechahorainicio | date('Y-m-d') }} to {{ object.fechahorafin | date('Y-m-d') }} by *Booking com*.
 
-We kindly ask you to send us the *PDF confirmation file* of your reservation. You can download this file from the Booking.com app by going into your reservation and scrolling down to the section *Options -> Download for offline use*.
+We would like to inform you that, at the time of making your reservation, we sent you a message through the Booking.com system with some important instructions. We kindly ask you to review it carefully.
+
+Additionally, we kindly request that you send us the *PDF confirmation file* of your reservation. You can download this file from the Booking.com app by going into your reservation and scrolling down to the section *Options -> Download for offline use*.
 
 This document contains important information such as the final price and the terms and conditions of the accommodation.
 
-At the following link, you can view the full details of your reservation, including photos, layout, and location of the reserved apartment. This matches the information shown under View apartment info in the Booking .com app:
+At the following link, you can view the full details of your reservation, including photos, layout, and location of the reserved apartment. This matches the information shown under View apartment info in the Booking com app:
 
 {{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
 
 Once you confirm everything is correct, you can proceed with the prepayment via bank transfer, Western Union, or credit card.                                                {% endset %}
                                             {% else %}
                                                 {% set whatsappText %}
-Hola {{ object.primernombre }}, le saluda Susan en representación de Booking .com.
+Hola {{ object.primernombre }}, le saluda Susan encargada de reservas de Centro Cusco Inti, en la ciudad de Cusco.
 
-Usted realizó una reserva en Centro Cusco Inti, en la ciudad de Cusco, desde el {{ object.fechahorainicio | date('Y-m-d') }} hasta el {{ object.fechahorafin | date('Y-m-d') }}.
+Usted realizó una reserva, desde el {{ object.fechahorainicio | date('Y-m-d') }} hasta el {{ object.fechahorafin | date('Y-m-d') }} a través de *Booking* com.
 
-Le solicitamos, por favor, enviarnos el archivo de confirmación de su reserva, el cual es un documento en formato PDF. Puede descargarlo desde la aplicación de Booking.com, ingresando a su reserva y desplazándose hacia la parte inferior, en la sección *Opciones -> Descargar para usar sin conexión*.
+Le informamos que, al momento de realizar su reserva, le enviamos un mensaje mediante el sistema de Booking con algunas instrucciones importantes. Le agradeceríamos que pueda revisarlo.
+
+Asimismo, le solicitamos que nos envíe el archivo de *confirmación de su reserva en formato PDF*. Puede descargarlo desde la aplicación de Booking.com, ingresando a su reserva y desplazándose hacia la parte inferior, en la sección *Opciones -> Descargar para usar sin conexión*.
 
 Este archivo contiene información importante como el precio final y las condiciones del alojamiento.
 
-En el siguiente enlace podrá consultar todos los detalles de su reserva, incluyendo fotografías, distribución y ubicación del departamento reservado. Esta información coincide con la sección *Ver info del apartamento* en la aplicación de Booking .com:
+En el siguiente enlace podrá consultar todos los detalles de su reserva, incluyendo fotografías, distribución y ubicación del departamento reservado. Esta información coincide con la sección *Ver info del apartamento* en la aplicación de Booking com:
 
 {{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
 
