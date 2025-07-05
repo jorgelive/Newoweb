@@ -93,14 +93,14 @@
                                         {% if object.idiomatelefono == 'en' %}
                                             {% set whatsappText %}
 Hello {{ object.primernombre }}, it's a pleasure to greet you.
-I'm writing to coordinate the check-out for {% if object.checkoutdetector is same as(1) %}*tomorrow*{% elseif object.checkoutdetector is same as(0) %}*today*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}. Check-out time is at *10:00 a.m.*
+I'm writing to coordinate the check-out for {% if object.checkoutdetector is same as(1) %}*tomorrow*{% elseif object.checkoutdetector is same as(0) %}*today*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}. Check-out time is at *10:00 a.m.*⌚.
 Please let me know if you'll be leaving earlier, so I can inform the cleaning lady to be there at that time to receive the keys.
 If you need it, we can store your luggage for you.
                                             {% endset %}
                                         {% else %}
                                             {% set whatsappText %}
 Hola {{ object.primernombre }}, un gusto saludarte.
-Te escribo para coordinar el check-out del día {% if object.checkoutdetector is same as(1) %}de *mañana*{% elseif object.checkoutdetector is same as(0) %}de *hoy*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}. La hora de salida es a las *10:00 a.m.*
+Te escribo para coordinar el check-out del día {% if object.checkoutdetector is same as(1) %}de *mañana*{% elseif object.checkoutdetector is same as(0) %}de *hoy*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}. La hora de salida es a las *10:00 a.m.*⌚.
 Por favor, indícame si saldrán antes, para indicarle a la señora de limpieza y que pueda estar a esa hora para recibir las llaves.
 Si lo necesitan, podemos guardar su equipaje.
                                             {% endset %}
@@ -118,7 +118,7 @@ Si lo necesitan, podemos guardar su equipaje.
                                                 {% set whatsappText %}
 Hello {{ object.primernombre }}, this is Susan, reservations manager at Centro Cusco Inti in the city of Cusco.
 
-You made a reservation from {{ object.fechahorainicio | date('Y-m-d') }} to {{ object.fechahorafin | date('Y-m-d') }} by *Booking com*.
+You made a reservation from 📅 {{ object.fechahorainicio | date('Y-m-d') }} to 📅 {{ object.fechahorafin | date('Y-m-d') }} by *Booking com*.
 
 We would like to inform you that, at the time of making your reservation, we sent you a message through the Booking.com system with some important instructions. We kindly ask you to review it carefully.
 
@@ -128,14 +128,14 @@ This document contains important information such as the final price and the ter
 
 At the following link, you can view the full details of your reservation, including photos, layout, and location of the reserved apartment. This matches the information shown under View apartment info in the Booking com app:
 
-{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
+🔗{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
 
 Once you confirm everything is correct, you can proceed with the prepayment via bank transfer, Western Union, or credit card.                                                {% endset %}
                                             {% else %}
                                                 {% set whatsappText %}
 Hola {{ object.primernombre }}, le saluda Susan encargada de reservas de Centro Cusco Inti, en la ciudad de Cusco.
 
-Usted realizó una reserva, desde el {{ object.fechahorainicio | date('Y-m-d') }} hasta el {{ object.fechahorafin | date('Y-m-d') }} a través de *Booking* com.
+Usted realizó una reserva, desde el 📅 {{ object.fechahorainicio | date('Y-m-d') }} hasta el 📅 {{ object.fechahorafin | date('Y-m-d') }} a través de *Booking* com.
 
 Le informamos que, al momento de realizar su reserva, le enviamos un mensaje mediante el sistema de Booking con algunas instrucciones importantes. Le agradeceríamos que pueda revisarlo.
 
@@ -145,7 +145,7 @@ Este archivo contiene información importante como el precio final y las condici
 
 En el siguiente enlace podrá consultar todos los detalles de su reserva, incluyendo fotografías, distribución y ubicación del departamento reservado. Esta información coincide con la sección *Ver info del apartamento* en la aplicación de Booking com:
 
-{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
+🔗{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
 
 Una vez de su conformidad, podrá realizar el prepago mediante transferencia bancaria, Western Union o tarjeta de crédito.
                                                 {% endset %}
@@ -158,6 +158,217 @@ Una vez de su conformidad, podrá realizar el prepago mediante transferencia ban
                                             </a>
 
                                         {% endif %}
+
+                                        {% if object.idiomatelefono == 'en' %}
+                                            {% set whatsappText %}
+🌄 CUSCO TOUR MENU 🌄
+
+*Entrance tickets are not included and must be paid by the client*
+
+🏛️ *City Tour: Koricancha + 4 Archaeological Parks*
+🕘 Departures: 09:00 and 14:00
+📍 Koricancha, Sacsayhuaman, Qenqo, Pucapucara, and Tambomachay
+💵 *18 soles*
+🎫 Entrance fees:
+ -Full Tourist Ticket (BTG): 70 soles (Peruvians) / 130 soles (Foreigners)
+ -Partial Tourist Ticket: 40 soles (Peruvians) / 70 soles (Foreigners)
+ -Koricancha: 20 soles
+
+⛰️ *Classic Sacred Valley Tour* with buffet lunch
+🕘 Departure: 08:00
+📍 Pisac ruins, Pisac market, Ollantaytambo, and Chinchero
+💵 *65 soles*
+🎫 Entrance fees:
+ -Full Tourist Ticket (BTG): 70 soles (Peruvians) / 130 soles (Foreigners)
+ -Partial Tourist Ticket: 40 soles (Peruvians) / 70 soles (Foreigners)
+
+🌟 *Super Valley (VIP Valley)* with buffet lunch
+🕘 Departure: 07:00
+📍 Chinchero, Maras, Moray, Ollantaytambo, Pisac ruins, and Pisac market
+💵 *65 soles*
+🎫 Entrance fees:
+ -Full Tourist Ticket (BTG): 70 soles (Peruvians) / 130 soles (Foreigners)
+ -Partial Tourist Ticket: 40 soles (Peruvians) / 70 soles (Foreigners)
+ -Koricancha: 20 soles
+
+🌈 *Rainbow Mountain* with breakfast and buffet lunch
+🕘 Departure: 04:30
+💵 *65 soles*
+🎫 Entrance fees: 20 soles (Peruvians) / 30 soles (Foreigners)
+
+🏍️ *ATVs to Rainbow Mountain + Red Valley* with breakfast and buffet lunch
+🕘 Departures: 04:00 and 06:00
+💵 *170 soles (one person per ATV)*
+💵 *145 soles (two people per ATV)*
+🎫 Entrance fees: 20 soles (Peruvians) / 30 soles (Foreigners)
+
+💧 *Humantay Lagoon* with breakfast and buffet lunch
+🕘 Departure: 04:30
+💵 *65 soles*
+🎫 Entrance fees: 10 soles (Peruvians) / 20 soles (Foreigners)
+
+🏔️ *7 Lagoons of Ausangate* with breakfast and buffet lunch
+🕘 Departure: 04:30
+💵 *75 soles*
+🎫 Entrance fee: 20 soles
+
+🏍️ *ATVs in Maras and Moray*
+🕘 Departures: 04:00 and 06:00
+💵 *90 soles (one person per ATV)*
+💵 *70 soles (two people per ATV)*
+🎫 Optional entrance fees:
+ -Full Tourist Ticket (BTG): 70 soles (Peruvians) / 130 soles (Foreigners)
+ -Partial Tourist Ticket: 40 soles (Peruvians) / 70 soles (Foreigners)
+ -Maras Salt Mines: 15 soles (Peruvians) / 20 soles (Foreigners)
+
+🚍 *Panoramic City Bus* (Mirabus)
+🕘 Departures: 10:00 and 14:00
+📍 San Francisco Church, Historic Center, panoramic view of Sacsayhuaman, Cristo Blanco, and Morada de los Dioses
+💵 *25 soles*
+🎫 Entrance fee:
+ -Morada de los Dioses: 15 soles (Peruvians) / 20 soles (Foreigners)
+
+🗿 *Morada de los Dioses*
+🕘 Departure: 10:00
+💵 *30 soles*
+🎫 Entrance fee: 15 soles (Peruvians) / 20 soles (Foreigners)
+
+🧙‍ *Mystery Tour* 4 in 1
+🕘 Departure: 10:00
+📍 Morada de los Dioses, Valley of the Elves, Huasao Wetland, and Forest of the Ents
+💵 *45 soles*
+🎫 Entrance fees:
+ -Morada de los Dioses: 15 soles (Peruvians) / 20 soles (Foreigners)
+ -Valley of the Elves: 10 soles (Peruvians) / 15 soles (Foreigners)
+ -Huasao Wetland: 3 soles
+ -Forest of the Ents: 5 soles
+
+🌈 *Palcoyo Mountain* with breakfast and buffet lunch
+🕘 Departure: 04:30
+💵 *95 soles*
+🎫 Entrance fee: 10 soles (Peruvians) / 15 soles (Foreigners)
+
+🏞️ *Wakrapukara* with breakfast and buffet lunch
+🕘 Departure: 04:30
+💵 *95 soles*
+🎫 Entrance fee: 10 soles
+
+📌 Private or upgraded category tours also available
+
+📞 Contact us:
+ +51 961 281 953
+ +51 958 191 965
+ +51 921 166 466
+                                            {% endset %}
+                                        {% else %}
+                                            {% set whatsappText %}
+*🌄 MENÚ DE TOURS - CUSCO 🌄*
+
+*Los boletos de ingreso son por cuenta del cliente*
+
+🏛️ *City tour: Koricancha + 4 parques*
+🕘 Horarios 09:00 y 14:00
+📍 Koricancha, Sacsaywaman, Qenqo, Pucapucara y Tambomachay
+💵 *18 soles*
+🎫 Entradas:
+ -BTG completo 70 soles peruanos, 130 soles extranjeros
+ -BTG parcial 40 soles peruanos, 70 soles extranjeros
+ -Koricancha 20 soles
+
+⛰️ *Valle Sagrado Clásico* con almuerzo buffet
+🕘 Horario 08:00
+📍 Pisac Ruinas, Pisac Mercado, Ollantaytambo y Chinchero
+💵 *65 soles*
+🎫 Entradas:
+ -BTG completo 70 soles peruanos, 130 soles extranjeros
+ -BTG parcial 40 soles peruanos, 70 soles extranjeros
+
+🌟 *Súper Valle (Valle VIP)* con almuerzo buffet
+🕘 Horario 07:00
+📍 Chinchero, Maras, Moray, Ollantaytambo, Pisac Ruinas y Pisac Mercado
+💵 *65 soles*
+🎫 Entradas:
+ -BTG completo 70 soles peruanos, 130 soles extranjeros
+ -BTG parcial 40 soles peruanos, 70 soles extranjeros
+ -Koricancha 20 soles
+
+🌈 *Montaña 7 colores* con desayuno y almuerzo buffet
+🕘 Horario 04:30
+💵 *65 soles*
+🎫 Entradas: 20 soles peruanos y 30 soles extranjeros
+
+🏍️ *Cuatrimotos en Montaña 7 colores por Valle Rojo* con desayuno y almuerzo buffet
+🕘 Horarios 04:00 y 6:00
+💵 *170 soles una persona por cuatrimoto*
+💵 *145 soles dos personas por cuatrimoto*
+🎫 Entradas: 20 soles peruanos y 30 soles extranjeros
+
+💧 *Laguna de Humantay* con desayuno y almuerzo buffet
+🕘 Horario 04:30
+💵 *65 soles*
+🎫 Entradas: 10 soles peruanos y 20 soles extranjero
+
+🏔 *7 lagunas de Ausangate* con desayuno y almuerzo buffet
+🕘 Horario 04:30
+💵 *75 soles*
+🎫 Entradas: 20 soles
+
+🏍️ *Cuatrimotos en Maras y Moray*
+🕘 Horarios 04:00 y 6:00
+💵 *90 soles una persona por cuatrimoto*
+💵 *70 soles dos personas por cuatrimoto*
+🎫 Entradas (opcionales) :
+ -BTG completo 70 soles peruanos, 130 soles extranjeros
+ -BTG parcial 40 soles peruanos, 70 soles extranjeros
+ -Maras: 15 soles peruanos y 20 soles extranjeros
+
+🚍 *Mirabus*
+🕘 Horarios 10:00 y 14:00
+📍 San Francisco, Centro histórico, Sacssaywaman panorámico, Cristo Blanco y Morada de los Dioses
+💵 *25 soles*
+🎫 Entradas:
+ -Morada de los Dioses: 15 soles peruanos y 20 soles extranjeros
+
+🗿 *Morada de los Dioses* 🏞️
+🕘 Horario 10:00
+💵 *30 soles*
+🎫 Entrada: 15 soles peruanos y 20 soles extranjeros
+
+🧙‍ *Tour misterio 4 en 1*
+🕘 Horario 10:00
+📍 Morada de los Dioses, Valle de los Duendes, Humedal de Huasao y Bosque de los Ents
+💵 *45 soles*
+🎫 Entradas:
+ -Morada de los Dioses: 15 soles peruanos y 20 soles extranjeros
+ -Valle de los Duendes: 10 soles peruanos y 15 soles extranjeros
+ -Humedal de Huasao: 3 soles
+ -Bosque de los Ents: 5 soles
+
+🌈 *Palcoyo* con desayuno y almuerzo buffet
+🕘 Horario 04:30
+💵 *95 soles*
+🎫 Entrada: 10 soles peruanos y 15 soles extranjeros
+
+🏞️ *Wakrapukara* con desayuno y almuerzo buffet
+🕘 Horario 04:30
+💵 *95 soles*
+🎫 Entrada: 10 soles
+
+📌 También disponibles tours en categoría superior o privada.
+
+📞 Contáctanos:
+ +51 961281953
+ +51 958191965
+ +51 921166466
+                                            {% endset %}
+                                        {% endif %}
+
+                                        <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|url_encode }}"
+                                           target="_blank" class="btn btn-sm btn-success edit_link">
+                                            <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                                            Tour Económico
+                                        </a>
+
                                     </td>
                                 </tr>
                             {% endif %}
