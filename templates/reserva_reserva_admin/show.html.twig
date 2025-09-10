@@ -93,20 +93,38 @@
                                         {% if object.idiomatelefono == 'en' %}
                                             {% set whatsappText %}
 Hello {{ object.primernombre }}, it's a pleasure to greet you.
-I'm writing to coordinate the check-out for {% if object.checkoutdetector is same as(1) %}*tomorrow*{% elseif object.checkoutdetector is same as(0) %}*today*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}. Check-out time is at *10:00 a.m.*⌚.
+I'm writing to coordinate the check-out for {% if object.checkoutdetector is same as(1) %}*tomorrow*{% elseif object.checkoutdetector is same as(0) %}*today*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}.
+Check-out time is at *10:00 a.m.*⌚.
 Please let me know if you'll be leaving earlier, so I can inform the cleaning lady to be there at that time to receive the keys.
 If you need it, we can store your luggage for you.
+                                            {% endset %}
+                                        {% elseif object.idiomatelefono == 'pt'%}
+                                            {% set whatsappText %}
+Olá {{ object.primernombre }}, é um prazer cumprimentá-lo(a).
+Estou escrevendo para coordenar o check-out para {% if object.checkoutdetector is same as(1) %}amanhã{% elseif object.checkoutdetector is same as(0) %}hoje{% else %}{{ object.fechahorafin | date('Y-m-d') }}{% endif %}.
+O horário de check-out é às *10:00 a.m.*⌚.
+Por favor, me avise se você for sair mais cedo, para que eu possa informar à senhora da limpeza para estar lá nesse horário e receber as chaves.
+Se precisar, podemos guardar sua bagagem para você.
+                                            {% endset %}
+                                        {% elseif object.idiomatelefono == 'fr'%}
+                                            {% set whatsappText %}
+Bonjour {{ object.primernombre }}, c’est un plaisir de vous saluer.
+Je vous écris afin de coordonner le check-out pour {% if object.checkoutdetector is same as(1) %}demain{% elseif object.checkoutdetector is same as(0) %}aujourd’hui{% else %}{{ object.fechahorafin | date('Y-m-d') }}{% endif %}.
+L’heure de check-out est à *10h00*⌚.
+Merci de me faire savoir si vous partez plus tôt, afin que je puisse prévenir la femme de ménage pour qu’elle soit présente à ce moment-là et récupérer les clés.
+Si vous en avez besoin, nous pouvons garder vos bagages pour vous.
                                             {% endset %}
                                         {% else %}
                                             {% set whatsappText %}
 Hola {{ object.primernombre }}, un gusto saludarte.
-Te escribo para coordinar el check-out del día {% if object.checkoutdetector is same as(1) %}de *mañana*{% elseif object.checkoutdetector is same as(0) %}de *hoy*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}. La hora de salida es a las *10:00 a.m.*⌚.
+Te escribo para coordinar el check-out del día {% if object.checkoutdetector is same as(1) %}de *mañana*{% elseif object.checkoutdetector is same as(0) %}de *hoy*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}.
+La hora de salida es a las *10:00 a.m.*⌚.
 Por favor, indícame si saldrán antes, para indicarle a la señora de limpieza y que pueda estar a esa hora para recibir las llaves.
 Si lo necesitan, podemos guardar su equipaje.
                                             {% endset %}
                                         {% endif %}
 
-                                        <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|url_encode }}"
+                                        <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}"
                                            target="_blank" class="btn btn-sm btn-info edit_link">
                                             <i class="fa fa-whatsapp" aria-hidden="true"></i>
                                             Check Out
@@ -131,6 +149,44 @@ At the following link, you can view the full details of your reservation, includ
 🔗{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
 
 Once you confirm everything is correct, you can proceed with the prepayment via bank transfer, Western Union, or credit card.                                                {% endset %}
+                                            {% elseif object.idiomatelefono == 'pt'%}
+                                                {% set whatsappText %}
+Olá {{ object.primernombre }}, aqui é Susan, gerente de reservas do Centro Cusco Inti na cidade de Cusco.
+
+Você fez uma reserva de 📅 {{ object.fechahorainicio | date('Y-m-d') }} até 📅 {{ object.fechahorafin | date('Y-m-d') }} pelo Booking.com.
+
+Gostaríamos de informar que, no momento em que você realizou sua reserva, enviamos uma mensagem através do sistema do Booking.com com algumas instruções importantes. Pedimos gentilmente que você a revise com atenção.
+
+Além disso, solicitamos que, por favor, nos envie o arquivo PDF de confirmação da sua reserva. Você pode baixar este arquivo no aplicativo do Booking.com acessando sua reserva e rolando até a seção:
+Opções → Baixar para uso offline.
+
+Este documento contém informações importantes como o preço final e os termos e condições da acomodação.
+
+No link a seguir, você pode visualizar todos os detalhes da sua reserva, incluindo fotos, layout e localização do apartamento reservado. Estas informações correspondem à seção Ver informações do apartamento no aplicativo Booking.com:
+
+🔗 {{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
+
+Depois de confirmar que tudo está correto, você poderá proceder com o pré-pagamento via transferência bancária, Western Union ou cartão de crédito.
+                                                {% endset %}
+                                            {% elseif object.idiomatelefono == 'fr'%}
+                                                {% set whatsappText %}
+Bonjour {{ object.primernombre }}, je suis Susan, responsable des réservations au Centro Cusco Inti dans la ville de Cusco.
+
+Vous avez effectué une réservation du 📅 {{ object.fechahorainicio | date('Y-m-d') }} au 📅 {{ object.fechahorafin | date('Y-m-d') }} via Booking.com.
+
+Nous souhaitons vous informer qu’au moment de votre réservation, nous vous avons envoyé un message via le système Booking.com avec des instructions importantes. Nous vous prions de le consulter attentivement.
+
+De plus, nous vous demandons de bien vouloir nous envoyer le fichier PDF de confirmation de votre réservation. Vous pouvez télécharger ce fichier depuis l’application Booking.com en accédant à votre réservation et en descendant jusqu’à la section :
+Options → Télécharger pour une utilisation hors ligne.
+
+Ce document contient des informations importantes telles que le prix final ainsi que les termes et conditions de l’hébergement.
+
+Au lien suivant, vous pouvez consulter tous les détails de votre réservation, y compris les photos, la disposition et l’emplacement de l’appartement réservé. Ces informations correspondent à la section Voir les informations sur l’appartement dans l’application Booking.com :
+
+🔗 {{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
+
+Une fois que vous aurez confirmé que tout est correct, vous pourrez procéder au prépaiement par virement bancaire, Western Union ou carte de crédit.
+                                                {% endset %}
                                             {% else %}
                                                 {% set whatsappText %}
 Hola {{ object.primernombre }}, le saluda Susan encargada de reservas de Centro Cusco Inti, en la ciudad de Cusco.
@@ -151,7 +207,7 @@ Una vez de su conformidad, podrá realizar el prepago mediante transferencia ban
                                                 {% endset %}
                                             {% endif %}
 
-                                            <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|url_encode }}"
+                                            <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}"
                                                target="_blank" class="btn btn-sm btn-warning edit_link">
                                                 <i class="fa fa-whatsapp" aria-hidden="true"></i>
                                                 Confirmar
@@ -189,7 +245,7 @@ Una vez de su conformidad, podrá realizar el prepago mediante transferencia ban
 🎫 Entrance fees:
  -Full Tourist Ticket (BTG): 70 soles (Peruvians) / 130 soles (Foreigners)
  -Partial Tourist Ticket: 40 soles (Peruvians) / 70 soles (Foreigners)
- -Koricancha: 20 soles
+ -Maras Salt Mines: 15 soles (Peruvians) / 20 soles (Foreigners)
 
 🌈 *Rainbow Mountain* with breakfast and buffet lunch
 🕘 Departure: 04:30
@@ -260,6 +316,210 @@ Una vez de su conformidad, podrá realizar el prepago mediante transferencia ban
  +51 958 191 965
  +51 921 166 466
                                             {% endset %}
+                                        {% elseif object.idiomatelefono == 'pt'%}
+                                            {% set whatsappText %}
+🌄 MENU DE TOURS EM CUSCO 🌄
+
+*Passeios em espanhol e/ou inglês*
+*Os ingressos de entrada não estão incluídos e devem ser pagos pelo cliente*
+
+🏛️ *City Tour: Koricancha + 4 Parques Arqueológicos*
+🕘 Saídas: 09:00 e 14:00
+📍 Koricancha, Sacsayhuaman, Qenqo, Pucapucara e Tambomachay
+💵 18 soles
+🎫 Ingressos:
+ -Boleto Turístico Integral (BTG): 70 soles (Peruanos) / 130 soles (Estrangeiros)
+ -Boleto Turístico Parcial: 40 soles (Peruanos) / 70 soles (Estrangeiros)
+ -Koricancha: 20 soles
+
+⛰️ *Vale Sagrado Clássico* com almoço buffet
+🕘 Saída: 08:00
+📍 Ruínas de Pisac, Mercado de Pisac, Ollantaytambo e Chinchero
+💵 65 soles
+🎫 Ingressos:
+ -Boleto Turístico Integral (BTG): 70 soles (Peruanos) / 130 soles (Estrangeiros
+ -Boleto Turístico Parcial: 40 soles (Peruanos) / 70 soles (Estrangeiros)
+
+🌟 *Super Vale (Vale VIP)* com almoço buffet
+🕘 Saída: 07:00
+📍 Chinchero, Maras, Moray, Ollantaytambo, Ruínas de Pisac e Mercado de Pisac
+💵 65 soles
+🎫 Ingressos:
+ -Boleto Turístico Integral (BTG): 70 soles (Peruanos) / 130 soles (Estrangeiros)
+ -Boleto Turístico Parcial: 40 soles (Peruanos) / 70 soles (Estrangeiros)
+ -Salinas de Maras: 15 soles (Peruanos) / 20 soles (Estrangeiros)
+
+🌈 *Montanha Arco-Íris* com café da manhã e almoço buffet
+🕘 Saída: 04:30
+💵 65 soles
+🎫 Ingressos: 20 soles (Peruanos) / 30 soles (Estrangeiros)
+
+🏍️ *Quadriciclos até Montanha Arco-Íris + Vale Vermelho* com café da manhã e almoço buffet
+🕘 Saídas: 04:00 e 06:00
+💵 170 soles (uma pessoa por quadriciclo)
+💵 145 soles (duas pessoas por quadriciclo)
+🎫 Ingressos: 20 soles (Peruanos) / 30 soles (Estrangeiros)
+
+💧 *Lagoa Humantay* com café da manhã e almoço buffet
+🕘 Saída: 04:30
+💵 65 soles
+🎫 Ingressos: 10 soles (Peruanos) / 20 soles (Estrangeiros)
+
+🏔️ *7 Lagoas de Ausangate* com café da manhã e almoço buffet
+🕘 Saída: 04:30
+💵 75 soles
+🎫 Ingresso: 20 soles
+
+🏍️ *Quadriciclos em Maras e Moray*
+🕘 Saídas: 04:00 e 06:00
+💵 90 soles (uma pessoa por quadriciclo)
+💵 70 soles (duas pessoas por quadriciclo)
+🎫 Ingressos opcionais:
+ -Boleto Turístico Integral (BTG): 70 soles (Peruanos) / 130 soles (Estrangeiros)
+ -Boleto Turístico Parcial: 40 soles (Peruanos) / 70 soles (Estrangeiros)
+ -Salinas de Maras: 15 soles (Peruanos) / 20 soles (Estrangeiros)
+
+🚍 *Ônibus Panorâmico da Cidade* (Mirabus)
+🕘 Saídas: 10:00 e 14:00
+📍 Igreja de São Francisco, Centro Histórico, vista panorâmica de Sacsayhuaman, Cristo Branco e Morada dos Deuses
+💵 25 soles
+🎫 Ingresso:
+ -Morada dos Deuses: 15 soles (Peruanos) / 20 soles (Estrangeiros)
+
+🗿 *Morada dos Deuses*
+🕘 Saída: 10:00
+💵 30 soles
+🎫 Ingresso: 15 soles (Peruanos) / 20 soles (Estrangeiros)
+
+🧙‍ *Tour Misterioso 4 em 1*
+🕘 Saída: 10:00
+📍 Morada dos Deuses, Vale dos Duendes, Pântano de Huasao e Floresta dos Ents
+💵 45 soles
+🎫 Ingressos:
+ -Morada dos Deuses: 15 soles (Peruanos) / 20 soles (Estrangeiros)
+ -Vale dos Duendes: 10 soles (Peruanos) / 15 soles (Estrangeiros)
+ -Pântano de Huasao: 3 soles
+ -Floresta dos Ents: 5 soles
+
+🌈 *Montanha Palcoyo* com café da manhã e almoço buffet
+🕘 Saída: 04:30
+💵 95 soles
+🎫 Ingresso: 10 soles (Peruanos) / 15 soles (Estrangeiros)
+
+🏞️ *Wakrapukara* com café da manhã e almoço buffet
+🕘 Saída: 04:30
+💵 95 soles
+🎫 Ingresso: 10 soles
+
+📌 Tours privados ou em categoria superior também disponíveis
+
+📞 Contate-nos:
++51 961 281 953
++51 958 191 965
++51 921 166 466
+                                            {% endset %}
+                                        {% elseif object.idiomatelefono == 'fr'%}
+                                            {% set whatsappText %}
+🌄 MENU DES TOURS À CUSCO 🌄
+
+*tours en espagnol et/ou anglais*
+*Les billets d’entrée ne sont pas inclus et doivent être payés par le client*
+
+🏛️ *City Tour : Koricancha + 4 Parcs Archéologiques*
+🕘 Départs : 09:00 et 14:00
+📍 Koricancha, Sacsayhuaman, Qenqo, Pucapucara et Tambomachay
+💵 18 soles
+🎫 Billets d’entrée :
+ -Billet Touristique Complet (BTG) : 70 soles (Péruviens) / 130 soles (Étrangers)
+ -Billet Touristique Partiel : 40 soles (Péruviens) / 70 soles (Étrangers)
+ -Koricancha : 20 soles
+
+⛰️ *Vallée Sacrée Classique* avec déjeuner buffet
+🕘 Départ : 08:00
+📍 Ruines de Pisac, Marché de Pisac, Ollantaytambo et Chinchero
+💵 65 soles
+🎫 Billets d’entrée :
+ -Billet Touristique Complet (BTG) : 70 soles (Péruviens) / 130 soles (Étrangers)
+ -Billet Touristique Partiel : 40 soles (Péruviens) / 70 soles (Étrangers)
+
+🌟 *Super Vallée (Vallée VIP)* avec déjeuner buffet
+🕘 Départ : 07:00
+📍 Chinchero, Maras, Moray, Ollantaytambo, Ruines de Pisac et Marché de Pisac
+💵 65 soles
+🎫 Billets d’entrée :
+ -Billet Touristique Complet (BTG) : 70 soles (Péruviens) / 130 soles (Étrangers)
+ -Billet Touristique Partiel : 40 soles (Péruviens) / 70 soles (Étrangers)
+ -Salines de Maras : 40 soles (Péruviens) / 70 soles (Étrangers)
+
+🌈 *Montagne Arc-en-ciel* avec petit-déjeuner et déjeuner buffet
+🕘 Départ : 04:30
+💵 65 soles
+🎫 Billets d’entrée : 20 soles (Péruviens) / 30 soles (Étrangers)
+
+🏍️ *Quads à la Montagne Arc-en-ciel + Vallée Rouge* avec petit-déjeuner et déjeuner buffet
+🕘 Départs : 04:00 et 06:00
+💵 170 soles (une personne par quad)
+💵 145 soles (deux personnes par quad)
+🎫 Billets d’entrée : 20 soles (Péruviens) / 30 soles (Étrangers)
+
+💧 *Lac Humantay* avec petit-déjeuner et déjeuner buffet
+🕘 Départ : 04:30
+💵 65 soles
+🎫 Billets d’entrée : 10 soles (Péruviens) / 20 soles (Étrangers)
+
+🏔️ *7 Lacs d’Ausangate* avec petit-déjeuner et déjeuner buffet
+🕘 Départ : 04:30
+💵 75 soles
+🎫 Billet d’entrée : 20 soles
+
+🏍️ *Quads à Maras* et Moray
+🕘 Départs : 04:00 et 06:00
+💵 90 soles (une personne par quad)
+💵 70 soles (deux personnes par quad)
+🎫 Billets optionnels :
+ *Billet Touristique Complet (BTG) : 70 soles (Péruviens) / 130 soles (Étrangers)
+ *Billet Touristique Partiel : 40 soles (Péruviens) / 70 soles (Étrangers)
+ *Salines de Maras : 15 soles (Péruviens) / 20 soles (Étrangers)
+
+🚍 *Bus Panoramique de la Ville (Mirabus)*
+🕘 Départs : 10:00 et 14:00
+📍 Église San Francisco, Centre Historique, vue panoramique de Sacsayhuaman, Cristo Blanco et Morada de los Dioses
+💵 25 soles
+🎫 Billet d’entrée :
+ *Morada de los Dioses : 15 soles (Péruviens) / 20 soles (Étrangers)
+
+🗿 *Morada de los Dioses*
+🕘 Départ : 10:00
+💵 30 soles
+🎫 Billet d’entrée : 15 soles (Péruviens) / 20 soles (Étrangers)
+
+🧙‍ *Tour Mystère 4 en 1*
+🕘 Départ : 10:00
+📍 Morada de los Dioses, Vallée des Elfes, Zone humide de Huasao et Forêt des Ents
+💵 45 soles
+🎫 Billets d’entrée :
+ -Morada de los Dioses : 15 soles (Péruviens) / 20 soles (Étrangers)
+ -Vallée des Elfes : 10 soles (Péruviens) / 15 soles (Étrangers)
+ -Zone humide de Huasao : 3 soles
+ -Forêt des Ents : 5 soles
+
+🌈 *Montagne Palcoyo* avec petit-déjeuner et déjeuner buffet
+🕘 Départ : 04:30
+💵 95 soles
+🎫 Billet d’entrée : 10 soles (Péruviens) / 15 soles (Étrangers)
+
+🏞️ *Wakrapukara* avec petit-déjeuner et déjeuner buffet
+🕘 Départ : 04:30
+💵 95 soles
+🎫 Billet d’entrée : 10 soles
+
+📌 Tours privés ou de catégorie supérieure également disponibles
+
+📞 Contactez-nous :
++51 961 281 953
++51 958 191 965
++51 921 166 466
+                                            {% endset %}
                                         {% else %}
                                             {% set whatsappText %}
 *🌄 MENÚ DE TOURS - CUSCO 🌄*
@@ -271,8 +531,8 @@ Una vez de su conformidad, podrá realizar el prepago mediante transferencia ban
 📍 Koricancha, Sacsaywaman, Qenqo, Pucapucara y Tambomachay
 💵 *18 soles*
 🎫 Entradas:
- -BTG completo 70 soles peruanos, 130 soles extranjeros
- -BTG parcial 40 soles peruanos, 70 soles extranjeros
+ -BTG completo 70 soles peruanos / 130 soles extranjeros
+ -BTG parcial 40 soles peruanos / 70 soles extranjeros
  -Koricancha 20 soles
 
 ⛰️ *Valle Sagrado Clásico* con almuerzo buffet
@@ -280,33 +540,33 @@ Una vez de su conformidad, podrá realizar el prepago mediante transferencia ban
 📍 Pisac Ruinas, Pisac Mercado, Ollantaytambo y Chinchero
 💵 *65 soles*
 🎫 Entradas:
- -BTG completo 70 soles peruanos, 130 soles extranjeros
- -BTG parcial 40 soles peruanos, 70 soles extranjeros
+ -BTG completo 70 soles peruanos / 130 soles extranjeros
+ -BTG parcial 40 soles peruanos / 70 soles extranjeros
 
 🌟 *Súper Valle (Valle VIP)* con almuerzo buffet
 🕘 Horario 07:00
 📍 Chinchero, Maras, Moray, Ollantaytambo, Pisac Ruinas y Pisac Mercado
 💵 *65 soles*
 🎫 Entradas:
- -BTG completo 70 soles peruanos, 130 soles extranjeros
- -BTG parcial 40 soles peruanos, 70 soles extranjeros
- -Koricancha 20 soles
+ -BTG completo 70 soles peruanos / 130 soles extranjeros
+ -BTG parcial 40 soles peruanos / 70 soles extranjeros
+ -Salinas de Maras 15 soles peruanos / 20 soles extranjeros
 
 🌈 *Montaña 7 colores* con desayuno y almuerzo buffet
 🕘 Horario 04:30
 💵 *65 soles*
-🎫 Entradas: 20 soles peruanos y 30 soles extranjeros
+🎫 Entradas: 20 soles peruanos / 30 soles extranjeros
 
 🏍️ *Cuatrimotos en Montaña 7 colores por Valle Rojo* con desayuno y almuerzo buffet
 🕘 Horarios 04:00 y 6:00
 💵 *170 soles una persona por cuatrimoto*
 💵 *145 soles dos personas por cuatrimoto*
-🎫 Entradas: 20 soles peruanos y 30 soles extranjeros
+🎫 Entradas: 20 soles peruanos / 30 soles extranjeros
 
 💧 *Laguna de Humantay* con desayuno y almuerzo buffet
 🕘 Horario 04:30
 💵 *65 soles*
-🎫 Entradas: 10 soles peruanos y 20 soles extranjero
+🎫 Entradas: 10 soles peruanos / 20 soles extranjero
 
 🏔 *7 lagunas de Ausangate* con desayuno y almuerzo buffet
 🕘 Horario 04:30
@@ -318,29 +578,29 @@ Una vez de su conformidad, podrá realizar el prepago mediante transferencia ban
 💵 *90 soles una persona por cuatrimoto*
 💵 *70 soles dos personas por cuatrimoto*
 🎫 Entradas (opcionales) :
- -BTG completo 70 soles peruanos, 130 soles extranjeros
- -BTG parcial 40 soles peruanos, 70 soles extranjeros
- -Maras: 15 soles peruanos y 20 soles extranjeros
+ -BTG completo 70 soles peruanos / 130 soles extranjeros
+ -BTG parcial 40 soles peruanos / 70 soles extranjeros
+ -Salinas de Maras: 15 soles peruanos / 20 soles extranjeros
 
 🚍 *Mirabus*
 🕘 Horarios 10:00 y 14:00
 📍 San Francisco, Centro histórico, Sacssaywaman panorámico, Cristo Blanco y Morada de los Dioses
 💵 *25 soles*
 🎫 Entradas:
- -Morada de los Dioses: 15 soles peruanos y 20 soles extranjeros
+ -Morada de los Dioses: 15 soles peruanos / 20 soles extranjeros
 
 🗿 *Morada de los Dioses* 🏞️
 🕘 Horario 10:00
 💵 *30 soles*
-🎫 Entrada: 15 soles peruanos y 20 soles extranjeros
+🎫 Entrada: 15 soles peruanos / 20 soles extranjeros
 
 🧙‍ *Tour misterio 4 en 1*
 🕘 Horario 10:00
 📍 Morada de los Dioses, Valle de los Duendes, Humedal de Huasao y Bosque de los Ents
 💵 *45 soles*
 🎫 Entradas:
- -Morada de los Dioses: 15 soles peruanos y 20 soles extranjeros
- -Valle de los Duendes: 10 soles peruanos y 15 soles extranjeros
+ -Morada de los Dioses: 15 soles peruanos / 20 soles extranjeros
+ -Valle de los Duendes: 10 soles peruanos / 15 soles extranjeros
  -Humedal de Huasao: 3 soles
  -Bosque de los Ents: 5 soles
 
@@ -363,10 +623,123 @@ Una vez de su conformidad, podrá realizar el prepago mediante transferencia ban
                                             {% endset %}
                                         {% endif %}
 
-                                        <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|url_encode }}"
+                                        <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}&type=phone_number&app_absent=0"
                                            target="_blank" class="btn btn-sm btn-success edit_link">
                                             <i class="fa fa-whatsapp" aria-hidden="true"></i>
                                             Tour Económico
+                                        </a>
+
+
+                                        {% if object.idiomatelefono == 'en' %}
+                                            {% set whatsappText %}
+🌄 Welcome to Cusco!
+We are delighted to have you as our guests and want you to enjoy your stay to the fullest.
+
+Cusco is located at 3,390 meters (11,150 ft) above sea level, so it’s important to acclimate properly:
+
+Take it easy on your first day.
+
+Stay well hydrated and avoid alcohol or caffeine.
+
+Eat light meals, like grilled chicken with boiled potatoes.
+
+Avoid climbing or going down too many stairs on the first day.
+
+Drink coca tea (but not at night). You can find it in nearby shops.
+
+Get plenty of rest and listen to your body.
+
+🚑 If you experience any health issues—whether it’s altitude sickness or any other problem—we can assist you. We can put you in contact with clinics if you have insurance, or with state hospitals if you don’t.
+
+🔥 For extra comfort, we offer room heaters. We can activate them remotely. The cost is S/ 20 per night per unit.
+
+If you have any questions or need anything, don’t hesitate to reach out.
+Enjoy your adventure in Cusco! ✨
+                                            {% endset %}
+                                        {% elseif object.idiomatelefono == 'pt'%}
+                                            {% set whatsappText %}
+🌄 Bem-vindos a Cusco!
+Estamos muito felizes em recebê-los como nossos hóspedes e queremos que aproveitem ao máximo a sua estadia.
+
+Cusco está a 3.390 metros (11.150 pés) acima do nível do mar, por isso é importante se aclimatar adequadamente:
+
+Vá com calma no primeiro dia.
+
+Mantenha-se bem hidratado e evite álcool ou cafeína.
+
+Faça refeições leves, como frango grelhado com batatas cozidas.
+
+Evite subir ou descer muitas escadas no primeiro dia.
+
+Beba chá de coca (mas não à noite). Você pode encontrá-lo em lojas próximas.
+
+Descanse bastante e ouça seu corpo.
+
+🚑 Se tiver algum problema de saúde — seja mal de altitude ou outro — podemos ajudá-lo. Podemos colocá-lo em contato com clínicas se tiver seguro, ou com hospitais públicos se não tiver.
+
+🔥 Para maior conforto, oferecemos aquecedores nos quartos. Podemos ativá-los remotamente. O custo é S/ 20 por noite por unidade.
+
+Se tiver alguma dúvida ou precisar de algo, não hesite em nos contatar.
+Aproveite sua aventura em Cusco! ✨
+                                            {% endset %}
+                                        {% elseif object.idiomatelefono == 'fr'%}
+                                            {% set whatsappText %}
+🌄 Bienvenue à Cusco !
+Nous sommes ravis de vous accueillir et souhaitons que vous profitiez pleinement de votre séjour.
+
+Cusco est situé à 3 390 mètres (11 150 pieds) d’altitude, il est donc important de bien s’acclimater :
+
+Prenez les choses calmement le premier jour.
+
+Restez bien hydraté et évitez l’alcool ou la caféine.
+
+Mangez léger, par exemple du poulet grillé avec des pommes de terre bouillies.
+
+Évitez de monter ou descendre trop d’escaliers le premier jour.
+
+Buvez du maté de coca (mais pas le soir). Vous en trouverez dans les magasins à proximité.
+
+Reposez-vous bien et écoutez votre corps.
+
+🚑 En cas de problème de santé — que ce soit le mal d’altitude ou autre — nous pouvons vous aider. Nous pouvons vous mettre en contact avec des cliniques si vous avez une assurance, ou avec des hôpitaux publics si vous n’en avez pas.
+
+🔥 Pour plus de confort, nous proposons des chauffages d’appoint dans les chambres. Nous pouvons les activer à distance. Le coût est de S/ 20 par nuit et par unité.
+
+Si vous avez des questions ou besoin de quoi que ce soit, n’hésitez pas à nous contacter.
+Profitez bien de votre aventure à Cusco ! ✨
+                                            {% endset %}
+                                        {% else %}
+                                            {% set whatsappText %}
+🌄 ¡Bienvenidos a Cusco!
+Estamos encantados de tenerlos como nuestros huéspedes y queremos que disfruten su estadía al máximo.
+
+Cusco se encuentra a 3,390 metros (11,150 pies) sobre el nivel del mar, por lo que es importante aclimatarse adecuadamente:
+
+Tomen las cosas con calma el primer día.
+
+Manténganse bien hidratados y eviten el alcohol o la cafeína.
+
+Coman comidas ligeras, como pollo a la plancha con papas cocidas.
+
+Eviten subir o bajar muchas escaleras el primer día.
+
+Beban té de coca (pero no por la noche). Lo pueden encontrar en tiendas cercanas.
+
+Descansen lo suficiente y escuchen a su cuerpo.
+
+🚑 Si presentan algún problema de salud, ya sea mal de altura u otro, podemos asistirlos. Podemos ponerlos en contacto con clínicas si cuentan con seguro, o con hospitales del estado si no lo tienen.
+
+🔥 Para mayor comodidad, ofrecemos calefactores en la habitación. Podemos activarlos de manera remota. El costo es S/ 20 por noche por unidad.
+
+Si tienen cualquier duda o necesitan algo, no duden en comunicarse con nosotros.
+¡Disfruten su aventura en Cusco! ✨
+                                            {% endset %}
+                                        {% endif %}
+
+                                        <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}"
+                                           target="_blank" class="btn btn-sm btn-warning edit_link">
+                                            <i class="fa fa-ambulance" aria-hidden="true"></i>
+                                            Bienvenida
                                         </a>
 
                                     </td>

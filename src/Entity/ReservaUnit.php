@@ -27,6 +27,7 @@ class ReservaUnit
     public const DB_VALOR_N6 = 6;
     public const DB_VALOR_N7 = 7;
 
+
     /**
      * @ORM\Column(type="integer")
      * @ORM\Id

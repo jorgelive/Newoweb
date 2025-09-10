@@ -3,12 +3,11 @@
 namespace App\Twig;
 use Symfony\Component\Routing\RouterInterface;
 use \Twig\Extension\AbstractExtension;
-use function Symfony\Component\HttpKernel\Log\format;
 
 class FullcalendarExtension extends AbstractExtension
 {
 
-    private $_router;
+    private RouterInterface $_router;
 
     public function __construct(RouterInterface $router)
     {

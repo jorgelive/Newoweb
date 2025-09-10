@@ -22,7 +22,48 @@ class ReservaReserva
         '+54', '+591', '+56', '+57', '+506', '+53', '+593',
         '+503', '+34', '+502', '+504', '+52', '+505', '+507',
         '+595', '+51', '+598', '+58',
-        '+1-787', '+1-939', '+1-809', '+1-829', '+1-849' // Puerto Rico y Rep. Dominicana
+        '+1-787', '+1-939', '+1-809', '+1-829', '+1-849', // Puerto Rico y Rep. Dominicana
+        '+240' // Guinea Ecuatorial
+    ];
+
+    private array $prefijosFrances = [
+        '+33',   // Francia
+        '+32',   // Bélgica
+        '+41',   // Suiza
+        '+352',  // Luxemburgo
+        '+377',  // Mónaco
+        '+590',  // Guadalupe
+        '+596',  // Martinica
+        '+594',  // Guayana Francesa
+        '+262',  // Reunión y Mayotte
+        '+509',  // Haití
+        '+225',  // Costa de Marfil
+        '+221',  // Senegal
+        '+223',  // Mali
+        '+227',  // Níger
+        '+228',  // Togo
+        '+229',  // Benín
+        '+237',  // Camerún
+        '+241',  // Gabón
+        '+242',  // Congo
+        '+243',  // R. D. del Congo
+        '+261',  // Madagascar
+        '+222',  // Mauritania
+        '+269',  // Comoras
+        '+216',  // Túnez
+        '+213',  // Argelia
+        '+212'   // Marruecos
+    ];
+
+    private array $prefijosPortugues = [
+        '+351',  // Portugal
+        '+55',   // Brasil
+        '+238',  // Cabo Verde
+        '+244',  // Angola
+        '+239',  // Santo Tomé y Príncipe
+        '+258',  // Mozambique
+        '+245',  // Guinea-Bisáu
+        '+670'   // Timor-Leste
     ];
 
     /**
@@ -284,21 +325,35 @@ class ReservaReserva
         return preg_replace('/[\s\-\(\)]+/', '', $this->getTelefono());
     }
 
-    public function getIdiomaTelefono() : string
+    public function getIdiomaTelefono(): string
     {
-        // Ordenar prefijos de mayor a menor longitud para evitar errores
-        usort($this->prefijosEspanol, function($a, $b) {
-            return strlen($b) - strlen($a);
-        });
+        // Listas de prefijos por idioma
+        $idiomasPrefijos = [
+            'es' => $this->prefijosEspanol,
+            'pt' => $this->prefijosPortugues,
+            'fr' => $this->prefijosFrances,
+        ];
 
-        // Comparar número con cada prefijo
-        foreach ($this->prefijosEspanol as $prefijo) {
-            $prefijoSinGuiones = str_replace('-', '', $prefijo);
-            if (strpos($this->getTelefonoNormalizado(), $prefijoSinGuiones) === 0) {
-                //return $prefijo;
-                return 'es';
+        // Normalizar: ordenar prefijos por longitud (para todos los idiomas)
+        foreach ($idiomasPrefijos as &$prefijos) {
+            usort($prefijos, function($a, $b) {
+                return strlen($b) - strlen($a);
+            });
+        }
+
+        $telefono = $this->getTelefonoNormalizado();
+
+        // Buscar idioma según prefijo
+        foreach ($idiomasPrefijos as $idioma => $prefijos) {
+            foreach ($prefijos as $prefijo) {
+                $prefijoSinGuiones = str_replace('-', '', $prefijo);
+                if (strpos($telefono, $prefijoSinGuiones) === 0) {
+                    return $idioma;
+                }
             }
         }
+
+        // Si no coincide con ninguno, devolvemos inglés por defecto
         return 'en';
     }
 
