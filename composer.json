@@ -17,6 +17,7 @@
         "doctrine/doctrine-migrations-bundle": "^3.2",
         "doctrine/orm": "^2.12",
         "google/cloud-translate": "^1.12",
+        "jeroendesloovere/vcard": "*",
         "johngrogg/ics-parser": "^3.1",
         "jsvrcek/ics": "^0.8.4",
         "knplabs/doctrine-behaviors": "^2.6",

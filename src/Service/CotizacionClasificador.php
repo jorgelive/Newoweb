@@ -22,6 +22,8 @@ class CotizacionClasificador
     //Es el resumen final de todos los pasajeros de tarifas costos v netas por tipo de tarifa incluido no incluido, etc 
     private array $resumenDeClasificado = [];
 
+    private array $datos = [];
+
     private CotizacionItinerario $cotizacionItinerario;
 
     function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario, RequestStack $requestStack)

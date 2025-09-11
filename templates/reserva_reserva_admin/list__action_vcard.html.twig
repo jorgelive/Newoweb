@@ -1,0 +1,8 @@
+{% if admin.isGranted('show', object) and admin.hasRoute('vcard') and object.telefono is not empty %}
+    <a href="{{ admin.generateObjectUrl('vcard', object) }}"
+       class="btn btn-danger"
+       title="vCard">
+        <i class="fa fa-phone" aria-hidden="true"></i>
+        vCard
+    </a>
+{% endif %}

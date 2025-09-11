@@ -69,6 +69,12 @@
                             {% if action != 'resumen' and object.telefono is not empty %}
                                 <tr class="sonata-ba-view-container">
                                     <td colspan="2">
+                                        <a href="{{ admin.generateObjectUrl('vcard', object) }}"
+                                           class="btn btn-danger"
+                                           title="vCard">
+                                            <i class="fa fa-address-card" aria-hidden="true"></i>
+                                            vCard
+                                        </a>
                                         <a href="tel:{{ object.telefono }}"
                                            class="btn btn-sm btn-success">
                                             <i class="fa fa-phone" aria-hidden="true"></i>

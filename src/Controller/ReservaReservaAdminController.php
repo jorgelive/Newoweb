@@ -4,11 +4,13 @@ namespace App\Controller;
 
 use App\Entity\ReservaChannel;
 use App\Entity\ReservaEstado;
+use App\Entity\ReservaReserva;
 use App\Service\IcalGenerator;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use JeroenDesloovere\VCard\VCard;
 
 class ReservaReservaAdminController extends CRUDAdminController
 {
@@ -110,6 +112,53 @@ class ReservaReservaAdminController extends CRUDAdminController
         $this->addFlash('sonata_flash_success', 'Reserva extendida correctamente');
 
         return new RedirectResponse($this->admin->generateUrl('edit', ['id' => $newObject->getId()]));
+
+    }
+
+    public function vcardAction(Request $request = null): Response
+    {
+
+        $object = $this->assertObjectExists($request, true);
+        $id = $object->getId();
+
+        if(!$object) {
+            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
+        }
+
+        $this->admin->checkAccess('show', $object);
+
+        $vcard = new VCard();
+
+        if (!$object instanceof ReservaReserva) {
+            throw $this->createNotFoundException(sprintf('El objeto es invalido with id: %s', $id));
+        }
+
+        $id = $object->getId();
+        $nombre = $object->getNombre();
+        $inicio = $object->getFechahorainicio();
+        $fin = $object->getFechahorafin();
+        $telefono = trin($object->getTelefono());
+        $object->getCreado();
+
+        $unidad = $object->getUnit()->getNombre();
+        $inicialCanal = substr($object->getChannel()->getNombre(), 0, 1);
+
+
+        $cantidad = empty($object->getCantidadninos()) ? $object->getCantidadadultos() : $object->getCantidadadultos() . '+' . $object->getCantidadninos();
+
+
+        $campoNpmbre = sprintf('%s/%s %s x%s (%s) %s', $inicio->format('Y/m/d'), $fin->format('d'), $inicialCanal, $cantidad, $unidad, $nombre);
+
+        $vcard->addName('', $campoNpmbre);
+        $vcard->addPhoneNumber($telefono, 'CELL');
+        return new Response(
+            $vcard->getOutput(),
+            200,
+            [
+                'Content-Type' => 'text/vcard',
+                'Content-Disposition' => 'attachment; filename="' . $id . '_contacto.vcf"',
+            ]
+        );
 
     }
 

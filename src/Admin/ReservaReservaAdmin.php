@@ -457,6 +457,7 @@ class ReservaReservaAdmin extends AbstractAdmin
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('ical', 'ical');
+        $collection->add('vcard', $this->getRouterIdParameter() . '/vcard');
         $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
         $collection->add('extender', $this->getRouterIdParameter() . '/extender');
         $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
