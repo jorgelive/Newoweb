@@ -101,12 +101,14 @@ class ReservaUnitAdminController extends CRUDAdminController
         //$template = $this->templateRegistry->getTemplate('show'); es privado en la clase padre
         $template = 'reserva_unit_admin/show.html.twig';
 
-        return $this->renderWithExtraParams($template,
-            [
-                'object' => $object,
-                'action' => 'inventario',
-                'elements' => $fields,
-            ]);
+
+
+        return $this->render($template, [
+            'object'   => $object,
+            'action'   => 'inventario',
+            'elements' => $fields,
+            'admin'    => $this->admin,
+        ]);
 
     }
 
@@ -131,12 +133,12 @@ class ReservaUnitAdminController extends CRUDAdminController
         //$template = $this->templateRegistry->getTemplate('show'); es privado en la clase padre
         $template = 'reserva_unit_admin/show.html.twig';
 
-        return $this->renderWithExtraParams($template,
-            [
-                'object' => $object,
-                'action' => 'resumen',
-                'elements' => $fields,
-            ]);
+        return $this->render($template, [
+            'object'   => $object,
+            'action'   => 'resumen',
+            'elements' => $fields,
+            'admin'    => $this->admin,
+        ]);
 
     }
 

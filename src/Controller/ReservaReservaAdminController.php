@@ -120,11 +120,12 @@ class ReservaReservaAdminController extends CRUDAdminController
     {
 
         $object = $this->assertObjectExists($request, true);
-        $id = $object->getId();
 
         if(!$object) {
             throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
         }
+
+        $id = $object->getId();
 
         $this->admin->checkAccess('show', $object);
 
