@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use JeroenDesloovere\VCard\VCard;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class ReservaReservaAdminController extends CRUDAdminController
 {
@@ -135,22 +136,37 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $id = $object->getId();
         $nombre = $object->getNombre();
+        $calificacion = $object->getCalificacion();
+        $cantidad = empty($object->getCantidadninos()) ? $object->getCantidadadultos() : $object->getCantidadadultos() . '+' . $object->getCantidadninos();
         $inicio = $object->getFechahorainicio();
+        $inicioText =  $inicio->format('Y/m/d');
         $fin = $object->getFechahorafin();
-        $telefono = trin($object->getTelefono());
-        $object->getCreado();
+        $finText = $fin->format('Y/m/d');
+        $telefono = trim($object->getTelefono());
+        $fechaReservaText = $object->getCreado()->format('Y/m/d');
 
         $unidad = $object->getUnit()->getNombre();
+        $canal = $object->getChannel()->getNombre();
         $inicialCanal = substr($object->getChannel()->getNombre(), 0, 1);
-
-
-        $cantidad = empty($object->getCantidadninos()) ? $object->getCantidadadultos() : $object->getCantidadadultos() . '+' . $object->getCantidadninos();
-
 
         $campoNpmbre = sprintf('%s/%s %s x%s (%s) %s', $inicio->format('Y/m/d'), $fin->format('d'), $inicialCanal, $cantidad, $unidad, $nombre);
 
+        $nota = <<<TXT
+Nombre: $nombre
+Calificacion: $calificacion
+Alojamiento: $unidad
+Ingreso: $inicioText
+Salida: $finText
+Canal: $canal
+Fecha de reserva; $fechaReservaText
+TXT;
+
         $vcard->addName('', $campoNpmbre);
         $vcard->addPhoneNumber($telefono, 'CELL');
+        $vcard->addNote($nota);
+        $vcard->addURL($this->admin->generateUrl('show',
+            ['id' => $id]),
+            UrlGeneratorInterface::ABSOLUTE_URL);
         return new Response(
             $vcard->getOutput(),
             200,
