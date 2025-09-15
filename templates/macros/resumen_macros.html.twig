@@ -1,0 +1,67 @@
+{% macro whatsappText(resumen, object) %}
+    {% set text = '' %}
+
+    {# -------------------- ALOJAMIENTOS -------------------- #}
+    {% if resumen.alojamientos is defined %}
+        {% for alojamiento in resumen.alojamientos %}
+            {% if alojamiento.tipoTarifa.id != constant('App\\Entity\\ServicioTipotarifa::DB_VALOR_NORMAL') %}
+                {% set text = text ~ '*(' ~ alojamiento.tipoTarifa.titulo ~ ')* ' %}
+            {% endif %}
+            {% set text = text ~ '*' ~ alojamiento.duracionStr ~ ' de ' ~ alojamiento.titulo ~ '*\n' %}
+            {% if alojamiento.tarifaTitulo is defined %}
+                {% set text = text ~ 'en ' ~ alojamiento.tarifaTitulo ~ '\n' %}
+            {% endif %}
+            {% if object.file.catalogo != true %}
+                {% set text = text ~ 'del ' ~ alojamiento.fechaInicio|date('Y-m-d') ~ ' al ' ~ alojamiento.fechaFin|date('Y-m-d') ~ '\n' %}
+            {% endif %}
+            {% if alojamiento.detalles is defined %}
+                {% for detalle in alojamiento.detalles %}
+                    {% set text = text ~ detalle ~ '\n' %}
+                {% endfor %}
+            {% endif %}
+            {% set text = text ~ '\n' %}
+        {% endfor %}
+    {% endif %}
+
+    {# -------------------- SERVICIOS CON ITINERARIO -------------------- #}
+    {% if resumen.serviciosConTituloItinerario is defined %}
+        {% for servicio in resumen.serviciosConTituloItinerario %}
+            {% set text = text ~ '*' ~ servicio.tituloItinerario ~ '*\n' %}
+            {% if servicio.fechaInicio is defined and object.file.catalogo != true %}
+                {% if servicio.fechahorasdiferentes %}
+                    {% for fecha in servicio.fechas %}
+                        {% set text = text ~ '*' ~ fecha.fecha|date('Y-m-d') ~ '*\n' %}
+                        {% for item in fecha.items %}
+                            {% set text = text ~ '*' ~ item.fechahoraInicio|date('H:i') ~ '* ' ~ item.titulo ~ '\n' %}
+                        {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    {% set text = text ~ '*Inicio*: ' ~ servicio.fechahoraInicio|date('Y-m-d H:i') ~ '\n' %}
+                {% endif %}
+            {% endif %}
+            {% if servicio.duracionStr is defined %}
+                {% set text = text ~ '*Duración*: ' ~ servicio.duracionStr ~ '\n' %}
+            {% endif %}
+            {% for tipoTarifa in servicio.tipoTarifas %}
+                {% set text = text ~ '*' ~ tipoTarifa.tituloTipotarifa ~ ':* ' %}
+                {% for componente in tipoTarifa.componentes %}
+                    {% set text = text ~ componente.titulo %}
+                    {% if not loop.last %}, {% else %}.{% set text = text ~ '\n' %}{% endif %}
+                {% endfor %}
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+
+    {# -------------------- OTROS SERVICIOS -------------------- #}
+    {% if resumen.serviciosSinTituloItinerario is defined %}
+        {% for tipoTarifa in resumen.serviciosSinTituloItinerario.tipoTarifas %}
+            {% set text = text ~ tipoTarifa.tituloTipotarifa ~ ': ' %}
+            {% for componente in tipoTarifa.componentes %}
+                {% set text = text ~ componente.titulo %}
+                {% if not loop.last %}, {% else %}.{% set text = text ~ '\n' %}{% endif %}
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+
+    {{ text }}
+{% endmacro %}
