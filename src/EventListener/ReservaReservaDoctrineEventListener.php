@@ -12,6 +12,7 @@ class ReservaReservaDoctrineEventListener
 {
 
     private const BOOKING_HOTEL_ACCOUNT_ID = 16435683;
+    private const BOOKING_PREFIJO_NEXO_SAPHY = 'Sa';
     private const CODIGOBOOKING_SAPHY = 11658819;
     private const CODIGOBOOKING_INTI  = 9610078;
     private $mainVariableproceso;
@@ -103,7 +104,7 @@ class ReservaReservaDoctrineEventListener
 
             if (is_numeric($enlace)) {
                 $hotelId = self::CODIGOBOOKING_INTI;
-                if ($unitnexo && $unitnexo->getDistintivo() === 'S') {
+                if ($unitnexo && $unitnexo->getDistintivo() === self::BOOKING_PREFIJO_NEXO_SAPHY) {
                     $hotelId = self::CODIGOBOOKING_SAPHY;
                 }
 
