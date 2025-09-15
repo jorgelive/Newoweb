@@ -2,220 +2,224 @@
 
 namespace App\Service;
 
+use App\Entity\CotizacionCotizacion;
+use App\Entity\CotizacionCotservicio;
 use App\Entity\MaestroMedio;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatorInterface;
-use App\Entity\CotizacionCotizacion;
-use App\Entity\CotizacionCotservicio;
-use App\Entity\ServicioItidiaarchivo;
-use function Symfony\Component\HttpKernel\Log\format;
 
+/**
+ * Clase para procesar itinerarios de una cotización.
+ * Separa la lógica de fotos, títulos y días libres.
+ */
 class CotizacionItinerario
 {
     private CotizacionCotizacion $cotizacion;
     private CotizacionCotservicio $cotservicio;
     private TranslatorInterface $translator;
 
-    function __construct(TranslatorInterface $translator)
+    public function __construct(TranslatorInterface $translator)
     {
         $this->translator = $translator;
     }
 
+    /**
+     * Devuelve el itinerario completo de una cotización, incluyendo días libres.
+     *
+     * @param CotizacionCotizacion $cotizacion
+     * @return array
+     */
     public function getItinerario(CotizacionCotizacion $cotizacion): array
     {
-
         $this->cotizacion = $cotizacion;
-
         $itinerario = [];
-        if($cotizacion->getCotservicios()->count() > 0) {
 
-            foreach ($cotizacion->getCotservicios() as $cotservicio):
+        foreach ($cotizacion->getCotservicios() as $cotservicio) {
+            if ($cotservicio->getItinerario()->getItinerariodias()->count() === 0) {
+                continue;
+            }
 
-                if ($cotservicio->getItinerario()->getItinerariodias()->count() > 0) {
+            foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia) {
+                $fecha = (clone $cotservicio->getFechahorainicio())
+                    ->add(new \DateInterval('P' . ($dia->getDia() - 1) . 'D'));
 
-                    //iniciamos la variable para definir si ingresar dias libres
-                    $diaEsperado = 1;
+                // Primera fecha para cálculo de nroDia
+                $primeraFecha ??= clone $fecha;
+                $nroDia = (int)$primeraFecha->diff($fecha)->format('%d') + 1;
 
-                    foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia):
+                $tempItinerario = [
+                    'tituloDia' => $dia->getTitulo(),
+                    'descripcion' => $dia->getContenido(),
+                    'archivos' => $dia->getItidiaarchivos(),
+                ];
 
-                        $fecha = new \DateTime($cotservicio->getFechahorainicio()->format('Y-m-d'));
-                        $fecha->add(new \DateInterval('P' . ($dia->getDia() - 1) . 'D'));
-                        //Las claves son numericas y empiezan en 0
-                        if(!isset($primeraFecha)){
-                            $primeraFecha = new \DateTime($fecha->format('Y-m-d'));
-                        }
-
-                        $currentDate = new \DateTime($fecha->format('Y-m-d'));
-
-                        $nroDia = (int)$primeraFecha->diff($currentDate)->format('%d') + 1;
-
-                        //se sobreescriben en cada iteración
-                        $itinerario[$fecha->format('ymd')]['fecha'] = $fecha;
-                        $itinerario[$fecha->format('ymd')]['nroDia'] = $nroDia;
-
-                        $tempItinerario['tituloDia'] = $dia->getTitulo();
-                        if(!empty($cotservicio->getItinerario()->getTitulo())){
-                            $tempItinerario['titulo'] = $cotservicio->getItinerario()->getTitulo();
-                        }
-                        $tempItinerario['descripcion'] = $dia->getContenido();
-                        $tempItinerario['archivos'] = $dia->getItidiaarchivos();
-
-                        if(!empty($dia->getNotaitinerariodia())){
-                            $tempItinerario['nota'] = $dia->getNotaitinerariodia()->getContenido();
-                        }
-
-                        $itinerario[$fecha->format('ymd')]['fechaitems'][] = $tempItinerario;
-                        unset($tempItinerario);
-
-                    endforeach;
+                if (!empty($dia->getNotaitinerariodia())) {
+                    $tempItinerario['nota'] = $dia->getNotaitinerariodia()->getContenido();
                 }
-            endforeach;
+
+                if (!empty($cotservicio->getItinerario()->getTitulo())) {
+                    $tempItinerario['titulo'] = $cotservicio->getItinerario()->getTitulo();
+                }
+
+                $itinerario[$fecha->format('ymd')] = [
+                    'fecha' => $fecha,
+                    'nroDia' => $nroDia,
+                    'fechaitems' => [$tempItinerario],
+                ];
+            }
         }
 
+        return $this->agregarDiasLibres($itinerario);
+    }
+
+    /**
+     * Devuelve la foto principal de un servicio.
+     *
+     * @param CotizacionCotservicio $cotservicio
+     * @return MaestroMedio|null
+     */
+    public function getMainPhoto(CotizacionCotservicio $cotservicio): ?MaestroMedio
+    {
+        $primerArchivoImportante = null;
+
+        foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia) {
+            foreach ($dia->getItidiaarchivos() as $key => $archivo) {
+                if ($archivo->isPortada()) {
+                    return $archivo->getMedio();
+                }
+
+                if ($dia->isImportante() && $key === 0) {
+                    $primerArchivoImportante = $archivo;
+                }
+            }
+        }
+
+        return $primerArchivoImportante?->getMedio() ?? null;
+    }
+
+    /**
+     * Devuelve todas las fotos de un servicio como Collection.
+     *
+     * @param CotizacionCotservicio $cotservicio
+     * @return Collection
+     */
+    public function getFotos(CotizacionCotservicio $cotservicio): Collection
+    {
+        $fotos = new ArrayCollection();
+        $importantFirst = null;
+        $importantIndex = null;
+        $setPortada = false;
+
+        foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia) {
+            foreach ($dia->getItidiaarchivos() as $key => $archivo) {
+                if ($archivo->isPortada()) {
+                    $setPortada = true;
+                }
+
+                $fotos->add($archivo);
+
+                if ($dia->isImportante() && $key === 0) {
+                    $importantFirst = $archivo;
+                    $importantIndex = $fotos->count() - 1;
+                }
+            }
+        }
+
+        // Si no hay portada, la primera importante se marca como portada
+        if ($importantFirst && $importantIndex !== null && !$fotos->isEmpty() && !$setPortada) {
+            $importantFirst->setPortada(true);
+            $fotos->set($importantIndex, $importantFirst);
+        }
+
+        return $fotos;
+    }
+
+    /**
+     * Devuelve el título del itinerario para un servicio en una fecha específica.
+     *
+     * @param \DateTime $fecha
+     * @param CotizacionCotservicio $cotservicio
+     * @return string
+     */
+    public function getTituloItinerario(\DateTime $fecha, CotizacionCotservicio $cotservicio): string
+    {
+        $itinerarioFechaAux = $this->getItinerarioFechaAux($cotservicio);
+        $tituloItinerario = '';
+
+        $diaAnterior = (clone $fecha)->sub(new \DateInterval('P1D'));
+        $diaPosterior = (clone $fecha)->add(new \DateInterval('P1D'));
+
+        if (isset($itinerarioFechaAux[$fecha->format('ymd')])) {
+            $tituloItinerario = $itinerarioFechaAux[$fecha->format('ymd')];
+        } elseif ((int)$fecha->format('H') > 12 && isset($itinerarioFechaAux[$diaPosterior->format('ymd')])) {
+            $tituloItinerario = $itinerarioFechaAux[$diaPosterior->format('ymd')];
+        } elseif ((int)$fecha->format('H') <= 12 && isset($itinerarioFechaAux[$diaAnterior->format('ymd')])) {
+            $tituloItinerario = $itinerarioFechaAux[$diaAnterior->format('ymd')];
+        } else {
+            $tituloItinerario = reset($itinerarioFechaAux) ?? '';
+        }
+
+        return $tituloItinerario ?: $cotservicio->getItinerario()->getTitulo() ?? '';
+    }
+
+    /**
+     * Genera un array auxiliar con títulos de días importantes para un servicio.
+     *
+     * @param CotizacionCotservicio $cotservicio
+     * @return array
+     */
+    public function getItinerarioFechaAux(CotizacionCotservicio $cotservicio): array
+    {
+        $this->cotservicio = $cotservicio;
+        $aux = [];
+
+        foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia) {
+            if ($dia->isImportante()) {
+                $fecha = (clone $cotservicio->getFechahorainicio())->add(new \DateInterval('P' . ($dia->getDia() - 1) . 'D'));
+                $aux[$fecha->format('ymd')] = $dia->getTitulo();
+            }
+        }
+
+        return $aux;
+    }
+
+    /**
+     * Inserta días libres en el itinerario.
+     *
+     * @param array $itinerario
+     * @return array
+     */
+    private function agregarDiasLibres(array $itinerario): array
+    {
         $itinerarioConLibres = [];
         $diaEsperado = 1;
-        foreach ($itinerario as $itinerarioDia){
-            if($itinerarioDia['nroDia'] == $diaEsperado){
-                $diaEsperado = $itinerarioDia['nroDia'] + 1;
+
+        foreach ($itinerario as $itinerarioDia) {
+            if ($itinerarioDia['nroDia'] === $diaEsperado) {
+                $diaEsperado++;
                 $itinerarioConLibres[] = $itinerarioDia;
-            }else{
-                //estan ordenados por fecha por lo que siempre serán mayores
+            } else {
                 $diferenciaDias = $itinerarioDia['nroDia'] - $diaEsperado;
                 $baseDate = new \DateTimeImmutable($itinerarioDia['fecha']->format('Y-m-d'));
-                //limito a 30 por si hay error
+
                 for ($i = 0; $i < $diferenciaDias && $i < 30; $i++) {
-                    $freeDayTemp['fecha'] = $baseDate->sub(new \DateInterval('P' . $diferenciaDias - $i  . 'D'));
-                    $freeDayTemp['nroDia'] = $itinerarioDia['nroDia'] - $diferenciaDias + $i;
-                    $freeDayTemp['fechaitems'][0]['tituloDia'] = $this->translator->trans('dia_libre_titulo', [], 'messages');
-                    $freeDayTemp['fechaitems'][0]['descripcion'] = '<p>' . $this->translator->trans('dia_libre_contenido', [], 'messages') . '</p>';
+                    $freeDayTemp = [
+                        'fecha' => $baseDate->sub(new \DateInterval('P' . ($diferenciaDias - $i) . 'D')),
+                        'nroDia' => $itinerarioDia['nroDia'] - $diferenciaDias + $i,
+                        'fechaitems' => [[
+                            'tituloDia' => $this->translator->trans('dia_libre_titulo', [], 'messages'),
+                            'descripcion' => '<p>' . $this->translator->trans('dia_libre_contenido', [], 'messages') . '</p>',
+                        ]],
+                    ];
                     $itinerarioConLibres[] = $freeDayTemp;
                 }
+
                 $diaEsperado = $itinerarioDia['nroDia'] + 1;
                 $itinerarioConLibres[] = $itinerarioDia;
             }
         }
 
         return $itinerarioConLibres;
-    }
-
-    public function getMainPhoto(CotizacionCotservicio $cotservicio): ?MaestroMedio
-    {
-        $primeroIsSet = false;
-        $primerArchivo = null;
-        if ($cotservicio->getItinerario()->getItinerariodias()->count() > 0) {
-            foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia):
-                if($cotservicio->getItinerario()->getItinerariodias()->count() > 0){
-                    if($dia->getItidiaarchivos()->count() > 0){
-                        foreach ($dia->getItidiaarchivos() as $key => $archivo):
-
-                            if($dia->isImportante()){
-                                if ($key === 0) {
-                                    $primerArchivo = $archivo;
-                                    $primeroIsSet = true;
-                                }
-                            }
-                            if($archivo->isPortada()){
-                                return $archivo->getMedio();
-                            }
-                        endforeach;
-                    }
-                }
-            endforeach;
-        }
-
-        if($primeroIsSet){
-            return $primerArchivo->getMedio();
-        }
-
-        return null;
-    }
-
-
-    public function getFotos(CotizacionCotservicio $cotservicio): ?Collection
-    {
-        $fotos = new ArrayCollection();
-        $settedPortada = false;
-        if ($cotservicio->getItinerario()->getItinerariodias()->count() > 0) {
-            foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia):
-                if($cotservicio->getItinerario()->getItinerariodias()->count() > 0){
-                    if($dia->getItidiaarchivos()->count() > 0){
-                        foreach ($dia->getItidiaarchivos() as $key => $archivo):
-                            if($archivo->isPortada()){
-                                $settedPortada = true;
-                            }
-                            $fotos->add($archivo);
-
-                            if($dia->isImportante()){
-                                if ($key === 0) {
-                                    $importantFirstIndex = $fotos->indexOf($fotos->current());
-                                    $importantFirst = $fotos->current();
-                                }
-                            }
-                        endforeach;
-                    }
-                }
-            endforeach;
-        }
-
-        if(isset($importantFirst) && isset($importantFirstIndex) && !$fotos->isEmpty() && $settedPortada === false ){
-            $importantFirst->setPortada(true);
-            $fotos->set($importantFirstIndex, $importantFirst);
-        }
-        return $fotos;
-    }
-
-    public function getTituloItinerario(\DateTime $fecha, CotizacionCotservicio $cotservicio): string
-    {
-        $itinerarioFechaAux = $this->getItinerarioFechaAux($cotservicio);
-        $tituloItinerario = '';
-
-        if(!empty($itinerarioFechaAux)){
-
-            $diaAnterior = clone ($fecha);
-            $diaAnterior->sub(new \DateInterval('P1D')) ;
-            $diaPosterior = clone ($fecha);
-            $diaPosterior->add(new \DateInterval('P1D')) ;
-
-            if(isset($itinerarioFechaAux[$fecha->format('ymd')])){
-                $tituloItinerario = $itinerarioFechaAux[$fecha->format('ymd')];
-            }elseif((int)$fecha->format('H') > 12 && isset($itinerarioFechaAux[$diaPosterior->format('ymd')])){
-                $tituloItinerario = $itinerarioFechaAux[$diaPosterior->format('ymd')];
-            }elseif((int)$fecha->format('H') <= 12 && isset($itinerarioFechaAux[$diaAnterior->format('ymd')])){
-                $tituloItinerario = $itinerarioFechaAux[$diaAnterior->format('ymd')];
-            }else{
-                $tituloItinerario = reset($itinerarioFechaAux) ?? '';
-            }
-        }
-        //primero es el importante por dia si no hubiera importantes se coge el título
-        if(empty($tituloItinerario) && !empty($cotservicio->getItinerario()->getTitulo())){
-            $tituloItinerario = $cotservicio->getItinerario()->getTitulo();
-        }
-
-        return $tituloItinerario;
-    }
-
-    public function getItinerarioFechaAux(CotizacionCotservicio $cotservicio): array
-    {
-        $this->cotservicio = $cotservicio;
-
-        $itinerarioFechaAux = [];
-
-        if ($cotservicio->getItinerario()->getItinerariodias()->count() > 0) {
-
-            foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia):
-                $fecha = clone($cotservicio->getFechahorainicio());
-                $fecha->add(new \DateInterval('P' . ($dia->getDia() - 1) . 'D'));
-
-                if($dia->isImportante() === true){
-                    $itinerarioFechaAux[$fecha->format('ymd')] = $dia->getTitulo();
-                }
-
-            endforeach;
-        }
-
-        return $itinerarioFechaAux;
     }
 }

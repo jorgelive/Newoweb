@@ -67,22 +67,28 @@
                 </h4>
                 {% if rango.edadMin is defined or rango.edadMax is defined%}
                     <p>
-                        {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
-                            de {{ rango.edadMin }} años
-                            {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                &nbsp;<br />(con carné de estudiante válido y vigente)
-                            {% endif %}
+                        {% if rango.edadMin is defined or rango.edadMax is defined %}
 
-                        {% else %}
-                            {% if rango.edadMin is defined %}
-                                desde {{ rango.edadMin }} años
-                            {% endif %}
+                            {% set EDAD_MINIMA = 0 %}
+                            {% set EDAD_MAXIMA = 120 %}
 
-                            {% if rango.edadMax is defined %}
-                                hasta {{ rango.edadMax }} años
-                                {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                    <br />(con carné de estudiante válido y vigente)
+                            {% set mostrarEdadMin = rango.edadMin is defined and rango.edadMin != EDAD_MINIMA %}
+                            {% set mostrarEdadMax = rango.edadMax is defined and rango.edadMax != EDAD_MAXIMA %}
+                            {% set edadIgual = mostrarEdadMin and mostrarEdadMax and rango.edadMin == rango.edadMax %}
+
+                            {% if edadIgual %}
+                                {% trans with {'%edad%': rango.edadMin } from 'messages' %}de %edad% anos{% endtrans %}
+                            {% else %}
+                                {% if mostrarEdadMin %}
+                                    {% trans with {'%edad%': rango.edadMin } from 'messages' %}desde %edad% anos{% endtrans %}
                                 {% endif %}
+                                {% if mostrarEdadMax %}
+                                    {% trans with {'%edad%': rango.edadMax } from 'messages' %}hasta %edad% anos{% endtrans %}
+                                {% endif %}
+                            {% endif %}
+
+                            {% if mostrarEdadMax and rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                &nbsp;({{ 'con_carne_de_estudiante_valido_y_vigente'|trans({},'messages') }})
                             {% endif %}
 
                         {% endif %}

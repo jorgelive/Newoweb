@@ -17,25 +17,26 @@
                             <span style="font-size: 0.9em;">
                                 {% if rango.edadMin is defined or rango.edadMax is defined %}
 
-                                    {% if rango.edadMin is defined and rango.edadMax is defined and rango.edadMax == rango.edadMin %}
+                                    {% set EDAD_MINIMA = 0 %}
+                                    {% set EDAD_MAXIMA = 120 %}
+
+                                    {% set mostrarEdadMin = rango.edadMin is defined and rango.edadMin != EDAD_MINIMA %}
+                                    {% set mostrarEdadMax = rango.edadMax is defined and rango.edadMax != EDAD_MAXIMA %}
+                                    {% set edadIgual = mostrarEdadMin and mostrarEdadMax and rango.edadMin == rango.edadMax %}
+
+                                    {% if edadIgual %}
                                         {% trans with {'%edad%': rango.edadMin } from 'messages' %}de %edad% anos{% endtrans %}
-                                        {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                            &nbsp;({{ 'con_carne_de_estudiante_valido_y_vigente'|trans({},'messages') }})
-                                        {% endif %}
-
                                     {% else %}
-
-                                        {% if rango.edadMin is defined %}
+                                        {% if mostrarEdadMin %}
                                             {% trans with {'%edad%': rango.edadMin } from 'messages' %}desde %edad% anos{% endtrans %}
                                         {% endif %}
-
-                                        {% if rango.edadMax is defined %}
+                                        {% if mostrarEdadMax %}
                                             {% trans with {'%edad%': rango.edadMax } from 'messages' %}hasta %edad% anos{% endtrans %}
-                                            {% if rango.edadMax > 18 and rango.edadMax <= 23 %}
-                                                &nbsp;({{ 'con_carne_de_estudiante_valido_y_vigente'|trans({},'messages') }})
-                                            {% endif %}
                                         {% endif %}
+                                    {% endif %}
 
+                                    {% if mostrarEdadMax and rango.edadMax > 18 and rango.edadMax <= 23 %}
+                                        &nbsp;({{ 'con_carne_de_estudiante_valido_y_vigente'|trans({},'messages') }})
                                     {% endif %}
 
                                 {% endif %}

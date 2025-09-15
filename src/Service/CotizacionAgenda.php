@@ -2,59 +2,107 @@
 
 namespace App\Service;
 
-
 use Symfony\Contracts\Translation\TranslatorInterface;
 use App\Entity\CotizacionCotizacion;
+use App\Entity\CotizacionCotservicio;
+use App\Entity\CotizacionCotcomponente;
 
+/**
+ * Genera la agenda (lista de componentes agendables) para una cotización.
+ */
 class CotizacionAgenda
 {
-
     private TranslatorInterface $translator;
     private CotizacionItinerario $cotizacionItinerario;
 
-    function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario)
+    public function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario)
     {
         $this->translator = $translator;
         $this->cotizacionItinerario = $cotizacionItinerario;
     }
 
+    /**
+     * Devuelve la agenda con la misma estructura de claves que usaba la versión original.
+     *
+     * Estructura devuelta:
+     * [
+     *   'componentes' => [
+     *       [
+     *           'tituloItinerario' => string,
+     *           'nombre' => string,
+     *           'tipoComponente' => string,
+     *           'fechahorainicio' => \DateTime,
+     *           'fechahorafin' => \DateTime,
+     *           'titulo' => string (solo si existen items)
+     *       ],
+     *       ...
+     *   ]
+     * ]
+     *
+     * @param CotizacionCotizacion $cotizacion
+     * @return array<string, mixed>
+     */
     public function getAgenda(CotizacionCotizacion $cotizacion): array
     {
-        $datos = [];
-        if($cotizacion->getCotservicios()->count() > 0){
-            foreach($cotizacion->getCotservicios() as $servicio):
-                if($servicio->getCotcomponentes()->count() > 0){
-                    foreach($servicio->getCotcomponentes() as $componente):
-                        if($componente->getComponente()->getTipocomponente()->isAgendable()){
+        // inicializo explícitamente la clave que usa la vista
+        $datos = ['componentes' => []];
 
-                            $tempArrayComponente = [];
-                            $tempArrayComponente['tituloItinerario'] = $this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio);
-                            $tempArrayComponente['nombre'] = $componente->getComponente()->getNombre();
-                            $tempArrayComponente['tipoComponente'] = $componente->getComponente()->getTipocomponente()->getNombre();
-                            $tempArrayComponente['fechahorainicio'] = $componente->getFechahorainicio();
-                            $tempArrayComponente['fechahorafin'] = $componente->getFechahorafin();
+        if ($cotizacion->getCotservicios()->count() === 0) {
+            return $datos;
+        }
 
-//la presencia del titulo sera un indicador para mostrarlo o no en horario ya que el item array componente es interno para los demas procesos
-                            $tempArrayItem=[];
-                            if($componente->getComponente()->getComponenteitems()->count() > 0){
-                                foreach($componente->getComponente()->getComponenteitems() as $item){
-                                    $tempArrayItem[] = $item->getTitulo();
-                                }
-                                $tempArrayComponente['titulo'] = implode(', ',  $tempArrayItem);
-                            }
+        /** @var CotizacionCotservicio $servicio */
+        foreach ($cotizacion->getCotservicios() as $servicio) {
+            // protejo por si la colección contuviera elementos inesperados
+            if (! $servicio instanceof CotizacionCotservicio) {
+                continue;
+            }
 
-//Solo si tiene título lo pongo en horario
-                            if(isset($tempArrayComponente['titulo'])){
-                                $datos['componentes'][] = $tempArrayComponente;
-                            }
-
-                        }
-                    endforeach;
+            /** @var CotizacionCotcomponente $componente */
+            foreach ($servicio->getCotcomponentes() as $componente) {
+                if (! $componente instanceof CotizacionCotcomponente) {
+                    continue;
                 }
-            endforeach;
+
+                // solo componentes agendables
+                $tipo = $componente->getComponente()->getTipocomponente();
+                if ($tipo->isAgendable() !== true) {
+                    continue;
+                }
+
+                $tempArrayComponente = [
+                    'tituloItinerario' => $this->cotizacionItinerario->getTituloItinerario(
+                        $componente->getFechahorainicio(),
+                        $servicio
+                    ),
+                    'nombre' => $componente->getComponente()->getNombre(),
+                    'tipoComponente' => $tipo->getNombre(),
+                    'fechahorainicio' => $componente->getFechahorainicio(),
+                    'fechahorafin' => $componente->getFechahorafin(),
+                ];
+
+                // Recojo títulos de items (si existen) y los guardo exactamente bajo 'titulo'
+                $titulos = [];
+                if ($componente->getComponente()->getComponenteitems()->count() > 0) {
+                    foreach ($componente->getComponente()->getComponenteitems() as $item) {
+                        // asumimos que el item tiene getTitulo()
+                        if (is_object($item) && method_exists($item, 'getTitulo')) {
+                            $titulos[] = $item->getTitulo();
+                        }
+                    }
+                }
+
+                if (! empty($titulos)) {
+                    $tempArrayComponente['titulo'] = implode(', ', $titulos);
+                }
+
+                // solo agrego el componente si tiene 'titulo' (compatibilidad con la lógica original)
+                if (isset($tempArrayComponente['titulo'])) {
+                    $datos['componentes'][] = $tempArrayComponente;
+                }
+            }
         }
 
         return $datos;
-
     }
 }
