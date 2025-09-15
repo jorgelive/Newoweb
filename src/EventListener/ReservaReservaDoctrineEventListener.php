@@ -109,7 +109,8 @@ class ReservaReservaDoctrineEventListener
 
                 return "https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html"
                     . "?hotel_id={$hotelId}"
-                    . "&res_id={$enlace}";
+                    . "&res_id={$enlace}"
+                    . "&hotel_account_id=" . self::BOOKING_HOTEL_ACCOUNT_ID;
             }
 
             if (filter_var($enlace, FILTER_VALIDATE_URL)) {
