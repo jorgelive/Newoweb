@@ -38,6 +38,10 @@ class ReservaReservaDoctrineEventListener
             $entity->setUid(sprintf('%06d', $entity->getUnit()->getId()) . '-' . sprintf('%06d', $entity->getChannel()->getId()) . '-' . sprintf('%012d', mt_rand()) . '@openperu.pe');
         }
 
+        if (!empty($entity->getNombre())) {
+            $entity->setNombre($this->normalizeNombre($entity->getNombre()));
+        }
+
         // Normalizar teléfono
         if (!empty($entity->getTelefono())) {
             $entity->setTelefono(str_replace(["\xC2\xA0", "\xE2\x80\x91"], [' ', '-'], $entity->getTelefono()));
@@ -59,6 +63,10 @@ class ReservaReservaDoctrineEventListener
         $entity = $args->getObject();
         if (!$entity instanceof ReservaReserva) {
             return;
+        }
+
+        if (!empty($entity->getNombre())) {
+            $entity->setNombre($this->normalizeNombre($entity->getNombre()));
         }
 
         // Normalizar teléfono
@@ -137,6 +145,18 @@ class ReservaReservaDoctrineEventListener
         $parsedUrl['query'] = http_build_query($queryArray);
 
         return $this->mainVariableproceso->buildUrl($parsedUrl);
+    }
+
+    private function normalizeNombre(string $nombre): string
+    {
+        // Convertir a minúsculas y quitar espacios extras
+        $nombre = strtolower(trim($nombre));
+        $nombre = preg_replace('/\s+/', ' ', $nombre);
+
+        // Convertir a CamelCase (Primera letra de cada palabra en mayúscula)
+        $nombre = ucwords($nombre);
+
+        return $nombre;
     }
 
 }
