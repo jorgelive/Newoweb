@@ -13,7 +13,7 @@ class ReservaReservaDoctrineEventListener
 
     private const BOOKING_HOTEL_ACCOUNT_ID = 16435683;
     private const CODIGOBOOKING_SAPHY = 11658819;
-    private const CODIGOBOOKING_INTI  = 9110078;
+    private const CODIGOBOOKING_INTI  = 9610078;
     private $mainVariableproceso;
     private $requestStack;
 
@@ -109,8 +109,7 @@ class ReservaReservaDoctrineEventListener
 
                 return "https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html"
                     . "?hotel_id={$hotelId}"
-                    . "&res_id={$enlace}"
-                    . "&hotel_account_id=" . self::BOOKING_HOTEL_ACCOUNT_ID;
+                    . "&res_id={$enlace}";
             }
 
             if (filter_var($enlace, FILTER_VALIDATE_URL)) {
