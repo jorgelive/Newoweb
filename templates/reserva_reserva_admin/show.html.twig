@@ -5,6 +5,156 @@
 
     <style>
 
+        /* Tabla de detalle */
+        .table.table-condensed > tbody > tr > th,
+        .table.table-condensed > tbody > tr > td { vertical-align: middle; }
+        .sonata-ba-view-container th { width: 220px; }
+
+        /* Espaciado sutil entre grupos de botones */
+        .btn-toolbar .btn + .btn { margin-left: 4px; }
+
+
+        /* =========================================================
+   TABS MODERNAS — BS3 / AdminLTE2
+   Pill + Multilínea + Tamaños + Sin subrayado
+   Y PARCHE para quitar el "subrayado" verde (#58954e) del activo
+   en .nav-tabs-custom > .nav-tabs > li.active
+   ========================================================= */
+
+        /* --- PARCHE Anti-Subrayado Verde de nav-tabs-custom --- */
+        /* AdminLTE pone un borde superior de color (p.ej. #58954e). Lo anulamos. */
+        .nav-tabs-custom > .nav-tabs > li.active,
+        .nav-tabs-custom > .nav-tabs > li.active > a,
+        .nav-tabs-custom > .nav-tabs > li.active > a:hover,
+        .nav-tabs-custom > .nav-tabs > li.active > a:focus {
+            border: none !important;
+            border-top: 0 !important;
+            border-bottom: 0 !important;
+            border-left: 0 !important;
+            border-right: 0 !important;
+            box-shadow: none !important;
+        }
+
+        /* A veces el skin define border-top-color específicamente. Lo apagamos. */
+        .nav-tabs-custom > .nav-tabs > li.active {
+            border-top-color: transparent !important;
+        }
+
+        /* Y evitamos que :hover vuelva a inyectar borde */
+        .nav-tabs-custom > .nav-tabs > li > a:hover,
+        .nav-tabs-custom > .nav-tabs > li > a:focus {
+            border-color: transparent !important;
+        }
+
+        /* Extra: si el tema fuerza #58954e, lo anulamos igualmente */
+        .nav-tabs-custom > .nav-tabs > li.active,
+        .nav-tabs-custom > .nav-tabs > li.active > a {
+            border-color: transparent !important; /* mata cualquier #58954e heredado */
+        }
+
+        /* --- Base Tabs Modernas (sin línea contenedora) --- */
+        .tabs-modern {
+            border-bottom: 0 !important;      /* sin línea inferior del UL */
+            margin-bottom: 10px;
+        }
+
+        /* Multilínea real (anula floats de BS3) */
+        .tabs-modern.tabs-modern--multiline {
+            display: -webkit-box;
+            display: -ms-flexbox;
+            display: flex;
+            -ms-flex-wrap: wrap;
+            flex-wrap: wrap;                  /* permite varias filas */
+            align-items: stretch;
+        }
+        .tabs-modern.tabs-modern--multiline > li {
+            float: none !important;           /* quita float de BS3 */
+            display: block;
+            -ms-flex: 0 1 auto;
+            flex: 0 1 auto;
+            margin: 6px 6px 0 0;             /* separación entre pills y filas */
+        }
+
+        /* Link base (cómodo, legible) — SIN subrayado */
+        .tabs-modern > li > a,
+        .tabs-modern > li > a:hover,
+        .tabs-modern > li > a:focus,
+        .tabs-modern > li.active > a,
+        .tabs-modern > li.active > a:hover,
+        .tabs-modern > li.active > a:focus {
+            text-decoration: none !important;
+        }
+        .tabs-modern > li > a {
+            position: relative;
+            padding: 10px 14px;
+            font-weight: 600;
+            color: #667085;
+            background: transparent;
+            letter-spacing: .2px;
+            transition: color .2s, background-color .2s, border-color .2s;
+            border: none !important;          /* anula borde de BS3 en el <a> */
+            white-space: nowrap;              /* el texto no se parte; el item salta de línea */
+            line-height: 1.25;
+            outline: none;
+        }
+        /* Por si algún theme usa pseudo-elemento como underline */
+        .tabs-modern > li > a::after,
+        .tabs-modern > li > a::before {
+            display: none !important;
+            content: none !important;
+        }
+
+        /* Ícono dentro del tab */
+        .tabs-modern > li > a .tab-icon {
+            margin-right: 6px;
+            opacity: .9;
+            font-size: 0.95em;                /* escala con el texto */
+        }
+
+        /* --- Variante PILL (borde y fondo propios del <a>) --- */
+        .tabs-modern.tabs-modern--pill > li > a {
+            border-radius: 18px;
+            padding: 8px 14px;
+            border: 1px solid transparent;    /* contorno del pill */
+        }
+        .tabs-modern.tabs-modern--pill > li > a:hover,
+        .tabs-modern.tabs-modern--pill > li > a:focus {
+            background: rgba(60,141,188,.08); /* fallback AdminLTE primary */
+            color: var(--accent, #3c8dbc);
+            border-color: var(--accent, #3c8dbc);
+        }
+        .tabs-modern.tabs-modern--pill > li.active > a,
+        .tabs-modern.tabs-modern--pill > li.active > a:focus,
+        .tabs-modern.tabs-modern--pill > li.active > a:hover {
+            background: rgba(60,141,188,.12);
+            color: var(--accent, #3c8dbc);
+            border-color: var(--accent, #3c8dbc);
+        }
+
+        /* --- Tamaños de letra (elige clase en el <ul>) --- */
+        .tabs-modern--sm > li > a { font-size: 13px; }
+        .tabs-modern--xs > li > a { font-size: 12px; }
+
+        /* Compactar pill cuando reduces fuente */
+        .tabs-modern--sm.tabs-modern--pill > li > a { padding: 6px 10px; border-radius: 16px; }
+        .tabs-modern--xs.tabs-modern--pill > li > a { padding: 5px 9px;  border-radius: 14px; }
+
+        /* Solo reducir en desktop (mantener normal en móvil) */
+        @media (min-width: 768px){
+            .tabs-modern--sm-desktop > li > a { font-size: 13px; }
+            .tabs-modern--sm-desktop.tabs-modern--pill > li > a { padding: 6px 10px; border-radius: 16px; }
+        }
+
+        /* --- Opcionales útiles --- */
+        /* Permitir que el texto quiebre dentro del pill en vez de saltar de fila */
+        /* .tabs-modern--wraptext > li > a { white-space: normal; word-break: break-word; } */
+
+        /* Límite de dos filas visible (ajusta 84px según tipografía) */
+        /* .tabs-modern.tabs-modern--max2rows { max-height: 84px; overflow: hidden; } */
+
+
+
+        {% include 'reserva_reserva_admin/show__parte_galeria.css.twig' %}
     </style>
 {% endblock %}
 
@@ -15,742 +165,123 @@
     <div class="row">
         <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
 
+            {# show__detalle_reserva_bs3.html.twig #}
+            {% macro itemRow(titulo, contenido) %}
+                <tr class="sonata-ba-view-container">
+                    <th class="text-muted text-uppercase" style="width:220px; letter-spacing:.2px;">{{ titulo }}</th>
+                    <td>{{ contenido|raw }}</td>
+                </tr>
+            {% endmacro %}
+            {% from _self import itemRow %}
+
+            {# Helpers #}
+            {% set isResumen = (action == 'resumen') %}
+            {% set phone_clean = object.telefono is not empty ? object.telefono|replace({'-':'','+':'','(':'',')':'',' ':''}) : '' %}
+            {% set esDirecto = object.channel.id == constant('App\\Entity\\ReservaChannel::DB_VALOR_DIRECTO') %}
+            {% set badge_adultos = '<span class="label label-primary">x' ~ object.cantidadadultos ~ '</span>' %}
+            {% set badge_ninos = object.cantidadninos > 0 ? ' <span class="label label-info">+' ~ object.cantidadninos ~ '</span>' : '' %}
+            {% set marca_manual = (object.ismanual is same as(true) and not esDirecto) ? '<span class="label label-warning" title="Carga manual">D</span> ' : '' %}
+
             <div class="box box-primary">
                 <div class="box-body table-responsive no-padding">
-                    <table class="table">
+                    <table class="table table-striped table-hover table-condensed">
+                        <caption class="sr-only">Detalle de la reserva</caption>
                         <tbody>
+
+                        {{ itemRow(
+                            ('nombre'|trans({}, 'messages')|capitalize),
+                        marca_manual ~ object.nombre ~ ' ' ~ badge_adultos ~ badge_ninos
+                        ) }}
+
+                        {% if (not isResumen) and object.calificacion is not empty %}
+                            {{ itemRow(
+                                ('calificacion'|trans({}, 'messages')|capitalize),
+                            object.calificacion
+                            ) }}
+                        {% endif %}
+
+                        {{ itemRow(
+                            ('alojamiento'|trans({}, 'messages')|capitalize),
+                        '<strong>' ~ object.unit.establecimiento.nombre ~ ' ' ~ object.unit.nombre ~ '</strong> — ' ~ object.unit.descripcion
+                        ) }}
+
+                        {{ itemRow(
+                            ('fecha_ingreso'|trans({}, 'messages')|capitalize),
+                        ('desde'|trans({}, 'messages')|capitalize) ~ ' ' ~ (object.fechahorainicio|date('Y-m-d H:i'))
+                        ) }}
+
+                        {{ itemRow(
+                            ('fecha_salida'|trans({}, 'messages')|capitalize),
+                        ('hasta'|trans({}, 'messages')|capitalize) ~ ' ' ~ (object.fechahorafin|date('Y-m-d H:i'))
+                        ) }}
+
+                        {{ itemRow(
+                            ('canal'|trans({}, 'messages')|capitalize),
+                        object.channel.nombre ~ (not isResumen ? ' <span class="label label-default">' ~ object.estado.nombre|trans({}, 'messages') ~ '</span>' : '')
+                        ) }}
+
+                        {% if not isResumen %}
+                            {{ itemRow(
+                                ('fecha_reserva'|trans({}, 'messages')|capitalize),
+                            object.creado|date('Y-m-d H:i')
+                            ) }}
+                        {% endif %}
+
+                        {% if (not isResumen) and object.enlace is not empty %}
+                            {{ itemRow(
+                                ('link'|trans({}, 'messages')|capitalize),
+                            '<a href="' ~ object.enlace ~ '" target="_blank" rel="noopener"><i class="fa fa-external-link"></i> Enlace</a>'
+                            ) }}
+                        {% endif %}
+
+                        {% if (not isResumen) and object.nota is not empty %}
+                            {{ itemRow(
+                                ('nota'|trans({}, 'messages')|capitalize),
+                            object.nota
+                            ) }}
+                        {% endif %}
+
+                        {% if (not isResumen) and object.telefono is not empty %}
                             <tr class="sonata-ba-view-container">
-                                <th>{{ 'nombre'|trans({}, 'messages')|capitalize}}</th>
-                                <td>
-                                    {% if object.ismanual is true and object.channel.id != constant('App\\Entity\\ReservaChannel::DB_VALOR_DIRECTO') %}(D) {% endif %}{{ object.nombre }} x{{ object.cantidadadultos }}
-                                    {% if object.cantidadninos > 0 %}+{{ object.cantidadninos }}{% endif %}
+                                <td colspan="2">
+                                    <div class="btn-toolbar" role="toolbar">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ admin.generateObjectUrl('vcard', object) }}" class="btn btn-danger" title="vCard">
+                                                <i class="fa fa-address-card"></i> vCard
+                                            </a>
+                                            <a href="tel:{{ phone_clean }}" class="btn btn-success">
+                                                <i class="fa fa-phone"></i> Llamar
+                                            </a>
+                                            <a data-text="{{ object.telefono }}"
+                                               data-toggle="tooltip"
+                                               data-placement="bottom"
+                                               data-tooltiptext="Copiado al portapapeles"
+                                               class="btn btn-success clipboard-trigger">
+                                                <i class="fa fa-clipboard"></i> Copiar número
+                                            </a>
+                                            <a href="https://wa.me/{{ phone_clean }}" target="_blank" rel="noopener" class="btn btn-success">
+                                                <i class="fa fa-whatsapp"></i> Whatsapp
+                                            </a>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
-                            {% if action != 'resumen' and object.calificacion is not empty %}
-                                <tr class="sonata-ba-view-container">
-                                    <th>{{ 'calificacion'|trans({}, 'messages')|capitalize}}</th>
-                                    <td>{{ object.calificacion }}</td>
-                                </tr>
-                            {% endif %}
+
                             <tr class="sonata-ba-view-container">
-                                <th>{{ 'alojamiento'|trans({}, 'messages')|capitalize}}</th>
-                                <td><span style="font-weight: 600;">{{ object.unit.establecimiento.nombre }} {{ object.unit.nombre }}</span> - {{ object.unit.descripcion }}</td>
-                            </tr>
-                            <tr class="sonata-ba-view-container">
-                                <th>{{ 'fecha_ingreso'|trans({}, 'messages')|capitalize}}</th>
-                                <td>{{ 'desde'|trans({}, 'messages')|capitalize}} {{ object.fechahorainicio | date('Y-m-d H:i') }}</td>
-                            </tr>
-                            <tr class="sonata-ba-view-container">
-                                <th>{{ 'fecha_salida'|trans({}, 'messages')|capitalize}}</th>
-                                <td>{{ 'hasta'|trans({}, 'messages')|capitalize}} {{ object.fechahorafin | date('Y-m-d H:i') }}</td>
-                            </tr>
-                            <tr class="sonata-ba-view-container">
-                                <th>{{ 'canal'|trans({}, 'messages')|capitalize}}</th>
-                                <td>{{ object.channel.nombre }} {% if action != 'resumen' %}({{ object.estado.nombre|trans({}, 'messages') }}){% endif %}</td>
-                            </tr>
-                            {% if action != 'resumen' %}
-                                <tr class="sonata-ba-view-container">
-                                    <th>{{ 'fecha_reserva'|trans({}, 'messages')|capitalize}}</th>
-                                    <td>{{ object.creado | date('Y-m-d H:i') }}</td>
-                                </tr>
-                            {% endif %}
-                            {% if action != 'resumen' and object.enlace is not empty %}
-                                <tr class="sonata-ba-view-container">
-                                    <th>{{ 'link'|trans({}, 'messages')|capitalize}}</th>
-                                    <td><a href="{{ object.enlace }}" target="_blank">Enlace</a></td>
-                                </tr>
-                            {% endif %}
-                            {% if action != 'resumen' and object.nota is not empty %}
-                                <tr class="sonata-ba-view-container">
-                                    <th>{{ 'nota'|trans({}, 'messages')|capitalize}}</th>
-                                    <td>{{ object.nota }}</td>
-                                </tr>
-                            {% endif %}
-                            {% if action != 'resumen' and object.telefono is not empty %}
-                                <tr class="sonata-ba-view-container">
-                                    <td colspan="2">
-                                        <a href="{{ admin.generateObjectUrl('vcard', object) }}"
-                                           class="btn btn-sm btn-danger"
-                                           title="vCard">
-                                            <i class="fa fa-address-card" aria-hidden="true"></i>
-                                            vCard
-                                        </a>
-                                        <a href="tel:{{ object.telefono }}"
-                                           class="btn btn-sm btn-success">
-                                            <i class="fa fa-phone" aria-hidden="true"></i>
-                                            Llamar
-                                        </a>
-                                        <a data-text="{{ object.telefono }}"
-                                           data-tooltiptext="Copiado al portapapeles"
-                                           class="btn btn-sm btn-success clipboard-trigger">
-                                            <i class="fa fa-file-text" aria-hidden="true"></i>
-                                            Copiar número
-                                        </a>
-                                        <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}"
-                                           target="_blank" class="btn btn-sm btn-success edit_link">
-                                            <i class="fa fa-whatsapp" aria-hidden="true"></i>
-                                            Whatsapp
-                                        </a>
-                                    </td>
-                                </tr>
-                                <tr class="sonata-ba-view-container">
-                                    <td colspan="2">
-
-                                        {% if object.idiomatelefono == 'en' %}
-                                            {% set whatsappText %}
-Hello {{ object.primernombre }}, it's a pleasure to greet you.
-I'm writing to coordinate the check-out for {% if object.checkoutdetector is same as(1) %}*tomorrow*{% elseif object.checkoutdetector is same as(0) %}*today*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}.
-Check-out time is at *10:00 a.m.*⌚.
-Please let me know if you'll be leaving earlier, so I can inform the cleaning lady to be there at that time to receive the keys.
-If you need it, we can store your luggage for you.
-                                            {% endset %}
-                                        {% elseif object.idiomatelefono == 'pt'%}
-                                            {% set whatsappText %}
-Olá {{ object.primernombre }}, é um prazer cumprimentá-lo(a).
-Estou escrevendo para coordenar o check-out para {% if object.checkoutdetector is same as(1) %}amanhã{% elseif object.checkoutdetector is same as(0) %}hoje{% else %}{{ object.fechahorafin | date('Y-m-d') }}{% endif %}.
-O horário de check-out é às *10:00 a.m.*⌚.
-Por favor, me avise se você for sair mais cedo, para que eu possa informar à senhora da limpeza para estar lá nesse horário e receber as chaves.
-Se precisar, podemos guardar sua bagagem para você.
-                                            {% endset %}
-                                        {% elseif object.idiomatelefono == 'fr'%}
-                                            {% set whatsappText %}
-Bonjour {{ object.primernombre }}, c’est un plaisir de vous saluer.
-Je vous écris afin de coordonner le check-out pour {% if object.checkoutdetector is same as(1) %}demain{% elseif object.checkoutdetector is same as(0) %}aujourd’hui{% else %}{{ object.fechahorafin | date('Y-m-d') }}{% endif %}.
-L’heure de check-out est à *10h00*⌚.
-Merci de me faire savoir si vous partez plus tôt, afin que je puisse prévenir la femme de ménage pour qu’elle soit présente à ce moment-là et récupérer les clés.
-Si vous en avez besoin, nous pouvons garder vos bagages pour vous.
-                                            {% endset %}
-                                        {% else %}
-                                            {% set whatsappText %}
-Hola {{ object.primernombre }}, un gusto saludarte.
-Te escribo para coordinar el check-out del día {% set cd = object.checkoutDetector %}{% if cd == 1 %}de *mañana*{% elseif cd == 0 %}de *hoy*{% else %}*{{ object.fechahorafin|date('Y-m-d', 'America/Lima') }}*{% endif %}.
-La hora de salida es a las *10:00 a.m.*⌚.
-Por favor, indícame si saldrán antes, para indicarle a la señora de limpieza y que pueda estar a esa hora para recibir las llaves.
-Si lo necesitan, podemos guardar su equipaje.
-                                            {% endset %}
-                                        {% endif %}
-
-                                        <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}"
-                                           target="_blank" class="btn btn-sm btn-info edit_link">
-                                            <i class="fa fa-whatsapp" aria-hidden="true"></i>
-                                            Check Out
-                                        </a>
-
-                                        {% if object.channel.id == constant('App\\Entity\\ReservaChannel::DB_VALOR_BOOKING') %}
-
-                                            {% if object.idiomatelefono == 'en' %}
-                                                {% set whatsappText %}
-Hello {{ object.primernombre }}, this is Susan, reservations manager at Centro Cusco Inti in the city of Cusco.
-
-You made a reservation from 📅 {{ object.fechahorainicio | date('Y-m-d') }} to 📅 {{ object.fechahorafin | date('Y-m-d') }} by *Booking com*.
-
-We would like to inform you that, at the time of making your reservation, we sent you a message through the Booking.com system with some important instructions. We kindly ask you to review it carefully.
-
-Additionally, we kindly request that you send us the *PDF confirmation file* of your reservation. You can download this file from the Booking.com app by going into your reservation and scrolling down to the section *Options -> Download for offline use*.
-
-This document contains important information such as the final price and the terms and conditions of the accommodation.
-
-At the following link, you can view the full details of your reservation, including photos, layout, and location of the reserved apartment. This matches the information shown under View apartment info in the Booking com app:
-
-🔗{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
-
-Once you confirm everything is correct, you can proceed with the prepayment via bank transfer, Western Union, or credit card.                                                {% endset %}
-                                            {% elseif object.idiomatelefono == 'pt'%}
-                                                {% set whatsappText %}
-Olá {{ object.primernombre }}, aqui é Susan, gerente de reservas do Centro Cusco Inti na cidade de Cusco.
-
-Você fez uma reserva de 📅 {{ object.fechahorainicio | date('Y-m-d') }} até 📅 {{ object.fechahorafin | date('Y-m-d') }} pelo Booking.com.
-
-Gostaríamos de informar que, no momento em que você realizou sua reserva, enviamos uma mensagem através do sistema do Booking.com com algumas instruções importantes. Pedimos gentilmente que você a revise com atenção.
-
-Além disso, solicitamos que, por favor, nos envie o arquivo PDF de confirmação da sua reserva. Você pode baixar este arquivo no aplicativo do Booking.com acessando sua reserva e rolando até a seção:
-Opções → Baixar para uso offline.
-
-Este documento contém informações importantes como o preço final e os termos e condições da acomodação.
-
-No link a seguir, você pode visualizar todos os detalhes da sua reserva, incluindo fotos, layout e localização do apartamento reservado. Estas informações correspondem à seção Ver informações do apartamento no aplicativo Booking.com:
-
-🔗 {{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
-
-Depois de confirmar que tudo está correto, você poderá proceder com o pré-pagamento via transferência bancária, Western Union ou cartão de crédito.
-                                                {% endset %}
-                                            {% elseif object.idiomatelefono == 'fr'%}
-                                                {% set whatsappText %}
-Bonjour {{ object.primernombre }}, je suis Susan, responsable des réservations au Centro Cusco Inti dans la ville de Cusco.
-
-Vous avez effectué une réservation du 📅 {{ object.fechahorainicio | date('Y-m-d') }} au 📅 {{ object.fechahorafin | date('Y-m-d') }} via Booking.com.
-
-Nous souhaitons vous informer qu’au moment de votre réservation, nous vous avons envoyé un message via le système Booking.com avec des instructions importantes. Nous vous prions de le consulter attentivement.
-
-De plus, nous vous demandons de bien vouloir nous envoyer le fichier PDF de confirmation de votre réservation. Vous pouvez télécharger ce fichier depuis l’application Booking.com en accédant à votre réservation et en descendant jusqu’à la section :
-Options → Télécharger pour une utilisation hors ligne.
-
-Ce document contient des informations importantes telles que le prix final ainsi que les termes et conditions de l’hébergement.
-
-Au lien suivant, vous pouvez consulter tous les détails de votre réservation, y compris les photos, la disposition et l’emplacement de l’appartement réservé. Ces informations correspondent à la section Voir les informations sur l’appartement dans l’application Booking.com :
-
-🔗 {{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
-
-Une fois que vous aurez confirmé que tout est correct, vous pourrez procéder au prépaiement par virement bancaire, Western Union ou carte de crédit.
-                                                {% endset %}
-                                            {% else %}
-                                                {% set whatsappText %}
-Hola {{ object.primernombre }}, le saluda Susan encargada de reservas de Centro Cusco Inti, en la ciudad de Cusco.
-
-Usted realizó una reserva, desde el 📅 {{ object.fechahorainicio | date('Y-m-d') }} hasta el 📅 {{ object.fechahorafin | date('Y-m-d') }} a través de *Booking* com.
-
-Le informamos que, al momento de realizar su reserva, le enviamos un mensaje mediante el sistema de Booking con algunas instrucciones importantes. Le agradeceríamos que pueda revisarlo.
-
-Asimismo, le solicitamos que nos envíe el archivo de *confirmación de su reserva en formato PDF*. Puede descargarlo desde la aplicación de Booking.com, ingresando a su reserva y desplazándose hacia la parte inferior, en la sección *Opciones -> Descargar para usar sin conexión*.
-
-Este archivo contiene información importante como el precio final y las condiciones del alojamiento.
-
-En el siguiente enlace podrá consultar todos los detalles de su reserva, incluyendo fotografías, distribución y ubicación del departamento reservado. Esta información coincide con la sección *Ver info del apartamento* en la aplicación de Booking com:
-
-🔗{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
-
-Una vez de su conformidad, podrá realizar el prepago mediante transferencia bancaria, Western Union o tarjeta de crédito.
-                                                {% endset %}
+                                <td colspan="2">
+                                    <div class="btn-toolbar" role="toolbar">
+                                        <div class="btn-group btn-group-sm">
+                                            {% include 'reserva_reserva_admin/show__boton_checkout.html.twig' %}
+                                            {% if object.channel.id == constant('App\\Entity\\ReservaChannel::DB_VALOR_BOOKING') %}
+                                                {% include 'reserva_reserva_admin/show__boton_confirmar.html.twig' %}
                                             {% endif %}
-
-                                            <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}"
-                                               target="_blank" class="btn btn-sm btn-warning edit_link">
-                                                <i class="fa fa-whatsapp" aria-hidden="true"></i>
-                                                Confirmar
-                                            </a>
-
-                                        {% endif %}
-
-                                        {% if object.idiomatelefono == 'en' %}
-                                            {% set whatsappText %}
-🌄 CUSCO TOUR MENU 🌄
-
-*Entrance tickets are not included and must be paid by the client*
-
-🏛️ *City Tour: Koricancha + 4 Archaeological Parks*
-🕘 Departures: 09:00 and 14:00
-📍 Koricancha, Sacsayhuaman, Qenqo, Pucapucara, and Tambomachay
-💵 *18 soles*
-🎫 Entrance fees:
- -Full Tourist Ticket (BTG): 70 soles (Peruvians) / 130 soles (Foreigners)
- -Partial Tourist Ticket: 40 soles (Peruvians) / 70 soles (Foreigners)
- -Koricancha: 20 soles
-
-⛰️ *Classic Sacred Valley Tour* with buffet lunch
-🕘 Departure: 08:00
-📍 Pisac ruins, Pisac market, Ollantaytambo, and Chinchero
-💵 *65 soles*
-🎫 Entrance fees:
- -Full Tourist Ticket (BTG): 70 soles (Peruvians) / 130 soles (Foreigners)
- -Partial Tourist Ticket: 40 soles (Peruvians) / 70 soles (Foreigners)
-
-🌟 *Super Valley (VIP Valley)* with buffet lunch
-🕘 Departure: 07:00
-📍 Chinchero, Maras, Moray, Ollantaytambo, Pisac ruins, and Pisac market
-💵 *65 soles*
-🎫 Entrance fees:
- -Full Tourist Ticket (BTG): 70 soles (Peruvians) / 130 soles (Foreigners)
- -Partial Tourist Ticket: 40 soles (Peruvians) / 70 soles (Foreigners)
- -Maras Salt Mines: 15 soles (Peruvians) / 20 soles (Foreigners)
-
-🌈 *Rainbow Mountain* with breakfast and buffet lunch
-🕘 Departure: 04:30
-💵 *65 soles*
-🎫 Entrance fees: 20 soles (Peruvians) / 30 soles (Foreigners)
-
-🏍️ *ATVs to Rainbow Mountain + Red Valley* with breakfast and buffet lunch
-🕘 Departures: 04:00 and 06:00
-💵 *170 soles (one person per ATV)*
-💵 *145 soles (two people per ATV)*
-🎫 Entrance fees: 20 soles (Peruvians) / 30 soles (Foreigners)
-
-💧 *Humantay Lagoon* with breakfast and buffet lunch
-🕘 Departure: 04:30
-💵 *65 soles*
-🎫 Entrance fees: 10 soles (Peruvians) / 20 soles (Foreigners)
-
-🏔️ *7 Lagoons of Ausangate* with breakfast and buffet lunch
-🕘 Departure: 04:30
-💵 *75 soles*
-🎫 Entrance fee: 20 soles
-
-🏍️ *ATVs in Maras and Moray*
-🕘 Departures: 04:00 and 06:00
-💵 *90 soles (one person per ATV)*
-💵 *70 soles (two people per ATV)*
-🎫 Optional entrance fees:
- -Full Tourist Ticket (BTG): 70 soles (Peruvians) / 130 soles (Foreigners)
- -Partial Tourist Ticket: 40 soles (Peruvians) / 70 soles (Foreigners)
- -Maras Salt Mines: 15 soles (Peruvians) / 20 soles (Foreigners)
-
-🚍 *Panoramic City Bus* (Mirabus)
-🕘 Departures: 10:00 and 14:00
-📍 San Francisco Church, Historic Center, panoramic view of Sacsayhuaman, Cristo Blanco, and Morada de los Dioses
-💵 *25 soles*
-🎫 Entrance fee:
- -Morada de los Dioses: 15 soles (Peruvians) / 20 soles (Foreigners)
-
-🗿 *Morada de los Dioses*
-🕘 Departure: 10:00
-💵 *30 soles*
-🎫 Entrance fee: 15 soles (Peruvians) / 20 soles (Foreigners)
-
-🧙‍ *Mystery Tour* 4 in 1
-🕘 Departure: 10:00
-📍 Morada de los Dioses, Valley of the Elves, Huasao Wetland, and Forest of the Ents
-💵 *45 soles*
-🎫 Entrance fees:
- -Morada de los Dioses: 15 soles (Peruvians) / 20 soles (Foreigners)
- -Valley of the Elves: 10 soles (Peruvians) / 15 soles (Foreigners)
- -Huasao Wetland: 3 soles
- -Forest of the Ents: 5 soles
-
-🌈 *Palcoyo Mountain* with breakfast and buffet lunch
-🕘 Departure: 04:30
-💵 *95 soles*
-🎫 Entrance fee: 10 soles (Peruvians) / 15 soles (Foreigners)
-
-🏞️ *Wakrapukara* with breakfast and buffet lunch
-🕘 Departure: 04:30
-💵 *95 soles*
-🎫 Entrance fee: 10 soles
-
-📌 Private or upgraded category tours also available
-
-📞 Contact us:
- +51 961 281 953
- +51 958 191 965
- +51 921 166 466
-                                            {% endset %}
-                                        {% elseif object.idiomatelefono == 'pt'%}
-                                            {% set whatsappText %}
-🌄 MENU DE TOURS EM CUSCO 🌄
-
-*Passeios em espanhol e/ou inglês*
-*Os ingressos de entrada não estão incluídos e devem ser pagos pelo cliente*
-
-🏛️ *City Tour: Koricancha + 4 Parques Arqueológicos*
-🕘 Saídas: 09:00 e 14:00
-📍 Koricancha, Sacsayhuaman, Qenqo, Pucapucara e Tambomachay
-💵 18 soles
-🎫 Ingressos:
- -Boleto Turístico Integral (BTG): 70 soles (Peruanos) / 130 soles (Estrangeiros)
- -Boleto Turístico Parcial: 40 soles (Peruanos) / 70 soles (Estrangeiros)
- -Koricancha: 20 soles
-
-⛰️ *Vale Sagrado Clássico* com almoço buffet
-🕘 Saída: 08:00
-📍 Ruínas de Pisac, Mercado de Pisac, Ollantaytambo e Chinchero
-💵 65 soles
-🎫 Ingressos:
- -Boleto Turístico Integral (BTG): 70 soles (Peruanos) / 130 soles (Estrangeiros
- -Boleto Turístico Parcial: 40 soles (Peruanos) / 70 soles (Estrangeiros)
-
-🌟 *Super Vale (Vale VIP)* com almoço buffet
-🕘 Saída: 07:00
-📍 Chinchero, Maras, Moray, Ollantaytambo, Ruínas de Pisac e Mercado de Pisac
-💵 65 soles
-🎫 Ingressos:
- -Boleto Turístico Integral (BTG): 70 soles (Peruanos) / 130 soles (Estrangeiros)
- -Boleto Turístico Parcial: 40 soles (Peruanos) / 70 soles (Estrangeiros)
- -Salinas de Maras: 15 soles (Peruanos) / 20 soles (Estrangeiros)
-
-🌈 *Montanha Arco-Íris* com café da manhã e almoço buffet
-🕘 Saída: 04:30
-💵 65 soles
-🎫 Ingressos: 20 soles (Peruanos) / 30 soles (Estrangeiros)
-
-🏍️ *Quadriciclos até Montanha Arco-Íris + Vale Vermelho* com café da manhã e almoço buffet
-🕘 Saídas: 04:00 e 06:00
-💵 170 soles (uma pessoa por quadriciclo)
-💵 145 soles (duas pessoas por quadriciclo)
-🎫 Ingressos: 20 soles (Peruanos) / 30 soles (Estrangeiros)
-
-💧 *Lagoa Humantay* com café da manhã e almoço buffet
-🕘 Saída: 04:30
-💵 65 soles
-🎫 Ingressos: 10 soles (Peruanos) / 20 soles (Estrangeiros)
-
-🏔️ *7 Lagoas de Ausangate* com café da manhã e almoço buffet
-🕘 Saída: 04:30
-💵 75 soles
-🎫 Ingresso: 20 soles
-
-🏍️ *Quadriciclos em Maras e Moray*
-🕘 Saídas: 04:00 e 06:00
-💵 90 soles (uma pessoa por quadriciclo)
-💵 70 soles (duas pessoas por quadriciclo)
-🎫 Ingressos opcionais:
- -Boleto Turístico Integral (BTG): 70 soles (Peruanos) / 130 soles (Estrangeiros)
- -Boleto Turístico Parcial: 40 soles (Peruanos) / 70 soles (Estrangeiros)
- -Salinas de Maras: 15 soles (Peruanos) / 20 soles (Estrangeiros)
-
-🚍 *Ônibus Panorâmico da Cidade* (Mirabus)
-🕘 Saídas: 10:00 e 14:00
-📍 Igreja de São Francisco, Centro Histórico, vista panorâmica de Sacsayhuaman, Cristo Branco e Morada dos Deuses
-💵 25 soles
-🎫 Ingresso:
- -Morada dos Deuses: 15 soles (Peruanos) / 20 soles (Estrangeiros)
-
-🗿 *Morada dos Deuses*
-🕘 Saída: 10:00
-💵 30 soles
-🎫 Ingresso: 15 soles (Peruanos) / 20 soles (Estrangeiros)
-
-🧙‍ *Tour Misterioso 4 em 1*
-🕘 Saída: 10:00
-📍 Morada dos Deuses, Vale dos Duendes, Pântano de Huasao e Floresta dos Ents
-💵 45 soles
-🎫 Ingressos:
- -Morada dos Deuses: 15 soles (Peruanos) / 20 soles (Estrangeiros)
- -Vale dos Duendes: 10 soles (Peruanos) / 15 soles (Estrangeiros)
- -Pântano de Huasao: 3 soles
- -Floresta dos Ents: 5 soles
-
-🌈 *Montanha Palcoyo* com café da manhã e almoço buffet
-🕘 Saída: 04:30
-💵 95 soles
-🎫 Ingresso: 10 soles (Peruanos) / 15 soles (Estrangeiros)
-
-🏞️ *Wakrapukara* com café da manhã e almoço buffet
-🕘 Saída: 04:30
-💵 95 soles
-🎫 Ingresso: 10 soles
-
-📌 Tours privados ou em categoria superior também disponíveis
-
-📞 Contate-nos:
-+51 961 281 953
-+51 958 191 965
-+51 921 166 466
-                                            {% endset %}
-                                        {% elseif object.idiomatelefono == 'fr'%}
-                                            {% set whatsappText %}
-🌄 MENU DES TOURS À CUSCO 🌄
-
-*tours en espagnol et/ou anglais*
-*Les billets d’entrée ne sont pas inclus et doivent être payés par le client*
-
-🏛️ *City Tour : Koricancha + 4 Parcs Archéologiques*
-🕘 Départs : 09:00 et 14:00
-📍 Koricancha, Sacsayhuaman, Qenqo, Pucapucara et Tambomachay
-💵 18 soles
-🎫 Billets d’entrée :
- -Billet Touristique Complet (BTG) : 70 soles (Péruviens) / 130 soles (Étrangers)
- -Billet Touristique Partiel : 40 soles (Péruviens) / 70 soles (Étrangers)
- -Koricancha : 20 soles
-
-⛰️ *Vallée Sacrée Classique* avec déjeuner buffet
-🕘 Départ : 08:00
-📍 Ruines de Pisac, Marché de Pisac, Ollantaytambo et Chinchero
-💵 65 soles
-🎫 Billets d’entrée :
- -Billet Touristique Complet (BTG) : 70 soles (Péruviens) / 130 soles (Étrangers)
- -Billet Touristique Partiel : 40 soles (Péruviens) / 70 soles (Étrangers)
-
-🌟 *Super Vallée (Vallée VIP)* avec déjeuner buffet
-🕘 Départ : 07:00
-📍 Chinchero, Maras, Moray, Ollantaytambo, Ruines de Pisac et Marché de Pisac
-💵 65 soles
-🎫 Billets d’entrée :
- -Billet Touristique Complet (BTG) : 70 soles (Péruviens) / 130 soles (Étrangers)
- -Billet Touristique Partiel : 40 soles (Péruviens) / 70 soles (Étrangers)
- -Salines de Maras : 40 soles (Péruviens) / 70 soles (Étrangers)
-
-🌈 *Montagne Arc-en-ciel* avec petit-déjeuner et déjeuner buffet
-🕘 Départ : 04:30
-💵 65 soles
-🎫 Billets d’entrée : 20 soles (Péruviens) / 30 soles (Étrangers)
-
-🏍️ *Quads à la Montagne Arc-en-ciel + Vallée Rouge* avec petit-déjeuner et déjeuner buffet
-🕘 Départs : 04:00 et 06:00
-💵 170 soles (une personne par quad)
-💵 145 soles (deux personnes par quad)
-🎫 Billets d’entrée : 20 soles (Péruviens) / 30 soles (Étrangers)
-
-💧 *Lac Humantay* avec petit-déjeuner et déjeuner buffet
-🕘 Départ : 04:30
-💵 65 soles
-🎫 Billets d’entrée : 10 soles (Péruviens) / 20 soles (Étrangers)
-
-🏔️ *7 Lacs d’Ausangate* avec petit-déjeuner et déjeuner buffet
-🕘 Départ : 04:30
-💵 75 soles
-🎫 Billet d’entrée : 20 soles
-
-🏍️ *Quads à Maras* et Moray
-🕘 Départs : 04:00 et 06:00
-💵 90 soles (une personne par quad)
-💵 70 soles (deux personnes par quad)
-🎫 Billets optionnels :
- *Billet Touristique Complet (BTG) : 70 soles (Péruviens) / 130 soles (Étrangers)
- *Billet Touristique Partiel : 40 soles (Péruviens) / 70 soles (Étrangers)
- *Salines de Maras : 15 soles (Péruviens) / 20 soles (Étrangers)
-
-🚍 *Bus Panoramique de la Ville (Mirabus)*
-🕘 Départs : 10:00 et 14:00
-📍 Église San Francisco, Centre Historique, vue panoramique de Sacsayhuaman, Cristo Blanco et Morada de los Dioses
-💵 25 soles
-🎫 Billet d’entrée :
- *Morada de los Dioses : 15 soles (Péruviens) / 20 soles (Étrangers)
-
-🗿 *Morada de los Dioses*
-🕘 Départ : 10:00
-💵 30 soles
-🎫 Billet d’entrée : 15 soles (Péruviens) / 20 soles (Étrangers)
-
-🧙‍ *Tour Mystère 4 en 1*
-🕘 Départ : 10:00
-📍 Morada de los Dioses, Vallée des Elfes, Zone humide de Huasao et Forêt des Ents
-💵 45 soles
-🎫 Billets d’entrée :
- -Morada de los Dioses : 15 soles (Péruviens) / 20 soles (Étrangers)
- -Vallée des Elfes : 10 soles (Péruviens) / 15 soles (Étrangers)
- -Zone humide de Huasao : 3 soles
- -Forêt des Ents : 5 soles
-
-🌈 *Montagne Palcoyo* avec petit-déjeuner et déjeuner buffet
-🕘 Départ : 04:30
-💵 95 soles
-🎫 Billet d’entrée : 10 soles (Péruviens) / 15 soles (Étrangers)
-
-🏞️ *Wakrapukara* avec petit-déjeuner et déjeuner buffet
-🕘 Départ : 04:30
-💵 95 soles
-🎫 Billet d’entrée : 10 soles
-
-📌 Tours privés ou de catégorie supérieure également disponibles
-
-📞 Contactez-nous :
-+51 961 281 953
-+51 958 191 965
-+51 921 166 466
-                                            {% endset %}
-                                        {% else %}
-                                            {% set whatsappText %}
-*🌄 MENÚ DE TOURS - CUSCO 🌄*
-
-*Los boletos de ingreso son por cuenta del cliente*
-
-🏛️ *City tour: Koricancha + 4 parques*
-🕘 Horarios 09:00 y 14:00
-📍 Koricancha, Sacsaywaman, Qenqo, Pucapucara y Tambomachay
-💵 *18 soles*
-🎫 Entradas:
- -BTG completo 70 soles peruanos / 130 soles extranjeros
- -BTG parcial 40 soles peruanos / 70 soles extranjeros
- -Koricancha 20 soles
-
-⛰️ *Valle Sagrado Clásico* con almuerzo buffet
-🕘 Horario 08:00
-📍 Pisac Ruinas, Pisac Mercado, Ollantaytambo y Chinchero
-💵 *65 soles*
-🎫 Entradas:
- -BTG completo 70 soles peruanos / 130 soles extranjeros
- -BTG parcial 40 soles peruanos / 70 soles extranjeros
-
-🌟 *Súper Valle (Valle VIP)* con almuerzo buffet
-🕘 Horario 07:00
-📍 Chinchero, Maras, Moray, Ollantaytambo, Pisac Ruinas y Pisac Mercado
-💵 *65 soles*
-🎫 Entradas:
- -BTG completo 70 soles peruanos / 130 soles extranjeros
- -BTG parcial 40 soles peruanos / 70 soles extranjeros
- -Salinas de Maras 15 soles peruanos / 20 soles extranjeros
-
-🌈 *Montaña 7 colores* con desayuno y almuerzo buffet
-🕘 Horario 04:30
-💵 *65 soles*
-🎫 Entradas: 20 soles peruanos / 30 soles extranjeros
-
-🏍️ *Cuatrimotos en Montaña 7 colores por Valle Rojo* con desayuno y almuerzo buffet
-🕘 Horarios 04:00 y 6:00
-💵 *170 soles una persona por cuatrimoto*
-💵 *145 soles dos personas por cuatrimoto*
-🎫 Entradas: 20 soles peruanos / 30 soles extranjeros
-
-💧 *Laguna de Humantay* con desayuno y almuerzo buffet
-🕘 Horario 04:30
-💵 *65 soles*
-🎫 Entradas: 10 soles peruanos / 20 soles extranjero
-
-🏔 *7 lagunas de Ausangate* con desayuno y almuerzo buffet
-🕘 Horario 04:30
-💵 *75 soles*
-🎫 Entradas: 20 soles
-
-🏍️ *Cuatrimotos en Maras y Moray*
-🕘 Horarios 04:00 y 6:00
-💵 *90 soles una persona por cuatrimoto*
-💵 *70 soles dos personas por cuatrimoto*
-🎫 Entradas (opcionales) :
- -BTG completo 70 soles peruanos / 130 soles extranjeros
- -BTG parcial 40 soles peruanos / 70 soles extranjeros
- -Salinas de Maras: 15 soles peruanos / 20 soles extranjeros
-
-🚍 *Mirabus*
-🕘 Horarios 10:00 y 14:00
-📍 San Francisco, Centro histórico, Sacssaywaman panorámico, Cristo Blanco y Morada de los Dioses
-💵 *25 soles*
-🎫 Entradas:
- -Morada de los Dioses: 15 soles peruanos / 20 soles extranjeros
-
-🗿 *Morada de los Dioses* 🏞️
-🕘 Horario 10:00
-💵 *30 soles*
-🎫 Entrada: 15 soles peruanos / 20 soles extranjeros
-
-🧙‍ *Tour misterio 4 en 1*
-🕘 Horario 10:00
-📍 Morada de los Dioses, Valle de los Duendes, Humedal de Huasao y Bosque de los Ents
-💵 *45 soles*
-🎫 Entradas:
- -Morada de los Dioses: 15 soles peruanos / 20 soles extranjeros
- -Valle de los Duendes: 10 soles peruanos / 15 soles extranjeros
- -Humedal de Huasao: 3 soles
- -Bosque de los Ents: 5 soles
-
-🌈 *Palcoyo* con desayuno y almuerzo buffet
-🕘 Horario 04:30
-💵 *95 soles*
-🎫 Entrada: 10 soles peruanos y 15 soles extranjeros
-
-🏞️ *Wakrapukara* con desayuno y almuerzo buffet
-🕘 Horario 04:30
-💵 *95 soles*
-🎫 Entrada: 10 soles
-
-📌 También disponibles tours en categoría superior o privada.
-
-📞 Contáctanos:
- +51 961281953
- +51 958191965
- +51 921166466
-                                            {% endset %}
-                                        {% endif %}
-
-                                        <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}&type=phone_number&app_absent=0"
-                                           target="_blank" class="btn btn-sm btn-success edit_link">
-                                            <i class="fa fa-whatsapp" aria-hidden="true"></i>
-                                            Tour Económico
-                                        </a>
-
-
-                                        {% if object.idiomatelefono == 'en' %}
-                                            {% set whatsappText %}
-🌄 Welcome to Cusco!
-We are delighted to have you as our guests and want you to enjoy your stay to the fullest.
-
-Cusco is located at 3,390 meters (11,150 ft) above sea level, so it’s important to acclimate properly:
-
-Take it easy on your first day.
-
-Stay well hydrated and avoid alcohol or caffeine.
-
-Eat light meals, like grilled chicken with boiled potatoes.
-
-Avoid climbing or going down too many stairs on the first day.
-
-Drink coca tea (but not at night). You can find it in nearby shops.
-
-Get plenty of rest and listen to your body.
-
-🚑 If you experience any health issues—whether it’s altitude sickness or any other problem—we can assist you. We can put you in contact with clinics if you have insurance, or with state hospitals if you don’t.
-
-🔥 For extra comfort, we offer room heaters. We can activate them remotely. The cost is S/ 20 per night per unit.
-
-If you have any questions or need anything, don’t hesitate to reach out.
-Enjoy your adventure in Cusco! ✨
-                                            {% endset %}
-                                        {% elseif object.idiomatelefono == 'pt'%}
-                                            {% set whatsappText %}
-🌄 Bem-vindos a Cusco!
-Estamos muito felizes em recebê-los como nossos hóspedes e queremos que aproveitem ao máximo a sua estadia.
-
-Cusco está a 3.390 metros (11.150 pés) acima do nível do mar, por isso é importante se aclimatar adequadamente:
-
-Vá com calma no primeiro dia.
-
-Mantenha-se bem hidratado e evite álcool ou cafeína.
-
-Faça refeições leves, como frango grelhado com batatas cozidas.
-
-Evite subir ou descer muitas escadas no primeiro dia.
-
-Beba chá de coca (mas não à noite). Você pode encontrá-lo em lojas próximas.
-
-Descanse bastante e ouça seu corpo.
-
-🚑 Se tiver algum problema de saúde — seja mal de altitude ou outro — podemos ajudá-lo. Podemos colocá-lo em contato com clínicas se tiver seguro, ou com hospitais públicos se não tiver.
-
-🔥 Para maior conforto, oferecemos aquecedores nos quartos. Podemos ativá-los remotamente. O custo é S/ 20 por noite por unidade.
-
-Se tiver alguma dúvida ou precisar de algo, não hesite em nos contatar.
-Aproveite sua aventura em Cusco! ✨
-                                            {% endset %}
-                                        {% elseif object.idiomatelefono == 'fr'%}
-                                            {% set whatsappText %}
-🌄 Bienvenue à Cusco !
-Nous sommes ravis de vous accueillir et souhaitons que vous profitiez pleinement de votre séjour.
-
-Cusco est situé à 3 390 mètres (11 150 pieds) d’altitude, il est donc important de bien s’acclimater :
-
-Prenez les choses calmement le premier jour.
-
-Restez bien hydraté et évitez l’alcool ou la caféine.
-
-Mangez léger, par exemple du poulet grillé avec des pommes de terre bouillies.
-
-Évitez de monter ou descendre trop d’escaliers le premier jour.
-
-Buvez du maté de coca (mais pas le soir). Vous en trouverez dans les magasins à proximité.
-
-Reposez-vous bien et écoutez votre corps.
-
-🚑 En cas de problème de santé — que ce soit le mal d’altitude ou autre — nous pouvons vous aider. Nous pouvons vous mettre en contact avec des cliniques si vous avez une assurance, ou avec des hôpitaux publics si vous n’en avez pas.
-
-🔥 Pour plus de confort, nous proposons des chauffages d’appoint dans les chambres. Nous pouvons les activer à distance. Le coût est de S/ 20 par nuit et par unité.
-
-Si vous avez des questions ou besoin de quoi que ce soit, n’hésitez pas à nous contacter.
-Profitez bien de votre aventure à Cusco ! ✨
-                                            {% endset %}
-                                        {% else %}
-                                            {% set whatsappText %}
-🌄 ¡Bienvenidos a Cusco!
-Estamos encantados de tenerlos como nuestros huéspedes y queremos que disfruten su estadía al máximo.
-
-Cusco se encuentra a 3,390 metros (11,150 pies) sobre el nivel del mar, por lo que es importante aclimatarse adecuadamente:
-
-Tomen las cosas con calma el primer día.
-
-Manténganse bien hidratados y eviten el alcohol o la cafeína.
-
-Coman comidas ligeras, como pollo a la plancha con papas cocidas.
-
-Eviten subir o bajar muchas escaleras el primer día.
-
-Beban té de coca (pero no por la noche). Lo pueden encontrar en tiendas cercanas.
-
-Descansen lo suficiente y escuchen a su cuerpo.
-
-🚑 Si presentan algún problema de salud, ya sea mal de altura u otro, podemos asistirlos. Podemos ponerlos en contacto con clínicas si cuentan con seguro, o con hospitales del estado si no lo tienen.
-
-🔥 Para mayor comodidad, ofrecemos calefactores en la habitación. Podemos activarlos de manera remota. El costo es S/ 20 por noche por unidad.
-
-Si tienen cualquier duda o necesitan algo, no duden en comunicarse con nosotros.
-¡Disfruten su aventura en Cusco! ✨
-                                            {% endset %}
-                                        {% endif %}
-
-                                        <a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}"
-                                           target="_blank" class="btn btn-sm btn-warning edit_link">
-                                            <i class="fa fa-ambulance" aria-hidden="true"></i>
-                                            Bienvenida
-                                        </a>
-
-                                    </td>
-                                </tr>
-                            {% endif %}
+                                            {% include 'reserva_reserva_admin/show__boton_tour_economico.html.twig' %}
+                                            {% include 'reserva_reserva_admin/show__boton_bienvenida.html.twig' %}
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
 
                         </tbody>
                     </table>
@@ -854,19 +385,47 @@ Si tienen cualquier duda o necesitan algo, no duden en comunicarse con nosotros.
             {% endif %}
 
             <div class="nav-tabs-custom">
-                <ul class="nav nav-tabs hidden-print" role="tablist">
+                {# tabs__caracteristicas_bs3_pill_multiline_nomacro.html.twig #}
+                <ul class="nav nav-tabs tabs-modern tabs-modern--pill tabs-modern--multiline tabs-modern--sm hidden-print" role="tablist">
                     {% for index, caracteristica in object.unit.unitcaracteristicas %}
-                    <li {% if loop.first %} class="active"{% endif %}>
-                        <a href="#tab_{{ admin.uniqid }}_{{ index }}" data-toggle="tab">
-                            <i style="color: {{ caracteristica.unittipocaracteristica.iconcolor }};" class="fas {{ caracteristica.unittipocaracteristica.iconclase }} tab-icon" aria-hidden="true"></i>
-                            <span>{{ caracteristica.unittipocaracteristica.titulo }}</span>
-                        </a>
-                    </li>
+                        {% set id     = 'tab_' ~ admin.uniqid ~ '_' ~ index %}
+                        {% set titulo = caracteristica.unittipocaracteristica.titulo %}
+                        {% set icono  = caracteristica.unittipocaracteristica.iconclase %}   {# ej: fa-bed (FA4). Si usas FA5: fas fa-bed #}
+                        {% set color  = caracteristica.unittipocaracteristica.iconcolor %}   {# ej: #ee7755 #}
+
+                        <li role="presentation" class="{% if loop.first %}active{% endif %}">
+                            <a
+                                    href="#{{ id }}"
+                                    role="tab"
+                                    data-toggle="tab"
+                                    aria-controls="{{ id }}"
+                                    aria-selected="{{ loop.first ? 'true' : 'false' }}"
+                                    style="--accent: {{ color }};"
+                            >
+                                <i class="fa {{ icono }} tab-icon" aria-hidden="true"></i>
+                                <span class="tab-title">{{ titulo }}</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li role="presentation" class="disabled">
+                            <a href="javascript:void(0)" tabindex="-1">
+                                <i class="fa fa-info-circle tab-icon" aria-hidden="true"></i>
+                                <span>{{ 'sin_caracteristicas'|trans({}, 'messages')|default('Sin características') }}</span>
+                            </a>
+                        </li>
                     {% endfor %}
-                    <li>
-                        <a href="#tab_{{ admin.uniqid }}_ubicacion" data-toggle="tab">
-                            <i style="color: #954e8d" class="fas fa-map tab-icon" aria-hidden="true"></i>
-                            <span>{{ 'tab_ubicacion'|trans({},'messages')|capitalize}}</span>
+
+                    <li role="presentation">
+                        <a
+                                href="#tab_{{ admin.uniqid }}_ubicacion"
+                                role="tab"
+                                data-toggle="tab"
+                                aria-controls="tab_{{ admin.uniqid }}_ubicacion"
+                                aria-selected="false"
+                                style="--accent:#954e8d;"
+                        >
+                            <i class="fa fa-map tab-icon" aria-hidden="true"></i>
+                            <span>{{ 'tab_ubicacion'|trans({}, 'messages')|capitalize }}</span>
                         </a>
                     </li>
                 </ul>
@@ -880,38 +439,7 @@ Si tienen cualquier duda o necesitan algo, no duden en comunicarse con nosotros.
                                 <div class="box-body table-responsive">
                                     <h3 class="visible-print">{{ caracteristica.unittipocaracteristica.titulo }}</h3>
                                     <div class="caracteristicacontent ck-content">{{ caracteristica.contenido | raw }}</div>
-                                    <div class="container-fluid hidden-print">
-                                        {% if 1 == 2  %}<div>{% endif %} {# para equilibrar en phpstorm #}
-                                        {% set abierto = false %}
-                                        {% for archivo in caracteristica.unittipocaracteristica.unitmedios %}
-                                            {% if archivo.unit.id == object.unit.id %}
-                                                {% set counter = ( counter | default(0) ) + 1 %}
-
-                                                {% if counter % 2 == 0 %}
-                                                    <div class="row">
-                                                    {% set abierto = true %}
-                                                {% endif %}
-                                                <div class="col-xs-12 col-sm-6">
-                                                    <div class="thumbnail thumbnail-fluid">
-                                                        <a href="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webPath|raw }}{% else %}{{ archivo.webPath|raw }}{% endif %}"{% if archivo.inModal == true %} data-toggle="lightbox" data-gallery="{{ archivo.unittipocaracteristica.nombre }}"{% else %} target="_blank" {% endif %}>
-                                                            <img src="{% if archivo.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}{% else %}{{ archivo.webThumbPath|raw }}{% endif %}"
-                                                                 alt="{{ archivo.titulo }}"
-                                                                 class="{% if archivo.inModal == true %}in-modal{% endif %} {% if archivo.aspectRatio is not null and archivo.aspectRatio < 1 %}portrait{% elseif archivo.aspectRatio >= 1 %}landscape{% endif %}"
-                                                            >
-                                                            <div class="caption">
-                                                                <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.titulo }}</p>
-                                                            </div>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                                {% if counter % 2 == 0 %}
-                                                    {% set abierto = false %}
-                                                    </div>
-                                                {% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if abierto == true %}</div>{% endif %}
-                                    </div>
+                                    {% include 'reserva_reserva_admin/show__parte_galeria.html.twig' %}
                                 </div>
                             </div>
                         </div>
@@ -922,24 +450,64 @@ Si tienen cualquier duda o necesitan algo, no duden en comunicarse con nosotros.
                     <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_ubicacion">
                         <div class="box-body container-fluid">
                             <div class="sonata-ba-collapsed-fields">
-                                <div class="box-body table-responsive">
-                                    <h3 class="visible-print">{{ 'tab_ubicacion'|trans({}, 'messages')|capitalize}}</h3>
-                                    <p style="font-size: 1.2em">
-                                        {{ 'direccion'|trans({}, 'messages')|capitalize}}: {{ object.unit.establecimiento.direccion }}
+                                {# Ubicación - limpio y responsive #}
+                                {% set addr    = object.unit.establecimiento.direccion|default('') %}
+                                {% set ref     = object.unit.referencia|default('') %}
+                                {% set q       = addr is not empty ? addr : (object.unit.establecimiento.nombre ~ ' ' ~ object.unit.nombre) %}
+                                {% set q_url   = q|e('url') %}
+                                {% set maps    = 'https://www.google.com/maps/search/?api=1&query=' ~ q_url %}
+                                {% set mapsdir = 'https://www.google.com/maps/dir/?api=1&destination=' ~ q_url %}
+
+                                <div class="box-body">
+                                    <h3 class="visible-print">{{ 'tab_ubicacion'|trans({}, 'messages')|capitalize }}</h3>
+
+                                    <p class="lead" style="margin-bottom: 8px;">
+                                        <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                                        <strong>{{ 'direccion'|trans({}, 'messages')|capitalize }}:</strong>
+                                        <span>{{ addr }}</span>
                                     </p>
-                                    <p style="font-size: 1.1em">
-                                        {{ 'referencia'|trans({}, 'messages')|capitalize}}: {{ object.unit.referencia }}
+
+                                    <p class="text-muted" style="font-size: 1.05em; margin-bottom:12px;">
+                                        <i class="fas fa-info-circle" aria-hidden="true"></i>
+                                        <strong>{{ 'referencia'|trans({}, 'messages')|capitalize }}:</strong>
+                                        <span>{{ ref is not empty ? ref : ('sin_referencia'|trans({}, 'messages')|default('Sin referencia')) }}</span>
                                     </p>
-                                    <div id="gmap-canvas-{{ object.id }}">
-                                        <iframe id="gmap-frame-{{ object.id }}" src="https://maps.google.com/maps?q={{ object.unit.establecimiento.direccion|escape('url') }}&t=&z=17&ie=UTF8&iwloc=&output=embed" scrolling="no" marginheight="0" marginwidth="0">
+
+                                    {# Acciones #}
+                                    <div class="btn-toolbar hidden-print" role="toolbar" style="margin-bottom:10px;">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ maps }}" target="_blank" rel="noopener" class="btn btn-primary">
+                                                <i class="fas fa-external-link-alt" aria-hidden="true"></i> {{ 'abrir_en_google_maps'|trans({}, 'messages')|default('Abrir en Google Maps') }}
+                                            </a>
+                                            <a href="{{ mapsdir }}" target="_blank" rel="noopener" class="btn btn-default">
+                                                <i class="fas fa-location-arrow" aria-hidden="true"></i> {{ 'como_llegar'|trans({}, 'messages')|default('Cómo llegar') }}
+                                            </a>
+                                            <a class="btn btn-default clipboard-trigger" data-text="{{ addr }}">
+                                                <i class="fas fa-copy" aria-hidden="true"></i> {{ 'copiar_direccion'|trans({}, 'messages')|default('Copiar dirección') }}
+                                            </a>
+                                            <a class="btn btn-default clipboard-trigger" data-text="{{ maps }}">
+                                                <i class="fas fa-link" aria-hidden="true"></i> {{ 'copiar_enlace'|trans({}, 'messages')|default('Copiar enlace') }}
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    {# Mapa responsive (BS3) #}
+                                    <div class="embed-responsive embed-responsive-4by3 hidden-print" aria-label="Mapa">
+                                        <iframe
+                                                class="embed-responsive-item"
+                                                title="{{ 'Mapa de' }} {{ q }}"
+                                                id="gmap-frame-{{ object.id }}"
+                                                loading="lazy"
+                                                src="https://www.google.com/maps?q={{ q_url }}&t=&z=17&ie=UTF8&iwloc=&output=embed"
+                                                referrerpolicy="no-referrer-when-downgrade"
+                                                allowfullscreen>
                                         </iframe>
                                     </div>
-                                    <style>
-                                        #gmap-label-{{ object.id }} {margin-top: 5px; font-weight: 600;}
-                                        #gmap-frame-{{ object.id }} {border: none; width: 100%; height: 100%;}
-                                        #gmap-canvas-{{ object.id }} {overflow:hidden; background:none!important; max-width: 600px; width: 100%; height:500px;}
-                                    </style>
 
+                                    {# Fallback sin JS o en impresión #}
+                                    <noscript>
+                                        <p><a href="{{ maps }}" target="_blank" rel="noopener">{{ 'ver_mapa'|trans({}, 'messages')|default('Ver mapa') }}</a></p>
+                                    </noscript>
                                 </div>
                             </div>
                         </div>

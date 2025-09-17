@@ -213,17 +213,7 @@ ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
     .panel, .panel-body { box-shadow: none !important; }
 }
 
-/* Centrar últimas filas en grids de Bootstrap 3 usando flex */
-.thumbs-row{
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;          /* <-- aquí sucede la magia */
-}
 
-.thumbs-row > [class*="col-"]{
-    float: none !important;           /* anulamos el float de B3 */
-    /* no necesitas tocar width: las col-* ya traen % de Bootstrap */
-}
 
 /* Opcional: solo centrar en pantallas chicas
 @media (max-width: 991px){

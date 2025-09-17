@@ -1,0 +1,111 @@
+{% if object.idiomatelefono == 'en' %}
+    {% set whatsappText %}
+🌄 Welcome to Cusco!
+We are delighted to have you as our guests and want you to enjoy your stay to the fullest.
+
+Cusco is located at 3,390 meters (11,150 ft) above sea level, so it’s important to acclimate properly:
+
+Take it easy on your first day.
+
+Stay well hydrated and avoid alcohol or caffeine.
+
+Eat light meals, like grilled chicken with boiled potatoes.
+
+Avoid climbing or going down too many stairs on the first day.
+
+Drink coca tea (but not at night). You can find it in nearby shops.
+
+Get plenty of rest and listen to your body.
+
+🚑 If you experience any health issues—whether it’s altitude sickness or any other problem—we can assist you. We can put you in contact with clinics if you have insurance, or with state hospitals if you don’t.
+
+🔥 For extra comfort, we offer room heaters. We can activate them remotely. The cost is S/ 20 per night per unit.
+
+If you have any questions or need anything, don’t hesitate to reach out.
+Enjoy your adventure in Cusco! ✨
+    {% endset %}
+{% elseif object.idiomatelefono == 'pt'%}
+    {% set whatsappText %}
+🌄 Bem-vindos a Cusco!
+Estamos muito felizes em recebê-los como nossos hóspedes e queremos que aproveitem ao máximo a sua estadia.
+
+Cusco está a 3.390 metros (11.150 pés) acima do nível do mar, por isso é importante se aclimatar adequadamente:
+
+Vá com calma no primeiro dia.
+
+Mantenha-se bem hidratado e evite álcool ou cafeína.
+
+Faça refeições leves, como frango grelhado com batatas cozidas.
+
+Evite subir ou descer muitas escadas no primeiro dia.
+
+Beba chá de coca (mas não à noite). Você pode encontrá-lo em lojas próximas.
+
+Descanse bastante e ouça seu corpo.
+
+🚑 Se tiver algum problema de saúde — seja mal de altitude ou outro — podemos ajudá-lo. Podemos colocá-lo em contato com clínicas se tiver seguro, ou com hospitais públicos se não tiver.
+
+🔥 Para maior conforto, oferecemos aquecedores nos quartos. Podemos ativá-los remotamente. O custo é S/ 20 por noite por unidade.
+
+Se tiver alguma dúvida ou precisar de algo, não hesite em nos contatar.
+Aproveite sua aventura em Cusco! ✨
+    {% endset %}
+{% elseif object.idiomatelefono == 'fr'%}
+    {% set whatsappText %}
+🌄 Bienvenue à Cusco !
+Nous sommes ravis de vous accueillir et souhaitons que vous profitiez pleinement de votre séjour.
+
+Cusco est situé à 3 390 mètres (11 150 pieds) d’altitude, il est donc important de bien s’acclimater :
+
+Prenez les choses calmement le premier jour.
+
+Restez bien hydraté et évitez l’alcool ou la caféine.
+
+Mangez léger, par exemple du poulet grillé avec des pommes de terre bouillies.
+
+Évitez de monter ou descendre trop d’escaliers le premier jour.
+
+Buvez du maté de coca (mais pas le soir). Vous en trouverez dans les magasins à proximité.
+
+Reposez-vous bien et écoutez votre corps.
+
+🚑 En cas de problème de santé — que ce soit le mal d’altitude ou autre — nous pouvons vous aider. Nous pouvons vous mettre en contact avec des cliniques si vous avez une assurance, ou avec des hôpitaux publics si vous n’en avez pas.
+
+🔥 Pour plus de confort, nous proposons des chauffages d’appoint dans les chambres. Nous pouvons les activer à distance. Le coût est de S/ 20 par nuit et par unité.
+
+Si vous avez des questions ou besoin de quoi que ce soit, n’hésitez pas à nous contacter.
+Profitez bien de votre aventure à Cusco ! ✨
+    {% endset %}
+{% else %}
+    {% set whatsappText %}
+🌄 ¡Bienvenidos a Cusco!
+Estamos encantados de tenerlos como nuestros huéspedes y queremos que disfruten su estadía al máximo.
+
+Cusco se encuentra a 3,390 metros (11,150 pies) sobre el nivel del mar, por lo que es importante aclimatarse adecuadamente:
+
+Tomen las cosas con calma el primer día.
+
+Manténganse bien hidratados y eviten el alcohol o la cafeína.
+
+Coman comidas ligeras, como pollo a la plancha con papas cocidas.
+
+Eviten subir o bajar muchas escaleras el primer día.
+
+Beban té de coca (pero no por la noche). Lo pueden encontrar en tiendas cercanas.
+
+Descansen lo suficiente y escuchen a su cuerpo.
+
+🚑 Si presentan algún problema de salud, ya sea mal de altura u otro, podemos asistirlos. Podemos ponerlos en contacto con clínicas si cuentan con seguro, o con hospitales del estado si no lo tienen.
+
+🔥 Para mayor comodidad, ofrecemos calefactores en la habitación. Podemos activarlos de manera remota. El costo es S/ 20 por noche por unidad.
+
+Si tienen cualquier duda o necesitan algo, no duden en comunicarse con nosotros.
+¡Disfruten su aventura en Cusco! ✨
+    {% endset %}
+{% endif %}
+
+<a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}"
+   target="_blank" class="btn btn-sm btn-warning edit_link">
+    <i class="fa fa-ambulance" aria-hidden="true"></i>
+    Bienvenida
+</a>

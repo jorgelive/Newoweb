@@ -1,0 +1,57 @@
+/* =========================
+   Miniaturas tipo "card"
+   ========================= */
+.thumbnail-fluid{
+    border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+    overflow:hidden;
+    background:#fff;
+    border:1px solid #eef1f4;
+}
+.thumbnail-fluid a{
+    display:block;
+    text-decoration:none;
+    color:inherit;
+}
+
+/* Imagen: llena el cuadro (uniforme) */
+.thumbnail-fluid img{
+    width:100%;
+    height:220px;             /* ajusta según gusto */
+    object-fit:cover;         /* recorte elegante */
+    display:block;
+}
+@media (min-width:1200px){
+    .thumbnail-fluid img{ height:240px; }
+}
+
+/* Orientación (aprovecha el aspectRatio del backend) */
+img.portrait{  object-position:center top; }
+img.landscape{ object-position:center; }
+
+/* Texto bajo la imagen */
+.caption{ padding:8px 10px; }
+.caption p{
+    margin:0;
+    color:#6c757d;
+    word-break:break-word;
+    overflow-wrap:anywhere;
+}
+
+/* Separación vertical entre columnas (BS3) */
+.row [class*="col-"]{ margin-bottom:18px; }
+
+/* Indicador visual cuando abre en lightbox */
+.in-modal{ cursor:zoom-in; }
+
+/* Utilidades que aparecen en tu HTML */
+.m-t-10{ margin-top:10px !important; }
+
+/* Impresión coherente con tus clases */
+@media print{
+    .hidden-print{ display:none !important; }
+    .visible-print{ display:block !important; }
+}
+
+/* (Opcional) Compat extra si migras a BS4/5 y usas img-fluid */
+.img-fluid{ max-width:100%; height:auto; }
