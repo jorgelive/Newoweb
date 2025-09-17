@@ -217,7 +217,7 @@
 
                         {{ itemRow(
                             ('canal'|trans({}, 'messages')|capitalize),
-                        object.channel.nombre ~ (not isResumen ? ' <span class="label label-default">' ~ object.estado.nombre|trans({}, 'messages') ~ '</span>' : '')
+                        object.channel.nombre ~ (not isResumen ? ' <span style="color: #fff; backgtound_color:' ~ object.estado.color ~ ';" class="label label-default">' ~ object.estado.nombre|trans({}, 'messages') ~ '</span>' : '')
                         ) }}
 
                         {% if not isResumen %}
