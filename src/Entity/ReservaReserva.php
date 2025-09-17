@@ -405,23 +405,33 @@ class ReservaReserva
         return $this;
     }
 
-    public function getCheckoutDetector(): ?int
+    /**
+     * 0 = hoy, 1 = mañana, null = otra fecha
+     */
+    public function getCheckoutDetector(?\DateTimeZone $tz = null): ?int
     {
-        $hoy = new \DateTime();
-        $hoy->setTime(0, 0, 0);
-        $mañana = clone $hoy;
-        $mañana->modify('+1 day');
-
-        $fechaComparar = clone $this->getFechahorafin();
-        $fechaComparar->setTime(0, 0, 0);
-
-        if ($fechaComparar == $hoy) {
-            return 0;
-        } elseif ($fechaComparar == $mañana) {
-            return 1;
-        } else {
+        $fin = $this->getFechahorafin();
+        if (!$fin instanceof \DateTimeInterface) {
             return null;
         }
+
+        // Usa tu zona local (ajústala si corresponde)
+        $tz = $tz ?: new \DateTimeZone('America/Lima');
+
+        // "Hoy" a medianoche en la TZ elegida
+        $hoy = (new \DateTimeImmutable('now', $tz))->setTime(0, 0, 0);
+
+        // Normalizamos fechahorafin a la misma TZ y la llevamos a medianoche
+        $finLocalMedianoche = (new \DateTimeImmutable('@' . $fin->getTimestamp()))
+            ->setTimezone($tz)
+            ->setTime(0, 0, 0);
+
+        // Diferencia de días con signo
+        $diffDias = (int) $hoy->diff($finLocalMedianoche)->format('%r%a');
+
+        if ($diffDias === 0) return 0;  // hoy
+        if ($diffDias === 1) return 1;  // mañana
+        return null;                     // otro día
     }
 
     public function getFechahorafin(): ?\DateTime

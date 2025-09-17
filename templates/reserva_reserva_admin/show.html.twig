@@ -123,7 +123,7 @@ Si vous en avez besoin, nous pouvons garder vos bagages pour vous.
                                         {% else %}
                                             {% set whatsappText %}
 Hola {{ object.primernombre }}, un gusto saludarte.
-Te escribo para coordinar el check-out del día {% if object.checkoutdetector is same as(1) %}de *mañana*{% elseif object.checkoutdetector is same as(0) %}de *hoy*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}.
+Te escribo para coordinar el check-out del día {% set cd = object.checkoutDetector %}{% if cd == 1 %}de *mañana*{% elseif cd == 0 %}de *hoy*{% else %}*{{ object.fechahorafin|date('Y-m-d', 'America/Lima') }}*{% endif %}.
 La hora de salida es a las *10:00 a.m.*⌚.
 Por favor, indícame si saldrán antes, para indicarle a la señora de limpieza y que pueda estar a esa hora para recibir las llaves.
 Si lo necesitan, podemos guardar su equipaje.

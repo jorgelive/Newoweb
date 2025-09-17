@@ -1,0 +1,234 @@
+/* =========================
+   Variables y base moderna
+   ========================= */
+:root {
+    --header-h: 100px;
+    --c-text: #222222;
+    --c-muted: #6c757d;
+    --c-border: #eef1f4;
+    --c-shadow: rgba(0,0,0,.08);
+    --c-shadow-soft: rgba(0,0,0,.04);
+    --c-danger: #FF807E;
+    --c-danger-hover: #f54f4b;
+    --c-accent: #ff8a00; /* bullets personalizados */
+}
+
+/* (Opcional) ocultar texto "Extranet" del logo */
+.main-header .logo span { display: none !important; }
+
+/* Tipografía y pequeños ajustes */
+h4, h5 { letter-spacing: .2px; }
+.ck-content p { margin: 0 0 8px; }
+
+/* Panels con padding y sombra sutil */
+.panel-heading { padding: 12px 18px; }
+.panel-body   { padding: 16px 18px; }
+
+/* =========================
+   Header + Sidebar (base)
+   ========================= */
+/* Evita duplicidades de height/!important */
+.main-header {
+    min-height: 100px;           /* fallback */
+    min-height: var(--header-h);
+    position: relative;
+}
+.main-header .logo {
+    min-height: 100px;            /* fallback */
+    min-height: var(--header-h);
+    display: flex; align-items: center; justify-content: center;
+}
+.main-header .logo img { max-width: none; }
+
+/* padding-top para móvil/flujo normal */
+.left-side, .main-sidebar {
+    padding-top: 100px;           /* fallback */
+    padding-top: var(--header-h);
+}
+
+/* =========================
+   Desktop: Sidebar fijo y contenido alineado
+   ========================= */
+@media (min-width: 768px) {
+    .main-sidebar {
+        position: fixed;          /* AdminLTE2 friendly */
+        top: 100px;               /* fallback */
+        top: var(--header-h);
+        bottom: 0;
+        overflow-y: hidden;       /* lo maneja slimScroll */
+        padding-top: 0;           /* evita doble espacio interno */
+    }
+    .left-side { padding-top: 0; }
+
+    .content-wrapper, .right-side, .main-footer {
+        margin-left: 230px;       /* ancho por defecto del sidebar en ALTE2 */
+    }
+}
+
+/* =========================
+   Navbar/crumbs con menos especificidad
+   ========================= */
+.navbar-custom-menu > .navbar-nav > li > a { background-color: #fff; }
+.navbar-left .breadcrumb > li.active {
+    max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* =========================
+   Botones y utilidades
+   ========================= */
+section.content .btn-group > .btn { min-width: 90px; }
+
+.btn-danger{ background-color: var(--c-danger); border-color: var(--c-danger); }
+.btn-danger:focus,
+.btn-danger:hover,
+.btn-danger:active,
+.btn-danger.active,
+.open > .dropdown-toggle.btn-danger {
+    background-color: var(--c-danger-hover);
+    border-color: var(--c-danger-hover);
+}
+
+/* =========================
+   Tablas responsivas (móvil)
+   ========================= */
+@media (max-width: 767px) {
+    .table-responsive > .table > thead > tr > th,
+    .table-responsive > .table > thead > tr > td,
+    .table-responsive > .table > tbody > tr > th,
+    .table-responsive > .table > tbody > tr > td,
+    .table-responsive > .table > tfoot > tr > th,
+    .table-responsive > .table > tfoot > tr > td {
+        white-space: normal !important;
+    }
+
+    .skin-black .main-header > .logo,
+    .skin-black .main-header > .logo:hover {
+        background-color: #ffffff; color: var(--c-text); border-bottom: 1px solid var(--c-text);
+    }
+    .skin-black .main-header > .logo span {
+        color: var(--c-text); font-size: 80%; margin-top: 10px; font-weight: bold;
+    }
+}
+
+/* =========================
+   FullCalendar y helpers
+   ========================= */
+.fc-toolbar h2 { font-size: 20px; padding-top: 10px; }
+div.encabezado td { white-space: normal !important; }
+.fc-timeline-event:hover { cursor: pointer; }
+
+.fechas-mono {
+    font-size: .9em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    white-space: nowrap;
+}
+
+/* =========================
+   Thumbnails y carousels
+   ========================= */
+.thumbnail img.landscape { width: 100%; /* fallback para aspect-ratio */ }
+.thumbnail img.portrait  { width: 100%; }
+.thumbnail .caption { padding: 3px; }
+
+/* Opcional: si navegador soporta aspect-ratio, mejor proporción */
+@supports (aspect-ratio: 1) {
+    .thumbnail img.landscape { aspect-ratio: 16/9; object-fit: cover; }
+    .thumbnail img.portrait  { aspect-ratio: 3/4;  object-fit: cover; }
+}
+
+/* Carousels: indicadores y capas */
+.carousel-inner img.portrait,
+.carousel-inner img.landscape { width: 100%; object-fit: cover; }
+
+.carousel-indicators {
+    bottom: 0; z-index: 5; /* no tapar caption */
+}
+.carousel-indicators.top { top: 10px; bottom: auto; }
+
+/* =========================
+   Galería modal fluid
+   ========================= */
+.thumbnail-fluid img.in-modal.portrait { width: 60%; }
+.thumbnail-fluid img.in-modal.landscape { width: 100%; }
+.thumbnail-fluid .caption .small.text-center { margin: 0; }
+
+/* =========================
+   Listas personalizadas
+   ========================= */
+ul.listaordenada,
+ul.sonata-ba-show-one-to-many { list-style: none; padding: 0; margin: 0; }
+ul.listaordenada li,
+ul.sonata-ba-show-one-to-many li { padding-left: 16px; position: relative; }
+ul.listaordenada li::before,
+ul.sonata-ba-show-one-to-many li::before {
+    content: "\25CF";
+    color: var(--c-accent);
+    font-weight: bold; font-size: 18px;
+    text-align: right; padding-right: 6px; width: 10px;
+    position: absolute; left: 0; top: -0.2em;
+}
+ul.listaordenada li a,
+ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
+
+/* =========================
+   Miscelánea
+   ========================= */
+.clipboard-trigger:hover { cursor: pointer; }
+#tooltipdiv {
+    position: fixed; width: 220px; height: 30px;
+    top: 30%; left: 50%; margin-top: -15px; margin-left: -110px;
+    border-radius: 5px; text-align: center; padding: 5px;
+    background: #ffde5a; font-weight: 600;
+    filter: drop-shadow(0 3px 5px #ccc); line-height: 1.5; z-index: 1000;
+}
+
+/* =========================
+   Desktop: subir 100px el slimScrollDiv del sidebar
+   ========================= */
+@media (min-width: 768px) {
+    /* wrapper creado por slimScroll */
+    .main-sidebar .slimScrollDiv {
+        height: calc(100vh - var(--header-h)) !important; /* encaja bajo el header */
+    }
+    /* contenido scrolleable */
+    .main-sidebar .slimScrollDiv > .sidebar {
+        margin-top: calc(-1 * var(--header-h));  /* sube 100px */
+        padding-top: var(--header-h);            /* compensa área clicable */
+    }
+    /* barra y riel, si existen */
+    .main-sidebar .slimScrollDiv > .slimScrollBar,
+    .main-sidebar .slimScrollDiv > .slimScrollRail {
+        margin-top: calc(-1 * var(--header-h));
+        height: calc(100% + var(--header-h)) !important;
+    }
+}
+
+/* =========================
+   Print limpio
+   ========================= */
+@media print {
+    *, *::before, *::after { color: initial !important; box-shadow: none !important; }
+    .hidden-print { display: none !important; }
+    .visible-print { display: block !important; }
+    .panel, .panel-body { box-shadow: none !important; }
+}
+
+/* Centrar últimas filas en grids de Bootstrap 3 usando flex */
+.thumbs-row{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;          /* <-- aquí sucede la magia */
+}
+
+.thumbs-row > [class*="col-"]{
+    float: none !important;           /* anulamos el float de B3 */
+    /* no necesitas tocar width: las col-* ya traen % de Bootstrap */
+}
+
+/* Opcional: solo centrar en pantallas chicas
+@media (max-width: 991px){
+  .thumbs-row{ justify-content: center; }
+  .thumbs-row > [class*="col-"]{ float: none !important; }
+}
+*/
+

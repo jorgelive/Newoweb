@@ -1,70 +1,121 @@
 <div class="box-body container-fluid">
     <div class="sonata-ba-collapsed-fields">
-        <h3 class="no-padding no-margin visible-print">{{ 'tab_itinerario'|trans({}, 'messages')|capitalize}}</h3>
-        <div class="panel-body table-responsive">
-            {% if tabs.itinerarios is defined and tabs.itinerarios|length > 0 %}
-                {% for itinerario in tabs.itinerarios %}
-                    <h5 {% if not loop.first %} style="margin-top: 30px;" {% endif %}>
-                        {% if object.file.catalogo != true %}
-                            <span style="font-size: 1.15em; font-weight: 600;">
-                                {{ itinerario.fecha|format_datetime('full', 'none')|capitalize}}
-                            </span>
-                            &nbsp;-&nbsp;
-                            <span>
-                                {{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}
-                            </span>
-                        {% else %}
-                            <span style="font-size: 1.15em; font-weight: 600;">
-                                {{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}
-                            </span>
-                        {% endif %}
-                    </h5>
-                    {% for item in itinerario.fechaitems %}
-                        {% if item.titulo is defined %}
-                            <h5 style="font-weight: bold; color: {{ colores.azul_acero }};">{{ item.titulo }} - {{ item.tituloDia }}</h5>
-                        {% else%}
-                            <h5 style="font-weight: bold; color: {{ colores.azul_acero }};">{{ item.tituloDia }}</h5>
-                        {% endif%}
-                        <div class="ck-content itinerariodescripcion">{{ item.descripcion|raw }}</div>
-                        {% if item.archivos is defined and item.archivos|length > 0 %}
-                        <div class="container-fluid hidden-print">
-                            {% for archivo in item.archivos %}
-                                {% if loop.index0 % 2 == 0 %}
-                                    <div class="row">
-                                {% endif %}
-                                <div class="col-xs-12 col-sm-6">
-                                    <div class="thumbnail thumbnail-fluid">
-                                        <a href="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webPath|raw }}{% else %}{{ archivo.medio.webPath|raw }}{% endif %}"{% if archivo.medio.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.tituloDia }}"{% else %} target="_blank" {% endif %}>
-                                            <img src="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webThumbPath|raw }}{% else %}{{ archivo.medio.webThumbPath|raw }}{% endif %}"
-                                                 alt="{{ archivo.medio.titulo }}"
-                                                 class="{% if archivo.medio.inModal == true %}in-modal{% endif %} {% if archivo.medio.aspectRatio is not null and archivo.medio.aspectRatio < 1 %}portrait{% elseif archivo.medio.aspectRatio >= 1 %}landscape{% endif %}"
-                                            >
-                                            <div class="caption">
-                                                <p style="overflow-wrap: break-word;" class="small text-center">{{ archivo.medio.titulo }}</p>
-                                            </div>
-                                        </a>
+        <h3 class="no-padding no-margin visible-print">
+            {{ 'tab_itinerario'|trans({}, 'messages')|capitalize}}
+        </h3>
+
+        <div class="panel panel-default" style="border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.08); border:1px solid #e9ecef;">
+            <div class="panel-body table-responsive" style="padding:20px;">
+
+                {% if tabs.itinerarios is defined and tabs.itinerarios|length > 0 %}
+                    {% for itinerario in tabs.itinerarios %}
+
+                        <div class="panel panel-default" style="border-radius:10px; border:1px solid #eef1f4; box-shadow:0 2px 8px rgba(0,0,0,.04); margin-bottom:22px;">
+                            <div class="panel-heading" style="background:#f9fafb; border-color:#eef1f4; border-top-left-radius:10px; border-top-right-radius:10px;">
+                                <h5 class="no-margin" {% if not loop.first %} style="margin-top:0;" {% endif %}>
+                                    {% if object.file.catalogo != true %}
+                                        <span style="font-size:1.05em; font-weight:600;">
+                      {{ itinerario.fecha|format_datetime('full', 'none')|capitalize}}
+                    </span>
+                                        <span class="text-muted"> &nbsp;—&nbsp; </span>
+                                        <span class="text-muted">
+                      {{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}
+                    </span>
+                                    {% else %}
+                                        <span style="font-size:1.05em; font-weight:600;">
+                      {{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}
+                    </span>
+                                    {% endif %}
+                                </h5>
+                            </div>
+
+                            <div class="panel-body" style="padding:16px 18px;">
+                                {% for item in itinerario.fechaitems %}
+                                    {% if item.titulo is defined %}
+                                        <h4 class="no-margin" style="font-weight:600; color: {{ colores.azul_acero }}; margin-bottom:8px;">
+                                            {{ item.titulo }} <small class="text-muted">— {{ item.tituloDia }}</small>
+                                        </h4>
+                                    {% else %}
+                                        <h4 class="no-margin" style="font-weight:600; color: {{ colores.azul_acero }}; margin-bottom:8px;">
+                                            {{ item.tituloDia }}
+                                        </h4>
+                                    {% endif %}
+
+                                    <div class="ck-content itinerariodescripcion" style="margin-bottom:12px;">
+                                        {{ item.descripcion|raw }}
                                     </div>
-                                </div>
-                                {% if loop.index % 2 == 0 or loop.last %}
-                                    </div>
+
+                                    {% if item.archivos is defined and item.archivos|length > 0 %}
+                                        <div class="container-fluid hidden-print" role="group" aria-label="media-gallery {{ item.tituloDia }}">
+                                            {% for archivo in item.archivos %}
+                                                {% if loop.index0 % 2 == 0 %}
+                                                    <div class="row" style="margin-bottom:14px;">
+                                                {% endif %}
+
+                                                <div class="col-xs-12 col-sm-6">
+                                                    <div class="thumbnail" style="border-radius:10px; overflow:hidden; border:1px solid #eef1f4; box-shadow:0 2px 8px rgba(0,0,0,.04);">
+                                                        <a
+                                                                href="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webPath|raw }}{% else %}{{ archivo.medio.webPath|raw }}{% endif %}"
+                                                                {% if archivo.medio.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.tituloDia }}"{% else %} target="_blank" rel="noopener noreferrer"{% endif %}
+                                                                aria-label="{{ archivo.medio.titulo }}"
+                                                        >
+                                                            <img
+                                                                    src="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webThumbPath|raw }}{% else %}{{ archivo.medio.webThumbPath|raw }}{% endif %}"
+                                                                    alt="{{ archivo.medio.titulo }}"
+                                                                    class="img-responsive {% if archivo.medio.inModal == true %}in-modal{% endif %} {% if archivo.medio.aspectRatio is not null and archivo.medio.aspectRatio < 1 %}portrait{% elseif archivo.medio.aspectRatio >= 1 %}landscape{% endif %}"
+                                                                    style="width:100%; max-height:420px; object-fit:cover;"
+                                                                    loading="lazy"
+                                                            >
+                                                            <div class="caption">
+                                                                <p class="small text-center" style="margin-bottom:6px; overflow-wrap:break-word;">
+                                                                    {{ archivo.medio.titulo }}
+                                                                </p>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                </div>
+
+                                                {% if loop.index % 2 == 0 or loop.last %}
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+
+                                    {% if item.nota is defined %}
+                                        <div class="ck-content itinerarionota post-it" style="margin-top:8px;">
+                                            {{ item.nota|raw }}
+                                        </div>
+                                    {% endif %}
+
+                                    {% if not loop.last %}
+                                        <hr style="border-top:1px solid #eef1f4; margin:16px 0;">
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                    {% endfor %}
+                {% endif %}
+
+                {% if object.cotnotas|length > 0 %}
+                    <div class="panel panel-default" style="border-radius:10px; border:1px solid #eef1f4;">
+                        <div class="panel-heading" style="background:#f9fafb; border-color:#eef1f4; border-top-left-radius:10px; border-top-right-radius:10px;">
+                            <h4 class="no-margin">Notas</h4>
+                        </div>
+                        <div class="panel-body" style="padding:16px 18px;">
+                            {% for nota in object.cotnotas %}
+                                <h5 style="font-weight:600; margin-top:0;"><strong>{{ nota.titulo }}</strong></h5>
+                                <div class="ck-content">{{ nota.contenido|raw }}</div>
+                                {% if not loop.last %}
+                                    <hr style="border-top:1px solid #eef1f4; margin:16px 0;">
                                 {% endif %}
                             {% endfor %}
                         </div>
-                        {% endif %}
-                        {% if item.nota is defined %}
-                            <div class="ck-content itinerarionota post-it">{{ item.nota|raw }}</div>
-                        {% endif %}
-                    {% endfor %}
+                    </div>
+                {% endif %}
 
-                {% endfor %}
-            {% endif %}
-            {% if object.cotnotas|length > 0 %}
-                <h4>Notas:</h4>
-                {% for nota in object.cotnotas %}
-                    <h5><strong>{{ nota.titulo }}</strong></h5>
-                    {{ nota.contenido|raw }}
-                {% endfor %}
-            {% endif %}
+            </div>
         </div>
     </div>
 </div>
