@@ -77,3 +77,16 @@ editar: editar
 cotizaciones: cotizaciones
 excursiones: excursiones
 documentos: documentos
+
+sin_referencia: "Sin referencia"
+abrir_en_google_maps: "Abrir en Google Maps"
+como_llegar: "Cómo llegar"
+copiar_direccion: "Copiar dirección"
+copiar_enlace: "Copiar enlace"
+ver_mapa: "Ver mapa"
+sin_caracteristicas: "Sin características"
+calificacion: "Calificación"
+descripcion: "Descripción"
+sin_descripcion: "Sin descripción"
+link: "Enlace"
+nota: "Nota"

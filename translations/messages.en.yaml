@@ -77,3 +77,18 @@ editar: edit
 cotizaciones: quotations
 excursiones: excursions
 documentos: documents
+
+sin_referencia: "No reference"
+
+abrir_en_google_maps: "Open in Google Maps"
+como_llegar: "Directions"
+copiar_direccion: "Copy address"
+copiar_enlace: "Copy link"
+ver_mapa: "View map"
+sin_caracteristicas: "No features"
+calificacion: "Rating"
+descripcion: "Description"
+sin_descripcion: "No description"
+link: "Link"
+nota: "Note"
+
