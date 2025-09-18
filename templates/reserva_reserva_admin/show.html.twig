@@ -153,6 +153,13 @@
         /* .tabs-modern.tabs-modern--max2rows { max-height: 84px; overflow: hidden; } */
 
 
+        .sonata-ba-view-container th .row-icon{
+            margin-right: 6px;
+            opacity: .9;
+            color: #667085;
+            width: 1.1em;        /* alinea verticalmente los títulos aunque cambie el ícono */
+            text-align: center;
+        }
 
         {% include 'reserva_reserva_admin/show__parte_galeria.css.twig' %}
     </style>
@@ -168,7 +175,7 @@
             {# show__detalle_reserva_bs3.html.twig #}
             {% macro itemRow(titulo, contenido) %}
                 <tr class="sonata-ba-view-container">
-                    <th class="text-muted text-uppercase" style="width:220px; letter-spacing:.2px;">{{ titulo }}</th>
+                    <th class="text-muted text-uppercase" style="width:145px; letter-spacing:.2px;">{{ titulo|raw }}</th>
                     <td>{{ contenido|raw }}</td>
                 </tr>
             {% endmacro %}
@@ -189,54 +196,54 @@
                         <tbody>
 
                         {{ itemRow(
-                            ('nombre'|trans({}, 'messages')|capitalize),
+                            '<i class="fas fa-user row-icon" aria-hidden="true"></i> ' ~ ('nombre'|trans({}, 'messages')|capitalize),
                         marca_manual ~ object.nombre ~ ' ' ~ badge_adultos ~ badge_ninos
                         ) }}
 
                         {% if (not isResumen) and object.calificacion is not empty %}
                             {{ itemRow(
-                                ('calificacion'|trans({}, 'messages')|capitalize),
+                                '<i class="fas fa-star row-icon" aria-hidden="true"></i> ' ~ ('calificacion'|trans({}, 'messages')|capitalize),
                             object.calificacion
                             ) }}
                         {% endif %}
 
                         {{ itemRow(
-                            ('alojamiento'|trans({}, 'messages')|capitalize),
+                            '<i class="fas fa-hotel row-icon" aria-hidden="true"></i> ' ~ ('alojamiento'|trans({}, 'messages')|capitalize),
                         '<strong>' ~ object.unit.establecimiento.nombre ~ ' ' ~ object.unit.nombre ~ '</strong> — ' ~ object.unit.descripcion
                         ) }}
 
                         {{ itemRow(
-                            ('fecha_ingreso'|trans({}, 'messages')|capitalize),
+                            '<i class="fas fa-calendar-plus row-icon" aria-hidden="true"></i> ' ~ ('fecha_ingreso'|trans({}, 'messages')|capitalize),
                         ('desde'|trans({}, 'messages')|capitalize) ~ ' ' ~ (object.fechahorainicio|date('Y-m-d H:i'))
                         ) }}
 
                         {{ itemRow(
-                            ('fecha_salida'|trans({}, 'messages')|capitalize),
+                            '<i class="fas fa-calendar-minus row-icon" aria-hidden="true"></i> ' ~ ('fecha_salida'|trans({}, 'messages')|capitalize),
                         ('hasta'|trans({}, 'messages')|capitalize) ~ ' ' ~ (object.fechahorafin|date('Y-m-d H:i'))
                         ) }}
 
                         {{ itemRow(
-                            ('canal'|trans({}, 'messages')|capitalize),
-                        object.channel.nombre ~ (not isResumen ? ' <span style="color: #fff; background-color:' ~ object.estado.color ~ ';" class="label label-default">' ~ object.estado.nombre|trans({}, 'messages') ~ '</span>' : '')
+                            '<i class="fas fa-share-alt row-icon" aria-hidden="true"></i> ' ~ ('canal'|trans({}, 'messages')|capitalize),
+                        object.channel.nombre ~ (not isResumen ? ' <span style="color:#fff; background-color:' ~ object.estado.color ~ ';" class="label label-default">' ~ object.estado.nombre|trans({}, 'messages') ~ '</span>' : '')
                         ) }}
 
                         {% if not isResumen %}
                             {{ itemRow(
-                                ('fecha_reserva'|trans({}, 'messages')|capitalize),
+                                '<i class="fas fa-clock row-icon" aria-hidden="true"></i> ' ~ ('fecha_reserva'|trans({}, 'messages')|capitalize),
                             object.creado|date('Y-m-d H:i')
                             ) }}
                         {% endif %}
 
                         {% if (not isResumen) and object.enlace is not empty %}
                             {{ itemRow(
-                                ('link'|trans({}, 'messages')|capitalize),
-                            '<a href="' ~ object.enlace ~ '" target="_blank" rel="noopener"><i class="fa fa-external-link"></i> Enlace</a>'
+                                '<i class="fas fa-link row-icon" aria-hidden="true"></i> ' ~ ('link'|trans({}, 'messages')|capitalize),
+                            '<a href="' ~ object.enlace ~ '" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Enlace</a>'
                             ) }}
                         {% endif %}
 
                         {% if (not isResumen) and object.nota is not empty %}
                             {{ itemRow(
-                                ('nota'|trans({}, 'messages')|capitalize),
+                                '<i class="fas fa-sticky-note row-icon" aria-hidden="true"></i> ' ~ ('nota'|trans({}, 'messages')|capitalize),
                             object.nota
                             ) }}
                         {% endif %}

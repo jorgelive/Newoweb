@@ -147,8 +147,14 @@
         /* Límite de dos filas visible (ajusta 84px según tipografía) */
         /* .tabs-modern.tabs-modern--max2rows { max-height: 84px; overflow: hidden; } */
 
-
-
+        /* Iconos en encabezados de filas (th) */
+        .sonata-ba-view-container th .row-icon {
+            margin-right: 6px;
+            opacity: .9;
+            color: #667085; /* ajusta si quieres otro tono */
+            width: 1.1em;  /* ancho fijo para alinear */
+            text-align: center;
+        }
 
         {% include 'reserva_reserva_admin/show__parte_galeria.css.twig' %}
     </style>
@@ -163,7 +169,7 @@
             {# show__encabezado_bs3.html.twig #}
             {% macro itemRow(titulo, contenido) %}
                 <tr class="sonata-ba-view-container">
-                    <th class="text-muted text-uppercase" style="width:220px; letter-spacing:.2px;">{{ titulo }}</th>
+                    <th class="text-muted text-uppercase" style="width:145px; letter-spacing:.2px;">{{ titulo|raw }}</th>
                     <td>{{ contenido|raw }}</td>
                 </tr>
             {% endmacro %}
@@ -175,12 +181,12 @@
                         <caption class="sr-only">Encabezado del alojamiento</caption>
                         <tbody>
                         {{ itemRow(
-                            ('alojamiento'|trans({}, 'messages')|capitalize),
+                            '<i class="fas fa-hotel row-icon" aria-hidden="true"></i> ' ~ ('alojamiento'|trans({}, 'messages')|capitalize),
                         '<strong>' ~ object.establecimiento.nombre ~ '</strong> ' ~ object.nombre
                         ) }}
 
                         {{ itemRow(
-                            ('descripcion'|trans({}, 'messages')|capitalize),
+                            '<i class="fas fa-align-left row-icon" aria-hidden="true"></i> ' ~ ('descripcion'|trans({}, 'messages')|capitalize),
                         object.descripcion is not empty
                         ? object.descripcion
                         : '<span class="text-muted"><em>' ~ ( 'sin_descripcion'|trans({}, 'messages')|default('Sin descripción') ) ~ '</em></span>'
