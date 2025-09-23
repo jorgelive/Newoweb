@@ -216,6 +216,31 @@
             });
         });
 
+        (function () {
+            // Delegación: captura cambios en cualquier input[file] con data-preview-img
+            document.addEventListener('change', function (ev) {
+                var input = ev.target;
+                if (!input || input.type !== 'file') return;
+                var targetId = input.getAttribute('data-preview-img');
+                if (!targetId) return;
+
+                var img = document.getElementById(targetId);
+                if (!img) return;
+
+                if (input.files && input.files[0]) {
+                    var file = input.files[0];
+                    var url = URL.createObjectURL(file);
+                    img.src = url;
+                    img.style.display = 'inline-block';
+                    img.onload = function () { URL.revokeObjectURL(url); };
+                } else {
+                    // Limpia si el usuario borra la selección
+                    img.removeAttribute('src');
+                    img.style.display = 'none';
+                }
+            }, false);
+        })();
+
     </script>
 
 {% endblock %}

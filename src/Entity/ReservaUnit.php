@@ -72,6 +72,7 @@ class ReservaUnit
     /** @Gedmo\Timestampable(on="update") @ORM\Column(type="datetime") */
     private ?\DateTimeInterface $modificado = null;
 
+    /** @Gedmo\Locale */
     private ?string $locale = null;
 
     public function __construct()
@@ -172,8 +173,13 @@ class ReservaUnit
 
     /** ================== LINKS (M2M con prioridad en vínculo) ================== */
 
-    /** @return Collection|ReservaUnitCaracteristicaLink[] */
-    public function getUnitCaracteristicaLinks(): Collection { return $this->unitCaracteristicaLinks; }
+    /**
+     * @return Collection|ReservaUnitCaracteristicaLink[]
+     */
+    public function getUnitCaracteristicaLinks(): Collection
+    {
+        return $this->unitCaracteristicaLinks;
+    }
 
     public function addUnitCaracteristicaLink(ReservaUnitCaracteristicaLink $link): self
     {
@@ -202,12 +208,14 @@ class ReservaUnit
                 return $this;
             }
         }
+
         $link = (new ReservaUnitCaracteristicaLink())
             ->setUnit($this)
             ->setCaracteristica($caracteristica)
             ->setPrioridad($prioridad);
 
         $this->unitCaracteristicaLinks->add($link);
+
         return $this;
     }
 
@@ -215,8 +223,8 @@ class ReservaUnit
     {
         foreach ($this->unitCaracteristicaLinks as $link) {
             if ($link->getCaracteristica() === $caracteristica) {
-                $this->unitCaracteristicaLinks->removeElement($link);
-                break;
+                // Mantener sincronizado el lado propietario del vínculo
+                return $this->removeUnitCaracteristicaLink($link);
             }
         }
         return $this;
@@ -232,5 +240,15 @@ class ReservaUnit
             fn(ReservaUnitCaracteristicaLink $l) => $l->getCaracteristica(),
             $this->unitCaracteristicaLinks->toArray()
         );
+    }
+
+    public function hasCaracteristica(ReservaUnitcaracteristica $caracteristica): bool
+    {
+        foreach ($this->unitCaracteristicaLinks as $link) {
+            if ($link->getCaracteristica() === $caracteristica) {
+                return true;
+            }
+        }
+        return false;
     }
 }

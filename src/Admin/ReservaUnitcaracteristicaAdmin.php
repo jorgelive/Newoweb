@@ -9,7 +9,7 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
-use Sonata\Form\Type\CollectionType; // 👈 importar CollectionType
+use Sonata\Form\Type\CollectionType;
 
 class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
 {
@@ -22,7 +22,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
     {
         $datagridMapper
             ->add('id')
-            // Ya NO: ->add('unit')
+            ->add('nombre', null, ['label' => 'Nombre interno'])
             ->add('unittipocaracteristica', null, ['label' => 'Tipo'])
             ->add('contenido', TranslationFieldFilter::class, [])
         ;
@@ -32,17 +32,16 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            // Ya NO: ->add('unit')
+            ->add('nombre', null, ['label' => 'Nombre interno'])
             ->add('unittipocaracteristica', null, ['label' => 'Tipo'])
             ->add('contenido', null, ['template' => 'base_sonata_admin/list_html.html.twig'])
-            // 👇 opcional: mostrar cuántos medios tiene
-            ->add('medios', null, [
-                'label' => 'Medios',
-                'associated_property' => null, // evita listar todos; Sonata mostrará un conteo
+            ->add('links', null, [
+                'label' => 'Vínculos a Unidades',
+                'associated_property' => null, // muestra conteo
             ])
         ;
 
-        if ($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+        if ($this->getRequest() && $this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $listMapper->add('contenidooriginal', null, [
                 'label' => 'Contenido original',
                 'template' => 'base_sonata_admin/list_html.html.twig'
@@ -64,28 +63,55 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
 
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        // Ya NO: seleccionar unit aquí; la unidad se gestiona con los vínculos en ReservaUnit
-
         $formMapper
+            ->add('nombre', null, [
+                'label' => 'Nombre interno',
+                'required' => true,
+                'attr' => ['placeholder' => 'Ej: “Cama King + Vista Patio”'],
+                'help' => 'Solo para uso interno en el backoffice',
+            ])
             ->add('unittipocaracteristica', null, ['label' => 'Tipo'])
             ->add('contenido', null, [
                 'required' => false,
                 'attr' => ['class' => 'ckeditor']
             ])
-            // 👇 NUEVO: colección de medios hijos
-            ->add('medios', CollectionType::class, [
-                'by_reference' => false,   // usa addMedio/removeMedio del entity
-                'label' => 'Medios',
+
+            // NUEVO: vínculos a Unidades (inline) con botón Agregar
+            ->add('links', CollectionType::class, [
+                'by_reference' => false,
+                'label' => 'Vínculos a Unidades',
                 'required' => false,
+                'btn_add' => 'Agregar vínculo',
+                'type_options' => [
+                    'delete' => true,
+                    'label' => false,
+                ],
             ], [
                 'edit' => 'inline',
                 'inline' => 'table',
-                // si tu entity ReservaUnitmedio tiene 'prioridad', puedes habilitar:
-                // 'sortable' => 'prioridad',
+                'sortable' => 'prioridad',
             ])
+
+            // Medios hijos (inline) con botón Agregar
+            ->add('medios', CollectionType::class, [
+                'by_reference' => false,
+                'label' => 'Medios',
+                'required' => false,
+                'btn_add' => 'Agregar medio',
+                'type_options' => [
+                    'delete' => true,
+                    'label' => false,
+                ],
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table',
+                // 'sortable' => 'prioridad', // descomenta si tu ReservaUnitmedio tiene prioridad
+            ])
+
+
         ;
 
-        if ($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+        if ($this->getRequest() && $this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $formMapper->add('contenidooriginal', null, [
                 'label' => 'Contenido original',
                 'attr' => ['class' => 'ckeditorread'],
@@ -98,14 +124,14 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
     {
         $showMapper
             ->add('id')
-            // Ya NO: ->add('unit')
+            ->add('nombre', null, ['label' => 'Nombre interno'])
             ->add('unittipocaracteristica', null, ['label' => 'Tipo'])
             ->add('contenido', null, ['safe' => true])
-            // 👇 opcional: listar medios (Sonata mostrará enlaces)
+            ->add('links', null, ['label' => 'Vínculos a Unidades'])
             ->add('medios', null, ['label' => 'Medios'])
         ;
 
-        if ($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+        if ($this->getRequest() && $this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $showMapper->add('contenidooriginal', null, [
                 'label' => 'Contenido original',
                 'safe' => true

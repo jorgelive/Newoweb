@@ -55,6 +55,7 @@ sonata_admin:
                     - app.admin.reservaunit
                     - app.admin.reservaunitmedio
                     - app.admin.reservaunitcaracteristica
+                    - app.admin.reservaunitcaracteristicalink
                     - app.admin.reservaunittipocaracteristica
                     - app.admin.reservachannel
                     - app.admin.reservaestado

@@ -2,6 +2,7 @@
 
 namespace App\Admin;
 
+use App\Form\ReservaUnitCaracteristicaLinkType;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
@@ -25,7 +26,8 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('establecimiento')
             ->add('nombre')
             ->add('descripcion', TranslationFieldFilter::class, ['label' => 'Descripción'])
-            ->add('referencia', TranslationFieldFilter::class, ['label' => 'Referencia de ubicación']);
+            ->add('referencia', TranslationFieldFilter::class, ['label' => 'Referencia de ubicación'])
+        ;
     }
 
     protected function configureListFields(ListMapper $list): void
@@ -36,7 +38,6 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('descripcion', null, ['label' => 'Descripción', 'editable' => true])
             ->add('referencia', null, ['label' => 'Referencia de ubicación', 'editable' => true])
-            ->add('unitnexos', null, ['label' => 'Nexos'])
             ->add('unitCaracteristicaLinks', null, [
                 'label' => 'Características (vínculos)',
                 'associated_property' => function ($link) {
@@ -46,6 +47,7 @@ class ReservaUnitAdmin extends AbstractAdmin
                     );
                 },
             ])
+            ->add('unitnexos', null, ['label' => 'Nexos'])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -56,7 +58,8 @@ class ReservaUnitAdmin extends AbstractAdmin
                     'delete' => [],
                     'traducir' => ['template' => 'reserva_unit_admin/list__action_traducir.html.twig'],
                 ],
-            ]);
+            ])
+        ;
     }
 
     protected function configureFormFields(FormMapper $form): void
@@ -66,25 +69,32 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('descripcion', null, ['label' => 'Descripción'])
             ->add('referencia', null, ['label' => 'Referencia de ubicación'])
-            ->add('unitnexos', CollectionType::class, [
+
+            ->add('unitCaracteristicaLinks', CollectionType::class, [
                 'by_reference' => false,
-                'label' => 'Nexos',
+                'label' => 'Características',
                 'required' => false,
+                'btn_add' => 'Agregar vínculo',
             ], [
                 'edit' => 'inline',
                 'inline' => 'table',
                 'sortable' => 'prioridad',
             ])
-            // ¡Aquí solo los vínculos a características!
-            ->add('unitCaracteristicaLinks', CollectionType::class, [
+
+            // Nexos al final (si lo tienes igual que antes)
+            ->add('unitnexos', CollectionType::class, [
                 'by_reference' => false,
-                'label' => 'Características',
+                'label' => 'Nexos',
                 'required' => false,
+                'btn_add' => 'Agregar nexo',
+                'type_options' => ['delete' => true],
+                'modifiable' => true,
             ], [
                 'edit' => 'inline',
                 'inline' => 'table',
                 'sortable' => 'prioridad',
-            ]);
+            ])
+        ;
     }
 
     protected function configureShowFields(ShowMapper $show): void
@@ -100,8 +110,9 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('descripcion', null, ['label' => 'Descripción'])
             ->add('referencia', null, ['label' => 'Referencia de ubicación'])
+            ->add('unitCaracteristicaLinks', null, ['label' => 'Características'])
             ->add('unitnexos', null, ['label' => 'Nexos'])
-            ->add('unitCaracteristicaLinks', null, ['label' => 'Características']);
+        ;
     }
 
     protected function configureRoutes(RouteCollectionInterface $collection): void

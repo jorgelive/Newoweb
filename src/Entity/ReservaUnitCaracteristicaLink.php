@@ -51,8 +51,8 @@ class ReservaUnitCaracteristicaLink
     public function __toString(): string
     {
         $nom = $this->unit ? ($this->unit->getNombre() ?? 'Unit') : 'Unit';
-        $c   = $this->caracteristica ? ('#'.$this->caracteristica->getId()) : 'Caracteristica';
-        return sprintf('%s ⇄ %s (p:%s)', $nom, $c, $this->prioridad ?? '-');
+        $c   = $this->caracteristica ? ($this->caracteristica->getNombre()) : 'Caracteristica';
+        return sprintf('%s ⇄ %s', $nom, $c);
     }
 
     public function getId(): ?int { return $this->id; }

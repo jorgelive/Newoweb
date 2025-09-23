@@ -72,10 +72,15 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
 
     protected function configureFormFields(FormMapper $formMapper): void
     {
+        if($this->getRoot()->getClass() != 'App\Entity\ReservaUnit'){
+
         $formMapper
             ->add('unit',  null, [
                 'label' => 'Unidad'
-            ])
+            ]);
+        }
+
+        $formMapper
             ->add('channel', null, [
                 'label' => 'Canal'
             ])

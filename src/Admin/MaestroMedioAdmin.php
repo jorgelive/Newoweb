@@ -124,14 +124,14 @@ class MaestroMedioAdmin extends AbstractAdmin
         ;
     }
 
-    public function prePersist($medio): void
+    public function prePersist($object): void
     {
-        $this->manageFileUpload($medio);
+        $this->manageFileUpload($object);
     }
 
-    public function preUpdate($medio): void
+    public function preUpdate($object): void
     {
-        $this->manageFileUpload($medio);
+        $this->manageFileUpload($object);
     }
 
     private function manageFileUpload($medio): void

@@ -2,8 +2,8 @@
 
 namespace App\Admin;
 
-use App\Entity\ReservaUnit;
-use App\Entity\ReservaUnittipocaracteristica;
+use App\Entity\ReservaUnitcaracteristica;
+use App\Entity\ReservaUnitmedio;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
@@ -12,9 +12,8 @@ use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
-use Sonata\AdminBundle\Route\RouteCollection;
-use Sonata\Form\Type\DatePickerType;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
@@ -24,7 +23,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
 {
     public function configure(): void
     {
-        $this->classnameLabel = "Multimedia";
+        $this->classnameLabel = 'Multimedia';
     }
 
     protected function configureDefaultSortValues(array &$sortValues): void
@@ -34,103 +33,76 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
         $sortValues[DatagridInterface::SORT_BY] = 'id';
     }
 
-    protected function configureFilterParameters(array $parameters): array
+    /**
+     * Mantiene ?caracteristica=<id> para filtrar/precargar en create.
+     */
+    protected function configurePersistentParameters(): array
     {
-        /*
-         * if(!isset($parameters['unit'])){
-            $parameters = array_merge([
-                'unit' => [
-                    'value' => 1
-                ]
-            ], $parameters);
+        if (!$this->getRequest()) {
+            return [];
         }
-        */
 
-        return $parameters;
+        $cid = $this->getRequest()->get('caracteristica');
+
+        return $cid ? ['caracteristica' => (int) $cid] : [];
+    }
+
+    protected function configureDefaultFilterValues(array &$filterValues): void
+    {
+        $cid = $this->getRequest()?->get('caracteristica');
+        if ($cid) {
+            $filterValues['unitcaracteristica'] = ['value' => (int) $cid];
+        }
     }
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
         $buttonList['carga'] = ['template' => 'reserva_unitmedio_admin/carga_button.html.twig'];
-
         return $buttonList;
     }
 
-    protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
+    protected function configureDatagridFilters(DatagridMapper $filter): void
     {
-        $datagridMapper
+        $filter
             ->add('id')
-            ->add('unit', null, [
-                'label' => 'Unidad'
+            ->add('unitcaracteristica', null, [
+                'label' => 'Característica',
             ])
-            ->add('unittipocaracteristica', null, [
-                    'label' => 'Tipo'
-                ]
-            )
+            ->add('unitcaracteristica.unittipocaracteristica', null, [
+                'label' => 'Tipo',
+            ])
             ->add('nombre')
             ->add('titulo', TranslationFieldFilter::class, [
-                'label' => 'Título'
+                'label' => 'Título',
             ])
             ->add('enlace')
-            ->add('prioridad')
-        ;
+            ->add('prioridad');
+
+        $params = $this->configurePersistentParameters();
+        if (isset($params['caracteristica'])) {
+            $this->datagridValues = array_merge([
+                'unitcaracteristica' => ['value' => (int) $params['caracteristica']],
+            ], $this->datagridValues ?? []);
+        }
     }
 
-    protected function configureListFields(ListMapper $listMapper): void
+    protected function configureListFields(ListMapper $list): void
     {
-        $listMapper
+        $list
             ->add('id')
-            ->add('unit', FieldDescriptionInterface::TYPE_CHOICE, [
-                'sortable' => true,
-                'sort_field_mapping' => ['fieldName' => 'nombre'],
-                'sort_parent_association_mappings' => [['fieldName' => 'unit']],
-                'label' => 'Alojamiento',
-                'editable' => true,
-                'class' => 'App\Entity\ReservaUnit',
-                'required' => true,
-                'choices' => [
-                    ReservaUnit::DB_VALOR_N1 => '#1 Cusco Inti',
-                    ReservaUnit::DB_VALOR_N2 => '#2 Cusco Inti',
-                    ReservaUnit::DB_VALOR_N3 => '#3 Cusco Inti',
-                    ReservaUnit::DB_VALOR_N4 => '#4 Cusco Inti',
-                    ReservaUnit::DB_VALOR_N5 => '#5 Cusco Inti',
-                    ReservaUnit::DB_VALOR_N6 => '#6 Casita',
-                    ReservaUnit::DB_VALOR_N7 => '#7 Casita'
-
-                ]
-            ])
-            ->add('unittipocaracteristica', FieldDescriptionInterface::TYPE_CHOICE, [
-                'sortable' => true,
-                'sort_field_mapping' => ['fieldName' => 'nombre'],
-                'sort_parent_association_mappings' => [['fieldName' => 'unittipocaracteristica']],
-                'label' => 'Tipo',
-                'editable' => true,
-                'class' => 'App\Entity\ReservaUnittipocaracteristica',
-                'required' => true,
-                'choices' => [
-                    ReservaUnittipocaracteristica::DB_VALOR_DESCRIPCION => 'Descrición',
-                    ReservaUnittipocaracteristica::DB_VALOR_BRIEFING => 'Briefing',
-                    ReservaUnittipocaracteristica::DB_VALOR_GALERIA => 'Galería',
-                    ReservaUnittipocaracteristica::DB_VALOR_INVENTARIO => 'Inventario'
-
-                ]
+            ->add('unitcaracteristica', null, [
+                'label' => 'Característica',
+                'associated_property' => function (?ReservaUnitcaracteristica $c) {
+                    return $c ? ($c->getNombre() ?: ('#'.$c->getId())) : '—';
+                },
             ])
             ->add('webThumbPath', 'string', [
-                    'label' => 'Archivo',
-                    'template' => 'base_sonata_admin/list_image.html.twig'
-                ]
-            )
-            ->add('nombre', null, [
-                'editable' => true
+                'label' => 'Archivo',
+                'template' => 'base_sonata_admin/list_image.html.twig',
             ])
-            ->add('titulo', null, [
-                'label' => 'Título',
-                'editable' => true
-            ])
-            ->add('prioridad', null, [
-                'label' => 'Prioridad',
-                'editable' => true
-            ])
+            ->add('nombre', null, ['editable' => true])
+            ->add('titulo', null, ['label' => 'Título', 'editable' => true])
+            ->add('prioridad', null, ['label' => 'Prioridad', 'editable' => true])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
@@ -139,112 +111,140 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                     'delete' => [],
                     'traducir' => [
                         'template' => 'reserva_unitmedio_admin/list__action_traducir.html.twig'
-                    ]
-                ]
-            ])
-        ;
+                    ],
+                ],
+            ]);
     }
 
-    protected function configureFormFields(FormMapper $formMapper): void
+    protected function configureFormFields(FormMapper $form): void
     {
+        $cid = $this->configurePersistentParameters()['caracteristica'] ?? null;
 
-        if($this->getRoot()->getClass() != 'App\Entity\ReservaUnit'){
-            $formMapper->add('unit', null, [
-                'label' => 'Unidad'
+        if ($this->getRoot()->getClass() != \App\Entity\ReservaUnitcaracteristica::class) {
+            $form->add('unitcaracteristica', EntityType::class, [
+                'class' => ReservaUnitcaracteristica::class,
+                'label' => 'Característica',
+                'choice_label' => function (ReservaUnitcaracteristica $c) {
+                    $tipo = $c->getUnittipocaracteristica()?->getNombre() ?? '';
+                    return trim(($c->getNombre() ?: ('#' . $c->getId())) . ($tipo ? " — {$tipo}" : ''));
+                },
+                'placeholder' => '— seleccionar —',
+                'required' => true,
+                'disabled' => (bool) $cid,
             ]);
         }
 
-        $formMapper
-            ->add('unittipocaracteristica', null, [
-                    'label' => 'Tipo'
-            ])
+        // Preparar thumbnail en el form (debajo del campo archivo)
+        $subject  = $this->getSubject();
+        $thumbUrl = ($subject && method_exists($subject, 'getWebThumbPath')) ? $subject->getWebThumbPath() : null;
+
+// ID único para la <img> de preview
+        $imgId = 'unitmedio-thumb-' . $this->getUniqid();
+
+        $previewHtml = $thumbUrl
+            ? sprintf(
+                '<a href="%1$s" target="_blank" rel="noopener">
+            <img id="%2$s" src="%1$s" alt="Vista previa" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,.15);" />
+           </a><br/><small>Al subir un nuevo archivo, se reemplaza.</small>',
+                htmlspecialchars((string) $thumbUrl, ENT_QUOTES),
+                htmlspecialchars($imgId, ENT_QUOTES)
+            )
+            : sprintf(
+                '<img id="%1$s" src="" alt="Vista previa" style="display:none;max-width:200px;max-height:200px;object-fit:cover;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,.15);" />
+         <br/><small>No hay archivo cargado aún.</small>',
+                htmlspecialchars($imgId, ENT_QUOTES)
+            );
+
+        $form
             ->add('nombre')
-            ->add('titulo', null, [
-                'label' => 'Título'
+            ->add('titulo', null, ['label' => 'Título'])
+            ->add('archivo', FileType::class, [
+                'required'  => false,
+                'help'      => $previewHtml,   // 👈 miniatura aquí
+                'help_html' => true,
+                // 👇 el input sabrá a qué <img> actualizar
+                'attr'      => ['data-preview-img' => $imgId],
             ])
             ->add('enlace')
             ->add('prioridad')
-            ->add('archivo', FileType::class, [
-                'required' => false
-            ])
         ;
 
         $widthModifier = function (FormInterface $form) {
-
             $form
                 ->add('nombre', null, [
                     'label' => 'Nombre',
-                    'attr' => [
-                        'style' => 'min-width: 150px;'
-                    ]
+                    'attr'  => ['style' => 'min-width: 150px;'],
                 ])
                 ->add('titulo', null, [
                     'label' => 'Título',
-                    'attr' => [
-                        'style' => 'min-width: 150px;'
-                    ]
+                    'attr'  => ['style' => 'min-width: 150px;'],
                 ])
                 ->add('enlace', null, [
                     'label' => 'Enlace',
-                    'attr' => [
-                        'style' => 'min-width: 250px;'
-                    ]
+                    'attr'  => ['style' => 'min-width: 250px;'],
                 ])
-                ->add('prioridad')
-            ;
+                ->add('prioridad');
         };
 
-        $formBuilder = $formMapper->getFormBuilder();
+        $formBuilder = $form->getFormBuilder();
         $formBuilder->addEventListener(
             FormEvents::PRE_SET_DATA,
             function (FormEvent $event) use ($widthModifier) {
-                if($event->getData()
-                    && $this->getRoot()->getClass() == 'App\Entity\ReservaUnit'
-                ){
+                if ($event->getData()) {
                     $widthModifier($event->getForm());
                 }
             }
         );
     }
 
-    protected function configureShowFields(ShowMapper $showMapper): void
+    protected function configureShowFields(ShowMapper $show): void
     {
-        $showMapper
+        $show
             ->add('id')
-            ->add('unit', null, [
-                'label' => 'Unidad'
-            ])
+            ->add('unitcaracteristica', null, ['label' => 'Característica'])
             ->add('webThumbPath', null, [
-                    'label' => 'Archivo',
-                    'template' => 'base_sonata_admin/show_image.html.twig'
-                ]
-            )
-            ->add('enlace')
-            ->add('unittipocaracteristica', null, [
-                    'label' => 'Tipo'
-                ]
-            )
-            ->add('nombre')
-            ->add('titulo', null, [
-                'label' => 'Título'
+                'label' => 'Archivo',
+                'template' => 'base_sonata_admin/show_image.html.twig',
             ])
-        ;
+            ->add('enlace')
+            ->add('nombre')
+            ->add('titulo', null, ['label' => 'Título'])
+            ->add('prioridad');
     }
 
-    public function prePersist($unitmedio): void
+    public function prePersist($object): void
     {
-        $this->manageFileUpload($unitmedio);
+        $this->maybeSetCaracteristicaFromQuery($object);
+        $this->manageFileUpload($object);
     }
 
-    public function preUpdate($unitmedio): void
+    public function preUpdate($object): void
     {
-        $this->manageFileUpload($unitmedio);
+        $this->manageFileUpload($object);
     }
 
-    private function manageFileUpload($unitmedio): void
+    private function maybeSetCaracteristicaFromQuery(ReservaUnitmedio $medio): void
     {
-        if($unitmedio->getArchivo()) {
-            $unitmedio->refreshModificado();
+        if ($medio->getUnitcaracteristica()) {
+            return;
+        }
+        $cid = $this->configurePersistentParameters()['caracteristica'] ?? null;
+        if ($cid) {
+            $car = $this->getModelManager()->find(ReservaUnitcaracteristica::class, (int) $cid);
+            if ($car) {
+                $medio->setUnitcaracteristica($car);
+            }
+        }
+    }
+
+    private function manageFileUpload(ReservaUnitmedio $medio): void
+    {
+        if (method_exists($medio, 'getArchivo') && $medio->getArchivo()) {
+            if (method_exists($medio, 'refreshModificado')) {
+                $medio->refreshModificado();
+            } elseif (method_exists($medio, 'setModificado')) {
+                $medio->setModificado(new \DateTime());
+            }
         }
     }
 
@@ -253,6 +253,6 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
         $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
         $collection->add('carga', 'carga');
         $collection->add('ajaxcrear', 'ajaxcrear');
+        // Rutas por defecto: list, create, edit, show, delete, export
     }
-
 }
