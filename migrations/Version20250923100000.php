@@ -6,7 +6,7 @@ namespace DoctrineMigrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
-final class Version20250923_RewireMedioAndVirtualsWithMap extends AbstractMigration
+final class Version20250923100000 extends AbstractMigration
 {
     public function getDescription(): string
     {
