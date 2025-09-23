@@ -32,7 +32,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('nombre', null, ['label' => 'Nombre interno'])
+            ->add('nombre', null, ['editable' =>true, 'label' => 'Nombre interno'])
             ->add('unittipocaracteristica', null, ['label' => 'Tipo'])
             ->add('contenido', null, ['template' => 'base_sonata_admin/list_html.html.twig'])
             ->add('links', null, [
