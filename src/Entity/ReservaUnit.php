@@ -4,21 +4,16 @@ namespace App\Entity;
 
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
-use Gedmo\Translatable\Translatable;
 use Doctrine\Common\Collections\ArrayCollection;
 
 /**
- * ReservaUnit
- *
  * @ORM\Table(name="res_unit")
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnitTranslation")
  */
 class ReservaUnit
 {
-
     public const DB_VALOR_N1 = 1;
     public const DB_VALOR_N2 = 2;
     public const DB_VALOR_N3 = 3;
@@ -27,7 +22,6 @@ class ReservaUnit
     public const DB_VALOR_N6 = 6;
     public const DB_VALOR_N7 = 7;
 
-
     /**
      * @ORM\Column(type="integer")
      * @ORM\Id
@@ -35,292 +29,208 @@ class ReservaUnit
      */
     private ?int $id = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ReservaUnitTranslation", mappedBy="object", cascade={"persist", "remove"})
-     */
+    /** @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitTranslation", mappedBy="object", cascade={"persist", "remove"}) */
     protected Collection $translations;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
+    /** @ORM\Column(type="string", length=255) */
     private ?string $nombre = null;
 
-    /**
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=255)
-     */
+    /** @Gedmo\Translatable @ORM\Column(type="string", length=255) */
     private ?string $descripcion = null;
 
-    /**
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=255)
-     */
+    /** @Gedmo\Translatable @ORM\Column(type="string", length=255) */
     private ?string $referencia = null;
 
     /**
-     * @ORM\ManyToOne(targetEntity="ReservaEstablecimiento", inversedBy="units")
+     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaEstablecimiento", inversedBy="units")
      * @ORM\JoinColumn(name="establecimiento_id", referencedColumnName="id", nullable=false)
      */
-    protected ?ReservaEstablecimiento $establecimiento;
+    protected ?ReservaEstablecimiento $establecimiento = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
-     */
+    /** @ORM\OneToMany(targetEntity="App\Entity\ReservaReserva", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true) */
     private Collection $reservas;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ReservaUnitnexo", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
-     */
+    /** @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitnexo", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true) */
     private Collection $unitnexos;
 
     /**
-     * @ORM\OneToMany(targetEntity="ReservaUnitcaracteristica", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
+     * Vínculos Unit–Característica (M2M con prioridad en el vínculo)
+     *
+     * @ORM\OneToMany(
+     *     targetEntity="App\Entity\ReservaUnitCaracteristicaLink",
+     *     mappedBy="unit",
+     *     cascade={"persist","remove"},
+     *     orphanRemoval=true
+     * )
      * @ORM\OrderBy({"prioridad" = "ASC"})
      */
-    private Collection $unitcaracteristicas;
+    private Collection $unitCaracteristicaLinks;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ReservaUnitmedio", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"prioridad" = "ASC"})
-     */
-    private Collection $unitmedios;
+    /** @Gedmo\Timestampable(on="create") @ORM\Column(type="datetime") */
+    private ?\DateTimeInterface $creado = null;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
-    private ?\DateTime $creado;
-
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
-    private ?\DateTime $modificado;
+    /** @Gedmo\Timestampable(on="update") @ORM\Column(type="datetime") */
+    private ?\DateTimeInterface $modificado = null;
 
     private ?string $locale = null;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->reservas = new ArrayCollection();
         $this->unitnexos = new ArrayCollection();
-        $this->unitcaracteristicas = new ArrayCollection();
-        $this->unitmedios = new ArrayCollection();
+        $this->unitCaracteristicaLinks = new ArrayCollection();
         $this->translations = new ArrayCollection();
-
     }
 
     public function __toString(): string
     {
-        return sprintf('%s %s',$this->getNombre(), $this->getEstablecimiento()->getNombre());
+        return sprintf('%s %s', $this->getNombre(), $this->getEstablecimiento()?->getNombre() ?? '');
     }
 
-    public function setLocale(?string $locale): self
-    {
-        $this->locale = $locale;
+    public function setLocale(?string $locale): self { $this->locale = $locale; return $this; }
 
+    /** @return Collection|ReservaUnitTranslation[] */
+    public function getTranslations(): Collection { return $this->translations; }
+
+    public function addTranslation(ReservaUnitTranslation $translation): self
+    {
+        if (!$this->translations->contains($translation)) {
+            $this->translations->add($translation);
+            $translation->setObject($this);
+        }
         return $this;
     }
 
-    public function getTranslations()
-    {
-        return $this->translations;
-    }
-
-    public function addTranslation(ReservaUnitTranslation $translation)
-    {
-        if (!$this->translations->contains($translation)) {
-            $this->translations[] = $translation;
-            $translation->setObject($this);
-        }
-    }
-
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
+    public function getId(): ?int { return $this->id; }
 
     public function getResumen(): ?string
     {
-        return sprintf('%s %s', $this->getNombre(), $this->getEstablecimiento()->getNombre());
+        return sprintf('%s %s', $this->getNombre(), $this->getEstablecimiento()?->getNombre() ?? '');
     }
 
-    public function getNombre(): ?string
-    {
-        return $this->nombre;
-    }
+    public function getNombre(): ?string { return $this->nombre; }
+    public function setNombre(string $nombre): self { $this->nombre = $nombre; return $this; }
 
-    public function setNombre(string $nombre): self
-    {
-        $this->nombre = $nombre;
+    public function getDescripcion(): ?string { return $this->descripcion; }
+    public function setDescripcion(?string $descripcion): self { $this->descripcion = $descripcion; return $this; }
 
-        return $this;
-    }
+    public function getReferencia(): ?string { return $this->referencia; }
+    public function setReferencia(?string $referencia): self { $this->referencia = $referencia; return $this; }
 
-    public function getDescripcion(): ?string
-    {
-        return $this->descripcion;
-    }
+    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
+    public function setCreado(\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
 
-    public function setDescripcion(string $descripcion): self
-    {
-        $this->descripcion = $descripcion;
+    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
+    public function setModificado(\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
 
-        return $this;
-    }
+    public function getEstablecimiento(): ?ReservaEstablecimiento { return $this->establecimiento; }
+    public function setEstablecimiento(?ReservaEstablecimiento $establecimiento): self { $this->establecimiento = $establecimiento; return $this; }
 
-
-    public function getReferencia(): ?string
-    {
-        return $this->referencia;
-    }
-
-    public function setReferencia(string $referencia): self
-    {
-        $this->referencia = $referencia;
-
-        return $this;
-    }
-
-    public function getCreado(): ?\DateTimeInterface
-    {
-        return $this->creado;
-    }
-
-    public function setCreado(\DateTimeInterface $creado): self
-    {
-        $this->creado = $creado;
-
-        return $this;
-    }
-
-    public function getModificado(): ?\DateTimeInterface
-    {
-        return $this->modificado;
-    }
-
-    public function setModificado(\DateTimeInterface $modificado): self
-    {
-        $this->modificado = $modificado;
-
-        return $this;
-    }
-
-    public function getEstablecimiento(): ?ReservaEstablecimiento
-    {
-        return $this->establecimiento;
-    }
-
-    public function setEstablecimiento(?ReservaEstablecimiento $establecimiento): self
-    {
-        $this->establecimiento = $establecimiento;
-
-        return $this;
-    }
-
-    public function getReservas(): Collection
-    {
-        return $this->reservas;
-    }
+    /** @return Collection|ReservaReserva[] */
+    public function getReservas(): Collection { return $this->reservas; }
 
     public function addReserva(ReservaReserva $reserva): self
     {
-        if(!$this->reservas->contains($reserva)) {
-            $this->reservas[] = $reserva;
+        if (!$this->reservas->contains($reserva)) {
+            $this->reservas->add($reserva);
             $reserva->setUnit($this);
         }
-
         return $this;
     }
 
     public function removeReserva(ReservaReserva $reserva): self
     {
-        if($this->reservas->removeElement($reserva)) {
-            // set the owning side to null (unless already changed)
-            if($reserva->getUnit() === $this) {
+        if ($this->reservas->removeElement($reserva)) {
+            if ($reserva->getUnit() === $this) {
                 $reserva->setUnit(null);
             }
         }
-
         return $this;
     }
 
-    public function getUnitnexos(): Collection
-    {
-        return $this->unitnexos;
-    }
+    /** @return Collection|ReservaUnitnexo[] */
+    public function getUnitnexos(): Collection { return $this->unitnexos; }
 
     public function addUnitnexo(ReservaUnitnexo $unitnexo): self
     {
-        if(!$this->unitnexos->contains($unitnexo)) {
-            $this->unitnexos[] = $unitnexo;
+        if (!$this->unitnexos->contains($unitnexo)) {
+            $this->unitnexos->add($unitnexo);
             $unitnexo->setUnit($this);
         }
-
         return $this;
     }
 
     public function removeUnitnexo(ReservaUnitnexo $unitnexo): self
     {
-        if($this->unitnexos->removeElement($unitnexo)) {
-            // set the owning side to null (unless already changed)
-            if($unitnexo->getUnit() === $this) {
+        if ($this->unitnexos->removeElement($unitnexo)) {
+            if ($unitnexo->getUnit() === $this) {
                 $unitnexo->setUnit(null);
             }
         }
-
         return $this;
     }
 
-    public function getUnitcaracteristicas(): Collection
-    {
-        return $this->unitcaracteristicas;
-    }
+    /** ================== LINKS (M2M con prioridad en vínculo) ================== */
 
-    public function addUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
+    /** @return Collection|ReservaUnitCaracteristicaLink[] */
+    public function getUnitCaracteristicaLinks(): Collection { return $this->unitCaracteristicaLinks; }
+
+    public function addUnitCaracteristicaLink(ReservaUnitCaracteristicaLink $link): self
     {
-        if(!$this->unitcaracteristicas->contains($unitcaracteristica)) {
-            $this->unitcaracteristicas[] = $unitcaracteristica;
-            $unitcaracteristica->setUnit($this);
+        if (!$this->unitCaracteristicaLinks->contains($link)) {
+            $this->unitCaracteristicaLinks->add($link);
+            $link->setUnit($this);
         }
-
         return $this;
     }
 
-    public function removeUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
+    public function removeUnitCaracteristicaLink(ReservaUnitCaracteristicaLink $link): self
     {
-        if($this->unitcaracteristicas->removeElement($unitcaracteristica)) {
-            // set the owning side to null (unless already changed)
-            if($unitcaracteristica->getUnit() === $this) {
-                $unitcaracteristica->setUnit(null);
+        if ($this->unitCaracteristicaLinks->removeElement($link)) {
+            if ($link->getUnit() === $this) {
+                $link->setUnit(null);
             }
         }
-
         return $this;
     }
 
-    public function getUnitmedios(): Collection
+    public function addCaracteristica(ReservaUnitcaracteristica $caracteristica, ?int $prioridad = null): self
     {
-        return $this->unitmedios;
-    }
-
-    public function addUnitmedio(ReservaUnitmedio $unitmedio): self
-    {
-        $unitmedio->setUnit($this);
-
-        $this->unitmedios[] = $unitmedio;
-
-        return $this;
-    }
-
-    public function removeUnitmedio(Reservaunitmedio $unitmedio): self
-    {
-        if($this->unitmedios->removeElement($unitmedio)) {
-
-            if($unitmedio->getUnit() === $this) {
-               $unitmedio->setUnit(null);
+        foreach ($this->unitCaracteristicaLinks as $link) {
+            if ($link->getCaracteristica() === $caracteristica) {
+                $link->setPrioridad($prioridad);
+                return $this;
             }
         }
+        $link = (new ReservaUnitCaracteristicaLink())
+            ->setUnit($this)
+            ->setCaracteristica($caracteristica)
+            ->setPrioridad($prioridad);
 
+        $this->unitCaracteristicaLinks->add($link);
         return $this;
     }
 
+    public function removeCaracteristica(ReservaUnitcaracteristica $caracteristica): self
+    {
+        foreach ($this->unitCaracteristicaLinks as $link) {
+            if ($link->getCaracteristica() === $caracteristica) {
+                $this->unitCaracteristicaLinks->removeElement($link);
+                break;
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Atajo: devuelve solo las entidades característica (sin el vínculo)
+     * @return ReservaUnitcaracteristica[]
+     */
+    public function getUnitcaracteristicas(): array
+    {
+        return array_map(
+            fn(ReservaUnitCaracteristicaLink $l) => $l->getCaracteristica(),
+            $this->unitCaracteristicaLinks->toArray()
+        );
+    }
 }

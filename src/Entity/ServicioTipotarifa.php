@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -14,7 +16,7 @@ use Gedmo\Translatable\Translatable;
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="App\Entity\ServicioTipotarifaTranslation")
  */
-class ServicioTipotarifa
+class ServicioTipotarifa implements Translatable
 {
     public const DB_VALOR_NORMAL = 1;
     public const DB_VALOR_OPCIONAL = 2;
@@ -23,322 +25,220 @@ class ServicioTipotarifa
     public const DB_VALOR_NO_NECESARIO = 5;
     public const DB_VALOR_CORTESIA = 6;
 
-    /**
-     * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
-    private $id;
+    /** @ORM\Id @ORM\GeneratedValue(strategy="AUTO") @ORM\Column(type="integer") */
+    private ?int $id = null;
+
+    /** @ORM\Column(type="string", length=255) */
+    private ?string $nombre = null;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(type="string", length=255)
-     */
-    private $nombre;
-
-    /**
-     * @var string
-     *
+     * Campo traducible
      * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=100, nullable=false)
+     * @ORM\Column(type="string", length=100, nullable=true)
      */
-    private $titulo;
+    private ?string $titulo = null;
+
+    /** @ORM\Column(type="boolean", options={"default": 1}) */
+    private bool $comisionable = true;
+
+    /** @ORM\Column(type="boolean", options={"default": 0}) */
+    private bool $ocultoenresumen = false;
+
+    /** @ORM\Column(type="boolean", options={"default": 0}) */
+    private bool $mostrarcostoincluye = false;
+
+    /** @ORM\Column(type="string", length=30, nullable=true) */
+    private ?string $listacolor = null;
+
+    /** @ORM\Column(type="string", length=30, nullable=true) */
+    private ?string $listaclase = null;
 
     /**
-     * @var bool
-     *
-     * @ORM\Column(type="boolean", options={"default": 1})
-     */
-    private $comisionable = true;
-
-    /**
-     * Ocultoenresumen en resumen
-     * @var bool
-     *
-     * @ORM\Column(type="boolean", options={"default": 0})
-     */
-    private $ocultoenresumen = false;
-
-    /**
-     * @var bool
-     *
-     * @ORM\Column(type="boolean", options={"default": 0})
-     */
-    private $mostrarcostoincluye = false;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(type="string", length=30, nullable=true)
-     */
-    private $listacolor;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(type="string", length=30, nullable=true)
-     */
-    private $listaclase;
-
-    /**
-     * @var \DateTime $creado
-     *
+     * Marcar como nullable para evitar warnings hasta la primera persistencia
      * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
+     * @ORM\Column(type="datetime", nullable=false)
      */
-    private $creado;
+    private ?\DateTimeInterface $creado = null;
 
     /**
-     * @var \DateTime $modificado
-     *
+     * Marcar como nullable para evitar warnings hasta la primera actualización
      * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
+     * @ORM\Column(type="datetime", nullable=false)
      */
-    private $modificado;
+    private ?\DateTimeInterface $modificado = null;
+
+    /**
+     * Relación inversa a las traducciones (Gedmo PersonalTranslation)
+     *
+     * @ORM\OneToMany(
+     *     targetEntity="App\Entity\ServicioTipotarifaTranslation",
+     *     mappedBy="object",
+     *     cascade={"persist","remove"},
+     *     orphanRemoval=true
+     * )
+     * @var Collection<int,\App\Entity\ServicioTipotarifaTranslation>
+     */
+    private Collection $translations;
 
     /**
      * @Gedmo\Locale
      */
-    private $locale;
+    private ?string $locale = null;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __construct()
     {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        $this->translations = new ArrayCollection();
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    // ----------------------
+    // Translatable helpers
+    // ----------------------
+
+    public function setLocale(?string $locale): self
+    {
+        $this->locale = $locale;
+        return $this;
+    }
+
+    /** @return Collection<int,\App\Entity\ServicioTipotarifaTranslation> */
+    public function getTranslations(): Collection
+    {
+        return $this->translations;
+    }
+
+    public function addTranslation(ServicioTipotarifaTranslation $translation): self
+    {
+        if (!$this->translations->contains($translation)) {
+            $this->translations->add($translation);
+            $translation->setObject($this);
+        }
+        return $this;
+    }
+
+    public function removeTranslation(ServicioTipotarifaTranslation $translation): self
+    {
+        if ($this->translations->removeElement($translation)) {
+            if ($translation->getObject() === $this) {
+                $translation->setObject(null);
+            }
+        }
+        return $this;
+    }
+
+    // ----------------------
+    // Magic & basics
+    // ----------------------
+
+    public function __toString(): string
+    {
+        return $this->getNombre() ?? sprintf('Id: %s.', $this->getId()) ?? '';
+    }
+
+    // ----------------------
+    // Getters / Setters
+    // ----------------------
+
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setNombre($nombre)
+    public function setNombre(string $nombre): self
     {
         $this->nombre = $nombre;
-    
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set listacolor
-     *
-     * @param string $listacolor
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setListacolor($listacolor)
+    public function setListacolor(?string $listacolor): self
     {
         $this->listacolor = $listacolor;
-
         return $this;
     }
 
-    /**
-     * Get listacolor
-     *
-     * @return string
-     */
-    public function getListacolor()
+    public function getListacolor(): ?string
     {
         return $this->listacolor;
     }
 
-    /**
-     * Set listaclase
-     *
-     * @param string $listaclase
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setListaclase($listaclase)
+    public function setListaclase(?string $listaclase): self
     {
         $this->listaclase = $listaclase;
-
         return $this;
     }
 
-    /**
-     * Get listacolor
-     *
-     * @return string
-     */
-    public function getListaclase()
+    public function getListaclase(): ?string
     {
         return $this->listaclase;
     }
 
-
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setCreado($creado)
+    public function setCreado(?\DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTimeInterface
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTimeInterface
     {
         return $this->modificado;
     }
 
-    /**
-     * Set titulo.
-     *
-     * @param string|null $titulo
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setTitulo($titulo = null)
+    public function setTitulo(?string $titulo = null): self
     {
         $this->titulo = $titulo;
-    
         return $this;
     }
 
-    /**
-     * Get titulo.
-     *
-     * @return string|null
-     */
-    public function getTitulo()
+    public function getTitulo(): ?string
     {
         return $this->titulo;
     }
 
-    /**
-     * Set comisionable.
-     *
-     * @param bool $comisionable
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setComisionable($comisionable)
+    public function setComisionable(bool $comisionable): self
     {
         $this->comisionable = $comisionable;
-    
         return $this;
     }
 
-    /**
-     * Is comisionable.
-     *
-     * @return bool
-     */
-    public function isComisionable(): ?bool
+    public function isComisionable(): bool
     {
         return $this->comisionable;
     }
 
-    /**
-     * Set ocultoenresumen.
-     *
-     * @param bool $ocultoenresumen
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setOcultoenresumen($ocultoenresumen)
+    public function setOcultoenresumen(bool $ocultoenresumen): self
     {
         $this->ocultoenresumen = $ocultoenresumen;
-
         return $this;
     }
 
-    /**
-     * Is ocultoenresumen.
-     *
-     * @return bool
-     */
-    public function isOcultoenresumen(): ?bool
+    public function isOcultoenresumen(): bool
     {
         return $this->ocultoenresumen;
     }
 
-    /**
-     * Set mostrarcostoincluye.
-     *
-     * @param bool $mostrarcostoincluye
-     *
-     * @return ServicioTipotarifa
-     */
-    public function setMostrarcostoincluye($mostrarcostoincluye)
+    public function setMostrarcostoincluye(bool $mostrarcostoincluye): self
     {
         $this->mostrarcostoincluye = $mostrarcostoincluye;
-
         return $this;
     }
 
-    /**
-     * Is mostrarcostoincluye.
-     *
-     * @return bool
-     */
-    public function isMostrarcostoincluye(): ?bool
+    public function isMostrarcostoincluye(): bool
     {
         return $this->mostrarcostoincluye;
     }
-
-
-
 }

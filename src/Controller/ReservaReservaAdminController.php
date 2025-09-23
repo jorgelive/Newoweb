@@ -26,6 +26,16 @@ class ReservaReservaAdminController extends CRUDAdminController
         $this->entityManager = $entityManager;
     }
 
+    public function listAction(Request $request): Response
+    {
+        if (!$request->query->has('_list_mode')) {
+            $params = $request->query->all();
+            $params['_list_mode'] = 'mosaic';
+            return $this->redirect($request->getPathInfo().'?'.http_build_query($params));
+        }
+        return parent::listAction($request);
+    }
+
     public function resumenAction(Request $request = null): Response | RedirectResponse
     {
         $object = $this->assertObjectExists($request, true);

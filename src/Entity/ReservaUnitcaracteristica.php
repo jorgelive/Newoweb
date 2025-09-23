@@ -3,210 +3,160 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
-use Gedmo\Translatable\Translatable;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 /**
- * ReservaUnitcaracteristica
- *
  * @ORM\Table(name="res_unitcaracteristica")
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnitcaracteristicaTranslation")
  */
 class ReservaUnitcaracteristica
 {
-
     /**
-     * @var int
-     *
      * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="ReservaUnitcaracteristicaTranslation", mappedBy="object", cascade={"persist", "remove"})
+     * @ORM\OneToMany(
+     *     targetEntity="App\Entity\ReservaUnitcaracteristicaTranslation",
+     *     mappedBy="object",
+     *     cascade={"persist", "remove"}
+     * )
      */
-    protected $translations;
+    protected Collection $translations;
 
     /**
-     * @var string
-     *
      * @Gedmo\Translatable
      * @ORM\Column(type="text")
      */
-    private $contenido;
+    private ?string $contenido = null;
 
     /**
-     * @var string
+     * Campo virtual que refleja el contenido original (sin traducción)
      *
-     * @ORM\Column(type="text", columnDefinition= "longtext AS (contenido) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
+     * @ORM\Column(
+     *   type="text",
+     *   columnDefinition="LONGTEXT GENERATED ALWAYS AS (`contenido`) VIRTUAL",
+     *   nullable=true,
+     *   insertable=false,
+     *   updatable=false
+     * )
      */
-    private $contenidooriginal;
+    private ?string $contenidooriginal = null;
 
     /**
-     * @var \App\Entity\ReservaUnittipocaracteristica
+     * Tipo de característica
      *
-     * @ORM\ManyToOne(targetEntity="ReservaUnittipocaracteristica", inversedBy="unitcaracteristicas")
+     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnittipocaracteristica", inversedBy="unitcaracteristicas")
      * @ORM\JoinColumn(name="unittipocaracteristica_id", referencedColumnName="id", nullable=false)
      */
-    protected $unittipocaracteristica;
+    protected ?ReservaUnittipocaracteristica $unittipocaracteristica = null;
 
     /**
-     * @var int
+     * Medios hijos de esta característica
      *
-     * @ORM\Column(name="prioridad", type="integer", nullable=true)
+     * @ORM\OneToMany(
+     *     targetEntity="App\Entity\ReservaUnitmedio",
+     *     mappedBy="unitcaracteristica",
+     *     cascade={"persist","remove"},
+     *     orphanRemoval=true
+     * )
+     * @ORM\OrderBy({"creado" = "ASC"})
      */
-    private $prioridad;
+    private Collection $medios;
 
     /**
-     * @var \App\Entity\ReservaUnit
-     *
-     * @ORM\ManyToOne(targetEntity="ReservaUnit", inversedBy="unitcaracteristicas")
-     * @ORM\JoinColumn(name="unit_id", referencedColumnName="id", nullable=false)
-     */
-    protected $unit;
-
-    /**
-     * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
-    private $creado;
+    private ?\DateTimeInterface $creado = null;
 
     /**
-     * @var \DateTime $modificado
-     *
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
-    private $modificado;
+    private ?\DateTimeInterface $modificado = null;
 
     /**
      * @Gedmo\Locale
      */
-    private $locale;
+    private ?string $locale = null;
 
     public function __construct()
     {
         $this->translations = new ArrayCollection();
+        $this->medios = new ArrayCollection();
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return substr(str_replace("&nbsp;", '', strip_tags($this->getContenido())), 0, 100) . '...';
+        return substr(str_replace("&nbsp;", '', strip_tags((string) $this->getContenido())), 0, 100) . '...';
     }
 
-    public function setLocale(?string $locale): self
-    {
-        $this->locale = $locale;
+    public function setLocale(?string $locale): self { $this->locale = $locale; return $this; }
 
-        return $this;
-    }
+    /** @return Collection|ReservaUnitcaracteristicaTranslation[] */
+    public function getTranslations(): Collection { return $this->translations; }
 
-    public function getTranslations()
-    {
-        return $this->translations;
-    }
-
-    public function addTranslation(ReservaUnitcaracteristicaTranslation $translation)
+    public function addTranslation(ReservaUnitcaracteristicaTranslation $translation): self
     {
         if (!$this->translations->contains($translation)) {
-            $this->translations[] = $translation;
+            $this->translations->add($translation);
             $translation->setObject($this);
         }
-    }
-
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
-
-    public function getContenido(): ?string
-    {
-        return $this->contenido;
-    }
-
-    public function setContenido(string $contenido): self
-    {
-        $this->contenido = $contenido;
-
         return $this;
     }
 
-    public function getContenidooriginal(): ?string
+    public function removeTranslation(ReservaUnitcaracteristicaTranslation $translation): self
     {
-        return $this->contenidooriginal;
-    }
-
-    public function getCreado(): ?\DateTimeInterface
-    {
-        return $this->creado;
-    }
-
-    public function setCreado(\DateTimeInterface $creado): self
-    {
-        $this->creado = $creado;
-
+        $this->translations->removeElement($translation);
         return $this;
     }
 
-    public function getModificado(): ?\DateTimeInterface
-    {
-        return $this->modificado;
-    }
+    public function getId(): ?int { return $this->id; }
 
-    public function setModificado(\DateTimeInterface $modificado): self
-    {
-        $this->modificado = $modificado;
+    public function getContenido(): ?string { return $this->contenido; }
+    public function setContenido(?string $contenido): self { $this->contenido = $contenido; return $this; }
 
+    public function getContenidooriginal(): ?string { return $this->contenidooriginal; }
+
+    public function getUnittipocaracteristica(): ?ReservaUnittipocaracteristica { return $this->unittipocaracteristica; }
+    public function setUnittipocaracteristica(?ReservaUnittipocaracteristica $tipo): self
+    {
+        $this->unittipocaracteristica = $tipo;
         return $this;
     }
 
-    public function getUnittipocaracteristica(): ?ReservaUnittipocaracteristica
-    {
-        return $this->unittipocaracteristica;
-    }
+    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
+    public function setCreado(\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
 
-    public function setUnittipocaracteristica(?ReservaUnittipocaracteristica $unittipocaracteristica): self
-    {
-        $this->unittipocaracteristica = $unittipocaracteristica;
+    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
+    public function setModificado(\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
 
+    /** @return Collection|ReservaUnitmedio[] */
+    public function getMedios(): Collection { return $this->medios; }
+
+    public function addMedio(ReservaUnitmedio $medio): self
+    {
+        if (!$this->medios->contains($medio)) {
+            $this->medios->add($medio);
+            $medio->setUnitcaracteristica($this);
+        }
         return $this;
     }
 
-    public function setPrioridad(?int $prioridad): self
+    public function removeMedio(ReservaUnitmedio $medio): self
     {
-        $this->prioridad = $prioridad;
-
+        if ($this->medios->removeElement($medio)) {
+            if ($medio->getUnitcaracteristica() === $this) {
+                $medio->setUnitcaracteristica(null);
+            }
+        }
         return $this;
     }
-
-    public function getPrioridad(): ?int
-    {
-        return $this->prioridad;
-    }
-
-    public function getUnit(): ?ReservaUnit
-    {
-        return $this->unit;
-    }
-
-    public function setUnit(?ReservaUnit $unit): self
-    {
-        $this->unit = $unit;
-
-        return $this;
-    }
-
-
 }

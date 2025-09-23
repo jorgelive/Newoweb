@@ -13,138 +13,95 @@ use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
 class ReservaUnitAdmin extends AbstractAdmin
 {
-
     public function configure(): void
     {
         $this->classnameLabel = "Unidad";
     }
 
-    /**
-     * @param DatagridMapper $datagridMapper
-     */
-    protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
+    protected function configureDatagridFilters(DatagridMapper $filter): void
     {
-        $datagridMapper
+        $filter
             ->add('id')
             ->add('establecimiento')
             ->add('nombre')
-            ->add('descripcion', TranslationFieldFilter::class, [
-                'label' => 'Descripción'
-            ])
-            ->add('referencia', TranslationFieldFilter::class, [
-                'label' => 'Referencia de ubicación'
-            ])
-        ;
+            ->add('descripcion', TranslationFieldFilter::class, ['label' => 'Descripción'])
+            ->add('referencia', TranslationFieldFilter::class, ['label' => 'Referencia de ubicación']);
     }
 
-    /**
-     * @param ListMapper $listMapper
-     */
-    protected function configureListFields(ListMapper $listMapper): void
+    protected function configureListFields(ListMapper $list): void
     {
-        $listMapper
+        $list
             ->add('id')
             ->add('establecimiento')
             ->add('nombre')
-            ->add('descripcion', null, [
-                'label' => 'Descripción',
-                'editable' => true
-            ])
-            ->add('referencia', null, [
-                'label' => 'Referencia de ubicación',
-                'editable' => true
-            ])
-            ->add('unitnexos', null, [
-                'label' => 'Nexos'
+            ->add('descripcion', null, ['label' => 'Descripción', 'editable' => true])
+            ->add('referencia', null, ['label' => 'Referencia de ubicación', 'editable' => true])
+            ->add('unitnexos', null, ['label' => 'Nexos'])
+            ->add('unitCaracteristicaLinks', null, [
+                'label' => 'Características (vínculos)',
+                'associated_property' => function ($link) {
+                    return sprintf('%s (p:%s)',
+                        (string) $link->getCaracteristica(),
+                        $link->getPrioridad() ?? '-'
+                    );
+                },
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
-                    'resumen' => [
-                        'template' => 'reserva_unit_admin\list__action_resumen.html.twig'
-                    ],
-                    'inventario' => [
-                        'template' => 'reserva_unit_admin\list__action_inventario.html.twig'
-                    ],
+                    'resumen' => ['template' => 'reserva_unit_admin/list__action_resumen.html.twig'],
+                    'inventario' => ['template' => 'reserva_unit_admin/list__action_inventario.html.twig'],
                     'edit' => [],
                     'delete' => [],
-                    'traducir' => [
-                        'template' => 'reserva_unit_admin/list__action_traducir.html.twig'
-                    ]
+                    'traducir' => ['template' => 'reserva_unit_admin/list__action_traducir.html.twig'],
                 ],
-            ])
-        ;
+            ]);
     }
 
-    /**
-     * @param FormMapper $formMapper
-     */
-    protected function configureFormFields(FormMapper $formMapper): void
+    protected function configureFormFields(FormMapper $form): void
     {
-        $formMapper
+        $form
             ->add('establecimiento')
             ->add('nombre')
-            ->add('descripcion', null, [
-                'label' => 'Descripción'
-            ])
-            ->add('referencia', null, [
-                'label' => 'Referencia de ubicación'
-            ])
+            ->add('descripcion', null, ['label' => 'Descripción'])
+            ->add('referencia', null, ['label' => 'Referencia de ubicación'])
             ->add('unitnexos', CollectionType::class, [
                 'by_reference' => false,
-                'label' => 'Nexos'
+                'label' => 'Nexos',
+                'required' => false,
             ], [
                 'edit' => 'inline',
-                'inline' => 'table'
+                'inline' => 'table',
+                'sortable' => 'prioridad',
             ])
-            ->add('unitcaracteristicas', CollectionType::class, [
+            // ¡Aquí solo los vínculos a características!
+            ->add('unitCaracteristicaLinks', CollectionType::class, [
                 'by_reference' => false,
-                'label' => 'Caracteristicas',
+                'label' => 'Características',
+                'required' => false,
             ], [
                 'edit' => 'inline',
-                'inline' => 'table'
-            ])
-            ->add('unitmedios', CollectionType::class, [
-                'by_reference' => false,
-                'label' => 'Multimedia',
-            ], [
-                'edit' => 'inline',
-                'inline' => 'table'
-            ])
-        ;
+                'inline' => 'table',
+                'sortable' => 'prioridad',
+            ]);
     }
 
-    /**
-     * @param ShowMapper $showMapper
-     */
-    protected function configureShowFields(ShowMapper $showMapper): void
+    protected function configureShowFields(ShowMapper $show): void
     {
-        $showMapper
+        $show
             ->add('id')
             ->add('establecimiento')
             ->add('establecimiento.direccion', null, [
                 'label' => 'Dirección',
                 'template' => 'base_sonata_admin/show_map.html.twig',
-                'zoom' => 17
+                'zoom' => 17,
             ])
             ->add('nombre')
-            ->add('descripcion', null, [
-                'label' => 'Descripción'
-            ])
-            ->add('referencia', null, [
-                'label' => 'Referencia de ubicación'
-            ])
-            ->add('unitnexos', null, [
-                'label' => 'Nexos'
-            ])
-            ->add('unitcaracteristicas', null, [
-                'label' => 'Caracteristicas'
-            ])
-            ->add('unitmedios', null, [
-                'label' => 'Multimedia'
-            ])
-        ;
+            ->add('descripcion', null, ['label' => 'Descripción'])
+            ->add('referencia', null, ['label' => 'Referencia de ubicación'])
+            ->add('unitnexos', null, ['label' => 'Nexos'])
+            ->add('unitCaracteristicaLinks', null, ['label' => 'Características']);
     }
 
     protected function configureRoutes(RouteCollectionInterface $collection): void
@@ -154,6 +111,5 @@ class ReservaUnitAdmin extends AbstractAdmin
         $collection->add('resumen', $this->getRouterIdParameter() . '/resumen');
         $collection->add('inventario', $this->getRouterIdParameter() . '/inventario');
         $collection->add('traducir', $this->getRouterIdParameter() . '/traducir');
-
     }
 }

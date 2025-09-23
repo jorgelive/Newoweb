@@ -2,12 +2,11 @@
 
 namespace App\Entity;
 
-use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
-use Gedmo\Mapping\Annotation as Gedmo;
-use Gedmo\Translatable\Translatable;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Gedmo\Translatable\Translatable;
+use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * CotizacionCotnota
@@ -16,295 +15,190 @@ use Doctrine\Common\Collections\ArrayCollection;
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="App\Entity\CotizacionCotnotaTranslation")
  */
-class CotizacionCotnota
+class CotizacionCotnota implements Translatable
 {
+    /** @ORM\Id @ORM\GeneratedValue(strategy="AUTO") @ORM\Column(type="integer") */
+    private ?int $id = null;
+
+    /** @ORM\Column(name="nombre", type="string", length=255) */
+    private ?string $nombre = null;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
-    private $id;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=255)
-     */
-    private $nombre;
-
-    /**
-     * @var string
-     *
      * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=100)
+     * @ORM\Column(name="titulo", type="string", length=100, nullable=true)
      */
-    private $titulo;
+    private ?string $titulo = null;
 
     /**
-     * @var string
-     *
      * @Gedmo\Translatable
-     * @ORM\Column(name="contenido", type="text")
+     * @ORM\Column(name="contenido", type="text", nullable=true)
      */
-    private $contenido;
+    private ?string $contenido = null;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * Lado inverso (si el propietario es CotizacionCotizacion.cotnotas)
+     * IMPORTANTE: no declarar @ JoinTable aquí si usas mappedBy.
      *
-     * @ORM\ManyToMany(targetEntity="CotizacionCotizacion", mappedBy="cotnotas", cascade={"persist","remove"})
-     * @ORM\JoinTable(name="cotizacion_cotnota",
-     *      joinColumns={@ORM\JoinColumn(name="cotnota_id", referencedColumnName="id")},
-     *      inverseJoinColumns={@ORM\JoinColumn(name="cotizacion_id", referencedColumnName="id")}
+     * @ORM\ManyToMany(targetEntity="App\Entity\CotizacionCotizacion", mappedBy="cotnotas", cascade={"persist","remove"})
+     * @var Collection<int,CotizacionCotizacion>
+     */
+    private Collection $cotizaciones;
+
+    /**
+     * Relación inversa a las traducciones (Gedmo PersonalTranslation)
+     *
+     * @ORM\OneToMany(
+     *     targetEntity="App\Entity\CotizacionCotnotaTranslation",
+     *     mappedBy="object",
+     *     cascade={"persist","remove"},
+     *     orphanRemoval=true
      * )
+     * @var Collection<int,\App\Entity\CotizacionCotnotaTranslation>
      */
-    private $cotizaciones;
+    private Collection $translations;
 
     /**
-     * @var \DateTime $creado
-     *
+     * Marcar como nullable para evitar warnings hasta la primera persistencia
      * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
+     * @ORM\Column(type="datetime", nullable=false)
      */
-    private $creado;
+    private ?\DateTimeInterface $creado = null;
 
     /**
-     * @var \DateTime $modificado
-     *
+     * Marcar como nullable para evitar warnings hasta la primera actualización
      * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
+     * @ORM\Column(type="datetime", nullable=false)
      */
-    private $modificado;
+    private ?\DateTimeInterface $modificado = null;
 
     /**
      * @Gedmo\Locale
-     * Used locale to override Translation listener`s locale
-     * this is not a mapped field of entity metadata, just a simple property
      */
-    private $locale;
+    private ?string $locale = null;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->cotizaciones = new ArrayCollection();
+        $this->translations = new ArrayCollection();
     }
+
+    // ----------------------
+    // Translatable helpers
+    // ----------------------
 
     public function setLocale(?string $locale): self
     {
         $this->locale = $locale;
-
         return $this;
     }
 
-    public function getTranslations()
+    /** @return Collection<int,\App\Entity\CotizacionCotnotaTranslation> */
+    public function getTranslations(): Collection
     {
         return $this->translations;
     }
 
-    public function addTranslation(CotizacionCotnotaTranslation $translation)
+    public function addTranslation(CotizacionCotnotaTranslation $translation): self
     {
         if (!$this->translations->contains($translation)) {
-            $this->translations[] = $translation;
+            $this->translations->add($translation);
             $translation->setObject($this);
         }
+        return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function removeTranslation(CotizacionCotnotaTranslation $translation): self
     {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        if ($this->translations->removeElement($translation)) {
+            if ($translation->getObject() === $this) {
+                $translation->setObject(null);
+            }
+        }
+        return $this;
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    // ----------------------
+    // Magic & basics
+    // ----------------------
+
+    public function __toString(): string
     {
-        return $this->id;
+        return $this->getNombre() ?? sprintf('Id: %s.', $this->getId()) ?? '';
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return CotizacionCotnota
-     */
-    public function setNombre($nombre)
+    // ----------------------
+    // Getters / Setters
+    // ----------------------
+
+    public function getId(): ?int { return $this->id; }
+
+    public function setNombre(string $nombre): self
     {
         $this->nombre = $nombre;
-    
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
-    {
-        return $this->nombre;
-    }
+    public function getNombre(): ?string { return $this->nombre; }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionCotnota
-     */
-    public function setCreado($creado)
+    public function setTitulo(?string $titulo): self
     {
-        $this->creado = $creado;
-    
+        $this->titulo = $titulo;
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
-    {
-        return $this->creado;
-    }
+    public function getTitulo(): ?string { return $this->titulo; }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionCotnota
-     */
-    public function setModificado($modificado)
+    public function setContenido(?string $contenido): self
     {
-        $this->modificado = $modificado;
-    
+        $this->contenido = $contenido;
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
-    {
-        return $this->modificado;
-    }
+    public function getContenido(): ?string { return $this->contenido; }
 
-    /**
-     * Add cotizacion
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     *
-     * @return CotizacionCotnota
-     */
-    public function addCotizacion(\App\Entity\CotizacionCotizacion $cotizacion)
-    {
-        $cotizacion->addCotnota($this);
+    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
+    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
 
-        $this->cotizaciones[] = $cotizacion;
-    
-        return $this;
-    }
+    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
+    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
 
-
-    /**
-     * Add cotizacione por inflector ingles
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     *
-     * @return CotizacionCotnota
-     */
-    public function addCotizacione(\App\Entity\CotizacionCotizacion $cotizacion){
-        return $this->addCotizacion($cotizacion);
-    }
-
-    /**
-     * Remove cotizacion
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     */
-    public function removeCotizacion(\App\Entity\CotizacionCotizacion $cotizacion)
-    {
-        $this->cotizaciones->removeElement($cotizacion);
-    }
-
-    /**
-     * Remove cotizacione por inflector ingles
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     */
-    public function removeCotizacione(\App\Entity\CotizacionCotizacion $cotizacion)
-    {
-        $this->removeCotizacion($cotizacion);
-    }
-
-
-    /**
-     * Get cotizaciones
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getCotizaciones()
+    /** @return Collection<int,CotizacionCotizacion> */
+    public function getCotizaciones(): Collection
     {
         return $this->cotizaciones;
     }
 
-
-    /**
-     * Set titulo.
-     *
-     * @param string $titulo
-     *
-     * @return CotizacionCotnota
-     */
-    public function setTitulo($titulo)
+    public function addCotizacion(CotizacionCotizacion $cotizacion): self
     {
-        $this->titulo = $titulo;
-    
+        if (!$this->cotizaciones->contains($cotizacion)) {
+            $this->cotizaciones->add($cotizacion);
+            // sincroniza el otro lado si existe el método
+            if (method_exists($cotizacion, 'addCotnota')) {
+                $cotizacion->addCotnota($this);
+            }
+        }
         return $this;
     }
 
-    /**
-     * Get titulo.
-     *
-     * @return string
-     */
-    public function getTitulo()
+    // alias por tu inflector inglés
+    public function addCotizacione(CotizacionCotizacion $cotizacion): self
     {
-        return $this->titulo;
+        return $this->addCotizacion($cotizacion);
     }
 
-    /**
-     * Set contenido.
-     *
-     * @param string $contenido
-     *
-     * @return CotizacionCotnota
-     */
-    public function setContenido($contenido)
+    public function removeCotizacion(CotizacionCotizacion $cotizacion): self
     {
-        $this->contenido = $contenido;
-    
+        if ($this->cotizaciones->removeElement($cotizacion)) {
+            if (method_exists($cotizacion, 'removeCotnota')) {
+                $cotizacion->removeCotnota($this);
+            }
+        }
         return $this;
     }
 
-    /**
-     * Get contenido.
-     *
-     * @return string
-     */
-    public function getContenido()
+    // alias por tu inflector inglés
+    public function removeCotizacione(CotizacionCotizacion $cotizacion): self
     {
-        return $this->contenido;
+        return $this->removeCotizacion($cotizacion);
     }
-
 }

@@ -1017,6 +1017,18 @@ services:
             - [ setTemplate, [show, reserva_unit_admin/show.html.twig]]
         public: true
 
+    app.admin.reservaunitcaracteristicalink:
+        class: App\Admin\ReservaUnitCaracteristicaLinkAdmin
+        arguments:
+            - ~
+            - App\Entity\ReservaUnitCaracteristicaLink
+            - ~
+        tags:
+            - { name: sonata.admin, manager_type: orm, label: "Vínculo Característica" }
+        calls:
+            # MUY IMPORTANTE: define el mapeo padre-hijo para inline
+            - [ setParent, [ '@app.admin.reservaunit' ] ]
+
     app.admin.reservaunitcaracteristica:
         class: App\Admin\ReservaUnitcaracteristicaAdmin
         tags:
@@ -1051,6 +1063,8 @@ services:
               label: Unidad Multimedia
               show_mosaic_button: false
         public: true
+        calls:
+            - [ setParent, [ '@app.admin.reservaunitcaracteristica' ] ]
 
     app.admin.reservaunitnexo:
         class: App\Admin\ReservaUnitnexoAdmin

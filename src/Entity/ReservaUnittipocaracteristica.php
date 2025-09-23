@@ -75,13 +75,6 @@ class ReservaUnittipocaracteristica
      */
     private $unitcaracteristicas;
 
-    /**
-     * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="ReservaUnitmedio", mappedBy="unittipocaracteristica", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"prioridad" = "ASC"})
-     */
-    private $unitmedios;
 
     /**
      * @var \DateTime $creado
@@ -105,9 +98,7 @@ class ReservaUnittipocaracteristica
     private $locale;
 
     public function __construct() {
-        $this->reservas = new ArrayCollection();
         $this->unitcaracteristicas = new ArrayCollection();
-        $this->unitmedios = new ArrayCollection();
         $this->translations = new ArrayCollection();
     }
 
@@ -225,33 +216,6 @@ class ReservaUnittipocaracteristica
         }
 
         return $this;
-    }
-
-    public function addUnitmedio(ReservaUnitmedio $unitmedio): self
-    {
-        $unitmedio->setUnittipocaracteristica($this);
-
-        $this->unitmedios[] = $unitmedio;
-
-        return $this;
-    }
-
-    public function removeUnitmedio(Reservaunitmedio $unitmedio): self
-    {
-
-        if($this->unitmedios->removeElement($unitmedio)) {
-            // set the owning side to null (unless already changed)
-            if($unitmedio->getUnittipocaracteristica() === $this) {
-                $unitmedio->setUnittipocaracteristica(null);
-            }
-        }
-
-        return $this;
-    }
-
-    public function getUnitmedios(): Collection
-    {
-        return $this->unitmedios;
     }
 
 
