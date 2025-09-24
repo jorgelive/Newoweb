@@ -132,3 +132,26 @@
 /* Si usas el subrayado “material”, mejor ocultarlo en multifila */
 .nav-tabs-modern--wrap > li.active > a:after{ display:none; }
 
+/* Zebra celeste (selector original) */
+.table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: #e0e9ff !important;
+}
+
+/* Hover celeste (selector original) */
+.table-hover > tbody > tr:hover {
+    background-color: #d3e1ff !important;
+}
+
+/* Fila activa (selector original) */
+.table > tbody > tr.active,
+.table > thead > tr.active,
+.table > tfoot > tr.active {
+    background-color: #d0daff !important;
+}
+
+/* Hover sobre fila activa (selector original) */
+.table-hover > tbody > tr.active:hover {
+    background-color: #cbd6ff !important;
+}
+
+
