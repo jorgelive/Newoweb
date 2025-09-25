@@ -195,3 +195,57 @@ ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
 }
 */
 
+/* 1) Declara el contenedor “medible” */
+.media-box{
+    container-type: inline-size;     /* mide el ancho del contenedor */
+    /* opcional: container-name: media; */
+}
+
+/* 2) Estilos base compartidos */
+.res-h, .res-v{
+    display:block;
+    margin-inline:auto;   /* centrado */
+    height:auto;          /* mantiene proporción */
+    max-width:100%;
+}
+
+/* 3) Reglas por tipo de imagen (valores base para contenedores muy angostos) */
+.res-h{ width:85%; max-height:70vh; }
+.res-v{ width:75%; max-height:60vh; }  /* más compacta la vertical */
+
+/* 4) Breakpoints según el ancho del CONTENEDOR (no del viewport) */
+/*    Usamos tus cortes: 640 / 768 / 1024 */
+@container (min-width: 640px){
+    .res-h{ width:75%; max-height:72vh; }
+    .res-v{ width:65%; max-height:62vh; }
+}
+@container (min-width: 768px){
+    .res-h{ width:60%; max-height:78vh; }
+    .res-v{ width:50%; max-height:68vh; }
+}
+@container (min-width: 1024px){
+    .res-h{ width:45%; max-height:82vh; }
+    .res-v{ width:40%; max-height:72vh; }
+}
+
+/* (Opcional) versión aún más corta para verticales larguísimas */
+.res-v.compact{ max-height:55vh; }
+
+/* (Opcional) Si tu navegador soporta unidades de contenedor, usa cqh en vez de vh */
+@supports (height: 1cqh){
+    .res-h{ max-height:70cqh; }
+    .res-v{ max-height:60cqh; }
+    @container (min-width: 640px){
+        .res-h{ max-height:72cqh; }
+        .res-v{ max-height:62cqh; }
+    }
+    @container (min-width: 768px){
+        .res-h{ max-height:78cqh; }
+        .res-v{ max-height:68cqh; }
+    }
+    @container (min-width: 1024px){
+        .res-h{ max-height:82cqh; }
+        .res-v{ max-height:72cqh; }
+    }
+}
+

@@ -28,11 +28,30 @@ class ReservaReservaAdminController extends CRUDAdminController
 
     public function listAction(Request $request): Response
     {
-        if (!$request->query->has('_list_mode')) {
-            $params = $request->query->all();
-            $params['_list_mode'] = 'mosaic';
-            return $this->redirect($request->getPathInfo().'?'.http_build_query($params));
+        $admin     = $this->admin; // disponible en CRUDController
+        $session   = $request->hasSession() ? $request->getSession() : null;
+        $available = array_keys($admin->getListModes());
+        $key       = sprintf('%s._list_mode', $admin->getCode()); // ej: app.admin.medios._list_mode
+
+        // 1) Si la request ya trae _list_mode, úsalo y guárdalo en sesión
+        if ($request->query->has('_list_mode')) {
+            $mode = (string) $request->query->get('_list_mode');
+            if (!in_array($mode, $available, true)) {
+                $mode = 'mosaic'; // fallback si vino algo raro
+                $request->query->set('_list_mode', $mode);
+            }
+            if ($session) {
+                $session->set($key, $mode);
+            }
+            return parent::listAction($request);
         }
+
+        // 2) Si no viene, usa el último guardado o 'mosaic' como default
+        $mode = ($session && $session->has($key)) ? $session->get($key) : 'mosaic';
+
+        // 3) Inyecta el modo en la query SIN redirigir (evita loop al filtrar)
+        $request->query->set('_list_mode', $mode);
+
         return parent::listAction($request);
     }
 
@@ -132,7 +151,7 @@ class ReservaReservaAdminController extends CRUDAdminController
         $object = $this->assertObjectExists($request, true);
 
         if(!$object) {
-            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
+            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $object->getId()));
         }
 
         $id = $object->getId();

@@ -4,7 +4,7 @@ sonata_user:
 
     resetting:
         email:
-            address: sonata@localhost
+            address: jorge@openperu.pe
             sender_name: Sonata Admin
 
     admin:

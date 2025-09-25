@@ -1,16 +1,14 @@
 security:
-
     role_hierarchy:
-
-        ROLE_USER:                    [PUBLIC_ACCESS]
-        ROLE_ADMIN:                   [ROLE_USER]
-        ROLE_FIT_EDITOR:              [ROLE_ADMIN]
-        ROLE_TRANSPORTES_EDITOR:      [ROLE_ADMIN]
-        ROLE_ADMINISTRACION_EDITOR:   [ROLE_ADMIN]
-        ROLE_RESERVAS_EDITOR:         [ROLE_ADMIN]
-        ROLE_COTIZACIONES_EDITOR:     [ROLE_ADMIN]
-        ROLE_OPERACIONES_EDITOR:      [ROLE_ADMIN]
-        ROLE_SUPER_ADMIN:             [ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH, ROLE_FIT_EDITOR, ROLE_TRANSPORTES_EDITOR, ROLE_CARGA, ROLE_ADMINISTRACION_EDITOR, ROLE_RESERVAS_EDITOR, ROLE_COTIZACIONES_EDITOR, ROLE_OPERACIONES_EDITOR]
+        ROLE_USER:                  []  # <-- sin PUBLIC_ACCESS
+        ROLE_ADMIN:                 [ROLE_USER]
+        ROLE_FIT_EDITOR:            [ROLE_ADMIN]
+        ROLE_TRANSPORTES_EDITOR:    [ROLE_ADMIN]
+        ROLE_ADMINISTRACION_EDITOR: [ROLE_ADMIN]
+        ROLE_RESERVAS_EDITOR:       [ROLE_ADMIN]
+        ROLE_COTIZACIONES_EDITOR:   [ROLE_ADMIN]
+        ROLE_OPERACIONES_EDITOR:    [ROLE_ADMIN]
+        ROLE_SUPER_ADMIN:           [ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH, ROLE_FIT_EDITOR, ROLE_TRANSPORTES_EDITOR, ROLE_CARGA, ROLE_ADMINISTRACION_EDITOR, ROLE_RESERVAS_EDITOR, ROLE_COTIZACIONES_EDITOR, ROLE_OPERACIONES_EDITOR]
 
     password_hashers:
         Sonata\UserBundle\Model\UserInterface: auto
@@ -19,10 +17,12 @@ security:
         users_in_memory: { memory: null }
         sonata_user_bundle:
             id: sonata.user.security.user_provider
+
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+
         main:
             lazy: true
             provider: sonata_user_bundle
@@ -36,58 +36,54 @@ security:
                 target: sonata_user_admin_security_login
             remember_me:
                 secret: '%env(APP_SECRET)%'
-                lifetime: 2629746
-                path: /admin
-
-    # Easy way to control access for large sections of your site
-    # Note: Only the *first* access control that matches will be used
+                lifetime: 2629746           # ~30 días
+                path: /admin                # Si quieres “recordarme” también en /app, cambia a: /
 
     access_control:
-        - { path: ^/app/cotizacioncotservicio/ical$, role: PUBLIC_ACCESS }
+        # --- Públicos específicos (solo GET) ---
+        - { path: '^/app/cotizacioncotservicio/ical$',                 roles: PUBLIC_ACCESS, methods: [GET] }
 
-        - { path: ^/app/reservareserva/ical$, role: PUBLIC_ACCESS }
-        - { path: ^/app/reservareserva/\d*/resumen/[A-Za-z0-9]+$, role: PUBLIC_ACCESS }
+        - { path: '^/app/reservareserva/ical$',                        roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/app/reservareserva/\d+/resumen/[A-Za-z0-9]+$',    roles: PUBLIC_ACCESS, methods: [GET] }
 
-        - { path: ^/app/reservaunit/\d*/ical$, role: PUBLIC_ACCESS }
-        # ics por tripadvisor
-        - { path: ^/app/reservaunit/\d*/ical.ics$, role: PUBLIC_ACCESS }
-        - { path: ^/app/reservaunitnexo/\d*/ical$, role: PUBLIC_ACCESS }
-        - { path: ^/app/reservaunitnexo/\d*/ical.ics$, role: PUBLIC_ACCESS }
+        - { path: '^/app/reservaunit/\d+/ical$',                       roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/app/reservaunit/\d+/ical\.ics$',                  roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/app/reservaunitnexo/\d+/ical$',                   roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/app/reservaunitnexo/\d+/ical\.ics$',              roles: PUBLIC_ACCESS, methods: [GET] }
 
-        - { path: ^/app/reservaunit/\d*/inventario$, role: PUBLIC_ACCESS }
-        - { path: ^/app/reservaunit/\d*/resumen$, role: PUBLIC_ACCESS }
+        - { path: '^/app/reservaunit/\d+/inventario$',                 roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/app/reservaunit/\d+/resumen$',                    roles: PUBLIC_ACCESS, methods: [GET] }
 
-        - { path: ^/app/cotizacioncotizacion/\d*/resumen/[A-Za-z0-9]+$, role: PUBLIC_ACCESS }
-        - { path: ^/app/cotizacioncotizacion/\d*/operaciones/[A-Za-z0-9]+$, role: PUBLIC_ACCESS }
+        - { path: '^/app/cotizacioncotizacion/\d+/resumen/[A-Za-z0-9]+$',  roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/app/cotizacioncotizacion/\d+/operaciones/[A-Za-z0-9]+$', roles: PUBLIC_ACCESS, methods: [GET] }
 
-        - { path: ^/app/cotizacionfile/\d*/resumen/[A-Za-z0-9]+$, role: PUBLIC_ACCESS }
+        - { path: '^/app/cotizacionfile/\d+/resumen/[A-Za-z0-9]+$',    roles: PUBLIC_ACCESS, methods: [GET] }
 
-        - { path: ^/app/fitdieta/\d*/resumen/[A-Za-z0-9]+$, role: PUBLIC_ACCESS }
+        - { path: '^/app/fitdieta/\d+/resumen/[A-Za-z0-9]+$',          roles: PUBLIC_ACCESS, methods: [GET] }
 
-        # Admin login page needs to be accessed without credential
-        - { path: ^/admin/login$, role: PUBLIC_ACCESS }
-        - { path: ^/admin/logout$, role: PUBLIC_ACCESS }
-        - { path: ^/admin/login_check$, role: PUBLIC_ACCESS }
-        - { path: ^/admin/request$, role: PUBLIC_ACCESS }
-        - { path: ^/admin/check-email$, role: PUBLIC_ACCESS }
-        - { path: ^/admin/reset/.*$, role: PUBLIC_ACCESS }
+        # --- Admin: páginas de login/reset públicas ---
+        - { path: '^/admin/login$',        roles: PUBLIC_ACCESS }
+        - { path: '^/admin/logout$',       roles: PUBLIC_ACCESS }
+        - { path: '^/admin/login_check$',  roles: PUBLIC_ACCESS }
+        - { path: '^/admin/request$',      roles: PUBLIC_ACCESS }
+        - { path: '^/admin/check-email$',  roles: PUBLIC_ACCESS }
+        - { path: '^/admin/reset/.*$',     roles: PUBLIC_ACCESS }
 
-        # Secured part of the site
-        # This config requires being logged for the whole site and having the admin role for the admin part.
-        # Change these rules to adapt them to your needs
-        - { path: ^/dashboard$, role: ROLE_USER }
-        - { path: ^/app/, role: ROLE_USER }
-        - { path: ^/.*, role: PUBLIC_ACCESS }
+        # --- Admin protegido ---
+        - { path: '^/admin',               roles: ROLE_USER }
+
+        # --- App autenticada ---
+        - { path: '^/dashboard$',          roles: ROLE_USER }
+        - { path: '^/app/',                roles: ROLE_USER }
+
+        # --- Resto del sitio: público (si lo deseas así) ---
+        - { path: '^/.*',                  roles: PUBLIC_ACCESS }
 
 when@test:
     security:
         password_hashers:
-            # By default, password hashers are resource intensive and take time. This is
-            # important to generate secure password hashes. In tests however, secure hashes
-            # are not important, waste resources and increase test times. The following
-            # reduces the work factor to the lowest possible values.
             Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
                 algorithm: auto
-                cost: 4 # Lowest possible value for bcrypt
-                time_cost: 3 # Lowest possible value for argon
-                memory_cost: 10 # Lowest possible value for argon
+                cost: 4
+                time_cost: 3
+                memory_cost: 10

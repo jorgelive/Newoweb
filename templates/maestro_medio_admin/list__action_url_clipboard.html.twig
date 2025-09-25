@@ -1,0 +1,11 @@
+{% if admin.isGranted('SHOW', object) and object.webPath is not null %}
+    <a data-text="{{ object.webPath }}"
+       data-tooltiptext="Copiado al portapapeles"
+       class="clipboard-trigger btn btn-sm btn-info edit_link">
+        <i class="fa fa-file-text" aria-hidden="true"></i>
+        Copiar url al portapapeles
+    </a>
+{% endif %}
+
+
+

@@ -73,13 +73,16 @@ class MaestroMedioAdmin extends AbstractAdmin
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
+                    'copiar_url' => [
+                        'template' => 'maestro_medio_admin/list__action_url_clipboard.html.twig',
+                    ],
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
                     'traducir' => [
-                        'template' => 'maestro_medio_admin/list__action_traducir.html.twig'
-                    ]
-                ]
+                        'template' => 'maestro_medio_admin/list__action_traducir.html.twig',
+                    ],
+                ],
             ])
         ;
     }

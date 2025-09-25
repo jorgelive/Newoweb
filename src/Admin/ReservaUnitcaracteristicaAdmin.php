@@ -10,6 +10,7 @@ use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Sonata\Form\Type\CollectionType;
+use Sonata\DoctrineORMAdminBundle\Filter\ModelAutocompleteFilter;
 
 class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
 {
@@ -25,6 +26,16 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ->add('nombre', null, ['label' => 'Nombre interno'])
             ->add('unittipocaracteristica', null, ['label' => 'Tipo'])
             ->add('contenido', TranslationFieldFilter::class, [])
+            // 🔎 Filtro por UNIDAD vinculada (autocomplete)
+            ->add('links.unit', ModelAutocompleteFilter::class, [
+                'label' => 'Unidad vinculada',
+                'field_options' => [
+                    'class' => \App\Entity\ReservaUnit::class, // ajusta si tu FQCN difiere
+                    'property' => 'nombre',                    // campo visible/buscable
+                    'minimum_input_length' => 1,
+                ],
+                'show_filter' => true,
+            ])
         ;
     }
 
@@ -32,7 +43,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('nombre', null, ['editable' =>true, 'label' => 'Nombre interno'])
+            ->add('nombre', null, ['editable' => true, 'label' => 'Nombre interno'])
             ->add('unittipocaracteristica', null, ['label' => 'Tipo'])
             ->add('contenido', null, ['template' => 'base_sonata_admin/list_html.html.twig'])
             ->add('links', null, [
@@ -76,7 +87,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
                 'attr' => ['class' => 'ckeditor']
             ])
 
-            // NUEVO: vínculos a Unidades (inline) con botón Agregar
+            // Vínculos a Unidades (inline) con botón Agregar
             ->add('links', CollectionType::class, [
                 'by_reference' => false,
                 'label' => 'Vínculos a Unidades',
@@ -107,8 +118,6 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
                 'inline' => 'table',
                 // 'sortable' => 'prioridad', // descomenta si tu ReservaUnitmedio tiene prioridad
             ])
-
-
         ;
 
         if ($this->getRequest() && $this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
