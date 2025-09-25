@@ -35,11 +35,10 @@
     {# IMPORTANTE: este es el CSS publicado del bundle (vendor). Se mantiene. #}
     <link href="{{ asset('/bundles/sonataform/app.css') }}" rel="stylesheet" />
 
-    {# Pequeña variable CSS para colores dinámicos (usa tu Twig var si existe) #}
     <style>
-        :root{
-            --color-naranja: {{ colores.naranja|default('#ff8a00') }};
-        }
+
+
+
     </style>
 
     {# Tu CSS propio, SIEMPRE después del vendor #}
@@ -51,6 +50,7 @@
 
 {% block javascripts %}
     {{ parent() }}
+    {# Desactivar slimscroll ANTES de que se cargue AdminLTE desde parent() #}
 
     {# JS propio (si lo necesitas) #}
     <script src="{{ asset('/bundles/sonataform/app.js') }}" defer></script>

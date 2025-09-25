@@ -7,53 +7,6 @@
         .encabezado .table > tbody > tr > th,
         .encabezado .table > tbody > tr > td { vertical-align: middle; }
 
-        /* --- Parche Anti-Subrayado Verde de nav-tabs-custom --- */
-        .nav-tabs-custom > .nav-tabs > li.active,
-        .nav-tabs-custom > .nav-tabs > li.active > a,
-        .nav-tabs-custom > .nav-tabs > li.active > a:hover,
-        .nav-tabs-custom > .nav-tabs > li.active > a:focus {
-            border: none !important;
-            border-top: 0 !important;
-            border-bottom: 0 !important;
-            border-left: 0 !important;
-            border-right: 0 !important;
-            box-shadow: none !important;
-        }
-        .nav-tabs-custom > .nav-tabs > li.active { border-top-color: transparent !important; }
-        .nav-tabs-custom > .nav-tabs > li > a:hover,
-        .nav-tabs-custom > .nav-tabs > li > a:focus { border-color: transparent !important; }
-        .nav-tabs-custom > .nav-tabs > li.active,
-        .nav-tabs-custom > .nav-tabs > li.active > a { border-color: transparent !important; }
-
-        .tabs-modern { border-bottom: 0 !important; margin-bottom: 10px; }
-        .tabs-modern.tabs-modern--multiline { display:flex; flex-wrap:wrap; align-items:stretch; }
-        .tabs-modern.tabs-modern--multiline > li { float:none !important; display:block; flex:0 1 auto; margin:6px 6px 0 0; }
-        .tabs-modern > li > a,
-        .tabs-modern > li > a:hover,
-        .tabs-modern > li > a:focus,
-        .tabs-modern > li.active > a,
-        .tabs-modern > li.active > a:hover,
-        .tabs-modern > li.active > a:focus { text-decoration:none !important; }
-        .tabs-modern > li > a {
-            position: relative; padding:10px 14px; font-weight:600; color:#667085; background:transparent;
-            letter-spacing:.2px; transition: color .2s, background-color .2s, border-color .2s; border:none !important;
-            white-space:nowrap; line-height:1.25; outline:none;
-        }
-        .tabs-modern > li > a::after, .tabs-modern > li > a::before { display:none !important; content:none !important; }
-        .tabs-modern > li > a .tab-icon { margin-right:6px; opacity:.9; font-size:.95em; }
-        .tabs-modern.tabs-modern--pill > li > a { border-radius:18px; padding:8px 14px; border:1px solid transparent; }
-        .tabs-modern.tabs-modern--pill > li > a:hover,
-        .tabs-modern.tabs-modern--pill > li > a:focus { background:rgba(60,141,188,.08); color:var(--accent,#3c8dbc); border-color:var(--accent,#3c8dbc); }
-        .tabs-modern.tabs-modern--pill > li.active > a,
-        .tabs-modern.tabs-modern--pill > li.active > a:focus,
-        .tabs-modern.tabs-modern--pill > li.active > a:hover { background:rgba(60,141,188,.12); color:var(--accent,#3c8dbc); border-color:var(--accent,#3c8dbc); }
-        .tabs-modern--sm > li > a { font-size:13px; }
-        .tabs-modern--sm.tabs-modern--pill > li > a { padding:6px 10px; border-radius:16px; }
-        @media (min-width:768px){
-            .tabs-modern--sm-desktop > li > a { font-size:13px; }
-            .tabs-modern--sm-desktop.tabs-modern--pill > li > a { padding:6px 10px; border-radius:16px; }
-        }
-
         .sonata-ba-view-container th .row-icon { margin-right:6px; opacity:.9; color:#667085; width:1.1em; text-align:center; }
 
         {% include 'reserva_reserva_admin/show__parte_galeria.css.twig' %}
@@ -99,56 +52,60 @@
                 </div>
 
                 {# =================== TABS =================== #}
-                <div class="nav-tabs-custom">
-                    <ul class="nav nav-tabs tabs-modern tabs-modern--pill tabs-modern--multiline tabs-modern--sm hidden-print" role="tablist">
-                        {% set inicializado = false %}
+                <div class="nav-tabs-custom nav-tabs-custom--modern">
 
-                        {# Iterar sobre links (orden ya viene por @OrderBy en la colección) #}
-                        {% for index, link in object.unitCaracteristicaLinks %}
-                            {% set c = link.caracteristica %}
-                            {% if c is not empty and not (
-                                (c.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_BRIEFING') and action == 'resumen')
-                                or
-                                (c.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_INVENTARIO') and action == 'resumen')
-                                ) %}
-                                {% set idTab  = 'tab_' ~ admin.uniqid ~ '_' ~ index %}
-                                {% set color  = c.unittipocaracteristica.iconcolor %}
-                                <li role="presentation" class="{% if not inicializado %}active{% endif %}">
-                                    <a href="#{{ idTab }}"
-                                       role="tab"
-                                       data-toggle="tab"
-                                       aria-controls="{{ idTab }}"
-                                       aria-selected="{{ (not inicializado) ? 'true' : 'false' }}"
-                                       style="--accent: {{ color }};">
-                                        <i class="fas {{ c.unittipocaracteristica.iconclase }} tab-icon" aria-hidden="true"></i>
-                                        <span class="tab-title">
-                                            {{ c.unittipocaracteristica.titulo }}
-                                            {% if link.prioridad is not null %}
-                                                <span class="label label-default" style="margin-left:6px;">{{ link.prioridad }}</span>
-                                            {% endif %}
-                                        </span>
-                                    </a>
-                                </li>
-                                {% set inicializado = true %}
-                            {% endif %}
-                        {% endfor %}
+                    {# barra con scroll horizontal en móviles #}
+                    <div class="tabs-scroller tabs-scroller--wrap hidden-print">
+                        <ul class="nav nav-tabs nav-tabs-modern nav-tabs-modern--wrap" role="tablist">
+                            {% set inicializado = false %}
 
-                        {# Tab Ubicación #}
-                        <li role="presentation">
-                            {% set idUbic = 'tab_' ~ admin.uniqid ~ '_ubicacion' %}
-                            <a href="#{{ idUbic }}"
-                               role="tab"
-                               data-toggle="tab"
-                               aria-controls="{{ idUbic }}"
-                               aria-selected="false"
-                               style="--accent: {{ colores.lila }};">
-                                <i class="fas fa-map tab-icon" aria-hidden="true"></i>
-                                <span class="tab-title">{{ 'tab_ubicacion'|trans({},'messages')|capitalize }}</span>
-                            </a>
-                        </li>
-                    </ul>
+                            {# Iterar sobre links (orden ya viene por @OrderBy en la colección) #}
+                            {% for index, link in object.unitCaracteristicaLinks %}
+                                {% set c = link.caracteristica %}
+                                {% if c is not empty and not (
+                                    (c.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_BRIEFING') and action == 'resumen')
+                                    or
+                                    (c.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_INVENTARIO') and action == 'resumen')
+                                    ) %}
+                                    {% set idTab  = 'tab_' ~ admin.uniqid ~ '_' ~ index %}
+                                    {% set color  = c.unittipocaracteristica.iconcolor %}
+                                    <li role="presentation" class="{% if not inicializado %}active{% endif %}">
+                                        <a href="#{{ idTab }}"
+                                           role="tab"
+                                           data-toggle="tab"
+                                           aria-controls="{{ idTab }}"
+                                           aria-selected="{{ (not inicializado) ? 'true' : 'false' }}"
+                                           style="--accent: {{ color }};">
+                                            <i class="fas {{ c.unittipocaracteristica.iconclase }} tab-icon" aria-hidden="true"></i>
+                                            <span class="tab-title">
+                                                {{ c.unittipocaracteristica.titulo }}
+                                                {% if link.prioridad is not null %}
+                                                    <span class="label label-default" style="margin-left:6px;">{{ link.prioridad }}</span>
+                                                {% endif %}
+                                            </span>
+                                        </a>
+                                    </li>
+                                    {% set inicializado = true %}
+                                {% endif %}
+                            {% endfor %}
 
-                    <div class="tab-content no-padding">
+                            {# Tab Ubicación #}
+                            <li role="presentation">
+                                {% set idUbic = 'tab_' ~ admin.uniqid ~ '_ubicacion' %}
+                                <a href="#{{ idUbic }}"
+                                   role="tab"
+                                   data-toggle="tab"
+                                   aria-controls="{{ idUbic }}"
+                                   aria-selected="false"
+                                   style="--accent: {{ colores.lila }};">
+                                    <i class="fas fa-map tab-icon" aria-hidden="true"></i>
+                                    <span class="tab-title">{{ 'tab_ubicacion'|trans({},'messages')|capitalize }}</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="tab-content tab-content-modern no-padding">
                         {% set inicializado = false %}
 
                         {# Contenido de cada tab (sin sort, ya viene ordenado) #}

@@ -9,57 +9,6 @@
         .table.table-condensed > tbody > tr > td { vertical-align: middle; }
         .sonata-ba-view-container th { width: 220px; }
 
-        /* Espaciado sutil entre grupos de botones */
-        .btn-toolbar .btn + .btn { margin-left: 4px; }
-
-        /* --- Parche Anti-Subrayado Verde de nav-tabs-custom --- */
-        .nav-tabs-custom > .nav-tabs > li.active,
-        .nav-tabs-custom > .nav-tabs > li.active > a,
-        .nav-tabs-custom > .nav-tabs > li.active > a:hover,
-        .nav-tabs-custom > .nav-tabs > li.active > a:focus {
-            border: none !important;
-            border-top: 0 !important;
-            border-bottom: 0 !important;
-            border-left: 0 !important;
-            border-right: 0 !important;
-            box-shadow: none !important;
-        }
-        .nav-tabs-custom > .nav-tabs > li.active { border-top-color: transparent !important; }
-        .nav-tabs-custom > .nav-tabs > li > a:hover,
-        .nav-tabs-custom > .nav-tabs > li > a:focus { border-color: transparent !important; }
-        .nav-tabs-custom > .nav-tabs > li.active,
-        .nav-tabs-custom > .nav-tabs > li.active > a { border-color: transparent !important; }
-
-        /* --- Tabs modernas --- */
-        .tabs-modern { border-bottom: 0 !important; margin-bottom: 10px; }
-        .tabs-modern.tabs-modern--multiline { display:flex; flex-wrap:wrap; align-items:stretch; }
-        .tabs-modern.tabs-modern--multiline > li { float:none !important; display:block; flex:0 1 auto; margin:6px 6px 0 0; }
-        .tabs-modern > li > a,
-        .tabs-modern > li > a:hover,
-        .tabs-modern > li > a:focus,
-        .tabs-modern > li.active > a,
-        .tabs-modern > li.active > a:hover,
-        .tabs-modern > li.active > a:focus { text-decoration:none !important; }
-        .tabs-modern > li > a {
-            position: relative; padding:10px 14px; font-weight:600; color:#667085; background:transparent;
-            letter-spacing:.2px; transition: color .2s, background-color .2s, border-color .2s; border:none !important;
-            white-space:nowrap; line-height:1.25; outline:none;
-        }
-        .tabs-modern > li > a::after, .tabs-modern > li > a::before { display:none !important; content:none !important; }
-        .tabs-modern > li > a .tab-icon { margin-right:6px; opacity:.9; font-size:.95em; }
-        .tabs-modern.tabs-modern--pill > li > a { border-radius:18px; padding:8px 14px; border:1px solid transparent; }
-        .tabs-modern.tabs-modern--pill > li > a:hover,
-        .tabs-modern.tabs-modern--pill > li > a:focus { background:rgba(60,141,188,.08); color:var(--accent,#3c8dbc); border-color:var(--accent,#3c8dbc); }
-        .tabs-modern.tabs-modern--pill > li.active > a,
-        .tabs-modern.tabs-modern--pill > li.active > a:focus,
-        .tabs-modern.tabs-modern--pill > li.active > a:hover { background:rgba(60,141,188,.12); color:var(--accent,#3c8dbc); border-color:var(--accent,#3c8dbc); }
-        .tabs-modern--sm > li > a { font-size:13px; }
-        .tabs-modern--sm.tabs-modern--pill > li > a { padding:6px 10px; border-radius:16px; }
-        @media (min-width:768px){
-            .tabs-modern--sm-desktop > li > a { font-size:13px; }
-            .tabs-modern--sm-desktop.tabs-modern--pill > li > a { padding:6px 10px; border-radius:16px; }
-        }
-
         .sonata-ba-view-container th .row-icon{
             margin-right: 6px;
             opacity: .9;
@@ -292,62 +241,65 @@
                     </div>
                 {% endif %}
 
-                <div class="nav-tabs-custom">
-                    {# === Pestañas de características: usar links ordenados por Doctrine (OrderBy en entity) === #}
-                    <ul class="nav nav-tabs tabs-modern tabs-modern--pill tabs-modern--multiline tabs-modern--sm hidden-print" role="tablist">
-                        {% set linksOrdenados = object.unit.unitCaracteristicaLinks %}
-                        {% for index, link in linksOrdenados %}
-                            {% set c     = link.caracteristica %}
-                            {% if c is not empty %}
-                                {% set id     = 'tab_' ~ admin.uniqid ~ '_' ~ index %}
-                                {% set titulo = c.unittipocaracteristica.titulo %}
-                                {% set icono  = c.unittipocaracteristica.iconclase %}
-                                {% set color  = c.unittipocaracteristica.iconcolor %}
+                <div class="nav-tabs-custom nav-tabs-custom--modern">
 
-                                <li role="presentation" class="{% if loop.first %}active{% endif %}">
-                                    <a
-                                            href="#{{ id }}"
-                                            role="tab"
-                                            data-toggle="tab"
-                                            aria-controls="{{ id }}"
-                                            aria-selected="{{ loop.first ? 'true' : 'false' }}"
-                                            style="--accent: {{ color }};"
-                                    >
-                                        <i class="fa {{ icono }} tab-icon" aria-hidden="true"></i>
-                                        <span class="tab-title">
-                                            {{ titulo }}
-                                            {% if link.prioridad is not null %}
-                                                <span class="label label-default" style="margin-left:6px;">{{ link.prioridad }}</span>
-                                            {% endif %}
-                                        </span>
+                    {# barra con scroll horizontal en móviles #}
+                    <div class="tabs-scroller tabs-scroller--wrap hidden-print">
+                        <ul class="nav nav-tabs nav-tabs-modern nav-tabs-modern--wrap" role="tablist">
+                            {% set linksOrdenados = object.unit.unitCaracteristicaLinks %}
+                            {% for index, link in linksOrdenados %}
+                                {% set c     = link.caracteristica %}
+                                {% if c is not empty %}
+                                    {% set id     = 'tab_' ~ admin.uniqid ~ '_' ~ index %}
+                                    {% set titulo = c.unittipocaracteristica.titulo %}
+                                    {% set icono  = c.unittipocaracteristica.iconclase %}
+                                    {% set color  = c.unittipocaracteristica.iconcolor %}
+
+                                    <li role="presentation" class="{% if loop.first %}active{% endif %}">
+                                        <a
+                                                href="#{{ id }}"
+                                                role="tab"
+                                                data-toggle="tab"
+                                                aria-controls="{{ id }}"
+                                                aria-selected="{{ loop.first ? 'true' : 'false' }}"
+                                                style="--accent: {{ color }};"
+                                        >
+                                            <i class="fa {{ icono }} tab-icon" aria-hidden="true"></i>
+                                            <span class="tab-title">
+                                                {{ titulo }}
+                                                {% if link.prioridad is not null %}
+                                                    <span class="label label-default" style="margin-left:6px;">{{ link.prioridad }}</span>
+                                                {% endif %}
+                                            </span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li role="presentation" class="disabled">
+                                    <a href="javascript:void(0)" tabindex="-1">
+                                        <i class="fa fa-info-circle tab-icon" aria-hidden="true"></i>
+                                        <span>{{ 'sin_caracteristicas'|trans({}, 'messages')|default('Sin características') }}</span>
                                     </a>
                                 </li>
-                            {% endif %}
-                        {% else %}
-                            <li role="presentation" class="disabled">
-                                <a href="javascript:void(0)" tabindex="-1">
-                                    <i class="fa fa-info-circle tab-icon" aria-hidden="true"></i>
-                                    <span>{{ 'sin_caracteristicas'|trans({}, 'messages')|default('Sin características') }}</span>
+                            {% endfor %}
+
+                            <li role="presentation">
+                                <a
+                                        href="#tab_{{ admin.uniqid }}_ubicacion"
+                                        role="tab"
+                                        data-toggle="tab"
+                                        aria-controls="tab_{{ admin.uniqid }}_ubicacion"
+                                        aria-selected="false"
+                                        style="--accent:#954e8d;"
+                                >
+                                    <i class="fa fa-map tab-icon" aria-hidden="true"></i>
+                                    <span>{{ 'tab_ubicacion'|trans({}, 'messages')|capitalize }}</span>
                                 </a>
                             </li>
-                        {% endfor %}
+                        </ul>
+                    </div>
 
-                        <li role="presentation">
-                            <a
-                                    href="#tab_{{ admin.uniqid }}_ubicacion"
-                                    role="tab"
-                                    data-toggle="tab"
-                                    aria-controls="tab_{{ admin.uniqid }}_ubicacion"
-                                    aria-selected="false"
-                                    style="--accent:#954e8d;"
-                            >
-                                <i class="fa fa-map tab-icon" aria-hidden="true"></i>
-                                <span>{{ 'tab_ubicacion'|trans({}, 'messages')|capitalize }}</span>
-                            </a>
-                        </li>
-                    </ul>
-
-                    <div class="tab-content no-padding">
+                    <div class="tab-content tab-content-modern no-padding">
                         {% for index, link in linksOrdenados %}
                             {% set c = link.caracteristica %}
                             {% if c is not empty %}

@@ -29,39 +29,32 @@ h4, h5 { letter-spacing: .2px; }
    ========================= */
 /* Evita duplicidades de height/!important */
 .main-header {
-    min-height: 100px;           /* fallback */
     min-height: var(--header-h);
     position: relative;
 }
 .main-header .logo {
-    min-height: 100px;            /* fallback */
     min-height: var(--header-h);
     display: flex; align-items: center; justify-content: center;
 }
 .main-header .logo img { max-width: none; }
 
+/* fix para el overflow en vista grande */
+
+@media (width > 768px) {
+    body.fixed .main-sidebar .main-sidebar .sidebar, body.fixed .main-sidebar .slimScrollDiv {
+        height: auto !important;
+        overflow: visible !important;
+    }
+}
+
 /* padding-top para móvil/flujo normal */
 .left-side, .main-sidebar {
-    padding-top: 100px;           /* fallback */
     padding-top: var(--header-h);
 }
 
-/* =========================
-   Desktop: Sidebar fijo y contenido alineado
-   ========================= */
-@media (min-width: 768px) {
-    .main-sidebar {
-        position: fixed;          /* AdminLTE2 friendly */
-        top: 100px;               /* fallback */
-        top: var(--header-h);
-        bottom: 0;
-        overflow-y: hidden;       /* lo maneja slimScroll */
-        padding-top: 0;           /* evita doble espacio interno */
-    }
-    .left-side { padding-top: 0; }
-
-    .content-wrapper, .right-side, .main-footer {
-        margin-left: 230px;       /* ancho por defecto del sidebar en ALTE2 */
+@media (width <= 768px) {
+    .left-side, .main-sidebar {
+        padding-top: calc(var(--header-h) + 50px);
     }
 }
 
@@ -182,26 +175,6 @@ ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
     filter: drop-shadow(0 3px 5px #ccc); line-height: 1.5; z-index: 1000;
 }
 
-/* =========================
-   Desktop: subir 100px el slimScrollDiv del sidebar
-   ========================= */
-@media (min-width: 768px) {
-    /* wrapper creado por slimScroll */
-    .main-sidebar .slimScrollDiv {
-        height: calc(100vh - var(--header-h)) !important; /* encaja bajo el header */
-    }
-    /* contenido scrolleable */
-    .main-sidebar .slimScrollDiv > .sidebar {
-        margin-top: calc(-1 * var(--header-h));  /* sube 100px */
-        padding-top: var(--header-h);            /* compensa área clicable */
-    }
-    /* barra y riel, si existen */
-    .main-sidebar .slimScrollDiv > .slimScrollBar,
-    .main-sidebar .slimScrollDiv > .slimScrollRail {
-        margin-top: calc(-1 * var(--header-h));
-        height: calc(100% + var(--header-h)) !important;
-    }
-}
 
 /* =========================
    Print limpio
