@@ -228,7 +228,7 @@ ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
 }
 
 /* 2) Estilos base compartidos */
-.res-h, .res-v{
+.res-h, .res-v, .res-icon{
     display:block;
     margin-inline:auto;   /* centrado */
     height:auto;          /* mantiene proporción */
@@ -238,41 +238,55 @@ ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
 /* 3) Reglas por tipo de imagen (valores base para contenedores muy angostos) */
 .res-h{ width:85%; max-height:70vh; }
 .res-v{ width:75%; max-height:60vh; }  /* más compacta la vertical */
+/* Ícono proporcional: 1/3 de .res-v */
+.res-icon{ width:25%; max-height:20vh; }
 
 /* 4) Breakpoints según el ancho del CONTENEDOR (no del viewport) */
 /*    Usamos tus cortes: 640 / 768 / 1024 */
 @container (min-width: 640px){
     .res-h{ width:75%; max-height:72vh; }
     .res-v{ width:65%; max-height:62vh; }
+    .res-icon{ width:21.6667%; max-height:20.6667vh; } /* 65% / 3, 62vh / 3 */
 }
 @container (min-width: 768px){
     .res-h{ width:60%; max-height:78vh; }
     .res-v{ width:50%; max-height:68vh; }
+    .res-icon{ width:16.6667%; max-height:22.6667vh; } /* 50% / 3, 68vh / 3 */
 }
 @container (min-width: 1024px){
     .res-h{ width:45%; max-height:82vh; }
     .res-v{ width:40%; max-height:72vh; }
+    .res-icon{ width:13.3333%; max-height:24vh; } /* 40% / 3, 72vh / 3 */
 }
 
-/* (Opcional) versión aún más corta para verticales larguísimas */
+/* (Opcional) versiones compactas */
 .res-v.compact{ max-height:55vh; }
+.res-icon.compact{ max-height:18.3333vh; } /* 55vh / 3 */
 
 /* (Opcional) Si tu navegador soporta unidades de contenedor, usa cqh en vez de vh */
 @supports (height: 1cqh){
     .res-h{ max-height:70cqh; }
     .res-v{ max-height:60cqh; }
+    .res-icon{ max-height:20cqh; } /* 60cqh / 3 */
+
     @container (min-width: 640px){
         .res-h{ max-height:72cqh; }
         .res-v{ max-height:62cqh; }
+        .res-icon{ max-height:20.6667cqh; } /* 62 / 3 */
     }
     @container (min-width: 768px){
         .res-h{ max-height:78cqh; }
         .res-v{ max-height:68cqh; }
+        .res-icon{ max-height:22.6667cqh; } /* 68 / 3 */
     }
     @container (min-width: 1024px){
         .res-h{ max-height:82cqh; }
         .res-v{ max-height:72cqh; }
+        .res-icon{ max-height:24cqh; } /* 72 / 3 */
     }
+
+    .res-v.compact{ max-height:55cqh; }
+    .res-icon.compact{ max-height:18.3333cqh; } /* 55 / 3 */
 }
 
 
