@@ -92,15 +92,14 @@ class ReservaUnitCaracteristicaLinkAdmin extends AbstractAdmin
                     'choice_label' => 'nombre',
                     'placeholder' => '— seleccionar característica —',
                     'required' => true,
+                ])->add('prioridad', IntegerType::class, [
+                    'label' => 'Prioridad',
+                    'required' => false,
+                    'empty_data' => '0',
+                    'attr' => ['min' => 0, 'step' => 1],
                 ]);
         }
-        $form
-        ->add('prioridad', IntegerType::class, [
-            'label' => 'Prioridad',
-            'required' => false,
-            'empty_data' => '0',
-            'attr' => ['min' => 0, 'step' => 1],
-        ]);
+        
     }
 
     protected function configureShowFields(ShowMapper $show): void
