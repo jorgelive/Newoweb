@@ -79,7 +79,7 @@ class ReservaUnitcaracteristica
      *     cascade={"persist","remove"},
      *     orphanRemoval=true
      * )
-     * @ORM\OrderBy({"creado" = "ASC"})
+     * @ORM\OrderBy({"prioridad" = "ASC"})
      */
     private Collection $medios;
 

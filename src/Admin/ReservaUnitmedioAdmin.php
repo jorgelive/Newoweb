@@ -183,7 +183,10 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                     'label' => 'Enlace',
                     'attr'  => ['style' => 'min-width: 250px;'],
                 ])
-                ->add('prioridad');
+                ->add('prioridad', null, [
+                    'label' => 'Enlace',
+                    'attr'  => ['style' => 'width: 70px;'],
+                ]);
         };
 
         $formBuilder = $form->getFormBuilder();

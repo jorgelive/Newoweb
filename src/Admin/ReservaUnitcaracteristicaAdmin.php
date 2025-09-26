@@ -123,7 +123,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ], [
                 'edit' => 'inline',
                 'inline' => 'table',
-                // 'sortable' => 'prioridad', // descomenta si tu ReservaUnitmedio tiene prioridad
+                'sortable' => 'prioridad', // descomenta si tu ReservaUnitmedio tiene prioridad
             ])
         ;
 
