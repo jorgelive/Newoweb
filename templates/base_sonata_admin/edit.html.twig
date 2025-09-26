@@ -150,6 +150,15 @@
                     ClassicEditor.create(this, {
                         toolbar: {
                             shouldNotGroupWhenFull: true
+                        },
+                        htmlSupport: {
+                            allow: [
+                                // permite cualquier clase/atributo/estilo en <img>
+                                { name: 'img', classes: true, attributes: true, styles: true }
+                            ]
+                        },
+                        ui: {
+                            viewportOffset: { top: 30 } // ← alto de tu header fijo (ajusta a tu layout)
                         }
                     }).then(editor => {
                         editors.set(editor.id, editor);
@@ -192,6 +201,15 @@
                 ClassicEditor.create(this, {
                     toolbar: {
                         shouldNotGroupWhenFull: true
+                    },
+                    htmlSupport: {
+                        allow: [
+                            // permite cualquier clase/atributo/estilo en <img>
+                            { name: 'img', classes: true, attributes: true, styles: true }
+                        ]
+                    },
+                    ui: {
+                        viewportOffset: { top: 30 } // ← alto de tu header fijo (ajusta a tu layout)
                     }
                 }).then(editor => {
                     editors.set( editor.id, editor );

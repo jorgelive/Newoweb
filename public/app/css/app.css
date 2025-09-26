@@ -15,6 +15,16 @@
 
 /* (Opcional) ocultar texto "Extranet" del logo */
 .main-header .logo span { display: none !important; }
+.tareas-block {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+@media (max-width: 767px) {
+    .tareas-block {
+        padding-top: 50px;
+    }
+}
 
 /* Tipografía y pequeños ajustes */
 h4, h5 { letter-spacing: .2px; }

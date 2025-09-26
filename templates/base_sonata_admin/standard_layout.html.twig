@@ -96,6 +96,15 @@
     </script>
 {% endblock %}
 
+{% block body_attributes -%}
+    class="sonata-bc {% block admin_lte_skin_class %}{{ _skin }}{% endblock %}
+    {% if _use_select2 %}sonata-select2{% endif %}
+    {% if _use_icheck %}sonata-icheck{% endif %}
+    {% if app.request.cookies.get('sonata_sidebar_hide') -%}
+        sidebar-collapse
+    {%- endif -%}"
+{%- endblock -%}
+
 {% block sonata_page_content %}
     {{ sonata_block_render({
         'type': 'app.block.tareas_block_service'
