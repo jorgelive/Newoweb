@@ -69,6 +69,7 @@
                                     ) %}
                                     {% set idTab  = 'tab_' ~ admin.uniqid ~ '_' ~ index %}
                                     {% set color  = c.unittipocaracteristica.iconcolor %}
+                                    {% set color_ubicacion = '#16A085' %}
                                     <li role="presentation" class="{% if not inicializado %}active{% endif %}">
                                         <a href="#{{ idTab }}"
                                            role="tab"
@@ -76,7 +77,7 @@
                                            aria-controls="{{ idTab }}"
                                            aria-selected="{{ (not inicializado) ? 'true' : 'false' }}"
                                            style="--accent: {{ color }};">
-                                            <i class="fas {{ c.unittipocaracteristica.iconclase }} tab-icon" aria-hidden="true"></i>
+                                            <i class="fas {{ c.unittipocaracteristica.iconclase }} tab-icon" style="color: {{ color|e('html_attr') }};" aria-hidden="true"></i>
                                             <span class="tab-title">
                                                 {{ c.unittipocaracteristica.titulo }}
                                             </span>
@@ -89,13 +90,14 @@
                             {# Tab Ubicación #}
                             <li role="presentation">
                                 {% set idUbic = 'tab_' ~ admin.uniqid ~ '_ubicacion' %}
+                                {% set color_ubicacion = '#16A085' %}
                                 <a href="#{{ idUbic }}"
                                    role="tab"
                                    data-toggle="tab"
                                    aria-controls="{{ idUbic }}"
                                    aria-selected="false"
                                    style="--accent: {{ colores.lila }};">
-                                    <i class="fas fa-map-marker-alt tab-icon" aria-hidden="true"></i>
+                                    <i class="fas fa-map-marker-alt tab-icon" style="color: {{ color_ubicacion|e('html_attr') }};" aria-hidden="true"></i>
                                     <span class="tab-title">{{ 'tab_ubicacion'|trans({},'messages')|capitalize }}</span>
                                 </a>
                             </li>

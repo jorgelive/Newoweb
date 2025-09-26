@@ -255,6 +255,7 @@
                                     {% set icono  = c.unittipocaracteristica.iconclase %}
                                     {% set color  = c.unittipocaracteristica.iconcolor %}
 
+
                                     <li role="presentation" class="{% if loop.first %}active{% endif %}">
                                         <a
                                                 href="#{{ id }}"
@@ -264,7 +265,7 @@
                                                 aria-selected="{{ loop.first ? 'true' : 'false' }}"
                                                 style="--accent: {{ color }};"
                                         >
-                                            <i class="fa {{ icono }} tab-icon" aria-hidden="true"></i>
+                                            <i class="fa {{ icono }} tab-icon" style="color: {{ color|e('html_attr') }};" aria-hidden="true"></i>
                                             <span class="tab-title">
                                                 {{ titulo }}
                                             </span>
@@ -272,9 +273,10 @@
                                     </li>
                                 {% endif %}
                             {% else %}
+                                {% set color_ubicacion = '#16A085' %}
                                 <li role="presentation" class="disabled">
                                     <a href="javascript:void(0)" tabindex="-1">
-                                        <i class="fa fa-info-circle tab-icon" aria-hidden="true"></i>
+                                        <i class="fa fa-info-circle tab-icon" style="color: {{ color_ubicacion|e('html_attr') }};" aria-hidden="true"></i>
                                         <span>{{ 'sin_caracteristicas'|trans({}, 'messages')|default('Sin características') }}</span>
                                     </a>
                                 </li>
