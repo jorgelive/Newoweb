@@ -34,7 +34,8 @@ class CotizacionCotpoliticaAdmin extends AbstractAdmin
             ->add('id')
             ->add('nombre')
             ->add('contenido', null, [
-                'template' => 'base_sonata_admin/list_html.html.twig'
+                'template' => 'base_sonata_admin/list_html.html.twig',
+                'header_class' => 'col-long-text'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',

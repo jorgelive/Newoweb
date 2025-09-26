@@ -69,21 +69,22 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
         if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $listMapper
                 ->add('titulooriginal', null, [
-                    'label' => 'Título original',
-                    'template' => 'base_sonata_admin/list_html.html.twig'
+                    'label' => 'Título original'
                 ]);
         }
 
         $listMapper->add('importante')
             ->add('contenido', null, [
-                'template' => 'base_sonata_admin/list_html.html.twig'
+                'template' => 'base_sonata_admin/list_html.html.twig',
+                'header_class' => 'col-long-text'
             ]);
 
         if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $listMapper
                 ->add('contenidooriginal', null, [
                     'label' => 'Contenido original',
-                    'template' => 'base_sonata_admin/list_html.html.twig'
+                    'template' => 'base_sonata_admin/list_html.html.twig',
+                    'header_class' => 'col-long-text'
                 ]);
         }
         $listMapper->add(ListMapper::NAME_ACTIONS, null, [

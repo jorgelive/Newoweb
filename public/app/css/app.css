@@ -195,6 +195,22 @@ ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
 }
 */
 
+
+/* header + celdas de la columna 'contenido' */
+.col-long-text{
+    min-width:26rem;
+    width:26rem;           /* ayuda si la tabla usa table-layout: fixed */
+    white-space: normal;   /* permite salto de línea */
+    word-break: break-word;
+}
+
+/* si dentro usas .media-box, que no se encoja */
+.col-long-text .media-box{
+    display:block;
+    width:100%;
+    max-width:none;
+}
+
 /* 1) Declara el contenedor “medible” */
 .media-box{
     container-type: inline-size;     /* mide el ancho del contenedor */
@@ -248,4 +264,6 @@ ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
         .res-v{ max-height:72cqh; }
     }
 }
+
+
 

@@ -64,8 +64,7 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
             if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
                 $listMapper
                     ->add('titulooriginal', null, [
-                        'label' => 'Título original',
-                        'template' => 'base_sonata_admin/list_html.html.twig'
+                        'label' => 'Título original'
                     ]);
             }
 
