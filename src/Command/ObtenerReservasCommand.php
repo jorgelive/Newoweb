@@ -42,7 +42,15 @@ class ObtenerReservasCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
 
-        $ahora = new \DateTime('now');
+        $tz = new \DateTimeZone('America/Lima');
+
+        try {
+            $ahora = new \DateTimeImmutable('today', $tz);
+        } catch (\Exception $e) {
+            $output->writeln(sprintf('Excepción capturada: %s', $e->getMessage()));
+            return Command::FAILURE;
+        }
+
         $output->writeln([
             sprintf('%s: Iniciando proceso...', $ahora->format('Y-m-d H:i')),
             '============'
@@ -62,19 +70,23 @@ class ObtenerReservasCommand extends Command
                 ));
 
                 //Obtenemos las reservas actuales
-                $qb = $this->entityManager
-                    ->createQueryBuilder()
+                $from = (new \DateTimeImmutable('today', $tz))
+                    ->setTime(0, 0);
+
+                $qb = $this->entityManager->createQueryBuilder()
                     ->select('rr')
-                    ->from('App\Entity\ReservaReserva', 'rr')
-                    ->where('rr.unitnexo = :unitnexo')                    
+                    ->from(ReservaReserva::class, 'rr')
+                    ->where('rr.unitnexo = :nexo')
                     ->andWhere('rr.channel = :channel')
                     ->andWhere('rr.unit = :unit')
-                    ->andWhere('DATE(rr.fechahorainicio) >= :fechahorainicio')
-                    ->setParameter('unitnexo', $nexo->getId())
-                    ->setParameter('channel', $nexo->getChannel()->getId())
-                    ->setParameter('unit', $nexo->getUnit()->getId())
-                    ->setParameter('fechahorainicio', $ahora->format('Y-m-d'));
+                    ->andWhere('rr.fechahorainicio >= :from')
+                    ->setParameter('nexo', $nexo)                     // entidad
+                    ->setParameter('channel', $nexo->getChannel())    // entidad
+                    ->setParameter('unit', $nexo->getUnit())          // entidad
+                    ->setParameter('from', $from)
+                    ->orderBy('rr.fechahorainicio', 'ASC');
 
+                /** @var array<int, ReservaReserva> $currentReservas */
                 $currentReservas = $qb->getQuery()->getResult();
 
                 //obtenemos el resultado iCal
@@ -173,7 +185,7 @@ class ObtenerReservasCommand extends Command
                         $temp['enlace'] = '';
                     }else{
                         $insertar = true;
-                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);
+                        $temp['estado'] = $this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_INICIAL);
                         $temp['nombre'] = $event->summary;
                         $temp['enlace'] = '';
                     }
@@ -195,7 +207,7 @@ class ObtenerReservasCommand extends Command
                     }
                 }
 
-                foreach($currentReservas as &$currentReserva){
+                foreach($currentReservas as $currentReserva){
                     //Fix para colocar el id de nexo posteriormente
                     if(in_array($currentReserva->getUid(), $uidsArray) && empty($currentReserva->getUnitnexo())){
                         $currentReserva->setUnitnexo($nexo);
@@ -220,6 +232,7 @@ class ObtenerReservasCommand extends Command
                             $currentReserva->setEnlace(null);
                             $currentReserva->setTelefono(null);
                             $currentReserva->setNota(null);
+                            $currentReserva->setCalificacion(null);
                             $currentReserva->setCantidadadultos(1);
                             $currentReserva->setCantidadninos(0);
                             $currentReserva->setCreado($ahora);

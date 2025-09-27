@@ -228,12 +228,13 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'class' => 'App\Entity\ReservaEstado',
                 'required' => true,
                 'choices' => [
-                    ReservaEstado::DB_VALOR_PENDIENTE => 'Pendiente',
+                    ReservaEstado::DB_VALOR_ABIERTO => 'Abierto',
                     ReservaEstado::DB_VALOR_CONFIRMADO => 'Confirmado',
                     ReservaEstado::DB_VALOR_CANCELADO => 'Cancelado',
                     ReservaEstado::DB_VALOR_PAGO_PARCIAL => 'Pago parcial',
                     ReservaEstado::DB_VALOR_PAGO_TOTAL => 'Pago total',
-                    ReservaEstado::DB_VALOR_PARA_CANCELACION => 'Para Cancelacíón'
+                    ReservaEstado::DB_VALOR_PARA_CANCELACION => 'Para Cancelacíón',
+                    ReservaEstado::DB_VALOR_INICIAL => 'Inicial'
                 ]
             ])
             ->add('manual', null, [
