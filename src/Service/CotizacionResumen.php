@@ -17,10 +17,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Genera datos resumidos para la vista de una cotización.
+ *
  * - Mantiene FlashBag de "no encontrado".
- * - Agrupa componentes; si se repiten, muestra SOLO diferencias (Pax/edades) en línea.
+ * - Agrupa componentes; si se repiten (entre tipos de tarifa), muestra SOLO las
+ *   diferencias (Pax/edades) en línea.
  * - NO muestra validez en etiquetas.
- * - Si todas las variantes comparten el mismo rango de edad => oculta edades (solo Pax).
+ * - Si hay 2+ variantes y todas comparten el mismo rango de edad ⇒ quita edad (deja solo Pax).
+ * - Si hay solo 1 variante, conserva edad (porque explica la diferencia global).
  * - Conteo de repetidos GLOBAL entre tipos de tarifa + normalización suave de títulos.
  */
 final class CotizacionResumen
@@ -46,6 +49,9 @@ final class CotizacionResumen
     // Entrada pública
     // =======================
 
+    /**
+     * Obtiene los datos de una cotización por su ID.
+     */
     public function getDatosFromId(int $id): array
     {
         $cotizacion = $this->entityManager
@@ -63,6 +69,9 @@ final class CotizacionResumen
         return $this->getDatos($cotizacion);
     }
 
+    /**
+     * Procesa una cotización y genera los datos de la vista.
+     */
     public function getDatos(CotizacionCotizacion $cotizacion): array
     {
         $datos = [];
@@ -74,7 +83,7 @@ final class CotizacionResumen
 
         /** @var CotizacionCotservicio $servicio */
         foreach ($servicios as $servicio) {
-            $fotos = $this->cotizacionItinerario->getFotos($servicio);
+            $fotos = $this->cotizacionItinerario->getFotos($servicio); // Collection
 
             $componentes = $servicio->getCotcomponentes();
             if ($componentes->count() === 0) {
@@ -92,16 +101,19 @@ final class CotizacionResumen
                 foreach ($tarifas as $tarifa) {
                     // if ($tarifa->getTipotarifa()->isOcultoenresumen()) { continue; }
 
+                    // 1) Alojamientos
                     if ($this->esAlojamiento($tarifa, $componente)) {
                         $this->procesarAlojamiento($datos, $componente, $tarifa);
                         continue;
                     }
 
+                    // 2) Servicios con título en el itinerario
                     if ($this->tieneTituloItinerario($componente, $servicio)) {
                         $this->procesarServicioConItinerario($datos, $servicio, $componente, $tarifa, $fotos);
                         continue;
                     }
 
+                    // 3) Otros servicios (sin título en itinerario)
                     $this->procesarServicioSinItinerario($datos, $componente, $tarifa);
                 }
             }
@@ -191,6 +203,7 @@ final class CotizacionResumen
 
         $this->setTipoTarifaMeta($tipoTarifaNodo, $tarifa);
 
+        // Variantes por ítem (solo diferencias)
         $items = $componente->getComponente()?->getComponenteitems() ?? [];
         $det   = $this->buildTarifaDetalles($tarifa);
         $label = $this->buildVarianteLabel($det, true);
@@ -205,6 +218,7 @@ final class CotizacionResumen
                 ];
             }
 
+            // evita duplicados exactos de variante
             $hash = sha1(($label ?: '∅') . '|' . json_encode($det));
             if (!isset($tipoTarifaNodo['componentes'][$itemKey]['variantes'][$hash])) {
                 $tipoTarifaNodo['componentes'][$itemKey]['variantes'][$hash] = [
@@ -214,7 +228,7 @@ final class CotizacionResumen
                 ];
             }
 
-            // Fechas (igual que lo tenías)
+            // Fechas (tal como estaba)
             $datos['serviciosConTituloItinerario'][$servicioId]['fechahorasdiferentes'] ??= false;
 
             if ($tarifa->getTarifa()?->getComponente()?->getTipocomponente()?->isAgendable()) {
@@ -327,12 +341,15 @@ final class CotizacionResumen
         $target['claseTipotarifa']  = $tt->getListaclase();
     }
 
+    /**
+     * Devuelve los detalles “comparables” de una tarifa.
+     * (La validez se guarda por si la necesitas, pero NO se usa en etiquetas).
+     */
     private function buildTarifaDetalles(CotizacionCottarifa $tarifa): array
     {
         $t = $tarifa->getTarifa();
 
         $d = [];
-        // NO usamos validez en etiquetas, pero no molesta si en el futuro se requiere.
         $this->maybe($d, 'validezInicio', $t?->getValidezInicio());
         $this->maybe($d, 'validezFin',    $t?->getValidezFin());
         $this->maybe($d, 'capacidadMin',  $t?->getCapacidadmin());
@@ -348,6 +365,11 @@ final class CotizacionResumen
         return $d;
     }
 
+    /**
+     * Construye etiqueta de variante a partir de detalles.
+     * $includeAges = true → incluye edad; false → sin edad.
+     * Nunca incluye validez.
+     */
     private function buildVarianteLabel(array $det, bool $includeAges = true): string
     {
         $partes = [];
@@ -374,13 +396,18 @@ final class CotizacionResumen
     // Post-proceso con repetidos GLOBAL
     // =======================
 
-    public function normalizeTitle(string $title): string
+    /**
+     * Normaliza títulos para conteo global (trim + colapsar espacios + lowercase).
+     */
+    private function normalizeTitle(string $title): string
     {
-        // trim + colapsar espacios + lower; (no tocamos acentos para no confundir)
         $title = preg_replace('/\s+/u', ' ', trim($title)) ?? '';
         return mb_strtolower($title, 'UTF-8');
     }
 
+    /**
+     * Post-proceso: usa conteo GLOBAL de títulos (across all tipoTarifas) para decidir diferencias.
+     */
     private function postProcesarDiferencias(array &$datos): void
     {
         // Con título (por servicio)
@@ -401,6 +428,12 @@ final class CotizacionResumen
         }
     }
 
+    /**
+     * Conteo GLOBAL de títulos de componentes a través de todas las tipoTarifas de un bloque.
+     *
+     * @param array<int|string, array> $tipoTarifas
+     * @return array<string,int> tituloNormalizado => conteo
+     */
     private function buildGlobalTitleCounts(array $tipoTarifas): array
     {
         $counts = [];
@@ -416,6 +449,18 @@ final class CotizacionResumen
         return $counts;
     }
 
+    /**
+     * Funde componentes por título dentro de cada tipoTarifa y decide variantes con conteo GLOBAL.
+     *
+     * - Si el título NO está repetido según $globalCounts ⇒ elimina variantes.
+     * - Si está repetido ⇒ conserva variantes y aplica refinamiento:
+     *     · si HAY 2+ variantes y todas comparten el mismo rango de edad ⇒ quita edades (deja solo pax)
+     *     · si luego el label queda vacío ⇒ se filtra
+     *     · nunca quitamos la única variante, porque expresa la diferencia global
+     *
+     * @param array<int|string, array> $tipoTarifas
+     * @param array<string,int>        $globalCounts
+     */
     private function mergeAndRefineWithGlobalCounts(array &$tipoTarifas, array $globalCounts): void
     {
         foreach ($tipoTarifas as &$tt) {
@@ -464,18 +509,20 @@ final class CotizacionResumen
                         $emin = $d['edadMin'] ?? null; $emax = $d['edadMax'] ?? null;
                         $ageKeys[] = sprintf('%s|%s', $emin === null ? '∅' : (string)(int)$emin, $emax === null ? '∅' : (string)(int)$emax);
                     }
-                    $sameAge = count(array_unique($ageKeys)) <= 1;
+                    $sameAge   = count(array_unique($ageKeys)) <= 1;
+                    $varsCount = count($vars);
 
-                    // si todas comparten edad ⇒ rehacer etiqueta SIN edades
-                    if ($sameAge) {
+                    // ✅ Solo quitamos edades si hay 2+ variantes y comparten el mismo rango
+                    if ($sameAge && $varsCount > 1) {
                         foreach ($vars as &$v) {
                             $d = $v['detalles'] ?? [];
-                            $v['label'] = $this->buildVarianteLabel($d, false);
+                            $v['label'] = $this->buildVarianteLabel($d, false); // sin edades
                         }
                         unset($v);
                     }
+                    // Si hay 1 sola variante, mantenemos la etiqueta original (con edad)
 
-                    // limpiar vacíos y de-duplicar por label
+                    // Filtra etiquetas vacías y de-duplica por label
                     $vars = array_values(array_filter($vars, fn($v) => !empty($v['label'])));
                     $seen = []; $dedup = [];
                     foreach ($vars as $v) {
@@ -485,12 +532,7 @@ final class CotizacionResumen
                             $dedup[] = $v;
                         }
                     }
-                    $vars = $dedup;
-
-                    // ⚠️ IMPORTANTE:
-                    // NO eliminar la única variante aunque el Pax sea igual:
-                    // si hay repetición GLOBAL, una sola variante ya aporta la diferencia
-                    $c['variantes'] = $vars;
+                    $c['variantes'] = $dedup;
 
                     if (empty($c['variantes'])) {
                         unset($c['variantes']);
