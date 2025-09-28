@@ -1,275 +1,372 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service;
 
 use App\Entity\ServicioTipocomponente;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Entity\CotizacionCotizacion;
+use Doctrine\ORM\EntityManagerInterface; // (por si luego lo necesitas)
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatorInterface;
-use App\Entity\CotizacionCotizacion;
 
-class CotizacionIncluye
+/**
+ * Genera la estructura de "incluidos" e "internoIncluidos" para una cotización.
+ * - Mantiene la lógica de FlashBag tal como en tu versión original.
+ * - Evita números mágicos (-4, -1) usando constantes.
+ * - Usa helpers privados para reducir duplicación.
+ * - Ordena buckets (hotel → normal → varios) sin duplicar/unset.
+ * - Ordena tipotarifas al final (ksort una sola vez).
+ * - Compara entidades por identidad (no por ID).
+ * - Normaliza monto a float para comparaciones.
+ */
+final class CotizacionIncluye
 {
+    /** Bucket especial: alojamientos al inicio */
+    private const BUCKET_HOTEL  = -4;
+    /** Bucket especial: varios al final */
+    private const BUCKET_VARIOS = -1;
 
     private TranslatorInterface $translator;
-
-    private CotizacionCotizacion $cotizacion;
-
     private CotizacionItinerario $cotizacionItinerario;
-
     private RequestStack $requestStack;
 
-
-    function __construct(TranslatorInterface $translator, CotizacionItinerario $cotizacionItinerario, RequestStack $requestStack)
-    {
-        $this->translator = $translator;
+    public function __construct(
+        TranslatorInterface $translator,
+        CotizacionItinerario $cotizacionItinerario,
+        RequestStack $requestStack
+    ) {
+        $this->translator          = $translator;
         $this->cotizacionItinerario = $cotizacionItinerario;
-        $this->requestStack = $requestStack;
+        $this->requestStack        = $requestStack;
     }
 
-    function getDatos(CotizacionCotizacion $cotizacion): array
+    /**
+     * @return array{
+     *   incluidos?: array<int, mixed>,
+     *   internoIncluidos?: array<int, mixed>
+     * }
+     */
+    public function getDatos(CotizacionCotizacion $cotizacion): array
     {
         $datos = [];
 
-        $this->cotizacion = $cotizacion;
+        $servicios = $cotizacion->getCotservicios();
+        if ($servicios->count() === 0) {
+            return $datos;
+        }
 
-        if($cotizacion->getCotservicios()->count() > 0){
+        foreach ($servicios as $servicio) {
+            $componentes = $servicio->getCotcomponentes();
+            if ($componentes->count() === 0) {
+                continue;
+            }
 
-            foreach($cotizacion->getCotservicios() as $servicio):
-
-                if($servicio->getCotcomponentes()->count() > 0){
-
-                    foreach($servicio->getCotcomponentes() as $componente):
-
-                        if($componente->getCottarifas()->count() > 0){
-
-//$tempArrayTarifasIncluye solo sirve para la muestra de "incluye" al cliente no es para interno
-
-                            foreach($componente->getCottarifas() as $tarifa):
-
-                                $tempArrayTarifasIncluyeInterno = [];
-
-                                if ($tarifa->getTarifa()->getComponente()->getId() != $componente->getComponente()->getId()){
-                                    $this->requestStack->getSession()->getFlashBag()->add(
-                                        'warning',
-                                        sprintf('Tarifas que no corresponden al componente revise la tarifa %s que corresponde al componente %s pero se encuentra bajo %s.', $tarifa->getTarifa()->getNombre(), $tarifa->getTarifa()->getComponente()->getNombre(), $componente->getComponente()->getNombre())
-                                    );
-                                }
-//Para los servicios que no tienen dias de itinerario los clasifico como varios y le pongo un id -1
-                                if(
-                                    $tarifa->getTarifa()->getComponente()->getTipocomponente()->getId() == ServicioTipocomponente::DB_VALOR_ALOJAMIENTO
-                                ){
-                                    $servicioId = -4; //se ordenara por este valor
-                                    $datos['internoIncluidos'][$servicioId]['caso'] = 'hotel';
-                                    $datos['internoIncluidos'][$servicioId]['tituloItinerario'] = ucfirst($this->translator->trans('alojamiento', [], 'messages'));
-
-                                } elseif(!empty($this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio))){
-                                    $servicioId = $servicio->getId();
-                                    $datos['internoIncluidos'][$servicioId]['caso'] = 'normal';
-                                    $datos['internoIncluidos'][$servicioId]['tituloItinerario'] = $this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio);
-                                }else{
-                                    $servicioId = -1;
-                                    $datos['internoIncluidos'][$servicioId]['caso'] = 'varios';
-                                    $datos['internoIncluidos'][$servicioId]['tituloItinerario'] = ucfirst($this->translator->trans('varios', [], 'messages'));
-                                }
-
-                                $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
-                                $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['colorTipotarifa'] = $tarifa->getTipotarifa()->getListacolor();
-                                $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['claseTipotarifa'] = $tarifa->getTipotarifa()->getListaclase();
-//Agrupo las tarifas incluidas para manejo interno
-                                $tempArrayTarifasIncluyeInterno['nombre'] = $tarifa->getTarifa()->getNombre();
-                                $tempArrayTarifasIncluyeInterno['cantidad'] = (int)($tarifa->getCantidad());
-                                $tempArrayTarifasIncluyeInterno['monto'] = $tarifa->getMonto();
-                                $tempArrayTarifasIncluyeInterno['moneda'] = $tarifa->getMoneda();
-                                if(!empty($tarifa->getTarifa()->getValidezInicio())){
-                                    $tempArrayTarifasIncluyeInterno['validezInicio'] = $tarifa->getTarifa()->getValidezInicio();
-                                }
-
-                                if(!empty($tarifa->getTarifa()->getValidezFin())){
-                                    $tempArrayTarifasIncluyeInterno['validezFin'] = $tarifa->getTarifa()->getValidezFin();
-                                }
-
-                                if(!empty($tarifa->getTarifa()->getCapacidadmin())){
-                                    $tempArrayTarifasIncluyeInterno['capacidadMin'] = $tarifa->getTarifa()->getCapacidadmin();
-                                }
-
-                                if(!empty($tarifa->getTarifa()->getCapacidadmax())){
-                                    $tempArrayTarifasIncluyeInterno['capacidadMax'] = $tarifa->getTarifa()->getCapacidadmax();
-                                }
-
-                                if(!empty($tarifa->getTarifa()->getEdadmin())){
-                                    $tempArrayTarifasIncluyeInterno['edadMin'] = $tarifa->getTarifa()->getEdadmin();
-                                }
-
-                                if(!empty($tarifa->getTarifa()->getEdadmax())){
-                                    $tempArrayTarifasIncluyeInterno['edadMax'] = $tarifa->getTarifa()->getEdadmax();
-                                }
-
-                                if(!empty($tarifa->getTarifa()->getTipopax())){
-                                    $tempArrayTarifasIncluyeInterno['tipoPaxId'] = $tarifa->getTarifa()->getTipopax()->getId();
-                                    $tempArrayTarifasIncluyeInterno['tipoPaxNombre'] = $tarifa->getTarifa()->getTipopax()->getNombre();
-                                    $tempArrayTarifasIncluyeInterno['tipoPaxTitulo'] = $tarifa->getTarifa()->getTipopax()->getTitulo();
-                                }
-
-                                $tempArrayDetalle = [];
-
-                                foreach($tarifa->getCottarifadetalles() as $index => $detalle):
-                                    $tempArrayDetalle[$index]['contenido'] = $detalle->getDetalle();
-                                    $tempArrayDetalle[$index]['tipoId'] = $detalle->getTipotarifadetalle()->getId();
-                                    $tempArrayDetalle[$index]['tipoNombre'] = $detalle->getTipotarifadetalle()->getNombre();
-                                    $tempArrayDetalle[$index]['tipoTitulo'] = empty($detalle->getTipotarifadetalle()->getTitulo()) ? $tempArrayDetalle[$index]['tipoNombre'] : $detalle->getTipotarifadetalle()->getTitulo();
-
-                                endforeach;
-
-                                if(!empty($tempArrayDetalle)){
-                                    $tempArrayTarifasIncluyeInterno['detalles'] = $tempArrayDetalle;
-                                }
-
-                                $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['cantidadComponente'] = $componente->getCantidad();
-                                $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['nombre'] = $componente->getComponente()->getNombre();
-                                $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['listaclase'] = $tarifa->getTipotarifa()->getListaclase();
-                                $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
-
-                                if(!empty($componente->getFechahorainicio())){
-                                    $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['fecha'] = $componente->getFechahorainicio()->format('Y-m-d');
-                                }
-
-                                $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId()]['tarifas'][] = $tempArrayTarifasIncluyeInterno;
-
-                                unset($tempArrayTarifasIncluyeInterno);
-
-                                ksort($datos['internoIncluidos'][$servicioId]['tipotarifas']);
-//Agrupo las tarifas incluidas para mostrar al cliente
-
-                                $tempArrayTarifasIncluye = [];
-
-                                if($componente->getComponente()->getComponenteitems()->count() > 0){
-//Pongo el titulo del itinerario que ya defini para los internos
-
-                                    $datos['incluidos'][$servicioId]['tituloItinerario'] = $datos['internoIncluidos'][$servicioId]['tituloItinerario'];
-                                    $datos['incluidos'][$servicioId]['caso'] = $datos['internoIncluidos'][$servicioId]['caso'];
-                                    $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
-                                    $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['colorTipotarifa'] = $tarifa->getTipotarifa()->getListacolor();
-                                    $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['claseTipotarifa'] = $tarifa->getTipotarifa()->getListaclase();
-
-                                    foreach($componente->getComponente()->getComponenteitems() as $item){
-                                        //alguno de los 3 o titulo o modalidad o categoria
-                                        if((!empty($tarifa->getTarifa()->getTitulo()) && !$item->isNomostrartarifa())
-                                            ||(!empty($tarifa->getTarifa()->getModalidadtarifa()) && !$item->isNomostrarmodalidadtarifa())
-                                            ||(!empty($tarifa->getTarifa()->getCategoriatour()) && !$item->isNomostrarcategoriatour())
-                                        ){
-                                            if(!empty($tarifa->getTarifa()->getTitulo()) && !$item->isNomostrartarifa()){
-                                                $tempArrayTarifasIncluye['titulo'] = $tarifa->getTarifa()->getTitulo();
-                                            }
-
-                                            if(!empty($tarifa->getTarifa()->getModalidadtarifa()) && !$item->isNomostrarmodalidadtarifa()){
-                                                $tempArrayTarifasIncluye['modalidad'] = $tarifa->getTarifa()->getModalidadtarifa()->getTitulo();
-                                            }
-
-                                            if(!empty($tarifa->getTarifa()->getCategoriatour()) && !$item->isNomostrarcategoriatour()){
-                                                $tempArrayTarifasIncluye['categoria'] = $tarifa->getTarifa()->getCategoriatour()->getTitulo();
-                                            }
-
-                                            $tempArrayTarifasIncluye['cantidad'] = (int)($tarifa->getCantidad());
-                                            if(!empty($tarifa->getTarifa()->getValidezInicio())){
-                                                $tempArrayTarifasIncluye['validezInicio'] = $tarifa->getTarifa()->getValidezInicio();
-                                            }
-
-                                            if(!empty($tarifa->getTarifa()->getValidezFin())){
-                                                $tempArrayTarifasIncluye['validezFin'] = $tarifa->getTarifa()->getValidezFin();
-                                            }
-
-                                            $tempArrayTarifasIncluye['mostrarcostoincluye'] = false;
-                                            if($tarifa->getTipotarifa()->isMostrarcostoincluye() ===true && $tarifa->getMonto() != '0.00'){
-                                                $tempArrayTarifasIncluye['mostrarcostoincluye'] = true;
-                                                $tempArrayTarifasIncluye['simboloMoneda'] = $tarifa->getMoneda()->getSimbolo();
-                                                $tempArrayTarifasIncluye['costo'] = $tarifa->getMonto();
-                                            }
-
-                                            if(!empty($tarifa->getTarifa()->getCapacidadmin())){
-                                                $tempArrayTarifasIncluye['capacidadMin'] = $tarifa->getTarifa()->getCapacidadmin();
-                                            }
-
-                                            if(!empty($tarifa->getTarifa()->getCapacidadmax())){
-                                                $tempArrayTarifasIncluye['capacidadMax'] = $tarifa->getTarifa()->getCapacidadmax();
-                                            }
-
-                                            if(!empty($tarifa->getTarifa()->getEdadmin())){
-                                                $tempArrayTarifasIncluye['edadMin'] = $tarifa->getTarifa()->getEdadmin();
-                                            }
-
-                                            if(!empty($tarifa->getTarifa()->getEdadmax())){
-                                                $tempArrayTarifasIncluye['edadMax'] = $tarifa->getTarifa()->getEdadmax();
-                                            }
-
-                                            if(!empty($tarifa->getTarifa()->getTipopax())){
-                                                $tempArrayTarifasIncluye['tipoPaxId'] = $tarifa->getTarifa()->getTipopax()->getId();
-                                                $tempArrayTarifasIncluye['tipoPaxNombre'] = $tarifa->getTarifa()->getTipopax()->getNombre();
-                                                $tempArrayTarifasIncluye['tipoPaxTitulo'] = $tarifa->getTarifa()->getTipopax()->getTitulo();
-                                            }
-                                            $tempArrayDetalle = [];
-
-                                            foreach($tarifa->getCottarifadetalles() as $index => $detalle):
-                                                if(!$detalle->getTipotarifadetalle()->isInterno()){
-                                                    $tempArrayDetalle[$index]['contenido'] = $detalle->getDetalle();
-                                                    $tempArrayDetalle[$index]['tipoId'] = $detalle->getTipotarifadetalle()->getId();
-                                                    $tempArrayDetalle[$index]['tipoNombre'] = $detalle->getTipotarifadetalle()->getNombre();
-                                                    $tempArrayDetalle[$index]['tipoTitulo'] = empty($detalle->getTipotarifadetalle()->getTitulo()) ? $tempArrayDetalle[$index]['tipoNombre'] : $detalle->getTipotarifadetalle()->getTitulo();
-                                                }
-                                            endforeach;
-
-                                            if(!empty($tempArrayDetalle)){
-                                                $tempArrayTarifasIncluye['detalles'] = $tempArrayDetalle;
-                                            }
-                                        }
-
-                                        $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['cantidadComponente'] = $componente->getCantidad();
-                                        $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
-                                        $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listaclase'] = $tarifa->getTipotarifa()->getListaclase();
-                                        $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['listacolor'] = !empty($tarifa->getTipotarifa()->getListacolor()) ? $tarifa->getTipotarifa()->getListacolor() : 'inherit';
-
-                                        if(!empty($componente->getFechahorainicio())){
-                                            $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['fecha'] = $componente->getFechahorainicio()->format('Y-m-d');
-                                        }
-
-                                        if(!empty($tempArrayTarifasIncluye)){
-                                            $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['componentes'][$componente->getId() . '-' . $item->getId()]['tarifas'][] = $tempArrayTarifasIncluye;
-                                            unset($tempArrayTarifasIncluye);
-                                        }
-                                    }
-
-                                    ksort($datos['incluidos'][$servicioId]['tipotarifas']);
-                                }
-
-                            endforeach;
-                        }
-
-                    endforeach;
+            foreach ($componentes as $componente) {
+                $tarifas = $componente->getCottarifas();
+                if ($tarifas->count() === 0) {
+                    continue;
                 }
-            endforeach;
-//Ordenamos el varios al final
-            if(isset($datos['incluidos'][-1])){
-                $datos['incluidos'][] = $datos['incluidos'][-1];
-                unset($datos['incluidos'][-1]);
-            }
-            if(isset($datos['internoIncluidos'][-1])){
-                $datos['internoIncluidos'][] = $datos['internoIncluidos'][-1];
-                unset($datos['internoIncluidos'][-1]);
-            }
-//ponemos los hoteles al inicio
-            if(isset($datos['incluidos'][-4])){
-                $hoteles = $datos['incluidos'][-4];
-                unset($datos['incluidos'][-4]);
-                array_unshift($datos['incluidos'], $hoteles);
-            }
-            if(isset($datos['internoIncluidos'][-4])){
-                $hoteles = $datos['internoIncluidos'][-4];
-                unset($datos['internoIncluidos'][-4]);
-                array_unshift($datos['internoIncluidos'], $hoteles);
-            }
 
+                foreach ($tarifas as $tarifa) {
+                    $tTarifa = $tarifa->getTarifa();
+                    $compDeTarifa = $tTarifa?->getComponente();
+                    $compDelComponente = $componente->getComponente();
+
+                    // === Warning con FlashBag: se mantiene TAL CUAL la lógica, pero con comparación por identidad ===
+                    if ($compDeTarifa && $compDelComponente && $compDeTarifa !== $compDelComponente) {
+                        $this->requestStack->getSession()->getFlashBag()->add(
+                            'warning',
+                            sprintf(
+                                'Tarifas que no corresponden al componente revise la tarifa %s que corresponde al componente %s pero se encuentra bajo %s.',
+                                (string) $tTarifa?->getNombre(),
+                                (string) $compDeTarifa?->getNombre(),
+                                (string) $compDelComponente?->getNombre()
+                            )
+                        );
+                    }
+
+                    // === Determinar bucket/caso/título ===
+                    [$servicioId, $caso, $tituloItinerario] = $this->resolverBucketCasoTitulo(
+                        $componente,
+                        $servicio
+                    );
+
+                    // === Inicializa meta por bucket (interno y público) ===
+                    if (!isset($datos['internoIncluidos'][$servicioId])) {
+                        $datos['internoIncluidos'][$servicioId]['caso']             = $caso;
+                        $datos['internoIncluidos'][$servicioId]['tituloItinerario'] = $tituloItinerario;
+                    }
+                    if (!isset($datos['incluidos'][$servicioId])) {
+                        $datos['incluidos'][$servicioId]['caso']             = $caso;
+                        $datos['incluidos'][$servicioId]['tituloItinerario'] = $tituloItinerario;
+                    }
+
+                    // === Meta de tipotarifa (compartido) ===
+                    $tt        = $tarifa->getTipotarifa();
+                    $ttId      = $tt->getId();
+                    $ttMeta    = $this->metaTipotarifa($tt);
+
+                    $datos['internoIncluidos'][$servicioId]['tipotarifas'][$ttId] =
+                        ($datos['internoIncluidos'][$servicioId]['tipotarifas'][$ttId] ?? []) + $ttMeta;
+
+                    $datos['incluidos'][$servicioId]['tipotarifas'][$ttId] =
+                        ($datos['incluidos'][$servicioId]['tipotarifas'][$ttId] ?? []) + $ttMeta;
+
+                    // === Interno: por componente ===
+                    $compKey = (int) $componente->getId();
+                    if (!isset($datos['internoIncluidos'][$servicioId]['tipotarifas'][$ttId]['componentes'][$compKey])) {
+                        $datos['internoIncluidos'][$servicioId]['tipotarifas'][$ttId]['componentes'][$compKey] = [
+                            'cantidadComponente' => $componente->getCantidad(),
+                            'nombre'             => $compDelComponente?->getNombre(),
+                            'listaclase'         => $ttMeta['claseTipotarifa'] ?? null,
+                            'listacolor'         => $ttMeta['colorTipotarifa'] ?? 'inherit',
+                            'fecha'              => $componente->getFechahorainicio()?->format('Y-m-d'),
+                            'tarifas'            => [],
+                        ];
+                    }
+
+                    $tarifaInterna = $this->buildTarifaInterna($tarifa);
+                    $datos['internoIncluidos'][$servicioId]['tipotarifas'][$ttId]['componentes'][$compKey]['tarifas'][] = $tarifaInterna;
+
+                    // === Público: por items del componente ===
+                    $items = $compDelComponente?->getComponenteitems() ?? [];
+                    if (\count($items) > 0) {
+                        foreach ($items as $item) {
+                            $key = $componente->getId() . '-' . $item->getId();
+
+                            if (!isset($datos['incluidos'][$servicioId]['tipotarifas'][$ttId]['componentes'][$key])) {
+                                $datos['incluidos'][$servicioId]['tipotarifas'][$ttId]['componentes'][$key] = [
+                                    'cantidadComponente' => $componente->getCantidad(),
+                                    'titulo'             => $item->getTitulo(),
+                                    'listaclase'         => $ttMeta['claseTipotarifa'] ?? null,
+                                    'listacolor'         => $ttMeta['colorTipotarifa'] ?? 'inherit',
+                                    'fecha'              => $componente->getFechahorainicio()?->format('Y-m-d'),
+                                    'tarifas'            => [],
+                                ];
+                            }
+
+                            $tarifaPublica = $this->buildTarifaPublica($tarifa, $item);
+                            if ($tarifaPublica !== null) {
+                                $datos['incluidos'][$servicioId]['tipotarifas'][$ttId]['componentes'][$key]['tarifas'][] = $tarifaPublica;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // === Ordenar buckets por peso (hotel → normal → varios) sin duplicar/unset ===
+        $peso = ['hotel' => 0, 'normal' => 1, 'varios' => 2];
+        $ordenarBuckets = static function (array &$grupo) use ($peso): void {
+            \uasort($grupo, static function ($a, $b) use ($peso): int {
+                $pa = $peso[$a['caso'] ?? 'normal'] ?? 99;
+                $pb = $peso[$b['caso'] ?? 'normal'] ?? 99;
+                return $pa <=> $pb;
+            });
+        };
+
+        if (!empty($datos['incluidos'])) {
+            $ordenarBuckets($datos['incluidos']);
+        }
+        if (!empty($datos['internoIncluidos'])) {
+            $ordenarBuckets($datos['internoIncluidos']);
+        }
+
+        // === Ordenar tipotarifas (ksort) una sola vez por bucket ===
+        foreach (['incluidos', 'internoIncluidos'] as $grupoKey) {
+            if (!isset($datos[$grupoKey]) || !\is_array($datos[$grupoKey])) {
+                continue;
+            }
+            foreach ($datos[$grupoKey] as &$bucket) {
+                if (isset($bucket['tipotarifas']) && \is_array($bucket['tipotarifas'])) {
+                    \ksort($bucket['tipotarifas']);
+                }
+            }
+            unset($bucket);
         }
 
         return $datos;
+    }
+
+    // =======================
+    // Helpers privados
+    // =======================
+
+    /**
+     * Devuelve [servicioId, caso, tituloItinerario]
+     *
+     * - Hotel: bucket especial y título "alojamiento"
+     * - Normal: usa título de itinerario
+     * - Varios: bucket especial y título "varios"
+     */
+    private function resolverBucketCasoTitulo($componente, $servicio): array
+    {
+        $tipocompId = $componente->getComponente()?->getTipocomponente()?->getId();
+        $esHotel    = $tipocompId === ServicioTipocomponente::DB_VALOR_ALOJAMIENTO;
+
+        if ($esHotel) {
+            return [
+                self::BUCKET_HOTEL,
+                'hotel',
+                $this->translator->trans('alojamiento', [], 'messages'),
+            ];
+        }
+
+        $tituloIt = $this->cotizacionItinerario->getTituloItinerario($componente->getFechahorainicio(), $servicio);
+        if (!empty($tituloIt)) {
+            return [
+                (int) $servicio->getId(),
+                'normal',
+                $tituloIt,
+            ];
+        }
+
+        return [
+            self::BUCKET_VARIOS,
+            'varios',
+            $this->translator->trans('varios', [], 'messages'),
+        ];
+    }
+
+    private function metaTipotarifa($tipotarifa): array
+    {
+        return [
+            'tituloTipotarifa' => $tipotarifa->getTitulo(),
+            'colorTipotarifa'  => $tipotarifa->getListacolor(),
+            'claseTipotarifa'  => $tipotarifa->getListaclase(),
+        ];
+    }
+
+    /**
+     * Estructura interna de tarifa (para "internoIncluidos").
+     */
+    private function buildTarifaInterna($tarifa): array
+    {
+        $t = $tarifa->getTarifa();
+
+        $out = [
+            'nombre'   => $t?->getNombre(),
+            'cantidad' => (int) $tarifa->getCantidad(),
+            'monto'    => (float) $tarifa->getMonto(),
+            'moneda'   => $tarifa->getMoneda(),
+        ];
+
+        // Campos opcionales de la tarifa base
+        $this->maybe($out, 'validezInicio', $t?->getValidezInicio());
+        $this->maybe($out, 'validezFin',    $t?->getValidezFin());
+        $this->maybe($out, 'capacidadMin',  $t?->getCapacidadmin());
+        $this->maybe($out, 'capacidadMax',  $t?->getCapacidadmax());
+        $this->maybe($out, 'edadMin',       $t?->getEdadmin());
+        $this->maybe($out, 'edadMax',       $t?->getEdadmax());
+
+        if ($tp = $t?->getTipopax()) {
+            $out['tipoPaxId']     = $tp->getId();
+            $out['tipoPaxNombre'] = $tp->getNombre();
+            $out['tipoPaxTitulo'] = $tp->getTitulo();
+        }
+
+        // Detalles (TODOS, también internos)
+        $detalles = [];
+        foreach ($tarifa->getCottarifadetalles() as $i => $detalle) {
+            $tipo = $detalle->getTipotarifadetalle();
+            $detalles[$i] = [
+                'contenido'  => $detalle->getDetalle(),
+                'tipoId'     => $tipo->getId(),
+                'tipoNombre' => $tipo->getNombre(),
+                'tipoTitulo' => $tipo->getTitulo() ?: $tipo->getNombre(),
+            ];
+        }
+        if (!empty($detalles)) {
+            $out['detalles'] = $detalles;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Estructura pública de tarifa (para "incluidos") filtrando internos.
+     * Devuelve null si no hay nada que mostrar.
+     */
+    private function buildTarifaPublica($tarifa, $item): ?array
+    {
+        $t = $tarifa->getTarifa();
+        $mostrarTitulo     = !empty($t?->getTitulo()) && !$item->isNomostrartarifa();
+        $mostrarModalidad  = !empty($t?->getModalidadtarifa()) && !$item->isNomostrarmodalidadtarifa();
+        $mostrarCategoria  = !empty($t?->getCategoriatour()) && !$item->isNomostrarcategoriatour();
+
+        if (!$mostrarTitulo && !$mostrarModalidad && !$mostrarCategoria) {
+            return null;
+        }
+
+        $out = [
+            'cantidad' => (int) $tarifa->getCantidad(),
+        ];
+
+        if ($mostrarTitulo) {
+            $out['titulo'] = $t->getTitulo();
+        }
+        if ($mostrarModalidad) {
+            $out['modalidad'] = $t->getModalidadtarifa()->getTitulo();
+        }
+        if ($mostrarCategoria) {
+            $out['categoria'] = $t->getCategoriatour()->getTitulo();
+        }
+
+        // Mostrar costo si procede
+        $monto   = (float) $tarifa->getMonto();
+        $mostrar = $tarifa->getTipotarifa()->isMostrarcostoincluye() === true && $monto > 0.0;
+
+        $out['mostrarcostoincluye'] = $mostrar;
+        if ($mostrar) {
+            $out['simboloMoneda'] = $tarifa->getMoneda()?->getSimbolo();
+            $out['costo']         = $monto;
+        }
+
+        // Opcionales
+        $this->maybe($out, 'validezInicio', $t?->getValidezInicio());
+        $this->maybe($out, 'validezFin',    $t?->getValidezFin());
+        $this->maybe($out, 'capacidadMin',  $t?->getCapacidadmin());
+        $this->maybe($out, 'capacidadMax',  $t?->getCapacidadmax());
+        $this->maybe($out, 'edadMin',       $t?->getEdadmin());
+        $this->maybe($out, 'edadMax',       $t?->getEdadmax());
+
+        if ($tp = $t?->getTipopax()) {
+            $out['tipoPaxId']     = $tp->getId();
+            $out['tipoPaxNombre'] = $tp->getNombre();
+            $out['tipoPaxTitulo'] = $tp->getTitulo();
+        }
+
+        // Detalles PÚBLICOS (excluye internos)
+        $detalles = [];
+        foreach ($tarifa->getCottarifadetalles() as $i => $detalle) {
+            $tipo = $detalle->getTipotarifadetalle();
+            if ($tipo->isInterno()) {
+                continue;
+            }
+            $detalles[$i] = [
+                'contenido'  => $detalle->getDetalle(),
+                'tipoId'     => $tipo->getId(),
+                'tipoNombre' => $tipo->getNombre(),
+                'tipoTitulo' => $tipo->getTitulo() ?: $tipo->getNombre(),
+            ];
+        }
+        if (!empty($detalles)) {
+            $out['detalles'] = $detalles;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Añade $value a $arr[$key] si no está vacío.
+     *
+     * @param array<string,mixed> $arr
+     */
+    private function maybe(array &$arr, string $key, mixed $value): void
+    {
+        if ($value !== null && $value !== '' && $value !== []) {
+            $arr[$key] = $value;
+        }
     }
 }
