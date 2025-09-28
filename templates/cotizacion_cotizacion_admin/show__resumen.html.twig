@@ -203,6 +203,7 @@
                 {% if tabs.resumen.serviciosSinTituloItinerario is defined %}
                     <div class="panel panel-default" style="border-radius:8px; box-shadow: 0 6px 18px rgba(0,0,0,.08); padding:10px; margin-bottom:15px;">
                         <div class="panel-body" style="padding-top:10px;">
+                            <h4 style="color:#2e7d32; font-weight:600; margin-top:0;">{{ 'otros_servicios'|trans({}, 'messages')|capitalize }}</h4>
                             {% for tipoTarifa in tabs.resumen.serviciosSinTituloItinerario.tipoTarifas %}
                                 <p style="margin-bottom:6px;">
                                     <i class="{{ tipoTarifa.claseTipotarifa }}" style="color:{{ tipoTarifa.colorTipotarifa }};"></i>
