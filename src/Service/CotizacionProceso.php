@@ -32,7 +32,6 @@ class CotizacionProceso
     private CotizacionIncluye $cotizacionIncluye;
     private CotizacionResumen $cotizacionResumen;
     private CotizacionClasificador $cotizacionClasificador;
-    private CotizacionAgenda $cotizacionAgenda;
 
     function __construct(EntityManagerInterface $entityManager,
                          TipocambioManager $tipocambioManager,
@@ -43,7 +42,6 @@ class CotizacionProceso
                          CotizacionIncluye $cotizacionIncluye,
                          CotizacionResumen $cotizacionResumen,
                          CotizacionClasificador $cotizacionClasificador,
-                         CotizacionAgenda $cotizacionAgenda
     )
     {
         $this->entityManager = $entityManager;
@@ -55,7 +53,6 @@ class CotizacionProceso
         $this->cotizacionIncluye = $cotizacionIncluye;
         $this->cotizacionResumen = $cotizacionResumen;
         $this->cotizacionClasificador = $cotizacionClasificador;
-        $this->cotizacionAgenda = $cotizacionAgenda;
     }
 
     function procesar(int $id): bool
@@ -95,11 +92,10 @@ class CotizacionProceso
             return false;
         }
 
-        $datosTabs['itinerarios'] = $this->cotizacionItinerario->getItinerario($this->cotizacion);
+        $datosTabs['itinerarios'] = $this->cotizacionItinerario->getItinerarioConAgenda($this->cotizacion);
         $datosTabs['proveedores'] = $this->mensajeProveedor->getMensajesParaCotizacion($id);
         $datosTabs['incluye'] = $this->cotizacionIncluye->getDatos($this->cotizacion);
         $datosTabs['resumen'] = $this->cotizacionResumen->getDatos($this->cotizacion);
-        $datosTabs['agenda'] = $this->cotizacionAgenda->getAgenda($this->cotizacion);
 
         $this->datosCotizacion = $datosCotizacion;
 

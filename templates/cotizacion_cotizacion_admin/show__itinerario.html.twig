@@ -1,3 +1,4 @@
+{# Itinerario + Horario del día (agenda incrustada en cada día, antes de las fotos) #}
 <div class="box-body container-fluid">
     <div class="sonata-ba-collapsed-fields">
         <h3 class="no-padding no-margin visible-print">
@@ -9,7 +10,6 @@
 
                 {% if tabs.itinerarios is defined and tabs.itinerarios|length > 0 %}
                     {% for itinerario in tabs.itinerarios %}
-
                         <div class="panel panel-default" style="border-radius:10px; border:1px solid #eef1f4; box-shadow:0 2px 8px rgba(0,0,0,.04); margin-bottom:22px;">
                             <div class="panel-heading" style="background:#f9fafb; border-color:#eef1f4; border-top-left-radius:10px; border-top-right-radius:10px;">
                                 <h5 class="no-margin" {% if not loop.first %} style="margin-top:0;" {% endif %}>
@@ -18,9 +18,7 @@
                       {{ itinerario.fecha|format_datetime('full', 'none')|capitalize}}
                     </span>
                                         <span class="text-muted"> &nbsp;—&nbsp; </span>
-                                        <span class="text-muted">
-                      {{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}
-                    </span>
+                                        <span class="text-muted">{{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}</span>
                                     {% else %}
                                         <span style="font-size:1.05em; font-weight:600;">
                       {{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}
@@ -30,6 +28,35 @@
                             </div>
 
                             <div class="panel-body" style="padding:16px 18px;">
+
+                                {# ======= Horario del día (ANTES de los contenidos/fotos) ======= #}
+                                {% if itinerario.agenda is defined and itinerario.agenda|length > 0 %}
+                                    {% set agendaFiltrada = itinerario.agenda
+                                        |filter(c => c.fechahorainicio != c.fechahorafin)
+                                        |sort((a,b) => a.fechahorainicio <=> b.fechahorainicio)
+                                    %}
+                                    {% if agendaFiltrada|length > 0 %}
+                                        <div class="panel panel-default" style="border-radius:8px; border:1px dashed #e5e7eb; margin-bottom:12px;">
+                                            <div class="panel-body" style="padding:10px 12px;">
+                                                <h5 class="no-margin" style="font-weight:600; color: {{ colores.verde_oscuro }};">
+                                                    <i class="fas fa-calendar-day"></i> {{ 'horario_del_dia'|trans({}, 'messages')|default('Horario del día') }}
+                                                </h5>
+                                                <ul class="fa-ul" style="margin-top:8px; margin-bottom:0;">
+                                                    {% for comp in agendaFiltrada %}
+                                                        <li style="margin-bottom:6px;">
+                                                            <span class="fa-li"><i class="fas fa-clock"></i></span>
+                                                            <strong>{{ comp.fechahorainicio|date('H:i') }}</strong> – {{ comp.fechahorafin|date('H:i') }}
+                                                            {% if comp.titulo is defined and comp.titulo %} <span class="text-muted">•</span> {{ comp.titulo }}{% endif %}
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                                {# ======= /Horario del día ======= #}
+
+                                {# ======= Contenido del día (con fotos dentro de cada item) ======= #}
                                 {% for item in itinerario.fechaitems %}
                                     {% if item.titulo is defined %}
                                         <h4 class="no-margin" style="font-weight:600; color: {{ colores.azul_acero }}; margin-bottom:8px;">
@@ -48,10 +75,7 @@
                                     {% if item.archivos is defined and item.archivos|length > 0 %}
                                         <div class="container-fluid hidden-print" role="group" aria-label="media-gallery {{ item.tituloDia }}">
                                             {% for archivo in item.archivos %}
-                                                {% if loop.index0 % 2 == 0 %}
-                                                    <div class="row" style="margin-bottom:14px;">
-                                                {% endif %}
-
+                                                {% if loop.index0 % 2 == 0 %}<div class="row" style="margin-bottom:14px;">{% endif %}
                                                 <div class="col-xs-12 col-sm-6">
                                                     <div class="thumbnail" style="border-radius:10px; overflow:hidden; border:1px solid #eef1f4; box-shadow:0 2px 8px rgba(0,0,0,.04);">
                                                         <a
@@ -74,10 +98,7 @@
                                                         </a>
                                                     </div>
                                                 </div>
-
-                                                {% if loop.index % 2 == 0 or loop.last %}
-                                                    </div>
-                                                {% endif %}
+                                                {% if loop.index % 2 == 0 or loop.last %}</div>{% endif %}
                                             {% endfor %}
                                         </div>
                                     {% endif %}
@@ -92,12 +113,14 @@
                                         <hr style="border-top:1px solid #eef1f4; margin:16px 0;">
                                     {% endif %}
                                 {% endfor %}
+                                {# ======= /Contenido del día ======= #}
+
                             </div>
                         </div>
-
                     {% endfor %}
                 {% endif %}
 
+                {# Notas (igual que tenías) #}
                 {% if object.cotnotas|length > 0 %}
                     <div class="panel panel-default" style="border-radius:10px; border:1px solid #eef1f4;">
                         <div class="panel-heading" style="background:#f9fafb; border-color:#eef1f4; border-top-left-radius:10px; border-top-right-radius:10px;">
