@@ -229,7 +229,7 @@ class CotizacionClasificador
                 sprintf(
                     'La cantidad de pasajeros por componente no coincide con la cantidad de pasajeros en %s %s %s.',
                     $componente->getFechahorainicio()->format('Y/m/d'),
-                    $componente->getCotservicio()->getNombre(),
+                    $componente->getCotservicio()->getServicio()->getNombre(),
                     $componente->getComponente()->getNombre()
                 )
             );
