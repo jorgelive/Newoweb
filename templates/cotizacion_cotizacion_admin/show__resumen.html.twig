@@ -141,11 +141,22 @@
                                     </p>
                                 {% endif %}
 
+                                {# --- Compacto en línea: título — variantes (solo si hay repetidos) --- #}
                                 {% for tipoTarifa in servicio.tipoTarifas %}
                                     <p style="margin-bottom:6px;">
                                         <i class="{{ tipoTarifa.claseTipotarifa }}" style="color:{{ tipoTarifa.colorTipotarifa }};"></i>
                                         <strong>{{ tipoTarifa.tituloTipotarifa }}:</strong>
-                                        {{ tipoTarifa.componentes|map(c => c.titulo)|join(', ') }}.
+                                        {{
+                                        tipoTarifa.componentes
+                                        |map(c =>
+                                            c.titulo ~ (
+                                            c.variantes is defined and c.variantes|length > 0
+                                            ? ' — ' ~ (c.variantes|map(v => v.label)|join(', '))
+                                        : ''
+                                        )
+                                        )
+                                        |join('; ')
+                                        }}.
                                     </p>
                                 {% endfor %}
 
@@ -153,7 +164,6 @@
                                     {% set anyPortada = servicio.fotos|filter(f => f.portada is defined and f.portada)|length > 0 %}
                                     <div style="margin-top:10px;">
                                         <div id="carousel_servicio_{{ idxServ }}" class="carousel slide" data-ride="carousel" data-interval="8000" style="border-radius:10px; overflow:hidden;">
-                                            {# Indicadores (máx 7) #}
                                             {% if servicio.fotos|length < 8 %}
                                                 <ol class="carousel-indicators">
                                                     {% for foto in servicio.fotos %}
@@ -204,22 +214,33 @@
                     <div class="panel panel-default" style="border-radius:8px; box-shadow: 0 6px 18px rgba(0,0,0,.08); padding:10px; margin-bottom:15px;">
                         <div class="panel-body" style="padding-top:10px;">
                             <h4 style="color:#2e7d32; font-weight:600; margin-top:0;">{{ 'otros_servicios'|trans({}, 'messages')|capitalize }}</h4>
+
                             {% for tipoTarifa in tabs.resumen.serviciosSinTituloItinerario.tipoTarifas %}
                                 <p style="margin-bottom:6px;">
                                     <i class="{{ tipoTarifa.claseTipotarifa }}" style="color:{{ tipoTarifa.colorTipotarifa }};"></i>
                                     <strong>{{ tipoTarifa.tituloTipotarifa }}:</strong>
-                                    {{ tipoTarifa.componentes|map(c => c.titulo)|join(', ') }}.
+                                    {{
+                                    tipoTarifa.componentes
+                                    |map(c =>
+                                        c.titulo ~ (
+                                        c.variantes is defined and c.variantes|length > 0
+                                        ? ' — ' ~ (c.variantes|map(v => v.label)|join(', '))
+                                    : ''
+                                    )
+                                    )
+                                    |join('; ')
+                                    }}.
                                 </p>
                             {% endfor %}
                         </div>
                     </div>
                 {% endif %}
 
-                {# -------------------- BOTON WHATSAPP -------------------- #}
+                {# -------------------- BOTÓN WHATSAPP -------------------- #}
                 {% if action == 'show' %}
                     {% set whatsappNumero = object.file.telefono is not empty ? object.file.telefono : numero_default %}
                     <li style="margin-top:10px;">
-                        <a href="https://wa.me/{{whatsappNumero|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                        <a href="https://wa.me/{{ whatsappNumero|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
                            target="_blank" class="btn btn-success btn-block btn-lg">
                             <i class="fa fa-whatsapp"></i> Enviar por WhatsApp
                         </a>
