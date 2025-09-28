@@ -221,8 +221,8 @@ class CotizacionResumen
     {
         $tipoTarId = $tarifa->getTipotarifa()->getId();
         $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tipoTarId]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
-        $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tipoTarId]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getListacolor();
-        $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tipoTarId]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getListaclase();
+        $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tipoTarId]['colorTipotarifa'] = $tarifa->getTipotarifa()->getListacolor();
+        $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tipoTarId]['claseTipotarifa'] = $tarifa->getTipotarifa()->getListaclase();
 
         foreach ($componente->getComponente()->getComponenteitems() as $item) {
             $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tipoTarId]['componentes'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
