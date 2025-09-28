@@ -143,7 +143,7 @@
 
                                 {% for tipoTarifa in servicio.tipoTarifas %}
                                     <p style="margin-bottom:6px;">
-                                        <i class="{{ tipoTarifa.listaclase }}" style="color:{{ tipoTarifa.listacolor }};"></i>
+                                        <i class="{{ tipoTarifa.claseTipotarifa }}" style="color:{{ tipoTarifa.colorTipotarifa }};"></i>
                                         <strong>{{ tipoTarifa.tituloTipotarifa }}:</strong>
                                         {{ tipoTarifa.componentes|map(c => c.titulo)|join(', ') }}.
                                     </p>
@@ -205,7 +205,7 @@
                         <div class="panel-body" style="padding-top:10px;">
                             {% for tipoTarifa in tabs.resumen.serviciosSinTituloItinerario.tipoTarifas %}
                                 <p style="margin-bottom:6px;">
-                                    <i class="{{ tipoTarifa.listaclase }}" style="color:{{ tipoTarifa.listacolor }};"></i>
+                                    <i class="{{ tipoTarifa.claseTipotarifa }}" style="color:{{ tipoTarifa.colorTipotarifa }};"></i>
                                     <strong>{{ tipoTarifa.tituloTipotarifa }}:</strong>
                                     {{ tipoTarifa.componentes|map(c => c.titulo)|join(', ') }}.
                                 </p>

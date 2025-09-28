@@ -74,6 +74,8 @@ class CotizacionIncluye
                                 }
 
                                 $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
+                                $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['colorTipotarifa'] = $tarifa->getTipotarifa()->getListacolor();
+                                $datos['internoIncluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['claseTipotarifa'] = $tarifa->getTipotarifa()->getListaclase();
 //Agrupo las tarifas incluidas para manejo interno
                                 $tempArrayTarifasIncluyeInterno['nombre'] = $tarifa->getTarifa()->getNombre();
                                 $tempArrayTarifasIncluyeInterno['cantidad'] = (int)($tarifa->getCantidad());
@@ -147,6 +149,8 @@ class CotizacionIncluye
                                     $datos['incluidos'][$servicioId]['tituloItinerario'] = $datos['internoIncluidos'][$servicioId]['tituloItinerario'];
                                     $datos['incluidos'][$servicioId]['caso'] = $datos['internoIncluidos'][$servicioId]['caso'];
                                     $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
+                                    $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['colorTipotarifa'] = $tarifa->getTipotarifa()->getListacolor();
+                                    $datos['incluidos'][$servicioId]['tipotarifas'][$tarifa->getTipotarifa()->getId()]['claseTipotarifa'] = $tarifa->getTipotarifa()->getListaclase();
 
                                     foreach($componente->getComponente()->getComponenteitems() as $item){
                                         //alguno de los 3 o titulo o modalidad o categoria

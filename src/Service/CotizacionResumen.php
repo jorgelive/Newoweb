@@ -171,6 +171,8 @@ class CotizacionResumen
         $tipoTarId = $tarifa->getTipotarifa()->getId();
 
         $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tipoTarId]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
+        $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tipoTarId]['colorTipotarifa'] = $tarifa->getTipotarifa()->getListacolor();
+        $datos['serviciosConTituloItinerario'][$servicioId]['tipoTarifas'][$tipoTarId]['claseTipotarifa'] = $tarifa->getTipotarifa()->getListaclase();
 
         foreach ($componente->getComponente()->getComponenteitems() as $item) {
             $itemKey = $componente->getId() . '-' . $item->getId();
@@ -219,6 +221,8 @@ class CotizacionResumen
     {
         $tipoTarId = $tarifa->getTipotarifa()->getId();
         $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tipoTarId]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getTitulo();
+        $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tipoTarId]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getListacolor();
+        $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tipoTarId]['tituloTipotarifa'] = $tarifa->getTipotarifa()->getListaclase();
 
         foreach ($componente->getComponente()->getComponenteitems() as $item) {
             $datos['serviciosSinTituloItinerario']['tipoTarifas'][$tipoTarId]['componentes'][$componente->getId() . '-' . $item->getId()]['titulo'] = $item->getTitulo();
