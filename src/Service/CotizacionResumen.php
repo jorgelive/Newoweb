@@ -18,10 +18,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * Genera datos resumidos para la vista de una cotización.
  * - Mantiene FlashBag de "no encontrado".
- * - Agrupa componentes; si se repiten, muestra solo diferencias (Pax/edades) en línea.
- * - No muestra validez en etiquetas.
+ * - Agrupa componentes; si se repiten, muestra SOLO diferencias (Pax/edades) en línea.
+ * - NO muestra validez en etiquetas.
  * - Si todas las variantes comparten el mismo rango de edad => oculta edades (solo Pax).
- * - Si además todo el Pax es igual => no muestra variantes (no hay diferencia real).
+ * - Conteo de repetidos GLOBAL entre tipos de tarifa + normalización suave de títulos.
  */
 final class CotizacionResumen
 {
@@ -42,9 +42,10 @@ final class CotizacionResumen
         $this->requestStack         = $requestStack;
     }
 
-    /**
-     * Obtiene los datos de una cotización por su ID.
-     */
+    // =======================
+    // Entrada pública
+    // =======================
+
     public function getDatosFromId(int $id): array
     {
         $cotizacion = $this->entityManager
@@ -62,9 +63,6 @@ final class CotizacionResumen
         return $this->getDatos($cotizacion);
     }
 
-    /**
-     * Procesa una cotización y genera los datos de la vista.
-     */
     public function getDatos(CotizacionCotizacion $cotizacion): array
     {
         $datos = [];
@@ -76,7 +74,7 @@ final class CotizacionResumen
 
         /** @var CotizacionCotservicio $servicio */
         foreach ($servicios as $servicio) {
-            $fotos = $this->cotizacionItinerario->getFotos($servicio); // Collection
+            $fotos = $this->cotizacionItinerario->getFotos($servicio);
 
             $componentes = $servicio->getCotcomponentes();
             if ($componentes->count() === 0) {
@@ -94,33 +92,31 @@ final class CotizacionResumen
                 foreach ($tarifas as $tarifa) {
                     // if ($tarifa->getTipotarifa()->isOcultoenresumen()) { continue; }
 
-                    // 1) Alojamientos
                     if ($this->esAlojamiento($tarifa, $componente)) {
                         $this->procesarAlojamiento($datos, $componente, $tarifa);
                         continue;
                     }
 
-                    // 2) Servicios con título en el itinerario
                     if ($this->tieneTituloItinerario($componente, $servicio)) {
                         $this->procesarServicioConItinerario($datos, $servicio, $componente, $tarifa, $fotos);
                         continue;
                     }
 
-                    // 3) Otros servicios
                     $this->procesarServicioSinItinerario($datos, $componente, $tarifa);
                 }
             }
         }
 
-        // Post-proceso: diferencias solo si hay repetidos (global) + reglas de edades/pax
+        // 👉 diferencias solo si hay repetidos (GLOBAL) + reglas de edades/pax
         $this->postProcesarDiferencias($datos);
 
         return $datos;
     }
 
-    /**
-     * Determina si la tarifa corresponde a alojamiento y el componente tiene items.
-     */
+    // =======================
+    // Clasificación
+    // =======================
+
     private function esAlojamiento(CotizacionCottarifa $tarifa, CotizacionCotcomponente $componente): bool
     {
         $tipocompIdTarifa = $tarifa->getTarifa()?->getComponente()?->getTipocomponente()?->getId();
@@ -129,9 +125,6 @@ final class CotizacionResumen
         return $esAlojamiento && $componente->getComponente()?->getComponenteitems()->count() > 0;
     }
 
-    /**
-     * Determina si un componente tiene título en el itinerario y posee items.
-     */
     private function tieneTituloItinerario(CotizacionCotcomponente $componente, CotizacionCotservicio $servicio): bool
     {
         $titulo = $this->cotizacionItinerario->getTituloItinerario($componente->getFechahoraInicio(), $servicio);
@@ -139,9 +132,10 @@ final class CotizacionResumen
         return !empty($titulo) && $componente->getComponente()?->getComponenteitems()->count() > 0;
     }
 
-    /**
-     * Procesa un alojamiento.
-     */
+    // =======================
+    // Construcción de datos
+    // =======================
+
     private function procesarAlojamiento(array &$datos, CotizacionCotcomponente $componente, CotizacionCottarifa $tarifa): void
     {
         $tarifaId  = (int) $tarifa->getId();
@@ -180,9 +174,6 @@ final class CotizacionResumen
         );
     }
 
-    /**
-     * Procesa un servicio con título en el itinerario (agregando variantes por ítem).
-     */
     private function procesarServicioConItinerario(
         array &$datos,
         CotizacionCotservicio $servicio,
@@ -200,10 +191,9 @@ final class CotizacionResumen
 
         $this->setTipoTarifaMeta($tipoTarifaNodo, $tarifa);
 
-        // Variantes por ítem (solo diferencias)
         $items = $componente->getComponente()?->getComponenteitems() ?? [];
         $det   = $this->buildTarifaDetalles($tarifa);
-        $label = $this->buildVarianteLabel($det, true); // incluye edades inicialmente
+        $label = $this->buildVarianteLabel($det, true);
 
         foreach ($items as $item) {
             $itemKey = $componente->getId() . '-' . $item->getId();
@@ -215,7 +205,6 @@ final class CotizacionResumen
                 ];
             }
 
-            // evita duplicados exactos
             $hash = sha1(($label ?: '∅') . '|' . json_encode($det));
             if (!isset($tipoTarifaNodo['componentes'][$itemKey]['variantes'][$hash])) {
                 $tipoTarifaNodo['componentes'][$itemKey]['variantes'][$hash] = [
@@ -225,7 +214,7 @@ final class CotizacionResumen
                 ];
             }
 
-            // ---- manejo de fechas
+            // Fechas (igual que lo tenías)
             $datos['serviciosConTituloItinerario'][$servicioId]['fechahorasdiferentes'] ??= false;
 
             if ($tarifa->getTarifa()?->getComponente()?->getTipocomponente()?->isAgendable()) {
@@ -271,9 +260,6 @@ final class CotizacionResumen
         );
     }
 
-    /**
-     * Procesa servicios sin título de itinerario (otros servicios) con variantes.
-     */
     private function procesarServicioSinItinerario(array &$datos, CotizacionCotcomponente $componente, CotizacionCottarifa $tarifa): void
     {
         $tipoTarId = (int) $tarifa->getTipotarifa()->getId();
@@ -341,15 +327,12 @@ final class CotizacionResumen
         $target['claseTipotarifa']  = $tt->getListaclase();
     }
 
-    /**
-     * Devuelve los detalles “comparables” de una tarifa.
-     */
     private function buildTarifaDetalles(CotizacionCottarifa $tarifa): array
     {
         $t = $tarifa->getTarifa();
 
         $d = [];
-        // Validez NO se usa en etiquetas, pero no estorba si luego lo necesitas
+        // NO usamos validez en etiquetas, pero no molesta si en el futuro se requiere.
         $this->maybe($d, 'validezInicio', $t?->getValidezInicio());
         $this->maybe($d, 'validezFin',    $t?->getValidezFin());
         $this->maybe($d, 'capacidadMin',  $t?->getCapacidadmin());
@@ -365,11 +348,6 @@ final class CotizacionResumen
         return $d;
     }
 
-    /**
-     * Construye etiqueta de variante a partir de detalles.
-     * $includeAges = true → incluye edad; false → sin edad.
-     * Nunca incluye validez.
-     */
     private function buildVarianteLabel(array $det, bool $includeAges = true): string
     {
         $partes = [];
@@ -396,12 +374,16 @@ final class CotizacionResumen
     // Post-proceso con repetidos GLOBAL
     // =======================
 
-    /**
-     * Post-proceso: usa conteo GLOBAL de títulos (across all tipoTarifas) para decidir diferencias.
-     */
+    public function normalizeTitle(string $title): string
+    {
+        // trim + colapsar espacios + lower; (no tocamos acentos para no confundir)
+        $title = preg_replace('/\s+/u', ' ', trim($title)) ?? '';
+        return mb_strtolower($title, 'UTF-8');
+    }
+
     private function postProcesarDiferencias(array &$datos): void
     {
-        // Servicios con título (por servicio)
+        // Con título (por servicio)
         if (!empty($datos['serviciosConTituloItinerario'])) {
             foreach ($datos['serviciosConTituloItinerario'] as &$serv) {
                 if (empty($serv['tipoTarifas'])) { continue; }
@@ -419,12 +401,6 @@ final class CotizacionResumen
         }
     }
 
-    /**
-     * Construye un conteo GLOBAL de títulos de componentes a través de todas las tipoTarifas de un bloque.
-     *
-     * @param array<int|string, array> $tipoTarifas
-     * @return array<string,int> titulo => conteo
-     */
     private function buildGlobalTitleCounts(array $tipoTarifas): array
     {
         $counts = [];
@@ -433,29 +409,19 @@ final class CotizacionResumen
             foreach ($tt['componentes'] as $comp) {
                 $titulo = $comp['titulo'] ?? '';
                 if ($titulo === '') { continue; }
-                $counts[$titulo] = ($counts[$titulo] ?? 0) + 1;
+                $key = $this->normalizeTitle($titulo);
+                $counts[$key] = ($counts[$key] ?? 0) + 1;
             }
         }
         return $counts;
     }
 
-    /**
-     * Funde componentes por título dentro de cada tipoTarifa y decide variantes con conteo GLOBAL.
-     *
-     * - Si el título NO está repetido según $globalCounts ⇒ elimina variantes.
-     * - Si está repetido ⇒ conserva variantes y aplica refinamiento:
-     *     · si todas las variantes comparten el mismo rango de edad ⇒ quita edades (deja solo pax)
-     *     · si además todo el pax es igual ⇒ elimina variantes (no hay diferencia real)
-     *
-     * @param array<int|string, array> $tipoTarifas
-     * @param array<string,int>        $globalCounts
-     */
     private function mergeAndRefineWithGlobalCounts(array &$tipoTarifas, array $globalCounts): void
     {
         foreach ($tipoTarifas as &$tt) {
             if (empty($tt['componentes'])) { continue; }
 
-            // Fusionar por título dentro de esta tipoTarifa
+            // 1) Fusionar por título dentro de esta tipoTarifa
             $byTitle = []; // titulo => comp fusionado
             foreach ($tt['componentes'] as $comp) {
                 $titulo = $comp['titulo'] ?? '';
@@ -478,9 +444,9 @@ final class CotizacionResumen
                 }
             }
 
-            // Decidir variantes con base en conteo GLOBAL
+            // 2) Decidir variantes según conteo GLOBAL
             foreach ($byTitle as $title => &$c) {
-                $repetido = ($globalCounts[$title] ?? 0) > 1;
+                $repetido = ($globalCounts[$this->normalizeTitle($title)] ?? 0) > 1;
                 $c['repetido'] = $repetido;
 
                 if (!$repetido) {
@@ -488,24 +454,19 @@ final class CotizacionResumen
                     continue;
                 }
 
-                // Refinamiento de variantes
                 if (!empty($c['variantes']) && is_array($c['variantes'])) {
                     $vars = array_values($c['variantes']);
 
-                    // comparar edades/pax
+                    // ¿todas las variantes comparten el mismo rango de edad?
                     $ageKeys = [];
-                    $paxKeys = [];
                     foreach ($vars as $v) {
                         $d = $v['detalles'] ?? [];
                         $emin = $d['edadMin'] ?? null; $emax = $d['edadMax'] ?? null;
                         $ageKeys[] = sprintf('%s|%s', $emin === null ? '∅' : (string)(int)$emin, $emax === null ? '∅' : (string)(int)$emax);
-                        $pax = $d['tipoPaxTitulo'] ?? ($d['tipoPaxNombre'] ?? '∅');
-                        $paxKeys[] = (string)$pax;
                     }
                     $sameAge = count(array_unique($ageKeys)) <= 1;
-                    $samePax = count(array_unique($paxKeys)) <= 1;
 
-                    // si todas las edades iguales ⇒ rehacer etiqueta sin edades
+                    // si todas comparten edad ⇒ rehacer etiqueta SIN edades
                     if ($sameAge) {
                         foreach ($vars as &$v) {
                             $d = $v['detalles'] ?? [];
@@ -514,7 +475,7 @@ final class CotizacionResumen
                         unset($v);
                     }
 
-                    // filtra etiquetas vacías y de-duplica por label
+                    // limpiar vacíos y de-duplicar por label
                     $vars = array_values(array_filter($vars, fn($v) => !empty($v['label'])));
                     $seen = []; $dedup = [];
                     foreach ($vars as $v) {
@@ -526,16 +487,10 @@ final class CotizacionResumen
                     }
                     $vars = $dedup;
 
-                    // si al final todos los pax son iguales y no hay edades ⇒ sin diferencia real
-                    if ($samePax && !empty($vars)) {
-                        if (count($vars) <= 1) {
-                            $c['variantes'] = [];
-                        } else {
-                            $c['variantes'] = [$vars[0]];
-                        }
-                    } else {
-                        $c['variantes'] = $vars;
-                    }
+                    // ⚠️ IMPORTANTE:
+                    // NO eliminar la única variante aunque el Pax sea igual:
+                    // si hay repetición GLOBAL, una sola variante ya aporta la diferencia
+                    $c['variantes'] = $vars;
 
                     if (empty($c['variantes'])) {
                         unset($c['variantes']);
@@ -544,14 +499,14 @@ final class CotizacionResumen
             }
             unset($c);
 
-            // Reemplaza componentes por la versión fusionada (array indexado)
+            // 3) Reemplazar componentes por array indexado
             $tt['componentes'] = array_values($byTitle);
         }
         unset($tt);
     }
 
     // =======================
-    // Formateadores de duración
+    // Formateadores
     // =======================
 
     private function formatearDuracionNoches(?\DateTimeInterface $inicio, ?\DateTimeInterface $fin): string
@@ -567,10 +522,6 @@ final class CotizacionResumen
         return $dias . ' ' . $unidad;
     }
 
-    /**
-     * "5 horas" / "1 hora" o, si >=24h, "3 dias" / "1 dia".
-     * Usa horas totales (días*24 + horas).
-     */
     private function formatearDuracionServicio(
         ?\DateTimeInterface $fechaHoraInicio,
         ?\DateTimeInterface $fechaHoraFin,
