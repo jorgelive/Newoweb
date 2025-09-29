@@ -61,7 +61,7 @@ class ReservaReservaAdminController extends CRUDAdminController
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
 
-        // Verificamos token
+        // Validar token público
         if ($request->get('token') != $object->getToken()) {
             $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
             return new RedirectResponse($this->admin->generateUrl('list'));
@@ -75,15 +75,14 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $this->admin->setSubject($object);
 
-        // Indicador de si se permite mostrar las pestañas "gated"
-        $permitirGated = (bool) ($object->getEstado()?->isHabilitarResumenPublico() ?? false);
+        // Solo los estados con este flag permiten ver las características RESTRINGIDAS
+        $permitirCaractRestringidas = (bool) ($object->getEstado()?->isHabilitarResumenPublico() ?? false);
 
         return $this->render('reserva_reserva_admin/show.html.twig', [
-            'object'        => $object,
-            'action'        => 'resumen',
-            'elements'      => $this->admin->getShow(),
-            // nuevo flag: en Twig decidimos por pestaña
-            'permitirGated' => $permitirGated,
+            'object'                        => $object,
+            'action'                        => 'resumen',
+            'elements'                      => $this->admin->getShow(),
+            'permitirCaractRestringidas'    => $permitirCaractRestringidas,
         ]);
     }
 

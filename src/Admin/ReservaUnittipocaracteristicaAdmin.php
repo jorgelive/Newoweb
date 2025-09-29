@@ -26,8 +26,8 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('iconclase', null, [
                 'label' => 'Clase del ícono'
             ])
-            ->add('visibleEnResumenPublico', null, [
-                'label' => 'Visible en resumen público'
+            ->add('restringidaEnResumen', null, [
+                'label'    => 'Restringida en RESUMEN'
             ])
         ;
     }
@@ -49,9 +49,9 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
                 'editable' => true,
                 'label' => 'Clase del ícono'
             ])
-            ->add('visibleEnResumenPublico', null, [
-                'label' => 'Visible en resumen público',
-                'editable' => true
+            ->add('restringidaEnResumen', null, [
+                'editable' => true,
+                'label'    => 'Restringida en RESUMEN'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -77,9 +77,10 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('iconclase', null, [
                 'label' => 'Clase del ícono'
             ])
-            ->add('visibleEnResumenPublico', null, [
+            ->add('restringidaEnResumen', null, [
                 'required' => false,
-                'label' => 'Visible en resumen público'
+                'label'    => 'Restringida en RESUMEN',
+                'help'     => 'Si está activo, esta característica SOLO se mostrará en la vista pública cuando el estado habilite el resumen.',
             ])
         ;
     }
@@ -98,8 +99,8 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('iconclase', null, [
                 'label' => 'Clase del ícono'
             ])
-            ->add('visibleEnResumenPublico', null, [
-                'label' => 'Visible en resumen público',
+            ->add('restringidaEnResumen', null, [
+                'label'    => 'Restringida en RESUMEN'
             ])
         ;
     }
