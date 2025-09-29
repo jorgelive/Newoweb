@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Entity;
 
 use Doctrine\Common\Collections\Collection;
@@ -17,7 +16,6 @@ use Doctrine\Common\Collections\ArrayCollection;
  */
 class ReservaUnittipocaracteristica
 {
-
     public const DB_VALOR_DESCRIPCION = 1;
 	public const DB_VALOR_LIMPIEZA = 2;
 	public const DB_VALOR_GALERIA = 3;
@@ -69,13 +67,6 @@ class ReservaUnittipocaracteristica
     private $iconclase;
 
     /**
-     * Controla si este TIPO de característica es visible en el resumen público.
-     *
-     * @ORM\Column(name="visible_en_resumen_publico", type="boolean", options={"default": false})
-     */
-    private bool $visibleEnResumenPublico = false;
-
-    /**
      * @var ArrayCollection
      * @ORM\OneToMany(targetEntity="ReservaUnitcaracteristica", mappedBy="unittipocaracteristica", cascade={"persist","remove"}, orphanRemoval=true)
      */
@@ -100,8 +91,7 @@ class ReservaUnittipocaracteristica
      */
     private $locale;
 
-    public function __construct()
-    {
+    public function __construct() {
         $this->unitcaracteristicas = new ArrayCollection();
         $this->translations = new ArrayCollection();
     }
@@ -111,78 +101,30 @@ class ReservaUnittipocaracteristica
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
+    public function getId(): ?int { return $this->id; }
 
-    public function getNombre(): ?string
-    {
-        return $this->nombre;
-    }
-    public function setNombre(string $nombre): self
-    {
-        $this->nombre = $nombre;
-        return $this;
-    }
+    public function getNombre(): ?string { return $this->nombre; }
+    public function setNombre(string $nombre): self { $this->nombre = $nombre; return $this; }
 
-    public function getTitulo(): ?string
-    {
-        return $this->titulo;
-    }
-    public function setTitulo(string $titulo): self
-    {
-        $this->titulo = $titulo;
-        return $this;
-    }
+    public function getTitulo(): ?string { return $this->titulo; }
+    public function setTitulo(string $titulo): self { $this->titulo = $titulo; return $this; }
 
-    public function getIconcolor(): ?string
-    {
-        return $this->iconcolor;
-    }
-    public function setIconcolor(?string $iconcolor): self
-    {
-        $this->iconcolor = $iconcolor;
-        return $this;
-    }
+    public function getIconcolor(): ?string { return $this->iconcolor; }
+    public function setIconcolor(?string $iconcolor): self { $this->iconcolor = $iconcolor; return $this; }
 
-    public function getIconclase(): ?string
-    {
-        return $this->iconclase;
-    }
-    public function setIconclase(?string $iconclase): self
-    {
-        $this->iconclase = $iconclase;
-        return $this;
-    }
+    public function getIconclase(): ?string { return $this->iconclase; }
+    public function setIconclase(?string $iconclase): self { $this->iconclase = $iconclase; return $this; }
 
-    public function getCreado(): ?\DateTimeInterface
-    {
-        return $this->creado;
-    }
-    public function setCreado(\DateTimeInterface $creado): self
-    {
-        $this->creado = $creado;
-        return $this;
-    }
+    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
+    public function setCreado(\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
 
-    public function getModificado(): ?\DateTimeInterface
-    {
-        return $this->modificado;
-    }
-    public function setModificado(\DateTimeInterface $modificado): self
-    {
-        $this->modificado = $modificado;
-        return $this;
-    }
+    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
+    public function setModificado(\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
 
     /**
      * @return Collection<int, ReservaUnitcaracteristica>
      */
-    public function getUnitcaracteristicas(): Collection
-    {
-        return $this->unitcaracteristicas;
-    }
+    public function getUnitcaracteristicas(): Collection { return $this->unitcaracteristicas; }
 
     public function addUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
     {
@@ -200,17 +142,6 @@ class ReservaUnittipocaracteristica
                 $unitcaracteristica->setUnittipocaracteristica(null);
             }
         }
-        return $this;
-    }
-
-    public function isVisibleEnResumenPublico(): bool
-    {
-        return (bool)$this->visibleEnResumenPublico;
-    }
-
-    public function setVisibleEnResumenPublico(bool $v): self
-    {
-        $this->visibleEnResumenPublico = $v;
         return $this;
     }
 }

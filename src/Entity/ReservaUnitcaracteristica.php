@@ -27,9 +27,7 @@ class ReservaUnitcaracteristica
     private ?int $id = null;
 
     /**
-     * Nombre interno para identificar rápidamente la característica
-     * (no translatable, uso backoffice)
-     *
+     * Nombre interno (uso backoffice, no traducible)
      * @ORM\Column(type="string", length=191, nullable=false)
      */
     private string $nombre = '';
@@ -44,14 +42,14 @@ class ReservaUnitcaracteristica
     protected Collection $translations;
 
     /**
+     * Contenido traducible
      * @Gedmo\Translatable
      * @ORM\Column(type="text")
      */
     private ?string $contenido = null;
 
     /**
-     * Campo virtual que refleja el contenido original (sin traducción)
-     *
+     * Contenido original (virtual)
      * @ORM\Column(
      *   type="text",
      *   columnDefinition="LONGTEXT GENERATED ALWAYS AS (`contenido`) VIRTUAL",
@@ -64,15 +62,13 @@ class ReservaUnitcaracteristica
 
     /**
      * Tipo de característica
-     *
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnittipocaracteristica", inversedBy="unitcaracteristicas")
      * @ORM\JoinColumn(name="unittipocaracteristica_id", referencedColumnName="id", nullable=false)
      */
     protected ?ReservaUnittipocaracteristica $unittipocaracteristica = null;
 
     /**
-     * Medios hijos de esta característica
-     *
+     * Medios hijos
      * @ORM\OneToMany(
      *     targetEntity="App\Entity\ReservaUnitmedio",
      *     mappedBy="unitcaracteristica",
@@ -85,7 +81,6 @@ class ReservaUnitcaracteristica
 
     /**
      * Vínculos con Unidades (lado inverso del link)
-     *
      * @ORM\OneToMany(
      *     targetEntity="App\Entity\ReservaUnitCaracteristicaLink",
      *     mappedBy="caracteristica",
@@ -95,6 +90,15 @@ class ReservaUnitcaracteristica
      * @ORM\OrderBy({"prioridad" = "ASC"})
      */
     private Collection $links;
+
+    /**
+     * 🔒 Si es TRUE, esta característica SOLO se muestra en la vista 'resumen'
+     *     cuando el estado de la reserva habilita el resumen público.
+     *     Si es FALSE (por defecto), SIEMPRE se muestra.
+     *
+     * @ORM\Column(name="restringida_en_resumen", type="boolean", options={"default": false})
+     */
+    private bool $restringidaEnResumen = false;
 
     /**
      * @Gedmo\Timestampable(on="create")
@@ -117,7 +121,7 @@ class ReservaUnitcaracteristica
     {
         $this->translations = new ArrayCollection();
         $this->medios = new ArrayCollection();
-        $this->links = new ArrayCollection(); // 👈 inicializar
+        $this->links = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -132,7 +136,6 @@ class ReservaUnitcaracteristica
 
     /** @return Collection|ReservaUnitcaracteristicaTranslation[] */
     public function getTranslations(): Collection { return $this->translations; }
-
     public function addTranslation(ReservaUnitcaracteristicaTranslation $translation): self
     {
         if (!$this->translations->contains($translation)) {
@@ -141,7 +144,6 @@ class ReservaUnitcaracteristica
         }
         return $this;
     }
-
     public function removeTranslation(ReservaUnitcaracteristicaTranslation $translation): self
     {
         $this->translations->removeElement($translation);
@@ -173,7 +175,6 @@ class ReservaUnitcaracteristica
 
     /** @return Collection|ReservaUnitmedio[] */
     public function getMedios(): Collection { return $this->medios; }
-
     public function addMedio(ReservaUnitmedio $medio): self
     {
         if (!$this->medios->contains($medio)) {
@@ -182,7 +183,6 @@ class ReservaUnitcaracteristica
         }
         return $this;
     }
-
     public function removeMedio(ReservaUnitmedio $medio): self
     {
         if ($this->medios->removeElement($medio)) {
@@ -193,11 +193,9 @@ class ReservaUnitcaracteristica
         return $this;
     }
 
-    /** ================== LINKS (vínculos con Unidades) ================== */
-
+    /** LINKS */
     /** @return Collection|ReservaUnitCaracteristicaLink[] */
     public function getLinks(): Collection { return $this->links; }
-
     public function addLink(ReservaUnitCaracteristicaLink $link): self
     {
         if (!$this->links->contains($link)) {
@@ -206,7 +204,6 @@ class ReservaUnitcaracteristica
         }
         return $this;
     }
-
     public function removeLink(ReservaUnitCaracteristicaLink $link): self
     {
         if ($this->links->removeElement($link)) {
@@ -214,6 +211,17 @@ class ReservaUnitcaracteristica
                 $link->setCaracteristica(null);
             }
         }
+        return $this;
+    }
+
+    /** ===== Flag de visibilidad en resumen ===== */
+    public function isRestringidaEnResumen(): bool
+    {
+        return $this->restringidaEnResumen;
+    }
+    public function setRestringidaEnResumen(bool $v): self
+    {
+        $this->restringidaEnResumen = $v;
         return $this;
     }
 }
