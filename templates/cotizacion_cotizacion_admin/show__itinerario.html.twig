@@ -1,4 +1,4 @@
-{# Itinerario + Horario del día (agenda incrustada en cada día, antes de las fotos) #}
+{# Itinerario + Horario del servicio (agenda incrustada en cada servicio, debajo del título) #}
 <div class="box-body container-fluid">
     <div class="sonata-ba-collapsed-fields">
         <h3 class="no-padding no-margin visible-print">
@@ -15,49 +15,23 @@
                                 <h5 class="no-margin" {% if not loop.first %} style="margin-top:0;" {% endif %}>
                                     {% if object.file.catalogo != true %}
                                         <span style="font-size:1.05em; font-weight:600;">
-                      {{ itinerario.fecha|format_datetime('full', 'none')|capitalize}}
-                    </span>
+                                            {{ itinerario.fecha|format_datetime('full', 'none')|capitalize}}
+                                        </span>
                                         <span class="text-muted"> &nbsp;—&nbsp; </span>
                                         <span class="text-muted">{{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}</span>
                                     {% else %}
                                         <span style="font-size:1.05em; font-weight:600;">
-                      {{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}
-                    </span>
+                                            {{ 'dia'|trans({},'messages')|capitalize }} {{ itinerario.nroDia }}
+                                        </span>
                                     {% endif %}
                                 </h5>
                             </div>
 
                             <div class="panel-body" style="padding:16px 18px;">
 
-                                {# ======= Horario del día (ANTES de los contenidos/fotos) ======= #}
-                                {% if itinerario.agenda is defined and itinerario.agenda|length > 0 %}
-                                    {% set agendaFiltrada = itinerario.agenda
-                                        |filter(c => c.fechahorainicio != c.fechahorafin)
-                                        |sort((a,b) => a.fechahorainicio <=> b.fechahorainicio)
-                                    %}
-                                    {% if agendaFiltrada|length > 0 %}
-                                        <div class="panel panel-default" style="border-radius:8px; border:1px dashed #e5e7eb; margin-bottom:12px;">
-                                            <div class="panel-body" style="padding:10px 12px;">
-                                                <h5 class="no-margin" style="font-weight:600; color: {{ colores.verde_oscuro }};">
-                                                    <i class="fas fa-calendar-day"></i> {{ 'horario_del_dia'|trans({}, 'messages')|default('Horario del día') }}
-                                                </h5>
-                                                <ul class="fa-ul" style="margin-top:8px; margin-bottom:0;">
-                                                    {% for comp in agendaFiltrada %}
-                                                        <li style="margin-bottom:6px;">
-                                                            <span class="fa-li"><i class="fas fa-clock"></i></span>
-                                                            <strong>{{ comp.fechahorainicio|date('H:i') }}</strong> – {{ comp.fechahorafin|date('H:i') }}
-                                                            {% if comp.titulo is defined and comp.titulo %} <span class="text-muted">•</span> {{ comp.titulo }}{% endif %}
-                                                        </li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    {% endif %}
-                                {% endif %}
-                                {# ======= /Horario del día ======= #}
-
-                                {# ======= Contenido del día (con fotos dentro de cada item) ======= #}
+                                {# ======= Contenido del día (cada item = un servicio) ======= #}
                                 {% for item in itinerario.fechaitems %}
+
                                     {% if item.titulo is defined %}
                                         <h4 class="no-margin" style="font-weight:600; color: {{ colores.azul_acero }}; margin-bottom:8px;">
                                             {{ item.titulo }} <small class="text-muted">— {{ item.tituloDia }}</small>
@@ -67,6 +41,37 @@
                                             {{ item.tituloDia }}
                                         </h4>
                                     {% endif %}
+
+                                    {# ======= Horario del SERVICIO (debajo del título del ítem) ======= #}
+                                    {% set agendaServicio = item.agenda|default([]) %}
+                                    {% if agendaServicio is not empty %}
+                                        {% set agendaFiltrada = agendaServicio
+                                            |filter(c => c.fechahorainicio != c.fechahorafin)
+                                            |sort((a,b) => a.fechahorainicio <=> b.fechahorainicio)
+                                        %}
+                                        {% if agendaFiltrada|length > 0 %}
+                                            <div class="panel panel-default" style="border-radius:8px; border:1px dashed #e5e7eb; margin:8px 0 12px;">
+                                                <div class="panel-body" style="padding:10px 12px;">
+                                                    <h5 class="no-margin" style="font-weight:600; color: {{ colores.verde_oscuro }};">
+                                                        <i class="fas fa-clipboard-list"></i>
+                                                        {{ 'horario_del_servicio'|trans({}, 'messages')|default('Horario del servicio') }}
+                                                    </h5>
+                                                    <ul class="fa-ul" style="margin-top:8px; margin-bottom:0;">
+                                                        {% for comp in agendaFiltrada %}
+                                                            <li style="margin-bottom:6px;">
+                                                                <span class="fa-li"><i class="fas fa-clock"></i></span>
+                                                                <strong>{{ comp.fechahorainicio|date('H:i') }}</strong> – {{ comp.fechahorafin|date('H:i') }}
+                                                                {% if comp.titulo is defined and comp.titulo %}
+                                                                    <span class="text-muted">•</span> {{ comp.titulo }}
+                                                                {% endif %}
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                    {# ======= /Horario del SERVICIO ======= #}
 
                                     <div class="ck-content itinerariodescripcion" style="margin-bottom:12px;">
                                         {{ item.descripcion|raw }}

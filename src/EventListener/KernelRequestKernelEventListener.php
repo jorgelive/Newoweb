@@ -7,12 +7,7 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 
 class KernelRequestKernelEventListener
 {
-    private ManagerRegistry $doctrine;
-
-    public function __construct(ManagerRegistry $doctrine)
-    {
-        $this->doctrine = $doctrine;
-    }
+    public function __construct(private ManagerRegistry $doctrine) {}
 
     public function onKernelRequest(RequestEvent $event): void
     {
@@ -23,18 +18,22 @@ class KernelRequestKernelEventListener
         $request = $event->getRequest();
         $session = $request->getSession();
 
-        if ($session->get('preferred_language') !== 'si') {
-            $locale = $request->getPreferredLanguage();
+        // 1) Lee locale del switcher (ruta o query)
+        $locale = $request->attributes->get('_locale') ?? $request->query->get('_locale');
 
-            if (str_starts_with($locale, 'es')) {
-                $session->set('_locale', 'es');
-                $request->setLocale('es');
-            } else {
-                $session->set('_locale', 'en');
-                $request->setLocale('en');
-            }
-
-            $session->set('preferred_language', 'si');
+        // 2) Si no viene, usa lo de sesión
+        if (!$locale && $session->has('_locale')) {
+            $locale = $session->get('_locale');
         }
+
+        // 3) Fallback a Accept-Language o 'es'
+        if (!$locale) {
+            $preferred = $request->getPreferredLanguage(['es', 'en']) ?: 'es';
+            $locale = str_starts_with($preferred, 'es') ? 'es' : 'en';
+        }
+
+        // 4) Persistir y fijar SIEMPRE (elimina la bandera preferred_language)
+        $session->set('_locale', $locale);
+        $request->setLocale($locale);
     }
 }

@@ -77,7 +77,7 @@ editar: editar
 cotizaciones: cotizaciones
 excursiones: excursiones
 documentos: documentos
-horario_del_dia: "Horario del día"
+horario_del_servicio: "Service schedule"
 
 sin_referencia: "Sin referencia"
 abrir_en_google_maps: "Abrir en Google Maps"

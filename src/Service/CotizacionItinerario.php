@@ -11,12 +11,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Procesa itinerarios de una cotización y permite incrustar la
- * agenda (componentes agendables) por día.
+ * agenda por SERVICIO dentro de cada ítem del día.
  *
  * Reglas de agenda:
  *  - Solo componentes con Tipocomponente::isAgendable() === true
  *  - Solo si el componente tiene ítems (título armado desde items)
- *  - En el Twig se filtran los que tienen inicio != fin
+ *  - En Twig se filtran los que tienen inicio != fin
  *  - Si varios componentes comparten el MISMO horario (inicio/fin),
  *    se agrupan en un solo registro concatenando títulos con " + ".
  */
@@ -35,11 +35,13 @@ class CotizacionItinerario
     }
 
     /**
-     * Itinerario “clásico”: días con contenido y días libres insertados.
+     * Itinerario “clásico”: días con contenido e inserción de días libres.
+     * Ahora acumula múltiples servicios por fecha y adjunta 'servicioId' en cada ítem.
+     *
      * Devuelve array indexado por fecha (Ymd) con:
      *  - fecha (\DateTime)
      *  - nroDia (int)
-     *  - fechaitems (array)
+     *  - fechaitems (array de ítems/servicios del día)
      */
     public function getItinerario(CotizacionCotizacion $cotizacion): array
     {
@@ -60,6 +62,7 @@ class CotizacionItinerario
                 $nroDia = (int)$primeraFecha->diff($fecha)->format('%d') + 1;
 
                 $tempItinerario = [
+                    'servicioId'  => $cotservicio->getId(), // clave para ligar agenda por servicio
                     'tituloDia'   => $dia->getTitulo(),
                     'descripcion' => $dia->getContenido(),
                     'archivos'    => $dia->getItidiaarchivos(),
@@ -73,33 +76,44 @@ class CotizacionItinerario
                     $tempItinerario['titulo'] = $cotservicio->getItinerario()->getTitulo();
                 }
 
-                $itinerario[$fecha->format('Ymd')] = [
-                    'fecha'      => $fecha,
-                    'nroDia'     => $nroDia,
-                    'fechaitems' => [$tempItinerario],
-                ];
+                $key = $fecha->format('Ymd');
+
+                // Si ya existe la fecha, acumulamos más servicios/ítems
+                if (!isset($itinerario[$key])) {
+                    $itinerario[$key] = [
+                        'fecha'      => $fecha,
+                        'nroDia'     => $nroDia,
+                        'fechaitems' => [],
+                    ];
+                }
+                $itinerario[$key]['fechaitems'][] = $tempItinerario;
             }
         }
 
+        // Asegurar orden por fecha ascendente
+        \ksort($itinerario);
+
+        // Inserta días libres si hay saltos en nroDia
         return $this->agregarDiasLibres($itinerario);
     }
 
     /**
-     * Itinerario con “agenda” incrustada por día.
+     * Itinerario con “agenda” incrustada por SERVICIO.
      * Agrupa por horario idéntico (HH:mm–HH:mm) concatenando títulos con " + ".
      */
     public function getItinerarioConAgenda(CotizacionCotizacion $cotizacion): array
     {
-        // 1) Base del itinerario (con días libres)
+        // 1) Base del itinerario (con días libres y múltiples servicios por día)
         $dias = $this->getItinerario($cotizacion);
         if (empty($dias)) {
             return $dias;
         }
 
-        // 2) Recolecto todos los componentes agendables con ítems
-        $agendaPorDia = []; // Ymd => [eventos...]
+        // 2) Recolectar componentes agendables por día Y servicio
+        $agendaPorDiaServicio = []; // [Ymd][servicioId] = [eventos...]
 
         foreach ($cotizacion->getCotservicios() as $servicio) {
+            $sid = $servicio->getId();
             foreach ($servicio->getCotcomponentes() as $componente) {
                 $tipo = $componente->getComponente()?->getTipocomponente();
                 if (!$tipo || $tipo->isAgendable() !== true) {
@@ -112,14 +126,14 @@ class CotizacionItinerario
                     continue;
                 }
 
-                // título desde items (si no hay, NO se agrega, igual que en CotizacionAgenda)
+                // título armado desde items (si no hay, NO se agrega)
                 $tituloItems = $this->joinItemTitles($componente);
                 if ($tituloItems === '') {
                     continue;
                 }
 
                 $fechaKey = $ini->format('Ymd');
-                $agendaPorDia[$fechaKey][] = [
+                $agendaPorDiaServicio[$fechaKey][$sid][] = [
                     'tituloItinerario' => $this->getTituloItinerario($ini, $servicio),
                     'nombre'           => (string)($componente->getComponente()?->getNombre() ?? ''),
                     'tipoComponente'   => (string)($tipo->getNombre() ?? ''),
@@ -130,20 +144,31 @@ class CotizacionItinerario
             }
         }
 
-        // 3) Inserto la agenda (ordenada y AGRUPADA por mismo horario) en cada día
+        // 3) Inyectar agenda por servicio dentro de cada item del día
         foreach ($dias as $key => &$dia) {
             $k = $dia['fecha']->format('Ymd');
-            $agendaDia = $agendaPorDia[$k] ?? [];
 
-            // ordenar por hora de inicio
-            \usort($agendaDia, fn($a, $b) => $a['fechahorainicio'] <=> $b['fechahorainicio']);
-
-            // AGRUPAR por mismo horario (inicio y fin iguales)
-            $agendaDia = $this->mergeAgendaSameSchedule($agendaDia);
-
-            if (!empty($agendaDia)) {
-                $dia['agenda'] = $agendaDia;
+            if (empty($dia['fechaitems'])) {
+                continue;
             }
+
+            foreach ($dia['fechaitems'] as &$item) {
+                $sid = $item['servicioId'] ?? null;
+                if (!$sid) {
+                    continue;
+                }
+
+                $agendaServicio = $agendaPorDiaServicio[$k][$sid] ?? [];
+                if (!empty($agendaServicio)) {
+                    // ordenar por hora de inicio y agrupar por mismo horario
+                    \usort($agendaServicio, fn($a, $b) => $a['fechahorainicio'] <=> $b['fechahorainicio']);
+                    $agendaServicio = $this->mergeAgendaSameSchedule($agendaServicio);
+
+                    // guardar la agenda dentro del ítem/servicio
+                    $item['agenda'] = $agendaServicio;
+                }
+            }
+            unset($item);
         }
         unset($dia);
 
@@ -291,8 +316,15 @@ class CotizacionItinerario
 
     // ---------- Helpers internos ----------
 
+    /**
+     * Inserta días libres cuando hay saltos en nroDia. Mantiene el orden cronológico.
+     * Los días libres no tienen 'servicioId' ni 'agenda'.
+     */
     private function agregarDiasLibres(array $itinerario): array
     {
+        // Asegurarnos de recorrer en orden de fecha (claves Ymd)
+        \ksort($itinerario);
+
         $itinerarioConLibres = [];
         $diaEsperado = 1;
 
@@ -324,6 +356,9 @@ class CotizacionItinerario
         return $itinerarioConLibres;
     }
 
+    /**
+     * Construye un título concatenando los títulos de los items del componente.
+     */
     private function joinItemTitles($componente): string
     {
         $titulos = [];
