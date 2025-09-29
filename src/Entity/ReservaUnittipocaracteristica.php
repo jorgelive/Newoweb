@@ -1,12 +1,11 @@
 <?php
 
+
 namespace App\Entity;
 
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
-use Gedmo\Translatable\Translatable;
 use Doctrine\Common\Collections\ArrayCollection;
 
 /**
@@ -18,14 +17,20 @@ use Doctrine\Common\Collections\ArrayCollection;
  */
 class ReservaUnittipocaracteristica
 {
+
     public const DB_VALOR_DESCRIPCION = 1;
-    public const DB_VALOR_BRIEFING = 2;
-    public const DB_VALOR_GALERIA = 3;
-    public const DB_VALOR_INVENTARIO = 4;
+	public const DB_VALOR_LIMPIEZA = 2;
+	public const DB_VALOR_GALERIA = 3;
+	public const DB_VALOR_INVENTARIO = 4;
+	public const DB_VALOR_CALEFACTOR = 5;
+	public const DB_VALOR_RECOMENDACIONES = 6;
+	public const DB_VALOR_LLAVES = 7;
+	public const DB_VALOR_DUCHAS = 8;
+	public const DB_VALOR_WIFI = 9;
+	public const DB_VALOR_PAGO = 11;
 
     /**
      * @var int
-     *
      * @ORM\Column(type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
@@ -34,51 +39,50 @@ class ReservaUnittipocaracteristica
 
     /**
      * @var ArrayCollection
-     *
      * @ORM\OneToMany(targetEntity="ReservaUnittipocaracteristicaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
     protected $translations;
 
     /**
      * @var string
-     *
      * @ORM\Column(type="string", length=255)
      */
     private $nombre;
 
     /**
      * @var string
-     *
      * @Gedmo\Translatable
      * @ORM\Column(type="string", length=100, nullable=false)
      */
     private $titulo;
 
     /**
-     * @var string
-     *
+     * @var string|null
      * @ORM\Column(type="string", length=30, nullable=true)
      */
     private $iconcolor;
 
     /**
-     * @var string
-     *
+     * @var string|null
      * @ORM\Column(type="string", length=30, nullable=true)
      */
     private $iconclase;
 
     /**
-     * @var ArrayCollection
+     * Controla si este TIPO de característica es visible en el resumen público.
      *
+     * @ORM\Column(name="visible_en_resumen_publico", type="boolean", options={"default": false})
+     */
+    private bool $visibleEnResumenPublico = false;
+
+    /**
+     * @var ArrayCollection
      * @ORM\OneToMany(targetEntity="ReservaUnitcaracteristica", mappedBy="unittipocaracteristica", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $unitcaracteristicas;
 
-
     /**
      * @var \DateTime $creado
-     *
      * @Gedmo\Timestampable(on="create")
      * @ORM\Column(type="datetime")
      */
@@ -86,7 +90,6 @@ class ReservaUnittipocaracteristica
 
     /**
      * @var \DateTime $modificado
-     *r
      * @Gedmo\Timestampable(on="update")
      * @ORM\Column(type="datetime")
      */
@@ -97,14 +100,12 @@ class ReservaUnittipocaracteristica
      */
     private $locale;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->unitcaracteristicas = new ArrayCollection();
         $this->translations = new ArrayCollection();
     }
 
-    /**
-     * @return string
-     */
     public function __toString()
     {
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
@@ -119,11 +120,9 @@ class ReservaUnittipocaracteristica
     {
         return $this->nombre;
     }
-
     public function setNombre(string $nombre): self
     {
         $this->nombre = $nombre;
-
         return $this;
     }
 
@@ -131,11 +130,9 @@ class ReservaUnittipocaracteristica
     {
         return $this->titulo;
     }
-
-    public function setIconcolor(?string $iconcolor): self
+    public function setTitulo(string $titulo): self
     {
-        $this->iconcolor = $iconcolor;
-
+        $this->titulo = $titulo;
         return $this;
     }
 
@@ -143,11 +140,9 @@ class ReservaUnittipocaracteristica
     {
         return $this->iconcolor;
     }
-
-    public function setIconclase(?string $iconclase): self
+    public function setIconcolor(?string $iconcolor): self
     {
-        $this->iconclase = $iconclase;
-
+        $this->iconcolor = $iconcolor;
         return $this;
     }
 
@@ -155,11 +150,9 @@ class ReservaUnittipocaracteristica
     {
         return $this->iconclase;
     }
-
-    public function setTitulo(string $titulo): self
+    public function setIconclase(?string $iconclase): self
     {
-        $this->titulo = $titulo;
-
+        $this->iconclase = $iconclase;
         return $this;
     }
 
@@ -167,11 +160,9 @@ class ReservaUnittipocaracteristica
     {
         return $this->creado;
     }
-
     public function setCreado(\DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-
         return $this;
     }
 
@@ -179,15 +170,12 @@ class ReservaUnittipocaracteristica
     {
         return $this->modificado;
     }
-
     public function setModificado(\DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-
         return $this;
     }
 
-    
     /**
      * @return Collection<int, ReservaUnitcaracteristica>
      */
@@ -198,26 +186,31 @@ class ReservaUnittipocaracteristica
 
     public function addUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
     {
-        if(!$this->unitcaracteristicas->contains($unitcaracteristica)) {
+        if (!$this->unitcaracteristicas->contains($unitcaracteristica)) {
             $this->unitcaracteristicas[] = $unitcaracteristica;
             $unitcaracteristica->setUnittipocaracteristica($this);
         }
-
         return $this;
     }
 
     public function removeUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
     {
-        if($this->unitcaracteristicas->removeElement($unitcaracteristica)) {
-            // set the owning side to null (unless already changed)
-            if($unitcaracteristica->getUnittipocaracteristica() === $this) {
+        if ($this->unitcaracteristicas->removeElement($unitcaracteristica)) {
+            if ($unitcaracteristica->getUnittipocaracteristica() === $this) {
                 $unitcaracteristica->setUnittipocaracteristica(null);
             }
         }
-
         return $this;
     }
 
+    public function isVisibleEnResumenPublico(): bool
+    {
+        return (bool)$this->visibleEnResumenPublico;
+    }
 
-
+    public function setVisibleEnResumenPublico(bool $v): self
+    {
+        $this->visibleEnResumenPublico = $v;
+        return $this;
+    }
 }

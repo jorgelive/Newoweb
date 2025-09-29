@@ -55,41 +55,38 @@ class ReservaReservaAdminController extends CRUDAdminController
         return parent::listAction($request);
     }
 
-    public function resumenAction(Request $request = null): Response | RedirectResponse
+
+    public function resumenAction(Request $request = null): Response|RedirectResponse
     {
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
 
-        //verificamos token
-        if($request->get('token') != $object->getToken()){
+        // Verificamos token
+        if ($request->get('token') != $object->getToken()) {
             $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
         $this->checkParentChildAssociation($request, $object);
 
-        //$this->admin->checkAccess('show', $object);
-
-        $preResponse = $this->preShow($request, $object);
-        if(null !== $preResponse) {
+        if (null !== ($preResponse = $this->preShow($request, $object))) {
             return $preResponse;
         }
 
         $this->admin->setSubject($object);
 
-        $fields = $this->admin->getShow();
+        // Indicador de si se permite mostrar las pestañas "gated"
+        $permitirGated = (bool) ($object->getEstado()?->isHabilitarResumenPublico() ?? false);
 
-        //$template = $this->templateRegistry->getTemplate('show'); es privado en la clase padre
-        $template = 'reserva_reserva_admin/show.html.twig';
-
-        return $this->render($template,
-            [
-                'object' => $object,
-                'action' => 'resumen',
-                'elements' => $fields,
-            ]);
-
+        return $this->render('reserva_reserva_admin/show.html.twig', [
+            'object'        => $object,
+            'action'        => 'resumen',
+            'elements'      => $this->admin->getShow(),
+            // nuevo flag: en Twig decidimos por pestaña
+            'permitirGated' => $permitirGated,
+        ]);
     }
+
 
     public function clonarAction(Request $request): Response
     {

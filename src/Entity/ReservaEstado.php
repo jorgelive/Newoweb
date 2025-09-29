@@ -5,7 +5,6 @@ namespace App\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
@@ -51,12 +50,18 @@ class ReservaEstado
     private $colorcalendar;
 
     /**
+     * Habilita mostrar pestañas de características en el resumen público.
+     *
+     * @ORM\Column(name="habilitar_resumen_publico", type="boolean", options={"default": false})
+     */
+    private bool $habilitarResumenPublico = false;
+
+    /**
      * @var \Doctrine\Common\Collections\Collection
      *
      * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="estado", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $reservas;
-
 
     /**
      * @var \DateTime $creado
@@ -78,108 +83,60 @@ class ReservaEstado
         $this->reservas = new ArrayCollection();
     }
 
-    /**
-     * @return string
-     */
     public function __toString()
     {
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
+    public function getId(): ?int { return $this->id; }
 
-    public function getNombre(): ?string
-    {
-        return $this->nombre;
-    }
+    public function getNombre(): ?string { return $this->nombre; }
+    public function setNombre(string $nombre): self { $this->nombre = $nombre; return $this; }
 
-    public function setNombre(string $nombre): self
-    {
-        $this->nombre = $nombre;
+    public function getColor(): ?string { return $this->color; }
+    public function setColor(string $color): self { $this->color = $color; return $this; }
 
-        return $this;
-    }
+    public function getColorcalendar(): ?string { return $this->colorcalendar; }
+    public function setColorcalendar(string $colorcalendar): self { $this->colorcalendar = $colorcalendar; return $this; }
 
-    public function getColor(): ?string
-    {
-        return $this->color;
-    }
+    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
+    public function setCreado(\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
 
-    public function setColor(string $color): self
-    {
-        $this->color = $color;
-
-        return $this;
-    }
-
-    public function getColorcalendar(): ?string
-    {
-        return $this->colorcalendar;
-    }
-
-    public function setColorcalendar(string $colorcalendar): self
-    {
-        $this->colorcalendar = $colorcalendar;
-
-        return $this;
-    }
-
-    public function getCreado(): ?\DateTimeInterface
-    {
-        return $this->creado;
-    }
-
-    public function setCreado(\DateTimeInterface $creado): self
-    {
-        $this->creado = $creado;
-
-        return $this;
-    }
-
-    public function getModificado(): ?\DateTimeInterface
-    {
-        return $this->modificado;
-    }
-
-    public function setModificado(\DateTimeInterface $modificado): self
-    {
-        $this->modificado = $modificado;
-
-        return $this;
-    }
+    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
+    public function setModificado(\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
 
     /**
      * @return Collection<int, ReservaReserva>
      */
-    public function getReservas(): Collection
-    {
-        return $this->reservas;
-    }
+    public function getReservas(): Collection { return $this->reservas; }
 
     public function addReserva(ReservaReserva $reserva): self
     {
-        if(!$this->reservas->contains($reserva)) {
+        if (!$this->reservas->contains($reserva)) {
             $this->reservas[] = $reserva;
             $reserva->setEstado($this);
         }
-
         return $this;
     }
 
     public function removeReserva(ReservaReserva $reserva): self
     {
-        if($this->reservas->removeElement($reserva)) {
-            // set the owning side to null (unless already changed)
-            if($reserva->getEstado() === $this) {
+        if ($this->reservas->removeElement($reserva)) {
+            if ($reserva->getEstado() === $this) {
                 $reserva->setEstado(null);
             }
         }
-
         return $this;
     }
 
+    public function isHabilitarResumenPublico(): bool
+    {
+        return (bool) $this->habilitarResumenPublico;
+    }
 
+    public function setHabilitarResumenPublico(bool $v): self
+    {
+        $this->habilitarResumenPublico = $v;
+        return $this;
+    }
 }

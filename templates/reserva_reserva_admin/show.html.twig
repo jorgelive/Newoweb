@@ -247,48 +247,56 @@
                     <div class="tabs-scroller tabs-scroller--wrap hidden-print">
                         <ul class="nav nav-tabs nav-tabs-modern nav-tabs-modern--wrap" role="tablist">
                             {% set linksOrdenados = object.unit.unitCaracteristicaLinks %}
+                            {% set firstActive = true %}
+                            {% set hayCaractPermitidas = false %}
+
+                            {# Reglas:
+                               - show: todas
+                               - resumen: si el tipo ES gated (visibleEnResumenPublico), mostrar SOLO si permitirGated=true.
+                                          si el tipo NO es gated, siempre mostrar. #}
                             {% for index, link in linksOrdenados %}
-                                {% set c     = link.caracteristica %}
+                                {% set c = link.caracteristica %}
                                 {% if c is not empty %}
-                                    {% set id     = 'tab_' ~ admin.uniqid ~ '_' ~ index %}
-                                    {% set titulo = c.unittipocaracteristica.titulo %}
-                                    {% set icono  = c.unittipocaracteristica.iconclase %}
-                                    {% set color  = c.unittipocaracteristica.iconcolor %}
+                                    {% set tipo = c.unittipocaracteristica %}
+                                    {% set esGated = tipo.visibleEnResumenPublico %}
+                                    {% set permitido = (not isResumen) or (not esGated) or (esGated and (permitirGated ?? false)) %}
 
-
-                                    <li role="presentation" class="{% if loop.first %}active{% endif %}">
-                                        <a
-                                                href="#{{ id }}"
-                                                role="tab"
-                                                data-toggle="tab"
-                                                aria-controls="{{ id }}"
-                                                aria-selected="{{ loop.first ? 'true' : 'false' }}"
-                                                style="--accent: {{ color }};"
-                                        >
-                                            <i class="fa {{ icono }} tab-icon" style="color: {{ color|e('html_attr') }};" aria-hidden="true"></i>
-                                            <span class="tab-title">
-                                                {{ titulo }}
-                                            </span>
+                                    {% if permitido %}
+                                        {% set hayCaractPermitidas = true %}
+                                        {% set id = 'tab_' ~ admin.uniqid ~ '_' ~ index %}
+                                        {% set titulo = tipo.titulo %}
+                                        {% set icono  = tipo.iconclase %}
+                                        {% set color  = tipo.iconcolor %}
+                                        <li role="presentation" class="{% if firstActive %}active{% endif %}">
+                                            <a href="#{{ id }}" role="tab" data-toggle="tab" aria-controls="{{ id }}"
+                                               aria-selected="{{ firstActive ? 'true' : 'false' }}" style="--accent: {{ color }};">
+                                                <i class="fa {{ icono }} tab-icon" style="color: {{ color|e('html_attr') }};" aria-hidden="true"></i>
+                                                <span class="tab-title">{{ titulo }}</span>
+                                            </a>
+                                        </li>
+                                        {% set firstActive = false %}
+                                    {% endif %}
+                                {% endif %}
+                            {% else %}
+                                {% if not isResumen %}
+                                    <li role="presentation" class="disabled">
+                                        <a href="javascript:void(0)" tabindex="-1">
+                                            <i class="fa fa-info-circle tab-icon" aria-hidden="true"></i>
+                                            <span>{{ 'sin_caracteristicas'|trans({}, 'messages')|default('Sin características') }}</span>
                                         </a>
                                     </li>
                                 {% endif %}
-                            {% else %}
-
-                                <li role="presentation" class="disabled">
-                                    <a href="javascript:void(0)" tabindex="-1">
-                                        <i class="fa fa-info-circle tab-icon" aria-hidden="true"></i>
-                                        <span>{{ 'sin_caracteristicas'|trans({}, 'messages')|default('Sin características') }}</span>
-                                    </a>
-                                </li>
                             {% endfor %}
+
+                            {# Ubicación SIEMPRE; si no hubo pestañas permitidas, hacerla activa #}
                             {% set color_ubicacion = '#16A085' %}
-                            <li role="presentation">
+                            <li role="presentation" class="{% if not hayCaractPermitidas %}active{% endif %}">
                                 <a
                                         href="#tab_{{ admin.uniqid }}_ubicacion"
                                         role="tab"
                                         data-toggle="tab"
                                         aria-controls="tab_{{ admin.uniqid }}_ubicacion"
-                                        aria-selected="false"
+                                        aria-selected="{% if not hayCaractPermitidas %}true{% else %}false{% endif %}"
                                         style="--accent:#954e8d;"
                                 >
                                     <i class="fa fa-map-marker-alt tab-icon" style="color: {{ color_ubicacion|e('html_attr') }};" aria-hidden="true"></i>
@@ -299,29 +307,38 @@
                     </div>
 
                     <div class="tab-content tab-content-modern no-padding">
+                        {% set firstActive2 = true %}
+                        {% set hayCaractPermitidas2 = false %}
+
                         {% for index, link in linksOrdenados %}
                             {% set c = link.caracteristica %}
                             {% if c is not empty %}
-                                <div class="tab-pane fade {% if loop.first %}in active{% endif %}" id="tab_{{ admin.uniqid }}_{{ index }}">
-                                    <div class="box-body container-fluid">
-                                        <div class="sonata-ba-collapsed-fields">
-                                            <div class="box-body table-responsive">
-                                                <h3 class="visible-print">{{ c.unittipocaracteristica.titulo }}</h3>
-                                                <div class="caracteristicacontent ck-content">{{ c.contenido | raw }}</div>
+                                {% set tipo = c.unittipocaracteristica %}
+                                {% set esGated = tipo.visibleEnResumenPublico %}
+                                {% set permitido = (not isResumen) or (not esGated) or (esGated and (permitirGated ?? false)) %}
 
-                                                {# Pasar la característica al parcial para usar c.medios #}
-                                                {% include 'reserva_reserva_admin/show__parte_galeria.html.twig' with { caracteristica: c } %}
+                                {% if permitido %}
+                                    {% set hayCaractPermitidas2 = true %}
+                                    <div class="tab-pane fade {% if firstActive2 %}in active{% endif %}" id="tab_{{ admin.uniqid }}_{{ index }}">
+                                        <div class="box-body container-fluid">
+                                            <div class="sonata-ba-collapsed-fields">
+                                                <div class="box-body table-responsive">
+                                                    <h3 class="visible-print">{{ tipo.titulo }}</h3>
+                                                    <div class="caracteristicacontent ck-content">{{ c.contenido | raw }}</div>
+                                                    {% include 'reserva_reserva_admin/show__parte_galeria.html.twig' with { caracteristica: c } %}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                    {% set firstActive2 = false %}
+                                {% endif %}
                             {% endif %}
                         {% endfor %}
 
-                        <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_ubicacion">
+                        {# Contenido de UBICACIÓN; activo si no hubo características permitidas #}
+                        <div class="tab-pane fade {% if not hayCaractPermitidas2 %}in active{% endif %}" id="tab_{{ admin.uniqid }}_ubicacion">
                             <div class="box-body container-fluid">
                                 <div class="sonata-ba-collapsed-fields">
-                                    {# Ubicación #}
                                     {% set addr    = object.unit.establecimiento.direccion|default('') %}
                                     {% set ref     = object.unit.referencia|default('') %}
                                     {% set q       = addr is not empty ? addr : (object.unit.establecimiento.nombre ~ ' ' ~ object.unit.nombre) %}

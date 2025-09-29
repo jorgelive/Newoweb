@@ -20,6 +20,9 @@ class ReservaEstadoAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
+            ->add('habilitarResumenPublico', null, [
+                'label' => 'Habilitar características en resumen público',
+            ])
         ;
     }
 
@@ -30,10 +33,19 @@ class ReservaEstadoAdmin extends AbstractAdmin
     {
         $listMapper
             ->add('id')
-            ->add('nombre')
-            ->add('color')
+            ->add('nombre', null, [
+                'editable' => true
+            ])
+            ->add('color', null, [
+                'editable' => true
+            ])
             ->add('colorcalendar',  null, [
-                'label' => 'Color de calendario'
+                'label' => 'Color de calendario',
+                'editable' => true
+            ])
+            ->add('habilitarResumenPublico', null, [
+                'label' => 'Habilitar características en resumen público',
+                'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -57,6 +69,10 @@ class ReservaEstadoAdmin extends AbstractAdmin
             ->add('colorcalendar',  null, [
                 'label' => 'Color de calendario'
             ])
+            ->add('habilitarResumenPublico', null, [
+                'required' => false,
+                'label' => 'Habilitar características en resumen público',
+            ])
         ;
     }
 
@@ -71,6 +87,9 @@ class ReservaEstadoAdmin extends AbstractAdmin
             ->add('color')
             ->add('colorcalendar',  null, [
                 'label' => 'Color de calendario'
+            ])
+            ->add('habilitarResumenPublico', null, [
+                'label' => 'Habilitar características en resumen público',
             ])
         ;
     }

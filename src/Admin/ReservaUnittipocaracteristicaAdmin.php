@@ -26,6 +26,9 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('iconclase', null, [
                 'label' => 'Clase del ícono'
             ])
+            ->add('visibleEnResumenPublico', null, [
+                'label' => 'Visible en resumen público'
+            ])
         ;
     }
 
@@ -45,6 +48,10 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('iconclase', null, [
                 'editable' => true,
                 'label' => 'Clase del ícono'
+            ])
+            ->add('visibleEnResumenPublico', null, [
+                'label' => 'Visible en resumen público',
+                'editable' => true
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -70,6 +77,10 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ->add('iconclase', null, [
                 'label' => 'Clase del ícono'
             ])
+            ->add('visibleEnResumenPublico', null, [
+                'required' => false,
+                'label' => 'Visible en resumen público'
+            ])
         ;
     }
 
@@ -86,6 +97,9 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ])
             ->add('iconclase', null, [
                 'label' => 'Clase del ícono'
+            ])
+            ->add('visibleEnResumenPublico', null, [
+                'label' => 'Visible en resumen público',
             ])
         ;
     }
