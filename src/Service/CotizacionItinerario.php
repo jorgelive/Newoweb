@@ -22,8 +22,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class CotizacionItinerario
 {
-    /** Separador para títulos agrupados en el mismo horario. */
-    private const AGENDA_JOINER = ' + ';
+    /** Separador único para títulos agrupados en el mismo horario. Reutilízalo en otros lados si lo necesitas. */
+    public const AGENDA_JOINER = ' + ';
 
     private CotizacionCotizacion $cotizacion;
     private CotizacionCotservicio $cotservicio;
@@ -36,7 +36,7 @@ class CotizacionItinerario
 
     /**
      * Itinerario “clásico”: días con contenido e inserción de días libres.
-     * Ahora acumula múltiples servicios por fecha y adjunta 'servicioId' en cada ítem.
+     * Acumula múltiples servicios por fecha y adjunta 'servicioId' en cada ítem.
      *
      * Devuelve array indexado por fecha (Ymd) con:
      *  - fecha (\DateTime)
@@ -211,11 +211,19 @@ class CotizacionItinerario
             }
         }
 
-        // Aplanar: concateno títulos con ' + '
+        // Aplanar: concateno títulos con el joiner único
         $result = [];
         foreach ($buckets as $row) {
             if (isset($row['_titulos'])) {
-                $row['titulo'] = \implode(self::AGENDA_JOINER, $row['_titulos']);
+                // Limpieza por si hay vacíos/espacios
+                $clean = [];
+                foreach ($row['_titulos'] as $t) {
+                    $t = \trim((string)$t);
+                    if ($t !== '' && !\in_array($t, $clean, true)) {
+                        $clean[] = $t;
+                    }
+                }
+                $row['titulo'] = \implode(self::AGENDA_JOINER, $clean);
                 unset($row['_titulos']);
             }
             $result[] = $row;
@@ -357,7 +365,7 @@ class CotizacionItinerario
     }
 
     /**
-     * Construye un título concatenando los títulos de los items del componente.
+     * Construye un título concatenando los títulos de los items del componente usando el joiner global.
      */
     private function joinItemTitles($componente): string
     {
@@ -365,9 +373,12 @@ class CotizacionItinerario
         $items = $componente->getComponente()?->getComponenteitems() ?? [];
         foreach ($items as $item) {
             if (\is_object($item) && \method_exists($item, 'getTitulo')) {
-                $titulos[] = $item->getTitulo();
+                $t = \trim((string) $item->getTitulo());
+                if ($t !== '' && !\in_array($t, $titulos, true)) {
+                    $titulos[] = $t; // evita duplicados exactos y vacíos
+                }
             }
         }
-        return \implode(', ', $titulos);
+        return \implode(self::AGENDA_JOINER, $titulos);
     }
 }
