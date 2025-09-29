@@ -24,72 +24,46 @@ class ReservaEstado
     public const DB_VALOR_INICIAL = 7;
 
     /**
-     * @var int
-     *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
 
-    /**
-     * @var string
-     *
-     * @ORM\Column(type="string", length=255)
-     */
+    /** @ORM\Column(type="string", length=255) */
     private $nombre;
 
-    /**
-     * @ORM\Column(type="string", length=10)
-     */
+    /** @ORM\Column(type="string", length=10) */
     private $color;
 
-    /**
-     * @ORM\Column(type="string", length=10)
-     */
+    /** @ORM\Column(type="string", length=10) */
     private $colorcalendar;
 
     /**
-     * Habilita mostrar pestañas de características en el resumen público.
-     *
+     * Si es TRUE, en la vista pública (resumen) se muestran también los TIPOS restringidos.
+     * Si es FALSE, los TIPOS restringidos permanecen ocultos.
      * @ORM\Column(name="habilitar_resumen_publico", type="boolean", options={"default": false})
      */
-    private bool $habilitarResumenPublico = false;
+    private $habilitarResumenPublico = false;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
      * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="estado", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $reservas;
 
-    /**
-     * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    /** @Gedmo\Timestampable(on="create") @ORM\Column(type="datetime") */
     private $creado;
 
-    /**
-     * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    /** @Gedmo\Timestampable(on="update") @ORM\Column(type="datetime") */
     private $modificado;
 
     public function __construct() {
         $this->reservas = new ArrayCollection();
     }
 
-    public function __toString()
-    {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
-    }
+    public function __toString() { return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? ''; }
 
     public function getId(): ?int { return $this->id; }
-
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(string $nombre): self { $this->nombre = $nombre; return $this; }
 
@@ -105,14 +79,12 @@ class ReservaEstado
     public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
     public function setModificado(\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
 
-    /**
-     * @return Collection<int, ReservaReserva>
-     */
+    /** @return Collection<int, ReservaReserva> */
     public function getReservas(): Collection { return $this->reservas; }
 
     public function addReserva(ReservaReserva $reserva): self
     {
-        if (!$this->reservas->contains($reserva)) {
+        if(!$this->reservas->contains($reserva)) {
             $this->reservas[] = $reserva;
             $reserva->setEstado($this);
         }
@@ -121,22 +93,16 @@ class ReservaEstado
 
     public function removeReserva(ReservaReserva $reserva): self
     {
-        if ($this->reservas->removeElement($reserva)) {
-            if ($reserva->getEstado() === $this) {
+        if($this->reservas->removeElement($reserva)) {
+            if($reserva->getEstado() === $this) {
                 $reserva->setEstado(null);
             }
         }
         return $this;
     }
 
-    public function isHabilitarResumenPublico(): bool
-    {
-        return (bool) $this->habilitarResumenPublico;
-    }
-
-    public function setHabilitarResumenPublico(bool $v): self
-    {
-        $this->habilitarResumenPublico = $v;
-        return $this;
-    }
+    // === Flag en estado ===
+    public function isHabilitarResumenPublico(): bool { return (bool)$this->habilitarResumenPublico; }
+    public function getHabilitarResumenPublico(): bool { return (bool)$this->habilitarResumenPublico; }
+    public function setHabilitarResumenPublico(bool $v): self { $this->habilitarResumenPublico = $v; return $this; }
 }

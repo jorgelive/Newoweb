@@ -61,7 +61,7 @@ class ReservaReservaAdminController extends CRUDAdminController
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
 
-        // Validar token público
+        // Validación de token para acceso público
         if ($request->get('token') != $object->getToken()) {
             $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
             return new RedirectResponse($this->admin->generateUrl('list'));
@@ -75,14 +75,14 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         $this->admin->setSubject($object);
 
-        // Solo los estados con este flag permiten ver las características RESTRINGIDAS
+        // Si el estado habilita el resumen público, mostramos también los TIPO marcados como restringidos
         $permitirCaractRestringidas = (bool) ($object->getEstado()?->isHabilitarResumenPublico() ?? false);
 
         return $this->render('reserva_reserva_admin/show.html.twig', [
-            'object'                        => $object,
-            'action'                        => 'resumen',
-            'elements'                      => $this->admin->getShow(),
-            'permitirCaractRestringidas'    => $permitirCaractRestringidas,
+            'object'                     => $object,
+            'action'                     => 'resumen',
+            'elements'                   => $this->admin->getShow(),
+            'permitirCaractRestringidas' => $permitirCaractRestringidas,
         ]);
     }
 

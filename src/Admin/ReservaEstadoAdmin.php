@@ -72,6 +72,7 @@ class ReservaEstadoAdmin extends AbstractAdmin
             ->add('habilitarResumenPublico', null, [
                 'required' => false,
                 'label' => 'Habilitar características en resumen público',
+                'help' => 'Si está activo, en la vista pública se muestran también los TIPOS marcados como restringidos.',
             ])
         ;
     }

@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Entity;
 
 use Doctrine\Common\Collections\Collection;
@@ -67,6 +68,14 @@ class ReservaUnittipocaracteristica
     private $iconclase;
 
     /**
+     * Si es TRUE, este TIPO está restringido en la vista pública (resumen).
+     * Solo se muestra si el estado habilita el resumen público.
+     *
+     * @ORM\Column(name="restringido_en_resumen", type="boolean", options={"default": false})
+     */
+    private $restringidoEnResumen = false;
+
+    /**
      * @var ArrayCollection
      * @ORM\OneToMany(targetEntity="ReservaUnitcaracteristica", mappedBy="unittipocaracteristica", cascade={"persist","remove"}, orphanRemoval=true)
      */
@@ -126,22 +135,27 @@ class ReservaUnittipocaracteristica
      */
     public function getUnitcaracteristicas(): Collection { return $this->unitcaracteristicas; }
 
-    public function addUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
+    public function addUnitcaracteristica(ReservaUnitcaracteristica $u): self
     {
-        if (!$this->unitcaracteristicas->contains($unitcaracteristica)) {
-            $this->unitcaracteristicas[] = $unitcaracteristica;
-            $unitcaracteristica->setUnittipocaracteristica($this);
+        if (!$this->unitcaracteristicas->contains($u)) {
+            $this->unitcaracteristicas[] = $u;
+            $u->setUnittipocaracteristica($this);
         }
         return $this;
     }
 
-    public function removeUnitcaracteristica(ReservaUnitcaracteristica $unitcaracteristica): self
+    public function removeUnitcaracteristica(ReservaUnitcaracteristica $u): self
     {
-        if ($this->unitcaracteristicas->removeElement($unitcaracteristica)) {
-            if ($unitcaracteristica->getUnittipocaracteristica() === $this) {
-                $unitcaracteristica->setUnittipocaracteristica(null);
+        if ($this->unitcaracteristicas->removeElement($u)) {
+            if ($u->getUnittipocaracteristica() === $this) {
+                $u->setUnittipocaracteristica(null);
             }
         }
         return $this;
     }
+
+    // === Flag de restricción por tipo ===
+    public function isRestringidoEnResumen(): bool { return (bool)$this->restringidoEnResumen; }
+    public function getRestringidoEnResumen(): bool { return (bool)$this->restringidoEnResumen; } // compat accessor
+    public function setRestringidoEnResumen(bool $v): self { $this->restringidoEnResumen = $v; return $this; }
 }

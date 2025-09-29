@@ -10,9 +10,7 @@ use Doctrine\Common\Collections\Collection;
 /**
  * @ORM\Table(
  *   name="res_unitcaracteristica",
- *   indexes={
- *     @ORM\Index(name="idx_unitcarac_nombre", columns={"nombre"})
- *   }
+ *   indexes={ @ORM\Index(name="idx_unitcarac_nombre", columns={"nombre"}) }
  * )
  * @ORM\Entity
  * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnitcaracteristicaTranslation")
@@ -26,10 +24,7 @@ class ReservaUnitcaracteristica
      */
     private ?int $id = null;
 
-    /**
-     * Nombre interno (uso backoffice, no traducible)
-     * @ORM\Column(type="string", length=191, nullable=false)
-     */
+    /** @ORM\Column(type="string", length=191, nullable=false) */
     private string $nombre = '';
 
     /**
@@ -41,15 +36,11 @@ class ReservaUnitcaracteristica
      */
     protected Collection $translations;
 
-    /**
-     * Contenido traducible
-     * @Gedmo\Translatable
-     * @ORM\Column(type="text")
-     */
+    /** @Gedmo\Translatable @ORM\Column(type="text") */
     private ?string $contenido = null;
 
     /**
-     * Contenido original (virtual)
+     * Campo virtual que refleja el contenido original (sin traducción)
      * @ORM\Column(
      *   type="text",
      *   columnDefinition="LONGTEXT GENERATED ALWAYS AS (`contenido`) VIRTUAL",
@@ -61,14 +52,12 @@ class ReservaUnitcaracteristica
     private ?string $contenidooriginal = null;
 
     /**
-     * Tipo de característica
      * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnittipocaracteristica", inversedBy="unitcaracteristicas")
      * @ORM\JoinColumn(name="unittipocaracteristica_id", referencedColumnName="id", nullable=false)
      */
     protected ?ReservaUnittipocaracteristica $unittipocaracteristica = null;
 
     /**
-     * Medios hijos
      * @ORM\OneToMany(
      *     targetEntity="App\Entity\ReservaUnitmedio",
      *     mappedBy="unitcaracteristica",
@@ -80,7 +69,6 @@ class ReservaUnitcaracteristica
     private Collection $medios;
 
     /**
-     * Vínculos con Unidades (lado inverso del link)
      * @ORM\OneToMany(
      *     targetEntity="App\Entity\ReservaUnitCaracteristicaLink",
      *     mappedBy="caracteristica",
@@ -91,30 +79,13 @@ class ReservaUnitcaracteristica
      */
     private Collection $links;
 
-    /**
-     * 🔒 Si es TRUE, esta característica SOLO se muestra en la vista 'resumen'
-     *     cuando el estado de la reserva habilita el resumen público.
-     *     Si es FALSE (por defecto), SIEMPRE se muestra.
-     *
-     * @ORM\Column(name="restringida_en_resumen", type="boolean", options={"default": false})
-     */
-    private bool $restringidaEnResumen = false;
-
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    /** @Gedmo\Timestampable(on="create") @ORM\Column(type="datetime") */
     private ?\DateTimeInterface $creado = null;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    /** @Gedmo\Timestampable(on="update") @ORM\Column(type="datetime") */
     private ?\DateTimeInterface $modificado = null;
 
-    /**
-     * @Gedmo\Locale
-     */
+    /** @Gedmo\Locale */
     private ?string $locale = null;
 
     public function __construct()
@@ -136,17 +107,17 @@ class ReservaUnitcaracteristica
 
     /** @return Collection|ReservaUnitcaracteristicaTranslation[] */
     public function getTranslations(): Collection { return $this->translations; }
-    public function addTranslation(ReservaUnitcaracteristicaTranslation $translation): self
+    public function addTranslation(ReservaUnitcaracteristicaTranslation $t): self
     {
-        if (!$this->translations->contains($translation)) {
-            $this->translations->add($translation);
-            $translation->setObject($this);
+        if (!$this->translations->contains($t)) {
+            $this->translations->add($t);
+            $t->setObject($this);
         }
         return $this;
     }
-    public function removeTranslation(ReservaUnitcaracteristicaTranslation $translation): self
+    public function removeTranslation(ReservaUnitcaracteristicaTranslation $t): self
     {
-        $this->translations->removeElement($translation);
+        $this->translations->removeElement($t);
         return $this;
     }
 
@@ -161,67 +132,51 @@ class ReservaUnitcaracteristica
     public function getContenidooriginal(): ?string { return $this->contenidooriginal; }
 
     public function getUnittipocaracteristica(): ?ReservaUnittipocaracteristica { return $this->unittipocaracteristica; }
-    public function setUnittipocaracteristica(?ReservaUnittipocaracteristica $tipo): self
-    {
-        $this->unittipocaracteristica = $tipo;
-        return $this;
-    }
+    public function setUnittipocaracteristica(?ReservaUnittipocaracteristica $tipo): self { $this->unittipocaracteristica = $tipo; return $this; }
 
     public function getCreado(): ?\DateTimeInterface { return $this->creado; }
-    public function setCreado(\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function setCreado(\DateTimeInterface $d): self { $this->creado = $d; return $this; }
 
     public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
-    public function setModificado(\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function setModificado(\DateTimeInterface $d): self { $this->modificado = $d; return $this; }
 
     /** @return Collection|ReservaUnitmedio[] */
     public function getMedios(): Collection { return $this->medios; }
-    public function addMedio(ReservaUnitmedio $medio): self
+    public function addMedio(ReservaUnitmedio $m): self
     {
-        if (!$this->medios->contains($medio)) {
-            $this->medios->add($medio);
-            $medio->setUnitcaracteristica($this);
+        if (!$this->medios->contains($m)) {
+            $this->medios->add($m);
+            $m->setUnitcaracteristica($this);
         }
         return $this;
     }
-    public function removeMedio(ReservaUnitmedio $medio): self
+    public function removeMedio(ReservaUnitmedio $m): self
     {
-        if ($this->medios->removeElement($medio)) {
-            if ($medio->getUnitcaracteristica() === $this) {
-                $medio->setUnitcaracteristica(null);
+        if ($this->medios->removeElement($m)) {
+            if ($m->getUnitcaracteristica() === $this) {
+                $m->setUnitcaracteristica(null);
             }
         }
         return $this;
     }
 
-    /** LINKS */
     /** @return Collection|ReservaUnitCaracteristicaLink[] */
     public function getLinks(): Collection { return $this->links; }
-    public function addLink(ReservaUnitCaracteristicaLink $link): self
+    public function addLink(ReservaUnitCaracteristicaLink $l): self
     {
-        if (!$this->links->contains($link)) {
-            $this->links->add($link);
-            $link->setCaracteristica($this);
+        if (!$this->links->contains($l)) {
+            $this->links->add($l);
+            $l->setCaracteristica($this);
         }
         return $this;
     }
-    public function removeLink(ReservaUnitCaracteristicaLink $link): self
+    public function removeLink(ReservaUnitCaracteristicaLink $l): self
     {
-        if ($this->links->removeElement($link)) {
-            if ($link->getCaracteristica() === $this) {
-                $link->setCaracteristica(null);
+        if ($this->links->removeElement($l)) {
+            if ($l->getCaracteristica() === $this) {
+                $l->setCaracteristica(null);
             }
         }
-        return $this;
-    }
-
-    /** ===== Flag de visibilidad en resumen ===== */
-    public function isRestringidaEnResumen(): bool
-    {
-        return $this->restringidaEnResumen;
-    }
-    public function setRestringidaEnResumen(bool $v): self
-    {
-        $this->restringidaEnResumen = $v;
         return $this;
     }
 }
