@@ -27,7 +27,7 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
                 'label' => 'Clase del ícono'
             ])
             ->add('restringidoEnResumen', null, [
-                'label'    => 'Restringida en RESUMEN'
+                'label'    => 'Restringida en resumen'
             ])
         ;
     }
@@ -51,7 +51,7 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ])
             ->add('restringidoEnResumen', null, [
                 'editable' => true,
-                'label'    => 'Restringida en RESUMEN'
+                'label'    => 'Restringida en resumen'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -79,7 +79,7 @@ class ReservaUnittipocaracteristicaAdmin extends AbstractAdmin
             ])
             ->add('restringidoEnResumen', null, [
                 'required' => false,
-                'label'    => 'Restringida en RESUMEN',
+                'label'    => 'Restringida en resumen',
                 'help'     => 'Si está activo, esta característica SOLO se mostrará en la vista pública cuando el estado habilite el resumen.',
             ])
         ;

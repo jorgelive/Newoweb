@@ -9,6 +9,18 @@
 
         .sonata-ba-view-container th .row-icon { margin-right:6px; opacity:.9; color:#667085; width:1.1em; text-align:center; }
 
+        /* Badge de pestañas solo en backoffice/show */
+        .tab-badge {
+            display:inline-block; margin-left:.5ch; padding:2px 6px;
+            font-size:11px; line-height:1; border-radius:999px;
+            background:#f0ad4e; color:#fff; vertical-align:middle;
+        }
+        .tabs-legend { margin:6px 0 12px; font-size:12px; color:#6c757d; }
+        .tabs-legend .swatch {
+            display:inline-block; height:10px; width:10px; border-radius:2px;
+            background:#f0ad4e; margin-right:4px; vertical-align:middle;
+        }
+
         {% include 'reserva_reserva_admin/show__parte_galeria.css.twig' %}
     </style>
 {% endblock %}
@@ -17,6 +29,8 @@
 
     <div class="sonata-ba-view">
         {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
+
+        {% set isResumen = (action == 'resumen') %}
 
         <div class="row">
             <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
@@ -58,45 +72,52 @@
                     <div class="tabs-scroller tabs-scroller--wrap hidden-print">
                         <ul class="nav nav-tabs nav-tabs-modern nav-tabs-modern--wrap" role="tablist">
                             {% set inicializado = false %}
+                            {% set hayRestringidas = false %}
 
-                            {# Iterar sobre links (orden ya viene por @OrderBy en la colección) #}
+                            {# Iterar sobre links (orden ya viene por @OrderBy) #}
                             {% for index, link in object.unitCaracteristicaLinks %}
                                 {% set c = link.caracteristica %}
-                                {% if c is not empty and not (
-                                    (c.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_BRIEFING') and action == 'resumen')
-                                    or
-                                    (c.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_INVENTARIO') and action == 'resumen')
-                                    ) %}
-                                    {% set idTab  = 'tab_' ~ admin.uniqid ~ '_' ~ index %}
-                                    {% set color  = c.unittipocaracteristica.iconcolor %}
-                                    {% set color_ubicacion = '#16A085' %}
-                                    <li role="presentation" class="{% if not inicializado %}active{% endif %}">
-                                        <a href="#{{ idTab }}"
-                                           role="tab"
-                                           data-toggle="tab"
-                                           aria-controls="{{ idTab }}"
-                                           aria-selected="{{ (not inicializado) ? 'true' : 'false' }}"
-                                           style="--accent: {{ color }};">
-                                            <i class="fas {{ c.unittipocaracteristica.iconclase }} tab-icon" style="color: {{ color|e('html_attr') }};" aria-hidden="true"></i>
-                                            <span class="tab-title">
-                                                {{ c.unittipocaracteristica.titulo }}
-                                            </span>
-                                        </a>
-                                    </li>
-                                    {% set inicializado = true %}
+                                {% if c is not empty %}
+                                    {% set tipo      = c.unittipocaracteristica %}
+                                    {% set esGated   = tipo.restringidoEnResumen %}
+                                    {% set permitido = (not isResumen) or (not esGated) %}
+
+                                    {% if esGated %}{% set hayRestringidas = true %}{% endif %}
+
+                                    {% if permitido %}
+                                        {% set idTab  = 'tab_' ~ admin.uniqid ~ '_' ~ index %}
+                                        {% set color  = tipo.iconcolor %}
+                                        <li role="presentation" class="{% if not inicializado %}active{% endif %}">
+                                            <a href="#{{ idTab }}"
+                                               role="tab"
+                                               data-toggle="tab"
+                                               aria-controls="{{ idTab }}"
+                                               aria-selected="{{ (not inicializado) ? 'true' : 'false' }}"
+                                               style="--accent: {{ color }};">
+                                                <i class="fas {{ tipo.iconclase }} tab-icon" style="color: {{ color|e('html_attr') }};" aria-hidden="true"></i>
+                                                <span class="tab-title">
+                                                    {{ tipo.titulo }}
+                                                    {% if (not isResumen) and esGated %}
+                                                        <span class="tab-badge" title="Tipo restringido: no se muestra en el resumen público">R</span>
+                                                    {% endif %}
+                                                </span>
+                                            </a>
+                                        </li>
+                                        {% set inicializado = true %}
+                                    {% endif %}
                                 {% endif %}
                             {% endfor %}
 
                             {# Tab Ubicación #}
-                            <li role="presentation">
+                            <li role="presentation" class="{% if not inicializado %}active{% endif %}">
                                 {% set idUbic = 'tab_' ~ admin.uniqid ~ '_ubicacion' %}
                                 {% set color_ubicacion = '#16A085' %}
                                 <a href="#{{ idUbic }}"
                                    role="tab"
                                    data-toggle="tab"
                                    aria-controls="{{ idUbic }}"
-                                   aria-selected="false"
-                                   style="--accent: {{ colores.lila }};">
+                                   aria-selected="{{ (not inicializado) ? 'true' : 'false' }}"
+                                   style="--accent: {{ color_ubicacion }};">
                                     <i class="fas fa-map-marker-alt tab-icon" style="color: {{ color_ubicacion|e('html_attr') }};" aria-hidden="true"></i>
                                     <span class="tab-title">{{ 'tab_ubicacion'|trans({},'messages')|capitalize }}</span>
                                 </a>
@@ -104,36 +125,46 @@
                         </ul>
                     </div>
 
+                    {# Leyenda de badges (solo backoffice y si existe al menos un tipo restringido) #}
+                    {% if (not isResumen) and hayRestringidas %}
+                        <div class="tabs-legend hidden-print">
+                            <span class="swatch" aria-hidden="true"></span>
+                            <strong>R</strong> = Tipo restringido (oculto en el resumen público).
+                        </div>
+                    {% endif %}
+
                     <div class="tab-content tab-content-modern no-padding">
                         {% set inicializado = false %}
 
-                        {# Contenido de cada tab (sin sort, ya viene ordenado) #}
+                        {# Contenido de cada tab #}
                         {% for index, link in object.unitCaracteristicaLinks %}
                             {% set c = link.caracteristica %}
-                            {% if c is not empty and not (
-                                (c.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_BRIEFING') and action == 'resumen')
-                                or
-                                (c.unittipocaracteristica.id == constant('App\\Entity\\ReservaUnittipocaracteristica::DB_VALOR_INVENTARIO') and action == 'resumen')
-                                ) %}
-                                <div class="tab-pane fade {% if not inicializado %}in active{% endif %}" id="tab_{{ admin.uniqid }}_{{ index }}">
-                                    <div class="box-body container-fluid">
-                                        <div class="sonata-ba-collapsed-fields">
-                                            <div class="box-body table-responsive">
-                                                <h3 class="visible-print">{{ c.unittipocaracteristica.titulo }}</h3>
-                                                <div class="caracteristicacontent ck-content">{{ c.contenido | raw }}</div>
+                            {% if c is not empty %}
+                                {% set tipo      = c.unittipocaracteristica %}
+                                {% set esGated   = tipo.restringidoEnResumen %}
+                                {% set permitido = (not isResumen) or (not esGated) %}
 
-                                                {# Pasar la característica al parcial para usar c.medios #}
-                                                {% include 'reserva_reserva_admin/show__parte_galeria.html.twig' with { caracteristica: c } %}
+                                {% if permitido %}
+                                    <div class="tab-pane fade {% if not inicializado %}in active{% endif %}" id="tab_{{ admin.uniqid }}_{{ index }}">
+                                        <div class="box-body container-fluid">
+                                            <div class="sonata-ba-collapsed-fields">
+                                                <div class="box-body table-responsive">
+                                                    <h3 class="visible-print">{{ tipo.titulo }}</h3>
+                                                    <div class="caracteristicacontent ck-content">{{ c.contenido | raw }}</div>
+
+                                                    {# Galería de medios #}
+                                                    {% include 'reserva_reserva_admin/show__parte_galeria.html.twig' with { caracteristica: c } %}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                {% set inicializado = true %}
+                                    {% set inicializado = true %}
+                                {% endif %}
                             {% endif %}
                         {% endfor %}
 
                         {# Pestaña Ubicación #}
-                        <div class="tab-pane fade" id="tab_{{ admin.uniqid }}_ubicacion">
+                        <div class="tab-pane fade {% if not inicializado %}in active{% endif %}" id="tab_{{ admin.uniqid }}_ubicacion">
                             <div class="box-body container-fluid">
                                 <div class="sonata-ba-collapsed-fields">
                                     {% set addr    = object.establecimiento.direccion|default('') %}

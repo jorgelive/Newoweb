@@ -112,17 +112,15 @@ class ReservaUnitAdminController extends CRUDAdminController
 
     }
 
-    public function resumenAction(Request $request = null): Response | RedirectResponse
+    public function resumenAction(Request $request = null): Response|RedirectResponse
     {
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
 
         $this->checkParentChildAssociation($request, $object);
 
-        //$this->admin->checkAccess('show', $object);
-
         $preResponse = $this->preShow($request, $object);
-        if(null !== $preResponse) {
+        if (null !== $preResponse) {
             return $preResponse;
         }
 
@@ -130,16 +128,13 @@ class ReservaUnitAdminController extends CRUDAdminController
 
         $fields = $this->admin->getShow();
 
-        //$template = $this->templateRegistry->getTemplate('show'); es privado en la clase padre
-        $template = 'reserva_unit_admin/show.html.twig';
-
-        return $this->render($template, [
+        // Misma plantilla de show, pero con 'action' = 'resumen'
+        return $this->render('reserva_unit_admin/show.html.twig', [
             'object'   => $object,
             'action'   => 'resumen',
             'elements' => $fields,
             'admin'    => $this->admin,
         ]);
-
     }
 
     public function icalicsAction(Request $request = null): Response
