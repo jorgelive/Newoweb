@@ -91,6 +91,29 @@ section.content .btn-group > .btn { min-width: 90px; }
     border-color: var(--c-danger-hover);
 }
 
+.box .btn-toolbar { width:100%; }
+.box .btn-toolbar .btn-group { display:block; width:100%; }
+
+.btn-group-sm .btn { margin-bottom:4px; }
+
+.btn .fa { margin-right:6px; }
+@media (max-width: 768px) {
+    .btn-group-sm .btn-100m {
+        float: none;          /* anula el float de .btn-group */
+        display: block;
+        width: 100%;
+        text-align: left;
+        margin-bottom: 8px; }
+
+    .btn-group-sm .btn-60m {
+        float: none;          /* anula el float de .btn-group */
+        display: block;
+        width: 60%;
+        text-align: left;
+        margin-bottom: 8px; }
+}
+
+
 /* =========================
    Tablas responsivas (móvil)
    ========================= */

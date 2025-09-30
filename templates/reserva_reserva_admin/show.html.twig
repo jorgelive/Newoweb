@@ -117,20 +117,20 @@
                         <div class="box-body">
                             <div class="btn-toolbar" role="toolbar">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ admin.generateObjectUrl('vcard', object) }}" class="btn btn-danger" title="vCard">
+                                    <a href="{{ admin.generateObjectUrl('vcard', object) }}" class="btn-60m btn btn-sm btn-danger" title="vCard">
                                         <i class="fa fa-address-card"></i> vCard
                                     </a>
-                                    <a href="tel:{{ phone_clean }}" class="btn btn-success">
+                                    <a href="tel:{{ phone_clean }}" class="btn-60m btn btn-sm btn-success">
                                         <i class="fa fa-phone"></i> Llamar
                                     </a>
                                     <a data-text="{{ object.telefono }}"
                                        data-toggle="tooltip"
                                        data-placement="bottom"
                                        data-tooltiptext="Copiado al portapapeles"
-                                       class="btn btn-success clipboard-trigger">
+                                       class="btn-60m btn btn-sm btn-success clipboard-trigger">
                                         <i class="fa fa-clipboard"></i> Copiar número
                                     </a>
-                                    <a href="https://wa.me/{{ phone_clean }}" target="_blank" rel="noopener" class="btn btn-success">
+                                    <a href="https://wa.me/{{ phone_clean }}" target="_blank" rel="noopener" class="btn-60m btn btn-sm btn-success">
                                         <i class="fa fa-whatsapp"></i> Whatsapp
                                     </a>
                                 </div>
