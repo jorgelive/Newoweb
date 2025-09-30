@@ -1,80 +1,118 @@
 {% if object.idiomatelefono == 'en' %}
     {% set whatsappText %}
-Hello {{ object.primernombre }}, this is Susan, reservations manager at Centro Cusco Inti in the city of Cusco.
+*Hello {{ object.primernombre }}, this is Susan, Reservations Manager at Centro Cusco Inti (Cusco, Peru).*
 
-You made a reservation from 📅 {{ object.fechahorainicio | date('Y-m-d') }} to 📅 {{ object.fechahorafin | date('Y-m-d') }} by *Booking com*.
+📅 *Your stay:* *{{ object.fechahorainicio | date('Y-m-d') }} → {{ object.fechahorafin | date('Y-m-d') }}*
+🏷️ *Booked via:* *Booking.com*
 
-We would like to inform you that, at the time of making your reservation, we sent you a message through the Booking.com system with some important instructions. We kindly ask you to review it carefully.
+🔗 *Full reservation details (matches “View apartment info” in the Booking.com app):*
+👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
 
-Additionally, we kindly request that you send us the *PDF confirmation file* of your reservation. You can download this file from the Booking.com app by going into your reservation and scrolling down to the section *Options -> Download for offline use*.
+*What you’ll see there:*
+🖼️ *Photos of the apartment*
+🛏️ *Layout & bed sizes*
+🧴 *Amenities and what’s included*
+📍 *Exact location (map)*
+📘 *House rules & policies*
 
-This document contains important information such as the final price and the terms and conditions of the accommodation.
+📄 *Important:* Please send us your *Booking.com PDF confirmation*.
+*How to get it:* Booking.com app → your reservation → *Options → Download for offline use*.
 
-At the following link, you can view the full details of your reservation, including photos, layout, and location of the reserved apartment. This matches the information shown under View apartment info in the Booking com app:
+📝 *We also sent you a message through the Booking.com system with important instructions. Please review it carefully.*
 
-🔗{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
+💳 *Prepayment:* *The amount equals the first night* (per Booking.com policies).
+*You can pay via:* 🏦 Transfer · 💸 Western Union · 💳 Credit card (secure link)
 
-Once you confirm everything is correct, you can proceed with the prepayment via bank transfer, Western Union, or credit card.                                                {% endset %}
-{% elseif object.idiomatelefono == 'pt'%}
-    {% set whatsappText %}
-Olá {{ object.primernombre }}, aqui é Susan, gerente de reservas do Centro Cusco Inti na cidade de Cusco.
-
-Você fez uma reserva de 📅 {{ object.fechahorainicio | date('Y-m-d') }} até 📅 {{ object.fechahorafin | date('Y-m-d') }} pelo Booking.com.
-
-Gostaríamos de informar que, no momento em que você realizou sua reserva, enviamos uma mensagem através do sistema do Booking.com com algumas instruções importantes. Pedimos gentilmente que você a revise com atenção.
-
-Além disso, solicitamos que, por favor, nos envie o arquivo PDF de confirmação da sua reserva. Você pode baixar este arquivo no aplicativo do Booking.com acessando sua reserva e rolando até a seção:
-Opções → Baixar para uso offline.
-
-Este documento contém informações importantes como o preço final e os termos e condições da acomodação.
-
-No link a seguir, você pode visualizar todos os detalhes da sua reserva, incluindo fotos, layout e localização do apartamento reservado. Estas informações correspondem à seção Ver informações do apartamento no aplicativo Booking.com:
-
-🔗 {{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
-
-Depois de confirmar que tudo está correto, você poderá proceder com o pré-pagamento via transferência bancária, Western Union ou cartão de crédito.
+✅ *Next step:* Once you confirm everything looks correct, please proceed with the prepayment.
     {% endset %}
-{% elseif object.idiomatelefono == 'fr'%}
+
+{% elseif object.idiomatelefono == 'pt' %}
     {% set whatsappText %}
-Bonjour {{ object.primernombre }}, je suis Susan, responsable des réservations au Centro Cusco Inti dans la ville de Cusco.
+*Olá {{ object.primernombre }}, aqui é a Susan, gerente de reservas do Centro Cusco Inti (Cusco, Peru).*
 
-Vous avez effectué une réservation du 📅 {{ object.fechahorainicio | date('Y-m-d') }} au 📅 {{ object.fechahorafin | date('Y-m-d') }} via Booking.com.
+📅 *Sua estadia:* *{{ object.fechahorainicio | date('Y-m-d') }} → {{ object.fechahorafin | date('Y-m-d') }}*
+🏷️ *Reservado via:* *Booking.com*
 
-Nous souhaitons vous informer qu’au moment de votre réservation, nous vous avons envoyé un message via le système Booking.com avec des instructions importantes. Nous vous prions de le consulter attentivement.
+🔗 *Detalhes completos da reserva (igual a “Ver informações do apartamento” no app do Booking.com):*
+👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
 
-De plus, nous vous demandons de bien vouloir nous envoyer le fichier PDF de confirmation de votre réservation. Vous pouvez télécharger ce fichier depuis l’application Booking.com en accédant à votre réservation et en descendant jusqu’à la section :
-Options → Télécharger pour une utilisation hors ligne.
+*Você verá:*
+🖼️ *Fotos do apartamento*
+🛏️ *Planta/disposição e tamanhos de cama*
+🧴 *Comodidades e o que está incluído*
+📍 *Localização exata (mapa)*
+📘 *Regras da casa e políticas*
 
-Ce document contient des informations importantes telles que le prix final ainsi que les termes et conditions de l’hébergement.
+📄 *Importante:* Por favor, envie o *PDF de confirmação do Booking.com*.
+*Como obter:* App Booking.com → sua reserva → *Opções → Baixar para uso offline*.
 
-Au lien suivant, vous pouvez consulter tous les détails de votre réservation, y compris les photos, la disposition et l’emplacement de l’appartement réservé. Ces informations correspondent à la section Voir les informations sur l’appartement dans l’application Booking.com :
+📝 *Também enviamos uma mensagem pelo Booking.com com instruções importantes. Revise com atenção, por favor.*
 
-🔗 {{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
+💳 *Pré-pagamento:* *Corresponde ao valor da primeira noite* (políticas do Booking.com).
+*Formas de pagamento:* 🏦 Transferência · 💸 Western Union · 💳 Cartão (link seguro)
 
-Une fois que vous aurez confirmé que tout est correct, vous pourrez procéder au prépaiement par virement bancaire, Western Union ou carte de crédit.
+✅ *Próximo passo:* Após confirmar que está tudo correto, prossiga com o pré-pagamento.
     {% endset %}
+
+{% elseif object.idiomatelefono == 'fr' %}
+    {% set whatsappText %}
+*Bonjour {{ object.primernombre }}, ici Susan, responsable des réservations au Centro Cusco Inti (Cusco, Pérou).*
+
+📅 *Votre séjour :* *{{ object.fechahorainicio | date('Y-m-d') }} → {{ object.fechahorafin | date('Y-m-d') }}*
+🏷️ *Réservé via :* *Booking.com*
+
+🔗 *Détails complets de la réservation (comme “Voir les infos de l’appartement” dans l’app Booking.com) :*
+👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
+
+*Vous y verrez :*
+🖼️ *Photos de l’appartement*
+🛏️ *Agencement et tailles des lits*
+🧴 *Équipements et inclusions*
+📍 *Localisation exacte (carte)*
+📘 *Règlement intérieur et politiques*
+
+📄 *Important :* Merci de nous envoyer le *PDF de confirmation Booking.com*.
+*Comment l’obtenir :* Appli Booking.com → votre réservation → *Options → Télécharger pour une utilisation hors ligne*.
+
+📝 *Nous vous avons aussi envoyé un message via Booking.com avec des instructions importantes. Merci de le lire attentivement.*
+
+💳 *Acompte :* *Montant équivalent à la première nuit* (politiques Booking.com).
+*Modes de paiement :* 🏦 Virement · 💸 Western Union · 💳 Carte (lien sécurisé)
+
+✅ *Étape suivante :* Après avoir confirmé que tout est correct, veuillez procéder au paiement de l’acompte.
+    {% endset %}
+
 {% else %}
     {% set whatsappText %}
-Hola {{ object.primernombre }}, le saluda Susan encargada de reservas de Centro Cusco Inti, en la ciudad de Cusco.
+*Hola {{ object.primernombre }}, le saluda Susan, encargada de reservas de Centro Cusco Inti (Cusco, Perú).*
 
-Usted realizó una reserva, desde el 📅 {{ object.fechahorainicio | date('Y-m-d') }} hasta el 📅 {{ object.fechahorafin | date('Y-m-d') }} a través de *Booking* com.
+📅 *Su estadía:* *{{ object.fechahorainicio | date('Y-m-d') }} → {{ object.fechahorafin | date('Y-m-d') }}*
+🏷️ *Reservado vía:* *Booking.com*
 
-Le informamos que, al momento de realizar su reserva, le enviamos un mensaje mediante el sistema de Booking con algunas instrucciones importantes. Le agradeceríamos que pueda revisarlo.
+🔗 *Detalles completos de su reserva (igual a “Ver info del apartamento” en la app de Booking.com):*
+👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
 
-Asimismo, le solicitamos que nos envíe el archivo de *confirmación de su reserva en formato PDF*. Puede descargarlo desde la aplicación de Booking.com, ingresando a su reserva y desplazándose hacia la parte inferior, en la sección *Opciones -> Descargar para usar sin conexión*.
+*Allí verá:*
+🖼️ *Fotografías del departamento*
+🛏️ *Distribución y tamaños de cama*
+🧴 *Servicios y lo incluido*
+📍 *Ubicación exacta (mapa)*
+📘 *Reglamento de la casa y políticas*
 
-Este archivo contiene información importante como el precio final y las condiciones del alojamiento.
+📄 *Importante:* Por favor, envíenos el *PDF de confirmación de Booking.com*.
+*Cómo obtenerlo:* App de Booking.com → su reserva → *Opciones → Descargar para usar sin conexión*.
 
-En el siguiente enlace podrá consultar todos los detalles de su reserva, incluyendo fotografías, distribución y ubicación del departamento reservado. Esta información coincide con la sección *Ver info del apartamento* en la aplicación de Booking com:
+📝 *También le enviamos un mensaje por el sistema de Booking.com con instrucciones importantes. Le agradeceremos revisarlo.*
 
-🔗{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}
+💳 *Prepago:* *Equivale al monto de la primera noche* (políticas de Booking.com).
+*Puede pagar por:* 🏦 Transferencia · 💸 Western Union · 💳 Tarjeta (enlace seguro)
 
-Una vez de su conformidad, podrá realizar el prepago mediante transferencia bancaria, Western Union o tarjeta de crédito.
+✅ *Siguiente paso:* Una vez confirme que todo está correcto, por favor proceda con el prepago.
     {% endset %}
 {% endif %}
 
-<a href="https://wa.me/{{object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}"
+<a href="https://wa.me/{{ object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}"
    target="_blank" class="btn btn-sm btn-warning edit_link">
     <i class="fa fa-whatsapp" aria-hidden="true"></i>
-    Confirmar
+    Confirmar (Booking)
 </a>

@@ -104,52 +104,62 @@
                                 ) }}
                             {% endif %}
 
-                            {% if (not isResumen) and object.telefono is not empty %}
-                                <tr class="sonata-ba-view-container">
-                                    <td colspan="2">
-                                        <div class="btn-toolbar" role="toolbar">
-                                            <div class="btn-group btn-group-sm">
-                                                <a href="{{ admin.generateObjectUrl('vcard', object) }}" class="btn btn-danger" title="vCard">
-                                                    <i class="fa fa-address-card"></i> vCard
-                                                </a>
-                                                <a href="tel:{{ phone_clean }}" class="btn btn-success">
-                                                    <i class="fa fa-phone"></i> Llamar
-                                                </a>
-                                                <a data-text="{{ object.telefono }}"
-                                                   data-toggle="tooltip"
-                                                   data-placement="bottom"
-                                                   data-tooltiptext="Copiado al portapapeles"
-                                                   class="btn btn-success clipboard-trigger">
-                                                    <i class="fa fa-clipboard"></i> Copiar número
-                                                </a>
-                                                <a href="https://wa.me/{{ phone_clean }}" target="_blank" rel="noopener" class="btn btn-success">
-                                                    <i class="fa fa-whatsapp"></i> Whatsapp
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                <tr class="sonata-ba-view-container">
-                                    <td colspan="2">
-                                        <div class="btn-toolbar" role="toolbar">
-                                            <div class="btn-group btn-group-sm">
-                                                {% include 'reserva_reserva_admin/show__boton_checkout.html.twig' %}
-                                                {% if object.channel.id == constant('App\\Entity\\ReservaChannel::DB_VALOR_BOOKING') %}
-                                                    {% include 'reserva_reserva_admin/show__boton_confirmar.html.twig' %}
-                                                {% endif %}
-                                                {% include 'reserva_reserva_admin/show__boton_tour_economico.html.twig' %}
-                                                {% include 'reserva_reserva_admin/show__boton_bienvenida.html.twig' %}
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endif %}
-
                             </tbody>
                         </table>
                     </div>
                 </div>
+
+                {% if (not isResumen) and object.telefono is not empty %}
+                    <div class="box box-success">
+                        <div class="box-header with-border">
+                            <h3 class="box-title"><i class="fa fa-user-circle-o"></i> Contacto</h3>
+                        </div>
+                        <div class="box-body">
+                            <div class="btn-toolbar" role="toolbar">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ admin.generateObjectUrl('vcard', object) }}" class="btn btn-danger" title="vCard">
+                                        <i class="fa fa-address-card"></i> vCard
+                                    </a>
+                                    <a href="tel:{{ phone_clean }}" class="btn btn-success">
+                                        <i class="fa fa-phone"></i> Llamar
+                                    </a>
+                                    <a data-text="{{ object.telefono }}"
+                                       data-toggle="tooltip"
+                                       data-placement="bottom"
+                                       data-tooltiptext="Copiado al portapapeles"
+                                       class="btn btn-success clipboard-trigger">
+                                        <i class="fa fa-clipboard"></i> Copiar número
+                                    </a>
+                                    <a href="https://wa.me/{{ phone_clean }}" target="_blank" rel="noopener" class="btn btn-success">
+                                        <i class="fa fa-whatsapp"></i> Whatsapp
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="box box-info">
+                        <div class="box-header with-border">
+                            <h3 class="box-title"><i class="fa fa-cogs"></i> Acciones</h3>
+                        </div>
+                        <div class="box-body">
+                            <div class="btn-toolbar" role="toolbar">
+                                <div class="btn-group btn-group-sm">
+                                    {% if object.channel.id == constant('App\\Entity\\ReservaChannel::DB_VALOR_BOOKING') %}
+                                        {% include 'reserva_reserva_admin/show__boton_confirmar.html.twig' %}
+                                    {% endif %}
+                                    {% if permitirCaractRestringidas %}
+                                        {% include 'reserva_reserva_admin/show__boton_instrucciones.html.twig' %}
+                                    {% endif %}
+                                    {% include 'reserva_reserva_admin/show__boton_bienvenida.html.twig' %}
+                                    {% include 'reserva_reserva_admin/show__boton_tour_economico.html.twig' %}
+                                    {% include 'reserva_reserva_admin/show__boton_checkout.html.twig' %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                {% endif %}
 
                 {% if action != 'resumen' and object.detalles is not empty %}
                     <div class="box box-primary">
