@@ -56,7 +56,7 @@ class ObtenerReservasCommand extends Command
         $tz = new \DateTimeZone('America/Lima');
 
         try {
-            $ahora = new \DateTimeImmutable('now', $tz);
+            $ahora = new \DateTime('now', $tz);
         } catch (\Exception $e) {
             $output->writeln(sprintf('<error>Excepción capturada al crear fecha actual: %s</error>', $e->getMessage()));
             return Command::FAILURE;
