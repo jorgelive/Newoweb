@@ -122,7 +122,8 @@ class CotizacionCotizacion
     private Collection $cotservicios;
 
     /**
-     * Almacen de imagenes
+     * Almacen de imagenes, se adiciona imagenes en el listener CotizacionCotizacionDoctrineEventListener-> postload
+     * el cual usa el servicio App\Service\CotizacionItinerario::GetMainFoto()
      */
     private Collection $portadafotos;
 

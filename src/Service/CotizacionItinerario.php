@@ -235,7 +235,18 @@ class CotizacionItinerario
     }
 
     // ---------- Fotos & títulos (sin cambios) ----------
-
+    /**
+     * Devuelve la foto principal (MaestroMedio) de un servicio de cotización.
+     *
+     * Prioridad:
+     *  1) Recorre los días del itinerario y, si encuentra un archivo marcado como portada (`isPortada()`),
+     *     retorna inmediatamente su medio (`getMedio()`).
+     *  2) Si no hay portada, guarda como candidato el PRIMER archivo del PRIMER día marcado como importante (`isImportante()`).
+     *  3) Si no hubo portada en ningún día, retorna el medio del candidato (o `null` si no existe).
+     *
+     * @param CotizacionCotservicio $cotservicio Servicio con itinerario y días/archivos asociados.
+     * @return ?MaestroMedio La imagen principal a mostrar o null si no se encontró.
+     */
     public function getMainPhoto(CotizacionCotservicio $cotservicio): ?MaestroMedio
     {
         $primerArchivoImportante = null;
@@ -254,6 +265,25 @@ class CotizacionItinerario
         return $primerArchivoImportante?->getMedio() ?? null;
     }
 
+    /**
+     * Reúne y devuelve TODOS los archivos del itinerario de un servicio, y garantiza que
+     * haya un archivo marcado como portada.
+     *
+     * Lógica:
+     * 1) Recorre los días del itinerario y agrega cada archivo a la colección $fotos, en orden.
+     * 2) Si encuentra algún archivo con `isPortada() === true`, recuerda que ya existe portada.
+     * 3) Además, si un día está marcado como importante (`$dia->isImportante()`) guarda como candidato
+     *    el PRIMER archivo de ese día (y su índice dentro de $fotos).
+     * 4) Al finalizar:
+     *      - Si NO había ninguna portada y SÍ existe candidato del primer día importante,
+     *        lo marca como portada (`setPortada(true)`) y lo reubica en su mismo índice.
+     *
+     * Resultado: colección de archivos (en el mismo orden recorrido), con al menos uno en portada
+     * (el que ya lo estaba o, en su defecto, el primer archivo del primer día importante).
+     *
+     * @param CotizacionCotservicio $cotservicio Servicio con itinerario/días/archivos.
+     * @return \Doctrine\Common\Collections\Collection<Itidiaarchivo> Colección de archivos del itinerario.
+     */
     public function getFotos(CotizacionCotservicio $cotservicio): Collection
     {
         $fotos = new ArrayCollection();
