@@ -108,7 +108,7 @@ class ReservaReservaAdminController extends CRUDAdminController
 
         return $this->render('reserva_reserva_admin/show.html.twig', [
             'object'                     => $object,
-            'action'                     => 'shown',
+            'action'                     => 'show',
             'elements'                   => $fields,
             'permitirCaractRestringidas' => $permitirCaractRestringidas,
         ]);
