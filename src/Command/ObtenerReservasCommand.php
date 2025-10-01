@@ -371,7 +371,7 @@ class ObtenerReservasCommand extends Command
 
                     if (!$dryRun) {
                         if ($currentReserva->getChannel()->getId() == ReservaChannel::DB_VALOR_BOOKING) {
-                            $currentReserva->setEstado($this->entityManager->getReference(ReservaEstado::class, ReservaEstado::DB_VALOR_CONFIRMADO));
+                            $currentReserva->setEstado($this->entityManager->getReference(ReservaEstado::class, ReservaEstado::DB_VALOR_INICIAL));
                             $currentReserva->setNombre('Reactivado - ' . $currentReserva->getNombre());
                             $currentReserva->setEnlace(null);
                             $currentReserva->setTelefono(null);
@@ -382,7 +382,7 @@ class ObtenerReservasCommand extends Command
                             $currentReserva->setCreado($ahora);
                             $currentReserva->setModificado($ahora);
                         } else {
-                            $currentReserva->setEstado($this->entityManager->getReference(ReservaEstado::class, ReservaEstado::DB_VALOR_CONFIRMADO));
+                            $currentReserva->setEstado($this->entityManager->getReference(ReservaEstado::class, ReservaEstado::DB_VALOR_INICIAL));
                         }
                     }
                     ++$totalReactivados;
