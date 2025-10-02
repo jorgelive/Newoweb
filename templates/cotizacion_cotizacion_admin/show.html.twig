@@ -25,23 +25,6 @@
         .generales-box .box-body .codigo { color: {{ colores.verde_claro }}; float: right; font-size: 1.1em; font-weight: 600; }
         .generales-box .box-body .idioma { color: {{ colores.rojo_oscuro }}; }
 
-        .boton-acordeonsuperior.acordeon-tickets { background-color: #f39c1240; }
-        .boton-acordeonsuperior { padding: 7px 10px; }
-        .boton-acordeonsuperior .panel-title>a { font-size: 14px; font-weight: 600; }
-        .boton-acordeonsuperior .panel-title>a:hover { color: gray; }
-
-        /* Centrar últimas filas en grids de Bootstrap 3 usando flex */
-        .thumbs-row{
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;          /* <-- aquí sucede la magia */
-        }
-
-        .thumbs-row > [class*="col-"]{
-            float: none !important;           /* anulamos el float de B3 */
-            /* no necesitas tocar width: las col-* ya traen % de Bootstrap */
-        }
-
     </style>
 {% endblock %}
 

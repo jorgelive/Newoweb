@@ -162,14 +162,7 @@ div.encabezado td { white-space: normal !important; }
     .thumbnail img.portrait  { aspect-ratio: 3/4;  object-fit: cover; }
 }
 
-/* Carousels: indicadores y capas */
-.carousel-inner img.portrait,
-.carousel-inner img.landscape { width: 100%; object-fit: cover; }
 
-.carousel-indicators {
-    bottom: 0; z-index: 5; /* no tapar caption */
-}
-.carousel-indicators.top { top: 10px; bottom: auto; }
 
 /* =========================
    Galería modal fluid

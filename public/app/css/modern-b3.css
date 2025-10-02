@@ -155,3 +155,32 @@
 }
 
 
+/* Grid 3 columnas fluido (móvil->desktop) */
+.grid-3 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+@media (min-width: 768px){ .grid-3{ grid-template-columns: 1fr 1fr; } }
+@media (min-width: 992px){ .grid-3{ grid-template-columns: 1fr 1fr 1fr; } }
+
+/* Carousels: indicadores y capas */
+.carousel-inner img.portrait,
+.carousel-inner img.landscape { width: 100%; object-fit: cover; }
+
+.carousel-indicators {
+    margin-bottom: 0; bottom: 0; z-index: 5; /* no tapar caption */
+}
+
+.carousel-indicators.top { top: 10px; bottom: auto; }
+
+/* Indicadores de carrusel usando tu acento */
+.carousel-indicators li { border-color: var(--c-accent, #ff8a00); }
+.carousel-indicators .active { background-color: var(--c-accent, #ff8a00); }
+.carousel-caption {background:rgba(0,0,0,.45); border-radius:8px; padding:4px 8px; }
+.carousel-caption p { margin:0px; word-wrap:break-word;}
+
+/* CKEditor responsive */
+.ck-content img{ max-width:100%; height:auto; }
+.ck-content table{ width:100%; overflow:auto; display:block; }
+.ck-content iframe{ max-width:100%; }
