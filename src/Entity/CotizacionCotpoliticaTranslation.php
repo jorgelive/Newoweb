@@ -17,6 +17,10 @@ use Gedmo\Translatable\Entity\MappedSuperclass\AbstractPersonalTranslation;
 )]
 class CotizacionCotpoliticaTranslation extends AbstractPersonalTranslation
 {
+    /**
+     * Importante: NO tipar $object ni el setter para mantener compatibilidad con
+     * Gedmo\AbstractPersonalTranslation y evitar errores de tipado.
+     */
     #[ORM\ManyToOne(targetEntity: 'CotizacionCotpolitica', inversedBy: 'translations')]
     #[ORM\JoinColumn(name: 'object_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     protected $object;
@@ -36,7 +40,6 @@ class CotizacionCotpoliticaTranslation extends AbstractPersonalTranslation
     public function setObject($object)
     {
         $this->object = $object;
-
         return $this;
     }
 }

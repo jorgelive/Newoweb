@@ -12,11 +12,10 @@ use App\Traits\MainArchivoTrait;
 
 /**
  * ServicioItidiaarchivo
- *
- * @ORM\HasLifecycleCallbacks
  */
 #[ORM\Table(name: 'ser_itidiaarchivo')]
 #[ORM\Entity]
+#[ORM\HasLifecycleCallbacks]
 class ServicioItidiaarchivo
 {
 

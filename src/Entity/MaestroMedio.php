@@ -17,6 +17,7 @@ use App\Traits\MainArchivoTrait;
  */
 #[ORM\Table(name: 'mae_medio')]
 #[ORM\Entity]
+#[ORM\HasLifecycleCallbacks]
 #[Gedmo\TranslationEntity(class: 'App\Entity\MaestroMedioTranslation')]
 class MaestroMedio
 {

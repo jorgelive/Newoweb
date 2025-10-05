@@ -15,378 +15,207 @@ use Doctrine\Common\Collections\ArrayCollection;
 #[ORM\Entity]
 class CotizacionCottarifa
 {
-    /**
-     * @var int
-     */
     #[ORM\Column(name: 'id', type: 'integer')]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
-    /**
-     * @var int
-     */
     #[ORM\Column(name: 'cantidad', type: 'integer')]
-    private $cantidad;
+    private ?int $cantidad = null;
 
-    /**
-     * @var \App\Entity\CotizacionCotcomponente
-     */
     #[ORM\ManyToOne(targetEntity: 'CotizacionCotcomponente', inversedBy: 'cottarifas')]
     #[ORM\JoinColumn(name: 'cotcomponente_id', referencedColumnName: 'id', nullable: false)]
-    protected $cotcomponente;
+    protected ?\App\Entity\CotizacionCotcomponente $cotcomponente = null;
 
-    /**
-     * @var \App\Entity\ServicioProvider
-     */
     #[ORM\ManyToOne(targetEntity: 'ServicioProvider', inversedBy: 'cottarifas')]
     #[ORM\JoinColumn(name: 'provider_id', referencedColumnName: 'id', nullable: true)]
-    protected $provider;
+    protected ?\App\Entity\ServicioProvider $provider = null;
 
-    /**
-     * @var \App\Entity\ServicioTarifa
-     */
     #[ORM\ManyToOne(targetEntity: 'ServicioTarifa')]
     #[ORM\JoinColumn(name: 'tarifa_id', referencedColumnName: 'id', nullable: false)]
-    protected $tarifa;
+    protected ?\App\Entity\ServicioTarifa $tarifa = null;
 
-    /**
-     * @var \App\Entity\MaestroMoneda
-     */
     #[ORM\ManyToOne(targetEntity: 'MaestroMoneda')]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
-    protected $moneda;
+    protected ?\App\Entity\MaestroMoneda $moneda = null;
 
     /**
-     * @var string
+     * decimal(7,2) → manejar como string para evitar floats.
      */
     #[ORM\Column(name: 'monto', type: 'decimal', precision: 7, scale: 2, nullable: false)]
-    private $monto;
+    private ?string $monto = null;
 
-    /**
-     * @var \App\Entity\ServicioTipotarifa
-     */
     #[ORM\ManyToOne(targetEntity: 'ServicioTipotarifa')]
     #[ORM\JoinColumn(name: 'tipotarifa_id', referencedColumnName: 'id', nullable: false)]
-    protected $tipotarifa;
+    protected ?\App\Entity\ServicioTipotarifa $tipotarifa = null;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     */
-    #[ORM\OneToMany(targetEntity: 'CotizacionCottarifadetalle', mappedBy: 'cottarifa', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(
+        targetEntity: 'CotizacionCottarifadetalle',
+        mappedBy: 'cottarifa',
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
     #[ORM\OrderBy(['tipotarifadetalle' => 'ASC'])]
-    private $cottarifadetalles;
+    private Collection $cottarifadetalles;
 
-    /**
-     * @var \DateTime $creado
-     */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private $creado;
+    private ?\DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private $modificado;
+    private ?\DateTimeInterface $modificado = null;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __construct()
     {
-
-        if(empty($this->getTarifa())){
-            return sprintf("Id: %s.", $this->getId()) ?? '';
-        }
-        return $this->getTarifa()->getNombre();
+        $this->cottarifadetalles = new ArrayCollection();
     }
 
-    public function __clone() {
+    public function __toString(): string
+    {
+        if (empty($this->getTarifa())) {
+            return sprintf("Id: %s.", (string) $this->getId()) ?? '';
+        }
+        return (string) $this->getTarifa()->getNombre();
+    }
 
-        if($this->id) {
+    /**
+     * Se mantiene tu lógica de clonado: resetear id/fechas y clonar detalles.
+     */
+    public function __clone()
+    {
+        if ($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
             $newCottarifadetalles = new ArrayCollection();
-            foreach($this->cottarifadetalles as $cottarifadetalle) {
+            foreach ($this->cottarifadetalles as $cottarifadetalle) {
                 $newCottarifadetalle = clone $cottarifadetalle;
-                $newCottarifadetalle->setCottarifa($this);
+                $newCottarifadetalle->setCottarifa($this); // respeta tu setter existente
                 $newCottarifadetalles->add($newCottarifadetalle);
             }
             $this->cottarifadetalles = $newCottarifadetalles;
         }
     }
 
-    /**
-     * Constructor
-     */
-    public function __construct()
-    {
-        $this->cottarifadetalles = new ArrayCollection();
-    }
-
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set cantidad
-     *
-     * @param integer $cantidad
-     *
-     * @return CotizacionCottarifa
-     */
-    public function setCantidad($cantidad)
+    public function setCantidad(int $cantidad): self
     {
         $this->cantidad = $cantidad;
-    
         return $this;
     }
 
-    /**
-     * Get cantidad
-     *
-     * @return integer
-     */
-    public function getCantidad()
+    public function getCantidad(): ?int
     {
         return $this->cantidad;
     }
 
-    /**
-     * Set monto
-     *
-     * @param string $monto
-     *
-     * @return CotizacionCottarifa
-     */
-    public function setMonto($monto)
+    public function setMonto(string $monto): self
     {
         $this->monto = $monto;
-    
         return $this;
     }
 
-    /**
-     * Get monto
-     *
-     * @return string
-     */
-    public function getMonto()
+    public function getMonto(): ?string
     {
         return $this->monto;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionCottarifa
-     */
-    public function setCreado($creado)
+    public function setCreado(?\DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTimeInterface
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionCottarifa
-     */
-    public function setModificado($modificado)
+    public function setModificado(?\DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTimeInterface
     {
         return $this->modificado;
     }
 
-    /**
-     * Set cotcomponente
-     *
-     * @param \App\Entity\CotizacionCotcomponente $cotcomponente
-     *
-     * @return CotizacionCottarifa
-     */
-    public function setCotcomponente(\App\Entity\CotizacionCotcomponente $cotcomponente = null)
+    public function setCotcomponente(?\App\Entity\CotizacionCotcomponente $cotcomponente = null): self
     {
         $this->cotcomponente = $cotcomponente;
-    
         return $this;
     }
 
-    /**
-     * Get cotcomponente
-     *
-     * @return \App\Entity\CotizacionCotcomponente
-     */
-    public function getCotcomponente()
+    public function getCotcomponente(): ?\App\Entity\CotizacionCotcomponente
     {
         return $this->cotcomponente;
     }
 
-    /**
-     * Set provider
-     *
-     * @param \App\Entity\ServicioProvider $provider
-     *
-     * @return CotizacionCottarifa
-     */
-    public function setProvider(\App\Entity\ServicioProvider $provider = null)
+    public function setProvider(?\App\Entity\ServicioProvider $provider = null): self
     {
         $this->provider = $provider;
-
         return $this;
     }
 
-    /**
-     * Get provider
-     *
-     * @return \App\Entity\ServicioProvider
-     */
-    public function getProvider()
+    public function getProvider(): ?\App\Entity\ServicioProvider
     {
         return $this->provider;
     }
 
-    /**
-     * Set tarifa
-     *
-     * @param \App\Entity\ServicioTarifa $tarifa
-     *
-     * @return CotizacionCottarifa
-     */
-    public function setTarifa(\App\Entity\ServicioTarifa $tarifa = null)
+    public function setTarifa(?\App\Entity\ServicioTarifa $tarifa = null): self
     {
         $this->tarifa = $tarifa;
-    
         return $this;
     }
 
-    /**
-     * Get tarifa
-     *
-     * @return \App\Entity\ServicioTarifa
-     */
-    public function getTarifa()
+    public function getTarifa(): ?\App\Entity\ServicioTarifa
     {
         return $this->tarifa;
     }
 
-    /**
-     * Set moneda
-     *
-     * @param \App\Entity\MaestroMoneda $moneda
-     *
-     * @return CotizacionCottarifa
-     */
-    public function setMoneda(\App\Entity\MaestroMoneda $moneda = null)
+    public function setMoneda(?\App\Entity\MaestroMoneda $moneda = null): self
     {
         $this->moneda = $moneda;
-    
         return $this;
     }
 
-    /**
-     * Get moneda
-     *
-     * @return \App\Entity\MaestroMoneda
-     */
-    public function getMoneda()
+    public function getMoneda(): ?\App\Entity\MaestroMoneda
     {
         return $this->moneda;
     }
 
-    /**
-     * Set tipotarifa
-     *
-     * @param \App\Entity\ServicioTipotarifa $tipotarifa
-     *
-     * @return CotizacionCottarifa
-     */
-    public function setTipotarifa(\App\Entity\ServicioTipotarifa $tipotarifa = null)
+    public function setTipotarifa(?\App\Entity\ServicioTipotarifa $tipotarifa = null): self
     {
         $this->tipotarifa = $tipotarifa;
-    
         return $this;
     }
 
-    /**
-     * Get tipotarifa
-     *
-     * @return \App\Entity\ServicioTipotarifa
-     */
-    public function getTipotarifa()
+    public function getTipotarifa(): ?\App\Entity\ServicioTipotarifa
     {
         return $this->tipotarifa;
     }
 
-    /**
-     * Add cottarifadetalle
-     *
-     * @param \App\Entity\CotizacionCottarifadetalle $cottarifadetalle
-     *
-     * @return CotizacionCottarifa
-     */
-    public function addCottarifadetalle(\App\Entity\CotizacionCottarifadetalle $cottarifadetalle)
+    public function addCottarifadetalle(\App\Entity\CotizacionCottarifadetalle $cottarifadetalle): self
     {
-        $cottarifadetalle->setCotTarifa($this);
-
+        $cottarifadetalle->setCottarifa($this); // mantener la sincronización como lo tienes
         $this->cottarifadetalles[] = $cottarifadetalle;
-
         return $this;
     }
 
-    /**
-     * Remove cottarifadetalle
-     *
-     * @param \App\Entity\CotizacionCottarifadetalle $cottarifadetalle
-     */
-    public function removeCottarifadetalle(\App\Entity\CotizacionCottarifadetalle $cottarifadetalle)
+    public function removeCottarifadetalle(\App\Entity\CotizacionCottarifadetalle $cottarifadetalle): void
     {
         $this->cottarifadetalles->removeElement($cottarifadetalle);
     }
 
-    /**
-     * Get cottarifadetalles
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getCottarifadetalles()
+    public function getCottarifadetalles(): Collection
     {
         return $this->cottarifadetalles;
     }
-
 }

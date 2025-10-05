@@ -23,6 +23,7 @@ parameters:
     facturacion_detraccion_texto: 'OPERACIÓN SUJETA AL SISTEMA DE PAGO DE OBLIGACIONES TRIBUTARIAS CON EL GOBIERNO CENTRAL'
     facturacion_detraccion_cuenta: '00-173-030533'
 
+    app.public_dir: '%kernel.project_dir%/public'
 
     calendars:
         reserva_reserva_no_canceladas:
@@ -277,6 +278,13 @@ services:
     #         - [ setContainer, [ '@service_container' ] ]
     #         - [ setVariableproceso, [ '@App\Service\MainVariableproceso' ] ]
     #         - [ setArchivoexcelFactory, [ '@App\Service\MainArchivoexcelFactory' ] ]
+
+    app.doctrine.entity_path_initializer:
+        class: App\Doctrine\EntityPathInitializer
+        arguments:
+            $publicDir: '%app.public_dir%'
+        tags:
+            - { name: doctrine.event_subscriber }
 
     app.service.admin_decorating_data_source:
         class: App\Service\AdminDecoratingDataSource

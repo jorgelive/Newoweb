@@ -15,11 +15,10 @@ use App\Traits\MainArchivoTrait;
 
 /**
  * MaestroMedio
- *
- * @ORM\HasLifecycleCallbacks
  */
 #[ORM\Table(name: 'ser_providermedio')]
 #[ORM\Entity]
+#[ORM\HasLifecycleCallbacks]
 #[Gedmo\TranslationEntity(class: 'App\Entity\ServicioProvidermedioTranslation')]
 class ServicioProvidermedio
 {

@@ -10,11 +10,10 @@ use App\Traits\MainArchivoTrait;
 
 /**
  * CotizacionFiledocumento
- *
- * @ORM\HasLifecycleCallbacks
  */
 #[ORM\Table(name: 'cot_filedocumento')]
 #[ORM\Entity]
+#[ORM\HasLifecycleCallbacks]
 class CotizacionFiledocumento
 {
     use MainArchivoTrait;

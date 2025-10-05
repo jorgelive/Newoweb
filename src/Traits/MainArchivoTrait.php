@@ -11,11 +11,23 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  *
  * Importante:
  * - Este trait define columnas legacy para evitar que Doctrine proponga DROP COLUMN.
- * - Las entidades que lo usen deben tener: #[ORM\HasLifecycleCallbacks]
+ * - Las ENTIDADES que lo usen deben tener: #[ORM\HasLifecycleCallbacks]
+ * - Requiere que la entidad provea: una propiedad/método getWebDir() (usa $this->path).
  */
 trait MainArchivoTrait
 {
+    /**
+     * Directorio absoluto del /public (filesystem).
+     * Se recomienda inyectarlo con %kernel.project_dir%/public usando setInternalPublicDir().
+     * Mantiene fallback relativo por si aún no se inyecta.
+     */
     private string $internalPublicDir = __DIR__ . '/../../public';
+
+    /** Permite inyectar %kernel.project_dir%/public desde un subscriber */
+    public function setInternalPublicDir(string $dir): void
+    {
+        $this->internalPublicDir = rtrim($dir, '/');
+    }
 
     /** @var array{extension:string,image:string,thumb:string,token:string} */
     private array $oldFile = ['extension' => '', 'image' => '', 'thumb' => '', 'token' => ''];
@@ -56,7 +68,7 @@ trait MainArchivoTrait
     private ?string $nombre = null;
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
-    private ?string $extension = 'initial';
+    private ?string $extension = 'initial'; // sentinel
 
     #[ORM\Column(name: 'prioridad', type: 'integer', nullable: true)]
     private ?int $prioridad = null;
@@ -67,98 +79,70 @@ trait MainArchivoTrait
     #[ORM\Column(name: 'altura', type: 'integer', nullable: true)]
     private ?int $altura = null;
 
-    #[Assert\File(maxSize: '6M')]
+    #[Assert\File(maxSize: '8M')]
     private ?UploadedFile $archivo = null;
 
-    // ----- getters/setters (sin cambios de lógica) -----
+    // ----- getters/setters -----
 
-    public function setEnlace(?string $enlace)
-    {
-        $this->enlace = $enlace;
-        return $this;
-    }
+    public function setEnlace(?string $enlace) { $this->enlace = $enlace; return $this; }
     public function getEnlace(): ?string { return $this->enlace; }
 
-    public function setEnlacecode(?string $enlacecode)
-    {
-        $this->enlacecode = $enlacecode;
-        return $this;
-    }
+    public function setEnlacecode(?string $enlacecode) { $this->enlacecode = $enlacecode; return $this; }
     public function getEnlacecode(): ?string { return $this->enlacecode; }
 
-    public function setEnlaceurl(?string $enlaceurl)
-    {
-        $this->enlaceurl = $enlaceurl;
-        return $this;
-    }
+    public function setEnlaceurl(?string $enlaceurl) { $this->enlaceurl = $enlaceurl; return $this; }
     public function getEnlaceurl(): ?string { return $this->enlaceurl; }
 
-    public function setEnlacethumburl(?string $enlacethumburl)
-    {
-        $this->enlacethumburl = $enlacethumburl;
-        return $this;
-    }
+    public function setEnlacethumburl(?string $enlacethumburl) { $this->enlacethumburl = $enlacethumburl; return $this; }
     public function getEnlacethumburl(): ?string { return $this->enlacethumburl; }
 
-    public function setToken(?string $token)
-    {
-        $this->token = $token;
-        return $this;
-    }
+    public function setToken(?string $token) { $this->token = $token; return $this; }
     public function getToken(): string { return $this->token ?? ''; }
 
-    public function setNombre(?string $nombre)
-    {
-        $this->nombre = $nombre;
-        return $this;
-    }
+    public function setNombre(?string $nombre) { $this->nombre = $nombre; return $this; }
     public function getNombre(): ?string { return $this->nombre; }
 
     public function setExtension(?string $extension)
     {
-        $this->extension = $extension;
+        $this->extension = $extension ? strtolower($extension) : $extension;
         return $this;
     }
     public function getExtension(): ?string { return $this->extension; }
 
+    /**
+     * Tipo lógico:
+     * - ''       → no hay archivo/enlace (extension null o 'initial')
+     * - 'remoto' → youtube/vimeo
+     * - 'local'  → cualquier otro con extension real
+     */
     public function getTipo(): string
     {
-        if (in_array($this->getExtension(), $this->externalTypes)) return 'remoto';
-        if (!empty($this->getExtension())) return 'local';
-        return '';
+        $ext = $this->getExtension();
+        if ($ext === null || $ext === 'initial') return '';
+        if (in_array($ext, $this->externalTypes, true)) return 'remoto';
+        return 'local';
     }
 
-    public function setAncho(?int $ancho = null)
-    {
-        $this->ancho = $ancho;
-        return $this;
-    }
+    public function setAncho(?int $ancho = null) { $this->ancho = $ancho; return $this; }
     public function getAncho(): ?int { return $this->ancho; }
 
-    public function setAltura(?int $altura = null)
-    {
-        $this->altura = $altura;
-        return $this;
-    }
+    public function setAltura(?int $altura = null) { $this->altura = $altura; return $this; }
     public function getAltura(): ?int { return $this->altura; }
 
     /** @return int|float|null */
     public function getAspectRatio()
     {
-        if (empty($this->ancho) || empty($this->altura)) return null;
+        if (empty($this->ancho) || empty($this->altura) || $this->altura === 0) return null;
         return $this->ancho / $this->altura;
     }
 
-    public function setPrioridad(?int $prioridad = null)
-    {
-        $this->prioridad = $prioridad;
-        return $this;
-    }
+    public function setPrioridad(?int $prioridad = null) { $this->prioridad = $prioridad; return $this; }
     public function getPrioridad(): ?int { return $this->prioridad; }
 
     public function isInModal(): bool
     {
-        return in_array($this->getExtension(), $this->modalTypes);
+        $ext = $this->getExtension();
+        return $ext !== null && in_array($ext, $this->modalTypes, true);
     }
 
     public function setArchivo(?UploadedFile $archivo): void
@@ -174,56 +158,78 @@ trait MainArchivoTrait
     #[ORM\PreUpdate]
     public function preUpload()
     {
+        // Caso 1: carga de archivo local
         if (null !== $this->getArchivo()) {
             $this->saveOldFilesInfo();
-            $this->extension = $this->getArchivo()->getClientOriginalExtension();
+
+            // Normalizamos extensión a minúsculas
+            $this->extension = strtolower((string) $this->getArchivo()->getClientOriginalExtension());
+
+            // Si no hay nombre definido, lo tomamos del archivo sin la extensión
             if (!$this->getNombre()) {
                 $this->nombre = preg_replace('/\.[^.]*$/', '', $this->getArchivo()->getClientOriginalName());
             }
 
+            // Intentamos obtener dimensiones/aspect ratio
             $imageInfo = @getimagesize($this->getArchivo()->getPathname());
             $exifInfo  = $imageInfo ? @exif_read_data($this->getArchivo()->getPathname()) : false;
+            unset($aspectRatio);
 
             if ($exifInfo || $imageInfo) {
                 if ($exifInfo && array_key_exists('Orientation', $exifInfo)
                     && (array_key_exists('ExifImageLength', $exifInfo) || array_key_exists('ImageLength', $exifInfo))) {
 
-                    if (array_key_exists('ImageLength', $exifInfo)) {
-                        $aspectRatio = in_array($exifInfo['Orientation'], [6, 8])
-                            ? $exifInfo['ImageLength'] / $exifInfo['ImageWidth']
-                            : $exifInfo['ImageWidth'] / $exifInfo['ImageLength'];
-                    } else {
-                        $aspectRatio = in_array($exifInfo['Orientation'], [6, 8])
-                            ? $exifInfo['ExifImageLength'] / $exifInfo['ExifImageWidth']
-                            : $exifInfo['ExifImageWidth'] / $exifInfo['ExifImageLength'];
+                    // Calculamos ancho/alto desde EXIF, rotando si es necesario
+                    $w = isset($exifInfo['ImageWidth']) ? (int)$exifInfo['ImageWidth'] :
+                        (isset($exifInfo['ExifImageWidth']) ? (int)$exifInfo['ExifImageWidth'] : 0);
+                    $h = isset($exifInfo['ImageLength']) ? (int)$exifInfo['ImageLength'] :
+                        (isset($exifInfo['ExifImageLength']) ? (int)$exifInfo['ExifImageLength'] : 0);
+
+                    if (in_array($exifInfo['Orientation'] ?? 0, [6, 8], true)) {
+                        [$w, $h] = [$h, $w];
+                    }
+                    if ($w > 0 && $h > 0) {
+                        $aspectRatio = $w / $h;
                     }
                 } elseif ($imageInfo) {
                     [$anchoOriginal, $alturaOriginal] = $imageInfo;
-                    $aspectRatio = $anchoOriginal / $alturaOriginal;
+                    if ($alturaOriginal > 0) {
+                        $aspectRatio = $anchoOriginal / $alturaOriginal;
+                    }
                 }
 
-                if (isset($aspectRatio) && $aspectRatio >= 1) {
-                    $this->setAncho((int)$this->imageSize['image']['width']);
-                    $this->setAltura((int)($this->imageSize['image']['width'] / $aspectRatio));
+                if (isset($aspectRatio) && $aspectRatio > 0) {
+                    if ($aspectRatio >= 1) {
+                        $this->setAncho((int)$this->imageSize['image']['width']);
+                        $this->setAltura((int)($this->imageSize['image']['width'] / $aspectRatio));
+                    } else {
+                        $this->setAltura((int)$this->imageSize['image']['height']);
+                        $this->setAncho((int)($this->imageSize['image']['height'] * $aspectRatio));
+                    }
                 } else {
-                    $this->setAltura((int)$this->imageSize['image']['height']);
-                    $this->setAncho((int)($this->imageSize['image']['height'] * $aspectRatio));
+                    $this->setAncho(null);
+                    $this->setAltura(null);
                 }
             } else {
                 $this->setAncho(null);
                 $this->setAltura(null);
             }
 
-            $this->setToken((string) mt_rand());
+            // Token fuerte para nombres únicos de archivos
+            $this->setToken(bin2hex(random_bytes(8)));
+
+            // Al subir archivo local, limpiamos cualquier enlace remoto previo
             $this->setEnlace(null);
             $this->setEnlacecode(null);
             $this->setEnlaceurl(null);
             $this->setEnlacethumburl(null);
 
+            // Caso 2: enlace remoto (YouTube/Vimeo)
         } elseif (null !== $this->getEnlace()) {
             $enlaceValido = false;
             $this->saveOldFilesInfo();
 
+            // YouTube
             if (preg_match($this->pregYoutube, $this->getEnlace(), $matches) === 1) {
                 $this->setExtension('youtube');
                 $this->setEnlacecode($matches[1]);
@@ -231,31 +237,39 @@ trait MainArchivoTrait
                 $this->setEnlacethumburl('https://img.youtube.com/vi/' . $matches[1] . '/hqdefault.jpg');
                 $enlaceValido = true;
 
+                // Vimeo (oEmbed JSON sobre HTTPS; sin unserialize)
             } elseif (preg_match($this->pregVimeo, $this->getEnlace(), $matches) === 1) {
-                $hash = @unserialize(@file_get_contents('http://vimeo.com/api/v2/video/' . $matches[1] . ".php"));
-                if ($hash !== false) {
+                $ctx = stream_context_create(['http' => ['timeout' => 3]]);
+                $json = @file_get_contents('https://vimeo.com/api/oembed.json?url=https://vimeo.com/' . $matches[1], false, $ctx);
+                $data = $json !== false ? json_decode($json, true) : null;
+
+                if (is_array($data)) {
                     $this->setExtension('vimeo');
-                    $this->setEnlacecode($hash[0]['id']);
-                    $this->setEnlaceurl('https://player.vimeo.com/video/' . $hash[0]['id']);
-                    $this->setEnlacethumburl($hash[0]['thumbnail_medium']);
+                    $this->setEnlacecode((string)$matches[1]);
+                    $this->setEnlaceurl('https://player.vimeo.com/video/' . $matches[1]);
+                    $this->setEnlacethumburl($data['thumbnail_url'] ?? null);
                     $enlaceValido = true;
                 }
             }
 
             if ($enlaceValido == false) {
+                // Reseteamos si el enlace no fue válido
                 $this->setEnlace(null);
                 $this->setEnlacecode(null);
                 $this->setEnlaceurl(null);
                 $this->setEnlacethumburl(null);
             }
 
+            // Si pasamos a remoto, y antes había archivo local real, lo borramos
             if ($enlaceValido === true
                 && !empty($this->oldFile['extension'])
-                && !in_array($this->oldFile['extension'], array_merge($this->externalTypes, ['initial']))) {
+                && !in_array($this->oldFile['extension'], array_merge($this->externalTypes, ['initial']), true)) {
                 $this->setAncho(null);
                 $this->setAltura(null);
                 $this->removeOldFiles();
             }
+
+            // Caso 3: ni archivo ni enlace → mantenemos limpio
         } else {
             $this->setEnlace(null);
         }
@@ -269,16 +283,162 @@ trait MainArchivoTrait
 
         $this->removeOldFiles();
 
+        // Procesamos imágenes conocidas; el resto se mueve tal cual
         $imageTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (in_array($this->getArchivo()->getClientMimeType(), $imageTypes)) {
+        if (in_array($this->getArchivo()->getClientMimeType(), $imageTypes, true)) {
             $this->generarImagen($this->getArchivo(), $this->getInternalThumbDir(), $this->imageSize['thumb']['width'], $this->imageSize['thumb']['height']);
-            $this->generarImagen($this->getArchivo(), $this->getInternalDir(), $this->imageSize['image']['width'], $this->imageSize['image']['height']);
+            $this->generarImagen($this->getArchivo(), $this->getInternalDir(),      $this->imageSize['image']['width'], $this->imageSize['image']['height']);
             @unlink($this->getArchivo()->getPathname());
         } else {
+            // Otros tipos: mover sin redimensionar
             $this->getArchivo()->move($this->getInternalDir(), $this->id . '_' . $this->getToken() . '.' . $this->extension);
         }
 
         $this->setArchivo(null);
+    }
+
+    /**
+     * Genera una imagen redimensionada en $destDir con tamaño $w x $h.
+     * Prefiere IMAGICK si está disponible; si no, cae a GD.
+     * Mantiene transparencia para PNG/WebP.
+     */
+    protected function generarImagen(UploadedFile $file, string $destDir, int|string $w, int|string $h): bool
+    {
+        if (!is_dir($destDir)) {
+            @mkdir($destDir, 0775, true);
+        }
+
+        $w = (int) $w;
+        $h = (int) $h;
+
+        $ext   = strtolower((string) $this->getExtension());
+        $mime  = $file->getClientMimeType();
+        $name  = $this->id . '_' . $this->getToken() . '.' . $ext;
+        $path  = rtrim($destDir, '/').'/'.$name;
+        $src   = $file->getPathname();
+
+        // --- Ruta A: IMAGICK (preferida si está disponible) ---
+        if (\extension_loaded('imagick')) {
+            try {
+                $im = new \Imagick();
+                $im->readImage($src);
+
+                // Orientación correcta por EXIF
+                if (\method_exists($im, 'autoOrient')) {
+                    @$im->autoOrient();
+                } elseif (\method_exists($im, 'autoOrientImage')) {
+                    @$im->autoOrientImage();
+                }
+
+                // Formato de salida según extensión
+                $format = match ($ext) {
+                    'jpg', 'jpeg' => 'jpeg',
+                    'png'         => 'png',
+                    'webp'        => 'webp',
+                    default       => null,
+                };
+                if ($format) {
+                    $im->setImageFormat($format);
+                }
+
+                // Compresión/calidad por formato
+                if (\in_array($ext, ['jpg','jpeg'], true)) {
+                    $im->setImageCompression(\Imagick::COMPRESSION_JPEG);
+                    $im->setImageCompressionQuality(85);
+                    $im->setInterlaceScheme(\Imagick::INTERLACE_JPEG);
+                } elseif ($ext === 'png') {
+                    $im->setImageCompression(\Imagick::COMPRESSION_ZIP);
+                    $im->setInterlaceScheme(\Imagick::INTERLACE_PNG);
+                } elseif ($ext === 'webp') {
+                    $im->setOption('webp:method', '6');
+                    $im->setOption('webp:quality', '85');
+                    $im->setOption('webp:alpha-quality', '85');
+                    $im->setImageCompressionQuality(85);
+                }
+
+                // Redimensionar manteniendo aspecto y rellenando al tamaño exacto
+                $im->thumbnailImage($w, $h, true, true);
+
+                // Fondo transparente si aplica
+                if (\in_array($ext, ['png','webp'], true)) {
+                    $im->setImageBackgroundColor(new \ImagickPixel('transparent'));
+                }
+
+                // Limpiar metadatos pesados (EXIF/ICC si no los necesitas)
+                @$im->stripImage();
+
+                $ok = $im->writeImage($path);
+                $im->clear();
+                $im->destroy();
+
+                return (bool)$ok;
+            } catch (\Throwable $e) {
+                // Si Imagick falla por cualquier razón, caemos a GD
+            }
+        }
+
+        // --- Ruta B: GD (fallback portable) ---
+        if (!\function_exists('imagecreatetruecolor')) {
+            // Sin GD: mover original sin transformar
+            $file->move($destDir, $name);
+            return true;
+        }
+
+        $create = match ($mime) {
+            'image/jpeg' => 'imagecreatefromjpeg',
+            'image/png'  => 'imagecreatefrompng',
+            'image/webp' => (\function_exists('imagecreatefromwebp') ? 'imagecreatefromwebp' : null),
+            default      => null,
+        };
+        $save = match ($ext) {
+            'jpg','jpeg' => 'imagejpeg',
+            'png'        => 'imagepng',
+            'webp'       => (\function_exists('imagewebp') ? 'imagewebp' : null),
+            default      => null,
+        };
+
+        if ($create === null || $save === null) {
+            $file->move($destDir, $name);
+            return true;
+        }
+
+        $srcIm = @$create($src);
+        if (!$srcIm) {
+            $file->move($destDir, $name);
+            return true;
+        }
+
+        $dstIm = \imagecreatetruecolor($w, $h);
+
+        // Transparencia en PNG/WebP
+        if (\in_array($ext, ['png','webp'], true)) {
+            \imagealphablending($dstIm, false);
+            \imagesavealpha($dstIm, true);
+            $transparent = \imagecolorallocatealpha($dstIm, 0, 0, 0, 127);
+            \imagefilledrectangle($dstIm, 0, 0, $w, $h, $transparent);
+        }
+
+        $srcW = \imagesx($srcIm);
+        $srcH = \imagesy($srcIm);
+        \imagecopyresampled($dstIm, $srcIm, 0, 0, 0, 0, $w, $h, $srcW, $srcH);
+
+        $ok = match ($ext) {
+            'jpg','jpeg' => $save($dstIm, $path, 85),
+            'png'        => $save($dstIm, $path, 6),
+            'webp'       => $save($dstIm, $path, 85),
+            default      => $save($dstIm, $path),
+        };
+
+        \imagedestroy($srcIm);
+        \imagedestroy($dstIm);
+
+        if (!$ok) {
+            // Último recurso: mover original
+            $file->move($destDir, $name);
+            return true;
+        }
+
+        return true;
     }
 
     #[ORM\PreRemove]
@@ -306,6 +466,7 @@ trait MainArchivoTrait
 
     private function removeOldFiles(): void
     {
+        // No borres si el estado anterior era 'initial'
         if (!empty($this->oldFile['image']) && file_exists($this->oldFile['image']) && $this->oldFile['extension'] != 'initial') {
             @unlink($this->oldFile['image']);
             $this->oldFile['image'] = '';
@@ -323,14 +484,16 @@ trait MainArchivoTrait
 
     public function getInternalPath(): string
     {
-        if ($this->getExtension() === null) return '';
+        // Evita rutas fantasma cuando extension es null o 'initial'
+        if ($this->getExtension() === null || $this->getExtension() === 'initial') return '';
         return $this->getInternalDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
     }
 
     public function getWebPath(): string
     {
-        if ($this->getExtension() === null) return '';
-        if (in_array($this->getExtension(), $this->externalTypes)) return $this->getEnlaceurl() ?? '';
+        // Evita rutas fantasma cuando extension es null o 'initial'
+        if ($this->getExtension() === null || $this->getExtension() === 'initial') return '';
+        if (in_array($this->getExtension(), $this->externalTypes, true)) return $this->getEnlaceurl() ?? '';
         return $this->getWebDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
     }
 
@@ -341,21 +504,24 @@ trait MainArchivoTrait
 
     public function getTipoThumb(): string
     {
-        if ($this->extension === null) return '';
-        if (in_array($this->extension, $this->resizableTypes)) return 'image';
+        $ext = $this->extension;
+        if ($ext === null || $ext === 'initial') return '';
+        if (in_array($ext, $this->resizableTypes, true)) return 'image';
         return 'icon';
     }
 
     public function getInternalThumbPath(): string
     {
-        if ($this->extension === null) return '';
-        if (in_array($this->extension, $this->resizableTypes)) {
-            return $this->getInternalThumbDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
+        $ext = $this->extension;
+        if ($ext === null || $ext === 'initial') return '';
+        if (in_array($ext, $this->resizableTypes, true)) {
+            return $this->getInternalThumbDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $ext;
         }
-        if (in_array($this->getExtension(), $this->externalTypes)) {
+        if (in_array($ext, $this->externalTypes, true)) {
+            // Externos: no existe thumb local real; devolvemos el dir por compatibilidad de llamadas.
             return $this->getInternalThumbDir() ?? '';
         }
-        return $this->getInternalThumbDir() . '/' . $this->getIcon($this->extension) . '.png';
+        return $this->getInternalThumbDir() . '/' . $this->getIcon($ext) . '.png';
     }
 
     protected function getInternalThumbDir(): string
@@ -365,33 +531,36 @@ trait MainArchivoTrait
 
     public function getWebThumbPath(): string
     {
-        if ($this->extension === null) return '';
-        if (in_array($this->extension, $this->resizableTypes)) {
-            return $this->getWebThumbDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
+        $ext = $this->extension;
+        if ($ext === null || $ext === 'initial') return '';
+        if (in_array($ext, $this->resizableTypes, true)) {
+            return $this->getWebThumbDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $ext;
         }
-        if (in_array($this->getExtension(), $this->externalTypes)) {
+        if (in_array($ext, $this->externalTypes, true)) {
             return $this->getEnlacethumburl() ?? '';
         }
-        return $this->getWebThumbDir() . '/' . $this->getIcon($this->extension) . '.png';
+        return $this->getWebThumbDir() . '/' . $this->getIcon($ext) . '.png';
     }
 
     public function getWebThumbDir(): string
     {
-        if (in_array($this->extension, $this->resizableTypes)) return $this->getWebDir() . '/thumb';
+        if ($this->extension !== null && in_array($this->extension, $this->resizableTypes, true)) {
+            return $this->getWebDir() . '/thumb';
+        }
         return '/app/icons';
     }
 
     public function getIcon($extension): string
     {
-        $tipos['image'] = ['tiff', 'tif', 'gif'];
-        $tipos['word'] = ['doc', 'docx', 'rtf'];
-        $tipos['text'] = ['txt'];
-        $tipos['pdf'] = ['pdf'];
-        $tipos['excel'] = ['xls', 'xlsx'];
+        $tipos['image']      = ['tiff', 'tif', 'gif'];
+        $tipos['word']       = ['doc', 'docx', 'rtf'];
+        $tipos['text']       = ['txt'];
+        $tipos['pdf']        = ['pdf'];
+        $tipos['excel']      = ['xls', 'xlsx'];
         $tipos['powerpoint'] = ['ppt', 'pptx', 'ppsx', 'pps'];
 
         foreach ($tipos as $key => $tipo) {
-            if (in_array($extension, $tipo)) return $key;
+            if (in_array($extension, $tipo, true)) return $key;
         }
         return 'developer';
     }

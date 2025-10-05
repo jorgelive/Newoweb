@@ -17,257 +17,161 @@ use Gedmo\Translatable\Translatable;
 #[Gedmo\TranslationEntity(class: 'App\Entity\CotizacionCotpoliticaTranslation')]
 class CotizacionCotpolitica
 {
-
-    /**
-     * @var int
-     */
     #[ORM\Column(type: 'integer')]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
     /**
-     * @var ArrayCollection
+     * Relación con traducciones (mantener mapeo; el lado inverse mapea "object").
+     * Nota: La clase *Translation* NO debe tipar $object ni su setter (regla Gedmo).
      */
-    #[ORM\OneToMany(targetEntity: 'CotizacionCotpoliticaTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
-    protected $translations;
+    #[ORM\OneToMany(
+        targetEntity: 'CotizacionCotpoliticaTranslation',
+        mappedBy: 'object',
+        cascade: ['persist', 'remove']
+    )]
+    protected Collection $translations;
 
-    /**
-     * @var string
-     */
     #[ORM\Column(type: 'string', length: 255)]
-    private $nombre;
+    private ?string $nombre = null;
 
-    /**
-     * @var string
-     */
     #[Gedmo\Translatable]
     #[ORM\Column(type: 'text')]
-    private $contenido;
+    private ?string $contenido = null;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * Orphan removal se mantiene según tu preferencia.
      */
-    #[ORM\OneToMany(targetEntity: 'CotizacionCotizacion', mappedBy: 'cotpolitica', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private $cotizaciones;
+    #[ORM\OneToMany(
+        targetEntity: 'CotizacionCotizacion',
+        mappedBy: 'cotpolitica',
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
+    private Collection $cotizaciones;
 
-    /**
-     * @var \DateTime $creado
-     */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private $creado;
+    private ?\DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private $modificado;
+    private ?\DateTimeInterface $modificado = null;
 
     #[Gedmo\Locale]
-    private $locale;
+    private ?string $locale = null;
 
-    /**
-     * Constructor
-     */
-    public function __construct() {
-        $this->cotizaciones = new ArrayCollection();
-        $this->translations = new ArrayCollection();
+    public function __construct()
+    {
+        $this->cotizaciones  = new ArrayCollection();
+        $this->translations  = new ArrayCollection();
     }
 
-
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        return $this->getNombre() ?? sprintf('Id: %s.', (string) $this->getId()) ?? '';
     }
 
     public function setLocale(?string $locale): self
     {
         $this->locale = $locale;
-
         return $this;
     }
 
-    public function getTranslations()
+    /** @return Collection */
+    public function getTranslations(): Collection
     {
         return $this->translations;
     }
 
-    public function addTranslation(CotizacionCotpoliticaTranslation $translation)
+    public function addTranslation(CotizacionCotpoliticaTranslation $translation): self
     {
         if (!$this->translations->contains($translation)) {
-            $this->translations[] = $translation;
+            $this->translations->add($translation);
+            // Mantener la sincronización del lado dueño según tu lógica actual
             $translation->setObject($this);
         }
+        return $this;
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return CotizacionCotpolitica
-     */
-    public function setNombre($nombre)
+    public function setNombre(string $nombre): self
     {
         $this->nombre = $nombre;
-    
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionCotpolitica
-     */
-    public function setCreado($creado)
+    public function setCreado(\DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?\DateTimeInterface
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionCotpolitica
-     */
-    public function setModificado($modificado)
+    public function setModificado(\DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?\DateTimeInterface
     {
         return $this->modificado;
     }
 
-    /**
-     * Add cotizacion
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     *
-     * @return CotizacionCotpolitica
-     */
-    public function addCotizacion(\App\Entity\CotizacionCotizacion $cotizacion)
+    public function addCotizacion(\App\Entity\CotizacionCotizacion $cotizacion): self
     {
         $cotizacion->setCotpolitica($this);
-
-        $this->cotizaciones[] = $cotizacion;
-    
+        $this->cotizaciones->add($cotizacion);
         return $this;
     }
 
-
-    /**
-     * Add cotizacione por inflector ingles
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     *
-     * @return CotizacionCotpolitica
-     */
-    public function addCotizacione(\App\Entity\CotizacionCotizacion $cotizacion){
+    // Alias por inflector inglés (se mantiene igual)
+    public function addCotizacione(\App\Entity\CotizacionCotizacion $cotizacion): self
+    {
         return $this->addCotizacion($cotizacion);
     }
 
-    /**
-     * Remove cotizacion
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     */
-    public function removeCotizacion(\App\Entity\CotizacionCotizacion $cotizacion)
+    public function removeCotizacion(\App\Entity\CotizacionCotizacion $cotizacion): void
     {
+        // Se conserva tu lógica existente sin modificar el lado dueño
         $this->cotizaciones->removeElement($cotizacion);
     }
 
-    /**
-     * Remove cotizacione por inflector ingles
-     *
-     * @param \App\Entity\CotizacionCotizacion $cotizacion
-     */
-    public function removeCotizacione(\App\Entity\CotizacionCotizacion $cotizacion)
+    // Alias por inflector inglés (se mantiene igual)
+    public function removeCotizacione(\App\Entity\CotizacionCotizacion $cotizacion): void
     {
         $this->removeCotizacion($cotizacion);
     }
 
-
-    /**
-     * Get cotizaciones
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getCotizaciones()
+    /** @return Collection */
+    public function getCotizaciones(): Collection
     {
         return $this->cotizaciones;
     }
 
-    /**
-     * Set contenido.
-     *
-     * @param string $contenido
-     *
-     * @return CotizacionCotpolitica
-     */
-    public function setContenido($contenido)
+    public function setContenido(string $contenido): self
     {
         $this->contenido = $contenido;
-    
         return $this;
     }
 
-    /**
-     * Get contenido.
-     *
-     * @return string
-     */
-    public function getContenido()
+    public function getContenido(): ?string
     {
         return $this->contenido;
     }
-
 }

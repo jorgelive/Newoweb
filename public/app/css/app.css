@@ -79,7 +79,7 @@ h4, h5 { letter-spacing: .2px; }
 /* =========================
    Botones y utilidades
    ========================= */
-section.content .btn-group > .btn { min-width: 90px; }
+section.content .btn-group > .btn { min-width: 110px; margin-bottom: 5px; }
 
 .btn-danger{ background-color: var(--c-danger); border-color: var(--c-danger); }
 .btn-danger:focus,

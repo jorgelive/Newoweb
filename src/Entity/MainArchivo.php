@@ -7,10 +7,8 @@ use Gedmo\Mapping\Annotation as Gedmo;
 use App\Traits\MainArchivoTrait;
 
 
-/**
- * @ORM\HasLifecycleCallbacks
- */
 #[ORM\Entity]
+#[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: 'mai_archivo')]
 class MainArchivo
 {
