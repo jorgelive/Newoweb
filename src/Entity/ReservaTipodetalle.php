@@ -8,40 +8,34 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * ReservaTipodetalle
- *
- * @ORM\Table(name="res_tipodetalle")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'res_tipodetalle')]
+#[ORM\Entity]
 class ReservaTipodetalle
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
-    /**
-     * @ORM\Column(type="string", length=100)
-     */
+    #[ORM\Column(type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

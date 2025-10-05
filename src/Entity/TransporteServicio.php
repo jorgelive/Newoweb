@@ -7,97 +7,79 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\Common\Collections\ArrayCollection;
 
-/**
- * @ORM\Table(name="tra_servicio")
- * @ORM\Entity(repositoryClass="App\Repository\TransporteServicioRepository")
- */
+#[ORM\Table(name: 'tra_servicio')]
+#[ORM\Entity(repositoryClass: 'App\Repository\TransporteServicioRepository')]
 class TransporteServicio
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var \App\Entity\UserDependencia
-     *
-     * @ORM\ManyToOne(targetEntity="UserDependencia")
-     * @ORM\JoinColumn(name="dependencia_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'UserDependencia')]
+    #[ORM\JoinColumn(name: 'dependencia_id', referencedColumnName: 'id', nullable: false)]
     protected $dependencia;
 
     /**
      * @var \App\Entity\TransporteUnidad
-     *
-     * @ORM\ManyToOne(targetEntity="TransporteUnidad", inversedBy="servicios")
-     * @ORM\JoinColumn(name="unidad_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'TransporteUnidad', inversedBy: 'servicios')]
+    #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false)]
     protected $unidad;
 
     /**
      * @var \App\Entity\TransporteConductor
-     *
-     * @ORM\ManyToOne(targetEntity="TransporteConductor", inversedBy="servicios")
-     * @ORM\JoinColumn(name="conductor_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'TransporteConductor', inversedBy: 'servicios')]
+    #[ORM\JoinColumn(name: 'conductor_id', referencedColumnName: 'id', nullable: false)]
     protected $conductor;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="TransporteServiciocontable", mappedBy="servicio", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'TransporteServiciocontable', mappedBy: 'servicio', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $serviciocontables;
 
-    /**
-     * @ORM\Column(type="string", length=100)
-     */
+    #[ORM\Column(type: 'string', length: 100)]
     private $nombre;
 
-    /**
-     * @ORM\Column(type="datetime")
-     */
+    #[ORM\Column(type: 'datetime')]
     private $fechahorainicio;
 
-    /**
-     * @ORM\Column(type="datetime")
-     */
+    #[ORM\Column(type: 'datetime')]
     private $fechahorafin;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="TransporteServiciocomponente", mappedBy="servicio", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'TransporteServiciocomponente', mappedBy: 'servicio', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $serviciocomponentes;
 
     private $exportcomponentes;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="TransporteServiciooperativo", mappedBy="servicio", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'TransporteServiciooperativo', mappedBy: 'servicio', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $serviciooperativos;
 
     private $exportoperativos;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     public function __construct() {

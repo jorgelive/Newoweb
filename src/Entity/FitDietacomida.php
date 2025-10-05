@@ -10,64 +10,56 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * FitDietacomida
- *
- * @ORM\Table(name="fit_dietacomida")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'fit_dietacomida')]
+#[ORM\Entity]
 class FitDietacomida
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var \App\Entity\FitDieta
-     *
-     * @ORM\ManyToOne(targetEntity="FitDieta", inversedBy="dietacomidas")
-     * @ORM\JoinColumn(name="dieta_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'FitDieta', inversedBy: 'dietacomidas')]
+    #[ORM\JoinColumn(name: 'dieta_id', referencedColumnName: 'id', nullable: false)]
     protected $dieta;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="FitDietaalimento", mappedBy="dietacomida", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'FitDietaalimento', mappedBy: 'dietacomida', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $dietaalimentos;
 
     /**
      * @var int
-     *
-     * @ORM\Column(name="numerocomida", type="integer", options={"default": 1})
      */
+    #[ORM\Column(name: 'numerocomida', type: 'integer', options: ['default' => 1])]
     private $numerocomida;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nota", type="string", length=255, nullable=true)
      */
+    #[ORM\Column(name: 'nota', type: 'string', length: 255, nullable: true)]
     private $nota;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

@@ -9,71 +9,61 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * User
- *
- * @ORM\Table(name="fos_user_user")
- * @ORM\Entity
  */
-
+#[ORM\Table(name: 'fos_user_user')]
+#[ORM\Entity]
 class UserUser extends BaseUser
 {
 
     /**
      * @var integer
-     *
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     protected $id;
 
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=64, nullable=true)
      */
+    #[ORM\Column(type: 'string', length: 64, nullable: true)]
     private $firstname;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=64, nullable=true)
      */
+    #[ORM\Column(type: 'string', length: 64, nullable: true)]
     private $lastname;
 
     /**
      * @var \App\Entity\UserDependencia
-     *
-     * @ORM\ManyToOne(targetEntity="UserDependencia", inversedBy="users")
      */
+    #[ORM\ManyToOne(targetEntity: 'UserDependencia', inversedBy: 'users')]
     protected $dependencia;
 
     /**
      * @var \App\Entity\UserArea
-     *
-     * @ORM\ManyToOne(targetEntity="UserArea", inversedBy="users")
      */
+    #[ORM\ManyToOne(targetEntity: 'UserArea', inversedBy: 'users')]
     protected $area;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="UserCuenta", mappedBy="user", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'UserCuenta', mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $cuentas;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="CuentaMovimiento", mappedBy="user", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'CuentaMovimiento', mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $movimientos;
 
     /**
      * @var \App\Entity\TransporteConductor
-     *
-     * @ORM\OneToOne(targetEntity="TransporteConductor", mappedBy="user")
      */
+    #[ORM\OneToOne(targetEntity: 'TransporteConductor', mappedBy: 'user')]
     private $conductor;
 
     public function __construct() {

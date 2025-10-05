@@ -8,10 +8,9 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * CotizacionEstadocotcomponente
- *
- * @ORM\Table(name="cot_estadocotcomponente")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'cot_estadocotcomponente')]
+#[ORM\Entity]
 class CotizacionEstadocotcomponente
 {
 
@@ -21,44 +20,36 @@ class CotizacionEstadocotcomponente
 
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=255)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 255)]
     private $nombre;
 
-    /**
-     * @ORM\Column(type="string", length=10)
-     */
+    #[ORM\Column(type: 'string', length: 10)]
     private $color;
 
-    /**
-     * @ORM\Column(type="string", length=10)
-     */
+    #[ORM\Column(type: 'string', length: 10)]
     private $colorcalendar;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
 

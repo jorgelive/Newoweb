@@ -9,67 +9,59 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * ReservaDetalle
- *
- * @ORM\Table(name="res_detalle")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'res_detalle')]
+#[ORM\Entity]
 class ReservaDetalle
 {
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var \App\Entity\ReservaReserva
-     *
-     * @ORM\ManyToOne(targetEntity="ReservaReserva", inversedBy="detalles")
-     * @ORM\JoinColumn(name="reserva_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ReservaReserva', inversedBy: 'detalles')]
+    #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: false)]
     protected $reserva;
 
     /**
      * @var \App\Entity\ReservaTipodetallle
-     *
-     * @ORM\ManyToOne(targetEntity="ReservaTipodetalle")
-     * @ORM\JoinColumn(name="tipodetalle_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ReservaTipodetalle')]
+    #[ORM\JoinColumn(name: 'tipodetalle_id', referencedColumnName: 'id', nullable: false)]
     protected $tipodetalle;
 
     /**
      * @var \App\Entity\UserUser
-     *
-     * @ORM\ManyToOne(targetEntity="UserUser")
-     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=true)
      */
+    #[ORM\ManyToOne(targetEntity: 'UserUser')]
+    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: true)]
     protected $user;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=255, nullable=true)
      */
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private $nota;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

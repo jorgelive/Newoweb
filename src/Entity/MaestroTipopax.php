@@ -10,11 +10,10 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * MaestroTipopax
- *
- * @ORM\Table(name="mae_tipopax")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\MaestroTipopaxTranslation")
  */
+#[ORM\Table(name: 'mae_tipopax')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\MaestroTipopaxTranslation')]
 class MaestroTipopax
 {
     public const DB_VALOR_PERUANO = 1;
@@ -22,53 +21,44 @@ class MaestroTipopax
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="MaestroTipopaxTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
+    #[ORM\OneToMany(targetEntity: 'MaestroTipopaxTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected $translations;
 
 
-    /**
-     * @ORM\Column(type="string", length=100)
-     */
+    #[ORM\Column(type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=100, nullable=false)
      */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 100, nullable: false)]
     private $titulo;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private $locale;
 
     public function __construct()

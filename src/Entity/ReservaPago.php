@@ -9,81 +9,71 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * ReservaPago
- *
- * @ORM\Table(name="res_pago")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'res_pago')]
+#[ORM\Entity]
 class ReservaPago
 {
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var \App\Entity\ReservaReserva
-     *
-     * @ORM\ManyToOne(targetEntity="ReservaReserva", inversedBy="pagos")
-     * @ORM\JoinColumn(name="reserva_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ReservaReserva', inversedBy: 'pagos')]
+    #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: false)]
     protected $reserva;
 
     /**
      * @var \DateTime $fecha
-     *
-     * @ORM\Column(type="date")
      */
+    #[ORM\Column(type: 'date')]
     private $fecha;
 
     /**
      * @var \App\Entity\MaestroMoneda
-     *
-     * @ORM\ManyToOne(targetEntity="MaestroMoneda")
-     * @ORM\JoinColumn(name="moneda_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'MaestroMoneda')]
+    #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
     protected $moneda;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="decimal", precision=5, scale=2, nullable=false)
      */
+    #[ORM\Column(type: 'decimal', precision: 5, scale: 2, nullable: false)]
     private $monto = '00.00';
 
     /**
      * @var \App\Entity\UserUser
-     *
-     * @ORM\ManyToOne(targetEntity="UserUser")
-     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=true)
      */
+    #[ORM\ManyToOne(targetEntity: 'UserUser')]
+    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: true)]
     protected $user;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=255, nullable=true)
      */
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private $nota;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

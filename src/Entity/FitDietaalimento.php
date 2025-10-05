@@ -8,58 +8,51 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * FitDietaalimento
- *
- * @ORM\Table(name="fit_dietaalimento")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'fit_dietaalimento')]
+#[ORM\Entity]
 class FitDietaalimento
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="cantidad", type="decimal", precision=7, scale=2)
      */
+    #[ORM\Column(name: 'cantidad', type: 'decimal', precision: 7, scale: 2)]
     private $cantidad = '1';
 
     /**
      * @var \App\Entity\FitDietacomida
-     *
-     * @ORM\ManyToOne(targetEntity="FitDietacomida", inversedBy="dietaalimentos")
-     * @ORM\JoinColumn(name="dietacomida_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'FitDietacomida', inversedBy: 'dietaalimentos')]
+    #[ORM\JoinColumn(name: 'dietacomida_id', referencedColumnName: 'id', nullable: false)]
     protected $dietacomida;
 
     /**
      * @var \App\Entity\FitAlimento
-     *
-     * @ORM\ManyToOne(targetEntity="FitAlimento")
-     * @ORM\JoinColumn(name="alimento_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'FitAlimento')]
+    #[ORM\JoinColumn(name: 'alimento_id', referencedColumnName: 'id', nullable: false)]
     protected $alimento;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

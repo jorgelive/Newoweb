@@ -11,10 +11,10 @@ use Doctrine\Common\Collections\ArrayCollection;
 /**
  * CotizacionFile
  *
- * @ORM\Table(name="cot_file")
- * @ORM\Entity
  * @ORM\HasLifecycleCallbacks
  */
+#[ORM\Table(name: 'cot_file')]
+#[ORM\Entity]
 class CotizacionFile
 {
 
@@ -23,74 +23,51 @@ class CotizacionFile
      */
     private ?string $color;
 
-    /**
-     * @ORM\Column(type="string", length=20)
-     */
+    #[ORM\Column(type: 'string', length: 20)]
     private ?string $token;
 
-    /**
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=255)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 255)]
     private $nombre;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="MaestroPais")
-     * @ORM\JoinColumn(name="pais_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'MaestroPais')]
+    #[ORM\JoinColumn(name: 'pais_id', referencedColumnName: 'id', nullable: false)]
     private ?MaestroPais $pais;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="MaestroIdioma")
-     * @ORM\JoinColumn(name="idioma_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'MaestroIdioma')]
+    #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: false)]
     private ?MaestroIdioma $idioma;
 
-    /**
-     * @ORM\Column(type="string", length=30, nullable=true)
-     */
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $telefono;
 
-    /**
-     * @ORM\Column(type="boolean", options={"default": 0})
-     */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private bool $catalogo = false;
 
-    /**
-     * @ORM\OneToMany(targetEntity="CotizacionCotizacion", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"id" = "DESC"})
-     */
+    #[ORM\OneToMany(targetEntity: 'CotizacionCotizacion', mappedBy: 'file', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['id' => 'DESC'])]
     private Collection $cotizaciones;
 
-    /**
-     * @ORM\OneToMany(targetEntity="CotizacionFiledocumento", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"prioridad" = "ASC"})
-     */
+    #[ORM\OneToMany(targetEntity: 'CotizacionFiledocumento', mappedBy: 'file', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['prioridad' => 'ASC'])]
     private Collection $filedocumentos;
 
-    /**
-     * @ORM\OneToMany(targetEntity="CotizacionFilepasajero", mappedBy="file", cascade={"persist","remove"}, orphanRemoval=true)
-     */
+    #[ORM\OneToMany(targetEntity: 'CotizacionFilepasajero', mappedBy: 'file', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $filepasajeros;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
     public function __construct()

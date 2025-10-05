@@ -10,63 +10,53 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * UserDependencia
- *
- * @ORM\Table(name="use_dependencia")
- * @ORM\Entity
  */
-
+#[ORM\Table(name: 'use_dependencia')]
+#[ORM\Entity]
 class UserDependencia
 {
 
     /**
      * @var integer
-     *
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     protected $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100)
-     * @Assert\NotBlank
      */
+    #[ORM\Column(type: 'string', length: 100)]
+    #[Assert\NotBlank]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100, nullable=true)
      */
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private $email;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=200, nullable=true)
      */
+    #[ORM\Column(type: 'string', length: 200, nullable: true)]
     private $direccion;
 
-    /**
-     * @ORM\Column(type="string", length=10)
-     */
+    #[ORM\Column(type: 'string', length: 10)]
     private $color;
 
     /**
      * @var \App\Entity\UserOrganizacion
-     *
-     * @ORM\ManyToOne(targetEntity="UserOrganizacion", inversedBy="dependencias")
-     * @ORM\JoinColumn(name="organizacion_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'UserOrganizacion', inversedBy: 'dependencias')]
+    #[ORM\JoinColumn(name: 'organizacion_id', referencedColumnName: 'id', nullable: false)]
     protected $organizacion;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="UserUser", mappedBy="dependencia", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'UserUser', mappedBy: 'dependencia', cascade: ['persist', 'remove'], orphanRemoval: true)]
     protected $users;
 
     public function __construct()

@@ -10,97 +10,85 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * CotizacionCottarifa
- *
- * @ORM\Table(name="cot_cottarifa")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'cot_cottarifa')]
+#[ORM\Entity]
 class CotizacionCottarifa
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var int
-     *
-     * @ORM\Column(name="cantidad", type="integer")
      */
+    #[ORM\Column(name: 'cantidad', type: 'integer')]
     private $cantidad;
 
     /**
      * @var \App\Entity\CotizacionCotcomponente
-     *
-     * @ORM\ManyToOne(targetEntity="CotizacionCotcomponente", inversedBy="cottarifas")
-     * @ORM\JoinColumn(name="cotcomponente_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CotizacionCotcomponente', inversedBy: 'cottarifas')]
+    #[ORM\JoinColumn(name: 'cotcomponente_id', referencedColumnName: 'id', nullable: false)]
     protected $cotcomponente;
 
     /**
      * @var \App\Entity\ServicioProvider
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioProvider", inversedBy="cottarifas")
-     * @ORM\JoinColumn(name="provider_id", referencedColumnName="id", nullable=true)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioProvider', inversedBy: 'cottarifas')]
+    #[ORM\JoinColumn(name: 'provider_id', referencedColumnName: 'id', nullable: true)]
     protected $provider;
 
     /**
      * @var \App\Entity\ServicioTarifa
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioTarifa")
-     * @ORM\JoinColumn(name="tarifa_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioTarifa')]
+    #[ORM\JoinColumn(name: 'tarifa_id', referencedColumnName: 'id', nullable: false)]
     protected $tarifa;
 
     /**
      * @var \App\Entity\MaestroMoneda
-     *
-     * @ORM\ManyToOne(targetEntity="MaestroMoneda")
-     * @ORM\JoinColumn(name="moneda_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'MaestroMoneda')]
+    #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
     protected $moneda;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="monto", type="decimal", precision=7, scale=2, nullable=false)
      */
+    #[ORM\Column(name: 'monto', type: 'decimal', precision: 7, scale: 2, nullable: false)]
     private $monto;
 
     /**
      * @var \App\Entity\ServicioTipotarifa
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioTipotarifa")
-     * @ORM\JoinColumn(name="tipotarifa_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioTipotarifa')]
+    #[ORM\JoinColumn(name: 'tipotarifa_id', referencedColumnName: 'id', nullable: false)]
     protected $tipotarifa;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="CotizacionCottarifadetalle", mappedBy="cottarifa", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"tipotarifadetalle" = "ASC"})
      */
+    #[ORM\OneToMany(targetEntity: 'CotizacionCottarifadetalle', mappedBy: 'cottarifa', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['tipotarifadetalle' => 'ASC'])]
     private $cottarifadetalles;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

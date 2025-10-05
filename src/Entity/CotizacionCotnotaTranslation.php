@@ -2,25 +2,25 @@
 
 namespace App\Entity;
 
+use App\Entity\CotizacionCotnota;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Translatable\Entity\MappedSuperclass\AbstractPersonalTranslation;
 
-/**
- * @ORM\Entity
- * @ORM\Table(name="cot_cotnotatranslation",
- *     uniqueConstraints={
- *     @ORM\UniqueConstraint(name="unique_idx", columns={
- *         "locale", "object_id", "field"
- *     })}
- * )
- *
- */
+#[ORM\Entity]
+#[ORM\Table(
+    name: 'cot_cotnotatranslation',
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(
+            name: 'unique_idx',
+            columns: ['locale', 'object_id', 'field']
+        ),
+    ]
+)]
 class CotizacionCotnotaTranslation extends AbstractPersonalTranslation
 {
-    /**
-     * @ORM\ManyToOne(targetEntity="CotizacionCotnota", inversedBy="translations")
-     * @ORM\JoinColumn(name="object_id", referencedColumnName="id", onDelete="CASCADE")
-     */
+    // Consigna: NO tipar $object ni el setter; mantener firma de la base.
+    #[ORM\ManyToOne(targetEntity: CotizacionCotnota::class, inversedBy: 'translations')]
+    #[ORM\JoinColumn(name: 'object_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     protected $object;
 
     public function __construct($locale, $field, $value)
@@ -38,7 +38,6 @@ class CotizacionCotnotaTranslation extends AbstractPersonalTranslation
     public function setObject($object)
     {
         $this->object = $object;
-
         return $this;
     }
 }

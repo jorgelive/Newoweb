@@ -10,11 +10,10 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * ReservaUnittipocaracteristica
- *
- * @ORM\Table(name="res_unittipocaracteristica")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnittipocaracteristicaTranslation")
  */
+#[ORM\Table(name: 'res_unittipocaracteristica')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\ReservaUnittipocaracteristicaTranslation')]
 class ReservaUnittipocaracteristica
 {
     public const DB_VALOR_DESCRIPCION = 1;
@@ -30,74 +29,71 @@ class ReservaUnittipocaracteristica
 
     /**
      * @var int
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var ArrayCollection
-     * @ORM\OneToMany(targetEntity="ReservaUnittipocaracteristicaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
+    #[ORM\OneToMany(targetEntity: 'ReservaUnittipocaracteristicaTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected $translations;
 
     /**
      * @var string
-     * @ORM\Column(type="string", length=255)
      */
+    #[ORM\Column(type: 'string', length: 255)]
     private $nombre;
 
     /**
      * @var string
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=100, nullable=false)
      */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 100, nullable: false)]
     private $titulo;
 
     /**
      * @var string|null
-     * @ORM\Column(type="string", length=30, nullable=true)
      */
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private $iconcolor;
 
     /**
      * @var string|null
-     * @ORM\Column(type="string", length=30, nullable=true)
      */
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private $iconclase;
 
     /**
      * Si es TRUE, este TIPO está restringido en la vista pública (resumen).
      * Solo se muestra si el estado habilita el resumen público.
-     *
-     * @ORM\Column(name="restringido_en_resumen", type="boolean", options={"default": false})
      */
+    #[ORM\Column(name: 'restringido_en_resumen', type: 'boolean', options: ['default' => false])]
     private $restringidoEnResumen = false;
 
     /**
      * @var ArrayCollection
-     * @ORM\OneToMany(targetEntity="ReservaUnitcaracteristica", mappedBy="unittipocaracteristica", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'ReservaUnitcaracteristica', mappedBy: 'unittipocaracteristica', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $unitcaracteristicas;
 
     /**
      * @var \DateTime $creado
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private $locale;
 
     public function __construct() {

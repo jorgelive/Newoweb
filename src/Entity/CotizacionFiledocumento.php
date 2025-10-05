@@ -11,57 +11,50 @@ use App\Traits\MainArchivoTrait;
 /**
  * CotizacionFiledocumento
  *
- * @ORM\Table(name="cot_filedocumento")
- * @ORM\Entity
  * @ORM\HasLifecycleCallbacks
  */
+#[ORM\Table(name: 'cot_filedocumento')]
+#[ORM\Entity]
 class CotizacionFiledocumento
 {
     use MainArchivoTrait;
 
     private $path = '/carga/cotizacionfiledocumento';
 
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
-    /**
-     * @ORM\Column(type="date", nullable=true)
-     */
+    #[ORM\Column(type: 'date', nullable: true)]
     private $vencimiento;
 
     /**
      * @var \App\Entity\CotizacionTipofiledocumento
-     *
-     * @ORM\ManyToOne(targetEntity="CotizacionTipofiledocumento")
-     * @ORM\JoinColumn(name="tipofiledocumento_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CotizacionTipofiledocumento')]
+    #[ORM\JoinColumn(name: 'tipofiledocumento_id', referencedColumnName: 'id', nullable: false)]
     private $tipofiledocumento;
 
     /**
      * @var \App\Entity\CotizacionFile
-     *
-     * @ORM\ManyToOne(targetEntity="CotizacionFile", inversedBy="filedocumentos")
-     * @ORM\JoinColumn(name="file_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CotizacionFile', inversedBy: 'filedocumentos')]
+    #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false)]
     protected $file;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

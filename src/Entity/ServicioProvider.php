@@ -11,73 +11,49 @@ use Gedmo\Translatable\Translatable;
 
 /**
  * ServicioProvider
- *
- * @ORM\Table(name="ser_provider")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'ser_provider')]
+#[ORM\Entity]
 class ServicioProvider
 {
 
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     * @ORM\Column(type="string", length=30)
-     */
+    #[ORM\Column(type: 'string', length: 30)]
     private ?string $nombre = null;
 
-    /**
-     * @ORM\Column(type="string", length=100)
-     */
+    #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombremostrar = null;
 
-    /**
-     * @ORM\Column(type="string", length=100, nullable=true)
-     */
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private $direccion = null;
 
-    /**
-     * @ORM\Column(type="string", length=30, nullable=true)
-     */
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $telefono = null;
 
-    /**
-     * @ORM\Column(type="string", length=40, nullable=true)
-     */
+    #[ORM\Column(type: 'string', length: 40, nullable: true)]
     private ?string $email = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ServicioTarifa", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"nombre" = "ASC"})
-     */
+    #[ORM\OneToMany(targetEntity: 'ServicioTarifa', mappedBy: 'provider', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['nombre' => 'ASC'])]
     private Collection $tarifas;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ServicioProvidermedio", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"prioridad" = "ASC"})
-     */
+    #[ORM\OneToMany(targetEntity: 'ServicioProvidermedio', mappedBy: 'provider', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['prioridad' => 'ASC'])]
     private Collection $providermedios;
 
-    /**
-
-     * @ORM\OneToMany(targetEntity="CotizacionCottarifa", mappedBy="provider", cascade={"persist","remove"}, orphanRemoval=true)
-     */
+    #[ORM\OneToMany(targetEntity: 'CotizacionCottarifa', mappedBy: 'provider', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $cottarifas;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
 

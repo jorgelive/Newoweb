@@ -8,60 +8,53 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * CotizacionCottarifadetalle
- *
- * @ORM\Table(name="cot_cottarifadetalle")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'cot_cottarifadetalle')]
+#[ORM\Entity]
 class CotizacionCottarifadetalle
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
 
     /**
      * @var \App\Entity\CotizacionCottarifa
-     *
-     * @ORM\ManyToOne(targetEntity="CotizacionCottarifa", inversedBy="cottarifadetalles")
-     * @ORM\JoinColumn(name="cottarifa_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CotizacionCottarifa', inversedBy: 'cottarifadetalles')]
+    #[ORM\JoinColumn(name: 'cottarifa_id', referencedColumnName: 'id', nullable: false)]
     protected $cottarifa;
 
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="detalle", type="string", length=255)
      */
+    #[ORM\Column(name: 'detalle', type: 'string', length: 255)]
     private $detalle;
 
     /**
      * @var \App\Entity\ServicioTipotarifadetalle
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioTipotarifadetalle")
-     * @ORM\JoinColumn(name="tipotarifadetalle_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioTipotarifadetalle')]
+    #[ORM\JoinColumn(name: 'tipotarifadetalle_id', referencedColumnName: 'id', nullable: false)]
     protected $tipotarifadetalle;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

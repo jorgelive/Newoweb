@@ -11,42 +11,37 @@ use Gedmo\Translatable\Translatable;
 
 /**
  * ServicioComponente
- *
- * @ORM\Table(name="ser_componente")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'ser_componente')]
+#[ORM\Entity]
 class ServicioComponente
 {
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100)
      */
+    #[ORM\Column(type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer", nullable=true)
      */
+    #[ORM\Column(type: 'integer', nullable: true)]
     private $anticipacionalerta;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="ServicioComponenteitem", mappedBy="componente", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"titulo" = "ASC"})
      */
+    #[ORM\OneToMany(targetEntity: 'ServicioComponenteitem', mappedBy: 'componente', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['titulo' => 'ASC'])]
     private $componenteitems;
 
     /**
@@ -62,41 +57,36 @@ class ServicioComponente
 
     /**
      * @var \App\Entity\ServicioTipocomponente
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioTipocomponente")
-     * @ORM\JoinColumn(name="tipocomponente_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioTipocomponente')]
+    #[ORM\JoinColumn(name: 'tipocomponente_id', referencedColumnName: 'id', nullable: false)]
     protected $tipocomponente;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="decimal", precision=4, scale=1, nullable=true)
      */
+    #[ORM\Column(type: 'decimal', precision: 4, scale: 1, nullable: true)]
     private $duracion;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="ServicioTarifa", mappedBy="componente", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"nombre" = "ASC"})
      */
+    #[ORM\OneToMany(targetEntity: 'ServicioTarifa', mappedBy: 'componente', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['nombre' => 'ASC'])]
     private $tarifas;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
 

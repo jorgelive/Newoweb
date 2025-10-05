@@ -10,10 +10,9 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * ReservaReserva
- *
- * @ORM\Table(name="res_reserva")
- * @ORM\Entity(repositoryClass="App\Repository\ReservaReservaRepository")
  */
+#[ORM\Table(name: 'res_reserva')]
+#[ORM\Entity(repositoryClass: 'App\Repository\ReservaReservaRepository')]
 class ReservaReserva
 {
 
@@ -66,124 +65,80 @@ class ReservaReserva
         '+670'   // Timor-Leste
     ];
 
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     * @ORM\Column(type="string", length=20)
-     */
+    #[ORM\Column(type: 'string', length: 20)]
     private ?string $token = null;
 
-    /**
-     * @ORM\Column(type="string", length=100)
-     */
+    #[ORM\Column(type: 'string', length: 100)]
     private ?string $uid = null;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
+    #[ORM\Column(type: 'string', length: 255)]
     private ?string $nombre = null;
 
-    /**
-     * @ORM\Column(type="string", length=20, nullable=true)
-     */
+    #[ORM\Column(type: 'string', length: 20, nullable: true)]
     private ?string $calificacion = null;
 
-    /**
-     * @ORM\Column(type="string", length=255, nullable=true)
-     */
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $enlace = null;
 
-    /**
-     * @ORM\Column(type="string", length=30, nullable=true)
-     */
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $telefono = null;
 
-    /**
-     * @ORM\Column(type="string", length=255, nullable=true)
-     */
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $nota = null;
 
-    /**
-     * @ORM\Column(type="integer")
-     */
+    #[ORM\Column(type: 'integer')]
     private ?int $cantidadadultos = 1;
 
-    /**
-     * @ORM\Column(type="integer")
-     */
+    #[ORM\Column(type: 'integer')]
     private ?int $cantidadninos = 0;
 
-    /**
-     * @ORM\Column(type="boolean")
-     */
+    #[ORM\Column(type: 'boolean')]
     private bool $manual = true;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="ReservaChannel", inversedBy="reservas")
-     * @ORM\JoinColumn(name="channel_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'ReservaChannel', inversedBy: 'reservas')]
+    #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: false)]
     private ?ReservaChannel $channel;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="ReservaUnitnexo", inversedBy="reservas")
-     * @ORM\JoinColumn(name="unitnexo_id", referencedColumnName="id", nullable=true)
-     */
+    #[ORM\ManyToOne(targetEntity: 'ReservaUnitnexo', inversedBy: 'reservas')]
+    #[ORM\JoinColumn(name: 'unitnexo_id', referencedColumnName: 'id', nullable: true)]
     private ?ReservaUnitnexo $unitnexo;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="ReservaUnit", inversedBy="reservas")
-     * @ORM\JoinColumn(name="unit_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'ReservaUnit', inversedBy: 'reservas')]
+    #[ORM\JoinColumn(name: 'unit_id', referencedColumnName: 'id', nullable: false)]
     private ?ReservaUnit $unit;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="ReservaEstado", inversedBy="reservas")
-     * @ORM\JoinColumn(name="estado_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'ReservaEstado', inversedBy: 'reservas')]
+    #[ORM\JoinColumn(name: 'estado_id', referencedColumnName: 'id', nullable: false)]
     private ?ReservaEstado $estado;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ReservaDetalle", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"id" = "ASC"})
-     */
+    #[ORM\OneToMany(targetEntity: 'ReservaDetalle', mappedBy: 'reserva', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['id' => 'ASC'])]
     private Collection $detalles;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ReservaImporte", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
-     */
+    #[ORM\OneToMany(targetEntity: 'ReservaImporte', mappedBy: 'reserva', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $importes;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ReservaPago", mappedBy="reserva", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"fecha" = "ASC"})
-     */
+    #[ORM\OneToMany(targetEntity: 'ReservaPago', mappedBy: 'reserva', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['fecha' => 'ASC'])]
     private Collection $pagos;
 
-    /**
-     * @ORM\Column(type="datetime")
-     */
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $fechahorainicio;
 
-    /**
-     * @ORM\Column(type="datetime")
-     */
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $fechahorafin;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
     /**

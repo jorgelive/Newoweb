@@ -10,58 +10,51 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * CuentaCuenta
- *
- * @ORM\Table(name="cue_cuenta")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'cue_cuenta')]
+#[ORM\Entity]
 class CuentaCuenta
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=100)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var \App\Entity\MaestroMoneda
-     *
-     * @ORM\ManyToOne(targetEntity="MaestroMoneda")
-     * @ORM\JoinColumn(name="moneda_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'MaestroMoneda')]
+    #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
     protected $moneda;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="CuentaPeriodo", mappedBy="cuenta", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"fechainicio" = "DESC"})
      */
+    #[ORM\OneToMany(targetEntity: 'CuentaPeriodo', mappedBy: 'cuenta', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['fechainicio' => 'DESC'])]
     private $periodos;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     public function __construct() {

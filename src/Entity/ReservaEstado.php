@@ -10,9 +10,12 @@ use Gedmo\Mapping\Annotation as Gedmo;
 /**
  * ReservaEstado
  *
- * @ORM\Table(name="res_estado")
- * @ORM\Entity
+ * Importante:
+ * - Las constantes DB_VALOR_* son contrato externo (no cambiar valores).
+ * - orphanRemoval=true: elimina hijos huérfanos al desvincular (ojo en cargas masivas).
  */
+#[ORM\Table(name: 'res_estado')]
+#[ORM\Entity]
 class ReservaEstado
 {
     public const DB_VALOR_ABIERTO = 1;
@@ -23,39 +26,34 @@ class ReservaEstado
     public const DB_VALOR_PARA_CANCELACION = 6;
     public const DB_VALOR_INICIAL = 7;
 
-    /**
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
-    private $id;
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    private ?int $id = null;
 
-    /** @ORM\Column(type="string", length=255) */
-    private $nombre;
+    #[ORM\Column(type: 'string', length: 255)]
+    private ?string $nombre = null;
 
-    /** @ORM\Column(type="string", length=10) */
-    private $color;
+    #[ORM\Column(type: 'string', length: 10)]
+    private ?string $color = null;
 
-    /** @ORM\Column(type="string", length=10) */
-    private $colorcalendar;
+    #[ORM\Column(type: 'string', length: 10)]
+    private ?string $colorcalendar = null;
 
-    /**
-     * Si es TRUE, en la vista pública (resumen) se muestran también los TIPOS restringidos.
-     * Si es FALSE, los TIPOS restringidos permanecen ocultos.
-     * @ORM\Column(name="habilitar_resumen_publico", type="boolean", options={"default": false})
-     */
-    private $habilitarResumenPublico = false;
+    #[ORM\Column(name: 'habilitar_resumen_publico', type: 'boolean', options: ['default' => false])]
+    private bool $habilitarResumenPublico = false;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="estado", cascade={"persist","remove"}, orphanRemoval=true)
-     */
-    private $reservas;
+    #[ORM\OneToMany(targetEntity: 'ReservaReserva', mappedBy: 'estado', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $reservas;
 
-    /** @Gedmo\Timestampable(on="create") @ORM\Column(type="datetime") */
-    private $creado;
+    // ✅ Mapeadas como columnas para que Gedmo pueda escribir
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $creado = null;
 
-    /** @Gedmo\Timestampable(on="update") @ORM\Column(type="datetime") */
-    private $modificado;
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $modificado = null;
 
     public function __construct() {
         $this->reservas = new ArrayCollection();
@@ -101,7 +99,6 @@ class ReservaEstado
         return $this;
     }
 
-    // === Flag en estado ===
     public function isHabilitarResumenPublico(): bool { return (bool)$this->habilitarResumenPublico; }
     public function getHabilitarResumenPublico(): bool { return (bool)$this->habilitarResumenPublico; }
     public function setHabilitarResumenPublico(bool $v): self { $this->habilitarResumenPublico = $v; return $this; }

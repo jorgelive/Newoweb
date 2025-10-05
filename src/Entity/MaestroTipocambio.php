@@ -5,50 +5,34 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
-/**
- * @ORM\Table(name="mae_tipocambio")
- * @ORM\Entity
- */
+#[ORM\Table(name: 'mae_tipocambio')]
+#[ORM\Entity]
 class MaestroTipocambio
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="MaestroMoneda", inversedBy="tipocambios")
-     * @ORM\JoinColumn(name="moneda_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'MaestroMoneda', inversedBy: 'tipocambios')]
+    #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
     protected ?MaestroMoneda $moneda;
 
-    /**
-     * @ORM\Column(name="fecha", type="date")
-     */
+    #[ORM\Column(name: 'fecha', type: 'date')]
     private ?\DateTime $fecha;
 
-    /**
-     * @ORM\Column(type="decimal", precision=10, scale=3)
-     */
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 3)]
     private ?string $compra;
 
-    /**
-     * @ORM\Column(type="decimal", precision=10, scale=3)
-     */
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 3)]
     private ?string $venta;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
     public function __toString(): string

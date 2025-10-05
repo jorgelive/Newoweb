@@ -8,94 +8,82 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * FitAlimento
- *
- * @ORM\Table(name="fit_alimento")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'fit_alimento')]
+#[ORM\Entity]
 class FitAlimento
 {
 
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=100)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="grasa", type="decimal", precision=7, scale=2)
      */
+    #[ORM\Column(name: 'grasa', type: 'decimal', precision: 7, scale: 2)]
     private $grasa;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="carbohidrato", type="decimal", precision=7, scale=2)
      */
+    #[ORM\Column(name: 'carbohidrato', type: 'decimal', precision: 7, scale: 2)]
     private $carbohidrato;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="proteina", type="decimal", precision=7, scale=2)
      */
+    #[ORM\Column(name: 'proteina', type: 'decimal', precision: 7, scale: 2)]
     private $proteina;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="cantidad", type="decimal", precision=7, scale=2)
      */
+    #[ORM\Column(name: 'cantidad', type: 'decimal', precision: 7, scale: 2)]
     private $cantidad;
 
     /**
      * @var bool
-     *
-     * @ORM\Column(name="proteinaaltovalor", type="boolean", options={"default": 0})
      */
+    #[ORM\Column(name: 'proteinaaltovalor', type: 'boolean', options: ['default' => 0])]
     private $proteinaaltovalor;
 
     /**
      * @var \App\Entity\FitTipoalimento
-     *
-     * @ORM\ManyToOne(targetEntity="FitTipoalimento", inversedBy="alimentos")
-     * @ORM\JoinColumn(name="tipoalimento_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'FitTipoalimento', inversedBy: 'alimentos')]
+    #[ORM\JoinColumn(name: 'tipoalimento_id', referencedColumnName: 'id', nullable: false)]
     protected $tipoalimento;
 
     /**
      * @var \App\Entity\FitMedidaalimento
-     *
-     * @ORM\ManyToOne(targetEntity="FitMedidaalimento", inversedBy="alimentos")
-     * @ORM\JoinColumn(name="mediaalimento_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'FitMedidaalimento', inversedBy: 'alimentos')]
+    #[ORM\JoinColumn(name: 'mediaalimento_id', referencedColumnName: 'id', nullable: false)]
     protected $medidaalimento;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

@@ -9,95 +9,83 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * CotizacionFilepasajero
- *
- * @ORM\Table(name="cot_filepasajero")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'cot_filepasajero')]
+#[ORM\Entity]
 class CotizacionFilepasajero
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=100)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="apellido", type="string", length=100)
      */
+    #[ORM\Column(name: 'apellido', type: 'string', length: 100)]
     private $apellido;
 
     /**
      * @var \App\Entity\MaestroPais
-     *
-     * @ORM\ManyToOne(targetEntity="MaestroPais")
-     * @ORM\JoinColumn(name="pais_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'MaestroPais')]
+    #[ORM\JoinColumn(name: 'pais_id', referencedColumnName: 'id', nullable: false)]
     protected $pais;
 
     /**
      * @var \App\Entity\MaestroSexo
-     *
-     * @ORM\ManyToOne(targetEntity="MaestroSexo")
-     * @ORM\JoinColumn(name="sexo_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'MaestroSexo')]
+    #[ORM\JoinColumn(name: 'sexo_id', referencedColumnName: 'id', nullable: false)]
     protected $sexo;
 
     /**
      * @var \App\Entity\MaestroTipodocumento
-     *
-     * @ORM\ManyToOne(targetEntity="MaestroTipodocumento")
-     * @ORM\JoinColumn(name="tipodocumento_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'MaestroTipodocumento')]
+    #[ORM\JoinColumn(name: 'tipodocumento_id', referencedColumnName: 'id', nullable: false)]
     protected $tipodocumento;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(name="fechanacimiento", type="date")
      */
+    #[ORM\Column(name: 'fechanacimiento', type: 'date')]
     protected $fechanacimiento;
 
     /**
      * @var int
-     *
-     * @ORM\Column(name="numerodocumento", type="string", length=100)
      */
+    #[ORM\Column(name: 'numerodocumento', type: 'string', length: 100)]
     private $numerodocumento;
 
     /**
      * @var \App\Entity\CotizacionFile
-     *
-     * @ORM\ManyToOne(targetEntity="CotizacionFile", inversedBy="filepasajeros")
-     * @ORM\JoinColumn(name="file_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CotizacionFile', inversedBy: 'filepasajeros')]
+    #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false)]
     protected $file;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

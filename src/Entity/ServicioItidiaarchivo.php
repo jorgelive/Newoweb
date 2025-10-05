@@ -13,52 +13,38 @@ use App\Traits\MainArchivoTrait;
 /**
  * ServicioItidiaarchivo
  *
- * @ORM\Table(name="ser_itidiaarchivo")
- * @ORM\Entity
  * @ORM\HasLifecycleCallbacks
  */
+#[ORM\Table(name: 'ser_itidiaarchivo')]
+#[ORM\Entity]
 class ServicioItidiaarchivo
 {
 
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="ServicioItinerariodia", inversedBy="itidiaarchivos")
-     * @ORM\JoinColumn(name="itinerariodia_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'ServicioItinerariodia', inversedBy: 'itidiaarchivos')]
+    #[ORM\JoinColumn(name: 'itinerariodia_id', referencedColumnName: 'id', nullable: false)]
     protected ?ServicioItinerariodia $itinerariodia;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="MaestroMedio")
-     * @ORM\JoinColumn(name="medio_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'MaestroMedio')]
+    #[ORM\JoinColumn(name: 'medio_id', referencedColumnName: 'id', nullable: false)]
     private ?MaestroMedio $medio;
 
-    /**
-     * @ORM\Column(name="prioridad", type="integer", nullable=true)
-     */
+    #[ORM\Column(name: 'prioridad', type: 'integer', nullable: true)]
     private ?int $prioridad = null;
 
-    /**
-     * @ORM\Column(type="boolean", options={"default": 0})
-     */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private ?bool $portada = false;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
     public function __toString(): string

@@ -8,10 +8,9 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * MaestroSexo
- *
- * @ORM\Table(name="mae_sexo")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'mae_sexo')]
+#[ORM\Entity]
 class MaestroSexo
 {
     public const DB_VALOR_MASCULINO = 1;
@@ -19,34 +18,30 @@ class MaestroSexo
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100)
      */
+    #[ORM\Column(type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

@@ -8,10 +8,9 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * ServicioTipocomponente
- *
- * @ORM\Table(name="ser_tipocomponente")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'ser_tipocomponente')]
+#[ORM\Entity]
 class ServicioTipocomponente
 {
 
@@ -28,43 +27,29 @@ class ServicioTipocomponente
     public const DB_VALOR_TICKET_HORARIO_VARIABLE = 11;
     public const DB_VALOR_TREN = 12;
 
-    /**
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     * @ORM\Column(type="string", length=50)
-     */
+    #[ORM\Column(type: 'string', length: 50)]
     private ?string $nombre = null;
 
-    /**
-     * @ORM\Column(type="boolean", options={"default": 0})
-     */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private ?bool $dependeduracion = false;
 
-    /**
-     * @ORM\Column(type="boolean", options={"default": 0})
-     */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private ?bool $agendable = false;
 
-    /**
-     * @ORM\Column(type="integer", nullable=false, options={"default":1})
-     */
+    #[ORM\Column(type: 'integer', nullable: false, options: ['default' => 1])]
     protected ?int $prioridadparaproveedor = null;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
     public function __toString(): string

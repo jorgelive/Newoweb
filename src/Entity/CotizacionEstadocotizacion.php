@@ -8,10 +8,9 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * CotizacionEstadocotizacion
- *
- * @ORM\Table(name="cot_estadocotizacion")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'cot_estadocotizacion')]
+#[ORM\Entity]
 class CotizacionEstadocotizacion
 {
     public const DB_VALOR_PENDIENTE = 1;
@@ -24,41 +23,36 @@ class CotizacionEstadocotizacion
 
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=255)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 255)]
     private $nombre;
 
     /**
      * @var bool
-     *
-     * @ORM\Column(type="boolean", options={"default": 0})
      */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private $nopublico;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
 

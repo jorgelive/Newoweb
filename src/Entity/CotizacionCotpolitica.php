@@ -11,71 +11,61 @@ use Gedmo\Translatable\Translatable;
 
 /**
  * CotizacionCotpolitica
- *
- * @ORM\Table(name="cot_cotpolitica")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\CotizacionCotpoliticaTranslation")
  */
+#[ORM\Table(name: 'cot_cotpolitica')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\CotizacionCotpoliticaTranslation')]
 class CotizacionCotpolitica
 {
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="CotizacionCotpoliticaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
+    #[ORM\OneToMany(targetEntity: 'CotizacionCotpoliticaTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected $translations;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=255)
      */
+    #[ORM\Column(type: 'string', length: 255)]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @Gedmo\Translatable
-     * @ORM\Column(type="text")
      */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'text')]
     private $contenido;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="CotizacionCotizacion", mappedBy="cotpolitica", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'CotizacionCotizacion', mappedBy: 'cotpolitica', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $cotizaciones;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private $locale;
 
     /**

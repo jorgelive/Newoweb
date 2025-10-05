@@ -12,73 +12,50 @@ use Gedmo\Translatable\Translatable;
 
 /**
  * ServicioComponenteitem
- *
- * @ORM\Table(name="ser_componenteitem")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioComponenteitemTranslation")
  */
+#[ORM\Table(name: 'ser_componenteitem')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\ServicioComponenteitemTranslation')]
 class ServicioComponenteitem
 {
 
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ServicioComponenteitemTranslation", mappedBy="object", cascade={"persist", "remove"})
-     */
+    #[ORM\OneToMany(mappedBy: 'object', targetEntity: 'ServicioComponenteitemTranslation', cascade: ['persist', 'remove'])]
     protected Collection $translations;
 
-    /**
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=160, nullable=true)
-     */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 160, nullable: true)]
     private ?string $titulo = null;
 
-    /**
-     * @ORM\Column(type="string", columnDefinition= "varchar(160) AS (titulo) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
-     */
+    #[ORM\Column(type: 'string', insertable: false, updatable: false, columnDefinition: 'varchar(160) AS (titulo) VIRTUAL NULL', generated: 'ALWAYS')]
     private ?string $titulooriginal = null;
 
-    /**
-     * @ORM\Column(type="boolean", options={"default": 0})
-     */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private ?bool $nomostrartarifa = false;
 
-    /**
-     * @ORM\Column(type="boolean", options={"default": 0})
-     */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private ?bool $nomostrarmodalidadtarifa = false;
 
-    /**
-     * @ORM\Column(type="boolean", options={"default": 0})
-     */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private ?bool $nomostrarcategoriatour =  false;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="ServicioComponente", inversedBy="componenteitems")
-     * @ORM\JoinColumn(name="componente_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'ServicioComponente', inversedBy: 'componenteitems')]
+    #[ORM\JoinColumn(name: 'componente_id', referencedColumnName: 'id', nullable: false)]
     protected ?ServicioComponente $componente;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private ?string $locale = null;
 
     public function __construct()

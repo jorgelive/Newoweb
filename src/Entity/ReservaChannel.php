@@ -10,10 +10,9 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * ReservaChannel
- *
- * @ORM\Table(name="res_channel")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'res_channel')]
+#[ORM\Entity]
 class ReservaChannel
 {
 
@@ -25,48 +24,43 @@ class ReservaChannel
 
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=255)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 255)]
     private $nombre;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="ReservaReserva", mappedBy="channel", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'ReservaReserva', mappedBy: 'channel', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $reservas;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="ReservaUnitnexo", mappedBy="channel", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'ReservaUnitnexo', mappedBy: 'channel', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $unitnexos;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
      *r
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     public function __construct() {

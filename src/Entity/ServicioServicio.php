@@ -11,66 +11,58 @@ use Gedmo\Translatable\Translatable;
 
 /**
  * ServicioServicio
- *
- * @ORM\Table(name="ser_servicio")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioServicioTranslation")
  */
+#[ORM\Table(name: 'ser_servicio')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\ServicioServicioTranslation')]
 class ServicioServicio
 {
 
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="ServicioServicioTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
+    #[ORM\OneToMany(targetEntity: 'ServicioServicioTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected $translations;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=20)
      */
+    #[ORM\Column(type: 'string', length: 20)]
     private $codigo;
 
     /**
      * @var bool
-     *
-     * @ORM\Column(type="boolean", options={"default": 0})
      */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private $paralelo;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100)
      */
+    #[ORM\Column(type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
@@ -86,15 +78,12 @@ class ServicioServicio
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="ServicioItinerario", mappedBy="servicio", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"nombre" = "ASC"})
      */
+    #[ORM\OneToMany(targetEntity: 'ServicioItinerario', mappedBy: 'servicio', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['nombre' => 'ASC'])]
     private $itinerarios;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private $locale;
 
     /**

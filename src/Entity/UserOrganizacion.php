@@ -10,68 +10,59 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * UserOrganizacion
- *
- * @ORM\Table(name="use_organizacion")
- * @ORM\Entity
  */
-
+#[ORM\Table(name: 'use_organizacion')]
+#[ORM\Entity]
 class UserOrganizacion
 {
 
     /**
      * @var integer
-     *
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     protected $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100)
-     * @Assert\NotBlank
      */
+    #[ORM\Column(type: 'string', length: 100)]
+    #[Assert\NotBlank]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100)
-     * @Assert\NotBlank
      */
+    #[ORM\Column(type: 'string', length: 100)]
+    #[Assert\NotBlank]
     private $razonsocial;
 
     /**
      * @var string
-     *
-     * @Assert\NotBlank
-     * @ORM\Column(type="string", length=11, unique=true)
      */
+    #[Assert\NotBlank]
+    #[ORM\Column(type: 'string', length: 11, unique: true)]
     private $numerodocumento;
 
     /**
      * @var string
-     *
-     * @Assert\NotBlank
-     * @ORM\Column(type="string", length=100)
      */
+    #[Assert\NotBlank]
+    #[ORM\Column(type: 'string', length: 100)]
     private $email;
 
     /**
      * @var string
-     *
-     * @Assert\NotBlank
-     * @ORM\Column(type="string", length=200)
      */
+    #[Assert\NotBlank]
+    #[ORM\Column(type: 'string', length: 200)]
     private $direccion;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="UserDependencia", mappedBy="organizacion", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'UserDependencia', mappedBy: 'organizacion', cascade: ['persist', 'remove'], orphanRemoval: true)]
     protected $dependencias;
 
     public function __construct()

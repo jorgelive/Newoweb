@@ -8,50 +8,43 @@ use App\Traits\MainArchivoTrait;
 
 
 /**
- * @ORM\Entity
- * @ORM\Table(name="mai_archivo")
  * @ORM\HasLifecycleCallbacks
  */
+#[ORM\Entity]
+#[ORM\Table(name: 'mai_archivo')]
 class MainArchivo
 {
     use MainArchivoTrait;
 
     private $path = '/carga/archivos';
 
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
+    #[ORM\Column(type: 'string', length: 255)]
     private $operacion;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
      * @var \App\Entity\UserUser
-     *
-     * @ORM\ManyToOne(targetEntity="UserUser")
-     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'UserUser')]
+    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
     private $user;
 
     /**

@@ -1,724 +1,247 @@
 <?php
+
 namespace App\Entity;
 
+use App\Entity\ComprobanteComprobanteitem;
+use App\Entity\ComprobanteEstado;
+use App\Entity\ComprobanteMensaje;
+use App\Entity\ComprobanteTipo;
+use App\Entity\MaestroMoneda;
+use App\Entity\TransporteServiciocontable;
+use App\Entity\UserDependencia;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\Common\Collections\ArrayCollection;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
-/**
- * @ORM\Table(name="com_comprobante")
- * @ORM\Entity
- */
+#[ORM\Table(name: 'com_comprobante')]
+#[ORM\Entity]
 class ComprobanteComprobante
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
-    private $id;
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    private ?int $id = null;
 
-    /**
-     * @var \App\Entity\UserDependencia
-     *
-     * @ORM\ManyToOne(targetEntity="UserDependencia")
-     * @ORM\JoinColumn(name="dependencia_id", referencedColumnName="id", nullable=false)
-     */
-    private $dependencia;
+    #[ORM\ManyToOne(targetEntity: UserDependencia::class)]
+    #[ORM\JoinColumn(name: 'dependencia_id', referencedColumnName: 'id', nullable: false)]
+    private ?UserDependencia $dependencia = null;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="ComprobanteComprobanteitem", mappedBy="comprobante", cascade={"persist","remove"}, orphanRemoval=true)
-     */
-    private $comprobanteitems;
+    /** @var Collection<int, ComprobanteComprobanteitem> */
+    #[ORM\OneToMany(mappedBy: 'comprobante', targetEntity: ComprobanteComprobanteitem::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $comprobanteitems;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="TransporteServiciocontable", mappedBy="comprobante", cascade={"persist","remove"}, orphanRemoval=true)
-     */
-    private $serviciocontables;
+    /** @var Collection<int, TransporteServiciocontable> */
+    #[ORM\OneToMany(mappedBy: 'comprobante', targetEntity: TransporteServiciocontable::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $serviciocontables;
 
-    /**
-     * @ORM\Column(type="string", length=250, nullable=true)
-     */
-    private $nota;
+    #[ORM\Column(type: 'string', length: 250, nullable: true)]
+    private ?string $nota = null;
 
-    /**
-     * @var \App\Entity\MaestroMoneda
-     *
-     * @ORM\ManyToOne(targetEntity="MaestroMoneda")
-     * @ORM\JoinColumn(name="moneda_id", referencedColumnName="id", nullable=false)
-     */
-    private $moneda;
+    #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
+    #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
+    private ?MaestroMoneda $moneda = null;
 
-    /**
-     * @ORM\Column(type="decimal", precision=10, scale=2, nullable=true)
-     */
-    private $neto;
+    // Decimales como string para evitar pérdida de precisión
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
+    private ?string $neto = null;
 
-    /**
-     * @ORM\Column(type="decimal", precision=10, scale=2, nullable=true)
-     */
-    private $impuesto;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
+    private ?string $impuesto = null;
 
-    /**
-     * @ORM\Column(type="decimal", precision=10, scale=2, nullable=true)
-     */
-    private $total;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
+    private ?string $total = null;
 
-    /**
-     * @var \App\Entity\ComprobanteTipo
-     *
-     * @ORM\ManyToOne(targetEntity="ComprobanteTipo")
-     * @ORM\JoinColumn(name="tipo_id", referencedColumnName="id", nullable=false)
-     */
-    private $tipo;
+    #[ORM\ManyToOne(targetEntity: ComprobanteTipo::class)]
+    #[ORM\JoinColumn(name: 'tipo_id', referencedColumnName: 'id', nullable: false)]
+    private ?ComprobanteTipo $tipo = null;
 
-    /**
-     * @ORM\Column(type="string", length=6, nullable=true)
-     */
-    private $serie;
+    #[ORM\Column(type: 'string', length: 6, nullable: true)]
+    private ?string $serie = null;
 
-    /**
-     * @ORM\Column(type="string", length=10, nullable=true)
-     */
-    private $documento;
+    #[ORM\Column(type: 'string', length: 10, nullable: true)]
+    private ?string $documento = null;
 
-    /**
-     * @ORM\Column(type="date", nullable=true)
-     */
-    private $fechaemision;
+    #[ORM\Column(type: 'date', nullable: true)]
+    private ?\DateTimeInterface $fechaemision = null;
 
-    /**
-     * @ORM\Column(type="string", length=150, nullable=true)
-     */
-    private $url;
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $url = null;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="ComprobanteMensaje", mappedBy="comprobante", cascade={"persist","remove"}, orphanRemoval=true)
-     */
-    private $mensajes;
+    /** @var Collection<int, ComprobanteMensaje> */
+    #[ORM\OneToMany(mappedBy: 'comprobante', targetEntity: ComprobanteMensaje::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $mensajes;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="ComprobanteComprobante", mappedBy="original", cascade={"persist","remove"}, orphanRemoval=true)
-     */
-    private $dependientes;
+    /** @var Collection<int, ComprobanteComprobante> */
+    #[ORM\OneToMany(mappedBy: 'original', targetEntity: ComprobanteComprobante::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $dependientes;
 
-    /**
-     * @var \App\Entity\ComprobanteComprobante
-     *
-     * @ORM\ManyToOne(targetEntity="ComprobanteComprobante", inversedBy="dependientes")
-     */
-    private $original;
+    #[ORM\ManyToOne(targetEntity: ComprobanteComprobante::class, inversedBy: 'dependientes')]
+    private ?ComprobanteComprobante $original = null;
 
-    /**
-     * @var \App\Entity\ComprobanteEstado
-     *
-     * @ORM\ManyToOne(targetEntity="ComprobanteEstado")
-     * @ORM\JoinColumn(name="estado_id", referencedColumnName="id", nullable=false)
-     */
-    private $estado;
+    #[ORM\ManyToOne(targetEntity: ComprobanteEstado::class)]
+    #[ORM\JoinColumn(name: 'estado_id', referencedColumnName: 'id', nullable: false)]
+    private ?ComprobanteEstado $estado = null;
 
-    /**
-     * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
-    private $creado;
+    // Timestampable NO NULL (consigna)
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime', nullable: false)]
+    private ?\DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
-    private $modificado;
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime', nullable: false)]
+    private ?\DateTimeInterface $modificado = null;
 
     public function __construct()
     {
-        $this->comprobanteitems = new ArrayCollection();
+        $this->comprobanteitems  = new ArrayCollection();
         $this->serviciocontables = new ArrayCollection();
-        $this->dependientes = new ArrayCollection();
-        $this->mensajes = new ArrayCollection();
+        $this->dependientes      = new ArrayCollection();
+        $this->mensajes          = new ArrayCollection();
     }
 
-    public function __clone() {
-
-        if($this->id) {
+    public function __clone(): void
+    {
+        if ($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
-            $newComprobanteitems = new ArrayCollection();
-            foreach($this->comprobanteitems as $comprobanteitem) {
-                $newComprobanteitem = clone $comprobanteitem;
-                $newComprobanteitem->setComprobante($this);
-                $newComprobanteitems->add($newComprobanteitem);
-            }
-            $this->comprobanteitems = $newComprobanteitems;
 
-            $newServiciocontables = new ArrayCollection();
-            foreach($this->serviciocontables as $serviciocontable) {
-                $newServiciocontable = clone $serviciocontable;
-                $newServiciocontable->setComprobante($this);
-                $newServiciocontables->add($newServiciocontable);
+            $newItems = new ArrayCollection();
+            foreach ($this->comprobanteitems as $ci) {
+                $n = clone $ci;
+                $n->setComprobante($this);
+                $newItems->add($n);
             }
-            $this->serviciocontables = $newServiciocontables;
+            $this->comprobanteitems = $newItems;
 
-            $this->mensajes = new ArrayCollection();
+            $newServs = new ArrayCollection();
+            foreach ($this->serviciocontables as $sc) {
+                $n = clone $sc;
+                $n->setComprobante($this);
+                $newServs->add($n);
+            }
+            $this->serviciocontables = $newServs;
+
+            $this->mensajes     = new ArrayCollection();
             $this->dependientes = new ArrayCollection();
         }
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        if(!empty($this->getDocumento()) && !empty($this->getSerie())){
-            return sprintf('%s-%s-%s', $this->getTipo()->getCodigo(), $this->getSerie() , str_pad($this->getDocumento(), 5, "0", STR_PAD_LEFT));
-        }else{
-            return sprintf("Id: %s.", $this->getId()) ?? '';
+        if (!empty($this->getDocumento()) && !empty($this->getSerie())) {
+            return sprintf(
+                '%s-%s-%s',
+                $this->getTipo()?->getCodigo(),
+                $this->getSerie(),
+                str_pad((string) $this->getDocumento(), 5, '0', STR_PAD_LEFT)
+            );
         }
+        return sprintf('Id: %s.', $this->getId() ?? '');
     }
 
+    public function getId(): ?int { return $this->id; }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function setNota(?string $nota): self { $this->nota = $nota; return $this; }
+    public function getNota(): ?string { return $this->nota; }
+
+    public function setNeto(?string $neto): self { $this->neto = $neto; return $this; }
+    public function getNeto(): ?string { return $this->neto; }
+
+    public function setImpuesto(?string $impuesto): self { $this->impuesto = $impuesto; return $this; }
+    public function getImpuesto(): ?string { return $this->impuesto; }
+
+    public function setTotal(?string $total): self { $this->total = $total; return $this; }
+    public function getTotal(): ?string { return $this->total; }
+
+    public function setSerie(?string $serie): self { $this->serie = $serie; return $this; }
+    public function getSerie(): ?string { return $this->serie; }
+
+    public function setDocumento(?string $documento): self { $this->documento = $documento; return $this; }
+    public function getDocumento(): ?string { return $this->documento; }
+
+    public function getSeriedocumento(): string
     {
-        return $this->id;
+        return sprintf('%s-%s', $this->serie ?? '', $this->documento ?? '');
     }
 
-    /**
-     * Set nota
-     *
-     * @param string $nota
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setNota($nota)
-    {
-        $this->nota = $nota;
+    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
 
-        return $this;
-    }
+    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
 
-    /**
-     * Get nota
-     *
-     * @return string
-     */
-    public function getNota()
-    {
-        return $this->nota;
-    }
+    public function setDependencia(UserDependencia $dependencia): self { $this->dependencia = $dependencia; return $this; }
+    public function getDependencia(): ?UserDependencia { return $this->dependencia; }
 
-    /**
-     * Set neto
-     *
-     * @param string $neto
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setNeto($neto)
-    {
-        $this->neto = $neto;
+    public function setMoneda(?MaestroMoneda $moneda): self { $this->moneda = $moneda; return $this; }
+    public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
 
-        return $this;
-    }
+    public function setTipo(ComprobanteTipo $tipo): self { $this->tipo = $tipo; return $this; }
+    public function getTipo(): ?ComprobanteTipo { return $this->tipo; }
 
-    /**
-     * Get neto
-     *
-     * @return string
-     */
-    public function getNeto()
-    {
-        return $this->neto;
-    }
+    public function setEstado(?ComprobanteEstado $estado): self { $this->estado = $estado; return $this; }
+    public function getEstado(): ?ComprobanteEstado { return $this->estado; }
 
-    /**
-     * Set impuesto
-     *
-     * @param string $impuesto
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setImpuesto($impuesto)
-    {
-        $this->impuesto = $impuesto;
+    public function setFechaemision(?\DateTimeInterface $fechaemision): self { $this->fechaemision = $fechaemision; return $this; }
+    public function getFechaemision(): ?\DateTimeInterface { return $this->fechaemision; }
 
-        return $this;
-    }
+    public function setUrl(?string $url): self { $this->url = $url; return $this; }
+    public function getUrl(): ?string { return $this->url; }
 
-    /**
-     * Get impuesto
-     *
-     * @return string
-     */
-    public function getImpuesto()
-    {
-        return $this->impuesto;
-    }
-
-    /**
-     * Set total
-     *
-     * @param string $total
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setTotal($total)
-    {
-        $this->total = $total;
-
-        return $this;
-    }
-
-    /**
-     * Get total
-     *
-     * @return string
-     */
-    public function getTotal()
-    {
-        return $this->total;
-    }
-
-    /**
-     * Set serie
-     *
-     * @param string $serie
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setSerie($serie)
-    {
-        $this->serie = $serie;
-
-        return $this;
-    }
-
-    /**
-     * Get serie
-     *
-     * @return string
-     */
-    public function getSerie()
-    {
-        return $this->serie;
-    }
-
-    /**
-     * Set documento
-     *
-     * @param string $documento
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setDocumento($documento)
-    {
-        $this->documento = $documento;
-
-        return $this;
-    }
-
-    /**
-     * Get documento
-     *
-     * @return string
-     */
-    public function getDocumento()
-    {
-        return $this->documento;
-    }
-
-    /**
-     * Get seriedocumento
-     *
-     * @return string
-     */
-    public function getSeriedocumento()
-    {
-        return sprintf('%s-%s', $this->serie, $this->documento);
-    }
-
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setCreado($creado)
-    {
-        $this->creado = $creado;
-
-        return $this;
-    }
-
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
-    {
-        return $this->creado;
-    }
-
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setModificado($modificado)
-    {
-        $this->modificado = $modificado;
-
-        return $this;
-    }
-
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
-    {
-        return $this->modificado;
-    }
-
-    /**
-     * Set dependencia
-     *
-     * @param \App\Entity\UserDependencia $dependencia
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setDependencia(\App\Entity\UserDependencia $dependencia)
-    {
-        $this->dependencia = $dependencia;
-
-        return $this;
-    }
-
-    /**
-     * Get dependencia
-     *
-     * @return \App\Entity\UserDependencia
-     */
-    public function getDependencia()
-    {
-        return $this->dependencia;
-    }
-
-    /**
-     * Set moneda
-     *
-     * @param \App\Entity\MaestroMoneda $moneda
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setMoneda(\App\Entity\MaestroMoneda $moneda = null)
-    {
-        $this->moneda = $moneda;
-
-        return $this;
-    }
-
-    /**
-     * Get moneda
-     *
-     * @return \App\Entity\MaestroMoneda
-     */
-    public function getMoneda()
-    {
-        return $this->moneda;
-    }
-
-    /**
-     * Set tipo
-     *
-     * @param \App\Entity\ComprobanteTipo $tipo
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setTipo(\App\Entity\ComprobanteTipo $tipo)
-    {
-        $this->tipo = $tipo;
-
-        return $this;
-    }
-
-    /**
-     * Get tipo
-     *
-     * @return \App\Entity\ComprobanteTipo
-     */
-    public function getTipo()
-    {
-        return $this->tipo;
-    }
-
-    /**
-     * Set estado
-     *
-     * @param \App\Entity\ComprobanteEstado $estado
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setEstado(\App\Entity\ComprobanteEstado $estado = null)
-    {
-        $this->estado = $estado;
-
-        return $this;
-    }
-
-    /**
-     * Get estado
-     *
-     * @return \App\Entity\ComprobanteEstado
-     */
-    public function getEstado()
-    {
-        return $this->estado;
-    }
-
-    /**
-     * Set fechaemision
-     *
-     * @param \DateTime $fechaemision
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setFechaemision($fechaemision)
-    {
-        $this->fechaemision = $fechaemision;
-
-        return $this;
-    }
-
-    /**
-     * Get fechaemision
-     *
-     * @return \DateTime
-     */
-    public function getFechaemision()
-    {
-        return $this->fechaemision;
-    }
-
-    /**
-     * Set url
-     *
-     * @param string $url
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setUrl($url)
-    {
-        $this->url = $url;
-
-        return $this;
-    }
-
-    /**
-     * Get url
-     *
-     * @return string
-     */
-    public function getUrl()
-    {
-        return $this->url;
-    }
-
-    /**
-     * Add dependiente
-     *
-     * @param \App\Entity\ComprobanteComprobante $dependiente
-     *
-     * @return ComprobanteComprobante
-     */
-    public function addDependiente(\App\Entity\ComprobanteComprobante $dependiente)
+    public function addDependiente(ComprobanteComprobante $dependiente): self
     {
         $dependiente->setOriginal($this);
-
-        $this->dependientes[] = $dependiente;
-
+        $this->dependientes->add($dependiente);
         return $this;
     }
-
-    /**
-     * Remove dependiente
-     *
-     * @param \App\Entity\ComprobanteComprobante $dependiente
-     */
-    public function removeDependiente(\App\Entity\ComprobanteComprobante $dependiente)
+    public function removeDependiente(ComprobanteComprobante $dependiente): void
     {
         $this->dependientes->removeElement($dependiente);
     }
+    /** @return Collection<int, ComprobanteComprobante> */
+    public function getDependientes(): Collection { return $this->dependientes; }
 
-    /**
-     * Get dependientes
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getDependientes()
-    {
-        return $this->dependientes;
-    }
+    public function setOriginal(?ComprobanteComprobante $original): self { $this->original = $original; return $this; }
+    public function getOriginal(): ?ComprobanteComprobante { return $this->original; }
 
-    /**
-     * Set original
-     *
-     * @param \App\Entity\ComprobanteComprobante $original
-     *
-     * @return ComprobanteComprobante
-     */
-    public function setOriginal(\App\Entity\ComprobanteComprobante $original = null)
-    {
-        $this->original = $original;
-
-        return $this;
-    }
-
-    /**
-     * Get original
-     *
-     * @return \App\Entity\ComprobanteComprobante
-     */
-    public function getOriginal()
-    {
-        return $this->original;
-    }
-
-
-    /**
-     * Add mensaje
-     *
-     * @param \App\Entity\ComprobanteMensaje $mensaje
-     *
-     * @return ComprobanteComprobante
-     */
-    public function addMensaje(\App\Entity\ComprobanteMensaje $mensaje)
+    public function addMensaje(ComprobanteMensaje $mensaje): self
     {
         $mensaje->setComprobante($this);
-
-        $this->mensajes[] = $mensaje;
-
+        $this->mensajes->add($mensaje);
         return $this;
     }
-
-    /**
-     * Remove mensaje
-     *
-     * @param \App\Entity\ComprobanteMensaje $mensaje
-     */
-    public function removeMensaje(\App\Entity\ComprobanteMensaje $mensaje)
+    public function removeMensaje(ComprobanteMensaje $mensaje): void
     {
         $this->mensajes->removeElement($mensaje);
     }
+    /** @return Collection<int, ComprobanteMensaje> */
+    public function getMensajes(): Collection { return $this->mensajes; }
 
-    /**
-     * Get mensajes
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getMensajes()
-    {
-        return $this->mensajes;
-    }
-
-    /**
-     * Add serviciocontable.
-     *
-     * @param \App\Entity\TransporteServiciocontable $serviciocontable
-     *
-     * @return ComprobanteComprobante
-     */
-    public function addServiciocontable(\App\Entity\TransporteServiciocontable $serviciocontable)
+    public function addServiciocontable(TransporteServiciocontable $serviciocontable): self
     {
         $serviciocontable->setComprobante($this);
-
-        $this->serviciocontables[] = $serviciocontable;
-
+        $this->serviciocontables->add($serviciocontable);
         return $this;
     }
-
-    /**
-     * Remove serviciocontable.
-     *
-     * @param \App\Entity\TransporteServiciocontable $serviciocontable
-     *
-     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
-     */
-    public function removeServiciocontable(\App\Entity\TransporteServiciocontable $serviciocontable)
+    public function removeServiciocontable(TransporteServiciocontable $serviciocontable): bool
     {
         return $this->serviciocontables->removeElement($serviciocontable);
     }
+    /** @return Collection<int, TransporteServiciocontable> */
+    public function getServiciocontables(): Collection { return $this->serviciocontables; }
 
-    /**
-     * Get serviciocontables.
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getServiciocontables()
-    {
-        return $this->serviciocontables;
-    }
-
-
-    /**
-     * Add comprobanteitem.
-     *
-     * @param \App\Entity\ComprobanteComprobanteitem $comprobanteitem
-     *
-     * @return ComprobanteComprobante
-     */
-    public function addComprobanteitem(\App\Entity\ComprobanteComprobanteitem $comprobanteitem)
+    public function addComprobanteitem(ComprobanteComprobanteitem $comprobanteitem): self
     {
         $comprobanteitem->setComprobante($this);
-
-        $this->comprobanteitems[] = $comprobanteitem;
-
+        $this->comprobanteitems->add($comprobanteitem);
         return $this;
     }
-
-    /**
-     * Remove comprobanteitem.
-     *
-     * @param \App\Entity\ComprobanteComprobanteitem $comprobanteitem
-     *
-     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
-     */
-    public function removeComprobanteitem(\App\Entity\ComprobanteComprobanteitem $comprobanteitem)
+    public function removeComprobanteitem(ComprobanteComprobanteitem $comprobanteitem): bool
     {
         return $this->comprobanteitems->removeElement($comprobanteitem);
     }
-
-    /**
-     * Get comprobanteitems.
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getComprobanteitems()
-    {
-        return $this->comprobanteitems;
-    }
-
+    /** @return Collection<int, ComprobanteComprobanteitem> */
+    public function getComprobanteitems(): Collection { return $this->comprobanteitems; }
 }

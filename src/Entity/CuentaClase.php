@@ -10,64 +10,56 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * CuentaClase
- *
- * @ORM\Table(name="cue_clase")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'cue_clase')]
+#[ORM\Entity]
 class CuentaClase
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=100)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var \App\Entity\CuentaTipo
-     *
-     * @ORM\ManyToOne(targetEntity="CuentaTipo", inversedBy="clases")
-     * @ORM\JoinColumn(name="tipo_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CuentaTipo', inversedBy: 'clases')]
+    #[ORM\JoinColumn(name: 'tipo_id', referencedColumnName: 'id', nullable: false)]
     protected $tipo;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="CuentaMovimiento", mappedBy="clase", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'CuentaMovimiento', mappedBy: 'clase', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $movimientos;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="codigo", type="string", length=255)
      */
+    #[ORM\Column(name: 'codigo', type: 'string', length: 255)]
     private $codigo;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     public function __construct() {

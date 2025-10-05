@@ -1,274 +1,74 @@
 <?php
+
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
-/**
- * @ORM\Table(name="com_tipo")
- * @ORM\Entity
- */
+#[ORM\Table(name: 'com_tipo')]
+#[ORM\Entity]
 class ComprobanteTipo
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
-    private $id;
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    private ?int $id = null;
 
-    /**
-     * @ORM\Column(type="string", length=100)
-     */
-    private $nombre;
+    #[ORM\Column(type: 'string', length: 100)]
+    private ?string $nombre = null;
 
-    /**
-     * @ORM\Column(type="string", length=3)
-     */
-    private $codigo;
+    #[ORM\Column(type: 'string', length: 3)]
+    private ?string $codigo = null;
 
-    /**
-     * @ORM\Column(type="string", length=3)
-     */
-    private $codigoexterno;
+    #[ORM\Column(type: 'string', length: 3)]
+    private ?string $codigoexterno = null;
 
-    /**
-     * @ORM\Column(type="string", length=5)
-     */
-    private $serie;
+    #[ORM\Column(type: 'string', length: 5)]
+    private ?string $serie = null;
 
-    /**
-     * @ORM\Column(type="integer")
-     */
-    private $correlativo;
+    #[ORM\Column(type: 'integer')]
+    private int $correlativo = 0;
 
-    /**
-     * @ORM\Column(type="boolean")
-     */
-    private $esnotacredito;
+    #[ORM\Column(type: 'boolean')]
+    private bool $esnotacredito = false;
 
-    /**
-     * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
-    private $creado;
+    // Timestampable NO NULL (consigna)
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime', nullable: false)]
+    private ?\DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
-    private $modificado;
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime', nullable: false)]
+    private ?\DateTimeInterface $modificado = null;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        return $this->getNombre() ?? sprintf('Id: %s.', $this->getId() ?? '');
     }
 
-    /**
-     * Get id
-     *
-     * @return integer 
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
+    public function getId(): ?int { return $this->id; }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     * @return ComprobanteTipo
-     */
-    public function setNombre($nombre)
-    {
-        $this->nombre = $nombre;
+    public function setNombre(?string $nombre): self { $this->nombre = $nombre; return $this; }
+    public function getNombre(): ?string { return $this->nombre; }
 
-        return $this;
-    }
+    public function setCodigo(?string $codigo): self { $this->codigo = $codigo; return $this; }
+    public function getCodigo(): ?string { return $this->codigo; }
 
-    /**
-     * Get nombre
-     *
-     * @return string 
-     */
-    public function getNombre()
-    {
-        return $this->nombre;
-    }
+    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
 
-    /**
-     * Set codigo
-     *
-     * @param string $codigo
-     * @return ComprobanteTipo
-     */
-    public function setCodigo($codigo)
-    {
-        $this->codigo = $codigo;
+    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
 
-        return $this;
-    }
+    public function setSerie(?string $serie): self { $this->serie = $serie; return $this; }
+    public function getSerie(): ?string { return $this->serie; }
 
-    /**
-     * Get codigo
-     *
-     * @return string
-     */
-    public function getCodigo()
-    {
-        return $this->codigo;
-    }
+    public function setCorrelativo(int $correlativo): self { $this->correlativo = $correlativo; return $this; }
+    public function getCorrelativo(): int { return $this->correlativo; }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     * @return ComprobanteTipo
-     */
-    public function setCreado($creado)
-    {
-        $this->creado = $creado;
+    public function setCodigoexterno(?string $codigoexterno): self { $this->codigoexterno = $codigoexterno; return $this; }
+    public function getCodigoexterno(): ?string { return $this->codigoexterno; }
 
-        return $this;
-    }
-
-    /**
-     * Get creado
-     *
-     * @return \DateTime 
-     */
-    public function getCreado()
-    {
-        return $this->creado;
-    }
-
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     * @return ComprobanteTipo
-     */
-    public function setModificado($modificado)
-    {
-        $this->modificado = $modificado;
-
-        return $this;
-    }
-
-    /**
-     * Get modificado
-     *
-     * @return \DateTime 
-     */
-    public function getModificado()
-    {
-        return $this->modificado;
-    }
-
-
-
-    /**
-     * Set serie
-     *
-     * @param string $serie
-     *
-     * @return ComprobanteTipo
-     */
-    public function setSerie($serie)
-    {
-        $this->serie = $serie;
-
-        return $this;
-    }
-
-    /**
-     * Get serie
-     *
-     * @return string
-     */
-    public function getSerie()
-    {
-        return $this->serie;
-    }
-
-    /**
-     * Set correlativo
-     *
-     * @param integer $correlativo
-     *
-     * @return ComprobanteTipo
-     */
-    public function setCorrelativo($correlativo)
-    {
-        $this->correlativo = $correlativo;
-
-        return $this;
-    }
-
-    /**
-     * Get correlativo
-     *
-     * @return integer
-     */
-    public function getCorrelativo()
-    {
-        return $this->correlativo;
-    }
-
-    /**
-     * Set codigoexterno
-     *
-     * @param string $codigoexterno
-     *
-     * @return ComprobanteTipo
-     */
-    public function setCodigoexterno($codigoexterno)
-    {
-        $this->codigoexterno = $codigoexterno;
-
-        return $this;
-    }
-
-    /**
-     * Get codigoexterno
-     *
-     * @return string
-     */
-    public function getCodigoexterno()
-    {
-        return $this->codigoexterno;
-    }
-
-    /**
-     * Set esnotacredito
-     *
-     * @param boolean $esnotacredito
-     *
-     * @return ComprobanteTipo
-     */
-    public function setEsnotacredito($esnotacredito)
-    {
-        $this->esnotacredito = $esnotacredito;
-
-        return $this;
-    }
-
-    /**
-     * Is esnotacredito
-     *
-     * @return boolean
-     */
-    public function isEsnotacredito(): ?bool
-    {
-        return $this->esnotacredito;
-    }
+    public function setEsnotacredito(bool $esnotacredito): self { $this->esnotacredito = $esnotacredito; return $this; }
+    public function isEsnotacredito(): bool { return $this->esnotacredito; }
 }

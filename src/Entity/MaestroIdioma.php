@@ -8,49 +8,43 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * MaestroIdioma
- *
- * @ORM\Table(name="mae_idioma")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'mae_idioma')]
+#[ORM\Entity]
 class MaestroIdioma
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=100)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="codigo", type="string", length=10)
      */
+    #[ORM\Column(name: 'codigo', type: 'string', length: 10)]
     private $codigo;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

@@ -10,50 +10,44 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * UserCuentatipo
- *
- * @ORM\Table(name="use_cuentatipo")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'use_cuentatipo')]
+#[ORM\Entity]
 class UserCuentatipo
 {
     /**
      * @var integer
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=100)
-     * @Assert\NotBlank
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 100)]
+    #[Assert\NotBlank]
     private $nombre;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="UserCuenta", mappedBy="cuentatipo", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'UserCuenta', mappedBy: 'cuentatipo', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $cuentas;
 
     public function __construct() {

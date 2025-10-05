@@ -1,244 +1,84 @@
 <?php
+
 namespace App\Entity;
 
+use App\Entity\ComprobanteComprobante;
+use App\Entity\ComprobanteProductoservicio;
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\Common\Collections\ArrayCollection;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
-/**
- * @ORM\Table(name="com_comprobanteitem")
- * @ORM\Entity
- */
+#[ORM\Table(name: 'com_comprobanteitem')]
+#[ORM\Entity]
 class ComprobanteComprobanteitem
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
-    private $id;
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    private ?int $id = null;
 
-    /**
-     * @var \App\Entity\ComprobanteComprobante
-     *
-     * @ORM\ManyToOne(targetEntity="ComprobanteComprobante", inversedBy="comprobanteitems")
-     * @ORM\JoinColumn(name="comprobante_id", referencedColumnName="id", nullable=false)
-     */
-    private $comprobante;
+    #[ORM\ManyToOne(targetEntity: ComprobanteComprobante::class, inversedBy: 'comprobanteitems')]
+    #[ORM\JoinColumn(name: 'comprobante_id', referencedColumnName: 'id', nullable: false)]
+    private ?ComprobanteComprobante $comprobante = null;
 
-    /**
-     * @ORM\Column(type="integer")
-     */
-    private $cantidad;
+    #[ORM\Column(type: 'integer')]
+    private int $cantidad;
 
-    /**
-     * @var \App\Entity\ComprobanteProductoservicio
-     *
-     * @ORM\ManyToOne(targetEntity="ComprobanteProductoservicio")
-     * @ORM\JoinColumn(name="productoservicio_id", referencedColumnName="id", nullable=false)
-     */
-    private $productoservicio;
+    #[ORM\ManyToOne(targetEntity: ComprobanteProductoservicio::class)]
+    #[ORM\JoinColumn(name: 'productoservicio_id', referencedColumnName: 'id', nullable: false)]
+    private ?ComprobanteProductoservicio $productoservicio = null;
 
-    /**
-     * @ORM\Column(type="decimal", precision=10, scale=2, nullable=false)
-     */
-    private $unitario;
+    // Importante: decimal en Doctrine -> string en PHP (evita pérdida de precisión)
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: false)]
+    private ?string $unitario = null;
 
-    /**
-     * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
-    private $creado;
+    // Timestampable NO NULL (consigna)
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime', nullable: false)]
+    private ?\DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
-    private $modificado;
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime', nullable: false)]
+    private ?\DateTimeInterface $modificado = null;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        if(!empty($this->getProductoservicio())){
-            return sprintf('%s x %s (%s)', $this->getProductoservicio()->getNombre(), $this->getCantidad(), $this->getUnitario());
-        }else{
-            return '';
+        if (!empty($this->getProductoservicio())) {
+            return sprintf(
+                '%s x %s (%s)',
+                $this->getProductoservicio()->getNombre(),
+                (string) $this->getCantidad(),
+                (string) $this->getUnitario()
+            );
         }
-
+        return '';
     }
 
-    public function __clone() {
-        if($this->id) {
+    public function __clone(): void
+    {
+        if ($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
         }
     }
 
+    public function getId(): ?int { return $this->id; }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
+    public function setUnitario(?string $unitario): self { $this->unitario = $unitario; return $this; }
+    public function getUnitario(): ?string { return $this->unitario; }
 
+    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
 
-    /**
-     * Set unitario
-     *
-     * @param string $unitario
-     *
-     * @return ComprobanteComprobanteitem
-     */
-    public function setUnitario($unitario)
-    {
-        $this->unitario = $unitario;
+    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
 
-        return $this;
-    }
+    public function setComprobante(ComprobanteComprobante $comprobante): self { $this->comprobante = $comprobante; return $this; }
+    public function getComprobante(): ?ComprobanteComprobante { return $this->comprobante; }
 
-    /**
-     * Get unitario
-     *
-     * @return string
-     */
-    public function getUnitario()
-    {
-        return $this->unitario;
-    }
+    public function setProductoservicio(ComprobanteProductoservicio $productoservicio): self { $this->productoservicio = $productoservicio; return $this; }
+    public function getProductoservicio(): ?ComprobanteProductoservicio { return $this->productoservicio; }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return ComprobanteComprobanteitem
-     */
-    public function setCreado($creado)
-    {
-        $this->creado = $creado;
-
-        return $this;
-    }
-
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
-    {
-        return $this->creado;
-    }
-
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return ComprobanteComprobanteitem
-     */
-    public function setModificado($modificado)
-    {
-        $this->modificado = $modificado;
-
-        return $this;
-    }
-
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
-    {
-        return $this->modificado;
-    }
-
-    /**
-     * Set comprobante
-     *
-     * @param \App\Entity\ComprobanteComprobante $comprobante
-     *
-     * @return ComprobanteComprobanteitem
-     */
-    public function setComprobante(\App\Entity\ComprobanteComprobante $comprobante)
-    {
-        $this->comprobante = $comprobante;
-
-        return $this;
-    }
-
-    /**
-     * Get comprobante
-     *
-     * @return \App\Entity\ComprobanteComprobante
-     */
-    public function getComprobante()
-    {
-        return $this->comprobante;
-    }
-
-    /**
-     * Set productoservicio
-     *
-     * @param \App\Entity\ComprobanteProductoservicio $productoservicio
-     *
-     * @return ComprobanteComprobanteitem
-     */
-    public function setProductoservicio(\App\Entity\ComprobanteProductoservicio $productoservicio)
-    {
-        $this->productoservicio = $productoservicio;
-
-        return $this;
-    }
-
-    /**
-     * Get productoservicio
-     *
-     * @return \App\Entity\ComprobanteProductoservicio
-     */
-    public function getProductoservicio()
-    {
-        return $this->productoservicio;
-    }
-
-    /**
-     * Set cantidad.
-     *
-     * @param int $cantidad
-     *
-     * @return ComprobanteComprobanteitem
-     */
-    public function setCantidad($cantidad)
-    {
-        $this->cantidad = $cantidad;
-    
-        return $this;
-    }
-
-    /**
-     * Get cantidad.
-     *
-     * @return int
-     */
-    public function getCantidad()
-    {
-        return $this->cantidad;
-    }
-
-
-
-
+    public function setCantidad(int $cantidad): self { $this->cantidad = $cantidad; return $this; }
+    public function getCantidad(): int { return $this->cantidad; }
 }

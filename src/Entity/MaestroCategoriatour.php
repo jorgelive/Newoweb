@@ -10,11 +10,10 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * MaestroCategoriatour
- *
- * @ORM\Table(name="mae_categoriatour")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\MaestroCategoriatourTranslation")
  */
+#[ORM\Table(name: 'mae_categoriatour')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\MaestroCategoriatourTranslation')]
 class MaestroCategoriatour
 {
     public const DB_VALOR_ESTANDAR = 1;
@@ -24,52 +23,43 @@ class MaestroCategoriatour
 
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="MaestroCategoriatourTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
+    #[ORM\OneToMany(targetEntity: 'MaestroCategoriatourTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected $translations;
 
-    /**
-     * @ORM\Column(type="string", length=100)
-     */
+    #[ORM\Column(type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=100, nullable=false)
      */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 100, nullable: false)]
     private $titulo;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private $locale;
 
     public function __construct() {

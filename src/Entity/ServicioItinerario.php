@@ -11,92 +11,79 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * ServicioItinerario
- *
- * @ORM\Table(name="ser_itinerario")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioItinerarioTranslation")
  */
+#[ORM\Table(name: 'ser_itinerario')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\ServicioItinerarioTranslation')]
 class ServicioItinerario
 {
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="ServicioItinerarioTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
+    #[ORM\OneToMany(targetEntity: 'ServicioItinerarioTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected $translations;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100)
      */
+    #[ORM\Column(type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100, nullable=true)
      */
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private $titulo;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(type="time")
      */
+    #[ORM\Column(type: 'time')]
     private $hora;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="decimal", precision=4, scale=1)
      */
+    #[ORM\Column(type: 'decimal', precision: 4, scale: 1)]
     private $duracion;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
      * @var \App\Entity\ServicioServicio
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioServicio", inversedBy="itinerarios")
-     * @ORM\JoinColumn(name="servicio_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioServicio', inversedBy: 'itinerarios')]
+    #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id', nullable: false)]
     protected $servicio;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="ServicioItinerariodia", mappedBy="itinerario", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'ServicioItinerariodia', mappedBy: 'itinerario', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $itinerariodias;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private $locale;
 
     /**

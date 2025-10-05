@@ -11,11 +11,10 @@ use Gedmo\Translatable\Translatable;
 
 /**
  * ServicioTipotarifa
- *
- * @ORM\Table(name="ser_tipotarifa")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioTipotarifaTranslation")
  */
+#[ORM\Table(name: 'ser_tipotarifa')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\ServicioTipotarifaTranslation')]
 class ServicioTipotarifa implements Translatable
 {
     public const DB_VALOR_NORMAL = 1;
@@ -25,64 +24,59 @@ class ServicioTipotarifa implements Translatable
     public const DB_VALOR_NO_NECESARIO = 5;
     public const DB_VALOR_CORTESIA = 6;
 
-    /** @ORM\Id @ORM\GeneratedValue(strategy="AUTO") @ORM\Column(type="integer") */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /** @ORM\Column(type="string", length=255) */
+    #[ORM\Column(type: 'string', length: 255)]
     private ?string $nombre = null;
 
     /**
      * Campo traducible
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=100, nullable=true)
      */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $titulo = null;
 
-    /** @ORM\Column(type="boolean", options={"default": 1}) */
+    #[ORM\Column(type: 'boolean', options: ['default' => 1])]
     private bool $comisionable = true;
 
-    /** @ORM\Column(type="boolean", options={"default": 0}) */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private bool $ocultoenresumen = false;
 
-    /** @ORM\Column(type="boolean", options={"default": 0}) */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private bool $mostrarcostoincluye = false;
 
-    /** @ORM\Column(type="string", length=30, nullable=true) */
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $listacolor = null;
 
-    /** @ORM\Column(type="string", length=30, nullable=true) */
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $listaclase = null;
 
     /**
      * Marcar como nullable para evitar warnings hasta la primera persistencia
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime", nullable=false)
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime', nullable: false)]
     private ?\DateTimeInterface $creado = null;
 
     /**
      * Marcar como nullable para evitar warnings hasta la primera actualización
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime", nullable=false)
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime', nullable: false)]
     private ?\DateTimeInterface $modificado = null;
 
     /**
      * Relación inversa a las traducciones (Gedmo PersonalTranslation)
      *
-     * @ORM\OneToMany(
-     *     targetEntity="App\Entity\ServicioTipotarifaTranslation",
-     *     mappedBy="object",
-     *     cascade={"persist","remove"},
-     *     orphanRemoval=true
-     * )
      * @var Collection<int,\App\Entity\ServicioTipotarifaTranslation>
      */
+    #[ORM\OneToMany(targetEntity: 'App\Entity\ServicioTipotarifaTranslation', mappedBy: 'object', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $translations;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private ?string $locale = null;
 
     public function __construct()

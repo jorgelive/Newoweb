@@ -8,64 +8,52 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * MaestroTipodocumento
- *
- * @ORM\Table(name="mae_tipodocumento")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'mae_tipodocumento')]
+#[ORM\Entity]
 class MaestroTipodocumento
 {
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     * @ORM\Column(type="string", length=100)
-     */
+    #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombre = null;
 
-    /**
-     * @ORM\Column(type="string", length=10)
-     */
+    #[ORM\Column(type: 'string', length: 10)]
     private ?string $codigo = null;
 
     /**
      * Nombre cultura
-     * @ORM\Column(type="string", length=5)
      */
+    #[ORM\Column(type: 'string', length: 5)]
     private ?string $nombremc = null;
 
     /**
      * Codigo Cultura
-     * @ORM\Column(type="integer", length=2)
      */
+    #[ORM\Column(type: 'integer', length: 2)]
     private ?int $codigomc = null;
 
     /**
      * Perurail
-     * @ORM\Column(type="string", length=5)
      */
+    #[ORM\Column(type: 'string', length: 5)]
     private ?string $codigopr = null;
 
     /**
      * Consettur
-     * @ORM\Column(type="integer", length=2)
      */
+    #[ORM\Column(type: 'integer', length: 2)]
     private ?int $codigocon = null;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
     public function __toString(): string

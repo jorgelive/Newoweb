@@ -7,11 +7,9 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\Common\Collections\ArrayCollection;
 
-/**
- * @ORM\Table(name="res_unit")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnitTranslation")
- */
+#[ORM\Table(name: 'res_unit')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\ReservaUnitTranslation')]
 class ReservaUnit
 {
     public const DB_VALOR_N1 = 1;
@@ -22,57 +20,51 @@ class ReservaUnit
     public const DB_VALOR_N6 = 6;
     public const DB_VALOR_N7 = 7;
 
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /** @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitTranslation", mappedBy="object", cascade={"persist", "remove"}) */
+    #[ORM\OneToMany(targetEntity: 'App\Entity\ReservaUnitTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected Collection $translations;
 
-    /** @ORM\Column(type="string", length=255) */
+    #[ORM\Column(type: 'string', length: 255)]
     private ?string $nombre = null;
 
-    /** @Gedmo\Translatable @ORM\Column(type="string", length=255) */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 255)]
     private ?string $descripcion = null;
 
-    /** @Gedmo\Translatable @ORM\Column(type="string", length=255) */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 255)]
     private ?string $referencia = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaEstablecimiento", inversedBy="units")
-     * @ORM\JoinColumn(name="establecimiento_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'App\Entity\ReservaEstablecimiento', inversedBy: 'units')]
+    #[ORM\JoinColumn(name: 'establecimiento_id', referencedColumnName: 'id', nullable: false)]
     protected ?ReservaEstablecimiento $establecimiento = null;
 
-    /** @ORM\OneToMany(targetEntity="App\Entity\ReservaReserva", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true) */
+    #[ORM\OneToMany(targetEntity: 'App\Entity\ReservaReserva', mappedBy: 'unit', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $reservas;
 
-    /** @ORM\OneToMany(targetEntity="App\Entity\ReservaUnitnexo", mappedBy="unit", cascade={"persist","remove"}, orphanRemoval=true) */
+    #[ORM\OneToMany(targetEntity: 'App\Entity\ReservaUnitnexo', mappedBy: 'unit', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $unitnexos;
 
     /**
      * Vínculos Unit–Característica (M2M con prioridad en el vínculo)
-     *
-     * @ORM\OneToMany(
-     *     targetEntity="App\Entity\ReservaUnitCaracteristicaLink",
-     *     mappedBy="unit",
-     *     cascade={"persist","remove"},
-     *     orphanRemoval=true
-     * )
-     * @ORM\OrderBy({"prioridad" = "ASC"})
      */
+    #[ORM\OneToMany(targetEntity: 'App\Entity\ReservaUnitCaracteristicaLink', mappedBy: 'unit', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['prioridad' => 'ASC'])]
     private Collection $unitCaracteristicaLinks;
 
-    /** @Gedmo\Timestampable(on="create") @ORM\Column(type="datetime") */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTimeInterface $creado = null;
 
-    /** @Gedmo\Timestampable(on="update") @ORM\Column(type="datetime") */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTimeInterface $modificado = null;
 
-    /** @Gedmo\Locale */
+    #[Gedmo\Locale]
     private ?string $locale = null;
 
     public function __construct()

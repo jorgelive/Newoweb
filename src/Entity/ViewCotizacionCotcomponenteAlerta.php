@@ -10,83 +10,73 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * ViewCotizacionCotcomponenteAlerta
- * @ORM\Entity(readOnly=true)
- * @ORM\Table(name="view_cot_cotcomponente_alerta")
  */
+#[ORM\Entity(readOnly: true)]
+#[ORM\Table(name: 'view_cot_cotcomponente_alerta')]
 class ViewCotizacionCotcomponenteAlerta
 {
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100)
      */
+    #[ORM\Column(type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var \App\Entity\CotizacionCotservicio
-     *
-     * @ORM\ManyToOne(targetEntity="CotizacionCotservicio")
-     * @ORM\JoinColumn(name="cotservicio_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CotizacionCotservicio')]
+    #[ORM\JoinColumn(name: 'cotservicio_id', referencedColumnName: 'id', nullable: false)]
     protected $cotservicio;
 
     /**
      * @var \App\Entity\ServicioComponente
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioComponente")
-     * @ORM\JoinColumn(name="componente_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioComponente')]
+    #[ORM\JoinColumn(name: 'componente_id', referencedColumnName: 'id', nullable: false)]
     protected $componente;
 
     /**
      * @var \App\Entity\CotizacionEstadocotcomponente
-     *
-     * @ORM\ManyToOne(targetEntity="CotizacionEstadocotcomponente")
-     * @ORM\JoinColumn(name="estadocotcomponente_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CotizacionEstadocotcomponente')]
+    #[ORM\JoinColumn(name: 'estadocotcomponente_id', referencedColumnName: 'id', nullable: false)]
     protected $estadocotcomponente;
 
     /**
      * @var int
-     *
-     * @ORM\Column(name="cantidad", type="integer", options={"default": 1})
      */
+    #[ORM\Column(name: 'cantidad', type: 'integer', options: ['default' => 1])]
     private $cantidad;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(name="fechahorainicio", type="datetime")
      */
+    #[ORM\Column(name: 'fechahorainicio', type: 'datetime')]
     private $fechahorainicio;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(name="fechahorafin", type="datetime")
      */
+    #[ORM\Column(name: 'fechahorafin', type: 'datetime')]
     private $fechahorafin;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(name="fechaalerta", type="datetime")
      */
+    #[ORM\Column(name: 'fechaalerta', type: 'datetime')]
     private $fechaalerta;
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer", nullable=true)
      */
+    #[ORM\Column(type: 'integer', nullable: true)]
     private $anticipacionalerta;
 
 

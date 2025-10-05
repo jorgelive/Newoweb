@@ -10,94 +10,82 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * FitDieta
- *
- * @ORM\Table(name="fit_dieta")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'fit_dieta')]
+#[ORM\Entity]
 class FitDieta
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=20)
      */
+    #[ORM\Column(type: 'string', length: 20)]
     private $token;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=255)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 255)]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="peso", type="decimal", precision=5, scale=2, nullable=false)
      */
+    #[ORM\Column(name: 'peso', type: 'decimal', precision: 5, scale: 2, nullable: false)]
     private $peso = '60.00';
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="indicedegrasa", type="decimal", precision=5, scale=2, nullable=false)
      */
+    #[ORM\Column(name: 'indicedegrasa', type: 'decimal', precision: 5, scale: 2, nullable: false)]
     private $indicedegrasa = '20.00';
 
     /**
      * @var \App\Entity\FitTipodieta
-     *
-     * @ORM\ManyToOne(targetEntity="FitTipodieta" , inversedBy="dietas")
-     * @ORM\JoinColumn(name="tipodieta_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'FitTipodieta', inversedBy: 'dietas')]
+    #[ORM\JoinColumn(name: 'tipodieta_id', referencedColumnName: 'id', nullable: false)]
     protected $tipodieta;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="FitDietacomida", mappedBy="dieta", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"numerocomida" = "ASC"})
      */
+    #[ORM\OneToMany(targetEntity: 'FitDietacomida', mappedBy: 'dieta', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['numerocomida' => 'ASC'])]
     private $dietacomidas;
 
     /**
      * @var \App\Entity\UserUser
-     *
-     * @ORM\ManyToOne(targetEntity="UserUser" )
-     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'UserUser')]
+    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
     private $user;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(name="fecha", type="date")
      */
+    #[ORM\Column(name: 'fecha', type: 'date')]
     private $fecha;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     public function __construct() {

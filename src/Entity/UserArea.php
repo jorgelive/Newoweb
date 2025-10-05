@@ -10,36 +10,31 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * UserArea
- *
- * @ORM\Table(name="use_area")
- * @ORM\Entity
  */
-
+#[ORM\Table(name: 'use_area')]
+#[ORM\Entity]
 class UserArea
 {
 
     /**
      * @var integer
-     *
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     protected $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100)
-     * @Assert\NotBlank
      */
+    #[ORM\Column(type: 'string', length: 100)]
+    #[Assert\NotBlank]
     private $nombre;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="UserUser", mappedBy="area", cascade={"persist","remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'UserUser', mappedBy: 'area', cascade: ['persist', 'remove'], orphanRemoval: true)]
     protected $users;
 
     public function __construct()

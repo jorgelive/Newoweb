@@ -13,56 +13,42 @@ use App\Traits\MainArchivoTrait;
 
 
 /**
- * @ORM\Table(name="mae_medio")
- * @ORM\Entity
  * @ORM\HasLifecycleCallbacks
- * @Gedmo\TranslationEntity(class="App\Entity\MaestroMedioTranslation")
  */
+#[ORM\Table(name: 'mae_medio')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\MaestroMedioTranslation')]
 class MaestroMedio
 {
     use MainArchivoTrait;
 
     private $path = '/carga/maestromedio';
 
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity="MaestroMedioTranslation", mappedBy="object", cascade={"persist", "remove"})
-     */
+    #[ORM\OneToMany(targetEntity: 'MaestroMedioTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected Collection $translations;
 
-    /**
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=255)
-     */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 255)]
     private ?string $titulo = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="MaestroClasemedio", inversedBy="medios")
-     * @ORM\JoinColumn(name="clasemedio_id", referencedColumnName="id", nullable=true)
-     */
+    #[ORM\ManyToOne(targetEntity: 'MaestroClasemedio', inversedBy: 'medios')]
+    #[ORM\JoinColumn(name: 'clasemedio_id', referencedColumnName: 'id', nullable: true)]
     protected ?MaestroClasemedio $clasemedio;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private ?string $locale = null;
 
     public function __construct()

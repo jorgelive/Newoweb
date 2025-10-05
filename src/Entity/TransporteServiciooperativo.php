@@ -5,54 +5,44 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
-/**
- * @ORM\Table(name="tra_serviciooperativo")
- * @ORM\Entity
- */
+#[ORM\Table(name: 'tra_serviciooperativo')]
+#[ORM\Entity]
 class TransporteServiciooperativo
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var \App\Entity\TransporteServicio
-     *
-     * @ORM\ManyToOne(targetEntity="TransporteServicio", inversedBy="serviciooperativos")
-     * @ORM\JoinColumn(name="servicio_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'TransporteServicio', inversedBy: 'serviciooperativos')]
+    #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id', nullable: false)]
     private $servicio;
 
     /**
      * @var \App\Entity\TransporteTiposeroperativo
-     *
-     * @ORM\ManyToOne(targetEntity="TransporteTiposeroperativo")
-     * @ORM\JoinColumn(name="tiposeroperativo_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'TransporteTiposeroperativo')]
+    #[ORM\JoinColumn(name: 'tiposeroperativo_id', referencedColumnName: 'id', nullable: false)]
     private $tiposeroperativo;
 
-    /**
-     * @ORM\Column(name="texto", type="text")
-     */
+    #[ORM\Column(name: 'texto', type: 'text')]
     private $texto;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

@@ -16,11 +16,11 @@ use App\Traits\MainArchivoTrait;
 /**
  * MaestroMedio
  *
- * @ORM\Table(name="ser_providermedio")
- * @ORM\Entity
  * @ORM\HasLifecycleCallbacks
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioProvidermedioTranslation")
  */
+#[ORM\Table(name: 'ser_providermedio')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\ServicioProvidermedioTranslation')]
 class ServicioProvidermedio
 {
 
@@ -28,45 +28,31 @@ class ServicioProvidermedio
 
     private string $path = '/carga/servicioprovidermedio';
 
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ReservaUnitmedioTranslation", mappedBy="object", cascade={"persist", "remove"})
-     */
+    #[ORM\OneToMany(targetEntity: 'ReservaUnitmedioTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected Collection $translations;
 
-    /**
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=255)
-     */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 255)]
     private ?string $titulo = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="ServicioProvider", inversedBy="providermedios")
-     * @ORM\JoinColumn(name="provider_id", referencedColumnName="id", nullable=true)
-     */
+    #[ORM\ManyToOne(targetEntity: 'ServicioProvider', inversedBy: 'providermedios')]
+    #[ORM\JoinColumn(name: 'provider_id', referencedColumnName: 'id', nullable: true)]
     protected ?ServicioProvider $provider;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private $locale;
 
     public function __construct()

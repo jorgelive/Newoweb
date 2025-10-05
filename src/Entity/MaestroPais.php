@@ -8,63 +8,49 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * MaestroPais
- *
- * @ORM\Table(name="mae_pais")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'mae_pais')]
+#[ORM\Entity]
 class MaestroPais
 {
 
     public const DB_VALOR_PERU = 117;
 
-    /**
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     *
-     * @ORM\Column(type="string", length=100)
-     */
+    #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombre;
 
     /**
      * MC
-     *
-     * @ORM\Column(type="integer", length=3)
      */
+    #[ORM\Column(type: 'integer', length: 3)]
     private ?int $codigomc = null;
 
     /**
      * Perurail
-     *
-     * @ORM\Column(type="integer", length=3)
      */
+    #[ORM\Column(type: 'integer', length: 3)]
     private ?int $codigopr = null;
 
     /**
      * Consettur
      * @var integer
-     *
-     * @ORM\Column(type="integer", length=40)
      */
+    #[ORM\Column(type: 'integer', length: 40)]
     private ?int $codigocon = null;
 
 
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
     /**

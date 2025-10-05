@@ -6,59 +6,47 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
-/**
- * @ORM\Table(name="tra_serviciocontable")
- * @ORM\Entity
- */
+#[ORM\Table(name: 'tra_serviciocontable')]
+#[ORM\Entity]
 class TransporteServiciocontable
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var \App\Entity\TransporteServicio
-     *
-     * @ORM\ManyToOne(targetEntity="TransporteServicio", inversedBy="serviciocontables")
-     * @ORM\JoinColumn(name="servicio_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'TransporteServicio', inversedBy: 'serviciocontables')]
+    #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id', nullable: false)]
     private $servicio;
 
     /**
      * @var \App\Entity\ComprobanteComprobante
-     *
-     * @ORM\ManyToOne(targetEntity="ComprobanteComprobante", inversedBy="serviciocontables")
-     * @ORM\JoinColumn(name="comprobante_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ComprobanteComprobante', inversedBy: 'serviciocontables')]
+    #[ORM\JoinColumn(name: 'comprobante_id', referencedColumnName: 'id', nullable: false)]
     private $comprobante;
 
-    /**
-     * @ORM\Column(type="string", length=250)
-     */
+    #[ORM\Column(type: 'string', length: 250)]
     private $descripcion;
 
-    /**
-     * @ORM\Column(type="decimal", precision=10, scale=2, nullable=true)
-     */
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
     private $total;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

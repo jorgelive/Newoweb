@@ -7,75 +7,58 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\Common\Collections\ArrayCollection;
 
-/**
- * @ORM\Table(name="tra_unidad")
- * @ORM\Entity
- */
+#[ORM\Table(name: 'tra_unidad')]
+#[ORM\Entity]
 class TransporteUnidad
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
-    /**
-     * @ORM\Column(type="string", length=50)
-     */
+    #[ORM\Column(type: 'string', length: 50)]
     private $nombre;
 
-    /**
-     * @ORM\Column(type="string", length=15)
-     */
+    #[ORM\Column(type: 'string', length: 15)]
     private $placa;
 
-    /**
-     * @ORM\Column(type="string", length=5)
-     */
+    #[ORM\Column(type: 'string', length: 5)]
     private $abreviatura;
 
-    /**
-     * @ORM\Column(type="string", length=10)
-     */
+    #[ORM\Column(type: 'string', length: 10)]
     private $color;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="TransporteServicio", mappedBy="unidad", cascade={"persist", "remove"}, orphanRemoval=true)
      */
+    #[ORM\OneToMany(targetEntity: 'TransporteServicio', mappedBy: 'unidad', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $servicios;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="TransporteUnidadbitacora", mappedBy="unidad", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"fecha" = "DESC"})
      */
+    #[ORM\OneToMany(targetEntity: 'TransporteUnidadbitacora', mappedBy: 'unidad', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['fecha' => 'DESC'])]
     private $unidadbitacoras;
 
     /**
      * @var \App\Entity\CuentaCentro
-     *
-     * @ORM\OneToOne(targetEntity="CuentaCentro", mappedBy="unidad")
      */
+    #[ORM\OneToOne(targetEntity: 'CuentaCentro', mappedBy: 'unidad')]
     private $centro;
 
     /**

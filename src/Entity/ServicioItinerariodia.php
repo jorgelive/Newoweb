@@ -12,91 +12,62 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * ServicioItinerariodia
- *
- * @ORM\Table(name="ser_itinerariodia")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioItinerariodiaTranslation")
  */
+#[ORM\Table(name: 'ser_itinerariodia')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\ServicioItinerariodiaTranslation')]
 class ServicioItinerariodia
 {
 
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ServicioItinerariodiaTranslation", mappedBy="object", cascade={"persist", "remove"})
-     */
+    #[ORM\OneToMany(targetEntity: 'ServicioItinerariodiaTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected Collection $translations;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="ServicioItinerario", inversedBy="itinerariodias")
-     * @ORM\JoinColumn(name="itinerario_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: 'ServicioItinerario', inversedBy: 'itinerariodias')]
+    #[ORM\JoinColumn(name: 'itinerario_id', referencedColumnName: 'id', nullable: false)]
     protected ?ServicioItinerario $itinerario;
 
-    /**
-     * @ORM\Column(type="integer")
-     */
+    #[ORM\Column(type: 'integer')]
     private ?int $dia = 1;
 
-    /**
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=100)
-     */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 100)]
     private ?string $titulo = null;
 
-    /**
-     * @ORM\Column(type="string", columnDefinition= "varchar(100) AS (titulo) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
-     */
+    #[ORM\Column(type: 'string', columnDefinition: 'varchar(100) AS (titulo) VIRTUAL NULL', generated: 'ALWAYS', insertable: false, updatable: false)]
     private ?string $titulooriginal = null;
 
-    /**
-     * @ORM\Column(type="boolean", options={"default": 0})
-     */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private ?bool $importante = false;
 
-    /**
-     * @Gedmo\Translatable
-     * @ORM\Column(type="text", nullable=true)
-     */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $contenido = null;
 
-    /**
-     * @ORM\Column(type="text", columnDefinition= "longtext AS (contenido) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
-     */
+    #[ORM\Column(type: 'text', columnDefinition: 'longtext AS (contenido) VIRTUAL NULL', generated: 'ALWAYS', insertable: false, updatable: false)]
     private ?string $contenidooriginal = null;
 
-    /**
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $creado;
 
-    /**
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTime $modificado;
 
-    /**
-     * @ORM\OneToMany(targetEntity="ServicioItidiaarchivo", mappedBy="itinerariodia", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"prioridad" = "ASC"})
-     */
+    #[ORM\OneToMany(targetEntity: 'ServicioItidiaarchivo', mappedBy: 'itinerariodia', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['prioridad' => 'ASC'])]
     private Collection $itidiaarchivos;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="ServicioNotaitinerariodia", inversedBy="itinerariodias")
-     * @ORM\JoinColumn(name="notaitinerariodia_id", referencedColumnName="id", nullable=true)
-     */
+    #[ORM\ManyToOne(targetEntity: 'ServicioNotaitinerariodia', inversedBy: 'itinerariodias')]
+    #[ORM\JoinColumn(name: 'notaitinerariodia_id', referencedColumnName: 'id', nullable: true)]
     protected ?ServicioNotaitinerariodia $notaitinerariodia;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private ?string $locale = null;
 
     /**

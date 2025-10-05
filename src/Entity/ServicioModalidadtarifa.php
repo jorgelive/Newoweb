@@ -10,11 +10,10 @@ use Gedmo\Translatable\Translatable;
 
 /**
  * ServicioModalidadtarifa
- *
- * @ORM\Table(name="ser_modalidadtarifa")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioModalidadtarifaTranslation")
  */
+#[ORM\Table(name: 'ser_modalidadtarifa')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\ServicioModalidadtarifaTranslation')]
 class ServicioModalidadtarifa
 {
 
@@ -22,54 +21,46 @@ class ServicioModalidadtarifa
     public const DB_VALOR_COMPARTIDO = 2;
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="ServicioModalidadtarifaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
+    #[ORM\OneToMany(targetEntity: 'ServicioModalidadtarifaTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected $translations;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=255)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 255)]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @Gedmo\Translatable
-     * @ORM\Column(name="titulo", type="string", length=100, nullable=false)
      */
+    #[Gedmo\Translatable]
+    #[ORM\Column(name: 'titulo', type: 'string', length: 100, nullable: false)]
     private $titulo;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private $locale;
 
     /**

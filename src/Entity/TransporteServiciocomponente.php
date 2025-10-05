@@ -5,81 +5,58 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
-/**
- * @ORM\Table(name="tra_serviciocomponente")
- * @ORM\Entity
- */
+#[ORM\Table(name: 'tra_serviciocomponente')]
+#[ORM\Entity]
 class TransporteServiciocomponente
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var \App\Entity\TransporteServicio
-     *
-     * @ORM\ManyToOne(targetEntity="TransporteServicio", inversedBy="serviciocomponentes")
-     * @ORM\JoinColumn(name="servicio_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'TransporteServicio', inversedBy: 'serviciocomponentes')]
+    #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id', nullable: false)]
     private $servicio;
 
-    /**
-     * @ORM\Column(name="hora", type="time")
-     */
+    #[ORM\Column(name: 'hora', type: 'time')]
     private $hora;
 
-    /**
-     * @ORM\Column(name="nombre", type="string", length=100)
-     */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 100)]
     private $nombre;
 
-    /**
-     * @ORM\Column(name="codigo", type="string", length=100)
-     */
+    #[ORM\Column(name: 'codigo', type: 'string', length: 100)]
     private $codigo;
 
-    /**
-     * @ORM\Column(name="numadl", type="smallint")
-     */
+    #[ORM\Column(name: 'numadl', type: 'smallint')]
     private $numadl;
 
-    /**
-     * @ORM\Column(name="numchd", type="smallint")
-     */
+    #[ORM\Column(name: 'numchd', type: 'smallint')]
     private $numchd;
 
-    /**
-     * @ORM\Column(name="origen", type="string", length=100)
-     */
+    #[ORM\Column(name: 'origen', type: 'string', length: 100)]
     private $origen;
 
-    /**
-     * @ORM\Column(name="destino", type="string", length=100)
-     */
+    #[ORM\Column(name: 'destino', type: 'string', length: 100)]
     private $destino;
 
-    /**
-     * @ORM\Column(name="nota", type="text", nullable=true)
-     */
+    #[ORM\Column(name: 'nota', type: 'text', nullable: true)]
     private $nota;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

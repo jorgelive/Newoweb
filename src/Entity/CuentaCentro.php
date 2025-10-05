@@ -10,66 +10,58 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * CuentaCentro
- *
- * @ORM\Table(name="cue_centro")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'cue_centro')]
+#[ORM\Entity]
 class CuentaCentro
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=100)
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 100)]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="codigo", type="string", length=50)
      */
+    #[ORM\Column(name: 'codigo', type: 'string', length: 50)]
     private $codigo;
 
     /**
      * @var \App\Entity\TransporteUnidad
-     *
-     * @ORM\OneToOne(targetEntity="TransporteUnidad", inversedBy="centro")
-     * @ORM\JoinColumn(name="unidad_id", referencedColumnName="id", nullable=true)
      */
+    #[ORM\OneToOne(targetEntity: 'TransporteUnidad', inversedBy: 'centro')]
+    #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: true)]
     protected $unidad;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="CuentaMovimiento", mappedBy="centro", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"fechahora" = "DESC"})
      */
+    #[ORM\OneToMany(targetEntity: 'CuentaMovimiento', mappedBy: 'centro', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['fechahora' => 'DESC'])]
     private $movimientos;
 
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     public function __construct() {

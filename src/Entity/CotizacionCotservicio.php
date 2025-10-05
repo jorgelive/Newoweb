@@ -10,81 +10,71 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * CotizacionCotservicio
- *
- * @ORM\Table(name="cot_cotservicio")
- * @ORM\Entity(repositoryClass="App\Repository\CotizacionCotservicioRepository")
  */
+#[ORM\Table(name: 'cot_cotservicio')]
+#[ORM\Entity(repositoryClass: 'App\Repository\CotizacionCotservicioRepository')]
 class CotizacionCotservicio
 {
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(name="fechahorainicio", type="datetime")
      */
+    #[ORM\Column(name: 'fechahorainicio', type: 'datetime')]
     private $fechahorainicio;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(name="fechahorafin", type="datetime", nullable=true)
      */
+    #[ORM\Column(name: 'fechahorafin', type: 'datetime', nullable: true)]
     private $fechahorafin;
 
     /**
      * @var \App\Entity\CotizacionCotizacion
-     *
-     * @ORM\ManyToOne(targetEntity="CotizacionCotizacion", inversedBy="cotservicios")
-     * @ORM\JoinColumn(name="cotizacion_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CotizacionCotizacion', inversedBy: 'cotservicios')]
+    #[ORM\JoinColumn(name: 'cotizacion_id', referencedColumnName: 'id', nullable: false)]
     protected $cotizacion;
 
     /**
      * @var \App\Entity\ServicioServicio
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioServicio")
-     * @ORM\JoinColumn(name="servicio_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioServicio')]
+    #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id', nullable: false)]
     protected $servicio;
 
     /**
      * @var \App\Entity\SErvicioItinerario
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioItinerario")
-     * @ORM\JoinColumn(name="itinerario_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioItinerario')]
+    #[ORM\JoinColumn(name: 'itinerario_id', referencedColumnName: 'id', nullable: false)]
     protected $itinerario;
 
     /**
      * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="CotizacionCotcomponente", mappedBy="cotservicio", cascade={"persist","remove"}, orphanRemoval=true)
-     * @ORM\OrderBy({"fechahorainicio" = "ASC"})
      */
+    #[ORM\OneToMany(targetEntity: 'CotizacionCotcomponente', mappedBy: 'cotservicio', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['fechahorainicio' => 'ASC'])]
     private $cotcomponentes;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**

@@ -8,67 +8,59 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * cuenta
- *
- * @ORM\Table(name="use_cuenta")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'use_cuenta')]
+#[ORM\Entity]
 class UserCuenta
 {
     /**
      * @var integer
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="nombre", type="string", length=100)
-     * @Assert\NotBlank
      */
+    #[ORM\Column(name: 'nombre', type: 'string', length: 100)]
+    #[Assert\NotBlank]
     private $nombre;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="password", type="string", length=100)
-     * @Assert\NotBlank
      */
+    #[ORM\Column(name: 'password', type: 'string', length: 100)]
+    #[Assert\NotBlank]
     private $password;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
      * @var \App\Entity\UserUser
-     *
-     * @ORM\ManyToOne(targetEntity="UserUser", inversedBy="cuentas")
-     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'UserUser', inversedBy: 'cuentas')]
+    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
     private $user;
 
     /**
      * @var \App\Entity\UserCuentatipo
-     *
-     * @ORM\ManyToOne(targetEntity="UserCuentatipo", inversedBy="cuentas")
-     * @ORM\JoinColumn(name="cuentatipo_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'UserCuentatipo', inversedBy: 'cuentas')]
+    #[ORM\JoinColumn(name: 'cuentatipo_id', referencedColumnName: 'id', nullable: false)]
     private $cuentatipo;
 
     /**

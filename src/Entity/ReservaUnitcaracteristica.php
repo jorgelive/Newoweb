@@ -7,85 +7,79 @@ use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 
-/**
- * @ORM\Table(
- *   name="res_unitcaracteristica",
- *   indexes={ @ORM\Index(name="idx_unitcarac_nombre", columns={"nombre"}) }
- * )
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ReservaUnitcaracteristicaTranslation")
- */
+#[ORM\Entity]
+#[ORM\Table(
+    name: 'res_unitcaracteristica',
+    indexes: [new ORM\Index(name: 'idx_unitcarac_nombre', columns: ['nombre'])]
+)]
+#[Gedmo\TranslationEntity(class: ReservaUnitcaracteristicaTranslation::class)]
 class ReservaUnitcaracteristica
 {
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    /** @ORM\Column(type="string", length=191, nullable=false) */
+    // si en DB quedó en 120, ajústalo
+    #[ORM\Column(type: 'string', length: 255)]
     private string $nombre = '';
 
-    /**
-     * @ORM\OneToMany(
-     *     targetEntity="App\Entity\ReservaUnitcaracteristicaTranslation",
-     *     mappedBy="object",
-     *     cascade={"persist", "remove"}
-     * )
-     */
+    #[ORM\OneToMany(
+        mappedBy: 'object',
+        targetEntity: ReservaUnitcaracteristicaTranslation::class,
+        cascade: ['persist', 'remove']
+    )]
     protected Collection $translations;
 
-    /** @Gedmo\Translatable @ORM\Column(type="text") */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'text')]
     private ?string $contenido = null;
 
     /**
      * Campo virtual que refleja el contenido original (sin traducción)
-     * @ORM\Column(
-     *   type="text",
-     *   columnDefinition="LONGTEXT GENERATED ALWAYS AS (`contenido`) VIRTUAL",
-     *   nullable=true,
-     *   insertable=false,
-     *   updatable=false
-     * )
+     * OJO: insertable/updatable no aplican en Doctrine
      */
+    #[ORM\Column(
+        type: 'text',
+        nullable: true,
+        // Usa la definición que soporte tu motor (MySQL 8 acepta ambas variantes):
+        // 'LONGTEXT AS (contenido) VIRTUAL'  o  'LONGTEXT GENERATED ALWAYS AS (contenido) VIRTUAL'
+        columnDefinition: 'LONGTEXT AS (contenido) VIRTUAL'
+    )]
     private ?string $contenidooriginal = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\ReservaUnittipocaracteristica", inversedBy="unitcaracteristicas")
-     * @ORM\JoinColumn(name="unittipocaracteristica_id", referencedColumnName="id", nullable=false)
-     */
+    #[ORM\ManyToOne(targetEntity: ReservaUnittipocaracteristica::class, inversedBy: 'unitcaracteristicas')]
+    #[ORM\JoinColumn(name: 'unittipocaracteristica_id', referencedColumnName: 'id', nullable: false)]
     protected ?ReservaUnittipocaracteristica $unittipocaracteristica = null;
 
-    /**
-     * @ORM\OneToMany(
-     *     targetEntity="App\Entity\ReservaUnitmedio",
-     *     mappedBy="unitcaracteristica",
-     *     cascade={"persist","remove"},
-     *     orphanRemoval=true
-     * )
-     * @ORM\OrderBy({"prioridad" = "ASC"})
-     */
+    #[ORM\OneToMany(
+        mappedBy: 'unitcaracteristica',
+        targetEntity: ReservaUnitmedio::class,
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
+    // Quita OrderBy si ya no existe 'prioridad'
+        // #[ORM\OrderBy(['prioridad' => 'ASC'])]
     private Collection $medios;
 
-    /**
-     * @ORM\OneToMany(
-     *     targetEntity="App\Entity\ReservaUnitCaracteristicaLink",
-     *     mappedBy="caracteristica",
-     *     cascade={"persist","remove"},
-     *     orphanRemoval=true
-     * )
-     * @ORM\OrderBy({"prioridad" = "ASC"})
-     */
+    #[ORM\OneToMany(
+        mappedBy: 'caracteristica',
+        targetEntity: ReservaUnitCaracteristicaLink::class,
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
+    // #[ORM\OrderBy(['prioridad' => 'ASC'])]
     private Collection $links;
 
-    /** @Gedmo\Timestampable(on="create") @ORM\Column(type="datetime") */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTimeInterface $creado = null;
 
-    /** @Gedmo\Timestampable(on="update") @ORM\Column(type="datetime") */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private ?\DateTimeInterface $modificado = null;
 
-    /** @Gedmo\Locale */
+    #[Gedmo\Locale]
     private ?string $locale = null;
 
     public function __construct()
@@ -100,7 +94,7 @@ class ReservaUnitcaracteristica
         if ($this->getNombre()) {
             return (string) $this->getNombre();
         }
-        return substr(str_replace("&nbsp;", '', strip_tags((string) $this->getContenido())), 0, 100) . '...';
+        return substr(str_replace('&nbsp;', '', strip_tags((string) $this->getContenido())), 0, 100) . '...';
     }
 
     public function setLocale(?string $locale): self { $this->locale = $locale; return $this; }
@@ -116,10 +110,7 @@ class ReservaUnitcaracteristica
         return $this;
     }
     public function removeTranslation(ReservaUnitcaracteristicaTranslation $t): self
-    {
-        $this->translations->removeElement($t);
-        return $this;
-    }
+    { $this->translations->removeElement($t); return $this; }
 
     public function getId(): ?int { return $this->id; }
 
@@ -146,6 +137,7 @@ class ReservaUnitcaracteristica
     {
         if (!$this->medios->contains($m)) {
             $this->medios->add($m);
+            // si tu ReservaUnitmedio tiene setUnitcaracteristica, ok:
             $m->setUnitcaracteristica($this);
         }
         return $this;
@@ -153,7 +145,7 @@ class ReservaUnitcaracteristica
     public function removeMedio(ReservaUnitmedio $m): self
     {
         if ($this->medios->removeElement($m)) {
-            if ($m->getUnitcaracteristica() === $this) {
+            if (method_exists($m, 'getUnitcaracteristica') && $m->getUnitcaracteristica() === $this) {
                 $m->setUnitcaracteristica(null);
             }
         }

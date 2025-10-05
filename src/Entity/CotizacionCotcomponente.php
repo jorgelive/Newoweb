@@ -2,386 +2,154 @@
 
 namespace App\Entity;
 
+use App\Entity\CotizacionCottarifa;
+use App\Entity\CotizacionCotservicio;
+use App\Entity\CotizacionEstadocotcomponente;
+use App\Entity\ServicioComponente;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
-use Doctrine\Common\Collections\ArrayCollection;
 
-/**
- * CotizacionCotcomponente
- *
- * @ORM\Table(name="cot_cotcomponente")
- * @ORM\Entity(repositoryClass="App\Repository\CotizacionCotcomponenteRepository")
- */
+#[ORM\Table(name: 'cot_cotcomponente')]
+#[ORM\Entity(repositoryClass: \App\Repository\CotizacionCotcomponenteRepository::class)]
 class CotizacionCotcomponente
 {
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
-    private $id;
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    private ?int $id = null;
 
-    /**
-     * @var \App\Entity\CotizacionCotservicio
-     *
-     * @ORM\ManyToOne(targetEntity="CotizacionCotservicio", inversedBy="cotcomponentes")
-     * @ORM\JoinColumn(name="cotservicio_id", referencedColumnName="id", nullable=false)
-     */
-    protected $cotservicio;
+    #[ORM\ManyToOne(targetEntity: CotizacionCotservicio::class, inversedBy: 'cotcomponentes')]
+    #[ORM\JoinColumn(name: 'cotservicio_id', referencedColumnName: 'id', nullable: false)]
+    protected ?CotizacionCotservicio $cotservicio = null;
 
-    /**
-     * @var \App\Entity\ServicioComponente
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioComponente")
-     * @ORM\JoinColumn(name="componente_id", referencedColumnName="id", nullable=false)
-     */
-    protected $componente;
+    #[ORM\ManyToOne(targetEntity: ServicioComponente::class)]
+    #[ORM\JoinColumn(name: 'componente_id', referencedColumnName: 'id', nullable: false)]
+    protected ?ServicioComponente $componente = null;
 
-    /**
-     * @var \App\Entity\CotizacionEstadocotcomponente
-     *
-     * @ORM\ManyToOne(targetEntity="CotizacionEstadocotcomponente")
-     * @ORM\JoinColumn(name="estadocotcomponente_id", referencedColumnName="id", nullable=false)
-     */
-    protected $estadocotcomponente;
+    #[ORM\ManyToOne(targetEntity: CotizacionEstadocotcomponente::class)]
+    #[ORM\JoinColumn(name: 'estadocotcomponente_id', referencedColumnName: 'id', nullable: false)]
+    protected ?CotizacionEstadocotcomponente $estadocotcomponente = null;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\OneToMany(targetEntity="CotizacionCottarifa", mappedBy="cotcomponente", cascade={"persist","remove"}, orphanRemoval=true)
-     */
-    private $cottarifas;
+    /** @var Collection<int, CotizacionCottarifa> */
+    #[ORM\OneToMany(targetEntity: CotizacionCottarifa::class, mappedBy: 'cotcomponente', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $cottarifas;
 
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="cantidad", type="integer", options={"default": 1})
-     */
-    private $cantidad;
+    #[ORM\Column(name: 'cantidad', type: 'integer', options: ['default' => 1])]
+    private int $cantidad = 1;
 
-    /**
-     * @var \DateTime
-     *
-     * @ORM\Column(name="fechahorainicio", type="datetime")
-     */
-    private $fechahorainicio;
+    #[ORM\Column(name: 'fechahorainicio', type: 'datetime')]
+    private \DateTimeInterface $fechahorainicio;
 
-    /**
-     * @var \DateTime
-     *
-     * @ORM\Column(name="fechahorafin", type="datetime")
-     */
-    private $fechahorafin;
+    #[ORM\Column(name: 'fechahorafin', type: 'datetime')]
+    private ?\DateTimeInterface $fechahorafin = null;
 
-    /**
-     * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
-     */
-    private $creado;
+    // Timestampable NO NULL (consigna)
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime', nullable: false)]
+    private ?\DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
-     */
-    private $modificado;
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime', nullable: false)]
+    private ?\DateTimeInterface $modificado = null;
 
-    /**
-     * Constructor
-     */
     public function __construct()
     {
         $this->cottarifas = new ArrayCollection();
     }
 
-    public function __clone() {
-        if($this->id) {
+    public function __clone(): void
+    {
+        if ($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
+
             $newCottarifas = new ArrayCollection();
-            foreach($this->cottarifas as $cottarifa) {
-                $newCottarifa = clone $cottarifa;
-                $newCottarifa->setCotcomponente($this);
-                $newCottarifas->add($newCottarifa);
+            foreach ($this->cottarifas as $cottarifa) {
+                $clone = clone $cottarifa;
+                $clone->setCotcomponente($this);
+                $newCottarifas->add($clone);
             }
             $this->cottarifas = $newCottarifas;
         }
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        if(empty($this->getComponente())){
-            return sprintf('id: %s', $this->getId());
+        if (empty($this->getComponente())) {
+            return sprintf('id: %s', $this->getId() ?? '');
         }
-        if($this->getCantidad() > 1){
-            $infocomponente = sprintf('%s x%s', $this->getComponente()->getNombre(), $this->getCantidad());
-        }else{
-            $infocomponente = $this->getComponente()->getNombre();
-        }
-        return $infocomponente;
+        $nombre = $this->getComponente()->getNombre();
+        return $this->getCantidad() > 1 ? sprintf('%s x%s', $nombre, $this->getCantidad()) : $nombre;
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
+    public function getId(): ?int { return $this->id; }
 
     public function getNombre()
     {
         return $this->getComponente()->getNombre();
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionCotcomponente
-     */
-    public function setCreado($creado)
-    {
-        $this->creado = $creado;
-    
-        return $this;
-    }
+    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
-    {
-        return $this->creado;
-    }
+    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionCotcomponente
-     */
-    public function setModificado($modificado)
-    {
-        $this->modificado = $modificado;
-    
-        return $this;
-    }
+    public function setEstadocotcomponente(CotizacionEstadocotcomponente $estadocotcomponente): self
+    { $this->estadocotcomponente = $estadocotcomponente; return $this; }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
-    {
-        return $this->modificado;
-    }
+    public function getEstadocotcomponente(): ?CotizacionEstadocotcomponente
+    { return $this->estadocotcomponente; }
 
-    /**
-     * Set estadocotcomponente
-     *
-     * @param \App\Entity\CotizacionEstadocotcomponente $estadocotcomponente
-     *
-     * @return CotizacionCotcomponente
-     */
-    public function setEstadocotcomponente(\App\Entity\CotizacionEstadocotcomponente $estadocotcomponente)
-    {
-        $this->estadocotcomponente = $estadocotcomponente;
+    public function setCotservicio(?CotizacionCotservicio $cotservicio = null): self
+    { $this->cotservicio = $cotservicio; return $this; }
 
-        return $this;
-    }
+    public function getCotservicio(): ?CotizacionCotservicio
+    { return $this->cotservicio; }
 
-    /**
-     * Get estadocotcomponente
-     *
-     * @return \App\Entity\CotizacionEstadocotcomponente
-     */
-    public function getEstadocotcomponente()
-    {
-        return $this->estadocotcomponente;
-    }
+    public function setComponente(?ServicioComponente $componente = null): self
+    { $this->componente = $componente; return $this; }
 
-    /**
-     * Set cotservicio
-     *
-     * @param \App\Entity\CotizacionCotservicio $cotservicio
-     *
-     * @return CotizacionCotcomponente
-     */
-    public function setCotservicio(\App\Entity\CotizacionCotservicio $cotservicio = null)
-    {
-        $this->cotservicio = $cotservicio;
-    
-        return $this;
-    }
+    public function getComponente(): ?ServicioComponente
+    { return $this->componente; }
 
-    /**
-     * Get cotservicio
-     *
-     * @return \App\Entity\CotizacionCotservicio
-     */
-    public function getCotservicio()
-    {
-        return $this->cotservicio;
-    }
-
-    /**
-     * Set componente
-     *
-     * @param \App\Entity\ServicioComponente $componente
-     *
-     * @return CotizacionCotcomponente
-     */
-    public function setComponente(\App\Entity\ServicioComponente $componente = null)
-    {
-        $this->componente = $componente;
-    
-        return $this;
-    }
-
-    /**
-     * Get componente
-     *
-     * @return \App\Entity\ServicioComponente
-     */
-    public function getComponente()
-    {
-        return $this->componente;
-    }
-
-    /**
-     * Add cottarifa
-     *
-     * @param \App\Entity\CotizacionCottarifa $cottarifa
-     *
-     * @return CotizacionCotcomponente
-     */
-    public function addCottarifa(\App\Entity\CotizacionCottarifa $cottarifa)
+    public function addCottarifa(CotizacionCottarifa $cottarifa): self
     {
         $cottarifa->setCotcomponente($this);
-
-        $this->cottarifas[] = $cottarifa;
-    
+        $this->cottarifas->add($cottarifa);
         return $this;
     }
 
-    /**
-     * Remove cottarifa
-     *
-     * @param \App\Entity\CotizacionCottarifa $cottarifa
-     */
-    public function removeCottarifa(\App\Entity\CotizacionCottarifa $cottarifa)
+    public function removeCottarifa(CotizacionCottarifa $cottarifa): void
     {
         $this->cottarifas->removeElement($cottarifa);
     }
 
-    /**
-     * Get cottarifas
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getCottarifas()
-    {
-        return $this->cottarifas;
-    }
+    /** @return Collection<int, CotizacionCottarifa> */
+    public function getCottarifas(): Collection
+    { return $this->cottarifas; }
 
-    /**
-     * Set cantidad
-     *
-     * @param integer $cantidad
-     *
-     * @return CotizacionCotcomponente
-     */
-    public function setCantidad($cantidad)
-    {
-        $this->cantidad = $cantidad;
-    
-        return $this;
-    }
+    public function setCantidad(int $cantidad): self { $this->cantidad = $cantidad; return $this; }
+    public function getCantidad(): int { return $this->cantidad; }
 
-    /**
-     * Get cantidad
-     *
-     * @return integer
-     */
-    public function getCantidad()
-    {
-        return $this->cantidad;
-    }
+    public function setFechahorainicio(\DateTimeInterface $fechahorainicio): self
+    { $this->fechahorainicio = $fechahorainicio; return $this; }
 
-    /**
-     * Set fechahorainicio
-     *
-     * @param \DateTime $fechahorainicio
-     *
-     * @return CotizacionCotcomponente
-     */
-    public function setFechahorainicio($fechahorainicio)
-    {
-        $this->fechahorainicio = $fechahorainicio;
-    
-        return $this;
-    }
+    public function getFechahorainicio(): \DateTimeInterface
+    { return $this->fechahorainicio; }
 
-    /**
-     * Get fechahorainicio
-     *
-     * @return \DateTime
-     */
-    public function getFechahorainicio()
-    {
-        return $this->fechahorainicio;
-    }
+    public function getFechainicio(): ?\DateTimeInterface
+    { return new \DateTime($this->fechahorainicio->format('Y-m-d')); }
 
-    public function getFechainicio(): ?\DateTime
-    {
-        return (new \DateTime($this->fechahorainicio->format('Y-m-d')));
-    }
+    public function setFechahorafin(?\DateTimeInterface $fechahorafin = null): self
+    { $this->fechahorafin = $fechahorafin; return $this; }
 
-    /**
-     * Set fechahorafin.
-     *
-     * @param \DateTime|null $fechahorafin
-     *
-     * @return CotizacionCotcomponente
-     */
-    public function setFechahorafin($fechahorafin = null)
-    {
-        $this->fechahorafin = $fechahorafin;
-    
-        return $this;
-    }
+    public function getFechahorafin(): ?\DateTimeInterface
+    { return $this->fechahorafin; }
 
-    /**
-     * Get fechahorafin.
-     *
-     * @return \DateTime|null
-     */
-    public function getFechahorafin()
-    {
-        return $this->fechahorafin;
-    }
-
-    public function getFechafin(): ?\DateTime
-    {
-        return (new \DateTime($this->fechahorafin->format('Y-m-d')));
-    }
+    public function getFechafin(): ?\DateTimeInterface
+    { return $this->fechahorafin ? new \DateTime($this->fechahorafin->format('Y-m-d')) : null; }
 }

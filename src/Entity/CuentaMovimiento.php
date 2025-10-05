@@ -8,90 +8,79 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
  * CuentaMovimiento
- *
- * @ORM\Table(name="cue_movimiento")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'cue_movimiento')]
+#[ORM\Entity]
 class CuentaMovimiento
 {
 
     const TIPO_CAMBIO = 3.2;
     /**
      * @var int
-     *
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var \App\Entity\CuentaPeriodo
-     *
-     * @ORM\ManyToOne(targetEntity="CuentaPeriodo", inversedBy="movimientos")
-     * @ORM\JoinColumn(name="periodo_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CuentaPeriodo', inversedBy: 'movimientos')]
+    #[ORM\JoinColumn(name: 'periodo_id', referencedColumnName: 'id', nullable: false)]
     protected $periodo;
 
     /**
      * @var \App\Entity\CuentaPeriodo
-     *
-     * @ORM\ManyToOne(targetEntity="CuentaPeriodo")
-     * @ORM\JoinColumn(name="periodotransferencia_id", referencedColumnName="id", nullable=true)
-     * @ORM\OrderBy({"modificado" = "ASC"})
      */
+    #[ORM\ManyToOne(targetEntity: 'CuentaPeriodo')]
+    #[ORM\JoinColumn(name: 'periodotransferencia_id', referencedColumnName: 'id', nullable: true)]
+    #[ORM\OrderBy(['modificado' => 'ASC'])]
     protected $periodotransferencia;
 
     /**
      * @var \App\Entity\UserUser
-     *
-     * @ORM\ManyToOne(targetEntity="UserUser", inversedBy="movimientos")
-     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'UserUser', inversedBy: 'movimientos')]
+    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
     protected $user;
 
     /**
      * @var \App\Entity\CuentaCentro
-     *
-     * @ORM\ManyToOne(targetEntity="CuentaCentro", inversedBy="movimientos")
-     * @ORM\JoinColumn(name="centro_id", referencedColumnName="id", nullable=true)
      */
+    #[ORM\ManyToOne(targetEntity: 'CuentaCentro', inversedBy: 'movimientos')]
+    #[ORM\JoinColumn(name: 'centro_id', referencedColumnName: 'id', nullable: true)]
     protected $centro;
 
     /**
      * @var \App\Entity\CuentaClase
-     *
-     * @ORM\ManyToOne(targetEntity="CuentaClase", inversedBy="movimientos")
-     * @ORM\JoinColumn(name="clase_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'CuentaClase', inversedBy: 'movimientos')]
+    #[ORM\JoinColumn(name: 'clase_id', referencedColumnName: 'id', nullable: false)]
     protected $clase;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(name="fechahora", type="datetime")
      */
+    #[ORM\Column(name: 'fechahora', type: 'datetime')]
     private $fechahora;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="descripcion", type="string", length=255)
      */
+    #[ORM\Column(name: 'descripcion', type: 'string', length: 255)]
     private $descripcion;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="cobradorpagador", type="string", length=255, nullable=true)
      */
+    #[ORM\Column(name: 'cobradorpagador', type: 'string', length: 255, nullable: true)]
     private $cobradorpagador;
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="debe", type="decimal", precision=10, scale=2, nullable=true)
      */
+    #[ORM\Column(name: 'debe', type: 'decimal', precision: 10, scale: 2, nullable: true)]
     private $debe;
 
     /**
@@ -101,9 +90,8 @@ class CuentaMovimiento
 
     /**
      * @var string
-     *
-     * @ORM\Column(name="haber", type="decimal", precision=10, scale=2, nullable=true)
      */
+    #[ORM\Column(name: 'haber', type: 'decimal', precision: 10, scale: 2, nullable: true)]
     private $haber;
 
     /**
@@ -113,18 +101,16 @@ class CuentaMovimiento
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     public function __toString()

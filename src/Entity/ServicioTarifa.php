@@ -11,195 +11,168 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * ServicioTarifa
- *
- * @ORM\Table(name="ser_tarifa")
- * @ORM\Entity
- * @Gedmo\TranslationEntity(class="App\Entity\ServicioTarifaTranslation")
  */
+#[ORM\Table(name: 'ser_tarifa')]
+#[ORM\Entity]
+#[Gedmo\TranslationEntity(class: 'App\Entity\ServicioTarifaTranslation')]
 class ServicioTarifa
 {
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
      */
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private $id;
 
     /**
      * @var ArrayCollection
-     *
-     * @ORM\OneToMany(targetEntity="ServicioTarifaTranslation", mappedBy="object", cascade={"persist", "remove"})
      */
+    #[ORM\OneToMany(targetEntity: 'ServicioTarifaTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
     protected $translations;
 
     /**
      * @var bool
-     *
-     * @ORM\Column(type="boolean", options={"default": 0})
      */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private $prorrateado;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", length=100)
      */
+    #[ORM\Column(type: 'string', length: 100)]
     private $nombre;
 
     /**
      * para mostrar al proveedor
      * @var string
-     *
-     * @ORM\Column(type="string", length=100, nullable=true)
      */
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private $nombremostrar;
 
     /**
      * @var string
-     *
-     * @Gedmo\Translatable
-     * @ORM\Column(type="string", length=100, nullable=true)
      */
+    #[Gedmo\Translatable]
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private $titulo;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="string", columnDefinition= "varchar(100) AS (titulo) VIRTUAL NULL", generated="ALWAYS", insertable=false, updatable=false )
      */
+    #[ORM\Column(type: 'string', columnDefinition: 'varchar(100) AS (titulo) VIRTUAL NULL', generated: 'ALWAYS', insertable: false, updatable: false)]
     private $titulooriginal;
 
     /**
      * @var MaestroMoneda
-     *
-     * @ORM\ManyToOne(targetEntity="MaestroMoneda")
      */
+    #[ORM\ManyToOne(targetEntity: 'MaestroMoneda')]
     protected $moneda;
 
     /**
      * @var string
-     *
-     * @ORM\Column(type="decimal", precision=7, scale=2, nullable=true)
      */
+    #[ORM\Column(type: 'decimal', precision: 7, scale: 2, nullable: true)]
     private $monto;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(type="date")
      */
+    #[ORM\Column(type: 'date')]
     private $validezinicio;
 
     /**
      * @var \DateTime
-     *
-     * @ORM\Column(type="date")
      */
+    #[ORM\Column(type: 'date')]
     private $validezfin;
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer", nullable=true)
      */
+    #[ORM\Column(type: 'integer', nullable: true)]
     private $capacidadmin;
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer", nullable=true)
      */
+    #[ORM\Column(type: 'integer', nullable: true)]
     private $capacidadmax;
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer", nullable=true)
      */
+    #[ORM\Column(type: 'integer', nullable: true)]
     private $edadmin;
 
     /**
      * @var int
-     *
-     * @ORM\Column(type="integer", nullable=true)
      */
+    #[ORM\Column(type: 'integer', nullable: true)]
     private $edadmax;
 
     /**
      * @var ServicioTipotarifa
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioTipotarifa")
-     * @ORM\JoinColumn(name="tipotarifa_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioTipotarifa')]
+    #[ORM\JoinColumn(name: 'tipotarifa_id', referencedColumnName: 'id', nullable: false)]
     protected $tipotarifa;
 
     /**
      * @var ServicioModalidadtarifa
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioModalidadtarifa")
-     * @ORM\JoinColumn(name="modalidadtarifa_id", referencedColumnName="id", nullable=true)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioModalidadtarifa')]
+    #[ORM\JoinColumn(name: 'modalidadtarifa_id', referencedColumnName: 'id', nullable: true)]
     protected $modalidadtarifa;
 
     /**
      * @var ServicioComponente
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioComponente", inversedBy="tarifas")
-     * @ORM\JoinColumn(name="componente_id", referencedColumnName="id", nullable=false)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioComponente', inversedBy: 'tarifas')]
+    #[ORM\JoinColumn(name: 'componente_id', referencedColumnName: 'id', nullable: false)]
     protected $componente;
 
     /**
      * @var MaestroCategoriatour
-     *
-     * @ORM\ManyToOne(targetEntity="MaestroCategoriatour")
-     * @ORM\JoinColumn(name="categoriatour_id", referencedColumnName="id", nullable=true)
      */
+    #[ORM\ManyToOne(targetEntity: 'MaestroCategoriatour')]
+    #[ORM\JoinColumn(name: 'categoriatour_id', referencedColumnName: 'id', nullable: true)]
     protected $categoriatour;
 
     /**
      * @var MaestroTipopax
-     *
-     * @ORM\ManyToOne(targetEntity="MaestroTipopax")
      */
+    #[ORM\ManyToOne(targetEntity: 'MaestroTipopax')]
     protected $tipopax;
 
     /**
      * @var \App\Entity\ServicioProvider
-     *
-     * @ORM\ManyToOne(targetEntity="ServicioProvider", inversedBy="tarifas")
-     * @ORM\JoinColumn(name="provider_id", referencedColumnName="id", nullable=true)
      */
+    #[ORM\ManyToOne(targetEntity: 'ServicioProvider', inversedBy: 'tarifas')]
+    #[ORM\JoinColumn(name: 'provider_id', referencedColumnName: 'id', nullable: true)]
     protected $provider;
 
     /**
      * @var bool
-     *
-     * @ORM\Column(type="boolean", options={"default": 0})
      */
+    #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private $providernomostrable;
 
     /**
      * @var \DateTime $creado
-     *
-     * @Gedmo\Timestampable(on="create")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'create')]
+    #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
      * @var \DateTime $modificado
-     *
-     * @Gedmo\Timestampable(on="update")
-     * @ORM\Column(type="datetime")
      */
+    #[Gedmo\Timestampable(on: 'update')]
+    #[ORM\Column(type: 'datetime')]
     private $modificado;
 
-    /**
-     * @Gedmo\Locale
-     */
+    #[Gedmo\Locale]
     private $locale;
 
     public function __construct()
