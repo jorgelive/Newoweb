@@ -53,6 +53,7 @@ class CotizacionItinerario
                 continue;
             }
 
+            /** @var \App\Entity\ServicioItinerariodia $dia */
             foreach ($cotservicio->getItinerario()->getItinerariodias() as $dia) {
                 $fecha = (clone $cotservicio->getFechahorainicio())
                     ->add(new \DateInterval('P' . ($dia->getDia() - 1) . 'D'));
@@ -115,6 +116,9 @@ class CotizacionItinerario
         foreach ($cotizacion->getCotservicios() as $servicio) {
             $sid = $servicio->getId();
             foreach ($servicio->getCotcomponentes() as $componente) {
+
+                /** @var \App\Entity\CotizacionCotcomponente $componente */
+                /** @var \App\Entity\ServicioTipocomponente|null $tipo */
                 $tipo = $componente->getComponente()?->getTipocomponente();
                 if (!$tipo || $tipo->isAgendable() !== true) {
                     continue;

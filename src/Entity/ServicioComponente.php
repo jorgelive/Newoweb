@@ -1,98 +1,69 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Entity;
 
+use DateTimeInterface;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
-use Doctrine\Common\Collections\ArrayCollection;
-use Gedmo\Translatable\Translatable;
 
-/**
- * ServicioComponente
- */
 #[ORM\Table(name: 'ser_componente')]
 #[ORM\Entity]
 class ServicioComponente
 {
-
-    /**
-     * @var int
-     */
     #[ORM\Column(type: 'integer')]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
-    /**
-     * @var string
-     */
     #[ORM\Column(type: 'string', length: 100)]
-    private $nombre;
+    private ?string $nombre = null;
 
-    /**
-     * @var int
-     */
     #[ORM\Column(type: 'integer', nullable: true)]
-    private $anticipacionalerta;
+    private ?int $anticipacionalerta = null;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     */
-    #[ORM\OneToMany(targetEntity: 'ServicioComponenteitem', mappedBy: 'componente', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    /** Colección ordenada por 'titulo' ASC (lado 1:N con items). */
+    #[ORM\OneToMany(
+        targetEntity: ServicioComponenteitem::class,
+        mappedBy: 'componente',
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
     #[ORM\OrderBy(['titulo' => 'ASC'])]
-    private $componenteitems;
+    private Collection $componenteitems;
 
-    /**
-     * @var \App\Entity\ServicioServicio
-     *
-     * @ORM\ManyToMany(targetEntity="ServicioServicio", mappedBy="componentes")
-     * @ORM\JoinTable(name="servicio_componente",
-     *      joinColumns={@ORM\JoinColumn(name="componente_id", referencedColumnName="id")},
-     *      inverseJoinColumns={@ORM\JoinColumn(name="servicio_id", referencedColumnName="id")}
-     * )
-     */
-    protected $servicios;
+    /** Lado inverso de la relación M:N con ServicioServicio::componentes. */
+    #[ORM\ManyToMany(targetEntity: ServicioServicio::class, mappedBy: 'componentes')]
+    protected Collection $servicios;
 
-    /**
-     * @var \App\Entity\ServicioTipocomponente
-     */
-    #[ORM\ManyToOne(targetEntity: 'ServicioTipocomponente')]
+    #[ORM\ManyToOne(targetEntity: ServicioTipocomponente::class)]
     #[ORM\JoinColumn(name: 'tipocomponente_id', referencedColumnName: 'id', nullable: false)]
-    protected $tipocomponente;
+    protected ?ServicioTipocomponente $tipocomponente = null;
 
-    /**
-     * @var string
-     */
+    // Guardamos como string porque la columna es DECIMAL(4,1) y queremos evitar pérdidas por float.
     #[ORM\Column(type: 'decimal', precision: 4, scale: 1, nullable: true)]
-    private $duracion;
+    private ?string $duracion = null;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     */
-    #[ORM\OneToMany(targetEntity: 'ServicioTarifa', mappedBy: 'componente', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    /** Colección ordenada por 'nombre' ASC (lado 1:N con tarifas). */
+    #[ORM\OneToMany(
+        targetEntity: ServicioTarifa::class,
+        mappedBy: 'componente',
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
     #[ORM\OrderBy(['nombre' => 'ASC'])]
-    private $tarifas;
+    private Collection $tarifas;
 
-    /**
-     * @var \DateTime $creado
-     */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private $creado;
+    private ?DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private $modificado;
+    private ?DateTimeInterface $modificado = null;
 
-
-    /**
-     * Constructor
-     */
     public function __construct()
     {
         $this->tarifas = new ArrayCollection();
@@ -100,14 +71,19 @@ class ServicioComponente
         $this->componenteitems = new ArrayCollection();
     }
 
-    public function __clone() {
-        if($this->id) {
+    /**
+     * Clonado profundo de tarifas y componenteitems; preserva enlaces M:N añadiendo este a cada servicio.
+     * Importante: se limpian id/fechas para que Doctrine trate el clon como nuevo.
+     */
+    public function __clone(): void
+    {
+        if ($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
 
             $newTarifas = new ArrayCollection();
-            foreach($this->tarifas as $tarifa) {
+            foreach ($this->tarifas as $tarifa) {
                 $newTarifa = clone $tarifa;
                 $newTarifa->setComponente($this);
                 $newTarifas->add($newTarifa);
@@ -115,15 +91,15 @@ class ServicioComponente
             $this->tarifas = $newTarifas;
 
             $newServicios = new ArrayCollection();
-            foreach($this->servicios as $servicio) {
-                $newServicio = $servicio;
+            foreach ($this->servicios as $servicio) {
+                $newServicio = $servicio; // mantenemos referencia y sumamos este componente
                 $newServicio->addComponente($this);
                 $newServicios->add($newServicio);
             }
             $this->servicios = $newServicios;
 
             $newComponenteitems = new ArrayCollection();
-            foreach($this->componenteitems as $componenteitem) {
+            foreach ($this->componenteitems as $componenteitem) {
                 $newComponenteitem = clone $componenteitem;
                 $newComponenteitem->setComponente($this);
                 $newComponenteitems->add($newComponenteitem);
@@ -134,7 +110,7 @@ class ServicioComponente
 
     public function __toString(): string
     {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        return $this->getNombre() ?? sprintf('Id: %s.', (string) $this->getId()) ?? '';
     }
 
     public function getId(): ?int
@@ -145,7 +121,6 @@ class ServicioComponente
     public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
-    
         return $this;
     }
 
@@ -157,7 +132,6 @@ class ServicioComponente
     public function setAnticipacionalerta(?int $anticipacionalerta): self
     {
         $this->anticipacionalerta = $anticipacionalerta;
-
         return $this;
     }
 
@@ -166,26 +140,24 @@ class ServicioComponente
         return $this->anticipacionalerta;
     }
 
-    public function setCreado(?\DateTime $creado): self
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
-    public function getCreado(): ?\DateTime
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    public function setModificado(?\DateTime $modificado): self
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
-    public function getModificado(): ?\DateTime
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
@@ -193,7 +165,6 @@ class ServicioComponente
     public function setTipocomponente(?ServicioTipocomponente $tipocomponente = null): self
     {
         $this->tipocomponente = $tipocomponente;
-    
         return $this;
     }
 
@@ -205,17 +176,16 @@ class ServicioComponente
     public function addTarifa(ServicioTarifa $tarifa): self
     {
         $tarifa->setComponente($this);
-
         $this->tarifas[] = $tarifa;
-    
         return $this;
     }
 
-    public function removeTarifa(ServicioTarifa $tarifa)
+    public function removeTarifa(ServicioTarifa $tarifa): void
     {
         $this->tarifas->removeElement($tarifa);
     }
 
+    /** @return Collection<int, ServicioTarifa> */
     public function getTarifas(): Collection
     {
         return $this->tarifas;
@@ -224,18 +194,17 @@ class ServicioComponente
     public function addServicio(ServicioServicio $servicio): self
     {
         $servicio->addComponente($this);
-
         $this->servicios[] = $servicio;
-    
         return $this;
     }
 
-    public function removeServicio(ServicioServicio $servicio)
+    public function removeServicio(ServicioServicio $servicio): void
     {
         $this->servicios->removeElement($servicio);
         $servicio->removeComponente($this);
     }
 
+    /** @return Collection<int, ServicioServicio> */
     public function getServicios(): Collection
     {
         return $this->servicios;
@@ -244,7 +213,6 @@ class ServicioComponente
     public function setDuracion(?string $duracion = null): self
     {
         $this->duracion = $duracion;
-    
         return $this;
     }
 
@@ -256,17 +224,16 @@ class ServicioComponente
     public function addComponenteitem(ServicioComponenteitem $componenteitem): self
     {
         $componenteitem->setComponente($this);
-
         $this->componenteitems[] = $componenteitem;
-
         return $this;
     }
 
-    public function removeComponenteitem(ServicioComponenteitem $componenteitem)
+    public function removeComponenteitem(ServicioComponenteitem $componenteitem): void
     {
         $this->componenteitems->removeElement($componenteitem);
     }
 
+    /** @return Collection<int, ServicioComponenteitem> */
     public function getComponenteitems(): Collection
     {
         return $this->componenteitems;

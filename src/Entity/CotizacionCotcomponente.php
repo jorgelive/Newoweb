@@ -33,7 +33,7 @@ class CotizacionCotcomponente
     protected ?CotizacionEstadocotcomponente $estadocotcomponente = null;
 
     /** @var Collection<int, CotizacionCottarifa> */
-    #[ORM\OneToMany(targetEntity: CotizacionCottarifa::class, mappedBy: 'cotcomponente', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'cotcomponente', targetEntity: CotizacionCottarifa::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $cottarifas;
 
     #[ORM\Column(name: 'cantidad', type: 'integer', options: ['default' => 1])]

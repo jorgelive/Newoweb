@@ -1,109 +1,82 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Entity;
 
+use DateTimeInterface;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
-use Doctrine\Common\Collections\ArrayCollection;
-use Gedmo\Translatable\Translatable;
 
-/**
- * ServicioServicio
- */
 #[ORM\Table(name: 'ser_servicio')]
 #[ORM\Entity]
 #[Gedmo\TranslationEntity(class: 'App\Entity\ServicioServicioTranslation')]
 class ServicioServicio
 {
-
-
-    /**
-     * @var int
-     */
     #[ORM\Column(type: 'integer')]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
-    /**
-     * @var ArrayCollection
-     */
+    /** Colección de traducciones (mappedBy="object" en la entidad de traducción). */
     #[ORM\OneToMany(targetEntity: 'ServicioServicioTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
-    protected $translations;
+    protected Collection $translations;
 
-    /**
-     * @var string
-     */
     #[ORM\Column(type: 'string', length: 20)]
-    private $codigo;
+    private ?string $codigo = null;
 
-    /**
-     * @var bool
-     */
     #[ORM\Column(type: 'boolean', options: ['default' => 0])]
-    private $paralelo;
+    private bool $paralelo = false;
 
-    /**
-     * @var string
-     */
     #[ORM\Column(type: 'string', length: 100)]
-    private $nombre;
+    private ?string $nombre = null;
 
-    /**
-     * @var \DateTime $creado
-     */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private $creado;
+    private ?DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private $modificado;
+    private ?DateTimeInterface $modificado = null;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     *
-     * @ORM\ManyToMany(targetEntity="ServicioComponente", inversedBy="servicios")
-     * @ORM\JoinTable(name="servicio_componente",
-     *      joinColumns={@ORM\JoinColumn(name="servicio_id", referencedColumnName="id")},
-     *      inverseJoinColumns={@ORM\JoinColumn(name="componente_id", referencedColumnName="id")}
-     * )
-     */
-    private $componentes;
+    #[ORM\ManyToMany(targetEntity: ServicioComponente::class, inversedBy: 'servicios')]
+    #[ORM\JoinTable(name: 'servicio_componente')]
+    #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id')]
+    #[ORM\InverseJoinColumn(name: 'componente_id', referencedColumnName: 'id')]
+    private Collection $componentes;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection
-     */
+    /** Colección de itinerarios ordenados por 'nombre' ASC. */
     #[ORM\OneToMany(targetEntity: 'ServicioItinerario', mappedBy: 'servicio', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['nombre' => 'ASC'])]
-    private $itinerarios;
+    private Collection $itinerarios;
 
     #[Gedmo\Locale]
-    private $locale;
+    private ?string $locale = null;
 
-    /**
-     * Constructor
-     */
     public function __construct()
     {
-        $this->componentes = new ArrayCollection();
-        $this->itinerarios = new ArrayCollection();
-        $this->translations = new ArrayCollection();
+        $this->componentes   = new ArrayCollection();
+        $this->itinerarios   = new ArrayCollection();
+        $this->translations  = new ArrayCollection();
     }
 
-    public function __clone() {
-        if($this->id) {
+    /**
+     * Clonado: se limpia id/fechas y se re-afilia este servicio en M:N.
+     * Nota: no clonamos componentes/itinerarios; preservamos referencias según tu lógica actual.
+     */
+    public function __clone(): void
+    {
+        if ($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
 
             $newComponentes = new ArrayCollection();
-            foreach($this->componentes as $componente) {
+            foreach ($this->componentes as $componente) {
+                // Importante (pitfall del owner de M:N):
+                // No setear el componente desde aquí ni usar by_reference=false en el Admin
+                // del lado propietario; solo añadimos este servicio al componente.
                 $newComponente = $componente;
                 $newComponente->addServicio($this);
                 $newComponentes->add($newComponente);
@@ -112,214 +85,109 @@ class ServicioServicio
         }
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        return $this->getNombre() ?? sprintf('Id: %s.', (string) $this->getId()) ?? '';
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set codigo
-     *
-     * @param string $codigo
-     *
-     * @return ServicioServicio
-     */
-    public function setCodigo($codigo)
+    public function setCodigo(string $codigo): self
     {
         $this->codigo = $codigo;
-    
         return $this;
     }
 
-    /**
-     * Get codigo
-     *
-     * @return string
-     */
-    public function getCodigo()
+    public function getCodigo(): ?string
     {
         return $this->codigo;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return ServicioServicio
-     */
-    public function setNombre($nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
-    
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return ServicioServicio
-     */
-    public function setCreado($creado)
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return ServicioServicio
-     */
-    public function setModificado($modificado)
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
 
     /**
-     * Add componente
-     *
-     * @param \App\Entity\ServicioComponente $componente
-     *
-     * @return ServicioServicio
+     * Importante: como owner de la M:N, no forces el inverso aquí ni uses by_reference=false.
+     * Mantén la sincronización desde el otro lado si lo necesitas.
      */
-    public function addComponente(\App\Entity\ServicioComponente $componente)
+    public function addComponente(ServicioComponente $componente): self
     {
-        //notajg: no setear el componente ni uilizar by_reference = false en el admin en el owner(en que tiene inversed)
-
-        $this->componentes[] = $componente;
-    
+        if (!$this->componentes->contains($componente)) {
+            $this->componentes->add($componente);
+        }
         return $this;
     }
 
-    /**
-     * Remove componente
-     *
-     * @param \App\Entity\ServicioComponente $componente
-     */
-    public function removeComponente(\App\Entity\ServicioComponente $componente)
+    public function removeComponente(ServicioComponente $componente): void
     {
         $this->componentes->removeElement($componente);
     }
 
-    /**
-     * Get componentes
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getComponentes()
+    /** @return Collection<int, ServicioComponente> */
+    public function getComponentes(): Collection
     {
         return $this->componentes;
     }
 
-    /**
-     * Add itinerario
-     *
-     * @param \App\Entity\ServicioItinerario $itinerario
-     *
-     * @return ServicioServicio
-     */
-    public function addItinerario(\App\Entity\ServicioItinerario $itinerario)
+    public function addItinerario(\App\Entity\ServicioItinerario $itinerario): self
     {
         $itinerario->setServicio($this);
-
-        $this->itinerarios[] = $itinerario;
-    
+        $this->itinerarios->add($itinerario);
         return $this;
     }
 
-    /**
-     * Remove itinerario
-     *
-     * @param \App\Entity\ServicioItinerario $itinerario
-     */
-    public function removeItinerario(\App\Entity\ServicioItinerario $itinerario)
+    public function removeItinerario(\App\Entity\ServicioItinerario $itinerario): void
     {
         $this->itinerarios->removeElement($itinerario);
     }
 
-    /**
-     * Get itinerarios
-     *
-     * @return \Doctrine\Common\Collections\Collection
-     */
-    public function getItinerarios()
+    /** @return Collection<int, \App\Entity\ServicioItinerario> */
+    public function getItinerarios(): Collection
     {
         return $this->itinerarios;
     }
 
-    /**
-     * Set paralelo.
-     *
-     * @param bool $paralelo
-     *
-     * @return ServicioServicio
-     */
-    public function setParalelo($paralelo)
+    public function setParalelo(bool $paralelo): self
     {
         $this->paralelo = $paralelo;
-    
         return $this;
     }
 
-    /**
-     * Is paralelo.
-     *
-     * @return bool
-     */
-    public function isParalelo(): ?bool
+    public function isParalelo(): bool
     {
         return $this->paralelo;
     }
-
 }

@@ -28,6 +28,8 @@ sonata_admin:
                     - app.admin.cotizaciontipofiledocumento
                     - app.admin.cotizacioncotpolitica
                     - app.admin.cotizacioncotnota
+                    - app.admin.cotizacionmenu
+                    - app.admin.cotizacionmenulink
 
             app.admin.group.servicio:
                 label: 'Servicios'

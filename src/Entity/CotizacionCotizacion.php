@@ -43,7 +43,7 @@ class CotizacionCotizacion
     private ?string $resumen = null;
 
     // Columna generada en BD; se mapea como read-only
-    #[ORM\Column(type: 'text', columnDefinition: 'longtext AS (resumen) VIRTUAL NULL', generated: 'ALWAYS', insertable: false, updatable: false)]
+    #[ORM\Column(type: 'text', insertable: false, updatable: false, columnDefinition: 'longtext AS (resumen) VIRTUAL NULL', generated: 'ALWAYS')]
     private ?string $resumenoriginal = null;
 
     #[ORM\Column(type: 'integer')]
@@ -87,9 +87,19 @@ class CotizacionCotizacion
     #[ORM\OrderBy(['fechahorainicio' => 'ASC'])]
     private Collection $cotservicios;
 
+    /** @var Collection<int, CotizacionMenulink> */
+    #[ORM\OneToMany(
+        mappedBy: 'cotizacion',
+        targetEntity: CotizacionMenulink::class,
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
+    #[ORM\OrderBy(['posicion' => 'ASC', 'id' => 'ASC'])]
+    private Collection $menulinks;
+
     /**
      * Almacén no mapeado (lo llena un listener postLoad)
-     * @see App\Service\CotizacionItinerario::GetMainFoto()
+     * @see CotizacionItinerario::GetMainFoto()
      * @var Collection<int, MaestroMedio>
      */
     private Collection $portadafotos;
@@ -121,6 +131,7 @@ class CotizacionCotizacion
         $this->cotnotas      = new ArrayCollection();
         $this->translations  = new ArrayCollection();
         $this->portadafotos  = new ArrayCollection();
+        $this->menulinks = new ArrayCollection();
     }
 
     public function __clone(): void
@@ -253,6 +264,55 @@ class CotizacionCotizacion
             $this->portadafotos = new ArrayCollection();
         }
         return $this->portadafotos;
+    }
+
+    /** @return Collection<int, CotizacionMenulink> */
+    public function getMenulinks(): Collection
+    {
+        return $this->menulinks;
+    }
+
+    public function removeMenulink(CotizacionMenulink $menulink): bool
+    {
+        if (($menu = $menulink->getMenu()) !== null) {
+            $menu->getMenulinks()->removeElement($menulink);
+        }
+        return $this->menulinks->removeElement($menulink);
+    }
+
+    public function addMenulink(CotizacionMenu $menu, ?int $posicion = null): self
+    {
+        foreach ($this->menulinks as $link) {
+            if ($link->getMenu() === $menu) {
+                if ($posicion !== null) { $link->setPosicion($posicion); }
+                if (!$menu->getMenulinks()->contains($link)) {
+                    $menu->getMenulinks()->add($link);
+                }
+                return $this;
+            }
+        }
+
+        $link = (new CotizacionMenulink())
+            ->setCotizacion($this)
+            ->setMenu($menu)
+            ->setPosicion($posicion ?? $this->nextPositionFor($menu));
+
+        $this->menulinks->add($link);
+        if (!$menu->getMenulinks()->contains($link)) {
+            $menu->getMenulinks()->add($link);
+        }
+        return $this;
+    }
+
+    private function nextPositionFor(CotizacionMenu $menu): int
+    {
+        $max = 0;
+        foreach ($this->menulinks as $link) {
+            if ($link->getMenu() === $menu && $link->getPosicion() > $max) {
+                $max = $link->getPosicion();
+            }
+        }
+        return $max + 1;
     }
 
     public function setComision(?string $comision): self { $this->comision = $comision; return $this; }

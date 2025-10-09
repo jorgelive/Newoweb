@@ -189,6 +189,10 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ->add('cotnotas',  null, [
                 'label' => 'Notas'
             ])
+
+            ->add('menulinks',  null, [
+                'label' => 'Menus'
+            ])
         ;
     }
 
@@ -347,6 +351,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ->add('cotnotas',  null, [
                 'label' => 'Notas'
             ])
+            ->add('menulinks',  null, [
+                'label' => 'Menus'
+            ])
             ->add('cotservicios', CollectionType::class, [
                 'by_reference' => false,
                 'label' => 'Servicios'
@@ -390,6 +397,9 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ])
             ->add('cotnotas',  null, [
                 'label' => 'Notas'
+            ])
+            ->add('menulinks',  null, [
+                'label' => 'Menus'
             ])
 
         ;

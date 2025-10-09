@@ -590,6 +590,30 @@ services:
                 show_mosaic_button: false
         public: true
 
+    app.admin.cotizacionmenu:
+        class: App\Admin\CotizacionMenuAdmin
+        tags:
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionMenu
+                manager_type: orm
+                group: 'Cotización'
+                label: 'Menús de Cotización'
+                show_mosaic_button: false
+        public: true
+
+    # CotizacionMenulink (join con orden)
+    app.admin.cotizacionmenulink:
+        class: App\Admin\CotizacionMenulinkAdmin
+        tags:
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionMenulink
+                manager_type: orm
+                group: 'Cotización'
+                label: 'Vínculos Menú ↔ Cotización'
+                show_mosaic_button: false
+
     app.admin.cotizacioncotpolitica:
         class: App\Admin\CotizacionCotpoliticaAdmin
         tags:
