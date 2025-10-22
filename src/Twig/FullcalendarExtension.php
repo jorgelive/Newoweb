@@ -205,10 +205,20 @@ class FullcalendarExtension extends AbstractExtension
                     type: 'resourceTimeline',
                     duration: { months: 1 },
                     buttonText: 'Mes Line',
-                    slotMinWidth: 60,
-                    slotDuration: '12:00:00',
+                    slotMinWidth: 120,
+                    slotDuration: '24:00:00',
                     resourceAreaWidth: '100px',
-                    contentHeight: 350                  
+                    contentHeight: 350,
+                    // (opcional) esconder explícitamente las etiquetas de 0 aparecieran:
+                    slotLabelContent(arg) {
+                        //console.log(arg);
+                        const isHourLevel = arg.level === 1; // si ves que no funciona, prueba === 0
+                        if (isHourLevel) {
+                            return "";
+                        }else{
+                            return arg.text;
+                        }
+                    }               
                 }
             },
             dateClick: function(info) {

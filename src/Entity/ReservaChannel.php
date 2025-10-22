@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use DateTime;
+use DateTimeInterface;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -37,26 +39,26 @@ class ReservaChannel
     private $nombre;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'ReservaReserva', mappedBy: 'channel', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $reservas;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'ReservaUnitnexo', mappedBy: 'channel', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $unitnexos;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      *r
      */
     #[Gedmo\Timestampable(on: 'update')]
@@ -93,24 +95,24 @@ class ReservaChannel
         return $this;
     }
 
-    public function getCreado(): ?\DateTimeInterface
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    public function setCreado(\DateTimeInterface $creado): self
+    public function setCreado(DateTimeInterface $creado): self
     {
         $this->creado = $creado;
 
         return $this;
     }
 
-    public function getModificado(): ?\DateTimeInterface
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
 
-    public function setModificado(\DateTimeInterface $modificado): self
+    public function setModificado(DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
 

@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -15,14 +16,14 @@ class TransporteUnidadbitacora
     private $id;
 
     /**
-     * @var \App\Entity\TransporteUnidad
+     * @var TransporteUnidad
      */
     #[ORM\ManyToOne(targetEntity: 'TransporteUnidad', inversedBy: 'unidadbitacoras')]
     #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false)]
     private $unidad;
 
     /**
-     * @var \App\Entity\TransporteTipounibit
+     * @var TransporteTipounibit
      */
     #[ORM\ManyToOne(targetEntity: 'TransporteTipounibit')]
     #[ORM\JoinColumn(name: 'tipounibit_id', referencedColumnName: 'id', nullable: false)]
@@ -38,20 +39,20 @@ class TransporteUnidadbitacora
     private $kilometraje;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      */
     #[ORM\Column(name: 'fecha', type: 'date')]
     private $fecha;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -105,7 +106,7 @@ class TransporteUnidadbitacora
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return TransporteUnidadbitacora
      */
@@ -119,7 +120,7 @@ class TransporteUnidadbitacora
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -129,7 +130,7 @@ class TransporteUnidadbitacora
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return TransporteUnidadbitacora
      */
@@ -143,7 +144,7 @@ class TransporteUnidadbitacora
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -153,11 +154,11 @@ class TransporteUnidadbitacora
     /**
      * Set unidad
      *
-     * @param \App\Entity\TransporteUnidad $unidad
+     * @param TransporteUnidad $unidad
      *
      * @return TransporteUnidadbitacora
      */
-    public function setUnidad(\App\Entity\TransporteUnidad $unidad = null)
+    public function setUnidad(TransporteUnidad $unidad = null)
     {
         $this->unidad = $unidad;
 
@@ -167,7 +168,7 @@ class TransporteUnidadbitacora
     /**
      * Get unidad
      *
-     * @return \App\Entity\TransporteUnidad
+     * @return TransporteUnidad
      */
     public function getUnidad()
     {
@@ -177,11 +178,11 @@ class TransporteUnidadbitacora
     /**
      * Set tipounibit
      *
-     * @param \App\Entity\TransporteTipounibit $tipounibit
+     * @param TransporteTipounibit $tipounibit
      *
      * @return TransporteUnidadbitacora
      */
-    public function setTipounibit(\App\Entity\TransporteTipounibit $tipounibit = null)
+    public function setTipounibit(TransporteTipounibit $tipounibit = null)
     {
         $this->tipounibit = $tipounibit;
 
@@ -191,7 +192,7 @@ class TransporteUnidadbitacora
     /**
      * Get tipounibit
      *
-     * @return \App\Entity\TransporteTipounibit
+     * @return TransporteTipounibit
      */
     public function getTipounibit()
     {
@@ -201,7 +202,7 @@ class TransporteUnidadbitacora
     /**
      * Set fecha.
      *
-     * @param \DateTime $fecha
+     * @param DateTime $fecha
      *
      * @return TransporteUnidadbitacora
      */
@@ -215,7 +216,7 @@ class TransporteUnidadbitacora
     /**
      * Get fecha.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getFecha()
     {

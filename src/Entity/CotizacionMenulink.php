@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
@@ -32,11 +33,11 @@ class CotizacionMenulink
     // Timestampable NO NULL
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     public function getId(): ?int { return $this->id; }
 
@@ -49,9 +50,9 @@ class CotizacionMenulink
     public function getPosicion(): int { return $this->posicion; }
     public function setPosicion(int $posicion): self { $this->posicion = $posicion; return $this; }
 
-    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
-    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?DateTimeInterface { return $this->creado; }
+    public function setCreado(?DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
 
-    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
-    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?DateTimeInterface { return $this->modificado; }
+    public function setModificado(?DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
 }

@@ -9,6 +9,7 @@ use App\Entity\ComprobanteTipo;
 use App\Entity\MaestroMoneda;
 use App\Entity\TransporteServiciocontable;
 use App\Entity\UserDependencia;
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -63,7 +64,7 @@ class ComprobanteComprobante
     private ?string $documento = null;
 
     #[ORM\Column(type: 'date', nullable: true)]
-    private ?\DateTimeInterface $fechaemision = null;
+    private ?DateTimeInterface $fechaemision = null;
 
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $url = null;
@@ -86,11 +87,11 @@ class ComprobanteComprobante
     // Timestampable NO NULL (consigna)
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     public function __construct()
     {
@@ -166,11 +167,11 @@ class ComprobanteComprobante
         return sprintf('%s-%s', $this->serie ?? '', $this->documento ?? '');
     }
 
-    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
-    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
+    public function setCreado(?DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?DateTimeInterface { return $this->creado; }
 
-    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
-    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
+    public function setModificado(?DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?DateTimeInterface { return $this->modificado; }
 
     public function setDependencia(UserDependencia $dependencia): self { $this->dependencia = $dependencia; return $this; }
     public function getDependencia(): ?UserDependencia { return $this->dependencia; }
@@ -184,8 +185,8 @@ class ComprobanteComprobante
     public function setEstado(?ComprobanteEstado $estado): self { $this->estado = $estado; return $this; }
     public function getEstado(): ?ComprobanteEstado { return $this->estado; }
 
-    public function setFechaemision(?\DateTimeInterface $fechaemision): self { $this->fechaemision = $fechaemision; return $this; }
-    public function getFechaemision(): ?\DateTimeInterface { return $this->fechaemision; }
+    public function setFechaemision(?DateTimeInterface $fechaemision): self { $this->fechaemision = $fechaemision; return $this; }
+    public function getFechaemision(): ?DateTimeInterface { return $this->fechaemision; }
 
     public function setUrl(?string $url): self { $this->url = $url; return $this; }
     public function getUrl(): ?string { return $this->url; }

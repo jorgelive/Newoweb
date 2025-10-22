@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -13,159 +14,85 @@ use Gedmo\Mapping\Annotation as Gedmo;
 #[ORM\Entity]
 class CotizacionEstadocotizacion
 {
-    public const DB_VALOR_PENDIENTE = 1;
-    public const DB_VALOR_ARCHIVADO = 2;
-    public const DB_VALOR_CONFIRMADO = 3;
-    public const DB_VALOR_OPERADO = 4;
-    public const DB_VALOR_CANCELADO = 5;
-    public const DB_VALOR_PLANTILLA = 6;
-    public const DB_VALOR_WAITING = 7;
+    public const DB_VALOR_PENDIENTE   = 1;
+    public const DB_VALOR_ARCHIVADO   = 2;
+    public const DB_VALOR_CONFIRMADO  = 3;
+    public const DB_VALOR_OPERADO     = 4;
+    public const DB_VALOR_CANCELADO   = 5;
+    public const DB_VALOR_PLANTILLA   = 6;
+    public const DB_VALOR_WAITING     = 7;
 
-    /**
-     * @var int
-     */
     #[ORM\Column(name: 'id', type: 'integer')]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
-    /**
-     * @var string
-     */
+    // Consigna: strings inicializados a null aunque no sean nulables en DB
     #[ORM\Column(name: 'nombre', type: 'string', length: 255)]
-    private $nombre;
+    private ?string $nombre = null;
 
-    /**
-     * @var bool
-     */
     #[ORM\Column(type: 'boolean', options: ['default' => 0])]
-    private $nopublico;
+    private ?bool $nopublico = null;
 
-    /**
-     * @var \DateTime $creado
-     */
+    // Fechas con DateTimeInterface y null para compatibilidad con Gedmo Timestampable
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private $creado;
+    private ?DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private $modificado;
+    private ?DateTimeInterface $modificado = null;
 
-
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        return $this->getNombre() ?? sprintf('Id: %s.', $this->getId() ?? '');
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return CotizacionEstadocotizacion
-     */
-    public function setNombre($nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
-    
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set nopublico
-     *
-     * @param boolean $nopublico
-     *
-     * @return CotizacionEstadocotizacion
-     */
-    public function setNopublico($nopublico)
+    public function setNopublico(?bool $nopublico): self
     {
         $this->nopublico = $nopublico;
-
         return $this;
     }
 
-    /**
-     * Is nopublico
-     *
-     * @return boolean
-     */
     public function isNopublico(): ?bool
     {
         return $this->nopublico;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionEstadocotizacion
-     */
-    public function setCreado($creado)
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionEstadocotizacion
-     */
-    public function setModificado($modificado)
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }

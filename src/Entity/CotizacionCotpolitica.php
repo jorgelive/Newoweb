@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -27,8 +28,8 @@ class CotizacionCotpolitica
      * Nota: La clase *Translation* NO debe tipar $object ni su setter (regla Gedmo).
      */
     #[ORM\OneToMany(
-        targetEntity: 'CotizacionCotpoliticaTranslation',
         mappedBy: 'object',
+        targetEntity: 'CotizacionCotpoliticaTranslation',
         cascade: ['persist', 'remove']
     )]
     protected Collection $translations;
@@ -44,8 +45,8 @@ class CotizacionCotpolitica
      * Orphan removal se mantiene según tu preferencia.
      */
     #[ORM\OneToMany(
-        targetEntity: 'CotizacionCotizacion',
         mappedBy: 'cotpolitica',
+        targetEntity: 'CotizacionCotizacion',
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
@@ -53,11 +54,11 @@ class CotizacionCotpolitica
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     #[Gedmo\Locale]
     private ?string $locale = null;
@@ -111,29 +112,29 @@ class CotizacionCotpolitica
         return $this->nombre;
     }
 
-    public function setCreado(\DateTimeInterface $creado): self
+    public function setCreado(DateTimeInterface $creado): self
     {
         $this->creado = $creado;
         return $this;
     }
 
-    public function getCreado(): ?\DateTimeInterface
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    public function setModificado(\DateTimeInterface $modificado): self
+    public function setModificado(DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
         return $this;
     }
 
-    public function getModificado(): ?\DateTimeInterface
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
 
-    public function addCotizacion(\App\Entity\CotizacionCotizacion $cotizacion): self
+    public function addCotizacion(CotizacionCotizacion $cotizacion): self
     {
         $cotizacion->setCotpolitica($this);
         $this->cotizaciones->add($cotizacion);
@@ -141,19 +142,19 @@ class CotizacionCotpolitica
     }
 
     // Alias por inflector inglés (se mantiene igual)
-    public function addCotizacione(\App\Entity\CotizacionCotizacion $cotizacion): self
+    public function addCotizacione(CotizacionCotizacion $cotizacion): self
     {
         return $this->addCotizacion($cotizacion);
     }
 
-    public function removeCotizacion(\App\Entity\CotizacionCotizacion $cotizacion): void
+    public function removeCotizacion(CotizacionCotizacion $cotizacion): void
     {
         // Se conserva tu lógica existente sin modificar el lado dueño
         $this->cotizaciones->removeElement($cotizacion);
     }
 
     // Alias por inflector inglés (se mantiene igual)
-    public function removeCotizacione(\App\Entity\CotizacionCotizacion $cotizacion): void
+    public function removeCotizacione(CotizacionCotizacion $cotizacion): void
     {
         $this->removeCotizacion($cotizacion);
     }

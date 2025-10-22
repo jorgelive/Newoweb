@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -49,11 +50,11 @@ class ReservaEstado
     // ✅ Mapeadas como columnas para que Gedmo pueda escribir
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     public function __construct() {
         $this->reservas = new ArrayCollection();
@@ -71,11 +72,11 @@ class ReservaEstado
     public function getColorcalendar(): ?string { return $this->colorcalendar; }
     public function setColorcalendar(string $colorcalendar): self { $this->colorcalendar = $colorcalendar; return $this; }
 
-    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
-    public function setCreado(\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?DateTimeInterface { return $this->creado; }
+    public function setCreado(DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
 
-    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
-    public function setModificado(\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?DateTimeInterface { return $this->modificado; }
+    public function setModificado(DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
 
     /** @return Collection<int, ReservaReserva> */
     public function getReservas(): Collection { return $this->reservas; }

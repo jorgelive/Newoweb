@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -31,20 +32,20 @@ class FitTipodieta
     private $nombre;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'FitDieta', mappedBy: 'tipodieta')]
     private $dietas;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -101,11 +102,11 @@ class FitTipodieta
     /**
      * Add dieta
      *
-     * @param \App\Entity\FitDieta $dieta
+     * @param FitDieta $dieta
      *
      * @return FitTipodieta
      */
-    public function addDieta(\App\Entity\FitDieta $dieta)
+    public function addDieta(FitDieta $dieta)
     {
         $dieta->setTipodieta($this);
 
@@ -117,9 +118,9 @@ class FitTipodieta
     /**
      * Remove dieta
      *
-     * @param \App\Entity\FitDieta $dieta
+     * @param FitDieta $dieta
      */
-    public function removeDieta(\App\Entity\FitDieta $dieta)
+    public function removeDieta(FitDieta $dieta)
     {
         $this->dietas->removeElement($dieta);
     }
@@ -127,7 +128,7 @@ class FitTipodieta
     /**
      * Get alimento
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getDietas()
     {
@@ -139,7 +140,7 @@ class FitTipodieta
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return FitTipodieta
      */
@@ -153,7 +154,7 @@ class FitTipodieta
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -163,7 +164,7 @@ class FitTipodieta
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return FitTipodieta
      */
@@ -177,7 +178,7 @@ class FitTipodieta
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {

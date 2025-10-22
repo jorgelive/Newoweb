@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -11,7 +12,7 @@ use App\Traits\MainArchivoTrait;
 #[ORM\Entity]
 #[ORM\Table(name: 'res_unitmedio')]
 #[ORM\HasLifecycleCallbacks]
-#[Gedmo\TranslationEntity(class: \App\Entity\ReservaUnitmedioTranslation::class)]
+#[Gedmo\TranslationEntity(class: ReservaUnitmedioTranslation::class)]
 class ReservaUnitmedio
 {
     use MainArchivoTrait;
@@ -32,7 +33,7 @@ class ReservaUnitmedio
      */
     #[ORM\OneToMany(
         mappedBy: 'object',
-        targetEntity: \App\Entity\ReservaUnitmedioTranslation::class,
+        targetEntity: ReservaUnitmedioTranslation::class,
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
@@ -46,7 +47,7 @@ class ReservaUnitmedio
      * NUEVA RELACIÓN: hijo de la característica.
      */
     #[ORM\ManyToOne(
-        targetEntity: \App\Entity\ReservaUnitcaracteristica::class,
+        targetEntity: ReservaUnitcaracteristica::class,
         inversedBy: 'medios'
     )]
     #[ORM\JoinColumn(
@@ -55,15 +56,15 @@ class ReservaUnitmedio
         nullable: true,
         onDelete: 'SET NULL'
     )]
-    protected ?\App\Entity\ReservaUnitcaracteristica $unitcaracteristica = null;
+    protected ?ReservaUnitcaracteristica $unitcaracteristica = null;
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     #[Gedmo\Locale]
     private ?string $locale = null;
@@ -96,13 +97,13 @@ class ReservaUnitmedio
     }
 
     // Translations
-    /** @return Collection<int,\App\Entity\ReservaUnitmedioTranslation> */
+    /** @return Collection<int,ReservaUnitmedioTranslation> */
     public function getTranslations(): Collection
     {
         return $this->translations;
     }
 
-    public function addTranslation(\App\Entity\ReservaUnitmedioTranslation $t): self
+    public function addTranslation(ReservaUnitmedioTranslation $t): self
     {
         if (!$this->translations->contains($t)) {
             $this->translations->add($t);
@@ -111,7 +112,7 @@ class ReservaUnitmedio
         return $this;
     }
 
-    public function removeTranslation(\App\Entity\ReservaUnitmedioTranslation $t): self
+    public function removeTranslation(ReservaUnitmedioTranslation $t): self
     {
         if ($this->translations->removeElement($t)) {
             if ($t->getObject() === $this) {
@@ -140,36 +141,36 @@ class ReservaUnitmedio
     }
 
     // Relación característica
-    public function getUnitcaracteristica(): ?\App\Entity\ReservaUnitcaracteristica
+    public function getUnitcaracteristica(): ?ReservaUnitcaracteristica
     {
         return $this->unitcaracteristica;
     }
 
-    public function setUnitcaracteristica(?\App\Entity\ReservaUnitcaracteristica $c): self
+    public function setUnitcaracteristica(?ReservaUnitcaracteristica $c): self
     {
         $this->unitcaracteristica = $c;
         return $this;
     }
 
     // Timestamps
-    public function setCreado(?\DateTimeInterface $creado): self
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
         return $this;
     }
 
-    public function getCreado(): ?\DateTimeInterface
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    public function setModificado(?\DateTimeInterface $modificado): self
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
         return $this;
     }
 
-    public function getModificado(): ?\DateTimeInterface
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }

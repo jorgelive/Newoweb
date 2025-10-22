@@ -60,7 +60,7 @@ class UserOrganizacion
     private $direccion;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'UserDependencia', mappedBy: 'organizacion', cascade: ['persist', 'remove'], orphanRemoval: true)]
     protected $dependencias;
@@ -175,10 +175,10 @@ class UserOrganizacion
     /**
      * Add dependencias
      *
-     * @param \App\Entity\UserDependencia $dependencia
+     * @param UserDependencia $dependencia
      * @return UserOrganizacion
      */
-    public function addDependencia(\App\Entity\UserDependencia $dependencia)
+    public function addDependencia(UserDependencia $dependencia)
     {
         $dependencia->setOrganizacion($this);
 
@@ -200,9 +200,9 @@ class UserOrganizacion
     /**
      * Remove dependencias
      *
-     * @param \App\Entity\UserDependencia $dependencia
+     * @param UserDependencia $dependencia
      */
-    public function removeDependencia(\App\Entity\UserDependencia $dependencia)
+    public function removeDependencia(UserDependencia $dependencia)
     {
         $this->dependencias->removeElement($dependencia);
     }
@@ -210,7 +210,7 @@ class UserOrganizacion
     /**
      * Get dependencias
      *
-     * @return \Doctrine\Common\Collections\Collection 
+     * @return Collection
      */
     public function getDependencias()
     {

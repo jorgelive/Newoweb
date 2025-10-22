@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use DateTime;
+use DateTimeInterface;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -21,26 +23,26 @@ class CotizacionCotservicio
     private ?int $id = null;
 
     #[ORM\Column(name: 'fechahorainicio', type: 'datetime')]
-    private ?\DateTimeInterface $fechahorainicio = null;
+    private ?DateTimeInterface $fechahorainicio = null;
 
     #[ORM\Column(name: 'fechahorafin', type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $fechahorafin = null;
+    private ?DateTimeInterface $fechahorafin = null;
 
     #[ORM\ManyToOne(targetEntity: 'CotizacionCotizacion', inversedBy: 'cotservicios')]
     #[ORM\JoinColumn(name: 'cotizacion_id', referencedColumnName: 'id', nullable: false)]
-    protected ?\App\Entity\CotizacionCotizacion $cotizacion = null;
+    protected ?CotizacionCotizacion $cotizacion = null;
 
     #[ORM\ManyToOne(targetEntity: 'ServicioServicio')]
     #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id', nullable: false)]
-    protected ?\App\Entity\ServicioServicio $servicio = null;
+    protected ?ServicioServicio $servicio = null;
 
     #[ORM\ManyToOne(targetEntity: 'ServicioItinerario')]
     #[ORM\JoinColumn(name: 'itinerario_id', referencedColumnName: 'id', nullable: false)]
-    protected ?\App\Entity\ServicioItinerario $itinerario = null;
+    protected ?ServicioItinerario $itinerario = null;
 
     #[ORM\OneToMany(
-        targetEntity: 'CotizacionCotcomponente',
         mappedBy: 'cotservicio',
+        targetEntity: 'CotizacionCotcomponente',
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
@@ -49,11 +51,11 @@ class CotizacionCotservicio
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     public function __construct()
     {
@@ -105,98 +107,98 @@ class CotizacionCotservicio
         );
     }
 
-    public function setFechahorainicio(\DateTimeInterface $fechahorainicio): self
+    public function setFechahorainicio(DateTimeInterface $fechahorainicio): self
     {
         $this->fechahorainicio = $fechahorainicio;
         return $this;
     }
 
-    public function getFechahorainicio(): ?\DateTimeInterface
+    public function getFechahorainicio(): ?DateTimeInterface
     {
         return $this->fechahorainicio;
     }
 
-    public function getFechainicio(): ?\DateTimeInterface
+    public function getFechainicio(): ?DateTimeInterface
     {
         return $this->fechahorainicio
-            ? new \DateTime($this->fechahorainicio->format('Y-m-d'))
+            ? new DateTime($this->fechahorainicio->format('Y-m-d'))
             : null;
     }
 
-    public function setFechahorafin(?\DateTimeInterface $fechahorafin): self
+    public function setFechahorafin(?DateTimeInterface $fechahorafin): self
     {
         $this->fechahorafin = $fechahorafin;
         return $this;
     }
 
-    public function getFechahorafin(): ?\DateTimeInterface
+    public function getFechahorafin(): ?DateTimeInterface
     {
         return $this->fechahorafin;
     }
 
-    public function getFechafin(): ?\DateTimeInterface
+    public function getFechafin(): ?DateTimeInterface
     {
         return $this->fechahorafin
-            ? new \DateTime($this->fechahorafin->format('Y-m-d'))
+            ? new DateTime($this->fechahorafin->format('Y-m-d'))
             : null;
     }
 
-    public function setCreado(?\DateTimeInterface $creado): self
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
         return $this;
     }
 
-    public function getCreado(): ?\DateTimeInterface
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    public function setModificado(?\DateTimeInterface $modificado): self
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
         return $this;
     }
 
-    public function getModificado(): ?\DateTimeInterface
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
 
-    public function setCotizacion(?\App\Entity\CotizacionCotizacion $cotizacion = null): self
+    public function setCotizacion(?CotizacionCotizacion $cotizacion = null): self
     {
         $this->cotizacion = $cotizacion;
         return $this;
     }
 
-    public function getCotizacion(): ?\App\Entity\CotizacionCotizacion
+    public function getCotizacion(): ?CotizacionCotizacion
     {
         return $this->cotizacion;
     }
 
-    public function setServicio(?\App\Entity\ServicioServicio $servicio = null): self
+    public function setServicio(?ServicioServicio $servicio = null): self
     {
         $this->servicio = $servicio;
         return $this;
     }
 
-    public function getServicio(): ?\App\Entity\ServicioServicio
+    public function getServicio(): ?ServicioServicio
     {
         return $this->servicio;
     }
 
-    public function setItinerario(?\App\Entity\ServicioItinerario $itinerario = null): self
+    public function setItinerario(?ServicioItinerario $itinerario = null): self
     {
         $this->itinerario = $itinerario;
         return $this;
     }
 
-    public function getItinerario(): ?\App\Entity\ServicioItinerario
+    public function getItinerario(): ?ServicioItinerario
     {
         return $this->itinerario;
     }
 
-    public function addCotcomponente(\App\Entity\CotizacionCotcomponente $cotcomponente): self
+    public function addCotcomponente(CotizacionCotcomponente $cotcomponente): self
     {
         $cotcomponente->setCotservicio($this);
         // Se respeta tu forma original de añadir a la colección
@@ -204,12 +206,12 @@ class CotizacionCotservicio
         return $this;
     }
 
-    public function removeCotcomponente(\App\Entity\CotizacionCotcomponente $cotcomponente): void
+    public function removeCotcomponente(CotizacionCotcomponente $cotcomponente): void
     {
         $this->cotcomponentes->removeElement($cotcomponente);
     }
 
-    /** @return \Doctrine\Common\Collections\Collection */
+    /** @return Collection */
     public function getCotcomponentes(): Collection
     {
         return $this->cotcomponentes;

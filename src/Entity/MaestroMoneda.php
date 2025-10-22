@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -32,20 +33,20 @@ class MaestroMoneda
     private $codigoexterno;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'MaestroTipocambio', mappedBy: 'moneda')]
     protected $tipocambios;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -147,7 +148,7 @@ class MaestroMoneda
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      * @return MaestroMoneda
      */
     public function setCreado($creado)
@@ -160,7 +161,7 @@ class MaestroMoneda
     /**
      * Get creado
      *
-     * @return \DateTime 
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -170,7 +171,7 @@ class MaestroMoneda
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      * @return MaestroMoneda
      */
     public function setModificado($modificado)
@@ -183,7 +184,7 @@ class MaestroMoneda
     /**
      * Get modificado
      *
-     * @return \DateTime 
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -219,11 +220,11 @@ class MaestroMoneda
     /**
      * Add tipocambio
      *
-     * @param \App\Entity\MaestroTipocambio $tipocambio
+     * @param MaestroTipocambio $tipocambio
      *
      * @return MaestroMoneda
      */
-    public function addTipocambio(\App\Entity\MaestroTipocambio $tipocambio)
+    public function addTipocambio(MaestroTipocambio $tipocambio)
     {
         $this->tipocambios[] = $tipocambio;
 
@@ -233,9 +234,9 @@ class MaestroMoneda
     /**
      * Remove tipocambio
      *
-     * @param \App\Entity\MaestroTipocambio $tipocambio
+     * @param MaestroTipocambio $tipocambio
      */
-    public function removeTipocambio(\App\Entity\MaestroTipocambio $tipocambio)
+    public function removeTipocambio(MaestroTipocambio $tipocambio)
     {
         $this->tipocambios->removeElement($tipocambio);
     }
@@ -243,7 +244,7 @@ class MaestroMoneda
     /**
      * Get tipocambios
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getTipocambios()
     {

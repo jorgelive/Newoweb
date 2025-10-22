@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -46,11 +47,11 @@ class ServicioTipocomponente
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTime $creado;
+    private ?DateTime $creado;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTime $modificado;
+    private ?DateTime $modificado;
 
     public function __toString(): string
     {
@@ -87,26 +88,26 @@ class ServicioTipocomponente
         return $this->prioridadparaproveedor;
     }
 
-    public function setCreado(?\DateTime $creado): self
+    public function setCreado(?DateTime $creado): self
     {
         $this->creado = $creado;
     
         return $this;
     }
 
-    public function getCreado(): ?\DateTime
+    public function getCreado(): ?DateTime
     {
         return $this->creado;
     }
 
-    public function setModificado(?\DateTime $modificado): self
+    public function setModificado(?DateTime $modificado): self
     {
         $this->modificado = $modificado;
     
         return $this;
     }
 
-    public function getModificado(): ?\DateTime
+    public function getModificado(): ?DateTime
     {
         return $this->modificado;
     }

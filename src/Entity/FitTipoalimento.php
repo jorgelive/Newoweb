@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -31,20 +32,20 @@ class FitTipoalimento
     private $nombre;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'FitAlimento', mappedBy: 'tipoalimento')]
     private $alimentos;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -100,11 +101,11 @@ class FitTipoalimento
     /**
      * Add alimento
      *
-     * @param \App\Entity\FitAlimento $alimento
+     * @param FitAlimento $alimento
      *
      * @return FitTipoalimento
      */
-    public function addAlimento(\App\Entity\FitAlimento $alimento)
+    public function addAlimento(FitAlimento $alimento)
     {
         $alimento->setTipoalimento($this);
 
@@ -116,9 +117,9 @@ class FitTipoalimento
     /**
      * Remove alimento
      *
-     * @param \App\Entity\FitAlimento $alimento
+     * @param FitAlimento $alimento
      */
-    public function removeAlimento(\App\Entity\FitAlimento $alimento)
+    public function removeAlimento(FitAlimento $alimento)
     {
         $this->alimentos->removeElement($alimento);
     }
@@ -126,7 +127,7 @@ class FitTipoalimento
     /**
      * Get alimento
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getAlimentos()
     {
@@ -137,7 +138,7 @@ class FitTipoalimento
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return FitTipoalimento
      */
@@ -151,7 +152,7 @@ class FitTipoalimento
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -161,7 +162,7 @@ class FitTipoalimento
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return FitTipoalimento
      */
@@ -175,7 +176,7 @@ class FitTipoalimento
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {

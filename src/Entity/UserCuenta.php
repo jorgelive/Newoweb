@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -36,28 +37,28 @@ class UserCuenta
     private $password;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
-     * @var \App\Entity\UserUser
+     * @var UserUser
      */
     #[ORM\ManyToOne(targetEntity: 'UserUser', inversedBy: 'cuentas')]
     #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
     private $user;
 
     /**
-     * @var \App\Entity\UserCuentatipo
+     * @var UserCuentatipo
      */
     #[ORM\ManyToOne(targetEntity: 'UserCuentatipo', inversedBy: 'cuentas')]
     #[ORM\JoinColumn(name: 'cuentatipo_id', referencedColumnName: 'id', nullable: false)]
@@ -131,7 +132,7 @@ class UserCuenta
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      * @return UserCuenta
      */
     public function setCreado($creado)
@@ -144,7 +145,7 @@ class UserCuenta
     /**
      * Get creado
      *
-     * @return \DateTime 
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -154,7 +155,7 @@ class UserCuenta
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      * @return UserCuenta
      */
     public function setModificado($modificado)
@@ -167,7 +168,7 @@ class UserCuenta
     /**
      * Get modificado
      *
-     * @return \DateTime 
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -177,10 +178,10 @@ class UserCuenta
     /**
      * Set user
      *
-     * @param \App\Entity\UserUser $user
+     * @param UserUser $user
      * @return UserCuenta
      */
-    public function setUser(\App\Entity\UserUser $user = null)
+    public function setUser(UserUser $user = null)
     {
         $this->user = $user;
 
@@ -190,7 +191,7 @@ class UserCuenta
     /**
      * Get user
      *
-     * @return \App\Entity\UserUser
+     * @return UserUser
      */
     public function getUser()
     {
@@ -200,10 +201,10 @@ class UserCuenta
     /**
      * Set cuentatipo
      *
-     * @param \App\Entity\UserCuentatipo $cuentatipo
+     * @param UserCuentatipo $cuentatipo
      * @return UserCuenta
      */
-    public function setCuentatipo(\App\Entity\UserCuentatipo $cuentatipo = null)
+    public function setCuentatipo(UserCuentatipo $cuentatipo = null)
     {
         $this->cuentatipo = $cuentatipo;
 
@@ -213,7 +214,7 @@ class UserCuenta
     /**
      * Get cuentatipo
      *
-     * @return \App\Entity\UserCuentatipo
+     * @return UserCuentatipo
      */
     public function getCuentatipo()
     {

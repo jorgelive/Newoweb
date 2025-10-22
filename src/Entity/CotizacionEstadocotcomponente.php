@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -13,180 +14,95 @@ use Gedmo\Mapping\Annotation as Gedmo;
 #[ORM\Entity]
 class CotizacionEstadocotcomponente
 {
-
     public const DB_VALOR_PENDIENTE = 1;
     public const DB_VALOR_CONFIRMADO = 2;
     public const DB_VALOR_RECONFIRMADO = 3;
 
-    /**
-     * @var int
-     */
     #[ORM\Column(name: 'id', type: 'integer')]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
-    /**
-     * @var string
-     */
+    // Consigna: inicializar strings a null por compatibilidad con instanciación en Symfony
     #[ORM\Column(name: 'nombre', type: 'string', length: 255)]
-    private $nombre;
+    private ?string $nombre = null;
 
     #[ORM\Column(type: 'string', length: 10)]
-    private $color;
+    private ?string $color = null;
 
     #[ORM\Column(type: 'string', length: 10)]
-    private $colorcalendar;
+    private ?string $colorcalendar = null;
 
-    /**
-     * @var \DateTime $creado
-     */
+    // Fechas tipadas a DateTimeInterface, permitiendo null (Gedmo repuebla en persist/update)
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private $creado;
+    private ?DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private $modificado;
+    private ?DateTimeInterface $modificado = null;
 
-
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
+        return $this->getNombre() ?? sprintf('Id: %s.', $this->getId() ?? '');
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return CotizacionEstadocotcomponente
-     */
-    public function setNombre($nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
-    
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set color
-     *
-     * @param string $color
-     *
-     * @return CotizacionEstadocotcomponente
-     */
-    public function setColor($color)
+    public function setColor(?string $color): self
     {
         $this->color = $color;
-
         return $this;
     }
 
-    /**
-     * Get color
-     *
-     * @return string
-     */
-    public function getColor()
+    public function getColor(): ?string
     {
         return $this->color;
     }
 
-    /**
-     * Set colorcalendar
-     *
-     * @param string $colorcalendar
-     *
-     * @return CotizacionEstadocotcomponente
-     */
-    public function setColorcalendar($colorcalendar)
+    public function setColorcalendar(?string $colorcalendar): self
     {
         $this->colorcalendar = $colorcalendar;
-
         return $this;
     }
 
-    /**
-     * Get colorcalendar
-     *
-     * @return string
-     */
-    public function getColorcalendar()
+    public function getColorcalendar(): ?string
     {
         return $this->colorcalendar;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionEstadocotcomponente
-     */
-    public function setCreado($creado)
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionEstadocotcomponente
-     */
-    public function setModificado($modificado)
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }

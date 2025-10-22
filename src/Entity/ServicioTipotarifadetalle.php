@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -59,14 +60,14 @@ class ServicioTipotarifadetalle
 
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -126,7 +127,7 @@ class ServicioTipotarifadetalle
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return ServicioTipotarifadetalle
      */
@@ -140,7 +141,7 @@ class ServicioTipotarifadetalle
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -150,7 +151,7 @@ class ServicioTipotarifadetalle
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return ServicioTipotarifadetalle
      */
@@ -164,7 +165,7 @@ class ServicioTipotarifadetalle
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {

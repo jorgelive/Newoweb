@@ -162,19 +162,19 @@ class ServicioServicio
         return $this->componentes;
     }
 
-    public function addItinerario(\App\Entity\ServicioItinerario $itinerario): self
+    public function addItinerario(ServicioItinerario $itinerario): self
     {
         $itinerario->setServicio($this);
         $this->itinerarios->add($itinerario);
         return $this;
     }
 
-    public function removeItinerario(\App\Entity\ServicioItinerario $itinerario): void
+    public function removeItinerario(ServicioItinerario $itinerario): void
     {
         $this->itinerarios->removeElement($itinerario);
     }
 
-    /** @return Collection<int, \App\Entity\ServicioItinerario> */
+    /** @return Collection<int, ServicioItinerario> */
     public function getItinerarios(): Collection
     {
         return $this->itinerarios;

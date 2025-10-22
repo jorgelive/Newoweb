@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -27,27 +28,27 @@ class TransporteConductor
     private $color;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'TransporteServicio', mappedBy: 'conductor', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $servicios;
 
     /**
-     * @var \App\Entity\UserUser
+     * @var UserUser
      */
     #[ORM\OneToOne(targetEntity: 'UserUser', inversedBy: 'conductor')]
     #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
@@ -66,7 +67,7 @@ class TransporteConductor
      */
     public function __construct()
     {
-        $this->servicios = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->servicios = new ArrayCollection();
     }
 
     /**
@@ -121,7 +122,7 @@ class TransporteConductor
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return TransporteConductor
      */
@@ -135,7 +136,7 @@ class TransporteConductor
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -145,7 +146,7 @@ class TransporteConductor
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return TransporteConductor
      */
@@ -159,7 +160,7 @@ class TransporteConductor
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -169,11 +170,11 @@ class TransporteConductor
     /**
      * Add servicio
      *
-     * @param \App\Entity\TransporteServicio $servicio
+     * @param TransporteServicio $servicio
      *
      * @return TransporteConductor
      */
-    public function addServicio(\App\Entity\TransporteServicio $servicio)
+    public function addServicio(TransporteServicio $servicio)
     {
         $servicio->setConductor($this);
 
@@ -185,9 +186,9 @@ class TransporteConductor
     /**
      * Remove servicio
      *
-     * @param \App\Entity\TransporteServicio $servicio
+     * @param TransporteServicio $servicio
      */
-    public function removeServicio(\App\Entity\TransporteServicio $servicio)
+    public function removeServicio(TransporteServicio $servicio)
     {
         $this->servicios->removeElement($servicio);
     }
@@ -195,7 +196,7 @@ class TransporteConductor
     /**
      * Get servicios
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getServicios()
     {
@@ -229,11 +230,11 @@ class TransporteConductor
     /**
      * Set user
      *
-     * @param \App\Entity\UserUser $user
+     * @param UserUser $user
      *
      * @return TransporteConductor
      */
-    public function setUser(\App\Entity\UserUser $user = null)
+    public function setUser(UserUser $user = null)
     {
         $this->user = $user;
     
@@ -243,7 +244,7 @@ class TransporteConductor
     /**
      * Get user
      *
-     * @return \App\Entity\UserUser
+     * @return UserUser
      */
     public function getUser()
     {

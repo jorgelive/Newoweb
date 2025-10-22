@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -29,34 +30,34 @@ class TransporteUnidad
     private $color;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'TransporteServicio', mappedBy: 'unidad', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $servicios;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'TransporteUnidadbitacora', mappedBy: 'unidad', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['fecha' => 'DESC'])]
     private $unidadbitacoras;
 
     /**
-     * @var \App\Entity\CuentaCentro
+     * @var CuentaCentro
      */
     #[ORM\OneToOne(targetEntity: 'CuentaCentro', mappedBy: 'unidad')]
     private $centro;
@@ -139,7 +140,7 @@ class TransporteUnidad
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return TransporteUnidad
      */
@@ -153,7 +154,7 @@ class TransporteUnidad
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -163,7 +164,7 @@ class TransporteUnidad
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return TransporteUnidad
      */
@@ -177,7 +178,7 @@ class TransporteUnidad
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -187,11 +188,11 @@ class TransporteUnidad
     /**
      * Add servicio
      *
-     * @param \App\Entity\TransporteServicio $servicio
+     * @param TransporteServicio $servicio
      *
      * @return TransporteUnidad
      */
-    public function addServicio(\App\Entity\TransporteServicio $servicio)
+    public function addServicio(TransporteServicio $servicio)
     {
         $servicio->setUnidad($this);
 
@@ -203,9 +204,9 @@ class TransporteUnidad
     /**
      * Remove servicio
      *
-     * @param \App\Entity\TransporteServicio $servicio
+     * @param TransporteServicio $servicio
      */
-    public function removeServicio(\App\Entity\TransporteServicio $servicio)
+    public function removeServicio(TransporteServicio $servicio)
     {
         $this->servicios->removeElement($servicio);
     }
@@ -213,7 +214,7 @@ class TransporteUnidad
     /**
      * Get servicios
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getServicios()
     {
@@ -271,11 +272,11 @@ class TransporteUnidad
     /**
      * Add unidadbitacora.
      *
-     * @param \App\Entity\TransporteUnidadbitacora $unidadbitacora
+     * @param TransporteUnidadbitacora $unidadbitacora
      *
      * @return TransporteUnidad
      */
-    public function addUnidadbitacora(\App\Entity\TransporteUnidadbitacora $unidadbitacora)
+    public function addUnidadbitacora(TransporteUnidadbitacora $unidadbitacora)
     {
         $unidadbitacora->setUnidad($this);
 
@@ -287,11 +288,11 @@ class TransporteUnidad
     /**
      * Remove unidadbitacora.
      *
-     * @param \App\Entity\TransporteUnidadbitacora $unidadbitacora
+     * @param TransporteUnidadbitacora $unidadbitacora
      *
      * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function removeUnidadbitacora(\App\Entity\TransporteUnidadbitacora $unidadbitacora)
+    public function removeUnidadbitacora(TransporteUnidadbitacora $unidadbitacora)
     {
         return $this->unidadbitacoras->removeElement($unidadbitacora);
     }
@@ -299,7 +300,7 @@ class TransporteUnidad
     /**
      * Get unidadbitacoras.
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getUnidadbitacoras()
     {
@@ -309,11 +310,11 @@ class TransporteUnidad
     /**
      * Set centro.
      *
-     * @param \App\Entity\CuentaCentro|null $centro
+     * @param CuentaCentro|null $centro
      *
      * @return TransporteUnidad
      */
-    public function setCentro(\App\Entity\CuentaCentro $centro = null)
+    public function setCentro(CuentaCentro $centro = null)
     {
         $this->centro = $centro;
     
@@ -323,7 +324,7 @@ class TransporteUnidad
     /**
      * Get centro.
      *
-     * @return \App\Entity\CuentaCentro|null
+     * @return CuentaCentro|null
      */
     public function getCentro()
     {

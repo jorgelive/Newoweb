@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Entity\ComprobanteComprobante;
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
@@ -28,11 +29,11 @@ class ComprobanteMensaje
     // Timestampable NO NULL (consigna)
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     public function __toString(): string
     {
@@ -47,11 +48,11 @@ class ComprobanteMensaje
     public function setContenido(?string $contenido): self { $this->contenido = $contenido; return $this; }
     public function getContenido(): ?string { return $this->contenido; }
 
-    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
-    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
+    public function setCreado(?DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?DateTimeInterface { return $this->creado; }
 
-    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
-    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
+    public function setModificado(?DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?DateTimeInterface { return $this->modificado; }
 
     public function setComprobante(?ComprobanteComprobante $comprobante): self { $this->comprobante = $comprobante; return $this; }
     public function getComprobante(): ?ComprobanteComprobante { return $this->comprobante; }

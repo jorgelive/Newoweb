@@ -32,7 +32,7 @@ class UserArea
     private $nombre;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'UserUser', mappedBy: 'area', cascade: ['persist', 'remove'], orphanRemoval: true)]
     protected $users;
@@ -78,10 +78,10 @@ class UserArea
     /**
      * Add users
      *
-     * @param \App\Entity\UserUser $users
+     * @param UserUser $users
      * @return UserArea
      */
-    public function addUser(\App\Entity\UserUser $user)
+    public function addUser(UserUser $user)
     {
         $user->setArea($this);
 
@@ -93,9 +93,9 @@ class UserArea
     /**
      * Remove users
      *
-     * @param \App\Entity\UserUser $user
+     * @param UserUser $user
      */
-    public function removeUser(\App\Entity\UserUser $user)
+    public function removeUser(UserUser $user)
     {
         $this->users->removeElement($user);
     }
@@ -103,7 +103,7 @@ class UserArea
     /**
      * Get users
      *
-     * @return \Doctrine\Common\Collections\Collection 
+     * @return Collection
      */
     public function getUsers()
     {

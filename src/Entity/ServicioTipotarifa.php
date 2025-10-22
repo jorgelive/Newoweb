@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -59,19 +60,19 @@ class ServicioTipotarifa implements Translatable
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     /**
      * Marcar como nullable para evitar warnings hasta la primera actualización
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     /**
      * Relación inversa a las traducciones (Gedmo PersonalTranslation)
      *
-     * @var Collection<int,\App\Entity\ServicioTipotarifaTranslation>
+     * @var Collection<int,ServicioTipotarifaTranslation>
      */
     #[ORM\OneToMany(targetEntity: 'App\Entity\ServicioTipotarifaTranslation', mappedBy: 'object', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $translations;
@@ -94,7 +95,7 @@ class ServicioTipotarifa implements Translatable
         return $this;
     }
 
-    /** @return Collection<int,\App\Entity\ServicioTipotarifaTranslation> */
+    /** @return Collection<int,ServicioTipotarifaTranslation> */
     public function getTranslations(): Collection
     {
         return $this->translations;
@@ -170,24 +171,24 @@ class ServicioTipotarifa implements Translatable
         return $this->listaclase;
     }
 
-    public function setCreado(?\DateTimeInterface $creado): self
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
         return $this;
     }
 
-    public function getCreado(): ?\DateTimeInterface
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    public function setModificado(?\DateTimeInterface $modificado): self
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
         return $this;
     }
 
-    public function getModificado(): ?\DateTimeInterface
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }

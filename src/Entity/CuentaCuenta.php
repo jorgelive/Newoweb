@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -30,28 +31,28 @@ class CuentaCuenta
     private $nombre;
 
     /**
-     * @var \App\Entity\MaestroMoneda
+     * @var MaestroMoneda
      */
     #[ORM\ManyToOne(targetEntity: 'MaestroMoneda')]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
     protected $moneda;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'CuentaPeriodo', mappedBy: 'cuenta', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['fechainicio' => 'DESC'])]
     private $periodos;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -105,7 +106,7 @@ class CuentaCuenta
     /**
      * Set creado.
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return CuentaCuenta
      */
@@ -119,7 +120,7 @@ class CuentaCuenta
     /**
      * Get creado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -129,7 +130,7 @@ class CuentaCuenta
     /**
      * Set modificado.
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return CuentaCuenta
      */
@@ -143,7 +144,7 @@ class CuentaCuenta
     /**
      * Get modificado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -153,11 +154,11 @@ class CuentaCuenta
     /**
      * Set moneda.
      *
-     * @param \App\Entity\MaestroMoneda $moneda
+     * @param MaestroMoneda $moneda
      *
      * @return CuentaCuenta
      */
-    public function setMoneda(\App\Entity\MaestroMoneda $moneda)
+    public function setMoneda(MaestroMoneda $moneda)
     {
         $this->moneda = $moneda;
     
@@ -167,7 +168,7 @@ class CuentaCuenta
     /**
      * Get moneda.
      *
-     * @return \App\Entity\MaestroMoneda
+     * @return MaestroMoneda
      */
     public function getMoneda()
     {
@@ -177,11 +178,11 @@ class CuentaCuenta
     /**
      * Add periodo.
      *
-     * @param \App\Entity\CuentaPeriodo $periodo
+     * @param CuentaPeriodo $periodo
      *
      * @return CuentaCuenta
      */
-    public function addPeriodo(\App\Entity\CuentaPeriodo $periodo)
+    public function addPeriodo(CuentaPeriodo $periodo)
     {
         $periodo->setCuenta($this);
 
@@ -193,11 +194,11 @@ class CuentaCuenta
     /**
      * Remove periodo.
      *
-     * @param \App\Entity\CuentaPeriodo $periodo
+     * @param CuentaPeriodo $periodo
      *
      * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function removePeriodo(\App\Entity\CuentaPeriodo $periodo)
+    public function removePeriodo(CuentaPeriodo $periodo)
     {
         return $this->periodos->removeElement($periodo);
     }
@@ -205,7 +206,7 @@ class CuentaCuenta
     /**
      * Get periodos.
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getPeriodos()
     {

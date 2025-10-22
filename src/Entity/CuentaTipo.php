@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -30,20 +31,20 @@ class CuentaTipo
     private $nombre;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'CuentaClase', mappedBy: 'tipo', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $clases;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -98,7 +99,7 @@ class CuentaTipo
     /**
      * Set creado.
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return CuentaTipo
      */
@@ -112,7 +113,7 @@ class CuentaTipo
     /**
      * Get creado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -122,7 +123,7 @@ class CuentaTipo
     /**
      * Set modificado.
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return CuentaTipo
      */
@@ -136,7 +137,7 @@ class CuentaTipo
     /**
      * Get modificado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -146,11 +147,11 @@ class CuentaTipo
     /**
      * Add clase.
      *
-     * @param \App\Entity\CuentaClase $clase
+     * @param CuentaClase $clase
      *
      * @return CuentaTipo
      */
-    public function addClase(\App\Entity\CuentaClase $clase)
+    public function addClase(CuentaClase $clase)
     {
         $clase->setTipo($this);
 
@@ -162,11 +163,11 @@ class CuentaTipo
     /**
      * Remove clase.
      *
-     * @param \App\Entity\CuentaClase $clase
+     * @param CuentaClase $clase
      *
      * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function removeClase(\App\Entity\CuentaClase $clase)
+    public function removeClase(CuentaClase $clase)
     {
         return $this->clases->removeElement($clase);
     }
@@ -174,7 +175,7 @@ class CuentaTipo
     /**
      * Get clases.
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getClases()
     {

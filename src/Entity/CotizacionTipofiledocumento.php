@@ -2,162 +2,86 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
-/**
- * CotizacionTipofiledocumento
- */
 #[ORM\Table(name: 'cot_tipofiledocumento')]
 #[ORM\Entity]
 class CotizacionTipofiledocumento
 {
-    /**
-     * @var int
-     */
     #[ORM\Column(name: 'id', type: 'integer')]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
+    // Consigna: inicializar strings/bools a null por compatibilidad con Symfony (aunque DB no sea nullable)
     #[ORM\Column(type: 'string', length: 100)]
-    private $nombre;
+    private ?string $nombre = null;
 
-    /**
-     * @var bool
-     */
     #[ORM\Column(name: 'interno', type: 'boolean', options: ['default' => 0])]
-    private $interno;
+    private ?bool $interno = null;
 
-    /**
-     * @var \DateTime $creado
-     */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private $creado;
+    private ?DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private $modificado;
+    private ?DateTimeInterface $modificado = null;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return $this->getNombre() ?? sprintf("Id: %s.", $this->getId());
+        return $this->getNombre() ?? sprintf('Id: %s.', $this->getId() ?? '');
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return CotizacionTipofiledocumento
-     */
-    public function setNombre($nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
-    
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set interno
-     *
-     * @param boolean $interno
-     *
-     * @return CotizacionTipofiledocumento
-     */
-    public function setInterno($interno)
+    public function setInterno(?bool $interno): self
     {
         $this->interno = $interno;
-
         return $this;
     }
 
-    /**
-     * Is interno
-     *
-     * @return boolean
-     */
     public function isInterno(): ?bool
     {
         return $this->interno;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionTipofiledocumento
-     */
-    public function setCreado($creado)
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionTipofiledocumento
-     */
-    public function setModificado($modificado)
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
-
-
-
 }

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
@@ -50,18 +51,18 @@ class ReservaEstablecimiento implements Translatable
     /**
      * Lado inverso de las traducciones (Gedmo PersonalTranslation)
      *
-     * @var Collection<int, \App\Entity\ReservaEstablecimientoTranslation>
+     * @var Collection<int, ReservaEstablecimientoTranslation>
      */
     #[ORM\OneToMany(targetEntity: 'App\Entity\ReservaEstablecimientoTranslation', mappedBy: 'object', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $translations;
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     #[Gedmo\Locale]
     private ?string $locale = null;
@@ -83,7 +84,7 @@ class ReservaEstablecimiento implements Translatable
         return $this;
     }
 
-    /** @return Collection<int,\App\Entity\ReservaEstablecimientoTranslation> */
+    /** @return Collection<int,ReservaEstablecimientoTranslation> */
     public function getTranslations(): Collection
     {
         return $this->translations;
@@ -126,11 +127,11 @@ class ReservaEstablecimiento implements Translatable
     public function getCheckout(): ?string { return $this->checkout; }
     public function setCheckout(string $checkout): self { $this->checkout = $checkout; return $this; }
 
-    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
-    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?DateTimeInterface { return $this->creado; }
+    public function setCreado(?DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
 
-    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
-    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?DateTimeInterface { return $this->modificado; }
+    public function setModificado(?DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
 
     /** @return Collection<int, ReservaUnit> */
     public function getUnits(): Collection { return $this->units; }

@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -16,14 +17,14 @@ class TransporteServiciocontable
     private $id;
 
     /**
-     * @var \App\Entity\TransporteServicio
+     * @var TransporteServicio
      */
     #[ORM\ManyToOne(targetEntity: 'TransporteServicio', inversedBy: 'serviciocontables')]
     #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id', nullable: false)]
     private $servicio;
 
     /**
-     * @var \App\Entity\ComprobanteComprobante
+     * @var ComprobanteComprobante
      */
     #[ORM\ManyToOne(targetEntity: 'ComprobanteComprobante', inversedBy: 'serviciocontables')]
     #[ORM\JoinColumn(name: 'comprobante_id', referencedColumnName: 'id', nullable: false)]
@@ -36,14 +37,14 @@ class TransporteServiciocontable
     private $total;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -135,7 +136,7 @@ class TransporteServiciocontable
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return TransporteServiciocontable
      */
@@ -149,7 +150,7 @@ class TransporteServiciocontable
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -159,7 +160,7 @@ class TransporteServiciocontable
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return TransporteServiciocontable
      */
@@ -173,7 +174,7 @@ class TransporteServiciocontable
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -183,11 +184,11 @@ class TransporteServiciocontable
     /**
      * Set servicio
      *
-     * @param \App\Entity\TransporteServicio $servicio
+     * @param TransporteServicio $servicio
      *
      * @return TransporteServiciocontable
      */
-    public function setServicio(\App\Entity\TransporteServicio $servicio = null)
+    public function setServicio(TransporteServicio $servicio = null)
     {
         $this->servicio = $servicio;
 
@@ -197,7 +198,7 @@ class TransporteServiciocontable
     /**
      * Get servicio
      *
-     * @return \App\Entity\TransporteServicio
+     * @return TransporteServicio
      */
     public function getServicio()
     {
@@ -207,11 +208,11 @@ class TransporteServiciocontable
     /**
      * Set comprobante
      *
-     * @param \App\Entity\ComprobanteComprobante $comprobante
+     * @param ComprobanteComprobante $comprobante
      *
      * @return TransporteServiciocontable
      */
-    public function setComprobante(\App\Entity\ComprobanteComprobante $comprobante)
+    public function setComprobante(ComprobanteComprobante $comprobante)
     {
         $this->comprobante = $comprobante;
 
@@ -221,7 +222,7 @@ class TransporteServiciocontable
     /**
      * Get comprobante
      *
-     * @return \App\Entity\ComprobanteComprobante
+     * @return ComprobanteComprobante
      */
     public function getComprobante()
     {

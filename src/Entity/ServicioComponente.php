@@ -26,8 +26,8 @@ class ServicioComponente
 
     /** Colección ordenada por 'titulo' ASC (lado 1:N con items). */
     #[ORM\OneToMany(
-        targetEntity: ServicioComponenteitem::class,
         mappedBy: 'componente',
+        targetEntity: ServicioComponenteitem::class,
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -29,21 +30,21 @@ class ViewCotizacionCotcomponenteAlerta
     private $nombre;
 
     /**
-     * @var \App\Entity\CotizacionCotservicio
+     * @var CotizacionCotservicio
      */
     #[ORM\ManyToOne(targetEntity: 'CotizacionCotservicio')]
     #[ORM\JoinColumn(name: 'cotservicio_id', referencedColumnName: 'id', nullable: false)]
     protected $cotservicio;
 
     /**
-     * @var \App\Entity\ServicioComponente
+     * @var ServicioComponente
      */
     #[ORM\ManyToOne(targetEntity: 'ServicioComponente')]
     #[ORM\JoinColumn(name: 'componente_id', referencedColumnName: 'id', nullable: false)]
     protected $componente;
 
     /**
-     * @var \App\Entity\CotizacionEstadocotcomponente
+     * @var CotizacionEstadocotcomponente
      */
     #[ORM\ManyToOne(targetEntity: 'CotizacionEstadocotcomponente')]
     #[ORM\JoinColumn(name: 'estadocotcomponente_id', referencedColumnName: 'id', nullable: false)]
@@ -56,19 +57,19 @@ class ViewCotizacionCotcomponenteAlerta
     private $cantidad;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      */
     #[ORM\Column(name: 'fechahorainicio', type: 'datetime')]
     private $fechahorainicio;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      */
     #[ORM\Column(name: 'fechahorafin', type: 'datetime')]
     private $fechahorafin;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      */
     #[ORM\Column(name: 'fechaalerta', type: 'datetime')]
     private $fechaalerta;
@@ -131,17 +132,17 @@ class ViewCotizacionCotcomponenteAlerta
         return $this->cantidad;
     }
 
-    public function getFechahorainicio(): ?\DateTime
+    public function getFechahorainicio(): ?DateTime
     {
         return $this->fechahorainicio;
     }
 
-    public function getFechahorafin(): ?\DateTime
+    public function getFechahorafin(): ?DateTime
     {
         return $this->fechahorafin;
     }
 
-    public function getFechaalerta(): ?\DateTime
+    public function getFechaalerta(): ?DateTime
     {
         return $this->fechahorafin;
     }

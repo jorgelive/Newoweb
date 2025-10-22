@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -19,7 +20,7 @@ class MaestroTipocambio
     protected ?MaestroMoneda $moneda;
 
     #[ORM\Column(name: 'fecha', type: 'date')]
-    private ?\DateTime $fecha;
+    private ?DateTime $fecha;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 3)]
     private ?string $compra;
@@ -29,11 +30,11 @@ class MaestroTipocambio
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTime $creado;
+    private ?DateTime $creado;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTime $modificado;
+    private ?DateTime $modificado;
 
     public function __toString(): string
     {
@@ -59,14 +60,14 @@ class MaestroTipocambio
         return $this->id;
     }
 
-    public function setFecha(\DateTime $fecha): self
+    public function setFecha(DateTime $fecha): self
     {
         $this->fecha = $fecha;
 
         return $this;
     }
 
-    public function getFecha(): ?\DateTime
+    public function getFecha(): ?DateTime
     {
         return $this->fecha;
     }
@@ -95,26 +96,26 @@ class MaestroTipocambio
         return $this->venta;
     }
 
-    public function setCreado(?\DateTime $creado): self
+    public function setCreado(?DateTime $creado): self
     {
         $this->creado = $creado;
 
         return $this;
     }
 
-    public function getCreado(): ?\DateTime
+    public function getCreado(): ?DateTime
     {
         return $this->creado;
     }
 
-    public function setModificado(?\DateTime $modificado): self
+    public function setModificado(?DateTime $modificado): self
     {
         $this->modificado = $modificado;
 
         return $this;
     }
 
-    public function getModificado(): ?\DateTime
+    public function getModificado(): ?DateTime
     {
         return $this->modificado;
     }

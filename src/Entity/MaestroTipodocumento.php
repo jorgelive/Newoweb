@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -50,11 +51,11 @@ class MaestroTipodocumento
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTime $creado;
+    private ?DateTime $creado;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTime $modificado;
+    private ?DateTime $modificado;
 
     public function __toString(): string
     {
@@ -145,7 +146,7 @@ class MaestroTipodocumento
         return $this;
     }
 
-    public function getCreado(): ?\DateTime
+    public function getCreado(): ?DateTime
     {
         return $this->creado;
     }
@@ -157,7 +158,7 @@ class MaestroTipodocumento
         return $this;
     }
 
-    public function getModificado(): ?\DateTime
+    public function getModificado(): ?DateTime
     {
         return $this->modificado;
     }

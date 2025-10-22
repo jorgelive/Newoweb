@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -59,28 +60,28 @@ class FitAlimento
     private $proteinaaltovalor;
 
     /**
-     * @var \App\Entity\FitTipoalimento
+     * @var FitTipoalimento
      */
     #[ORM\ManyToOne(targetEntity: 'FitTipoalimento', inversedBy: 'alimentos')]
     #[ORM\JoinColumn(name: 'tipoalimento_id', referencedColumnName: 'id', nullable: false)]
     protected $tipoalimento;
 
     /**
-     * @var \App\Entity\FitMedidaalimento
+     * @var FitMedidaalimento
      */
     #[ORM\ManyToOne(targetEntity: 'FitMedidaalimento', inversedBy: 'alimentos')]
     #[ORM\JoinColumn(name: 'mediaalimento_id', referencedColumnName: 'id', nullable: false)]
     protected $medidaalimento;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -257,7 +258,7 @@ class FitAlimento
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return FitAlimento
      */
@@ -271,7 +272,7 @@ class FitAlimento
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -281,7 +282,7 @@ class FitAlimento
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return FitAlimento
      */
@@ -295,7 +296,7 @@ class FitAlimento
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -305,11 +306,11 @@ class FitAlimento
     /**
      * Set tipoalimento
      *
-     * @param \App\Entity\FitTipoalimento $tipoalimento
+     * @param FitTipoalimento $tipoalimento
      *
      * @return FitAlimento
      */
-    public function setTipoalimento(\App\Entity\FitTipoalimento $tipoalimento = null)
+    public function setTipoalimento(FitTipoalimento $tipoalimento = null)
     {
         $this->tipoalimento = $tipoalimento;
     
@@ -319,7 +320,7 @@ class FitAlimento
     /**
      * Get tipoalimento
      *
-     * @return \App\Entity\FitTipoalimento
+     * @return FitTipoalimento
      */
     public function getTipoalimento()
     {
@@ -329,11 +330,11 @@ class FitAlimento
     /**
      * Set medidaalimento
      *
-     * @param \App\Entity\FitMedidaalimento $medidaalimento
+     * @param FitMedidaalimento $medidaalimento
      *
      * @return FitAlimento
      */
-    public function setMedidaalimento(\App\Entity\FitMedidaalimento $medidaalimento = null)
+    public function setMedidaalimento(FitMedidaalimento $medidaalimento = null)
     {
         $this->medidaalimento = $medidaalimento;
 
@@ -343,7 +344,7 @@ class FitAlimento
     /**
      * Get medidaalimento
      *
-     * @return \App\Entity\FitMedidaalimento
+     * @return FitMedidaalimento
      */
     public function getMedidaalimento()
     {

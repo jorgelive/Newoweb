@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use DateTime;
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -24,21 +26,21 @@ class ReservaDetalle
     private $id;
 
     /**
-     * @var \App\Entity\ReservaReserva
+     * @var ReservaReserva
      */
     #[ORM\ManyToOne(targetEntity: 'ReservaReserva', inversedBy: 'detalles')]
     #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: false)]
     protected $reserva;
 
     /**
-     * @var \App\Entity\ReservaTipodetallle
+     * @var ReservaTipodetallle
      */
     #[ORM\ManyToOne(targetEntity: 'ReservaTipodetalle')]
     #[ORM\JoinColumn(name: 'tipodetalle_id', referencedColumnName: 'id', nullable: false)]
     protected $tipodetalle;
 
     /**
-     * @var \App\Entity\UserUser
+     * @var UserUser
      */
     #[ORM\ManyToOne(targetEntity: 'UserUser')]
     #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: true)]
@@ -51,14 +53,14 @@ class ReservaDetalle
     private $nota;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -100,24 +102,24 @@ class ReservaDetalle
         return $this;
     }
 
-    public function getCreado(): ?\DateTimeInterface
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    public function setCreado(\DateTimeInterface $creado): self
+    public function setCreado(DateTimeInterface $creado): self
     {
         $this->creado = $creado;
 
         return $this;
     }
 
-    public function getModificado(): ?\DateTimeInterface
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
 
-    public function setModificado(\DateTimeInterface $modificado): self
+    public function setModificado(DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
 

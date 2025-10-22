@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -15,14 +16,14 @@ class TransporteServiciooperativo
     private $id;
 
     /**
-     * @var \App\Entity\TransporteServicio
+     * @var TransporteServicio
      */
     #[ORM\ManyToOne(targetEntity: 'TransporteServicio', inversedBy: 'serviciooperativos')]
     #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id', nullable: false)]
     private $servicio;
 
     /**
-     * @var \App\Entity\TransporteTiposeroperativo
+     * @var TransporteTiposeroperativo
      */
     #[ORM\ManyToOne(targetEntity: 'TransporteTiposeroperativo')]
     #[ORM\JoinColumn(name: 'tiposeroperativo_id', referencedColumnName: 'id', nullable: false)]
@@ -32,14 +33,14 @@ class TransporteServiciooperativo
     private $texto;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -109,7 +110,7 @@ class TransporteServiciooperativo
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return TransporteServiciooperativo
      */
@@ -123,7 +124,7 @@ class TransporteServiciooperativo
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -133,7 +134,7 @@ class TransporteServiciooperativo
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return TransporteServiciooperativo
      */
@@ -147,7 +148,7 @@ class TransporteServiciooperativo
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -157,11 +158,11 @@ class TransporteServiciooperativo
     /**
      * Set servicio
      *
-     * @param \App\Entity\TransporteServicio $servicio
+     * @param TransporteServicio $servicio
      *
      * @return TransporteServiciooperativo
      */
-    public function setServicio(\App\Entity\TransporteServicio $servicio = null)
+    public function setServicio(TransporteServicio $servicio = null)
     {
         $this->servicio = $servicio;
 
@@ -171,7 +172,7 @@ class TransporteServiciooperativo
     /**
      * Get servicio
      *
-     * @return \App\Entity\TransporteServicio
+     * @return TransporteServicio
      */
     public function getServicio()
     {
@@ -181,11 +182,11 @@ class TransporteServiciooperativo
     /**
      * Set tiposeroperativo
      *
-     * @param \App\Entity\TransporteTiposeroperativo $tiposeroperativo
+     * @param TransporteTiposeroperativo $tiposeroperativo
      *
      * @return TransporteServiciooperativo
      */
-    public function setTiposeroperativo(\App\Entity\TransporteTiposeroperativo $tiposeroperativo = null)
+    public function setTiposeroperativo(TransporteTiposeroperativo $tiposeroperativo = null)
     {
         $this->tiposeroperativo = $tiposeroperativo;
 
@@ -195,7 +196,7 @@ class TransporteServiciooperativo
     /**
      * Get tiposeroperativo
      *
-     * @return \App\Entity\TransporteTiposeroperativo
+     * @return TransporteTiposeroperativo
      */
     public function getTiposeroperativo()
     {

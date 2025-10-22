@@ -1,6 +1,8 @@
 <?php
 namespace App\Entity;
 
+use DateInterval;
+use DateTime;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -17,28 +19,28 @@ class TransporteServicio
     private $id;
 
     /**
-     * @var \App\Entity\UserDependencia
+     * @var UserDependencia
      */
     #[ORM\ManyToOne(targetEntity: 'UserDependencia')]
     #[ORM\JoinColumn(name: 'dependencia_id', referencedColumnName: 'id', nullable: false)]
     protected $dependencia;
 
     /**
-     * @var \App\Entity\TransporteUnidad
+     * @var TransporteUnidad
      */
     #[ORM\ManyToOne(targetEntity: 'TransporteUnidad', inversedBy: 'servicios')]
     #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false)]
     protected $unidad;
 
     /**
-     * @var \App\Entity\TransporteConductor
+     * @var TransporteConductor
      */
     #[ORM\ManyToOne(targetEntity: 'TransporteConductor', inversedBy: 'servicios')]
     #[ORM\JoinColumn(name: 'conductor_id', referencedColumnName: 'id', nullable: false)]
     protected $conductor;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'TransporteServiciocontable', mappedBy: 'servicio', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $serviciocontables;
@@ -53,7 +55,7 @@ class TransporteServicio
     private $fechahorafin;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'TransporteServiciocomponente', mappedBy: 'servicio', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $serviciocomponentes;
@@ -61,7 +63,7 @@ class TransporteServicio
     private $exportcomponentes;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'TransporteServiciooperativo', mappedBy: 'servicio', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $serviciooperativos;
@@ -69,14 +71,14 @@ class TransporteServicio
     private $exportoperativos;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -223,7 +225,7 @@ class TransporteServicio
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return TransporteServicio
      */
@@ -237,7 +239,7 @@ class TransporteServicio
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -247,7 +249,7 @@ class TransporteServicio
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return TransporteServicio
      */
@@ -261,7 +263,7 @@ class TransporteServicio
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -271,11 +273,11 @@ class TransporteServicio
     /**
      * Set dependencia
      *
-     * @param \App\Entity\UserDependencia $dependencia
+     * @param UserDependencia $dependencia
      *
      * @return TransporteServicio
      */
-    public function setDependencia(\App\Entity\UserDependencia $dependencia = null)
+    public function setDependencia(UserDependencia $dependencia = null)
     {
         $this->dependencia = $dependencia;
 
@@ -285,7 +287,7 @@ class TransporteServicio
     /**
      * Get dependencia
      *
-     * @return \App\Entity\UserDependencia
+     * @return UserDependencia
      */
     public function getDependencia()
     {
@@ -295,11 +297,11 @@ class TransporteServicio
     /**
      * Set unidad
      *
-     * @param \App\Entity\TransporteUnidad $unidad
+     * @param TransporteUnidad $unidad
      *
      * @return TransporteServicio
      */
-    public function setUnidad(\App\Entity\TransporteUnidad $unidad = null)
+    public function setUnidad(TransporteUnidad $unidad = null)
     {
         $this->unidad = $unidad;
 
@@ -309,7 +311,7 @@ class TransporteServicio
     /**
      * Get unidad
      *
-     * @return \App\Entity\TransporteUnidad
+     * @return TransporteUnidad
      */
     public function getUnidad()
     {
@@ -319,11 +321,11 @@ class TransporteServicio
     /**
      * Set conductor
      *
-     * @param \App\Entity\TransporteConductor $conductor
+     * @param TransporteConductor $conductor
      *
      * @return TransporteServicio
      */
-    public function setConductor(\App\Entity\TransporteConductor $conductor = null)
+    public function setConductor(TransporteConductor $conductor = null)
     {
         $this->conductor = $conductor;
 
@@ -333,7 +335,7 @@ class TransporteServicio
     /**
      * Get conductor
      *
-     * @return \App\Entity\TransporteConductor
+     * @return TransporteConductor
      */
     public function getConductor()
     {
@@ -343,11 +345,11 @@ class TransporteServicio
     /**
      * Add serviciocomponente
      *
-     * @param \App\Entity\TransporteServiciocomponente $serviciocomponente
+     * @param TransporteServiciocomponente $serviciocomponente
      *
      * @return TransporteServicio
      */
-    public function addServiciocomponente(\App\Entity\TransporteServiciocomponente $serviciocomponente)
+    public function addServiciocomponente(TransporteServiciocomponente $serviciocomponente)
     {
         $serviciocomponente->setServicio($this);
 
@@ -359,9 +361,9 @@ class TransporteServicio
     /**
      * Remove serviciocomponente
      *
-     * @param \App\Entity\TransporteServiciocomponente $serviciocomponente
+     * @param TransporteServiciocomponente $serviciocomponente
      */
-    public function removeServiciocomponente(\App\Entity\TransporteServiciocomponente $serviciocomponente)
+    public function removeServiciocomponente(TransporteServiciocomponente $serviciocomponente)
     {
         $this->serviciocomponentes->removeElement($serviciocomponente);
     }
@@ -369,7 +371,7 @@ class TransporteServicio
     /**
      * Get serviciocomponentes
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getServiciocomponentes()
     {
@@ -379,11 +381,11 @@ class TransporteServicio
     /**
      * Add serviciocontable
      *
-     * @param \App\Entity\TransporteServiciocontable $serviciocontable
+     * @param TransporteServiciocontable $serviciocontable
      *
      * @return TransporteServicio
      */
-    public function addServiciocontable(\App\Entity\TransporteServiciocontable $serviciocontable)
+    public function addServiciocontable(TransporteServiciocontable $serviciocontable)
     {
         $serviciocontable->setServicio($this);
 
@@ -395,9 +397,9 @@ class TransporteServicio
     /**
      * Remove serviciocontable
      *
-     * @param \App\Entity\TransporteServiciocontable $serviciocontable
+     * @param TransporteServiciocontable $serviciocontable
      */
-    public function removeServiciocontable(\App\Entity\TransporteServiciocontable $serviciocontable)
+    public function removeServiciocontable(TransporteServiciocontable $serviciocontable)
     {
         $this->serviciocontables->removeElement($serviciocontable);
     }
@@ -405,7 +407,7 @@ class TransporteServicio
     /**
      * Get serviciocontables
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getServiciocontables()
     {
@@ -415,11 +417,11 @@ class TransporteServicio
     /**
      * Add serviciooperativo
      *
-     * @param \App\Entity\TransporteServiciooperativo $serviciooperativo
+     * @param TransporteServiciooperativo $serviciooperativo
      *
      * @return TransporteServicio
      */
-    public function addServiciooperativo(\App\Entity\TransporteServiciooperativo $serviciooperativo)
+    public function addServiciooperativo(TransporteServiciooperativo $serviciooperativo)
     {
         $serviciooperativo->setServicio($this);
 
@@ -431,9 +433,9 @@ class TransporteServicio
     /**
      * Remove serviciooperativo
      *
-     * @param \App\Entity\TransporteServiciooperativo $serviciooperativo
+     * @param TransporteServiciooperativo $serviciooperativo
      */
-    public function removeServiciooperativo(\App\Entity\TransporteServiciooperativo $serviciooperativo)
+    public function removeServiciooperativo(TransporteServiciooperativo $serviciooperativo)
     {
         $this->serviciooperativos->removeElement($serviciooperativo);
     }
@@ -441,7 +443,7 @@ class TransporteServicio
     /**
      * Get serviciooperativos
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getServiciooperativos()
     {
@@ -452,7 +454,7 @@ class TransporteServicio
     /**
      * Set fechahorainicio
      *
-     * @param \DateTime $fechahorainicio
+     * @param DateTime $fechahorainicio
      *
      * @return TransporteServicio
      */
@@ -466,7 +468,7 @@ class TransporteServicio
     /**
      * Get fechahorainicio
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getFechahorainicio()
     {
@@ -476,15 +478,15 @@ class TransporteServicio
     /**
      * Set fechahorafin
      *
-     * @param \DateTime $fechahorafin
+     * @param DateTime $fechahorafin
      *
      * @return TransporteServicio
      */
     public function setFechahorafin($fechahorafin)
     {
-        if(empty($fechahorafin) && $this->fechahorainicio instanceof \DateTime){
+        if(empty($fechahorafin) && $this->fechahorainicio instanceof DateTime){
             $fechahorafin = clone $this->fechahorainicio;
-            $fechahorafin->add(new \DateInterval('PT1H'));
+            $fechahorafin->add(new DateInterval('PT1H'));
         }
 
         $this->fechahorafin = $fechahorafin;
@@ -496,7 +498,7 @@ class TransporteServicio
     /**
      * Get fechahorafin
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getFechahorafin()
     {

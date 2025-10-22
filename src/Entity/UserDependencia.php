@@ -47,14 +47,14 @@ class UserDependencia
     private $color;
 
     /**
-     * @var \App\Entity\UserOrganizacion
+     * @var UserOrganizacion
      */
     #[ORM\ManyToOne(targetEntity: 'UserOrganizacion', inversedBy: 'dependencias')]
     #[ORM\JoinColumn(name: 'organizacion_id', referencedColumnName: 'id', nullable: false)]
     protected $organizacion;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'UserUser', mappedBy: 'dependencia', cascade: ['persist', 'remove'], orphanRemoval: true)]
     protected $users;
@@ -170,10 +170,10 @@ class UserDependencia
     /**
      * Set organizacion
      *
-     * @param \App\Entity\UserOrganizacion $organizacion
+     * @param UserOrganizacion $organizacion
      * @return UserDependencia
      */
-    public function setOrganizacion(\App\Entity\UserOrganizacion $organizacion = null)
+    public function setOrganizacion(UserOrganizacion $organizacion = null)
     {
         $this->organizacion = $organizacion;
 
@@ -183,7 +183,7 @@ class UserDependencia
     /**
      * Get organizacion
      *
-     * @return \App\Entity\UserOrganizacion
+     * @return UserOrganizacion
      */
     public function getOrganizacion()
     {
@@ -193,10 +193,10 @@ class UserDependencia
     /**
      * Add users
      *
-     * @param \App\Entity\UserUser $user
+     * @param UserUser $user
      * @return UserDependencia
      */
-    public function addUser(\App\Entity\UserUser $user)
+    public function addUser(UserUser $user)
     {
         $user->setDependencia($this);
 
@@ -208,9 +208,9 @@ class UserDependencia
     /**
      * Remove users
      *
-     * @param \App\Entity\UserUser $user
+     * @param UserUser $user
      */
-    public function removeUser(\App\Entity\UserUser $user)
+    public function removeUser(UserUser $user)
     {
         $this->users->removeElement($user);
     }
@@ -218,7 +218,7 @@ class UserDependencia
     /**
      * Get users
      *
-     * @return \Doctrine\Common\Collections\Collection 
+     * @return Collection
      */
     public function getUsers()
     {

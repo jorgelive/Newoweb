@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -18,14 +19,14 @@ class TransporteTipounibit
     private $nombre;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -75,7 +76,7 @@ class TransporteTipounibit
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      * @return TransporteTipounibit
      */
     public function setCreado($creado)
@@ -88,7 +89,7 @@ class TransporteTipounibit
     /**
      * Get creado
      *
-     * @return \DateTime 
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -98,7 +99,7 @@ class TransporteTipounibit
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      * @return TransporteTipounibit
      */
     public function setModificado($modificado)
@@ -111,7 +112,7 @@ class TransporteTipounibit
     /**
      * Get modificado
      *
-     * @return \DateTime 
+     * @return DateTime
      */
     public function getModificado()
     {

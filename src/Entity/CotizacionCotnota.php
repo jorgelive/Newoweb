@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Entity\CotizacionCotizacion;
 use App\Entity\CotizacionCotnotaTranslation;
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -50,11 +51,11 @@ class CotizacionCotnota implements Translatable
     // Timestampable NO nullable (consigna)
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     #[Gedmo\Locale]
     private ?string $locale = null;
@@ -106,11 +107,11 @@ class CotizacionCotnota implements Translatable
     public function setContenido(?string $contenido): self { $this->contenido = $contenido; return $this; }
     public function getContenido(): ?string { return $this->contenido; }
 
-    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
-    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?DateTimeInterface { return $this->creado; }
+    public function setCreado(?DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
 
-    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
-    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?DateTimeInterface { return $this->modificado; }
+    public function setModificado(?DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
 
     /** @return Collection<int, CotizacionCotizacion> */
     public function getCotizaciones(): Collection { return $this->cotizaciones; }

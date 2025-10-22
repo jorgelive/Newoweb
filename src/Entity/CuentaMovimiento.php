@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -24,14 +25,14 @@ class CuentaMovimiento
     private $id;
 
     /**
-     * @var \App\Entity\CuentaPeriodo
+     * @var CuentaPeriodo
      */
     #[ORM\ManyToOne(targetEntity: 'CuentaPeriodo', inversedBy: 'movimientos')]
     #[ORM\JoinColumn(name: 'periodo_id', referencedColumnName: 'id', nullable: false)]
     protected $periodo;
 
     /**
-     * @var \App\Entity\CuentaPeriodo
+     * @var CuentaPeriodo
      */
     #[ORM\ManyToOne(targetEntity: 'CuentaPeriodo')]
     #[ORM\JoinColumn(name: 'periodotransferencia_id', referencedColumnName: 'id', nullable: true)]
@@ -39,28 +40,28 @@ class CuentaMovimiento
     protected $periodotransferencia;
 
     /**
-     * @var \App\Entity\UserUser
+     * @var UserUser
      */
     #[ORM\ManyToOne(targetEntity: 'UserUser', inversedBy: 'movimientos')]
     #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
     protected $user;
 
     /**
-     * @var \App\Entity\CuentaCentro
+     * @var CuentaCentro
      */
     #[ORM\ManyToOne(targetEntity: 'CuentaCentro', inversedBy: 'movimientos')]
     #[ORM\JoinColumn(name: 'centro_id', referencedColumnName: 'id', nullable: true)]
     protected $centro;
 
     /**
-     * @var \App\Entity\CuentaClase
+     * @var CuentaClase
      */
     #[ORM\ManyToOne(targetEntity: 'CuentaClase', inversedBy: 'movimientos')]
     #[ORM\JoinColumn(name: 'clase_id', referencedColumnName: 'id', nullable: false)]
     protected $clase;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      */
     #[ORM\Column(name: 'fechahora', type: 'datetime')]
     private $fechahora;
@@ -100,14 +101,14 @@ class CuentaMovimiento
     private $habersoles;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -131,7 +132,7 @@ class CuentaMovimiento
     /**
      * Set fechahora.
      *
-     * @param \DateTime $fechahora
+     * @param DateTime $fechahora
      *
      * @return CuentaMovimiento
      */
@@ -145,7 +146,7 @@ class CuentaMovimiento
     /**
      * Get fechahora.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getFechahora()
     {
@@ -290,7 +291,7 @@ class CuentaMovimiento
     /**
      * Set creado.
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return CuentaMovimiento
      */
@@ -304,7 +305,7 @@ class CuentaMovimiento
     /**
      * Get creado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -314,7 +315,7 @@ class CuentaMovimiento
     /**
      * Set modificado.
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return CuentaMovimiento
      */
@@ -328,7 +329,7 @@ class CuentaMovimiento
     /**
      * Get modificado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -338,11 +339,11 @@ class CuentaMovimiento
     /**
      * Set periodo.
      *
-     * @param \App\Entity\CuentaPeriodo $periodo
+     * @param CuentaPeriodo $periodo
      *
      * @return CuentaMovimiento
      */
-    public function setPeriodo(\App\Entity\CuentaPeriodo $periodo)
+    public function setPeriodo(CuentaPeriodo $periodo)
     {
         $this->periodo = $periodo;
     
@@ -352,7 +353,7 @@ class CuentaMovimiento
     /**
      * Get periodo.
      *
-     * @return \App\Entity\CuentaPeriodo
+     * @return CuentaPeriodo
      */
     public function getPeriodo()
     {
@@ -362,11 +363,11 @@ class CuentaMovimiento
     /**
      * Set user.
      *
-     * @param \App\Entity\UserUser $user
+     * @param UserUser $user
      *
      * @return CuentaMovimiento
      */
-    public function setUser(\App\Entity\UserUser $user)
+    public function setUser(UserUser $user)
     {
         $this->user = $user;
     
@@ -376,7 +377,7 @@ class CuentaMovimiento
     /**
      * Get user.
      *
-     * @return \App\Entity\UserUser
+     * @return UserUser
      */
     public function getUser()
     {
@@ -386,11 +387,11 @@ class CuentaMovimiento
     /**
      * Set clase.
      *
-     * @param \App\Entity\CuentaClase $clase
+     * @param CuentaClase $clase
      *
      * @return CuentaMovimiento
      */
-    public function setClase(\App\Entity\CuentaClase $clase)
+    public function setClase(CuentaClase $clase)
     {
         $this->clase = $clase;
     
@@ -400,7 +401,7 @@ class CuentaMovimiento
     /**
      * Get clase.
      *
-     * @return \App\Entity\CuentaClase
+     * @return CuentaClase
      */
     public function getClase()
     {
@@ -410,11 +411,11 @@ class CuentaMovimiento
     /**
      * Set centro.
      *
-     * @param \App\Entity\CuentaCentro $centro
+     * @param CuentaCentro $centro
      *
      * @return CuentaMovimiento
      */
-    public function setCentro(\App\Entity\CuentaCentro $centro = null)
+    public function setCentro(CuentaCentro $centro = null)
     {
         $this->centro = $centro;
     
@@ -424,7 +425,7 @@ class CuentaMovimiento
     /**
      * Get centro.
      *
-     * @return \App\Entity\CuentaCentro
+     * @return CuentaCentro
      */
     public function getCentro()
     {
@@ -434,11 +435,11 @@ class CuentaMovimiento
     /**
      * Set periodotransferencia.
      *
-     * @param \App\Entity\CuentaPeriodo|null $periodotransferencia
+     * @param CuentaPeriodo|null $periodotransferencia
      *
      * @return CuentaMovimiento
      */
-    public function setPeriodotransferencia(\App\Entity\CuentaPeriodo $periodotransferencia = null)
+    public function setPeriodotransferencia(CuentaPeriodo $periodotransferencia = null)
     {
         $this->periodotransferencia = $periodotransferencia;
     
@@ -448,7 +449,7 @@ class CuentaMovimiento
     /**
      * Get periodotransferencia.
      *
-     * @return \App\Entity\CuentaPeriodo|null
+     * @return CuentaPeriodo|null
      */
     public function getPeriodotransferencia()
     {

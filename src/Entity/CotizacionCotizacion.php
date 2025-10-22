@@ -9,6 +9,8 @@ use App\Entity\CotizacionCotservicio;
 use App\Entity\CotizacionEstadocotizacion;
 use App\Entity\CotizacionFile;
 use App\Entity\MaestroMedio; // solo para tipo de $portadafotos (no mapeado)
+use DateTime;
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -105,22 +107,22 @@ class CotizacionCotizacion
     private Collection $portadafotos;
 
     #[ORM\Column(type: 'date')]
-    private ?\DateTimeInterface $fecha = null;
+    private ?DateTimeInterface $fecha = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $fechaingreso = null;
+    private ?DateTimeInterface $fechaingreso = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $fechasalida = null;
+    private ?DateTimeInterface $fechasalida = null;
 
     // Timestampable NO NULL (consigna)
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     #[Gedmo\Locale]
     private ?string $locale = null;
@@ -138,7 +140,7 @@ class CotizacionCotizacion
     {
         if ($this->id) {
             $this->id = null;
-            $this->setFecha(new \DateTime('today'));
+            $this->setFecha(new DateTime('today'));
             $this->setCreado(null);
             $this->setModificado(null);
             $this->setToken((string) mt_rand());
@@ -217,11 +219,11 @@ class CotizacionCotizacion
     public function setNumeropasajeros(?int $numeropasajeros): self { $this->numeropasajeros = $numeropasajeros; return $this; }
     public function getNumeropasajeros(): ?int { return $this->numeropasajeros; }
 
-    public function setCreado(?\DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
-    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
+    public function setCreado(?DateTimeInterface $creado): self { $this->creado = $creado; return $this; }
+    public function getCreado(): ?DateTimeInterface { return $this->creado; }
 
-    public function setModificado(?\DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
-    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
+    public function setModificado(?DateTimeInterface $modificado): self { $this->modificado = $modificado; return $this; }
+    public function getModificado(): ?DateTimeInterface { return $this->modificado; }
 
     public function setEstadocotizacion(?CotizacionEstadocotizacion $estadocotizacion): self
     { $this->estadocotizacion = $estadocotizacion; return $this; }
@@ -341,12 +343,12 @@ class CotizacionCotizacion
     public function getResumen(): ?string { return $this->resumen; }
     public function getResumenoriginal(): ?string { return $this->resumenoriginal; }
 
-    public function setFecha(\DateTimeInterface $fecha): self { $this->fecha = $fecha; return $this; }
-    public function getFecha(): ?\DateTimeInterface { return $this->fecha; }
+    public function setFecha(DateTimeInterface $fecha): self { $this->fecha = $fecha; return $this; }
+    public function getFecha(): ?DateTimeInterface { return $this->fecha; }
 
-    public function setFechaingreso(?\DateTimeInterface $fechaingreso): self { $this->fechaingreso = $fechaingreso; return $this; }
-    public function getFechaingreso(): ?\DateTimeInterface { return $this->fechaingreso; }
+    public function setFechaingreso(?DateTimeInterface $fechaingreso): self { $this->fechaingreso = $fechaingreso; return $this; }
+    public function getFechaingreso(): ?DateTimeInterface { return $this->fechaingreso; }
 
-    public function setFechasalida(?\DateTimeInterface $fechasalida): self { $this->fechasalida = $fechasalida; return $this; }
-    public function getFechasalida(): ?\DateTimeInterface { return $this->fechasalida; }
+    public function setFechasalida(?DateTimeInterface $fechasalida): self { $this->fechasalida = $fechasalida; return $this; }
+    public function getFechasalida(): ?DateTimeInterface { return $this->fechasalida; }
 }

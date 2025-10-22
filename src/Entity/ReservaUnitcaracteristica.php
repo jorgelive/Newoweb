@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -73,11 +74,11 @@ class ReservaUnitcaracteristica
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     #[Gedmo\Locale]
     private ?string $locale = null;
@@ -125,11 +126,11 @@ class ReservaUnitcaracteristica
     public function getUnittipocaracteristica(): ?ReservaUnittipocaracteristica { return $this->unittipocaracteristica; }
     public function setUnittipocaracteristica(?ReservaUnittipocaracteristica $tipo): self { $this->unittipocaracteristica = $tipo; return $this; }
 
-    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
-    public function setCreado(\DateTimeInterface $d): self { $this->creado = $d; return $this; }
+    public function getCreado(): ?DateTimeInterface { return $this->creado; }
+    public function setCreado(DateTimeInterface $d): self { $this->creado = $d; return $this; }
 
-    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
-    public function setModificado(\DateTimeInterface $d): self { $this->modificado = $d; return $this; }
+    public function getModificado(): ?DateTimeInterface { return $this->modificado; }
+    public function setModificado(DateTimeInterface $d): self { $this->modificado = $d; return $this; }
 
     /** @return Collection|ReservaUnitmedio[] */
     public function getMedios(): Collection { return $this->medios; }

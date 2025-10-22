@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -25,21 +26,21 @@ class MainArchivo
     private $operacion;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
-     * @var \App\Entity\UserUser
+     * @var UserUser
      */
     #[ORM\ManyToOne(targetEntity: 'UserUser')]
     #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
@@ -66,10 +67,10 @@ class MainArchivo
     /**
      * Set user
      *
-     * @param \App\Entity\UserUser $user
+     * @param UserUser $user
      * @return MainArchivo
      */
-    public function setUser(\App\Entity\UserUser $user)
+    public function setUser(UserUser $user)
     {
         $this->user = $user;
 
@@ -79,7 +80,7 @@ class MainArchivo
     /**
      * Get user
      *
-     * @return \App\Entity\UserUser
+     * @return UserUser
      */
     public function getUser()
     {
@@ -112,7 +113,7 @@ class MainArchivo
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      * @return MainArchivo
      */
     public function setCreado($creado)
@@ -125,7 +126,7 @@ class MainArchivo
     /**
      * Get creado
      *
-     * @return \DateTime 
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -135,7 +136,7 @@ class MainArchivo
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      * @return MainArchivo
      */
     public function setModificado($modificado)
@@ -148,7 +149,7 @@ class MainArchivo
     /**
      * Get modificado
      *
-     * @return \DateTime 
+     * @return DateTime
      */
     public function getModificado()
     {

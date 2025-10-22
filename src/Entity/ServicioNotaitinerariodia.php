@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -47,21 +48,21 @@ class ServicioNotaitinerariodia
     private $contenido;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'ServicioItinerariodia', mappedBy: 'notaitinerariodia', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['id' => 'ASC'])]
     private $itinerariodias;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -177,7 +178,7 @@ class ServicioNotaitinerariodia
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return ServicioNotaitinerariodia
      */
@@ -191,7 +192,7 @@ class ServicioNotaitinerariodia
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -201,7 +202,7 @@ class ServicioNotaitinerariodia
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return ServicioNotaitinerariodia
      */
@@ -215,7 +216,7 @@ class ServicioNotaitinerariodia
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -225,11 +226,11 @@ class ServicioNotaitinerariodia
     /**
      * Add itinerario
      *
-     * @param \App\Entity\ServicioItinerario $itinerario
+     * @param ServicioItinerario $itinerario
      *
      * @return ServicioNotaitinerariodia
      */
-    public function addItinerariodia(\App\Entity\ServicioItinerariodia $itinerariodia)
+    public function addItinerariodia(ServicioItinerariodia $itinerariodia)
     {
         $itinerariodia->setNotaitinerariodia($this);
 
@@ -241,9 +242,9 @@ class ServicioNotaitinerariodia
     /**
      * Remove itinerariodia
      *
-     * @param \App\Entity\ServicioItinerariodia $itinerariodia
+     * @param ServicioItinerariodia $itinerariodia
      */
-    public function removeItinerariodia(\App\Entity\ServicioItinerario $itinerariodia)
+    public function removeItinerariodia(ServicioItinerario $itinerariodia)
     {
         $this->itinerariodias->removeElement($itinerariodia);
     }
@@ -251,7 +252,7 @@ class ServicioNotaitinerariodia
     /**
      * Get itinerariodias
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getItinerariodias()
     {

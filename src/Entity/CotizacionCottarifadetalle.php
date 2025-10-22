@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -13,192 +14,100 @@ use Gedmo\Mapping\Annotation as Gedmo;
 #[ORM\Entity]
 class CotizacionCottarifadetalle
 {
-    /**
-     * @var int
-     */
     #[ORM\Column(name: 'id', type: 'integer')]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
-
-    /**
-     * @var \App\Entity\CotizacionCottarifa
-     */
     #[ORM\ManyToOne(targetEntity: 'CotizacionCottarifa', inversedBy: 'cottarifadetalles')]
     #[ORM\JoinColumn(name: 'cottarifa_id', referencedColumnName: 'id', nullable: false)]
-    protected $cottarifa;
+    protected ?CotizacionCottarifa $cottarifa = null;
 
-
-    /**
-     * @var string
-     */
     #[ORM\Column(name: 'detalle', type: 'string', length: 255)]
-    private $detalle;
+    private ?string $detalle = null; // Inicializado a null por compatibilidad con Symfony
 
-    /**
-     * @var \App\Entity\ServicioTipotarifadetalle
-     */
     #[ORM\ManyToOne(targetEntity: 'ServicioTipotarifadetalle')]
     #[ORM\JoinColumn(name: 'tipotarifadetalle_id', referencedColumnName: 'id', nullable: false)]
-    protected $tipotarifadetalle;
+    protected ?ServicioTipotarifadetalle $tipotarifadetalle = null;
 
-    /**
-     * @var \DateTime $creado
-     */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private $creado;
+    private ?DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private $modificado;
+    private ?DateTimeInterface $modificado = null;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return $this->getTipotarifadetalle() . '-' .$this->getDetalle();
+        return ($this->getTipotarifadetalle() ? $this->getTipotarifadetalle() : '') . '-' . ($this->getDetalle() ?? '');
     }
 
-    public function __clone() {
-        if($this->id) {
+    public function __clone(): void
+    {
+        if ($this->id) {
             $this->id = null;
             $this->setCreado(null);
             $this->setModificado(null);
         }
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-     /**
-     * Set detalle
-     *
-     * @param string $detalle
-     *
-     * @return CotizacionCottarifadetalle
-     */
-    public function setDetalle($detalle)
+    public function setDetalle(?string $detalle): self
     {
         $this->detalle = $detalle;
-    
         return $this;
     }
 
-    /**
-     * Get detalle
-     *
-     * @return string
-     */
-    public function getDetalle()
+    public function getDetalle(): ?string
     {
         return $this->detalle;
     }
 
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionCottarifadetalle
-     */
-    public function setCreado($creado)
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionCottarifadetalle
-     */
-    public function setModificado($modificado)
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
 
-    /**
-     * Set cottarifa
-     *
-     * @param \App\Entity\CotizacionCottarifa $cottarifa
-     *
-     * @return CotizacionCottarifadetalle
-     */
-    public function setCottarifa(\App\Entity\CotizacionCottarifa $cottarifa = null)
+    public function setCottarifa(?CotizacionCottarifa $cottarifa = null): self
     {
         $this->cottarifa = $cottarifa;
-    
         return $this;
     }
 
-    /**
-     * Get cottarifa
-     *
-     * @return \App\Entity\CotizacionCottarifa
-     */
-    public function getCottarifa()
+    public function getCottarifa(): ?CotizacionCottarifa
     {
         return $this->cottarifa;
     }
 
-    /**
-     * Set tipotarifadetalle
-     *
-     * @param \App\Entity\ServicioTipotarifadetalle $tipotarifadetalle
-     *
-     * @return CotizacionCottarifadetalle
-     */
-    public function setTipotarifadetalle(\App\Entity\ServicioTipotarifadetalle $tipotarifadetalle)
+    public function setTipotarifadetalle(ServicioTipotarifadetalle $tipotarifadetalle): self
     {
         $this->tipotarifadetalle = $tipotarifadetalle;
-    
         return $this;
     }
 
-    /**
-     * Get tipotarifadetalle
-     *
-     * @return \App\Entity\ServicioTipotarifadetalle
-     */
-    public function getTipotarifadetalle()
+    public function getTipotarifadetalle(): ?ServicioTipotarifadetalle
     {
         return $this->tipotarifadetalle;
     }

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -24,40 +25,40 @@ class CuentaPeriodo
     private $id;
 
     /**
-     * @var \App\Entity\CuentaCuenta
+     * @var CuentaCuenta
      */
     #[ORM\ManyToOne(targetEntity: 'CuentaCuenta', inversedBy: 'periodos')]
     #[ORM\JoinColumn(name: 'cuenta_id', referencedColumnName: 'id', nullable: false)]
     protected $cuenta;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'CuentaMovimiento', mappedBy: 'periodo', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['fechahora' => 'ASC'])]
     private $movimientos;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      */
     #[ORM\Column(name: 'fechainicio', type: 'date')]
     private $fechainicio;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      */
     #[ORM\Column(name: 'fechafin', type: 'date', nullable: true)]
     private $fechafin;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -110,7 +111,7 @@ class CuentaPeriodo
     /**
      * Set fechainicio.
      *
-     * @param \DateTime $fechainicio
+     * @param DateTime $fechainicio
      *
      * @return CuentaPeriodo
      */
@@ -124,7 +125,7 @@ class CuentaPeriodo
     /**
      * Get fechainicio.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getFechainicio()
     {
@@ -134,7 +135,7 @@ class CuentaPeriodo
     /**
      * Set fechafin.
      *
-     * @param \DateTime|null $fechafin
+     * @param DateTime|null $fechafin
      *
      * @return CuentaPeriodo
      */
@@ -148,7 +149,7 @@ class CuentaPeriodo
     /**
      * Get fechafin.
      *
-     * @return \DateTime|null
+     * @return DateTime|null
      */
     public function getFechafin()
     {
@@ -158,7 +159,7 @@ class CuentaPeriodo
     /**
      * Set creado.
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return CuentaPeriodo
      */
@@ -172,7 +173,7 @@ class CuentaPeriodo
     /**
      * Get creado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -182,7 +183,7 @@ class CuentaPeriodo
     /**
      * Set modificado.
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return CuentaPeriodo
      */
@@ -196,7 +197,7 @@ class CuentaPeriodo
     /**
      * Get modificado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -206,11 +207,11 @@ class CuentaPeriodo
     /**
      * Set cuenta.
      *
-     * @param \App\Entity\CuentaCuenta $cuenta
+     * @param CuentaCuenta $cuenta
      *
      * @return CuentaPeriodo
      */
-    public function setCuenta(\App\Entity\CuentaCuenta $cuenta = null) //para que valide el campo deshabilitado de cuenta
+    public function setCuenta(CuentaCuenta $cuenta = null) //para que valide el campo deshabilitado de cuenta
     {
         $this->cuenta = $cuenta;
     
@@ -220,7 +221,7 @@ class CuentaPeriodo
     /**
      * Get cuenta.
      *
-     * @return \App\Entity\CuentaCuenta
+     * @return CuentaCuenta
      */
     public function getCuenta()
     {
@@ -230,11 +231,11 @@ class CuentaPeriodo
     /**
      * Add movimiento.
      *
-     * @param \App\Entity\CuentaMovimiento $movimiento
+     * @param CuentaMovimiento $movimiento
      *
      * @return CuentaPeriodo
      */
-    public function addMovimiento(\App\Entity\CuentaMovimiento $movimiento)
+    public function addMovimiento(CuentaMovimiento $movimiento)
     {
         $movimiento->setPeriodo($this);
 
@@ -246,11 +247,11 @@ class CuentaPeriodo
     /**
      * Remove movimiento.
      *
-     * @param \App\Entity\CuentaMovimiento $movimiento
+     * @param CuentaMovimiento $movimiento
      *
      * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function removeMovimiento(\App\Entity\CuentaMovimiento $movimiento)
+    public function removeMovimiento(CuentaMovimiento $movimiento)
     {
         return $this->movimientos->removeElement($movimiento);
     }
@@ -258,7 +259,7 @@ class CuentaPeriodo
     /**
      * Get movimientos.
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getMovimientos()
     {

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -29,7 +30,7 @@ class ServicioItinerario
     /**
      * @var ArrayCollection
      */
-    #[ORM\OneToMany(targetEntity: 'ServicioItinerarioTranslation', mappedBy: 'object', cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'object', targetEntity: 'ServicioItinerarioTranslation', cascade: ['persist', 'remove'])]
     protected $translations;
 
     /**
@@ -45,7 +46,7 @@ class ServicioItinerario
     private $titulo;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      */
     #[ORM\Column(type: 'time')]
     private $hora;
@@ -57,30 +58,30 @@ class ServicioItinerario
     private $duracion;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
-     * @var \App\Entity\ServicioServicio
+     * @var ServicioServicio
      */
     #[ORM\ManyToOne(targetEntity: 'ServicioServicio', inversedBy: 'itinerarios')]
     #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id', nullable: false)]
     protected $servicio;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
-    #[ORM\OneToMany(targetEntity: 'ServicioItinerariodia', mappedBy: 'itinerario', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'itinerario', targetEntity: 'ServicioItinerariodia', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $itinerariodias;
 
     #[Gedmo\Locale]
@@ -201,7 +202,7 @@ class ServicioItinerario
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return ServicioItinerario
      */
@@ -215,7 +216,7 @@ class ServicioItinerario
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -225,7 +226,7 @@ class ServicioItinerario
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return ServicioItinerario
      */
@@ -239,7 +240,7 @@ class ServicioItinerario
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -249,11 +250,11 @@ class ServicioItinerario
     /**
      * Set servicio
      *
-     * @param \App\Entity\ServicioServicio $servicio
+     * @param ServicioServicio $servicio
      *
      * @return ServicioItinerario
      */
-    public function setServicio(\App\Entity\ServicioServicio $servicio = null)
+    public function setServicio(ServicioServicio $servicio = null)
     {
         $this->servicio = $servicio;
     
@@ -263,7 +264,7 @@ class ServicioItinerario
     /**
      * Get servicio
      *
-     * @return \App\Entity\ServicioServicio
+     * @return ServicioServicio
      */
     public function getServicio()
     {
@@ -273,11 +274,11 @@ class ServicioItinerario
     /**
      * Add itinerariodia
      *
-     * @param \App\Entity\ServicioItinerariodia $itinerariodia
+     * @param ServicioItinerariodia $itinerariodia
      *
      * @return ServicioItinerario
      */
-    public function addItinerariodia(\App\Entity\ServicioItinerariodia $itinerariodia)
+    public function addItinerariodia(ServicioItinerariodia $itinerariodia)
     {
         $itinerariodia->setItinerario($this);
 
@@ -289,9 +290,9 @@ class ServicioItinerario
     /**
      * Remove itinerariodia
      *
-     * @param \App\Entity\ServicioItinerariodia $itinerariodia
+     * @param ServicioItinerariodia $itinerariodia
      */
-    public function removeItinerariodia(\App\Entity\ServicioItinerariodia $itinerariodia)
+    public function removeItinerariodia(ServicioItinerariodia $itinerariodia)
     {
         $this->itinerariodias->removeElement($itinerariodia);
     }
@@ -299,7 +300,7 @@ class ServicioItinerario
     /**
      * Get itinerariodias
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getItinerariodias()
     {
@@ -309,7 +310,7 @@ class ServicioItinerario
     /**
      * Set hora
      *
-     * @param \DateTime $hora
+     * @param DateTime $hora
      *
      * @return ServicioItinerario
      */
@@ -323,7 +324,7 @@ class ServicioItinerario
     /**
      * Get hora
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getHora()
     {

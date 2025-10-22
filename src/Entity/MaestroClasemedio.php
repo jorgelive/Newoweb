@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -46,20 +47,20 @@ class MaestroClasemedio
     private $titulo;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'MaestroMedio', mappedBy: 'clasemedio', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $medios;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -120,7 +121,7 @@ class MaestroClasemedio
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return MaestroClasemedio
      */
@@ -134,7 +135,7 @@ class MaestroClasemedio
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -144,7 +145,7 @@ class MaestroClasemedio
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return MaestroClasemedio
      */
@@ -158,7 +159,7 @@ class MaestroClasemedio
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -192,11 +193,11 @@ class MaestroClasemedio
     /**
      * Add medio.
      *
-     * @param \App\Entity\MaestroMedio $maestromedio
+     * @param MaestroMedio $maestromedio
      *
      * @return MaestroClasemedio
      */
-    public function addMedio(\App\Entity\MaestroMedio $medio)
+    public function addMedio(MaestroMedio $medio)
     {
         $medio->setClasemedio($this);
 
@@ -208,7 +209,7 @@ class MaestroClasemedio
     /**
      * Remove medio.
      *
-     * @param \App\Entity\MaestroMedio $medio
+     * @param MaestroMedio $medio
      *
      * @return MaestroClasemedio
      */
@@ -227,7 +228,7 @@ class MaestroClasemedio
     /**
      * Get medios.
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getMedios()
     {

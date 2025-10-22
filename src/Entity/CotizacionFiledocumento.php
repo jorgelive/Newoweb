@@ -2,15 +2,13 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\Common\Collections\ArrayCollection;
 use App\Traits\MainArchivoTrait;
 
-/**
- * CotizacionFiledocumento
- */
 #[ORM\Table(name: 'cot_filedocumento')]
 #[ORM\Entity]
 #[ORM\HasLifecycleCallbacks]
@@ -18,184 +16,110 @@ class CotizacionFiledocumento
 {
     use MainArchivoTrait;
 
-    private $path = '/carga/cotizacionfiledocumento';
+    /**
+     * Ruta base fija para carga (no mapeada a DB).
+     * Mantener como string literal ya que su valor es conocido.
+     */
+    private string $path = '/carga/cotizacionfiledocumento';
 
     #[ORM\Id]
     #[ORM\Column(type: 'integer')]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
     #[ORM\Column(type: 'date', nullable: true)]
-    private $vencimiento;
+    private ?DateTimeInterface $vencimiento = null;
 
-    /**
-     * @var \App\Entity\CotizacionTipofiledocumento
-     */
     #[ORM\ManyToOne(targetEntity: 'CotizacionTipofiledocumento')]
     #[ORM\JoinColumn(name: 'tipofiledocumento_id', referencedColumnName: 'id', nullable: false)]
-    private $tipofiledocumento;
+    private ?CotizacionTipofiledocumento $tipofiledocumento = null;
 
-    /**
-     * @var \App\Entity\CotizacionFile
-     */
     #[ORM\ManyToOne(targetEntity: 'CotizacionFile', inversedBy: 'filedocumentos')]
     #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false)]
-    protected $file;
+    protected ?CotizacionFile $file = null;
 
-    /**
-     * @var \DateTime $creado
-     */
+    // Fechas tipadas a DateTimeInterface y permitiendo null para compatibilidad con Gedmo
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private $creado;
+    private ?DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private $modificado;
+    private ?DateTimeInterface $modificado = null;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        if (empty($this->getNombre())){
-            return sprintf("Id: %s.", $this->getId());
-        }elseif(!empty($this->getVencimiento())){
-            return sprintf("%s | %s", $this->getVencimiento()->format('Y-m-d'), $this->getNombre());
-        }else{
-            return $this->getNombre();
+        if (empty($this->getNombre())) {
+            return sprintf('Id: %s.', $this->getId() ?? '');
         }
-
+        if (!empty($this->getVencimiento())) {
+            return sprintf('%s | %s', $this->getVencimiento()->format('Y-m-d'), $this->getNombre());
+        }
+        return (string) $this->getNombre();
     }
 
-    /**
-     * Get id
-     *
-     * @return integer
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set vencimiento
-     *
-     * @param \DateTime $creado
-     * @return CotizacionFiledocumento
-     */
-    public function setVencimiento($vencimiento)
+    public function getPath(): string
+    {
+        return $this->path;
+    }
+
+    public function setVencimiento(?DateTimeInterface $vencimiento): self
     {
         $this->vencimiento = $vencimiento;
-
         return $this;
     }
 
-    /**
-     * Get vencimiento
-     *
-     * @return \DateTime
-     */
-    public function getVencimiento()
+    public function getVencimiento(): ?DateTimeInterface
     {
         return $this->vencimiento;
     }
 
-    /**
-     * Set tipocotsocumento
-     *
-     * @param \App\Entity\CotizacionTipofiledocumento $tipofiledocumento
-     * @return CotizacionFiledocumento
-     */
-    public function setTipofiledocumento(\App\Entity\CotizacionTipofiledocumento $tipofiledocumento)
+    public function setTipofiledocumento(?CotizacionTipofiledocumento $tipofiledocumento): self
     {
         $this->tipofiledocumento = $tipofiledocumento;
-
         return $this;
     }
 
-    /**
-     * Get tipofiledocumento
-     *
-     * @return \App\Entity\CotizacionTipofiledocumento
-     */
-    public function getTipofiledocumento()
+    public function getTipofiledocumento(): ?CotizacionTipofiledocumento
     {
         return $this->tipofiledocumento;
     }
 
-    /**
-     * Set file
-     *
-     * @param \App\Entity\CotizacionFile $file
-     *
-     * @return CotizacionFiledocumento
-     */
-    public function setFile(\App\Entity\CotizacionFile $file = null)
+    public function setFile(?CotizacionFile $file = null): self
     {
         $this->file = $file;
-
         return $this;
     }
 
-    /**
-     * Get file
-     *
-     * @return \App\Entity\CotizacionFile
-     */
-    public function getFile()
+    public function getFile(): ?CotizacionFile
     {
         return $this->file;
     }
 
-
-    /**
-     * Set creado
-     *
-     * @param \DateTime $creado
-     * @return CotizacionFiledocumento
-     */
-    public function setCreado($creado)
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param \DateTime $modificado
-     * @return CotizacionFiledocumento
-     */
-    public function setModificado($modificado)
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
-
 }

@@ -37,31 +37,31 @@ class UserUser extends BaseUser
     private $lastname;
 
     /**
-     * @var \App\Entity\UserDependencia
+     * @var UserDependencia
      */
     #[ORM\ManyToOne(targetEntity: 'UserDependencia', inversedBy: 'users')]
     protected $dependencia;
 
     /**
-     * @var \App\Entity\UserArea
+     * @var UserArea
      */
     #[ORM\ManyToOne(targetEntity: 'UserArea', inversedBy: 'users')]
     protected $area;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'UserCuenta', mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $cuentas;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'CuentaMovimiento', mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $movimientos;
 
     /**
-     * @var \App\Entity\TransporteConductor
+     * @var TransporteConductor
      */
     #[ORM\OneToOne(targetEntity: 'TransporteConductor', mappedBy: 'user')]
     private $conductor;
@@ -148,10 +148,10 @@ class UserUser extends BaseUser
     /**
      * Set dependencia
      *
-     * @param \App\Entity\UserDependencia $dependencia
+     * @param UserDependencia $dependencia
      * @return UserUser
      */
-    public function setDependencia(\App\Entity\UserDependencia $dependencia = null)
+    public function setDependencia(UserDependencia $dependencia = null)
     {
         $this->dependencia = $dependencia;
 
@@ -161,7 +161,7 @@ class UserUser extends BaseUser
     /**
      * Get dependencia
      *
-     * @return \App\Entity\UserDependencia
+     * @return UserDependencia
      */
     public function getDependencia()
     {
@@ -171,10 +171,10 @@ class UserUser extends BaseUser
     /**
      * Set area
      *
-     * @param \App\Entity\UserArea $area
+     * @param UserArea $area
      * @return UserUser
      */
-    public function setArea(\App\Entity\UserArea $area = null)
+    public function setArea(UserArea $area = null)
     {
         $this->area = $area;
 
@@ -184,7 +184,7 @@ class UserUser extends BaseUser
     /**
      * Get area
      *
-     * @return \App\Entity\UserArea
+     * @return UserArea
      */
     public function getArea()
     {
@@ -204,10 +204,10 @@ class UserUser extends BaseUser
     /**
      * Add cuenta
      *
-     * @param \App\Entity\UserCuenta $cuenta
+     * @param UserCuenta $cuenta
      * @return UserUser
      */
-    public function addCuenta(\App\Entity\UserCuenta $cuenta)
+    public function addCuenta(UserCuenta $cuenta)
     {
         $cuenta->setUser($this);
 
@@ -219,9 +219,9 @@ class UserUser extends BaseUser
     /**
      * Remove cuenta
      *
-     * @param \App\Entity\UserCuenta $cuenta
+     * @param UserCuenta $cuenta
      */
-    public function removeCuenta(\App\Entity\UserCuenta $cuenta)
+    public function removeCuenta(UserCuenta $cuenta)
     {
         $this->cuentas->removeElement($cuenta);
     }
@@ -229,7 +229,7 @@ class UserUser extends BaseUser
     /**
      * Get cuentas
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getCuentas()
     {
@@ -239,11 +239,11 @@ class UserUser extends BaseUser
     /**
      * Set conductor
      *
-     * @param \App\Entity\TransporteConductor $conductor
+     * @param TransporteConductor $conductor
      *
      * @return UserUser
      */
-    public function setConductor(\App\Entity\TransporteConductor $conductor = null)
+    public function setConductor(TransporteConductor $conductor = null)
     {
         $this->conductor = $conductor;
     
@@ -253,7 +253,7 @@ class UserUser extends BaseUser
     /**
      * Get conductor
      *
-     * @return \App\Entity\TransporteConductor
+     * @return TransporteConductor
      */
     public function getConductor()
     {
@@ -263,11 +263,11 @@ class UserUser extends BaseUser
     /**
      * Add movimiento.
      *
-     * @param \App\Entity\CuentaMovimiento $movimiento
+     * @param CuentaMovimiento $movimiento
      *
      * @return UserUser
      */
-    public function addMovimiento(\App\Entity\CuentaMovimiento $movimiento)
+    public function addMovimiento(CuentaMovimiento $movimiento)
     {
         $movimiento->setUser($this);
 
@@ -279,11 +279,11 @@ class UserUser extends BaseUser
     /**
      * Remove movimiento.
      *
-     * @param \App\Entity\CuentaMovimiento $movimiento
+     * @param CuentaMovimiento $movimiento
      *
      * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function removeMovimiento(\App\Entity\CuentaMovimiento $movimiento)
+    public function removeMovimiento(CuentaMovimiento $movimiento)
     {
         return $this->movimientos->removeElement($movimiento);
     }
@@ -291,7 +291,7 @@ class UserUser extends BaseUser
     /**
      * Get movimientos.
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getMovimientos()
     {

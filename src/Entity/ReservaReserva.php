@@ -2,6 +2,10 @@
 
 namespace App\Entity;
 
+use DateTime;
+use DateTimeImmutable;
+use DateTimeInterface;
+use DateTimeZone;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -128,18 +132,18 @@ class ReservaReserva
     private Collection $pagos;
 
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTime $fechahorainicio;
+    private ?DateTime $fechahorainicio;
 
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTime $fechahorafin;
+    private ?DateTime $fechahorafin;
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTime $creado;
+    private ?DateTime $creado;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTime $modificado;
+    private ?DateTime $modificado;
 
     /**
      * Constructor
@@ -348,12 +352,12 @@ class ReservaReserva
         return $this;
     }
 
-    public function getFechahorainicio(): ?\DateTime
+    public function getFechahorainicio(): ?DateTime
     {
         return $this->fechahorainicio;
     }
 
-    public function setFechahorainicio(?\DateTime $fechahorainicio): self
+    public function setFechahorainicio(?DateTime $fechahorainicio): self
     {
         $this->fechahorainicio = $fechahorainicio;
 
@@ -363,21 +367,21 @@ class ReservaReserva
     /**
      * 0 = hoy, 1 = mañana, null = otra fecha
      */
-    public function getCheckoutDetector(?\DateTimeZone $tz = null): ?int
+    public function getCheckoutDetector(?DateTimeZone $tz = null): ?int
     {
         $fin = $this->getFechahorafin();
-        if (!$fin instanceof \DateTimeInterface) {
+        if (!$fin instanceof DateTimeInterface) {
             return null;
         }
 
         // Usa tu zona local (ajústala si corresponde)
-        $tz = $tz ?: new \DateTimeZone('America/Lima');
+        $tz = $tz ?: new DateTimeZone('America/Lima');
 
         // "Hoy" a medianoche en la TZ elegida
-        $hoy = (new \DateTimeImmutable('now', $tz))->setTime(0, 0, 0);
+        $hoy = (new DateTimeImmutable('now', $tz))->setTime(0, 0, 0);
 
         // Normalizamos fechahorafin a la misma TZ y la llevamos a medianoche
-        $finLocalMedianoche = (new \DateTimeImmutable('@' . $fin->getTimestamp()))
+        $finLocalMedianoche = (new DateTimeImmutable('@' . $fin->getTimestamp()))
             ->setTimezone($tz)
             ->setTime(0, 0, 0);
 
@@ -389,12 +393,12 @@ class ReservaReserva
         return null;                     // otro día
     }
 
-    public function getFechahorafin(): ?\DateTime
+    public function getFechahorafin(): ?DateTime
     {
         return $this->fechahorafin;
     }
 
-    public function setFechahorafin(?\DateTime $fechahorafin): self
+    public function setFechahorafin(?DateTime $fechahorafin): self
     {
         $this->fechahorafin = $fechahorafin;
 
@@ -413,24 +417,24 @@ class ReservaReserva
         return $this;
     }
 
-    public function getCreado(): ?\DateTime
+    public function getCreado(): ?DateTime
     {
         return $this->creado;
     }
 
-    public function setCreado(?\DateTime $creado): self
+    public function setCreado(?DateTime $creado): self
     {
         $this->creado = $creado;
 
         return $this;
     }
 
-    public function getModificado(): ?\DateTime
+    public function getModificado(): ?DateTime
     {
         return $this->modificado;
     }
 
-    public function setModificado(?\DateTime $modificado): self
+    public function setModificado(?DateTime $modificado): self
     {
         $this->modificado = $modificado;
 

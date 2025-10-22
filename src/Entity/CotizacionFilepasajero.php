@@ -2,409 +2,238 @@
 
 namespace App\Entity;
 
+use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
-use Doctrine\Common\Collections\ArrayCollection;
 
-/**
- * CotizacionFilepasajero
- */
 #[ORM\Table(name: 'cot_filepasajero')]
 #[ORM\Entity]
 class CotizacionFilepasajero
 {
-    /**
-     * @var int
-     */
     #[ORM\Column(name: 'id', type: 'integer')]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
-    /**
-     * @var string
-     */
+    // Consigna: inicializar strings a null por compatibilidad con Symfony
     #[ORM\Column(name: 'nombre', type: 'string', length: 100)]
-    private $nombre;
+    private ?string $nombre = null;
 
-    /**
-     * @var string
-     */
     #[ORM\Column(name: 'apellido', type: 'string', length: 100)]
-    private $apellido;
+    private ?string $apellido = null;
 
-    /**
-     * @var \App\Entity\MaestroPais
-     */
     #[ORM\ManyToOne(targetEntity: 'MaestroPais')]
     #[ORM\JoinColumn(name: 'pais_id', referencedColumnName: 'id', nullable: false)]
-    protected $pais;
+    protected ?MaestroPais $pais = null;
 
-    /**
-     * @var \App\Entity\MaestroSexo
-     */
     #[ORM\ManyToOne(targetEntity: 'MaestroSexo')]
     #[ORM\JoinColumn(name: 'sexo_id', referencedColumnName: 'id', nullable: false)]
-    protected $sexo;
+    protected ?MaestroSexo $sexo = null;
 
-    /**
-     * @var \App\Entity\MaestroTipodocumento
-     */
     #[ORM\ManyToOne(targetEntity: 'MaestroTipodocumento')]
     #[ORM\JoinColumn(name: 'tipodocumento_id', referencedColumnName: 'id', nullable: false)]
-    protected $tipodocumento;
+    protected ?MaestroTipodocumento $tipodocumento = null;
 
-    /**
-     * @var \DateTime
-     */
     #[ORM\Column(name: 'fechanacimiento', type: 'date')]
-    protected $fechanacimiento;
+    protected ?DateTimeInterface $fechanacimiento = null;
 
-    /**
-     * @var int
-     */
+    // En DB es string; tipamos como string nullable para inicialización segura
     #[ORM\Column(name: 'numerodocumento', type: 'string', length: 100)]
-    private $numerodocumento;
+    private ?string $numerodocumento = null;
 
-    /**
-     * @var \App\Entity\CotizacionFile
-     */
     #[ORM\ManyToOne(targetEntity: 'CotizacionFile', inversedBy: 'filepasajeros')]
     #[ORM\JoinColumn(name: 'file_id', referencedColumnName: 'id', nullable: false)]
-    protected $file;
+    protected ?CotizacionFile $file = null;
 
-    /**
-     * @var \DateTime $creado
-     */
+    // Fechas con DateTimeInterface y permitiendo null (Gedmo repuebla en persist/update)
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private $creado;
+    private ?DateTimeInterface $creado = null;
 
-    /**
-     * @var \DateTime $modificado
-     */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private $modificado;
+    private ?DateTimeInterface $modificado = null;
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return sprintf('%s %s', $this->getNombre(), $this->getApellido());
+        $nombre = trim(($this->getNombre() ?? '') . ' ' . ($this->getApellido() ?? ''));
+        if ($nombre === '') {
+            return sprintf('Id: %s.', $this->getId() ?? '');
+        }
+        return $nombre;
     }
 
-
-
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * Set nombre.
-     *
-     * @param string $nombre
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setNombre($nombre)
+    public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
-    
         return $this;
     }
 
-    /**
-     * Get nombre.
-     *
-     * @return string
-     */
-    public function getNombre()
+    public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * Set apellido.
-     *
-     * @param string $apellido
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setApellido($apellido)
+    public function setApellido(?string $apellido): self
     {
         $this->apellido = $apellido;
-    
         return $this;
     }
 
-    /**
-     * Get apellido.
-     *
-     * @return string
-     */
-    public function getApellido()
+    public function getApellido(): ?string
     {
         return $this->apellido;
     }
 
-    /**
-     * Get apellidoPaterno.
-     *
-     * @return string
-     */
-    public function getApellidoPaterno()
+    public function getApellidoPaterno(): ?string
     {
-        $apellidosArray = explode(' ', $this->apellido, 2);
-
-        return $apellidosArray[0];
-    }
-
-    /**
-     * Get apellidoMaterno.
-     *
-     * @return string
-     */
-    public function getApellidoMaterno()
-    {
-        $apellidosArray = explode(' ', $this->apellido, 2);
-
-        if(!isset($apellidosArray[1])){
-            return '';
+        $apellido = $this->apellido ?? '';
+        if ($apellido === '') {
+            return null;
         }
-        return $apellidosArray[1];
+        $apellidosArray = explode(' ', $apellido, 2);
+        return $apellidosArray[0] ?? null;
     }
 
-    /**
-     * Set fechanacimiento.
-     *
-     * @param \DateTime $fechanacimiento
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setFechanacimiento($fechanacimiento)
+    public function getApellidoMaterno(): ?string
+    {
+        $apellido = $this->apellido ?? '';
+        if ($apellido === '') {
+            return null;
+        }
+        $apellidosArray = explode(' ', $apellido, 2);
+        return $apellidosArray[1] ?? null;
+    }
+
+    public function setFechanacimiento(?DateTimeInterface $fechanacimiento): self
     {
         $this->fechanacimiento = $fechanacimiento;
-    
         return $this;
     }
 
-    /**
-     * Get fechanacimiento.
-     *
-     * @return \DateTime
-     */
-    public function getFechanacimiento()
+    public function getFechanacimiento(): ?DateTimeInterface
     {
         return $this->fechanacimiento;
     }
 
-
-    /**
-     * Get edad.
-     *
-     * @return int
-     */
-    public function getEdad()
+    public function getEdad(): ?int
     {
-        $hoy = new \DateTime();
+        if (!$this->fechanacimiento) {
+            return null;
+        }
+        $hoy = new DateTimeImmutable('today');
         $diferencia = $hoy->diff($this->fechanacimiento);
-
         return $diferencia->y;
     }
 
-    /**
-     * Set numerodocumento.
-     *
-     * @param string $numerodocumento
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setNumerodocumento($numerodocumento)
+    public function setNumerodocumento(?string $numerodocumento): self
     {
         $this->numerodocumento = $numerodocumento;
-    
         return $this;
     }
 
-    public function getNumerodocumento(): string
+    public function getNumerodocumento(): ?string
     {
         return $this->numerodocumento;
     }
 
-    public function getTipopaxperurail(): int
+    public function getTipopaxperurail(): ?int
     {
-        if($this->getEdad() >= 12) {
-            return 1;
-        }else{
-            return 2;
+        $edad = $this->getEdad();
+        if ($edad === null) {
+            return null;
         }
+        return $edad >= 12 ? 1 : 2;
     }
 
-    public function getCategoriaddc(): int
+    public function getCategoriaddc(): ?int
     {
-        if($this->getEdad() >= 18){
+        $edad = $this->getEdad();
+        if ($edad === null) {
+            return null;
+        }
+        if ($edad >= 18) {
             return 1;
-        }elseif($this->getEdad() >= 13 && $this->getEdad() <= 17){
+        }
+        if ($edad >= 13 && $edad <= 17) {
             return 2;
-        }elseif($this->getEdad() >= 3 && $this->getEdad() <= 12){
+        }
+        if ($edad >= 3 && $edad <= 12) {
             return 7;
-        }else{
-           return 0;
         }
+        return 0;
     }
 
-    /**
-     * Set creado.
-     *
-     * @param \DateTime $creado
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setCreado($creado)
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
-    /**
-     * Get creado.
-     *
-     * @return \DateTime
-     */
-    public function getCreado()
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado.
-     *
-     * @param \DateTime $modificado
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setModificado($modificado)
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
-    /**
-     * Get modificado.
-     *
-     * @return \DateTime
-     */
-    public function getModificado()
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
 
-    /**
-     * Set pais.
-     *
-     * @param \App\Entity\MaestroPais $pais
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setPais(\App\Entity\MaestroPais $pais)
+    public function setPais(?MaestroPais $pais): self
     {
         $this->pais = $pais;
-    
         return $this;
     }
 
-    /**
-     * Get pais.
-     *
-     * @return \App\Entity\MaestroPais
-     */
-    public function getPais()
+    public function getPais(): ?MaestroPais
     {
         return $this->pais;
     }
 
-    /**
-     * Set sexo.
-     *
-     * @param \App\Entity\MaestroSexo $sexo
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setSexo(\App\Entity\MaestroSexo $sexo)
+    public function setSexo(?MaestroSexo $sexo): self
     {
         $this->sexo = $sexo;
-    
         return $this;
     }
 
-    /**
-     * Get sexo.
-     *
-     * @return \App\Entity\MaestroSexo
-     */
-    public function getSexo()
+    public function getSexo(): ?MaestroSexo
     {
         return $this->sexo;
     }
 
-    /**
-     * Set tipodocumento.
-     *
-     * @param \App\Entity\MaestroTipodocumento $tipodocumento
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setTipodocumento(\App\Entity\MaestroTipodocumento $tipodocumento)
+    public function setTipodocumento(?MaestroTipodocumento $tipodocumento): self
     {
         $this->tipodocumento = $tipodocumento;
-    
         return $this;
     }
 
-    /**
-     * Get tipodocumento.
-     *
-     * @return \App\Entity\MaestroTipodocumento
-     */
-    public function getTipodocumento()
+    public function getTipodocumento(): ?MaestroTipodocumento
     {
         return $this->tipodocumento;
     }
 
-    /**
-     * Set file.
-     *
-     * @param \App\Entity\CotizacionFile $file
-     *
-     * @return CotizacionFilepasajero
-     */
-    public function setFile(\App\Entity\CotizacionFile $file)
+    public function setFile(?CotizacionFile $file): self
     {
         $this->file = $file;
-    
         return $this;
     }
 
-    /**
-     * Get file.
-     *
-     * @return \App\Entity\CotizacionFile
-     */
-    public function getFile()
+    public function getFile(): ?CotizacionFile
     {
         return $this->file;
     }
-
 }

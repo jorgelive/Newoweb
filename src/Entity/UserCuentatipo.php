@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -31,21 +32,21 @@ class UserCuentatipo
     private $nombre;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
     private $modificado;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'UserCuenta', mappedBy: 'cuentatipo', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $cuentas;
@@ -102,7 +103,7 @@ class UserCuentatipo
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      * @return UserCuentatipo
      */
     public function setCreado($creado)
@@ -115,7 +116,7 @@ class UserCuentatipo
     /**
      * Get creado
      *
-     * @return \DateTime 
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -125,7 +126,7 @@ class UserCuentatipo
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      * @return UserCuentatipo
      */
     public function setModificado($modificado)
@@ -138,7 +139,7 @@ class UserCuentatipo
     /**
      * Get modificado
      *
-     * @return \DateTime 
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -148,10 +149,10 @@ class UserCuentatipo
     /**
      * Add cuenta
      *
-     * @param \App\Entity\UserCuenta $cuenta
+     * @param UserCuenta $cuenta
      * @return UserCuentatipo
      */
-    public function addCuenta(\App\Entity\UserCuenta $cuenta)
+    public function addCuenta(UserCuenta $cuenta)
     {
         $cuenta->setCuentatipo($this);
 
@@ -163,9 +164,9 @@ class UserCuentatipo
     /**
      * Remove cuenta
      *
-     * @param \App\Entity\UserCuenta $cuenta
+     * @param UserCuenta $cuenta
      */
-    public function removeUsercuenta(\App\Entity\UserCuenta $cuenta)
+    public function removeUsercuenta(UserCuenta $cuenta)
     {
         $this->cuentas->removeElement($cuenta);
     }
@@ -173,7 +174,7 @@ class UserCuentatipo
     /**
      * Get cuentas
      *
-     * @return \Doctrine\Common\Collections\Collection 
+     * @return Collection
      */
     public function getCuentas()
     {

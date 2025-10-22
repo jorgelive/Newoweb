@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -24,14 +25,14 @@ class FitDietacomida
     private $id;
 
     /**
-     * @var \App\Entity\FitDieta
+     * @var FitDieta
      */
     #[ORM\ManyToOne(targetEntity: 'FitDieta', inversedBy: 'dietacomidas')]
     #[ORM\JoinColumn(name: 'dieta_id', referencedColumnName: 'id', nullable: false)]
     protected $dieta;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'FitDietaalimento', mappedBy: 'dietacomida', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $dietaalimentos;
@@ -49,14 +50,14 @@ class FitDietacomida
     private $nota;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -225,11 +226,11 @@ class FitDietacomida
     /**
      * Set dieta
      *
-     * @param \App\Entity\FitDieta $dieta
+     * @param FitDieta $dieta
      *
      * @return FitDietacomida
      */
-    public function setDieta(\App\Entity\FitDieta $dieta= null)
+    public function setDieta(FitDieta $dieta= null)
     {
         $this->dieta = $dieta;
     
@@ -239,7 +240,7 @@ class FitDietacomida
     /**
      * Get dieta
      *
-     * @return \App\Entity\FitDieta
+     * @return FitDieta
      */
     public function getDieta()
     {
@@ -250,11 +251,11 @@ class FitDietacomida
     /**
      * Add dietaalimento
      *
-     * @param \App\Entity\FitDietaalimento $dietaalimento
+     * @param FitDietaalimento $dietaalimento
      *
      * @return FitDietacomida
      */
-    public function addDietaalimento(\App\Entity\FitDietaalimento $dietaalimento)
+    public function addDietaalimento(FitDietaalimento $dietaalimento)
     {
         $dietaalimento->setDietacomida($this);
 
@@ -266,9 +267,9 @@ class FitDietacomida
     /**
      * Remove dietaalimento
      *
-     * @param \App\Entity\FitDietaalimento $dietaalimento
+     * @param FitDietaalimento $dietaalimento
      */
-    public function removeDietaalimento(\App\Entity\FitDietaalimento $dietaalimento)
+    public function removeDietaalimento(FitDietaalimento $dietaalimento)
     {
         $this->dietaalimentos->removeElement($dietaalimento);
     }
@@ -276,7 +277,7 @@ class FitDietacomida
     /**
      * Get dietaalimentos
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getDietaalimentos()
     {
@@ -334,7 +335,7 @@ class FitDietacomida
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return FitDietacomida
      */
@@ -348,7 +349,7 @@ class FitDietacomida
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -358,7 +359,7 @@ class FitDietacomida
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return FitDietacomida
      */
@@ -372,7 +373,7 @@ class FitDietacomida
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {

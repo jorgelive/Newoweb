@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -36,14 +37,14 @@ class CuentaCentro
     private $codigo;
 
     /**
-     * @var \App\Entity\TransporteUnidad
+     * @var TransporteUnidad
      */
     #[ORM\OneToOne(targetEntity: 'TransporteUnidad', inversedBy: 'centro')]
     #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: true)]
     protected $unidad;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'CuentaMovimiento', mappedBy: 'centro', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['fechahora' => 'DESC'])]
@@ -51,14 +52,14 @@ class CuentaCentro
 
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -134,7 +135,7 @@ class CuentaCentro
     /**
      * Set creado.
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return CuentaCentro
      */
@@ -148,7 +149,7 @@ class CuentaCentro
     /**
      * Get creado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -158,7 +159,7 @@ class CuentaCentro
     /**
      * Set modificado.
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return CuentaCentro
      */
@@ -172,7 +173,7 @@ class CuentaCentro
     /**
      * Get modificado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -182,11 +183,11 @@ class CuentaCentro
     /**
      * Set unidad.
      *
-     * @param \App\Entity\TransporteUnidad|null $unidad
+     * @param TransporteUnidad|null $unidad
      *
      * @return CuentaCentro
      */
-    public function setUnidad(\App\Entity\TransporteUnidad $unidad = null)
+    public function setUnidad(TransporteUnidad $unidad = null)
     {
         $this->unidad = $unidad;
     
@@ -196,7 +197,7 @@ class CuentaCentro
     /**
      * Get unidad.
      *
-     * @return \App\Entity\TransporteUnidad|null
+     * @return TransporteUnidad|null
      */
     public function getUnidad()
     {
@@ -207,11 +208,11 @@ class CuentaCentro
     /**
      * Add movimiento.
      *
-     * @param \App\Entity\CuentaMovimiento $movimiento
+     * @param CuentaMovimiento $movimiento
      *
      * @return CuentaCentro
      */
-    public function addMovimiento(\App\Entity\CuentaMovimiento $movimiento)
+    public function addMovimiento(CuentaMovimiento $movimiento)
     {
         $movimiento->setCentro($this);
 
@@ -223,11 +224,11 @@ class CuentaCentro
     /**
      * Remove movimiento.
      *
-     * @param \App\Entity\CuentaMovimiento $movimiento
+     * @param CuentaMovimiento $movimiento
      *
      * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function removeMovimiento(\App\Entity\CuentaMovimiento $movimiento)
+    public function removeMovimiento(CuentaMovimiento $movimiento)
     {
         return $this->movimientos->removeElement($movimiento);
     }
@@ -235,7 +236,7 @@ class CuentaCentro
     /**
      * Get movimientos.
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getMovimientos()
     {

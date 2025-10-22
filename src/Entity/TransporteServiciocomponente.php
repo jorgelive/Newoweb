@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -15,7 +16,7 @@ class TransporteServiciocomponente
     private $id;
 
     /**
-     * @var \App\Entity\TransporteServicio
+     * @var TransporteServicio
      */
     #[ORM\ManyToOne(targetEntity: 'TransporteServicio', inversedBy: 'serviciocomponentes')]
     #[ORM\JoinColumn(name: 'servicio_id', referencedColumnName: 'id', nullable: false)]
@@ -46,14 +47,14 @@ class TransporteServiciocomponente
     private $nota;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -89,7 +90,7 @@ class TransporteServiciocomponente
     /**
      * Set creado
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return TransporteServiciocomponente
      */
@@ -103,7 +104,7 @@ class TransporteServiciocomponente
     /**
      * Get creado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -113,7 +114,7 @@ class TransporteServiciocomponente
     /**
      * Set modificado
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return TransporteServiciocomponente
      */
@@ -127,7 +128,7 @@ class TransporteServiciocomponente
     /**
      * Get modificado
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -137,11 +138,11 @@ class TransporteServiciocomponente
     /**
      * Set servicio
      *
-     * @param \App\Entity\TransporteServicio $servicio
+     * @param TransporteServicio $servicio
      *
      * @return TransporteServiciocomponente
      */
-    public function setServicio(\App\Entity\TransporteServicio $servicio = null)
+    public function setServicio(TransporteServicio $servicio = null)
     {
         $this->servicio = $servicio;
 
@@ -151,7 +152,7 @@ class TransporteServiciocomponente
     /**
      * Get servicio
      *
-     * @return \App\Entity\TransporteServicio
+     * @return TransporteServicio
      */
     public function getServicio()
     {
@@ -161,7 +162,7 @@ class TransporteServiciocomponente
     /**
      * Set hora
      *
-     * @param \DateTime $hora
+     * @param DateTime $hora
      *
      * @return TransporteServiciocomponente
      */
@@ -175,7 +176,7 @@ class TransporteServiciocomponente
     /**
      * Get hora
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getHora()
     {
@@ -185,7 +186,7 @@ class TransporteServiciocomponente
     /**
      * Get resumen
      *
-     * @return \string
+     * @return string
      */
     public function getResumen()
     {

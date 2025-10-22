@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -30,14 +31,14 @@ class CuentaClase
     private $nombre;
 
     /**
-     * @var \App\Entity\CuentaTipo
+     * @var CuentaTipo
      */
     #[ORM\ManyToOne(targetEntity: 'CuentaTipo', inversedBy: 'clases')]
     #[ORM\JoinColumn(name: 'tipo_id', referencedColumnName: 'id', nullable: false)]
     protected $tipo;
 
     /**
-     * @var \Doctrine\Common\Collections\Collection
+     * @var Collection
      */
     #[ORM\OneToMany(targetEntity: 'CuentaMovimiento', mappedBy: 'clase', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $movimientos;
@@ -49,14 +50,14 @@ class CuentaClase
     private $codigo;
 
     /**
-     * @var \DateTime $creado
+     * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
     private $creado;
 
     /**
-     * @var \DateTime $modificado
+     * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
@@ -134,7 +135,7 @@ class CuentaClase
     /**
      * Set creado.
      *
-     * @param \DateTime $creado
+     * @param DateTime $creado
      *
      * @return CuentaClase
      */
@@ -148,7 +149,7 @@ class CuentaClase
     /**
      * Get creado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreado()
     {
@@ -158,7 +159,7 @@ class CuentaClase
     /**
      * Set modificado.
      *
-     * @param \DateTime $modificado
+     * @param DateTime $modificado
      *
      * @return CuentaClase
      */
@@ -172,7 +173,7 @@ class CuentaClase
     /**
      * Get modificado.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getModificado()
     {
@@ -182,11 +183,11 @@ class CuentaClase
     /**
      * Set tipo.
      *
-     * @param \App\Entity\CuentaTipo $tipo
+     * @param CuentaTipo $tipo
      *
      * @return CuentaClase
      */
-    public function setTipo(\App\Entity\CuentaTipo $tipo)
+    public function setTipo(CuentaTipo $tipo)
     {
         $this->tipo = $tipo;
     
@@ -196,7 +197,7 @@ class CuentaClase
     /**
      * Get tipo.
      *
-     * @return \App\Entity\CuentaTipo
+     * @return CuentaTipo
      */
     public function getTipo()
     {
@@ -206,11 +207,11 @@ class CuentaClase
     /**
      * Add movimiento.
      *
-     * @param \App\Entity\CuentaMovimiento $movimiento
+     * @param CuentaMovimiento $movimiento
      *
      * @return CuentaClase
      */
-    public function addMovimiento(\App\Entity\CuentaMovimiento $movimiento)
+    public function addMovimiento(CuentaMovimiento $movimiento)
     {
         $movimiento->setClase($this);
 
@@ -222,11 +223,11 @@ class CuentaClase
     /**
      * Remove movimiento.
      *
-     * @param \App\Entity\CuentaMovimiento $movimiento
+     * @param CuentaMovimiento $movimiento
      *
      * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
      */
-    public function removeMovimiento(\App\Entity\CuentaMovimiento $movimiento)
+    public function removeMovimiento(CuentaMovimiento $movimiento)
     {
         return $this->movimientos->removeElement($movimiento);
     }
@@ -234,7 +235,7 @@ class CuentaClase
     /**
      * Get movimientos.
      *
-     * @return \Doctrine\Common\Collections\Collection
+     * @return Collection
      */
     public function getMovimientos()
     {

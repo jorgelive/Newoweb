@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -25,19 +26,19 @@ class CotizacionCottarifa
 
     #[ORM\ManyToOne(targetEntity: 'CotizacionCotcomponente', inversedBy: 'cottarifas')]
     #[ORM\JoinColumn(name: 'cotcomponente_id', referencedColumnName: 'id', nullable: false)]
-    protected ?\App\Entity\CotizacionCotcomponente $cotcomponente = null;
+    protected ?CotizacionCotcomponente $cotcomponente = null;
 
     #[ORM\ManyToOne(targetEntity: 'ServicioProvider', inversedBy: 'cottarifas')]
     #[ORM\JoinColumn(name: 'provider_id', referencedColumnName: 'id', nullable: true)]
-    protected ?\App\Entity\ServicioProvider $provider = null;
+    protected ?ServicioProvider $provider = null;
 
     #[ORM\ManyToOne(targetEntity: 'ServicioTarifa')]
     #[ORM\JoinColumn(name: 'tarifa_id', referencedColumnName: 'id', nullable: false)]
-    protected ?\App\Entity\ServicioTarifa $tarifa = null;
+    protected ?ServicioTarifa $tarifa = null;
 
     #[ORM\ManyToOne(targetEntity: 'MaestroMoneda')]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
-    protected ?\App\Entity\MaestroMoneda $moneda = null;
+    protected ?MaestroMoneda $moneda = null;
 
     /**
      * decimal(7,2) → manejar como string para evitar floats.
@@ -47,11 +48,11 @@ class CotizacionCottarifa
 
     #[ORM\ManyToOne(targetEntity: 'ServicioTipotarifa')]
     #[ORM\JoinColumn(name: 'tipotarifa_id', referencedColumnName: 'id', nullable: false)]
-    protected ?\App\Entity\ServicioTipotarifa $tipotarifa = null;
+    protected ?ServicioTipotarifa $tipotarifa = null;
 
     #[ORM\OneToMany(
-        targetEntity: 'CotizacionCottarifadetalle',
         mappedBy: 'cottarifa',
+        targetEntity: 'CotizacionCottarifadetalle',
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
@@ -60,11 +61,11 @@ class CotizacionCottarifa
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $creado = null;
+    private ?DateTimeInterface $creado = null;
 
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $modificado = null;
+    private ?DateTimeInterface $modificado = null;
 
     public function __construct()
     {
@@ -125,91 +126,91 @@ class CotizacionCottarifa
         return $this->monto;
     }
 
-    public function setCreado(?\DateTimeInterface $creado): self
+    public function setCreado(?DateTimeInterface $creado): self
     {
         $this->creado = $creado;
         return $this;
     }
 
-    public function getCreado(): ?\DateTimeInterface
+    public function getCreado(): ?DateTimeInterface
     {
         return $this->creado;
     }
 
-    public function setModificado(?\DateTimeInterface $modificado): self
+    public function setModificado(?DateTimeInterface $modificado): self
     {
         $this->modificado = $modificado;
         return $this;
     }
 
-    public function getModificado(): ?\DateTimeInterface
+    public function getModificado(): ?DateTimeInterface
     {
         return $this->modificado;
     }
 
-    public function setCotcomponente(?\App\Entity\CotizacionCotcomponente $cotcomponente = null): self
+    public function setCotcomponente(?CotizacionCotcomponente $cotcomponente = null): self
     {
         $this->cotcomponente = $cotcomponente;
         return $this;
     }
 
-    public function getCotcomponente(): ?\App\Entity\CotizacionCotcomponente
+    public function getCotcomponente(): ?CotizacionCotcomponente
     {
         return $this->cotcomponente;
     }
 
-    public function setProvider(?\App\Entity\ServicioProvider $provider = null): self
+    public function setProvider(?ServicioProvider $provider = null): self
     {
         $this->provider = $provider;
         return $this;
     }
 
-    public function getProvider(): ?\App\Entity\ServicioProvider
+    public function getProvider(): ?ServicioProvider
     {
         return $this->provider;
     }
 
-    public function setTarifa(?\App\Entity\ServicioTarifa $tarifa = null): self
+    public function setTarifa(?ServicioTarifa $tarifa = null): self
     {
         $this->tarifa = $tarifa;
         return $this;
     }
 
-    public function getTarifa(): ?\App\Entity\ServicioTarifa
+    public function getTarifa(): ?ServicioTarifa
     {
         return $this->tarifa;
     }
 
-    public function setMoneda(?\App\Entity\MaestroMoneda $moneda = null): self
+    public function setMoneda(?MaestroMoneda $moneda = null): self
     {
         $this->moneda = $moneda;
         return $this;
     }
 
-    public function getMoneda(): ?\App\Entity\MaestroMoneda
+    public function getMoneda(): ?MaestroMoneda
     {
         return $this->moneda;
     }
 
-    public function setTipotarifa(?\App\Entity\ServicioTipotarifa $tipotarifa = null): self
+    public function setTipotarifa(?ServicioTipotarifa $tipotarifa = null): self
     {
         $this->tipotarifa = $tipotarifa;
         return $this;
     }
 
-    public function getTipotarifa(): ?\App\Entity\ServicioTipotarifa
+    public function getTipotarifa(): ?ServicioTipotarifa
     {
         return $this->tipotarifa;
     }
 
-    public function addCottarifadetalle(\App\Entity\CotizacionCottarifadetalle $cottarifadetalle): self
+    public function addCottarifadetalle(CotizacionCottarifadetalle $cottarifadetalle): self
     {
         $cottarifadetalle->setCottarifa($this); // mantener la sincronización como lo tienes
         $this->cottarifadetalles[] = $cottarifadetalle;
         return $this;
     }
 
-    public function removeCottarifadetalle(\App\Entity\CotizacionCottarifadetalle $cottarifadetalle): void
+    public function removeCottarifadetalle(CotizacionCottarifadetalle $cottarifadetalle): void
     {
         $this->cottarifadetalles->removeElement($cottarifadetalle);
     }
