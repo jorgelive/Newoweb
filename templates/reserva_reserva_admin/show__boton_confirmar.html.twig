@@ -1,11 +1,26 @@
+{% set s = object.fechahorainicio %}
+{% set e = object.fechahorafin %}
+{% set sameYear  = (s|date('Y')) == (e|date('Y')) %}
+{% set sameMonth = (s|date('Y-m')) == (e|date('Y-m')) %}
+
 {% if object.idiomatelefono == 'en' %}
+    {# EN: Oct 25 → 30, 2025 | Oct 25 → Nov 2, 2025 | Dec 30, 2025 → Jan 2, 2026 #}
+    {% if sameYear and sameMonth %}
+        {% set rangeStr = s|format_datetime(locale='en', pattern='MMM d') ~ ' → ' ~ e|format_datetime(locale='en', pattern='d') ~ ', ' ~ e|format_datetime(locale='en', pattern='y') %}
+    {% elseif sameYear %}
+        {% set rangeStr = s|format_datetime(locale='en', pattern='MMM d') ~ ' → ' ~ e|format_datetime(locale='en', pattern='MMM d') ~ ', ' ~ e|format_datetime(locale='en', pattern='y') %}
+    {% else %}
+        {% set rangeStr = s|format_datetime(locale='en', pattern='MMM d, y') ~ ' → ' ~ e|format_datetime(locale='en', pattern='MMM d, y') %}
+    {% endif %}
+
     {% set whatsappText %}
 *Hello {{ object.primernombre }}, this is Susan, Reservations Manager at Centro Cusco Inti (Cusco, Peru).*
 
-📅 *Your stay:* *{{ object.fechahorainicio|date('Y-m-d')|replace({'-':'-'}) }} → {{ object.fechahorafin|date('Y-m-d')|replace({'-':'-'}) }}*
+📅 *Your stay:* *{{ rangeStr }}*
 🏷️ *Booked via:* *Booking․com*
 
 🔗 *Full reservation details (matches “View apartment info” in the Booking․com app):*
+
 👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
 
 *What you’ll see there:*
@@ -27,13 +42,23 @@
     {% endset %}
 
 {% elseif object.idiomatelefono == 'pt' %}
+    {# PT: 25 → 30 de out de 2025 | 25 de out → 2 de nov de 2025 | 30 de dez de 2025 → 2 de jan de 2026 #}
+    {% if sameYear and sameMonth %}
+        {% set rangeStr = s|format_datetime(locale='pt', pattern='d') ~ ' → ' ~ e|format_datetime(locale='pt', pattern='d') ~ ' de ' ~ e|format_datetime(locale='pt', pattern='MMM') ~ ' de ' ~ e|format_datetime(locale='pt', pattern='y') %}
+    {% elseif sameYear %}
+        {% set rangeStr = s|format_datetime(locale='pt', pattern='d') ~ ' de ' ~ s|format_datetime(locale='pt', pattern='MMM') ~ ' → ' ~ e|format_datetime(locale='pt', pattern='d') ~ ' de ' ~ e|format_datetime(locale='pt', pattern='MMM') ~ ' de ' ~ e|format_datetime(locale='pt', pattern='y') %}
+    {% else %}
+        {% set rangeStr = s|format_datetime(locale='pt', pattern='d \'de\' MMM \'de\' y') ~ ' → ' ~ e|format_datetime(locale='pt', pattern='d \'de\' MMM \'de\' y') %}
+    {% endif %}
+
     {% set whatsappText %}
 *Olá {{ object.primernombre }}, aqui é a Susan, gerente de reservas do Centro Cusco Inti (Cusco, Peru).*
 
-📅 *Sua estadia:* *{{ object.fechahorainicio|date('Y-m-d')|replace({'-':'-'}) }} → {{ object.fechahorafin|date('Y-m-d')|replace({'-':'-'}) }}*
+📅 *Sua estadia:* *{{ rangeStr }}*
 🏷️ *Reservado via:* *Booking․com*
 
 🔗 *Detalhes completos da reserva (igual a “Ver informações do apartamento” no app do Booking․com):*
+
 👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
 
 *Você verá:*
@@ -55,13 +80,23 @@
     {% endset %}
 
 {% elseif object.idiomatelefono == 'fr' %}
+    {# FR: 25 → 30 oct. 2025 | 25 oct. → 2 nov. 2025 | 30 déc. 2025 → 2 janv. 2026 #}
+    {% if sameYear and sameMonth %}
+        {% set rangeStr = s|format_datetime(locale='fr', pattern='d') ~ ' → ' ~ e|format_datetime(locale='fr', pattern='d MMM y') %}
+    {% elseif sameYear %}
+        {% set rangeStr = s|format_datetime(locale='fr', pattern='d MMM') ~ ' → ' ~ e|format_datetime(locale='fr', pattern='d MMM y') %}
+    {% else %}
+        {% set rangeStr = s|format_datetime(locale='fr', pattern='d MMM y') ~ ' → ' ~ e|format_datetime(locale='fr', pattern='d MMM y') %}
+    {% endif %}
+
     {% set whatsappText %}
 *Bonjour {{ object.primernombre }}, ici Susan, responsable des réservations au Centro Cusco Inti (Cusco, Pérou).*
 
-📅 *Votre séjour :* *{{ object.fechahorainicio|date('Y-m-d')|replace({'-':'-'}) }} → {{ object.fechahorafin|date('Y-m-d')|replace({'-':'-'}) }}*
+📅 *Votre séjour :* *{{ rangeStr }}*
 🏷️ *Réservé via :* *Booking․com*
 
 🔗 *Détails complets de la réservation (comme “Voir les infos de l’appartement” dans l’app Booking․com) :*
+
 👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
 
 *Vous y verrez :*
@@ -76,20 +111,30 @@
 
 📝 *Nous vous avons aussi envoyé un message via Booking․com avec des instructions importantes. Merci de le lire attentivement.*
 
-💳 *Acompte :* *Montant équivalent à la première nuit* (politiques Booking․com).
+💳 *Acompte :* *Montant équivalent à la première nuit* (politiques de Booking․com).
 *Modes de paiement :* 🏦 Virement · 💸 Western Union · 💳 Carte (lien sécurisé)
 
 ✅ *Étape suivante :* Après avoir confirmé que tout est correct, veuillez procéder au paiement de l’acompte.
     {% endset %}
 
 {% else %}
+    {# ES: 25 → 30 oct 2025 | 25 oct → 2 nov 2025 | 30 dic 2025 → 2 ene 2026 #}
+    {% if sameYear and sameMonth %}
+        {% set rangeStr = s|format_datetime(locale='es', pattern='d') ~ ' → ' ~ e|format_datetime(locale='es', pattern='d MMM y') %}
+    {% elseif sameYear %}
+        {% set rangeStr = s|format_datetime(locale='es', pattern='d MMM') ~ ' → ' ~ e|format_datetime(locale='es', pattern='d MMM y') %}
+    {% else %}
+        {% set rangeStr = s|format_datetime(locale='es', pattern='d MMM y') ~ ' → ' ~ e|format_datetime(locale='es', pattern='d MMM y') %}
+    {% endif %}
+
     {% set whatsappText %}
 *Hola {{ object.primernombre }}, le saluda Susan, encargada de reservas de Centro Cusco Inti (Cusco, Perú).*
 
-📅 *Su estadía:* *{{ object.fechahorainicio|date('Y-m-d')|replace({'-':'-'}) }} → {{ object.fechahorafin|date('Y-m-d')|replace({'-':'-'}) }}*
+📅 *Su estadía:* *{{ rangeStr }}*
 🏷️ *Reservado vía:* *Booking․com*
 
 🔗 *Detalles completos de su reserva (igual a “Ver info del apartamento” en la app de Booking․com):*
+
 👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
 
 *Allí verá:*
