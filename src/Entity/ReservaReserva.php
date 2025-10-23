@@ -69,6 +69,14 @@ class ReservaReserva
         '+670'   // Timor-Leste
     ];
 
+    /**
+     * Color del texto según el estado de los datos.
+     * - 🔴 Rojo: si el teléfono está vacío.
+     * - ⚫ Plomo claro (#cccccc): si NO es directa y el enlace está vacío.
+     * - ⚪ Blanco: en los demás casos.
+     */
+    private ?string $textcolor = null;
+
     #[ORM\Column(type: 'integer')]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
@@ -168,6 +176,34 @@ class ReservaReserva
     public function __toString(): string
     {
         return sprintf("%s: %s - %s", $this->getFechahorainicio()->format('Y/m/d'), $this->getChannel()->getNombre(), $this->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+    }
+
+    public function getTextcolor(): string
+    {
+        // 🔴 Prioridad 1: teléfono vacío
+        $telefono = trim((string) $this->getTelefono());
+        if ($telefono === '') {
+            return '#fa9f9f';
+        }
+
+        // ⚫ Prioridad 2: no directa + sin enlace
+        $channel = $this->getChannel();
+        $esDirecta = $channel && $channel->getId() === ReservaChannel::DB_VALOR_DIRECTO;
+        $enlace = trim((string) $this->getEnlace());
+
+        if (!$esDirecta && $enlace === '') {
+            return '#cccccc'; // plomo claro
+        }
+
+        // ⚪ Por defecto
+        return 'white';
+    }
+
+    public function setTextcolor(?string $textcolor): self
+    {
+        // Setter solo por compatibilidad (no se usa en la lógica)
+        $this->textcolor = $textcolor;
+        return $this;
     }
 
     public function getId(): ?int

@@ -36,6 +36,7 @@ parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
+                textColor: 'textcolor'
                 backgroundColor: 'estado.color'
                 url:
                     id: 'id'
@@ -56,6 +57,7 @@ parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
+                textColor: 'textcolor'
                 backgroundColor: 'estado.color'
                 url:
                     id: 'id'
