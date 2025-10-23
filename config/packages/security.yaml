@@ -35,8 +35,14 @@ security:
             logout:
                 path: sonata_user_admin_security_logout
                 target: sonata_user_admin_security_login
+                invalidate_session: true                  # <- invalida la sesión
+                delete_cookies: # <- borra cookies que te reautentican
+                    REMEMBERME: { path: / }                 # usa el mismo "path" que en remember_me
+                    PHPSESSID: { path: / }                  # opcional: borra cookie de sesión
+
             remember_me:
                 secret: '%env(APP_SECRET)%'
+                name: REMEMBERME
                 lifetime: 2629746           # ~30 días
                 path: /                # Si quieres “recordarme” también en /app, cambia a: /
 
