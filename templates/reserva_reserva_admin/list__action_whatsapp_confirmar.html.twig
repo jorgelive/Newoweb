@@ -1,19 +1,162 @@
 {% if admin.isGranted('show', object) and admin.hasRoute('resumen') and object.telefono is not empty and object.channel.id == constant('App\\Entity\\ReservaChannel::DB_VALOR_BOOKING') and object.nota is empty %}
-    {% set whatsappText = 'Hola ' ~ object.nombre ~ ', muchas gracias por su reserva!.\n\n' %}
-    {% set whatsappText = whatsappText ~ 'Encantados de poder tenerlos en nuestras Casita Centro Cusco Inti.\n\n' %}
-    {% set whatsappText = whatsappText ~ 'Para re-confirmar su reserva le solicitamos hacer un prepago de 50 soles o 15 dólares.\n' %}
-    {% set whatsappText = whatsappText ~ 'Para realizar el prepago contamos con cuentas en los principales bancos y billeteras electrónicas, tambien puede realizarlo mediante tarjeta de crédito. Solicite detalles respondiendo a este mensaje.\n' %}
-    {% set whatsappText = whatsappText ~ 'El plazo para realizar el prepago es de 24 horas.\n' %}
-    {% set whatsappText = whatsappText ~ 'La diferencia del pago deberá hacerse en efectivo, transferencia o tarjeta de crédito (+5%) al momento de la entrega de las llaves.\n' %}
-    {% set whatsappText = whatsappText ~ 'También seria importante nos brinde su número de vuelo o medio de transporte y hora de llegada para programar la entrega de las llaves.\n\n' %}
-    {% set whatsappText = whatsappText ~ 'Nosotros brindamos *traslados y tours* a nuestros huéspedes con tarifas especiales y damos *asesoría gratuita*.\n\n' %}
-    {% set whatsappText = whatsappText ~ 'Por favor tomar en cuenta:\n\n' %}
-    {% set whatsappText = whatsappText ~ 'Check-in: Desde ' ~ object.fechahorainicio | date('Y-m-d') ~ ' *14:00*\n' %}
-    {% set whatsappText = whatsappText ~ 'Check-out: Hasta ' ~ object.fechahorafin | date('Y-m-d') ~ ' *10:00*\n\n' %}
-    {% set whatsappText = whatsappText ~ 'Si el departamento esa listo antes del Check-in, nosotros encantados de recibirlos sin ningun costo (Coordinar un día antes).\n\n' %}
-    {% set whatsappText = whatsappText ~ 'Saludos cordiales\n\n' %}
-    {% set whatsappText = whatsappText ~ 'Centro Cusco Inti / Casitas Acogedoras en el Centro de Cusco' %}
-    <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+{% set s = object.fechahorainicio %}
+{% set e = object.fechahorafin %}
+{% set sameYear  = (s|date('Y')) == (e|date('Y')) %}
+{% set sameMonth = (s|date('Y-m')) == (e|date('Y-m')) %}
+
+{% if object.idiomatelefono == 'en' %}
+    {# EN: Oct 25 → 30, 2025 | Oct 25 → Nov 2, 2025 | Dec 30, 2025 → Jan 2, 2026 #}
+    {% if sameYear and sameMonth %}
+        {% set rangeStr = s|format_datetime(locale='en', pattern='MMM d') ~ ' → ' ~ e|format_datetime(locale='en', pattern='d') ~ ', ' ~ e|format_datetime(locale='en', pattern='y') %}
+    {% elseif sameYear %}
+        {% set rangeStr = s|format_datetime(locale='en', pattern='MMM d') ~ ' → ' ~ e|format_datetime(locale='en', pattern='MMM d') ~ ', ' ~ e|format_datetime(locale='en', pattern='y') %}
+    {% else %}
+        {% set rangeStr = s|format_datetime(locale='en', pattern='MMM d, y') ~ ' → ' ~ e|format_datetime(locale='en', pattern='MMM d, y') %}
+    {% endif %}
+
+    {% set whatsappText %}
+*Hello {{ object.primernombre }}, this is Susan, Reservations Manager at Centro Cusco Inti (Cusco, Peru).*
+
+📅 *Your stay:* *{{ rangeStr }}*
+🏷️ *Booked via:* *Booking․com*
+
+🔗 *Full reservation details (matches “View apartment info” in the Booking․com app):*
+
+👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
+
+*What you’ll see there:*
+🖼️ *Photos of the apartment*
+🛏️ *Layout & bed sizes*
+🧴 *Amenities and what’s included*
+📍 *Exact location (map)*
+📘 *House rules & policies*
+
+📄 *Important:* Please send us your *Booking․com PDF confirmation*.
+*How to get it:* Booking․com app → your reservation → *Options → Download for offline use*.
+
+📝 *We also sent you a message through the Booking․com system with important instructions. Please review it carefully.*
+
+💳 *Prepayment:* *The amount equals the first night* (per Booking․com policies).
+*You can pay via:* 🏦 Transfer · 💸 Western Union · 💳 Credit card (secure link)
+
+✅ *Next step:* Once you confirm everything looks correct, please proceed with the prepayment.
+    {% endset %}
+
+{% elseif object.idiomatelefono == 'pt' %}
+    {# PT: 25 → 30 de out de 2025 | 25 de out → 2 de nov de 2025 | 30 de dez de 2025 → 2 de jan de 2026 #}
+    {% if sameYear and sameMonth %}
+        {% set rangeStr = s|format_datetime(locale='pt', pattern='d') ~ ' → ' ~ e|format_datetime(locale='pt', pattern='d') ~ ' de ' ~ e|format_datetime(locale='pt', pattern='MMM') ~ ' de ' ~ e|format_datetime(locale='pt', pattern='y') %}
+    {% elseif sameYear %}
+        {% set rangeStr = s|format_datetime(locale='pt', pattern='d') ~ ' de ' ~ s|format_datetime(locale='pt', pattern='MMM') ~ ' → ' ~ e|format_datetime(locale='pt', pattern='d') ~ ' de ' ~ e|format_datetime(locale='pt', pattern='MMM') ~ ' de ' ~ e|format_datetime(locale='pt', pattern='y') %}
+    {% else %}
+        {% set rangeStr = s|format_datetime(locale='pt', pattern='d \'de\' MMM \'de\' y') ~ ' → ' ~ e|format_datetime(locale='pt', pattern='d \'de\' MMM \'de\' y') %}
+    {% endif %}
+
+    {% set whatsappText %}
+*Olá {{ object.primernombre }}, aqui é a Susan, gerente de reservas do Centro Cusco Inti (Cusco, Peru).*
+
+📅 *Sua estadia:* *{{ rangeStr }}*
+🏷️ *Reservado via:* *Booking․com*
+
+🔗 *Detalhes completos da reserva (igual a “Ver informações do apartamento” no app do Booking․com):*
+
+👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
+
+*Você verá:*
+🖼️ *Fotos do apartamento*
+🛏️ *Planta/disposição e tamanhos de cama*
+🧴 *Comodidades e o que está incluído*
+📍 *Localização exata (mapa)*
+📘 *Regras da casa e políticas*
+
+📄 *Importante:* Por favor, envie o *PDF de confirmação do Booking․com*.
+*Como obter:* App Booking․com → sua reserva → *Opções → Baixar para uso offline*.
+
+📝 *Também enviamos uma mensagem pelo Booking․com com instruções importantes. Revise com atenção, por favor.*
+
+💳 *Pré-pagamento:* *Corresponde ao valor da primeira noite* (políticas do Booking․com).
+*Formas de pagamento:* 🏦 Transferência · 💸 Western Union · 💳 Cartão (link seguro)
+
+✅ *Próximo passo:* Após confirmar que está tudo correto, prossiga com o pré-pagamento.
+    {% endset %}
+
+{% elseif object.idiomatelefono == 'fr' %}
+    {# FR: 25 → 30 oct. 2025 | 25 oct. → 2 nov. 2025 | 30 déc. 2025 → 2 janv. 2026 #}
+    {% if sameYear and sameMonth %}
+        {% set rangeStr = s|format_datetime(locale='fr', pattern='d') ~ ' → ' ~ e|format_datetime(locale='fr', pattern='d MMM y') %}
+    {% elseif sameYear %}
+        {% set rangeStr = s|format_datetime(locale='fr', pattern='d MMM') ~ ' → ' ~ e|format_datetime(locale='fr', pattern='d MMM y') %}
+    {% else %}
+        {% set rangeStr = s|format_datetime(locale='fr', pattern='d MMM y') ~ ' → ' ~ e|format_datetime(locale='fr', pattern='d MMM y') %}
+    {% endif %}
+
+    {% set whatsappText %}
+*Bonjour {{ object.primernombre }}, ici Susan, responsable des réservations au Centro Cusco Inti (Cusco, Pérou).*
+
+📅 *Votre séjour :* *{{ rangeStr }}*
+🏷️ *Réservé via :* *Booking․com*
+
+🔗 *Détails complets de la réservation (comme “Voir les infos de l’appartement” dans l’app Booking․com) :*
+
+👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
+
+*Vous y verrez :*
+🖼️ *Photos de l’appartement*
+🛏️ *Agencement et tailles des lits*
+🧴 *Équipements et inclusions*
+📍 *Localisation exacte (carte)*
+📘 *Règlement intérieur et politiques*
+
+📄 *Important :* Merci de nous envoyer le *PDF de confirmation Booking․com*.
+*Comment l’obtenir :* Appli Booking․com → votre réservation → *Options → Télécharger pour une utilisation hors ligne*.
+
+📝 *Nous vous avons aussi envoyé un message via Booking․com avec des instructions importantes. Merci de le lire attentivement.*
+
+💳 *Acompte :* *Montant équivalent à la première nuit* (politiques de Booking․com).
+*Modes de paiement :* 🏦 Virement · 💸 Western Union · 💳 Carte (lien sécurisé)
+
+✅ *Étape suivante :* Après avoir confirmé que tout est correct, veuillez procéder au paiement de l’acompte.
+    {% endset %}
+
+{% else %}
+    {# ES: 25 → 30 oct 2025 | 25 oct → 2 nov 2025 | 30 dic 2025 → 2 ene 2026 #}
+    {% if sameYear and sameMonth %}
+        {% set rangeStr = s|format_datetime(locale='es', pattern='d') ~ ' → ' ~ e|format_datetime(locale='es', pattern='d MMM y') %}
+    {% elseif sameYear %}
+        {% set rangeStr = s|format_datetime(locale='es', pattern='d MMM') ~ ' → ' ~ e|format_datetime(locale='es', pattern='d MMM y') %}
+    {% else %}
+        {% set rangeStr = s|format_datetime(locale='es', pattern='d MMM y') ~ ' → ' ~ e|format_datetime(locale='es', pattern='d MMM y') %}
+    {% endif %}
+
+    {% set whatsappText %}
+*Hola {{ object.primernombre }}, le saluda Susan, encargada de reservas de Centro Cusco Inti (Cusco, Perú).*
+
+📅 *Su estadía:* *{{ rangeStr }}*
+🏷️ *Reservado vía:* *Booking․com*
+
+🔗 *Detalles completos de su reserva (igual a “Ver info del apartamento” en la app de Booking․com):*
+
+👉 *{{ url('admin_app_reservareserva_resumen', {'id': object.id, 'token': object.token}) }}*
+
+*Allí verá:*
+🖼️ *Fotografías del departamento*
+🛏️ *Distribución y tamaños de cama*
+🧴 *Servicios y lo incluido*
+📍 *Ubicación exacta (mapa)*
+📘 *Reglamento de la casa y políticas*
+
+📄 *Importante:* Por favor, envíenos el *PDF de confirmación de Booking․com*.
+*Cómo obtenerlo:* App de Booking․com → su reserva → *Opciones → Descargar para usar sin conexión*.
+
+📝 *También le enviamos un mensaje por el sistema de Booking․com con instrucciones importantes. Le agradeceremos revisarlo.*
+
+💳 *Prepago:* *Equivale al monto de la primera noche* (políticas de Booking․com).
+*Puede pagar por:* 🏦 Transferencia · 💸 Western Union · 💳 Tarjeta (enlace seguro)
+
+✅ *Siguiente paso:* Una vez confirme que todo está correcto, por favor proceda con el prepago.
+    {% endset %}
+{% endif %}
+    <a href="https://wa.me/{{ object.telefononormalizado }}?text={{ whatsappText|raw_url_encode }}"
        target="_blank" class="btn btn-sm btn-success"
        title="Confirmar">
         <i class="fa fa-whatsapp" aria-hidden="true"></i>
