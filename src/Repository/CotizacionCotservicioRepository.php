@@ -15,11 +15,6 @@ class CotizacionCotservicioRepository extends \Doctrine\ORM\EntityRepository
 {
     public function findCalendarAceptado($data)
     {
-        if(!$data['user'] instanceof UserUser) {
-            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
-        }else{
-            $user = $data['user'];
-        }
 
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select('cs')
@@ -32,17 +27,31 @@ class CotizacionCotservicioRepository extends \Doctrine\ORM\EntityRepository
         $qb->setParameter('firstDate', $data['from'])
             ->setParameter('lastDate', $data['to']);
 
+        /** @var UserUser|null $user */
+        $user = $data['user'] ?? null;
+        if ($user instanceof UserUser) {
+            // Ejemplos (ajusta a tu modelo):
+            /*
+            $depId = $user->getDependencia()?->getId();
+            if ($depId !== null && $depId !== 1) {
+                $qb->andWhere('IDENTITY(me.dependencia) = :depId')
+                    ->setParameter('depId', $depId);
+            }
+
+            $conductorId = $user->getConductor()?->getId();
+            if ($conductorId !== null) {
+                $qb->andWhere('IDENTITY(me.conductor) = :conductorId')
+                    ->setParameter('conductorId', $conductorId);
+            }
+            */
+        }
+
         return $qb;
 
     }
 
     public function findCalendarAceptadoEfectuado($data)
     {
-        if(!$data['user'] instanceof UserUser) {
-            throw new HttpException(500, 'El dato de usuario no es instancia de la clase App\Entity\UserUser.');
-        }else{
-            $user = $data['user'];
-        }
 
         $qb = $this->getEntityManager()->createQueryBuilder()
             ->select('cs')
@@ -55,6 +64,25 @@ class CotizacionCotservicioRepository extends \Doctrine\ORM\EntityRepository
         $qb->setParameter('firstDate', $data['from'])
             ->setParameter('lastDate', $data['to'])
             ->setParameter('estados', [CotizacionEstadocotizacion::DB_VALOR_CONFIRMADO, CotizacionEstadocotizacion::DB_VALOR_OPERADO]);
+
+        /** @var UserUser|null $user */
+        $user = $data['user'] ?? null;
+        if ($user instanceof UserUser) {
+            // Ejemplos (ajusta a tu modelo):
+            /*
+            $depId = $user->getDependencia()?->getId();
+            if ($depId !== null && $depId !== 1) {
+                $qb->andWhere('IDENTITY(me.dependencia) = :depId')
+                    ->setParameter('depId', $depId);
+            }
+
+            $conductorId = $user->getConductor()?->getId();
+            if ($conductorId !== null) {
+                $qb->andWhere('IDENTITY(me.conductor) = :conductorId')
+                    ->setParameter('conductorId', $conductorId);
+            }
+            */
+        }
 
         return $qb;
 

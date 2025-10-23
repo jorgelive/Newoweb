@@ -3,6 +3,8 @@
 namespace App\Service;
 
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Query;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManager;
 use Doctrine\Persistence\ObjectManager;
@@ -60,66 +62,126 @@ class FullcalendarEventsfinder
         $this->repository = $this->manager->getRepository($this->options['entity']);
     }
 
-    public function getEvents(array $data): mixed
+    /**
+     * Obtiene eventos para FullCalendar.
+     * - Repo (Opción B): si hay repositorymethod, lo invoca (debe devolver QB).
+     * - Si no, arma un QB simple por rango fechas.
+     * - Aplica filtros declarativos desde YAML:
+     *     * field sin alias: se aplica sobre la entidad principal (detecta asociación vs escalar).
+     *     * field con alias explícito: lo usa tal cual (p. ej. "cot.estadocotizacion").
+     */
+    public function getEvents(array $data): array
     {
+        $token = $this->tokenStorage->getToken();
+        $user  = is_object($token?->getUser()) ? $token->getUser() : null;
 
-        $user = $this->tokenStorage->getToken()->getUser();
+        // 1) Base QueryBuilder
+        if (!empty($this->options['repositorymethod'])) {
+            $data['user'] = $user; // el repo decide si lo usa
+            $qb = $this->repository->{$this->options['repositorymethod']}($data);
 
-        if(!empty($this->options['repositorymethod'])){
-
-            //Para consultas complejas
-            //Me significa main entity
-            $data['user'] = $user;
-            $query = $this->repository->{$this->options['repositorymethod']}($data);
-
-        }else{
-            //Para consultas simples
-            $query = $this->manager
+            if ($qb instanceof Query) {
+                throw new \LogicException(sprintf(
+                    'El método %s::%s debe devolver un QueryBuilder (no Query).',
+                    get_class($this->repository),
+                    $this->options['repositorymethod']
+                ));
+            }
+            if (!$qb instanceof QueryBuilder) {
+                throw new \LogicException('El repositorymethod debe devolver un QueryBuilder.');
+            }
+        } else {
+            /** @var QueryBuilder $qb */
+            $qb = $this->manager
                 ->getRepository($this->options['entity'])
-                ->createQueryBuilder()
-                ->select('me')
-                ->where('me.' . $this->options['parameters']['end'] . ' >= :firstDate AND me.'. $this->options['parameters']['start'] . ' <= :lastDate');
+                ->createQueryBuilder('me');
 
-            $query->setParameter('firstDate', $data['from'])
-                ->setParameter('lastDate', $data['to'])
-            ;
+            $qb->where(sprintf(
+                'me.%s >= :firstDate AND me.%s <= :lastDate',
+                $this->options['parameters']['end'],
+                $this->options['parameters']['start']
+            ))
+                ->setParameter('firstDate', $data['from'])
+                ->setParameter('lastDate',  $data['to']);
         }
 
-        if(isset($this->options['filters']) && !empty($this->options['filters'])){
-            foreach($this->options['filters'] as $i => $filter):
-                $valor = false;
-                if(!str_contains($filter['value'], '.')){
-                    $valor = $filter['value'];
-                }else{
+        // 2) Filtros YAML
+        if (!empty($this->options['filters'])) {
+            // Alias real que esté usando el QB del repo (rr, cc, me, etc.)
+            $rootAlias = $qb->getAllAliases()[0] ?? 'me';
+            $meta      = $this->manager->getClassMetadata($this->options['entity']);
 
-                    $partes = explode('.', $filter['value']);
+            foreach ($this->options['filters'] as $i => $filter) {
+                $field     = $filter['field']     ?? null;   // ej: 'dependencia' | 'cot.estadocotizacion'
+                $rawValue  = $filter['value']     ?? null;   // ej: 'id' | 'empresa.id' | literal
+                $exception = $filter['exception'] ?? null;
 
-                    $clonedElement = clone $user;
-                    foreach($partes as $parte){
-                        $methodFormated = 'get' . ucfirst($parte);
-                        //var_dump($methodFormated); die;
-                        if($clonedElement !== null){
-                            $clonedElement = $clonedElement->$methodFormated();
-                        }
-
-                    }
-                    if(!is_object($clonedElement) && $filter['exception'] != $clonedElement){
-                        $valor = $clonedElement;
-                    }
+                if (!$field) {
+                    continue;
                 }
 
-                //$query->getAllAliases() obtiene la lista de alias de las entidades usamos la primera
-                //todo averiguar si siempre es la primera
-                if($valor !== false && !empty($query->getAllAliases()) && is_array($query->getAllAliases())) {
-                    $query->andWhere($query->getAllAliases()[0] . '.' . $filter['field'] . ' = :filter' . $i)
-                        ->setParameter('filter' . $i, $valor);
+                // Resolver valor desde el usuario si es string (id, empresa.id, ...) o tomar literal si no lo es
+                $valor = is_string($rawValue) ? $this->getValueFromUser($user, $rawValue) : $rawValue;
+
+                // Aplicar solo si es escalar, no null y distinto de la excepción
+                if ($valor === null || is_object($valor) || $valor === $exception) {
+                    continue;
                 }
 
-            endforeach;
+                $param = 'filter'.$i;
+
+                // **Caso A: field con alias explícito ("cot.estado", "cs.proveedor")**
+                if (str_contains($field, '.')) {
+                    // Asumimos escalar; si necesitas comparar por id en asociaciones aliased,
+                    // puedes escribir IDENTITY(cot.relacion) directamente en YAML (ver ejemplos).
+                    $qb->andWhere(sprintf('%s = :%s', $field, $param))
+                        ->setParameter($param, $valor);
+                    continue;
+                }
+
+                // **Caso B: field de la entidad raíz (sin alias)**
+                if ($meta->hasAssociation($field)) {
+                    // Asociación → comparar por id
+                    $qb->andWhere(sprintf('IDENTITY(%s.%s) = :%s', $rootAlias, $field, $param))
+                        ->setParameter($param, $valor);
+                } else {
+                    // Escalar
+                    $qb->andWhere(sprintf('%s.%s = :%s', $rootAlias, $field, $param))
+                        ->setParameter($param, $valor);
+                }
+            }
         }
 
-        return $query->getQuery()->getResult();
+        // 3) Ejecutar
+        return $qb->getQuery()->getResult();
+    }
 
+    /**
+     * Resuelve un valor navegando getters sobre $user.
+     * - "id"             => $user?->getId()
+     * - "empresa.id"     => $user?->getEmpresa()?->getId()
+     * Devuelve null si no hay user o falta algún getter intermedio.
+     */
+    private function getValueFromUser(object $user = null, ?string $path = null): mixed
+    {
+        if (!$user || !$path) {
+            return null;
+        }
+
+        if (!str_contains($path, '.')) {
+            $getter = 'get' . ucfirst($path);
+            return method_exists($user, $getter) ? $user->$getter() : null;
+        }
+
+        $current = $user;
+        foreach (explode('.', $path) as $segment) {
+            $getter = 'get' . ucfirst($segment);
+            if (!is_object($current) || !method_exists($current, $getter)) {
+                return null;
+            }
+            $current = $current->$getter();
+        }
+        return $current;
     }
 
     public function serializeResources(array $elements): string

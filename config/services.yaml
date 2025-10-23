@@ -36,7 +36,7 @@ parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                color: 'estado.color'
+                backgroundColor: 'estado.color'
                 url:
                     id: 'id'
                     show:
@@ -56,7 +56,7 @@ parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                color: 'estado.color'
+                backgroundColor: 'estado.color'
                 url:
                     id: 'id'
                     show:
@@ -76,7 +76,7 @@ parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                color: 'cotizacion.file.color'
+                backgroundColor: 'cotizacion.file.color'
                 url:
                     id: 'id'
                     show:
@@ -96,7 +96,7 @@ parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                color: 'cotizacion.file.color'
+                backgroundColor: 'cotizacion.file.color'
                 url:
                     id: 'id'
                     show:
@@ -117,7 +117,7 @@ parameters:
                 title: 'componente.nombre'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                color: 'cotservicio.cotizacion.file.color'
+                backgroundColor: 'cotservicio.cotizacion.file.color'
                 textColor: 'estadocotcomponente.colorcalendar'
                 url:
                     id: 'cotservicio.cotizacion.id'
@@ -138,7 +138,7 @@ parameters:
                 title: 'componente.nombre'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                color: 'cotservicio.cotizacion.file.color'
+                backgroundColor: 'cotservicio.cotizacion.file.color'
                 textColor: 'estadocotcomponente.colorcalendar'
                 url:
                     id: 'cotservicio.cotizacion.id'
@@ -159,7 +159,7 @@ parameters:
                 title: 'componente.nombre'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                color: 'cotservicio.cotizacion.file.color'
+                backgroundColor: 'cotservicio.cotizacion.file.color'
                 textColor: 'estadocotcomponente.colorcalendar'
                 url:
                     id: 'id'
@@ -180,7 +180,7 @@ parameters:
                 title: 'componente.nombre'
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
-                color: 'cotservicio.cotizacion.file.color'
+                backgroundColor: 'cotservicio.cotizacion.file.color'
                 textColor: 'estadocotcomponente.colorcalendar'
                 url:
                     id: 'id'
@@ -200,6 +200,16 @@ parameters:
             filters: #por ahora solo implemetado sobre user
                 - { field: 'conductor', value: 'conductor.id', exception: ~ }
                 - { field: 'dependencia', value: 'dependencia.id', exception: 1 }
+                # otros ejemplos
+                #- { field: 'cot.estadocotizacion', value: 3, exception: ~ }
+
+
+                # Escalar en servicio (alias 'cs'): cs.proveedor = 15
+                #- { field: 'cs.proveedor', value: 15, exception: ~ }
+
+                # Asociación con alias, comparando por id usando IDENTITY en el YAML mismo:
+                # (si 'cot.proveedor' es ManyToOne y quieres comparar por id)
+                #- { field: 'IDENTITY(cot.proveedor)', value: 15, exception: ~ }
             parameters:
                 title: 'resumen'
                 start: 'fechahorainicio'
