@@ -103,6 +103,9 @@ class ReservaReserva
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $nota = null;
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $requerimiento = null;
+
     #[ORM\Column(type: 'integer')]
     private ?int $cantidadadultos = 1;
 
@@ -176,6 +179,21 @@ class ReservaReserva
     public function __toString(): string
     {
         return sprintf("%s: %s - %s", $this->getFechahorainicio()->format('Y/m/d'), $this->getChannel()->getNombre(), $this->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
+    }
+
+    public function getClassnames(): array
+    {
+        $classes = [];
+
+        // Clase base opcional, por si quieres estilos comunes
+        $classes[] = 'evento-reserva';
+
+        // Si tiene requerimiento, agregamos la clase especial
+        if (!empty(trim((string) $this->getRequerimiento()))) {
+            $classes[] = 'evento-con-requerimiento';
+        }
+
+        return $classes;
     }
 
     public function getTextcolor(): string
@@ -361,6 +379,17 @@ class ReservaReserva
     {
         $this->nota = $nota;
 
+        return $this;
+    }
+
+    public function getRequerimiento(): ?string
+    {
+        return $this->requerimiento;
+    }
+
+    public function setRequerimiento(?string $requerimiento): self
+    {
+        $this->requerimiento = $requerimiento;
         return $this;
     }
 

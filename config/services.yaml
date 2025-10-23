@@ -37,6 +37,7 @@ parameters:
                 start: 'fechahorainicio'
                 end: 'fechahorafin'
                 textColor: 'textcolor'
+                classNames: 'classnames'
                 backgroundColor: 'estado.color'
                 url:
                     id: 'id'
@@ -59,6 +60,7 @@ parameters:
                 end: 'fechahorafin'
                 textColor: 'textcolor'
                 backgroundColor: 'estado.color'
+                classNames: 'classnames'
                 url:
                     id: 'id'
                     show:

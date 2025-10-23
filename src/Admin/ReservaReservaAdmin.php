@@ -244,6 +244,10 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Nota',
                 'editable' => true
             ])
+            ->add('requerimiento', null, [
+                'label' => 'Requerimiento',
+                'editable' => true
+            ])
             ->add('channel', FieldDescriptionInterface::TYPE_CHOICE, [
                 'sortable' => true,
                 'sort_field_mapping' => ['fieldName' => 'nombre'],
@@ -342,6 +346,12 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('nota', null, [
                 'label' => 'Nota'
             ])
+            ->add('requerimiento', null, [
+                'label' => 'Requerimiento',
+                'attr' => [
+                    'placeholder' => 'Escribe aquí alguna solicitud o detalle especial...',
+                ],
+            ])
             ->add('fechahorainicio', DateTimePickerType::class, [
                 'label' => 'Check-in',
                 'dp_show_today' => true,
@@ -430,6 +440,9 @@ class ReservaReservaAdmin extends AbstractAdmin
             ])
             ->add('nota', null, [
                 'label' => 'Nota'
+            ])
+            ->add('requerimiento', null, [
+                'label' => 'Requerimiento'
             ])
             ->add('detalles', null, [
                 'label' => 'Detalles',

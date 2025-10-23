@@ -4,6 +4,20 @@
     {{ parent() }}
     <style>
 
+        .fc-event.evento-con-requerimiento::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(
+                    45deg,
+                    rgba(255, 255, 255, 0.05) 0 10px,
+                    rgba(255, 255, 255, 0.17) 10px 20px
+            );
+            border-radius: inherit;
+            pointer-events: none;
+        }
+
+
     </style>
 {% endblock %}
 
