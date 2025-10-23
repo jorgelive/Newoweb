@@ -107,7 +107,7 @@
                             {% if (not isResumen) and object.requerimiento is not empty %}
                                 {{ itemRow(
                                     '<i class="fas fa-clipboard-list row-icon" style="color:#57c35c;" aria-hidden="true"></i> ' ~ ('requerimiento'|trans({}, 'messages')|capitalize),
-                                object.requerimiento
+                                '<strong>' ~ object.requerimiento ~ '</strong>'
                                 ) }}
                             {% endif %}
 
