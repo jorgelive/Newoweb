@@ -88,7 +88,7 @@ class CotizacionFile
     {
         $h = ($id * 37) % 360; // tono pseudoaleatorio
         $s = 60; // saturación %
-        $v = 90; // brillo %
+        $v = 70; // brillo %
         return $this->hsvToHex($h, $s, $v);
     }
 
