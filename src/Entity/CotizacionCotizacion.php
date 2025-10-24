@@ -27,7 +27,7 @@ class CotizacionCotizacion
     private ?int $id = null;
 
     /** @var Collection<int, CotizacionCotizacionTranslation> */
-    #[ORM\OneToMany(targetEntity: CotizacionCotizacionTranslation::class, mappedBy: 'object', cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'object', targetEntity: CotizacionCotizacionTranslation::class, cascade: ['persist', 'remove'])]
     protected Collection $translations;
 
     #[ORM\Column(type: 'string', length: 20)]

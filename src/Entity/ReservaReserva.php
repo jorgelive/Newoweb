@@ -71,7 +71,7 @@ class ReservaReserva
 
     /**
      * Color del texto según el estado de los datos.
-     * - 🔴 Rojo: si el teléfono está vacío.
+     * - 🟢 Verde: si el teléfono está vacío.
      * - ⚫ Plomo claro (#cccccc): si NO es directa y el enlace está vacío.
      * - ⚪ Blanco: en los demás casos.
      */
@@ -198,10 +198,10 @@ class ReservaReserva
 
     public function getTextcolor(): string
     {
-        // 🔴 Prioridad 1: teléfono vacío
+        // 🟢 Prioridad 1: teléfono vacío
         $telefono = trim((string) $this->getTelefono());
         if ($telefono === '') {
-            return '#fa9f9f';
+            return '#01ff28';
         }
 
         // ⚫ Prioridad 2: no directa + sin enlace

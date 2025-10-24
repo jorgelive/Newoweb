@@ -20,7 +20,7 @@ class CotizacionEstadocotcomponenteAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('color')
             ->add('colorcalendar', null, [
-                    'label' => 'Color calendario'
+                    'label' => 'Color resaltado'
                 ]
             )
         ;
@@ -40,7 +40,7 @@ class CotizacionEstadocotcomponenteAdmin extends AbstractAdmin
                 'editable' => true
             ])
             ->add('colorcalendar', null, [
-                    'label' => 'Color calendario',
+                    'label' => 'Color resaltado',
                     'editable' => true
                 ]
             )
@@ -64,7 +64,7 @@ class CotizacionEstadocotcomponenteAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('color')
             ->add('colorcalendar', null, [
-                    'label' => 'Color calendario'
+                    'label' => 'Color resaltado'
                 ]
             )
         ;
@@ -80,7 +80,7 @@ class CotizacionEstadocotcomponenteAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('color')
             ->add('colorcalendar', null, [
-                    'label' => 'Color calendario'
+                    'label' => 'Color resaltado'
                 ]
             )
         ;

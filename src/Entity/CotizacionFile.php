@@ -45,15 +45,15 @@ class CotizacionFile
     #[ORM\Column(type: 'boolean', options: ['default' => 0])]
     private bool $catalogo = false;
 
-    #[ORM\OneToMany(targetEntity: 'CotizacionCotizacion', mappedBy: 'file', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: 'CotizacionCotizacion', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['id' => 'DESC'])]
     private Collection $cotizaciones;
 
-    #[ORM\OneToMany(targetEntity: 'CotizacionFiledocumento', mappedBy: 'file', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: 'CotizacionFiledocumento', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['prioridad' => 'ASC'])]
     private Collection $filedocumentos;
 
-    #[ORM\OneToMany(targetEntity: 'CotizacionFilepasajero', mappedBy: 'file', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: 'CotizacionFilepasajero', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $filepasajeros;
 
     // Fechas tipadas a DateTimeInterface para compatibilidad con Timestampable
@@ -80,7 +80,31 @@ class CotizacionFile
     #[ORM\PostLoad]
     public function init(): void
     {
-        $this->color = sprintf('#%02x%02x%02x', mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa));
+        // Aquí llamas al método
+        $this->color = $this->getColorFromId($this->id);
+    }
+
+    public function getColorFromId(int $id): string
+    {
+        $h = ($id * 37) % 360; // tono pseudoaleatorio
+        $s = 60; // saturación %
+        $v = 90; // brillo %
+        return $this->hsvToHex($h, $s, $v);
+    }
+
+    private function hsvToHex(float $h, float $s, float $v): string
+    {
+        $s /= 100; $v /= 100;
+        $c = $v * $s;
+        $x = $c * (1 - abs(fmod($h / 60, 2) - 1));
+        $m = $v - $c;
+        if ($h < 60) list($r, $g, $b) = [$c, $x, 0];
+        elseif ($h < 120) list($r, $g, $b) = [$x, $c, 0];
+        elseif ($h < 180) list($r, $g, $b) = [0, $c, $x];
+        elseif ($h < 240) list($r, $g, $b) = [0, $x, $c];
+        elseif ($h < 300) list($r, $g, $b) = [$x, 0, $c];
+        else list($r, $g, $b) = [$c, 0, $x];
+        return sprintf('#%02x%02x%02x', ($r + $m) * 255, ($g + $m) * 255, ($b + $m) * 255);
     }
 
     public function getId(): ?int
