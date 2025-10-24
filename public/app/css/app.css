@@ -1,5 +1,5 @@
 /* =========================
-   Variables y base moderna
+   VARIABLES Y BASE MODERNA
    ========================= */
 :root {
     --header-h: 100px;
@@ -11,77 +11,40 @@
     --c-danger: #FF807E;
     --c-danger-hover: #f54f4b;
     --c-accent: #ff8a00; /* bullets personalizados */
+
+    /* FullCalendar variables */
+    --fc-page-bg-color: #ffffff;
+    --fc-button-bg-color: #2d3f4f;
+    --fc-button-border-color: #2d3f4f;
+    --fc-button-text-color: #fff;
+    --fc-button-hover-bg-color: #395268;
+    --fc-button-hover-border-color: #395268;
+    --fc-button-active-bg-color: #1f2d39;
+    --fc-button-active-border-color: #1f2d39;
+    --fc-neutral-bg-color: #f7f9fc;
+    --fc-border-color: #e2e8f0;
 }
 
-/* (Opcional) ocultar texto "Extranet" del logo */
-.main-header .logo span { display: none !important; }
-.tareas-block {
-    padding-left: 15px;
-    padding-right: 15px;
-}
-
-@media (max-width: 767px) {
-    .tareas-block {
-        padding-top: 50px;
-    }
-}
-
-/* Tipografía y pequeños ajustes */
+/* =========================
+   AJUSTES GENERALES
+   ========================= */
 h4, h5 { letter-spacing: .2px; }
 .ck-content p { margin: 0 0 8px; }
 
-/* Panels con padding y sombra sutil */
+.tareas-block { padding-left: 15px; padding-right: 15px; }
+@media (max-width: 767px) {
+    .tareas-block { padding-top: 50px; }
+}
+
+/* =========================
+   PANELES Y BOTONES
+   ========================= */
 .panel-heading { padding: 12px 18px; }
-.panel-body   { padding: 16px 18px; }
+.panel-body { padding: 16px 18px; }
 
-/* =========================
-   Header + Sidebar (base)
-   ========================= */
-/* Evita duplicidades de height/!important */
-.main-header {
-    min-height: var(--header-h);
-    position: relative;
-}
-.main-header .logo {
-    min-height: var(--header-h);
-    display: flex; align-items: center; justify-content: center;
-}
-.main-header .logo img { max-width: none; }
-
-/* fix para el overflow en vista grande */
-
-@media (width > 768px) {
-    body.fixed .main-sidebar .main-sidebar .sidebar, body.fixed .main-sidebar .slimScrollDiv {
-        height: auto !important;
-        overflow: visible !important;
-    }
-}
-
-/* padding-top para móvil/flujo normal */
-.left-side, .main-sidebar {
-    padding-top: var(--header-h);
-}
-
-@media (width <= 768px) {
-    .left-side, .main-sidebar {
-        padding-top: calc(var(--header-h) + 50px);
-    }
-}
-
-/* =========================
-   Navbar/crumbs con menos especificidad
-   ========================= */
-.navbar-custom-menu > .navbar-nav > li > a { background-color: #fff; }
-.navbar-left .breadcrumb > li.active {
-    max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-
-/* =========================
-   Botones y utilidades
-   ========================= */
 section.content .btn-group > .btn { min-width: 110px; margin-bottom: 5px; }
 
-.btn-danger{ background-color: var(--c-danger); border-color: var(--c-danger); }
+.btn-danger { background-color: var(--c-danger); border-color: var(--c-danger); }
 .btn-danger:focus,
 .btn-danger:hover,
 .btn-danger:active,
@@ -91,68 +54,186 @@ section.content .btn-group > .btn { min-width: 110px; margin-bottom: 5px; }
     border-color: var(--c-danger-hover);
 }
 
-.box .btn-toolbar { width:100%; }
-.box .btn-toolbar .btn-group { display:block; width:100%; }
+.box .btn-toolbar { width: 100%; }
+.box .btn-toolbar .btn-group { display: block; width: 100%; }
 
-.btn-group-sm .btn { margin-bottom:4px; }
+.btn-group-sm .btn { margin-bottom: 4px; }
+.btn .fa { margin-right: 6px; }
 
-.btn .fa { margin-right:6px; }
 @media (max-width: 768px) {
-    .btn-group-sm .btn-100m {
-        float: none;          /* anula el float de .btn-group */
-        display: block;
-        width: 100%;
-        text-align: left;
-        margin-bottom: 8px; }
-
+    .btn-group-sm .btn-100m,
     .btn-group-sm .btn-60m {
-        float: none;          /* anula el float de .btn-group */
+        float: none;
         display: block;
-        width: 60%;
         text-align: left;
-        margin-bottom: 8px; }
+        margin-bottom: 8px;
+    }
+    .btn-group-sm .btn-100m { width: 100%; }
+    .btn-group-sm .btn-60m { width: 60%; }
 }
 
+/* =========================
+   HEADER + SIDEBAR
+   ========================= */
+.main-header {
+    min-height: var(--header-h);
+    position: relative;
+}
+.main-header .logo {
+    min-height: var(--header-h);
+    display: flex; align-items: center; justify-content: center;
+}
+.main-header .logo img { max-width: none; }
+.main-header .logo span { display: none !important; }
+
+.left-side, .main-sidebar { padding-top: var(--header-h); }
+
+@media (width <= 768px) {
+    .left-side, .main-sidebar { padding-top: calc(var(--header-h) + 50px); }
+}
+@media (width > 768px) {
+    body.fixed .main-sidebar .main-sidebar .sidebar,
+    body.fixed .main-sidebar .slimScrollDiv {
+        height: auto !important;
+        overflow: visible !important;
+    }
+}
 
 /* =========================
-   Tablas responsivas (móvil)
+   NAVBAR Y BREADCRUMB
+   ========================= */
+.navbar-custom-menu > .navbar-nav > li > a { background-color: #fff; }
+.navbar-left .breadcrumb > li.active {
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* =========================
+   TABLAS RESPONSIVAS
    ========================= */
 @media (max-width: 767px) {
-    .table-responsive > .table > thead > tr > th,
-    .table-responsive > .table > thead > tr > td,
-    .table-responsive > .table > tbody > tr > th,
-    .table-responsive > .table > tbody > tr > td,
-    .table-responsive > .table > tfoot > tr > th,
-    .table-responsive > .table > tfoot > tr > td {
+    .table-responsive > .table > * > tr > * {
         white-space: normal !important;
     }
-
     .skin-black .main-header > .logo,
     .skin-black .main-header > .logo:hover {
-        background-color: #ffffff; color: var(--c-text); border-bottom: 1px solid var(--c-text);
+        background-color: #ffffff;
+        color: var(--c-text);
+        border-bottom: 1px solid var(--c-text);
     }
     .skin-black .main-header > .logo span {
-        color: var(--c-text); font-size: 80%; margin-top: 10px; font-weight: bold;
+        color: var(--c-text);
+        font-size: 80%;
+        margin-top: 10px;
+        font-weight: bold;
     }
 }
 
 /* =========================
-   FullCalendar y helpers
+   FULLCALENDAR ESTILOS
    ========================= */
-.fc-toolbar h2 { font-size: 20px; padding-top: 10px; }
-div.encabezado td { white-space: normal !important; }
-.fc-timeline-event:hover { cursor: pointer; }
 
-.fechas-mono {
-    font-size: .9em;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-    white-space: nowrap;
+/* --- Header Toolbar (solo título) --- */
+.fc .fc-header-toolbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 0 6px;
+    background: var(--fc-page-bg-color, #fff);
+    border-bottom: 1px solid var(--fc-border-color);
+    box-shadow: 0 2px 4px var(--c-shadow-soft);
+}
+.fc .fc-toolbar-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--c-accent);  /* 🔸 color de acento para el título */
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+/* --- Footer Toolbar (botones y vistas) --- */
+.fc .fc-footer-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--fc-page-bg-color, #fff);
+    border-top: 1px solid var(--fc-border-color);
+    box-shadow: 0 -2px 4px var(--c-shadow-soft);
+}
+
+/* Subgrupos (izquierda/derecha) */
+.fc .fc-footer-toolbar .fc-toolbar-chunk {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Botones */
+.fc .fc-button {
+    border-radius: 10px;
+    padding: 6px 12px;
+    border-width: 1px;
+}
+.fc .fc-button-group { display: inline-flex; }
+.fc .fc-prev-button {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.fc .fc-next-button {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    margin-left: -1px;
+}
+
+/* Separación entre botones de vistas */
+.fc .fc-footer-toolbar
+.fc-toolbar-chunk:last-child
+.fc-button-group .fc-button:not(:first-child){
+    margin-left: 6px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .fc .fc-toolbar-title {
+        font-size: 1.15rem;
+        text-align: center;
+    }
+    .fc .fc-footer-toolbar {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    .fc .fc-footer-toolbar .fc-toolbar-chunk {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
 }
 
 /* =========================
-   Tooltip de Fullcalendar
+   CALENDAR CONTAINER
    ========================= */
+.calendar-box { padding: 0; }
+.calendar-outer { overflow-x: auto; overflow-y: visible; }
+.calendar-shell {
+    min-width: clamp(400px, 90vw, 1600px);
+    margin: 10px auto;
+}
+@media (min-width: 1200px) {
+    .calendar-box {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 1400px;
+    }
+}
 
+/* =========================
+   TOOLTIP FULLCALENDAR
+   ========================= */
 .fc-tooltip {
     position: fixed;
     background: rgba(0,0,0,0.8);
@@ -164,161 +245,159 @@ div.encabezado td { white-space: normal !important; }
 }
 
 /* =========================
-   Thumbnails y carousels
+   GALERÍAS Y THUMBNAILS
    ========================= */
-.thumbnail img.landscape { width: 100%; /* fallback para aspect-ratio */ }
-.thumbnail img.portrait  { width: 100%; }
+.thumbnail img.landscape,
+.thumbnail img.portrait { width: 100%; }
 .thumbnail .caption { padding: 3px; }
 
-/* Opcional: si navegador soporta aspect-ratio, mejor proporción */
 @supports (aspect-ratio: 1) {
     .thumbnail img.landscape { aspect-ratio: 16/9; object-fit: cover; }
-    .thumbnail img.portrait  { aspect-ratio: 3/4;  object-fit: cover; }
+    .thumbnail img.portrait { aspect-ratio: 3/4; object-fit: cover; }
 }
 
-
-
-/* =========================
-   Galería modal fluid
-   ========================= */
 .thumbnail-fluid img.in-modal.portrait { width: 60%; }
 .thumbnail-fluid img.in-modal.landscape { width: 100%; }
 .thumbnail-fluid .caption .small.text-center { margin: 0; }
 
 /* =========================
-   Listas personalizadas
+   LISTAS PERSONALIZADAS
    ========================= */
 ul.listaordenada,
 ul.sonata-ba-show-one-to-many { list-style: none; padding: 0; margin: 0; }
 ul.listaordenada li,
-ul.sonata-ba-show-one-to-many li { padding-left: 16px; position: relative; }
+ul.sonata-ba-show-one-to-many li {
+    padding-left: 16px;
+    position: relative;
+}
 ul.listaordenada li::before,
 ul.sonata-ba-show-one-to-many li::before {
     content: "\25CF";
     color: var(--c-accent);
-    font-weight: bold; font-size: 18px;
-    text-align: right; padding-right: 6px; width: 10px;
-    position: absolute; left: 0; top: -0.2em;
+    font-weight: bold;
+    font-size: 18px;
+    text-align: right;
+    padding-right: 6px;
+    width: 10px;
+    position: absolute;
+    left: 0;
+    top: -0.2em;
 }
 ul.listaordenada li a,
-ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
+ul.sonata-ba-show-one-to-many li a {
+    padding-bottom: 5px;
+    display: block;
+}
 
 /* =========================
-   Tooltip de copy to clipboard
+   TOOLTIP COPY-TO-CLIPBOARD
    ========================= */
 .clipboard-trigger:hover { cursor: pointer; }
 #tooltipdiv {
-    position: fixed; width: 220px; height: 30px;
-    top: 30%; left: 50%; margin-top: -15px; margin-left: -110px;
-    border-radius: 5px; text-align: center; padding: 5px;
-    background: #ffde5a; font-weight: 600;
-    filter: drop-shadow(0 3px 5px #ccc); line-height: 1.5; z-index: 1000;
+    position: fixed;
+    width: 220px;
+    height: 30px;
+    top: 30%;
+    left: 50%;
+    margin-top: -15px;
+    margin-left: -110px;
+    border-radius: 5px;
+    text-align: center;
+    padding: 5px;
+    background: #ffde5a;
+    font-weight: 600;
+    filter: drop-shadow(0 3px 5px #ccc);
+    line-height: 1.5;
+    z-index: 1000;
 }
 
-
-
-
 /* =========================
-   Print limpio
+   PRINT LIMPIO
    ========================= */
 @media print {
-    *, *::before, *::after { color: initial !important; box-shadow: none !important; }
+    *, *::before, *::after {
+        color: initial !important;
+        box-shadow: none !important;
+    }
     .hidden-print { display: none !important; }
     .visible-print { display: block !important; }
     .panel, .panel-body { box-shadow: none !important; }
 }
 
-
-
-/* Opcional: solo centrar en pantallas chicas
-@media (max-width: 991px){
-  .thumbs-row{ justify-content: center; }
-  .thumbs-row > [class*="col-"]{ float: none !important; }
-}
-*/
-
-
-/* header + celdas de la columna 'contenido' */
-.col-long-text{
-    min-width:26rem;
-    width:26rem;           /* ayuda si la tabla usa table-layout: fixed */
-    white-space: normal;   /* permite salto de línea */
+/* =========================
+   COLUMNA “CONTENIDO” + MEDIA-BOX
+   ========================= */
+.col-long-text {
+    min-width: 26rem;
+    width: 26rem;
+    white-space: normal;
     word-break: break-word;
 }
-
-/* si dentro usas .media-box, que no se encoja */
-.col-long-text .media-box{
-    display:block;
-    width:100%;
-    max-width:none;
+.col-long-text .media-box {
+    display: block;
+    width: 100%;
+    max-width: none;
 }
+.media-box { container-type: inline-size; }
 
-/* 1) Declara el contenedor “medible” */
-.media-box{
-    container-type: inline-size;     /* mide el ancho del contenedor */
-    /* opcional: container-name: media; */
+.res-h, .res-v, .res-icon {
+    display: block;
+    margin-inline: auto;
+    height: auto;
+    max-width: 100%;
 }
+.res-h { width: 85%; max-height: 70vh; }
+.res-v { width: 75%; max-height: 60vh; }
+.res-icon { width: 25%; max-height: 20vh; }
 
-/* 2) Estilos base compartidos */
-.res-h, .res-v, .res-icon{
-    display:block;
-    margin-inline:auto;   /* centrado */
-    height:auto;          /* mantiene proporción */
-    max-width:100%;
+@container (min-width: 640px) {
+    .res-h { width: 75%; max-height: 72vh; }
+    .res-v { width: 65%; max-height: 62vh; }
+    .res-icon { width: 21.6667%; max-height: 20.6667vh; }
 }
-
-/* 3) Reglas por tipo de imagen (valores base para contenedores muy angostos) */
-.res-h{ width:85%; max-height:70vh; }
-.res-v{ width:75%; max-height:60vh; }  /* más compacta la vertical */
-/* Ícono proporcional: 1/3 de .res-v */
-.res-icon{ width:25%; max-height:20vh; }
-
-/* 4) Breakpoints según el ancho del CONTENEDOR (no del viewport) */
-/*    Usamos tus cortes: 640 / 768 / 1024 */
-@container (min-width: 640px){
-    .res-h{ width:75%; max-height:72vh; }
-    .res-v{ width:65%; max-height:62vh; }
-    .res-icon{ width:21.6667%; max-height:20.6667vh; } /* 65% / 3, 62vh / 3 */
+@container (min-width: 768px) {
+    .res-h { width: 60%; max-height: 78vh; }
+    .res-v { width: 50%; max-height: 68vh; }
+    .res-icon { width: 16.6667%; max-height: 22.6667vh; }
 }
-@container (min-width: 768px){
-    .res-h{ width:60%; max-height:78vh; }
-    .res-v{ width:50%; max-height:68vh; }
-    .res-icon{ width:16.6667%; max-height:22.6667vh; } /* 50% / 3, 68vh / 3 */
+@container (min-width: 1024px) {
+    .res-h { width: 45%; max-height: 82vh; }
+    .res-v { width: 40%; max-height: 72vh; }
+    .res-icon { width: 13.3333%; max-height: 24vh; }
 }
-@container (min-width: 1024px){
-    .res-h{ width:45%; max-height:82vh; }
-    .res-v{ width:40%; max-height:72vh; }
-    .res-icon{ width:13.3333%; max-height:24vh; } /* 40% / 3, 72vh / 3 */
-}
+.res-v.compact { max-height: 55vh; }
+.res-icon.compact { max-height: 18.3333vh; }
 
-/* (Opcional) versiones compactas */
-.res-v.compact{ max-height:55vh; }
-.res-icon.compact{ max-height:18.3333vh; } /* 55vh / 3 */
+@supports (height: 1cqh) {
+    .res-h { max-height: 70cqh; }
+    .res-v { max-height: 60cqh; }
+    .res-icon { max-height: 20cqh; }
 
-/* (Opcional) Si tu navegador soporta unidades de contenedor, usa cqh en vez de vh */
-@supports (height: 1cqh){
-    .res-h{ max-height:70cqh; }
-    .res-v{ max-height:60cqh; }
-    .res-icon{ max-height:20cqh; } /* 60cqh / 3 */
-
-    @container (min-width: 640px){
-        .res-h{ max-height:72cqh; }
-        .res-v{ max-height:62cqh; }
-        .res-icon{ max-height:20.6667cqh; } /* 62 / 3 */
+    @container (min-width: 640px) {
+        .res-h { max-height: 72cqh; }
+        .res-v { max-height: 62cqh; }
+        .res-icon { max-height: 20.6667cqh; }
     }
-    @container (min-width: 768px){
-        .res-h{ max-height:78cqh; }
-        .res-v{ max-height:68cqh; }
-        .res-icon{ max-height:22.6667cqh; } /* 68 / 3 */
+    @container (min-width: 768px) {
+        .res-h { max-height: 78cqh; }
+        .res-v { max-height: 68cqh; }
+        .res-icon { max-height: 22.6667cqh; }
     }
-    @container (min-width: 1024px){
-        .res-h{ max-height:82cqh; }
-        .res-v{ max-height:72cqh; }
-        .res-icon{ max-height:24cqh; } /* 72 / 3 */
+    @container (min-width: 1024px) {
+        .res-h { max-height: 82cqh; }
+        .res-v { max-height: 72cqh; }
+        .res-icon { max-height: 24cqh; }
     }
 
-    .res-v.compact{ max-height:55cqh; }
-    .res-icon.compact{ max-height:18.3333cqh; } /* 55 / 3 */
+    .res-v.compact { max-height: 55cqh; }
+    .res-icon.compact { max-height: 18.3333cqh; }
 }
 
-
+/* =========================
+   UTILIDADES
+   ========================= */
+.fechas-mono {
+    font-size: .9em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    white-space: nowrap;
+}

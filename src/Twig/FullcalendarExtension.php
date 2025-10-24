@@ -98,80 +98,100 @@ class FullcalendarExtension extends AbstractExtension
 
     $(document).ready(function() {
 
-        var resourceUrl = '$defaultResourceUrl';
-        var s = $("<select style=\"margin-top: 10px; margin-left: 10px;\" id=\"calendarSelector\" />");
-        
+        let resourceUrl = '$defaultResourceUrl';
+        const s = $("<select style=\"margin-top: 10px; margin-left: 10px;\" id=\"calendarSelector\" />"); // FIX: const
+        let oneClickTimer = null;
+    
         s.change(function() {
-            //elimina la vista
+            // elimina eventos de la vista (no la "vista" completa)
             calendar.removeAllEvents();
-            
-            let removeEvents = calendar.getEventSources();
-            removeEvents.forEach(event => {
-                 event.remove(); // elimina los recursos
+    
+            // FIX: este bloque elimina "fuentes de eventos", no recursos
+            const removeEvents = calendar.getEventSources();
+            removeEvents.forEach(src => {
+                 src.remove();
             });
-            
+    
             calendar.addEventSource(data[s.val()]['event']);
+    
+            // Actualiza origen de recursos y refetch
             resourceUrl = data[s.val()]['resource'];
             calendar.refetchResources();
+    
             calendar.setOption('resourceAreaHeaderContent', data[s.val()]['nombre']);
-        })
-        
-        var renderDropdown = false;
-        
-        var data = $calendarsUrls;
-        
-        for(var val in data) {
-            $("<option />", {text: data[val]['nombre'], value: val}).appendTo(s);
-            if(val > 0){
-                renderDropdown = true;
-            } 
+        });
+    
+        let renderDropdown = false;
+    
+        const data = $calendarsUrls; // FIX: const
+    
+        // FIX: for...in da claves string; comparar con > 0 es frágil.
+        // Usamos un contador simple para decidir mostrar el dropdown
+        let idx = 0;
+        for (const val in data) {
+            $("<option />", { text: data[val]['nombre'], value: val }).appendTo(s);
+            idx++;
         }
-        
-        if(renderDropdown === true){
+        if (idx > 1) { // FIX: más claro: solo renderiza si hay más de una opción
+            renderDropdown = true;
+        }
+    
+        if (renderDropdown === true) {
             $("#calendar").before(s);
         }
-        
-        function getResources(start, end, timezone, handleData) {
-            var params = { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
-            var strParams = jQuery.param( params );
-            
+    
+        // FIX: firma simplificada; no necesitas timezone aquí
+        function getResources(start, end, _timezone, handleData) {
+            const params = {
+                start: start.toISOString().slice(0, 10),
+                end:   end.toISOString().slice(0, 10)
+            };
+    
             $.ajax({
-                url: resourceUrl + '?' + strParams,
-                success:function(data) {
+                url: resourceUrl,
+                data: params, // FIX: usa 'data' en vez de concatenar querystring
+                success: function(data) {
                     handleData(data);
+                },
+                error: function(xhr) { // FIX: maneja error (opcional)
+                    console.error('Resource fetch error', xhr);
+                    handleData([]); // devuelve vacío para no romper la UI
                 }
             });
         }
-        
+    
         let clickCnt = 0;
-        
-        var calDefaultViewStr = "$caller" + "calDefaultView";
-        var calDefaultScrollStr = "$caller" + "calDefaultScroll";
-        var calDefaultDateStr = "$caller" + "calDefaultDate";
-        
-        var defaultView = (localStorage.getItem(calDefaultViewStr) !== null ? localStorage.getItem(calDefaultViewStr) : '$defaultView');
-        
-        if(localStorage.getItem(calDefaultDateStr) !== null){
-            if((new Date(localStorage.getItem(calDefaultDateStr))).toString() =='Invalid Date'){
+    
+        const calDefaultViewStr = "$caller" + "calDefaultView";
+        const calDefaultScrollStr = "$caller" + "calDefaultScroll";
+        const calDefaultDateStr = "$caller" + "calDefaultDate";
+    
+        const defaultView = (localStorage.getItem(calDefaultViewStr) !== null ? localStorage.getItem(calDefaultViewStr) : '$defaultView');
+    
+        if (localStorage.getItem(calDefaultDateStr) !== null) {
+            // FIX: valida fecha correctamente
+            const d = new Date(localStorage.getItem(calDefaultDateStr));
+            if (isNaN(d.getTime())) {
                 localStorage.removeItem(calDefaultDateStr);
             }
         }
-        var initialDate = (localStorage.getItem(calDefaultDateStr) !== null ? localStorage.getItem(calDefaultDateStr) : '$initialdate');
-        var calendarEl = document.getElementById('calendar');
-        var calendar = new FullCalendar.Calendar(calendarEl, {
+    
+        const initialDate = (localStorage.getItem(calDefaultDateStr) !== null ? localStorage.getItem(calDefaultDateStr) : '$initialdate');
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialDate: initialDate,
             customButtons: {
-                
+    
                 hoyButton: {
                     text: 'Hoy',
                     click: function() {
                         calendar.today();
-                        
-                        if(calendar.view.type == 'resourceTimelineOneMonth'){
+    
+                        if (calendar.view.type == 'resourceTimelineOneMonth') {
                             $(".fc-day-today").attr("id","scrollTo"); // Set an ID for the current day..
                                 
-                            if(typeof $("#scrollTo").position() != 'undefined'){
+                            if (typeof $("#scrollTo").position() != 'undefined') {
                                 $(".fc-scroller").animate({
                                     scrollLeft: $("#scrollTo").position().left // Scroll to this ID
                                 }, 2000);
@@ -184,9 +204,13 @@ class FullcalendarExtension extends AbstractExtension
                 localStorage.setItem(calDefaultDateStr, event.startStr);
             },
             headerToolbar: {
-                left: 'hoyButton prev,next',
-                center: 'title',
-                right: '$views'
+              start: '',             // nada a la izquierda
+              center: 'title',       // el título ocupa la línea superior
+              end: ''                // nada a la derecha
+            },
+            footerToolbar: {
+              left: 'hoyButton prev,next',
+              right: '$views'
             },
             initialView: defaultView,
             views: {
@@ -194,13 +218,15 @@ class FullcalendarExtension extends AbstractExtension
                     type: 'resourceTimeline',
                     duration: { days: 1 },
                     buttonText: 'Dia',
-                    resourceAreaWidth: '100px'
+                    resourceAreaWidth: '100px',
+                    height: 'auto'
                 },
                 resourceTimelineOneWeek: {
                     type: 'resourceTimeline',
                     duration: { weeks: 1 },
                     buttonText: 'Semana',
-                    resourceAreaWidth: '100px'
+                    resourceAreaWidth: '100px',
+                    height: 'auto',
                 },
                 resourceTimelineOneMonth: {
                     type: 'resourceTimeline',
@@ -209,29 +235,25 @@ class FullcalendarExtension extends AbstractExtension
                     slotMinWidth: 120,
                     slotDuration: '24:00:00',
                     resourceAreaWidth: '100px',
-                    contentHeight: 350,
-                    // (opcional) esconder explícitamente las etiquetas de 0 aparecieran:
+                    height: 'auto',
+                    // (opcional) esconder las etiquetas del nivel de horas
                     slotLabelContent(arg) {
-                        //console.log(arg);
                         const isHourLevel = arg.level === 1; // si ves que no funciona, prueba === 0
                         if (isHourLevel) {
                             return "";
-                        }else{
+                        } else {
                             return arg.text;
                         }
                     }               
                 }
             },
             dateClick: function(info) {
-                //ya no seleccionamos la fecha del click;
-                //localStorage.setItem(calDefaultDateStr, info.startStr);
                 clickCnt++;
-                if(clickCnt === 1) {
+                if (clickCnt === 1) {
                     oneClickTimer = setTimeout(function() {
                         clickCnt = 0;
-                        
                     }, 400);
-                } else if(clickCnt === 2) {
+                } else if (clickCnt === 2) {
                     clearTimeout(oneClickTimer);
                     clickCnt = 0;
                     calendar.changeView('resourceTimelineOneDay');
@@ -239,92 +261,106 @@ class FullcalendarExtension extends AbstractExtension
                 }
             },
             eventClick: function(info) {
-                //ya no seleccionamos la fecha del evento;
-                //localStorage.setItem(calDefaultDateStr, info.event.startStr);
-
-                clickCnt++;         
-                if(clickCnt === 1) {
+                clickCnt++;
+                if (clickCnt === 1) {
                     oneClickTimer = setTimeout(function() {
                         clickCnt = 0;
-                        if(typeof info.event.extendedProps.urlshow !== 'undefined') {
-                            //window.open(info.event.extendedProps.urlshow, '_blank');
+                        if (typeof info.event.extendedProps.urlshow !== 'undefined') {
                             window.location.href = info.event.extendedProps.urlshow;
                         }
                     }, 400);
-                } else if(clickCnt === 2) {
+                } else if (clickCnt === 2) {
                     clearTimeout(oneClickTimer);
                     clickCnt = 0;
-                    if(typeof info.event.extendedProps.urledit !== 'undefined') {
-                        //window.open(info.event.extendedProps.urledit, '_blank');
+                    if (typeof info.event.extendedProps.urledit !== 'undefined') {
                         window.location.href = info.event.extendedProps.urledit;
                     }
-                }  
+                }
             },
             eventDidMount: function (info) {
                 // Evita tooltips duplicados
                 if (info.el._tippy) info.el._tippy.destroy();
-                
+    
                 tippy(info.el, {
-                content: info.event.title,
-                trigger: 'mouseenter focus',
-                delay: [100, 80],
-                placement: 'top',
-                touch: ['hold', 120],      // 👈 habilita soporte táctil nativo
-                appendTo: document.body,   // evita problemas con overflow
-                // theme: 'light-border',
+                    content: info.event.title,
+                    trigger: 'mouseenter focus',
+                    delay: [100, 80],
+                    placement: 'top',
+                    touch: ['hold', 120],      // si tu versión de Tippy no soporta array, usa 'hold'
+                    appendTo: document.body
                 });
-                
+    
                 // Prevenir selección / callout en móviles
                 info.el.style.userSelect = 'none';
                 info.el.style.webkitUserSelect = 'none';
                 info.el.style.webkitTouchCallout = 'none';
                 info.el.style.touchAction = 'manipulation';
-            }
-            ,
+            },
             resourceAreaHeaderContent: '$defaultLabel',
             locale: 'es',
             nowIndicator: true,
             contentHeight: 800,
             editable: false,
             refetchResourcesOnNavigate: true,
+    
+            // FIX: la firma correcta de v5/v6 pasa fetchInfo (con .timeZone, no .timezone)
             resources: function(fetchInfo, successCallback, failureCallback) {
-                getResources(fetchInfo.start, fetchInfo.end, fetchInfo.timezone, function(resources) {
+                // Pasamos los Date a tu helper
+                getResources(fetchInfo.start, fetchInfo.end, fetchInfo.timeZone, function(resources) {
                     
-                    if(localStorage.getItem(calDefaultScrollStr) === null){
-                        setTimeout(function(){ // Timeout
-                            $(".fc-day-today").attr("id","scrollTo"); // Set an ID for the current day..
-                            
-                            if(typeof $("#scrollTo").position() != 'undefined'){
+                    if (localStorage.getItem(calDefaultScrollStr) === null) {
+                        setTimeout(function() { // Timeout
+                            $(".fc-day-today").attr("id", "scrollTo"); // Set an ID for the current day..
+                            if (typeof $("#scrollTo").position() != 'undefined') {
                                 $(".fc-scroller").animate({
                                     scrollLeft: $("#scrollTo").position().left // Scroll to this ID
                                 }, 2000);
                             }
                         }, 500);
                     }
-                    successCallback(resources)
+            
+                    // Devuelve los recursos cargados
+                    successCallback(resources);
+            
+                    // 🔹 Ajusta la altura automáticamente DESPUÉS de renderizar los recursos
+                    setTimeout(function() {
+                        // Solo aplica el ajuste si estamos en una vista tipo resourceTimeline
+                        const viewType = calendar.view.type;
+                        if (viewType.startsWith('resourceTimeline')) {
+                            calendar.setOption('height', 'auto'); // recalcula según recursos visibles
+                            calendar.updateSize();                 // fuerza redibujo del layout
+                        }
+                    }, 300); // Pequeño delay para que el DOM termine de renderizar
                 });
             },
             events: '$defaultEventUrl'
         });
-        
+    
         calendar.render();
-        
-         $(".fc-scroller").on( "scroll", function() {
-             localStorage.setItem(calDefaultViewStr, calendar.view.type);
-             // no usar toString, ya no necesaria la funcion
-             // localStorage.setItem(calDefaultDateStr, calendar.view.activeStart.toString());
-             localStorage.setItem(calDefaultScrollStr,  $(this).scrollLeft());
-         });
-         
-        if(localStorage.getItem(calDefaultScrollStr) !== null){
-             $(".fc-scroller").animate({
-                scrollLeft: localStorage.getItem(calDefaultScrollStr) // Scroll to this ID
-             }, 2000);
+    
+        $(".fc-scroller").on("scroll", function() {
+            localStorage.setItem(calDefaultViewStr, calendar.view.type);
+            localStorage.setItem(calDefaultScrollStr, $(this).scrollLeft());
+        });
+    
+        if (localStorage.getItem(calDefaultScrollStr) !== null) {
+            $(".fc-scroller").animate({
+                scrollLeft: localStorage.getItem(calDefaultScrollStr)
+            }, 2000);
         }
     });
 
 JS;
 
-        return "<script>" . $script . "</script><div style='overflow: scroll;' class='box box-primary'><div style='min-width: 800px; margin: 10px;' id='calendar'></div></div>";
+        return <<<HTML
+    <script>{$script}</script>
+    
+    <div class="box box-primary calendar-box">
+      <div class="calendar-outer">
+        <div id="calendar" class="calendar-shell"></div>
+      </div>
+    </div>
+HTML;
+
     }
 }
