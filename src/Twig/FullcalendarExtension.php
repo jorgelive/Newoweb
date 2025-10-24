@@ -151,7 +151,7 @@ class FullcalendarExtension extends AbstractExtension
         // Delays configurables
         const HOVER_DELAY_IN  = 250;  // ms antes de mostrar en hover
         const HOVER_DELAY_OUT = 100;  // ms antes de ocultar en hover
-        const TOUCH_DELAY_IN  = 350;  // ms de “long-press” antes de mostrar en touch
+        const TOUCH_DELAY_IN  = 200;  // ms de “long-press” antes de mostrar en touch
         const TOUCH_VISIBLE_MS = 2000; // ms visible tras soltar en touch
         
         var defaultView = (localStorage.getItem(calDefaultViewStr) !== null ? localStorage.getItem(calDefaultViewStr) : '$defaultView');
