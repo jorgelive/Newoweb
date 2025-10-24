@@ -234,69 +234,85 @@ class FullcalendarEventsfinder
 
     public function serialize(array $elements): string
     {
-
         $result = [];
+        $i = 0;
 
-        $i=0;
-        //elements son los resultados del query
-        //var_dump($elements); die;
-        foreach($elements as $element) {
-            foreach($this->options['parameters'] as $key => $parameter){
-                if($key == 'url'){ // el parametro url es array proceso el subparametro id
-                    $subject = $parameter['id'];
-                }else{
-                    $subject = $parameter;
-                }
+        foreach ($elements as $element) {
+            foreach ($this->options['parameters'] as $key => $parameter) {
 
-                if(strpos($subject, '.') > 0){
-                    $methods = explode('.', $subject);
-                }else{
-                    $methods = [$subject];
-                }
-
-                $copiedElement = $element; //ya no clono;
-                foreach($methods as $method){
-                    $methodFormated = 'get' . ucfirst($method);
-                    $copiedElement = $copiedElement->$methodFormated();
-                }
-
-                if($key == 'start' || $key == 'end'){
-                    $result[$i][$key] = $copiedElement->format("Y-m-d\TH:i:sP");
-                }elseif($key == 'url'){
-//todo recibir locale y generalo como link
-                    if(isset($parameter['edit']) && true === $this->authorizationChecker->isGranted($parameter['edit']['role'])){
-                        $result[$i]['urledit'] = $this->router->generate($parameter['edit']['route'], ['id' => $copiedElement, 'tl' => 'es']);
+                // --- Resolvedor genérico "a.b.c" -> $obj->getA()->getB()->getC()
+                $resolve = function($base, string $subject) {
+                    $methods = strpos($subject, '.') > 0 ? explode('.', $subject) : [$subject];
+                    $val = $base;
+                    foreach ($methods as $method) {
+                        $methodFormated = 'get' . ucfirst($method);
+                        if (!is_object($val) || !method_exists($val, $methodFormated)) {
+                            return null; // evita fatales si falta algo
+                        }
+                        $val = $val->$methodFormated();
                     }
-                    if(isset($parameter['show']) && true === $this->authorizationChecker->isGranted($parameter['show']['role'])){
-                        $result[$i]['urlshow'] = $this->router->generate($parameter['show']['route'], ['id' => $copiedElement, 'tl' => 'es']);
-                    }
-                }else{
-                    $result[$i][$key] = $copiedElement;
-                }
+                    return $val;
+                };
 
+                if ($key === 'start' || $key === 'end') {
+                    $dt = $resolve($element, $parameter);
+                    $result[$i][$key] = $dt ? $dt->format("Y-m-d\TH:i:sP") : null;
+
+                } elseif ($key === 'url') {
+                    $id = $resolve($element, $parameter['id']);
+                    if (isset($parameter['edit']) && true === $this->authorizationChecker->isGranted($parameter['edit']['role'])) {
+                        $result[$i]['urledit'] = $this->router->generate($parameter['edit']['route'], ['id' => $id, 'tl' => 'es']);
+                    }
+                    if (isset($parameter['show']) && true === $this->authorizationChecker->isGranted($parameter['show']['role'])) {
+                        $result[$i]['urlshow'] = $this->router->generate($parameter['show']['route'], ['id' => $id, 'tl' => 'es']);
+                    }
+
+                } elseif ($key === 'tooltip') {
+                    // Soporta: tooltip: 'resumen'  ó  tooltip: ['resumen','requerimientos']
+                    if (is_array($parameter)) {
+                        $lines = [];
+                        foreach ($parameter as $subject) {
+                            $val = $resolve($element, $subject);
+                            if ($val === null) { continue; }
+                            // normaliza a string si es escalar/objeto con __toString
+                            if (is_scalar($val)) {
+                                $lines[] = (string)$val;
+                            } elseif (is_object($val) && method_exists($val, '__toString')) {
+                                $lines[] = (string)$val;
+                            }
+                        }
+                        // Entrega array (para extendedProps.tiptool)
+                        $result[$i][$key] = $lines;
+                    } else {
+                        // Entrega string
+                        $val = $resolve($element, (string)$parameter);
+                        $result[$i][$key] = $val === null ? '' : (is_scalar($val) ? (string)$val : (method_exists($val, '__toString') ? (string)$val : ''));
+                    }
+
+                } else {
+                    // comportamiento estándar
+                    $val = $resolve($element, (string)$parameter);
+                    $result[$i][$key] = $val;
+                }
             }
-            if($this->options['resource']){
-                $copiedElement = $element; //ya no clono
 
-                if(strpos($this->options['resource']['id'], '.') > 0){
-                    $methods = explode('.', $this->options['resource']['id']);
-                }else{
-                    $methods = [$this->options['resource']['id']];
-                }
-
-                foreach($methods as $method){
+            // resourceId
+            if (!empty($this->options['resource'])) {
+                $subject = $this->options['resource']['id'];
+                $methods = strpos($subject, '.') > 0 ? explode('.', $subject) : [$subject];
+                $copiedElement = $element;
+                foreach ($methods as $method) {
                     $methodFormated = 'get' . ucfirst($method);
                     $copiedElement = $copiedElement->$methodFormated();
                 }
-
                 $result[$i]['resourceId'] = $copiedElement;
-            }else{
+            } else {
                 $result[$i]['resourceId'] = 'default';
             }
 
             $i++;
-
         }
+
         return json_encode($result);
     }
 }

@@ -39,6 +39,10 @@ parameters:
                 textColor: 'textcolor'
                 classNames: 'classnames'
                 backgroundColor: 'estado.color'
+                tooltip:
+                    - 'resumen'
+                    - 'nota'
+                    - 'requerimiento'
                 url:
                     id: 'id'
                     show:
@@ -61,6 +65,10 @@ parameters:
                 textColor: 'textcolor'
                 backgroundColor: 'estado.color'
                 classNames: 'classnames'
+                tooltip:
+                    - 'resumen'
+                    - 'nota'
+                    - 'requerimiento'
                 url:
                     id: 'id'
                     show:

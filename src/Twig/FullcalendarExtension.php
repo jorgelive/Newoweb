@@ -282,11 +282,25 @@ class FullcalendarExtension extends AbstractExtension
                 if (info.el._tippy) info.el._tippy.destroy();
     
                 tippy(info.el, {
-                    content: info.event.title,
+                    content: (() => {
+                        const tip = info.event.extendedProps.tooltip;
+                        
+                        if (Array.isArray(tip) && tip.length > 0) {
+                            // Caso 1: array → cada string en una línea
+                            return tip.map(line => `<div>\${line}</div>`).join('');
+                        } else if (typeof tip === 'string' && tip.trim() !== '') {
+                            // Caso 2: cadena → se muestra directamente
+                            return tip;
+                        } else {
+                            // Caso 3: sin tiptool → usa el título
+                            return info.event.title || '';
+                        }
+                    })(),
+                    allowHTML: true,
                     trigger: 'mouseenter focus',
                     delay: [100, 80],
                     placement: 'top',
-                    touch: ['hold', 120],      // si tu versión de Tippy no soporta array, usa 'hold'
+                    touch: ['hold', 120], // o simplemente 'hold' si tu versión no soporta array
                     appendTo: document.body
                 });
     
