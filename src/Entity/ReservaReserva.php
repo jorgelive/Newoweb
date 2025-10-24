@@ -192,7 +192,9 @@ class ReservaReserva
         if (!empty(trim((string) $this->getRequerimiento()))) {
             $classes[] = 'evento-con-requerimiento';
         }
-
+        if (!empty(trim((string) $this->getNota()))) {
+            $classes[] = 'evento-con-nota';
+        }
         return $classes;
     }
 
