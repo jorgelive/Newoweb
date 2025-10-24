@@ -92,7 +92,8 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
 
         $listMapper
             ->add('modificado', null, [
-                'label' => 'Modificado'
+                'label' => 'Modificado',
+                'format' => 'Y/m/d'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
