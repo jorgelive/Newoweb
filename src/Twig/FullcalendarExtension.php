@@ -259,6 +259,28 @@ class FullcalendarExtension extends AbstractExtension
                     }
                 }  
             },
+            eventDidMount: function(info) {
+                // Inicializamos tippy para hover + manual trigger
+                tippy(info.el, {
+                    content: info.event.title,
+                    trigger: 'mouseenter focus',   // para hover (ratón) y foco (teclado)
+                    // no incluimos 'click' porque queremos control manual para touch
+                });
+                    
+                // Añadimos eventos touch para tocar y mantener
+                // Al tocar → mostramos el tooltip
+                info.el.addEventListener('touchstart', () => {
+                    // mostramos el tooltip manualmente
+                    info.el._tippy.show();
+                });
+                
+                // Al soltar → ocultamos después de un tiempo
+                info.el.addEventListener('touchend', () => {
+                setTimeout(() => {
+                  info.el._tippy.hide();
+                }, 2000);  // lo dejamos visible 2 segundos
+                });
+            },
             resourceAreaHeaderContent: '$defaultLabel',
             locale: 'es',
             nowIndicator: true,

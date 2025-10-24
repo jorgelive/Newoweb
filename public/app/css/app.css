@@ -150,6 +150,20 @@ div.encabezado td { white-space: normal !important; }
 }
 
 /* =========================
+   Tooltip de Fullcalendar
+   ========================= */
+
+.fc-tooltip {
+    position: fixed;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    z-index: 9999;
+}
+
+/* =========================
    Thumbnails y carousels
    ========================= */
 .thumbnail img.landscape { width: 100%; /* fallback para aspect-ratio */ }
@@ -190,7 +204,7 @@ ul.listaordenada li a,
 ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
 
 /* =========================
-   Miscelánea
+   Tooltip de copy to clipboard
    ========================= */
 .clipboard-trigger:hover { cursor: pointer; }
 #tooltipdiv {
@@ -200,6 +214,8 @@ ul.sonata-ba-show-one-to-many li a { padding-bottom: 5px; display: block; }
     background: #ffde5a; font-weight: 600;
     filter: drop-shadow(0 3px 5px #ccc); line-height: 1.5; z-index: 1000;
 }
+
+
 
 
 /* =========================
