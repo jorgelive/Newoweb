@@ -63,7 +63,8 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
             ])
             ->add('dia')
             ->add('titulo', null, [
-                'label' => 'Título'
+                'label' => 'Título',
+                'editable' => true
             ]);
 
         if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
@@ -79,6 +80,7 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
                 'header_class' => 'col-long-text'
             ]);
 
+
         if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $listMapper
                 ->add('contenidooriginal', null, [
@@ -87,7 +89,12 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
                     'header_class' => 'col-long-text'
                 ]);
         }
-        $listMapper->add(ListMapper::NAME_ACTIONS, null, [
+
+        $listMapper
+            ->add('modificado', null, [
+                'label' => 'Modificado'
+            ])
+            ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
