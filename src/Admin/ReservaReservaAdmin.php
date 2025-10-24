@@ -339,12 +339,25 @@ class ReservaReservaAdmin extends AbstractAdmin
             ->add('estado')
             ->add('manual')
             ->add('nombre')
+            ->add('cantidadadultos', null, [
+                'label' => 'Adultos'
+            ])
+            ->add('cantidadninos', null, [
+                'label' => 'Niños'
+            ])
             ->add('calificacion')
             ->add('telefono', null, [
-                'label' => 'Teléfono'
+                'label' => 'Teléfono',
+                'attr' => [
+                    'placeholder' => 'Teléfono...',
+                ],
+
             ])
             ->add('nota', null, [
-                'label' => 'Nota'
+                'label' => 'Nota',
+                'attr' => [
+                    'placeholder' => 'Escribe aquí una nota interna...',
+                ],
             ])
             ->add('requerimiento', null, [
                 'label' => 'Requerimiento',
@@ -361,12 +374,6 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'label' => 'Check-out',
                 'dp_show_today' => true,
                 'format'=> 'yyyy/MM/dd HH:mm'
-            ])
-            ->add('cantidadadultos', null, [
-                'label' => 'Adultos'
-            ])
-            ->add('cantidadninos', null, [
-                'label' => 'Niños'
             ])
             ->add('channel', null, [
                 'label' => 'Canal'
