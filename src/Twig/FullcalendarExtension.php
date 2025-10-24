@@ -112,6 +112,7 @@ class FullcalendarExtension extends AbstractExtension
             
             calendar.addEventSource(data[s.val()]['event']);
             resourceUrl = data[s.val()]['resource'];
+            calendar.refetchResources();
             calendar.setOption('resourceAreaHeaderContent', data[s.val()]['nombre']);
         })
         
