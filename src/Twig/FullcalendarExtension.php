@@ -148,6 +148,12 @@ class FullcalendarExtension extends AbstractExtension
         var calDefaultScrollStr = "$caller" + "calDefaultScroll";
         var calDefaultDateStr = "$caller" + "calDefaultDate";
         
+        // Delays configurables
+        const HOVER_DELAY_IN  = 250;  // ms antes de mostrar en hover
+        const HOVER_DELAY_OUT = 100;  // ms antes de ocultar en hover
+        const TOUCH_DELAY_IN  = 350;  // ms de “long-press” antes de mostrar en touch
+        const TOUCH_VISIBLE_MS = 2000; // ms visible tras soltar en touch
+        
         var defaultView = (localStorage.getItem(calDefaultViewStr) !== null ? localStorage.getItem(calDefaultViewStr) : '$defaultView');
         
         if(localStorage.getItem(calDefaultDateStr) !== null){
@@ -259,27 +265,49 @@ class FullcalendarExtension extends AbstractExtension
                     }
                 }  
             },
-            eventDidMount: function(info) {
-                // Inicializamos tippy para hover + manual trigger
-                tippy(info.el, {
-                    content: info.event.title,
-                    trigger: 'mouseenter focus',   // para hover (ratón) y foco (teclado)
-                    // no incluimos 'click' porque queremos control manual para touch
-                });
-                    
-                // Añadimos eventos touch para tocar y mantener
-                // Al tocar → mostramos el tooltip
-                info.el.addEventListener('touchstart', () => {
-                    // mostramos el tooltip manualmente
-                    info.el._tippy.show();
+            eventDidMount: function (info) {
+                // Evita tooltips duplicados si el evento se re-renderiza
+                if (info.el._tippy) {
+                info.el._tippy.destroy();
+                }
+                
+                // Tooltip para HOVER (ratón) y foco (accesibilidad)
+                const tip = tippy(info.el, {
+                content: info.event.title,
+                trigger: 'mouseenter focus',
+                delay: [HOVER_DELAY_IN, HOVER_DELAY_OUT],
+                touch: false,               // desactiva el manejo touch interno de Tippy
+                placement: 'top',
+                // theme: 'light-border',   // opcional
+                // allowHTML: true,         // si necesitas contenido HTML
                 });
                 
-                // Al soltar → ocultamos después de un tiempo
-                info.el.addEventListener('touchend', () => {
-                setTimeout(() => {
-                  info.el._tippy.hide();
-                }, 2000);  // lo dejamos visible 2 segundos
-                });
+                // --- Soporte TOUCH con delays personalizados ---
+                let touchShowTimer = null;
+                let touchHideTimer = null;
+                
+                const showAfterTouchDelay = () => {
+                clearTimeout(touchShowTimer);
+                clearTimeout(touchHideTimer);
+                touchShowTimer = setTimeout(() => tip.show(), TOUCH_DELAY_IN);
+                };
+                
+                const hideAfterVisibleTime = () => {
+                clearTimeout(touchShowTimer);
+                clearTimeout(touchHideTimer);
+                touchHideTimer = setTimeout(() => tip.hide(), TOUCH_VISIBLE_MS);
+                };
+                
+                const cancelTouch = () => {
+                clearTimeout(touchShowTimer);
+                clearTimeout(touchHideTimer);
+                tip.hide();
+                };
+                
+                info.el.addEventListener('touchstart', showAfterTouchDelay, { passive: true });
+                info.el.addEventListener('touchend', hideAfterVisibleTime, { passive: true });
+                info.el.addEventListener('touchcancel', cancelTouch, { passive: true });
+                info.el.addEventListener('touchmove', cancelTouch, { passive: true }); // si el usuario se mueve, cancelamos
             },
             resourceAreaHeaderContent: '$defaultLabel',
             locale: 'es',
