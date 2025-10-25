@@ -1,34 +1,166 @@
 {% if object.idiomatelefono == 'en' %}
     {% set whatsappText %}
-Hello {{ object.primernombre }}, it's a pleasure to greet you.
-I'm writing to coordinate the check-out for {% if object.checkoutdetector is same as(1) %}*tomorrow*{% elseif object.checkoutdetector is same as(0) %}*today*{% else %}*{{ object.fechahorafin | date('Y-m-d') }}*{% endif %}.
-Check-out time is at *10:00 a.m.*⌚.
-Please let me know if you'll be leaving earlier, so I can inform the cleaning lady to be there at that time to receive the keys.
-If you need it, we can store your luggage for you.
+Hello {{ object.primernombre }}, it’s a pleasure to greet you.
+
+🏡 *We hope you’ve enjoyed your stay with us!*
+Before leaving, please follow these steps to ensure a smooth and easy check-out 🌞
+
+🕙 *Check-out time:* *10:00 a.m.*
+(We kindly ask that you respect this time so we can prepare for the next guests 🙏).
+*Your check-out is:* {% if object.checkoutdetector is same as(1) %}tomorrow{% elseif object.checkoutdetector is same as(0) %}today{% else %}{{ object.fechahorafin | date('Y-m-d') }}{% endif %}.
+
+🔹 *Keys and closing*
+If the cleaning staff *has not yet arrived*, please:
+ - Leave the *numbered key* inside the *safe box*.
+ - Leave the *other key* inside the apartment, in the same place where you found it.
+ - Make sure to *securely close the main door* before leaving.
+
+🔹 *Trash*
+Please place the trash at the *platform in front of the house* 🗑️.
+
+🔹 *Dishes, kitchen, and cleanliness*
+Leave the apartment in good condition:
+ - Wash or rinse any utensils you used.
+ - Don’t leave food waste, trash, or excessive mess.
+We appreciate your help in keeping the space clean and pleasant for everyone 🌿.
+
+🔹 *Windows and doors*
+Ensure that all *windows and doors* are properly closed before leaving.
+
+🔹 *Lights and electrical appliances*
+Turn off all *lights* and unplug any *electrical devices* that are not needed 💡.
+
+🔹 *Luggage*
+If you’d like to *leave your luggage after check-out*, please let us know *one day in advance* so we can organize the arrangements and *designate the area for storing your bags* 🧳.
+
+🔹 *Personal items*
+Please check that you haven’t left *any belongings behind*, especially *phones, chargers, or plug adapters*.
+
+✨ *Thank you for your cooperation and for choosing us* 💛
+We wish you a wonderful trip and hope to welcome you again soon.
     {% endset %}
 {% elseif object.idiomatelefono == 'pt'%}
     {% set whatsappText %}
 Olá {{ object.primernombre }}, é um prazer cumprimentá-lo(a).
-Estou escrevendo para coordenar o check-out para {% if object.checkoutdetector is same as(1) %}amanhã{% elseif object.checkoutdetector is same as(0) %}hoje{% else %}{{ object.fechahorafin | date('Y-m-d') }}{% endif %}.
-O horário de check-out é às *10:00 a.m.*⌚.
-Por favor, me avise se você for sair mais cedo, para que eu possa informar à senhora da limpeza para estar lá nesse horário e receber as chaves.
-Se precisar, podemos guardar sua bagagem para você.
+
+🏡 *Esperamos que tenha aproveitado a sua estadia conosco!*
+Antes de sair, siga estas orientações para garantir um check-out rápido e tranquilo 🌞
+
+🕙 *Horário de saída:* *10:00 da manhã*
+(Agradecemos por respeitar este horário para que possamos preparar o alojamento para os próximos hóspedes 🙏).
+*Seu check-out é:* {% if object.checkoutdetector is same as(1) %}amanhã{% elseif object.checkoutdetector is same as(0) %}hoje{% else %}{{ object.fechahorafin | date('Y-m-d') }}{% endif %}.
+
+🔹 *Chaves e fechamento*
+Se a equipe de limpeza *ainda não chegou*, por favor:
+ - Deixe a *chave numerada* dentro da *caixa de segurança*.
+ - Deixe a *outra chave* dentro do apartamento, no mesmo local onde a encontrou.
+ - Certifique-se de *fechar bem a porta principal* ao sair.
+
+🔹 *Lixo*
+Por favor, descarte o lixo na *plataforma em frente à casa* 🗑️.
+
+🔹 *Louça, cozinha e limpeza*
+Deixe o apartamento em boas condições:
+ - Lave ou enxágue os utensílios que utilizou.
+ - Não deixe restos de comida, lixo ou sujeira acumulada.
+Agradecemos muito a sua colaboração para manter o espaço limpo e agradável para todos 🌿.
+
+🔹 *Janelas e portas*
+Verifique se todas as *janelas e portas* estão bem fechadas antes de sair.
+
+🔹 *Luzes e aparelhos elétricos*
+Desligue todas as *luzes* e retire da tomada os *aparelhos elétricos* que não forem necessários 💡.
+
+🔹 *Bagagem*
+Se desejar *deixar sua bagagem após o check-out*, avise-nos *com um dia de antecedência* para coordenar os preparativos e *designar o local onde as malas serão guardadas* 🧳.
+
+🔹 *Objetos pessoais*
+Verifique se não deixou *nenhum objeto*, especialmente *celulares, carregadores ou adaptadores de tomada*.
+
+✨ *Obrigado pela sua colaboração e por nos escolher* 💛
+Desejamos uma excelente viagem e esperamos recebê-lo(a) novamente em breve.
     {% endset %}
 {% elseif object.idiomatelefono == 'fr'%}
     {% set whatsappText %}
-Bonjour {{ object.primernombre }}, c’est un plaisir de vous saluer.
-Je vous écris afin de coordonner le check-out pour {% if object.checkoutdetector is same as(1) %}demain{% elseif object.checkoutdetector is same as(0) %}aujourd’hui{% else %}{{ object.fechahorafin | date('Y-m-d') }}{% endif %}.
-L’heure de check-out est à *10h00*⌚.
-Merci de me faire savoir si vous partez plus tôt, afin que je puisse prévenir la femme de ménage pour qu’elle soit présente à ce moment-là et récupérer les clés.
-Si vous en avez besoin, nous pouvons garder vos bagages pour vous.
+Bonjour {{ object.primernombre }}, ravis de te saluer.
+
+🏡 *Nous espérons que tu as passé un excellent séjour parmi nous !*
+Avant ton départ, merci de suivre ces étapes pour un check-out simple et sans souci 🌞
+
+🕙 *Heure de départ :* *10h00*
+(Nous te remercions de respecter cet horaire afin de pouvoir préparer le logement pour les prochains voyageurs 🙏).
+*Ton check-out est :* {% if object.checkoutdetector is same as(1) %}demain{% elseif object.checkoutdetector is same as(0) %}aujourd’hui{% else %}{{ object.fechahorafin | date('Y-m-d') }}{% endif %}.
+
+🔹 *Clés et fermeture*
+Si le personnel de ménage *n’est pas encore arrivé*, merci de :
+ - Laisser la *clé numérotée* dans la *boîte de sécurité*.
+ - Laisser l’*autre clé* dans l’appartement, à l’endroit où tu l’as trouvée.
+ - T’assurer de *bien fermer la porte principale* en sortant.
+
+🔹 *Poubelles*
+Merci de déposer les déchets sur la *plateforme en face de la maison* 🗑️.
+
+🔹 *Vaisselle, cuisine et propreté*
+Laisse l’appartement en bon état :
+ - Nettoie ou rince les ustensiles que tu as utilisés.
+ - Ne laisse pas de restes de nourriture, de déchets ou de saleté.
+Merci de ta collaboration pour garder l’espace propre et agréable pour tous 🌿.
+
+🔹 *Fenêtres et portes*
+Vérifie que toutes les *fenêtres et portes* soient bien fermées avant de partir.
+
+🔹 *Lumières et appareils électriques*
+Éteins toutes les *lumières* et débranche les *appareils électriques* non nécessaires 💡.
+
+🔹 *Bagages*
+Si tu souhaites *laisser tes bagages après le check-out*, informe-nous *un jour à l’avance* afin de *préparer et désigner l’endroit où ils seront gardés* 🧳.
+
+🔹 *Objets personnels*
+Vérifie que tu n’as oublié *aucun objet*, notamment *téléphones, chargeurs ou adaptateurs électriques*.
+
+✨ *Merci pour ta coopération et pour avoir choisi notre logement* 💛
+Nous te souhaitons un excellent voyage et espérons te revoir bientôt.
     {% endset %}
 {% else %}
     {% set whatsappText %}
 Hola {{ object.primernombre }}, un gusto saludarte.
-Te escribo para coordinar el check-out del día {% set cd = object.checkoutDetector %}{% if cd == 1 %}de *mañana*{% elseif cd == 0 %}de *hoy*{% else %}*{{ object.fechahorafin|date('Y-m-d', 'America/Lima') }}*{% endif %}.
-La hora de salida es a las *10:00 a.m.*⌚.
-Por favor, indícame si saldrán antes, para indicarle a la señora de limpieza y que pueda estar a esa hora para recibir las llaves.
-Si lo necesitan, podemos guardar su equipaje.
+
+🏡 *¡Esperamos que hayas disfrutado tu estancia con nosotros!*
+Antes de partir, por favor sigue estos pasos para que tu salida sea rápida y sin contratiempos 🌞
+
+🕙 *Hora de salida:* *10:00 a. m.*
+(Agradecemos que respetes este horario para poder preparar el alojamiento para los próximos huéspedes 🙏).
+*Tu check-out es:* {% if object.checkoutdetector is same as(1) %}mañana{% elseif object.checkoutdetector is same as(0) %}hoy{% else %}{{ object.fechahorafin | date('Y-m-d') }}{% endif %}.
+
+🔹 *Llaves y cierre*
+Si el personal de limpieza *no ha llegado aún*, por favor:
+ - Deja la *llave numerada* dentro de la *caja de seguridad*.
+ - Deja la *otra llave* dentro del departamento, en el mismo lugar donde la encontraste.
+ - Asegúrate de *cerrar bien la puerta principal* al salir.
+
+🔹 *Basura*
+Por favor, deposita la basura en la *plataforma frente a la casa* 🗑️.
+
+🔹 *Platos, cocina y limpieza*
+Deja el departamento en condiciones adecuadas:
+ - Lava o enjuaga los utensilios que hayas usado.
+ - No dejes restos de comida, basura ni suciedad acumulada.
+Agradecemos mucho tu colaboración para mantener el espacio limpio y agradable para todos 🌿.
+
+🔹 *Ventanas y puertas*
+Verifica que todas las *ventanas y puertas* queden bien cerradas antes de salir.
+
+🔹 *Luces y aparatos eléctricos*
+Apaga todas las *luces* y desconecta los *aparatos eléctricos* que no sean necesarios antes de salir 💡.
+
+🔹 *Equipaje*
+Si deseas *dejar tu equipaje después del check-out*, comunícalo *con un día de anticipación* para coordinar los preparativos y *designar el lugar donde se guardarán las maletas* 🧳.
+
+🔹 *Objetos personales*
+Revisa que no dejes *ningún objeto*, especialmente *celulares, cargadores o adaptadores de enchufe*.
+
+✨ *Gracias por tu colaboración y por habernos elegido* 💛
+Te deseamos un excelente viaje y esperamos volver a recibirte pronto.
     {% endset %}
 {% endif %}
 
