@@ -49,7 +49,7 @@ class ServicioItinerariodia
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $contenido = null;
 
-    #[ORM\Column(type: 'text', columnDefinition: 'longtext AS (contenido) VIRTUAL NULL', generated: 'ALWAYS', insertable: false, updatable: false)]
+    #[ORM\Column(type: 'text', insertable: false, updatable: false, columnDefinition: 'longtext AS (contenido) VIRTUAL NULL', generated: 'ALWAYS')]
     private ?string $contenidooriginal = null;
 
     #[Gedmo\Timestampable(on: 'create')]

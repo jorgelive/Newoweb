@@ -36,15 +36,11 @@ class ReservaUnitcaracteristica
     #[ORM\Column(type: 'text')]
     private ?string $contenido = null;
 
-    /**
-     * Campo virtual que refleja el contenido original (sin traducción)
-     * OJO: insertable/updatable no aplican en Doctrine
-     */
     #[ORM\Column(
         type: 'text',
         nullable: true,
-        // Usa la definición que soporte tu motor (MySQL 8 acepta ambas variantes):
-        // 'LONGTEXT AS (contenido) VIRTUAL'  o  'LONGTEXT GENERATED ALWAYS AS (contenido) VIRTUAL'
+        insertable: false,
+        updatable: false,
         columnDefinition: 'LONGTEXT AS (contenido) VIRTUAL'
     )]
     private ?string $contenidooriginal = null;
