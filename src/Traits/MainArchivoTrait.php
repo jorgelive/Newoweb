@@ -185,7 +185,7 @@ trait MainArchivoTrait
                     $h = isset($exifInfo['ImageLength']) ? (int)$exifInfo['ImageLength'] :
                         (isset($exifInfo['ExifImageLength']) ? (int)$exifInfo['ExifImageLength'] : 0);
 
-                    if (in_array($exifInfo['Orientation'] ?? 0, [6, 8], true)) {
+                    if (in_array(($exifInfo['Orientation'] ?? 0), [6, 8], true)) {
                         [$w, $h] = [$h, $w];
                     }
                     if ($w > 0 && $h > 0) {
@@ -286,8 +286,9 @@ trait MainArchivoTrait
         // Procesamos imágenes conocidas; el resto se mueve tal cual
         $imageTypes = ['image/jpeg', 'image/png', 'image/webp'];
         if (in_array($this->getArchivo()->getClientMimeType(), $imageTypes, true)) {
-            $this->generarImagen($this->getArchivo(), $this->getInternalThumbDir(), $this->imageSize['thumb']['width'], $this->imageSize['thumb']['height']);
-            $this->generarImagen($this->getArchivo(), $this->getInternalDir(),      $this->imageSize['image']['width'], $this->imageSize['image']['height']);
+            // Genera thumb + image SIEMPRE. Con Imagick soportamos animados (thumb animado).
+            $this->generarImagen($this->getArchivo(), $this->getInternalThumbDir(), (int)$this->imageSize['thumb']['width'], (int)$this->imageSize['thumb']['height']);
+            $this->generarImagen($this->getArchivo(), $this->getInternalDir(),      (int)$this->imageSize['image']['width'], (int)$this->imageSize['image']['height']);
             @unlink($this->getArchivo()->getPathname());
         } else {
             // Otros tipos: mover sin redimensionar
@@ -300,6 +301,8 @@ trait MainArchivoTrait
     /**
      * Genera una imagen redimensionada en $destDir con tamaño $w x $h.
      * Prefiere IMAGICK si está disponible; si no, cae a GD.
+     * - WebP animado con Imagick → conserva animación (también en thumb).
+     * - WebP animado con GD → redimensiona, pero pierde animación (primer frame).
      * Mantiene transparencia para PNG/WebP.
      */
     protected function generarImagen(UploadedFile $file, string $destDir, int|string $w, int|string $h): bool
@@ -317,13 +320,54 @@ trait MainArchivoTrait
         $path  = rtrim($destDir, '/').'/'.$name;
         $src   = $file->getPathname();
 
+        $isWebp = ($ext === 'webp' || $mime === 'image/webp');
+        $isAnimatedWebp = $isWebp && $this->isAnimatedWebp($src);
+
         // --- Ruta A: IMAGICK (preferida si está disponible) ---
         if (\extension_loaded('imagick')) {
             try {
+                // Caso especial: WebP animado → redimensionar por frame y conservar animación (incluye thumb)
+                if ($isAnimatedWebp) {
+                    $im = new \Imagick();
+                    $im->readImage($src);
+
+                    // Normaliza a secuencia completa (cada frame independiente)
+                    $im = $im->coalesceImages();
+
+                    foreach ($im as $frame) {
+                        if (\method_exists($frame, 'autoOrient')) {
+                            @$frame->autoOrient();
+                        } elseif (\method_exists($frame, 'autoOrientImage')) {
+                            @$frame->autoOrientImage();
+                        }
+
+                        // Redimensiona manteniendo aspecto y rellenando hasta exacto
+                        $frame->thumbnailImage($w, $h, true, true);
+
+                        // Formato/opciones WebP
+                        $frame->setImageFormat('webp');
+                        $frame->setOption('webp:method', '6');
+                        $frame->setOption('webp:quality', '85');
+                        $frame->setOption('webp:alpha-quality', '85');
+                        $frame->setImageCompressionQuality(85);
+
+                        // Transparencia
+                        $frame->setImageBackgroundColor(new \ImagickPixel('transparent'));
+
+                        // Limpia metadatos
+                        @$frame->stripImage();
+                    }
+
+                    // Para ambos (thumb e image) escribimos animación
+                    $ok = $im->writeImages($path, true);
+                    $im->clear(); $im->destroy();
+                    return (bool)$ok;
+                }
+
+                // ---- WebP estático o JPG/PNG: ruta estándar con Imagick
                 $im = new \Imagick();
                 $im->readImage($src);
 
-                // Orientación correcta por EXIF
                 if (\method_exists($im, 'autoOrient')) {
                     @$im->autoOrient();
                 } elseif (\method_exists($im, 'autoOrientImage')) {
@@ -377,7 +421,9 @@ trait MainArchivoTrait
             }
         }
 
-        // --- Ruta B: GD (fallback portable) ---
+        // --- Ruta B: GD (fallback).
+        // Nota: GD no soporta animación WebP; abre el primer frame. Cumple tu requerimiento:
+        // redimensiona y genera thumb, pero se pierde la animación.
         if (!\function_exists('imagecreatetruecolor')) {
             // Sin GD: mover original sin transformar
             $file->move($destDir, $name);
@@ -420,7 +466,27 @@ trait MainArchivoTrait
 
         $srcW = \imagesx($srcIm);
         $srcH = \imagesy($srcIm);
-        \imagecopyresampled($dstIm, $srcIm, 0, 0, 0, 0, $w, $h, $srcW, $srcH);
+
+        // Ajuste tipo "cover": calculamos el rectángulo fuente para mantener aspecto y rellenar exacto
+        $srcRatio = $srcW / max(1, $srcH);
+        $dstRatio = $w / max(1, $h);
+        if ($srcRatio > $dstRatio) {
+            // Recortar ancho
+            $newW = (int) floor($srcH * $dstRatio);
+            $srcX = (int) floor(($srcW - $newW) / 2);
+            $srcY = 0;
+            $copyW = $newW;
+            $copyH = $srcH;
+        } else {
+            // Recortar alto
+            $newH = (int) floor($srcW / max(0.0001, $dstRatio));
+            $srcX = 0;
+            $srcY = (int) floor(($srcH - $newH) / 2);
+            $copyW = $srcW;
+            $copyH = $newH;
+        }
+
+        \imagecopyresampled($dstIm, $srcIm, 0, 0, $srcX, $srcY, $w, $h, $copyW, $copyH);
 
         $ok = match ($ext) {
             'jpg','jpeg' => $save($dstIm, $path, 85),
@@ -569,5 +635,17 @@ trait MainArchivoTrait
     {
         // Cumple DateTimeInterface en tus entidades
         $this->setModificado(new \DateTime());
+    }
+
+    /**
+     * Detección rápida de WebP animado (ANIM/ANMF).
+     */
+    private function isAnimatedWebp(string $path): bool
+    {
+        $h = @fopen($path, 'rb');
+        if (!$h) return false;
+        $buf = fread($h, 512);
+        fclose($h);
+        return strpos($buf, 'ANMF') !== false || strpos($buf, 'ANIM') !== false;
     }
 }
