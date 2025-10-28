@@ -40,7 +40,10 @@ trait MainArchivoTrait
     /** @var string[] */
     private array $resizableTypes = ['jpg', 'jpeg', 'png', 'webp'];
 
-    /** @var array<string,array{width:string,height:string}> */
+    /**
+     * Tamaños MÁXIMOS (bounding box). Nunca se recorta ni se deforma.
+     * No hay upscaling: si el original es más pequeño, se copia tal cual.
+     */
     private array $imageSize = [
         'image' => ['width' => '800', 'height' => '800'],
         'thumb' => ['width' => '400', 'height' => '400'],
@@ -170,7 +173,7 @@ trait MainArchivoTrait
                 $this->nombre = preg_replace('/\.[^.]*$/', '', $this->getArchivo()->getClientOriginalName());
             }
 
-            // Intentamos obtener dimensiones/aspect ratio
+            // Intentamos obtener dimensiones/aspect ratio del original
             $imageInfo = @getimagesize($this->getArchivo()->getPathname());
             $exifInfo  = $imageInfo ? @exif_read_data($this->getArchivo()->getPathname()) : false;
             unset($aspectRatio);
@@ -199,6 +202,7 @@ trait MainArchivoTrait
                 }
 
                 if (isset($aspectRatio) && $aspectRatio > 0) {
+                    // Solo informativo, el redimensionado real usa bounding box y no upscaling
                     if ($aspectRatio >= 1) {
                         $this->setAncho((int)$this->imageSize['image']['width']);
                         $this->setAltura((int)($this->imageSize['image']['width'] / $aspectRatio));
@@ -237,7 +241,7 @@ trait MainArchivoTrait
                 $this->setEnlacethumburl('https://img.youtube.com/vi/' . $matches[1] . '/hqdefault.jpg');
                 $enlaceValido = true;
 
-                // Vimeo (oEmbed JSON sobre HTTPS; sin unserialize)
+                // Vimeo
             } elseif (preg_match($this->pregVimeo, $this->getEnlace(), $matches) === 1) {
                 $ctx = stream_context_create(['http' => ['timeout' => 3]]);
                 $json = @file_get_contents('https://vimeo.com/api/oembed.json?url=https://vimeo.com/' . $matches[1], false, $ctx);
@@ -269,7 +273,6 @@ trait MainArchivoTrait
                 $this->removeOldFiles();
             }
 
-            // Caso 3: ni archivo ni enlace → mantenemos limpio
         } else {
             $this->setEnlace(null);
         }
@@ -286,7 +289,7 @@ trait MainArchivoTrait
         // Procesamos imágenes conocidas; el resto se mueve tal cual
         $imageTypes = ['image/jpeg', 'image/png', 'image/webp'];
         if (in_array($this->getArchivo()->getClientMimeType(), $imageTypes, true)) {
-            // Genera thumb + image SIEMPRE.
+            // Genera thumb + image SIEMPRE (bounding box, sin upscaling, manteniendo aspect ratio)
             $this->generarImagen($this->getArchivo(), $this->getInternalThumbDir(), (int)$this->imageSize['thumb']['width'], (int)$this->imageSize['thumb']['height']);
             $this->generarImagen($this->getArchivo(), $this->getInternalDir(),      (int)$this->imageSize['image']['width'], (int)$this->imageSize['image']['height']);
             @unlink($this->getArchivo()->getPathname());
@@ -299,11 +302,11 @@ trait MainArchivoTrait
     }
 
     /**
-     * Genera una imagen redimensionada en $destDir con tamaño $w x $h.
+     * Genera una imagen redimensionada (<= w x h) manteniendo aspect ratio.
+     * Sin upscaling (si el original es menor, se copia sin reescalar).
      * Prefiere IMAGICK si está disponible; si no, cae a GD.
      * - WebP animado con Imagick → conserva animación (thumb animado también).
-     * - WebP animado con GD → redimensiona (pierde animación), genera thumb.
-     * Mantiene transparencia para PNG/WebP.
+     * - WebP animado con GD → redimensiona primer frame (pierde animación).
      */
     protected function generarImagen(UploadedFile $file, string $destDir, int|string $w, int|string $h): bool
     {
@@ -326,17 +329,24 @@ trait MainArchivoTrait
         // --- Ruta A: IMAGICK (preferida si está disponible) ---
         if (\extension_loaded('imagick')) {
             try {
-                // Caso especial: WebP animado → redimensionar por frame y conservar animación (incluye thumb)
                 if ($isAnimatedWebp) {
+                    // Animado: procesar frames manteniendo aspect ratio y sin upscaling
                     $im = new \Imagick();
                     $im->readImage($src);
-
-                    // 1) Frames completos
                     $im = $im->coalesceImages();
                     $im->setImageVirtualPixelMethod(\Imagick::VIRTUALPIXELMETHOD_TRANSPARENT);
 
+                    // Determinar tamaño base (tomamos del primer frame)
+                    $first = $im->getIteratorIndex();
+                    $im->setIteratorIndex(0);
+                    $origW = $im->getImageWidth();
+                    $origH = $im->getImageHeight();
+                    $scale = min($w / max(1, $origW), $h / max(1, $origH), 1.0);
+                    $newW  = (int) max(1, floor($origW * $scale));
+                    $newH  = (int) max(1, floor($origH * $scale));
+                    $im->setIteratorIndex($first);
+
                     foreach ($im as $frame) {
-                        // 2) Orientación + reset de geometría
                         if (\method_exists($frame, 'autoOrient')) {
                             @$frame->autoOrient();
                         } elseif (\method_exists($frame, 'autoOrientImage')) {
@@ -344,30 +354,27 @@ trait MainArchivoTrait
                         }
                         $frame->setImagePage(0, 0, 0, 0);
 
-                        // 3) Cover consistente: resize+crop centrado a w×h exacto
-                        $frame->cropThumbnailImage($w, $h);
-
-                        // 4) WebP opciones
+                        if ($scale < 1.0) {
+                            // Redimensionar proporcional (bestfit=no hace resize exacto a newW/newH)
+                            $frame->resizeImage($newW, $newH, \Imagick::FILTER_LANCZOS, 1, false);
+                        }
+                        // Formato/compresión WebP
                         $frame->setImageFormat('webp');
                         $frame->setOption('webp:method', '6');
                         $frame->setOption('webp:quality', '85');
                         $frame->setOption('webp:alpha-quality', '85');
                         $frame->setImageCompressionQuality(85);
-
-                        // Transparencia + limpieza
-                        $frame->setImageBackgroundColor(new \ImagickPixel('transparent'));
                         @$frame->stripImage();
-                        // (opcional) $frame->setImageDispose(\Imagick::DISPOSE_BACKGROUND);
                     }
 
-                    // 5) Optimiza animación y escribe (thumb e image animados)
+                    // Optimiza y guarda animado
                     $im = $im->deconstructImages();
                     $ok = $im->writeImages($path, true);
                     $im->clear(); $im->destroy();
                     return (bool)$ok;
                 }
 
-                // ---- WebP estático o JPG/PNG: ruta estándar con Imagick (cover)
+                // Estático: redimensionar proporcional sin upscaling
                 $im = new \Imagick();
                 $im->readImage($src);
 
@@ -377,6 +384,12 @@ trait MainArchivoTrait
                     @$im->autoOrientImage();
                 }
                 $im->setImagePage(0, 0, 0, 0);
+
+                $origW = $im->getImageWidth();
+                $origH = $im->getImageHeight();
+                $scale = min($w / max(1, $origW), $h / max(1, $origH), 1.0);
+                $newW  = (int) max(1, floor($origW * $scale));
+                $newH  = (int) max(1, floor($origH * $scale));
 
                 // Formato de salida según extensión
                 $format = match ($ext) {
@@ -404,15 +417,9 @@ trait MainArchivoTrait
                     $im->setImageCompressionQuality(85);
                 }
 
-                // Redimensionar como "cover" exacto
-                $im->cropThumbnailImage($w, $h);
-
-                // Fondo transparente si aplica
-                if (\in_array($ext, ['png','webp'], true)) {
-                    $im->setImageBackgroundColor(new \ImagickPixel('transparent'));
+                if ($scale < 1.0) {
+                    $im->resizeImage($newW, $newH, \Imagick::FILTER_LANCZOS, 1, false);
                 }
-
-                // Limpiar metadatos pesados
                 @$im->stripImage();
 
                 $ok = $im->writeImage($path);
@@ -421,15 +428,15 @@ trait MainArchivoTrait
 
                 return (bool)$ok;
             } catch (\Throwable $e) {
-                // Si Imagick falla por cualquier razón, caemos a GD
+                // Fallback a GD si falla Imagick
             }
         }
 
         // --- Ruta B: GD (fallback).
-        // Nota: GD no soporta animación WebP; abre el primer frame.
+        // Nota: GD no soporta animación WebP; abre el primer frame (se pierde animación).
         if (!\function_exists('imagecreatetruecolor')) {
-            // Sin GD: mover original sin transformar
-            $file->move($destDir, $name);
+            // Sin GD: copia directa
+            @copy($src, $path);
             return true;
         }
 
@@ -447,49 +454,42 @@ trait MainArchivoTrait
         };
 
         if ($create === null || $save === null) {
-            $file->move($destDir, $name);
+            @copy($src, $path);
             return true;
         }
 
         $srcIm = @$create($src);
         if (!$srcIm) {
-            $file->move($destDir, $name);
+            @copy($src, $path);
             return true;
         }
 
-        $dstIm = \imagecreatetruecolor($w, $h);
+        $srcW = \imagesx($srcIm);
+        $srcH = \imagesy($srcIm);
+
+        // Escala proporcional con tope máx. y SIN upscaling
+        $scale = min($w / max(1, $srcW), $h / max(1, $srcH), 1.0);
+        $newW  = (int) max(1, floor($srcW * $scale));
+        $newH  = (int) max(1, floor($srcH * $scale));
+
+        // Si no hay que redimensionar, copia directa para evitar recomprimir
+        if ($scale >= 1.0) {
+            \imagedestroy($srcIm);
+            @copy($src, $path);
+            return true;
+        }
+
+        $dstIm = \imagecreatetruecolor($newW, $newH);
 
         // Transparencia en PNG/WebP
         if (\in_array($ext, ['png','webp'], true)) {
             \imagealphablending($dstIm, false);
             \imagesavealpha($dstIm, true);
             $transparent = \imagecolorallocatealpha($dstIm, 0, 0, 0, 127);
-            \imagefilledrectangle($dstIm, 0, 0, $w, $h, $transparent);
+            \imagefilledrectangle($dstIm, 0, 0, $newW, $newH, $transparent);
         }
 
-        $srcW = \imagesx($srcIm);
-        $srcH = \imagesy($srcIm);
-
-        // Cover en GD: recorte centrado para mantener aspecto exacto
-        $srcRatio = $srcW / max(1, $srcH);
-        $dstRatio = $w / max(1, $h);
-        if ($srcRatio > $dstRatio) {
-            // Recortar ancho
-            $newW = (int) floor($srcH * $dstRatio);
-            $srcX = (int) floor(($srcW - $newW) / 2);
-            $srcY = 0;
-            $copyW = $newW;
-            $copyH = $srcH;
-        } else {
-            // Recortar alto
-            $newH = (int) floor($srcW / max(0.0001, $dstRatio));
-            $srcX = 0;
-            $srcY = (int) floor(($srcH - $newH) / 2);
-            $copyW = $srcW;
-            $copyH = $newH;
-        }
-
-        \imagecopyresampled($dstIm, $srcIm, 0, 0, $srcX, $srcY, $w, $h, $copyW, $copyH);
+        \imagecopyresampled($dstIm, $srcIm, 0, 0, 0, 0, $newW, $newH, $srcW, $srcH);
 
         $ok = match ($ext) {
             'jpg','jpeg' => $save($dstIm, $path, 85),
@@ -502,8 +502,7 @@ trait MainArchivoTrait
         \imagedestroy($dstIm);
 
         if (!$ok) {
-            // Último recurso: mover original
-            $file->move($destDir, $name);
+            @copy($src, $path);
             return true;
         }
 
