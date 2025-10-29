@@ -78,6 +78,8 @@ sonata_admin:
                     - app.admin.maestroclasemedio
                     - app.admin.maestrocategoriatour
                     - app.admin.maestrotipopax
+                    - app.admin.maestrocontacto
+                    - app.admin.maestrotipocontacto
                     - app.admin.maestroidioma
                     - app.admin.maestropais
                     - app.admin.maestromoneda

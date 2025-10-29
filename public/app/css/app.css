@@ -131,6 +131,9 @@ section.content .btn-group > .btn { min-width: 110px; margin-bottom: 5px; }
     }
 }
 
+.table.no-background-color { background-color: unset; }
+.checkbox div{ background-color: #ffffff; }
+
 /* =========================
    FULLCALENDAR ESTILOS
    ========================= */

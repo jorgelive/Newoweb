@@ -221,7 +221,8 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
             ])
             ->add('cottarifas', CollectionType::class , [
                 'by_reference' => false,
-                'label' => 'Tarifas'
+                'label' => 'Tarifas',
+                'btn_add' => 'Agregar nueva Tarifa'
             ], [
                 'edit' => 'inline',
                 'inline' => 'table'

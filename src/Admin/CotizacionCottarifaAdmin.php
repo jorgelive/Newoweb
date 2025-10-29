@@ -119,7 +119,8 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
             ])
             ->add('cottarifadetalles', CollectionType::class , [
                 'by_reference' => false,
-                'label' => 'Detalles'
+                'label' => 'Detalles',
+                'btn_add' => 'Agregar nuevo Detalle'
             ], [
                 'edit' => 'inline',
                 'inline' => 'table'

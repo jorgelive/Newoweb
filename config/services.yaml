@@ -828,7 +828,6 @@ services:
                 show_mosaic_button: false
         public: true
 
-
     app.admin.maestrosexo:
         class: App\Admin\MaestroSexoAdmin
         tags:
@@ -875,6 +874,28 @@ services:
                 group: Maestros
                 label: Tipo de cambio
                 show_mosaic_button: false
+        public: true
+
+    app.admin.maestrocontacto:
+        class: App\Admin\MaestroContactoAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Entity\MaestroContacto
+              manager_type: orm
+              group: Maestros
+              label: Contacto
+              show_mosaic_button: false
+        public: true
+
+    app.admin.maestrotipocontacto:
+        class: App\Admin\MaestroTipocontactoAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Entity\MaestroTipocontacto
+              manager_type: orm
+              group: Maestros
+              label: Tipo de contacto
+              show_mosaic_button: false
         public: true
 
     app.admin.maestropais:

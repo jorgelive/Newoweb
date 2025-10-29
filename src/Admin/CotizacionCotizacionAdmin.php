@@ -356,7 +356,8 @@ class CotizacionCotizacionAdmin extends AbstractAdmin
             ])
             ->add('cotservicios', CollectionType::class, [
                 'by_reference' => false,
-                'label' => 'Servicios'
+                'label' => 'Servicios',
+                'btn_add' => 'Agregar nuevo Servicio'
             ], [
                 'edit' => 'inline',
                 'inline' => 'table'

@@ -8,7 +8,7 @@ For the full copyright and license information, please view the LICENSE
 file that was distributed with this source code.
 
 #}
-<table class="table table-bordered">
+<table class="table table-bordered no-background-color">
     <thead>
         <tr>
             {% for field_name, nested_field in form.children|first.children %}
@@ -70,17 +70,17 @@ file that was distributed with this source code.
 
             {% if nested_group_field.children['cotcomponentes'] is defined %}
                 <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
-                    <td style="vertical-align: bottom; padding-bottom: 35px;"><strong>Comp</strong></td><td style="background-color: rgba(0,172,214,0.18);" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cotcomponentes']) }}</td>
+                    <td style="background-color: #CFE8EB;"><strong>Comp</strong></td><td style="background-color: #CFE8EB;" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cotcomponentes']) }}</td>
                 </tr>
             {%  endif %}
             {% if nested_group_field.children['cottarifas'] is defined %}
                 <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
-                    <td style="vertical-align: bottom; padding-bottom: 35px;"><strong>Tar</strong></td><td style="background-color: rgba(219,144,8,0.22);" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cottarifas']) }}</td>
+                    <td style="background-color: #F6E4CF;"><strong>Tar</strong></td><td style="background-color: #F6E4CF;" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cottarifas']) }}</td>
                 </tr>
             {%  endif %}
             {% if nested_group_field.children['cottarifadetalles'] is defined %}
                 <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
-                    <td style="vertical-align: bottom; padding-bottom: 35px;"><strong>Det</strong></td><td style="background-color: rgba(22, 157, 28, 0.25);" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cottarifadetalles']) }}</td>
+                    <td style="background-color: #C4E3CC;"><strong>Det</strong></td><td style="background-color: #C4E3CC;" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cottarifadetalles']) }}</td>
                 </tr>
             {%  endif %}
 

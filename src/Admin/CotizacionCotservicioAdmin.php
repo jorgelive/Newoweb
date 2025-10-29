@@ -199,7 +199,8 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
             ])
             ->add('cotcomponentes', CollectionType::class, [
                 'by_reference' => false,
-                'label' => 'Componentes'
+                'label' => 'Componentes',
+                'btn_add' => 'Agregar nuevo Componente'           // si quieres usar <strong> o <em> dentro
             ], [
                 'edit' => 'inline',
                 'inline' => 'table'
