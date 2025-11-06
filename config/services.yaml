@@ -553,6 +553,17 @@ services:
             - [ setTemplate, [show, cotizacion_cotcomponente_admin\show.html.twig]]
         public: true
 
+    app.admin.cotizacioncotcomponenteoperativa:
+        class: App\Admin\CotizacionCotcomponenteoperativaAdmin
+        tags:
+            -
+                name: sonata.admin
+                model_class: App\Entity\CotizacionCotcomponenteoperativa
+                manager_type: orm
+                group: Cotizacion
+                label: "Comp. Operativa"
+        public: true
+
     app.admin.viewcotizacioncotcomponentealerta:
         class: App\Admin\ViewCotizacionCotcomponenteAlertaAdmin
         tags:

@@ -1,89 +1,137 @@
 {#
-
 This file is part of the Sonata package.
-
 (c) Thomas Rabaix <thomas.rabaix@sonata-project.org>
 
-For the full copyright and license information, please view the LICENSE
-file that was distributed with this source code.
-
+Override adaptado: celda "operativa" plegable por fila, cerrada por defecto,
+y resaltado visual cuando la celda tiene datos (sin auto-abrir).
 #}
+
+{# ======= Estilos locales mínimos ======= #}
+
+
 <table class="table table-bordered no-background-color">
     <thead>
-        <tr>
-            {% for field_name, nested_field in form.children|first.children %}
-                {% if field_name == '_delete' %}
-                    <th>{{ 'action_delete'|trans({}, 'SonataAdminBundle') }}</th>
-                {% elseif field_name != 'cotcomponentes' and field_name != 'cottarifas' and field_name != 'cottarifadetalles'%}
-                    <th
+    <tr>
+        {% for field_name, nested_field in form.children|first.children %}
+            {% if field_name == '_delete' %}
+                <th>{{ 'action_delete'|trans({}, 'SonataAdminBundle') }}</th>
+            {% elseif field_name != 'cotcomponentes' and field_name != 'cottarifas' and field_name != 'cottarifadetalles' %}
+                <th
                         {% if nested_field.vars['required'] %}
                             class="required"
                         {% endif %}
                         {% if (nested_field.vars['attr']['hidden'] is defined) and (nested_field.vars['attr']['hidden']) %}
                             style="display:none;"
                         {% endif %}
-                    >
-                        {{ nested_field.vars.label|trans({}, nested_field.vars['sonata_admin'].admin.translationDomain
-                            |default(nested_field.vars.translation_domain)
-                        ) }}
-                    </th>
+                >
+                    {{ nested_field.vars.label|trans({}, nested_field.vars['sonata_admin'].admin.translationDomain
+                        |default(nested_field.vars.translation_domain)
+                    ) }}
+                </th>
+            {% endif %}
+        {% endfor %}
+    </tr>
+    </thead>
+
+    <tbody class="sonata-ba-tbody">
+    {% for nested_group_field_name, nested_group_field in form.children %}
+        <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}">
+            {% for field_name, nested_field in nested_group_field.children %}
+                {% if field_name != 'cotcomponentes' and field_name != 'cottarifas' and field_name != 'cottarifadetalles' %}
+
+                    {# ======= CELDA ESPECIAL PARA "operativa" (plegable, cerrada por defecto) ======= #}
+                    {% if field_name == 'operativa' %}
+                        {# detecta si hay datos para resaltar el botón (no abre) #}
+                        {% set has_data = nested_field.vars.value is not empty %}
+
+                        <td class="
+                                sonata-ba-td-{{ id }}-{{ field_name }}
+                                control-group campo-{{ field_name }}
+                                {% if nested_field.vars.errors|length > 0 %} error sonata-ba-field-error{% endif %}
+                            "
+                                {% if (nested_field.vars['attr']['hidden'] is defined) and (nested_field.vars['attr']['hidden']) %}
+                                    style="display:none;"
+                                {% endif %}
+                        >
+                            <details class="op-details">
+                                <summary class="op-summary{% if has_data %} has-data{% endif %}">
+                                    Operativa
+                                </summary>
+
+                                <div class="op-panel">
+                                    {# Render normal del campo compuesto "operativa" #}
+                                    {{ form_widget(nested_field) }}
+                                </div>
+                            </details>
+
+                            {% if nested_field.vars.errors|length > 0 %}
+                                <div class="help-inline sonata-ba-field-error-messages">
+                                    {{ form_errors(nested_field) }}
+                                </div>
+                            {% endif %}
+                        </td>
+
+                    {% else %}
+                        {# ======= CELDAS NORMALES ======= #}
+                        <td class="
+                                sonata-ba-td-{{ id }}-{{ field_name }}
+                                control-group campo-{{ field_name }}
+                                {% if nested_field.vars.errors|length > 0 %} error sonata-ba-field-error{% endif %}
+                            "
+                                {% if (nested_field.vars['attr']['hidden'] is defined) and (nested_field.vars['attr']['hidden']) %}
+                                    style="display:none;"
+                                {% endif %}
+                        >
+                            {% if sonata_admin.field_description.associationadmin.formfielddescriptions[field_name] is defined %}
+                                {{ form_widget(nested_field) }}
+                                {% set dummy = nested_group_field.setrendered %}
+                            {% else %}
+                                {% if field_name == '_delete' %}
+                                    {{ form_widget(nested_field, { label: false }) }}
+                                {% else %}
+                                    {{ form_widget(nested_field) }}
+                                {% endif %}
+                            {% endif %}
+
+                            {% if nested_field.vars.errors|length > 0 %}
+                                <div class="help-inline sonata-ba-field-error-messages">
+                                    {{ form_errors(nested_field) }}
+                                </div>
+                            {% endif %}
+                        </td>
+                    {% endif %}
+
                 {% endif %}
             {% endfor %}
         </tr>
-    </thead>
-    <tbody class="sonata-ba-tbody">
-        {% for nested_group_field_name, nested_group_field in form.children %}
-            <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}">
-                {% for field_name, nested_field in nested_group_field.children %}
-                    {% if field_name != 'cotcomponentes' and field_name != 'cottarifas' and field_name != 'cottarifadetalles' %}
-                    <td class="
-                        sonata-ba-td-{{ id }}-{{ field_name }}
-                        control-group campo-{{ field_name }}
-                        {% if nested_field.vars.errors|length > 0 %} error sonata-ba-field-error{% endif %}
-                        "
-                        {% if (nested_field.vars['attr']['hidden'] is defined) and (nested_field.vars['attr']['hidden']) %}
-                            style="display:none;"
-                        {% endif %}
-                    >
-                        {% if sonata_admin.field_description.associationadmin.formfielddescriptions[field_name] is defined %}
-                            {{ form_widget(nested_field) }}
 
-                            {% set dummy = nested_group_field.setrendered %}
-                        {% else %}
-                            {% if field_name == '_delete' %}
-                                {{ form_widget(nested_field, { label: false }) }}
-                            {% else %}
-                                {{ form_widget(nested_field) }}
-                            {% endif %}
-                        {% endif %}
-                        {% if nested_field.vars.errors|length > 0 %}
-                            <div class="help-inline sonata-ba-field-error-messages">
-                                {{ form_errors(nested_field) }}
-                            </div>
-                        {% endif %}
-                    </td>
-                    {% endif %}
-
-
-                {% endfor %}
+        {# ======= Filas "splitted" tal como las tenías ======= #}
+        {% if nested_group_field.children['cotcomponentes'] is defined %}
+            <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
+                <td style="background-color: #CFE8EB;"><strong>Comp</strong></td>
+                <td style="background-color: #CFE8EB;" colspan="{{ nested_group_field.children|length - 2 }}">
+                    {{ form_widget(nested_group_field.children['cotcomponentes']) }}
+                </td>
             </tr>
+        {%  endif %}
 
-            {% if nested_group_field.children['cotcomponentes'] is defined %}
-                <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
-                    <td style="background-color: #CFE8EB;"><strong>Comp</strong></td><td style="background-color: #CFE8EB;" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cotcomponentes']) }}</td>
-                </tr>
-            {%  endif %}
-            {% if nested_group_field.children['cottarifas'] is defined %}
-                <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
-                    <td style="background-color: #F6E4CF;"><strong>Tar</strong></td><td style="background-color: #F6E4CF;" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cottarifas']) }}</td>
-                </tr>
-            {%  endif %}
-            {% if nested_group_field.children['cottarifadetalles'] is defined %}
-                <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
-                    <td style="background-color: #C4E3CC;"><strong>Det</strong></td><td style="background-color: #C4E3CC;" colspan="{{ nested_group_field.children|length - 2 }}"> {{ form_widget(nested_group_field.children['cottarifadetalles']) }}</td>
-                </tr>
-            {%  endif %}
+        {% if nested_group_field.children['cottarifas'] is defined %}
+            <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
+                <td style="background-color: #F6E4CF;"><strong>Tar</strong></td>
+                <td style="background-color: #F6E4CF;" colspan="{{ nested_group_field.children|length - 2 }}">
+                    {{ form_widget(nested_group_field.children['cottarifas']) }}
+                </td>
+            </tr>
+        {%  endif %}
 
-        {% endfor %}
+        {% if nested_group_field.children['cottarifadetalles'] is defined %}
+            <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}splitted splitted">
+                <td style="background-color: #C4E3CC;"><strong>Det</strong></td>
+                <td style="background-color: #C4E3CC;" colspan="{{ nested_group_field.children|length - 2 }}">
+                    {{ form_widget(nested_group_field.children['cottarifadetalles']) }}
+                </td>
+            </tr>
+        {%  endif %}
+    {% endfor %}
     </tbody>
 </table>

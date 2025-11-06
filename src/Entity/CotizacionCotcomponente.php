@@ -6,6 +6,7 @@ use App\Entity\CotizacionCottarifa;
 use App\Entity\CotizacionCotservicio;
 use App\Entity\CotizacionEstadocotcomponente;
 use App\Entity\ServicioComponente;
+use App\Entity\CotizacionCotcomponenteoperativa;
 use App\Repository\CotizacionCotcomponenteRepository;
 use DateTime;
 use DateTimeInterface;
@@ -30,6 +31,9 @@ class CotizacionCotcomponente
     #[ORM\ManyToOne(targetEntity: ServicioComponente::class)]
     #[ORM\JoinColumn(name: 'componente_id', referencedColumnName: 'id', nullable: false)]
     protected ?ServicioComponente $componente = null;
+
+    #[ORM\OneToOne(mappedBy: 'cotcomponente', targetEntity: CotizacionCotcomponenteoperativa::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private ?CotizacionCotcomponenteoperativa $operativa = null;
 
     #[ORM\ManyToOne(targetEntity: CotizacionEstadocotcomponente::class)]
     #[ORM\JoinColumn(name: 'estadocotcomponente_id', referencedColumnName: 'id', nullable: false)]
@@ -118,6 +122,22 @@ class CotizacionCotcomponente
 
     public function getComponente(): ?ServicioComponente
     { return $this->componente; }
+
+    public function getOperativa(): ?CotizacionCotcomponenteoperativa
+    {
+        return $this->operativa;
+    }
+
+    public function setOperativa(?CotizacionCotcomponenteoperativa $operativa): self
+    {
+        $this->operativa = $operativa;
+
+        if ($operativa && $operativa->getCotcomponente() !== $this) {
+            $operativa->setCotcomponente($this);
+        }
+
+        return $this;
+    }
 
     public function addCottarifa(CotizacionCottarifa $cottarifa): self
     {

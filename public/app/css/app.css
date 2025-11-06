@@ -250,6 +250,17 @@ section.content .btn-group > .btn { min-width: 110px; margin-bottom: 5px; }
 /* =========================
    GALERÍAS Y THUMBNAILS
    ========================= */
+.thumbnail {
+    all: unset;
+    display: block;
+    background-color: #fff;
+    border-radius: 0.75rem; /* más suave que 4px */
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    margin: 0 auto;
+}
 .thumbnail img.landscape,
 .thumbnail img.portrait { width: 100%; }
 .thumbnail .caption { padding: 3px; }

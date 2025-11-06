@@ -20,6 +20,7 @@ sonata_admin:
                     - app.admin.cotizacionfile
                     - app.admin.cotizacioncotservicio
                     - app.admin.cotizacioncotcomponente
+                    - app.admin.cotizacioncotcomponenteoperativa
                     - app.admin.viewcotizacioncotcomponentealerta
                     - app.admin.cotizacionfilepasajero
                     - app.admin.cotizacionfiledocumento

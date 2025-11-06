@@ -6,6 +6,83 @@
     <style>
         tr.row-cotservicios{border-top: 3px solid rgba(0, 0, 0, 0.47);}
     </style>
+
+    <style>
+        /* Botón del plegable */
+        td.campo-operativa {
+            min-width: 0 !important;      /* por si quedó algún min-width */
+            vertical-align: top;           /* mejora visual en tablas */
+        }
+
+        /* Contenedor del colapsable */
+        .op-details {
+            display: block;
+        }
+
+        .op-details .field-container {
+            padding-bottom: 0;
+        }
+
+        /* Botón (no se rompe la línea) */
+        .op-summary {
+            display: inline-flex;          /* evita salto */
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;           /* no se parte “Operativa ▸” */
+            cursor: pointer;
+            user-select: none;
+            padding: 6px 10px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            background: #e3eefc;
+            border: 1px solid #c5d7f3;
+            border-radius: 6px;
+            line-height: 1.1;
+        }
+
+        /* Oculta el marcador nativo (triangulito) en todos los navegadores */
+        .op-summary::-webkit-details-marker { display: none; }
+        .op-summary::marker { content: ""; }
+
+        /* Caret personalizado con animación */
+        .op-summary::after {
+            content: "▸";
+            display: inline-block;
+            transform: translateY(1px);    /* alineación fina */
+            transition: transform .2s ease;
+        }
+        .op-details[open] > .op-summary::after {
+            transform: rotate(90deg) translateY(1px);
+        }
+
+        /* Área colapsable con animación (altura + fade) */
+        .op-panel {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height .32s ease, opacity .2s ease;
+            will-change: max-height, opacity;
+        }
+
+        /* Al abrir <details> */
+        .op-details[open] .op-panel {
+            max-height: 1200px;            /* valor grande para cubrir el contenido */
+            opacity: 1;
+        }
+
+        /* Respeta accesibilidad si el usuario prefiere menos movimiento */
+        @media (prefers-reduced-motion: reduce) {
+            .op-summary::after,
+            .op-panel { transition: none; }
+        }
+
+        .op-summary.has-data{
+            background: #ffecc7;
+            border-color: #f7c66a;
+            box-shadow: 0 0 0 2px rgba(247,198,106,.25);
+        }
+
+    </style>
 {% endblock %}
 
 {% block javascripts %}

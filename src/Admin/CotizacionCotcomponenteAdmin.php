@@ -8,6 +8,7 @@ use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Form\Type\AdminType;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
@@ -161,147 +162,185 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
 
     protected function configureFormFields(FormMapper $formMapper): void
     {
-        if($this->getRoot()->getClass() != 'App\Entity\CotizacionFile'
-            && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotizacion'
-            && $this->getRoot()->getClass() != 'App\Entity\CotizacionCotservicio'
-            && !($this->isCurrentRoute('edit') && $this->getRoot()->getClass() == 'App\Entity\CotizacionCotcomponente')
-        ){
+        // ─────────────────────────────────────────────────────────────────────────────
+        // 1) Campos dependientes del contexto (root class y ruta)
+        //    - Mostrar/ocultar 'cotservicio', 'componente' y 'cantidad' según reglas
+        // ─────────────────────────────────────────────────────────────────────────────
+
+        // Mostrar 'cotservicio' salvo en los roots/clases y rutas excluidas
+        if (
+            $this->getRoot()->getClass() !== \App\Entity\CotizacionFile::class
+            && $this->getRoot()->getClass() !== \App\Entity\CotizacionCotizacion::class
+            && $this->getRoot()->getClass() !== \App\Entity\CotizacionCotservicio::class
+            && !($this->isCurrentRoute('edit') && $this->getRoot()->getClass() === \App\Entity\CotizacionCotcomponente::class)
+        ) {
             $formMapper->add('cotservicio', null, [
-                'label' => 'Servicio'
+                'label' => 'Servicio',
             ]);
         }
-        //oculto en la edición el componente y la cantidad
-        if(!($this->isCurrentRoute('edit') && $this->getRoot()->getClass() == 'App\Entity\CotizacionCotcomponente')
-        ){
+
+        // Ocultar en edición el componente y la cantidad (mostrar como hidden el componente);
+        // en los demás casos, 'componente' es autocompletable y 'cantidad' readonly opcional
+        if (!($this->isCurrentRoute('edit') && $this->getRoot()->getClass() === \App\Entity\CotizacionCotcomponente::class)) {
             $formMapper
                 ->add('componente', ModelAutocompleteType::class, [
-                    'property' => 'nombre', //no funciona ya que se cambio la ruta
-                    'template' => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
-                    'route' => ['name' => 'app_servicio_componente_porserviciodropdown', 'parameters' => []],
-                    'placeholder' => '',
-                    'context' => '/\[cotcomponentes\]\[\d*\]\[componente\]$/g, "[servicio]"',
+                    'property'             => 'nombre', // (ruta cambiada; se respeta comportamiento original)
+                    'template'             => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
+                    'route'                => ['name' => 'app_servicio_componente_porserviciodropdown', 'parameters' => []],
+                    'placeholder'          => '',
+                    'context'              => '/\[cotcomponentes\]\[\d*\]\[componente\]$/g, "[servicio]"', // se deja tal cual
                     'minimum_input_length' => 0,
-                    'dropdown_auto_width' => false,
-                    'btn_add' => false
+                    'dropdown_auto_width'  => false,
+                    'btn_add'              => false,
                 ])
                 ->add('cantidad', null, [
-                        'required' => false,
-                        'attr' => ['class' => 'readonly']
-                    ]
-                )
-                ->add('fechahorainicio', DateTimePickerType::class, [
-
-                    'label' => 'Inicio',
-                    'dp_show_today' => true,
-                    'format'=> 'yyyy/MM/dd HH:mm',
-                    'attr' => [
-                        'class' => 'fechahora componenteinicio',
-                        'horariodependiente' => false
-                    ]
-                ])
-                ->add('fechahorafin', DateTimePickerType::class, [
-                    'label' => 'Fin',
-                    'dp_show_today' => true,
-                    'format'=> 'yyyy/MM/dd HH:mm',
-                    'attr' => [
-                        'class' => 'fechahora componentefin',
-                        'horariodependiente' => false
-                    ]
+                    'required' => false,
+                    'attr'     => ['class' => 'readonly'],
                 ])
             ;
-        }else{
-            //muestro como oculto ya que las tarifas dependen de los componentes
-            $formMapper
-            ->add('componente', ModelHiddenType::class);
+        } else {
+            // En edición de CotizacionCotcomponente: el componente se mantiene pero como hidden
+            $formMapper->add('componente', ModelHiddenType::class);
         }
 
-        $formMapper
-            ->add('estadocotcomponente', null, [
-                'label' => 'Estado'
-            ])
-            ->add('cottarifas', CollectionType::class , [
-                'by_reference' => false,
-                'label' => 'Tarifas',
-                'btn_add' => 'Agregar nueva Tarifa'
-            ], [
-                'edit' => 'inline',
-                'inline' => 'table'
-            ])
-        ;
+        // Estado (siempre)
+        $formMapper->add('estadocotcomponente', null, [
+            'label' => 'Estado',
+        ]);
 
-        $cantidadModifier = function (FormInterface $form) {
+        // ─────────────────────────────────────────────────────────────────────────────
+        // 2) Bloque OPERATIVA (embed AdminType inline)
+        // ─────────────────────────────────────────────────────────────────────────────
+        $formMapper->add('operativa', AdminType::class, [
+            'label'    => 'Operativa',
+            'delete'   => false,   // evita borrar desde el embed
+            'required' => false,   // permite crearla cuando aún no existe
+            'btn_add'  => false,   // sin botón "agregar" aquí
+            'help'     => 'Configura la operativa de recojo (horas, tolerancia y notas).',
+            'help_html'=> true,
+        ], [
+            'edit'   => 'inline',
+            'inline' => 'standard', // (se respeta tal cual; alternativa: 'table')
+        ]);
 
-            $form->add(
-                'cantidad',
-                null,
-                [
-                    'label' => 'Cantidad',
-                    'required' => false,
-                    'attr' => ['class' => 'dependeduracion readonly']
-                ]
-            );
-        };
-
-        $horarioModifier = function (FormInterface $form, $duracion, $horarioDependiente) {
-
-            $form->add('fechahorainicio', DateTimePickerType::class, [
-                    'label' => 'Inicio',
+        // ─────────────────────────────────────────────────────────────────────────────
+        // 3) Fechas de inicio/fin (no se muestran en edición de CotizacionCotcomponente)
+        // ─────────────────────────────────────────────────────────────────────────────
+        if (!($this->isCurrentRoute('edit') && $this->getRoot()->getClass() === \App\Entity\CotizacionCotcomponente::class)) {
+            $formMapper
+                ->add('fechahorainicio', DateTimePickerType::class, [
+                    'label'         => 'Inicio',
                     'dp_show_today' => true,
-                    'format'=> 'yyyy/MM/dd HH:mm',
-                    'attr' => [
-                        'duracion' => $duracion,
-                        'horariodependiente' => $horarioDependiente,
-                        'class' => 'fechahora componenteinicio'
-                    ]
+                    'format'        => 'yyyy/MM/dd HH:mm',
+                    'attr'          => [
+                        'class'               => 'fechahora componenteinicio',
+                        'horariodependiente'  => false,
+                    ],
                 ])
                 ->add('fechahorafin', DateTimePickerType::class, [
-                    'label' => 'Fin',
+                    'label'         => 'Fin',
                     'dp_show_today' => true,
-                    'format'=> 'yyyy/MM/dd HH:mm',
-                    'attr' => [
-                        'duracion' => $duracion,
-                        'horariodependiente' => $horarioDependiente,
-                        'class' => 'fechahora componentefin'
-                    ]
+                    'format'        => 'yyyy/MM/dd HH:mm',
+                    'attr'          => [
+                        'class'               => 'fechahora componentefin',
+                        'horariodependiente'  => false,
+                    ],
+                ])
+            ;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────────
+        // 4) Colección de tarifas (inline table)
+        // ─────────────────────────────────────────────────────────────────────────────
+        $formMapper->add('cottarifas', CollectionType::class, [
+            'by_reference' => false,
+            'label'        => 'Tarifas',
+            'btn_add'      => 'Agregar nueva Tarifa',
+        ], [
+            'edit'   => 'inline',
+            'inline' => 'table',
+        ]);
+
+        // ─────────────────────────────────────────────────────────────────────────────
+        // 5) Modificadores y listeners (PRE_SET_DATA)
+        //     - cantidadModifier: redefine 'cantidad' como dependeduracion + readonly
+        //     - horarioModifier : ajusta inicio/fin según duración/horarioDependiente
+        // ─────────────────────────────────────────────────────────────────────────────
+
+        $cantidadModifier = function (FormInterface $form): void {
+            $form->add('cantidad', null, [
+                'label'    => 'Cantidad',
+                'required' => false,
+                'attr'     => ['class' => 'dependeduracion readonly'],
+            ]);
+        };
+
+        $horarioModifier = function (FormInterface $form, $duracion, $horarioDependiente): void {
+            $form
+                ->add('fechahorainicio', DateTimePickerType::class, [
+                    'label'         => 'Inicio',
+                    'dp_show_today' => true,
+                    'format'        => 'yyyy/MM/dd HH:mm',
+                    'attr'          => [
+                        'duracion'            => $duracion,
+                        'horariodependiente'  => $horarioDependiente,
+                        'class'               => 'fechahora componenteinicio',
+                    ],
+                ])
+                ->add('fechahorafin', DateTimePickerType::class, [
+                    'label'         => 'Fin',
+                    'dp_show_today' => true,
+                    'format'        => 'yyyy/MM/dd HH:mm',
+                    'attr'          => [
+                        'duracion'            => $duracion,
+                        'horariodependiente'  => $horarioDependiente,
+                        'class'               => 'fechahora componentefin',
+                    ],
                 ])
             ;
         };
 
         $formBuilder = $formMapper->getFormBuilder();
+
         $formBuilder->addEventListener(
             FormEvents::PRE_SET_DATA,
-            function (FormEvent $event) use ($cantidadModifier, $horarioModifier) {
+            function (FormEvent $event) use ($cantidadModifier, $horarioModifier): void {
+                $data = $event->getData();
+                $form = $event->getForm();
 
-                if($event->getData()
-                    && $event->getData()->getComponente()
-                    && $event->getData()->getComponente()->getTipocomponente()
-                    && $event->getData()->getComponente()->getTipocomponente()->isDependeduracion() === true
-                ){
-                    $cantidadModifier($event->getForm());
+                // cantidad depende de tipocomponente->dependeduracion
+                if (
+                    $data
+                    && $data->getComponente()
+                    && $data->getComponente()->getTipocomponente()
+                    && $data->getComponente()->getTipocomponente()->isDependeduracion() === true
+                ) {
+                    $cantidadModifier($form);
                 }
 
+                // calcular duración y si el horario depende del itinerario
                 $horarioDependiente = false;
                 $duracion = 0;
-                if($event->getData()
-                    && $event->getData()->getComponente()
-                    && !is_null($event->getData()->getComponente()->getDuracion())
+
+                if ($data && $data->getComponente() && $data->getComponente()->getDuracion() !== null) {
+                    $duracion = $data->getComponente()->getDuracion();
+                } elseif (
+                    $data
+                    && $data->getCotservicio()
+                    && $data->getCotservicio()->getItinerario()
+                    && $data->getCotservicio()->getItinerario()->getDuracion()
                 ) {
-                    $duracion = $event->getData()->getComponente()->getDuracion();
-                }elseif($event->getData()
-                    && $event->getData()->getCotservicio()
-                    && $event->getData()->getCotservicio()->getItinerario()
-                    && $event->getData()->getCotservicio()->getItinerario()->getDuracion())
-                {
-                    $duracion = $event->getData()->getCotservicio()->getItinerario()->getDuracion();
+                    $duracion = $data->getCotservicio()->getItinerario()->getDuracion();
                     $horarioDependiente = true;
                 }
-                //var_dump($event->getData()->getComponente()->getTipocomponente()->isDependeduracion());
-                if(!empty($duracion)){
-                    $horarioModifier($event->getForm(), $duracion, $horarioDependiente);
+
+                if (!empty($duracion)) {
+                    $horarioModifier($form, $duracion, $horarioDependiente);
                 }
             }
         );
     }
+
 
     protected function configureShowFields(ShowMapper $showMapper): void
     {

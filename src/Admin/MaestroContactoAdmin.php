@@ -6,6 +6,7 @@ use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Form\Type\ModelType;
 use Sonata\AdminBundle\Show\ShowMapper;
 
 final class MaestroContactoAdmin extends AbstractAdmin
@@ -13,28 +14,27 @@ final class MaestroContactoAdmin extends AbstractAdmin
     protected function configureFormFields(FormMapper $form): void
     {
         $form
-            ->tab('General')
-                ->with('Datos del Contacto', ['class' => 'col-md-6'])
-                    ->add('nombre', null, ['label' => 'Nombre'])
-                    ->add('tipodocumento', null, ['label' => 'Tipo de documento'])
-                    ->add('numerodocumento', null, ['label' => 'N° Documento'])
-                    ->add('telefono', null, ['label' => 'Teléfono'])
-                    ->add('tipocontacto', null, [
-                        'label' => 'Tipo de contacto',
-                        'required' => true,
-                    ])
-                ->end()
-                ->with('Datos del Vehículo', ['class' => 'col-md-6'])
-                    ->add('vehiculoplaca', null, ['label' => 'Placa'])
-                    ->add('vehiculomarca', null, ['label' => 'Marca'])
-                    ->add('vehiculomodelo', null, ['label' => 'Modelo'])
-                    ->add('vehiculocolor', null, ['label' => 'Color'])
-                    ->add('vehiculoanio', null, [
-                        'label' => 'Año',
-                        'attr' => ['min' => 1990, 'max' => date('Y') + 1],
-                    ])
-                ->end()
-            ->end();
+            ->with('Datos del Contacto', ['class' => 'col-md-6'])
+                ->add('nombre', null, ['label' => 'Nombre'])
+                ->add('tipodocumento', null, ['label' => 'Tipo de documento'])
+                ->add('numerodocumento', null, ['label' => 'N° Documento'])
+                ->add('telefono', null, ['label' => 'Teléfono'])
+                ->add('tipocontacto', null, [
+                    'label' => 'Tipo de contacto',
+                    'required' => true,
+                ])
+            ->end()
+            ->with('Datos del Vehículo', ['class' => 'col-md-6'])
+                ->add('vehiculoplaca', null, ['label' => 'Placa'])
+                ->add('vehiculomarca', null, ['label' => 'Marca'])
+                ->add('vehiculomodelo', null, ['label' => 'Modelo'])
+                ->add('vehiculocolor', null, ['label' => 'Color'])
+                ->add('vehiculoanio', null, [
+                    'label' => 'Año',
+                    'attr' => ['min' => 1990, 'max' => date('Y') + 1],
+                ])
+            ->end()
+        ;
     }
 
     protected function configureDatagridFilters(DatagridMapper $filter): void

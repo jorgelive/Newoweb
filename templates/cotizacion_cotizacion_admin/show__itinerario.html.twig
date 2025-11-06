@@ -82,7 +82,7 @@
                                             {% for archivo in item.archivos %}
                                                 {% if loop.index0 % 2 == 0 %}<div class="row" style="margin-bottom:14px;">{% endif %}
                                                 <div class="col-xs-12 col-sm-6">
-                                                    <div class="thumbnail" style="border-radius:10px; overflow:hidden; border:1px solid #eef1f4; box-shadow:0 2px 8px rgba(0,0,0,.04);">
+                                                    <div class="thumbnail" style="max-width: 250px;">
                                                         <a
                                                                 href="{% if archivo.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ archivo.medio.webPath|raw }}{% else %}{{ archivo.medio.webPath|raw }}{% endif %}"
                                                                 {% if archivo.medio.inModal == true %} data-toggle="lightbox" data-gallery="{{ item.tituloDia }}"{% else %} target="_blank" rel="noopener noreferrer"{% endif %}
