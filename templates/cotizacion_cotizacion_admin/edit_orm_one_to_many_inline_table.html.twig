@@ -42,7 +42,14 @@ y resaltado visual cuando la celda tiene datos (sin auto-abrir).
                     {# ======= CELDA ESPECIAL PARA "operativa" (plegable, cerrada por defecto) ======= #}
                     {% if field_name == 'operativa' %}
                         {# detecta si hay datos para resaltar el botón (no abre) #}
-                        {% set has_data = nested_field.vars.value is not empty %}
+                        {# Evalúa si ALGÚN campo hijo de "operativa" tiene dato real #}
+                        {% set has_data = false %}
+                        {% for ch in nested_field.children %}
+                            {% set val = ch.vars.data is defined ? ch.vars.data : null %}
+                            {% if val is not same as(null) and val is not same as('') %}
+                                {% set has_data = true %}
+                            {% endif %}
+                        {% endfor %}
 
                         <td class="
                                 sonata-ba-td-{{ id }}-{{ field_name }}
