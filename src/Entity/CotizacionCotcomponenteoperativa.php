@@ -64,7 +64,7 @@ class CotizacionCotcomponenteoperativa
     }
 
     public function getHorarecojoinicial(): ?DateTimeInterface { return $this->horarecojoinicial; }
-    public function setHorarecojoinicial(DateTimeInterface $horarecojoinicial): self
+    public function setHorarecojoinicial(?DateTimeInterface $horarecojoinicial): self
     {
         $this->horarecojoinicial = $horarecojoinicial;
         return $this;
