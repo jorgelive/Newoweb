@@ -22,7 +22,7 @@ class CotizacionCotcomponenteoperativa
     #[ORM\JoinColumn(name: 'contacto_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?MaestroContacto $contacto = null;
 
-    #[ORM\Column(type: 'time', nullable: false)]
+    #[ORM\Column(type: 'time', nullable: true)]
     private ?DateTimeInterface $horarecojoinicial = null;
 
     #[ORM\Column(type: 'time', nullable: true)]
