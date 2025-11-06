@@ -42,6 +42,11 @@ class CotizacionCotcomponenteoperativa
     #[ORM\Column(type: 'datetime', nullable: false)]
     private ?DateTimeInterface $modificado = null;
 
+    public function __toString(): string
+    {
+        return sprintf("Id: %s.", $this->getId()) ?? '';
+    }
+
     public function getId(): ?int { return $this->id; }
 
     public function getCotcomponente(): ?CotizacionCotcomponente { return $this->cotcomponente; }

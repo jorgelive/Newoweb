@@ -30,9 +30,15 @@ final class MaestroTipocontactoAdmin extends AbstractAdmin
         $list
             ->addIdentifier('nombre', null, ['label' => 'Nombre interno'])
             ->add('titulo', null, ['label' => 'Título'])
-            ->add('creado', null, ['label' => 'Creado'])
-            ->add('modificado', null, ['label' => 'Modificado'])
-            ->add('_action', null, [
+            ->add('creado', null, [
+                'label' => 'Creado',
+                'format' => 'Y/m/d']
+            )
+            ->add('modificado', null, [
+                'label' => 'Modificado',
+                'format' => 'Y/m/d']
+            )
+            ->add(ListMapper::NAME_ACTIONS, null, [
                 'actions' => [
                     'edit' => [],
                     'delete' => [],
@@ -46,9 +52,16 @@ final class MaestroTipocontactoAdmin extends AbstractAdmin
         $show
             ->with('Detalles del Tipo de Contacto')
                 ->add('nombre', null, ['label' => 'Nombre interno'])
-                ->add('titulo', null, ['label' => 'Título'])
-                ->add('creado', null, ['label' => 'Creado'])
-                ->add('modificado', null, ['label' => 'Modificado'])
+                ->add('titulo', null, [
+                    'label' => 'Título']
+                )
+                ->add('creado', null, [
+                    'label' => 'Creado',
+                    'format' => 'Y/m/d']
+                )
+                ->add('modificado', null, [
+                    'label' => 'Modificado',
+                    'format' => 'Y/m/d'])
             ->end();
     }
 }
