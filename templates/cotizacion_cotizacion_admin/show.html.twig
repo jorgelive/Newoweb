@@ -169,11 +169,94 @@
         }
 
 
-        #tab-{{ admin.uniqid }}-operativa .fila { list-style: none; }
-        #tab-{{ admin.uniqid }}-operativa .fila.servicio { padding-inline-start: 0; margin: 5px; }
-        #tab-{{ admin.uniqid }}-operativa .fila li { list-style: none; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; border-left: 1px solid #ccc; margin-bottom: 5px; }
-        #tab-{{ admin.uniqid }}-operativa .celda { display: inline-block; padding: 0 5px; }
-        #tab-{{ admin.uniqid }}-operativa .celda.heading { font-weight: bold; font-size: 0.8em; vertical-align: top; }
+
+        {# ==============================  ESTILOS  =============================== #}
+        <style>
+             /* Scope */
+         #tab-{{ admin.uniqid }}-operativa.op-wrap { display:grid; gap:14px; }
+
+        /* Tarjetas */
+        #tab-{{ admin.uniqid }}-operativa .op-card,
+        #tab-{{ admin.uniqid }}-operativa .op-subcard{
+            border:1px solid #dde3ea; border-radius:10px; padding:12px 14px; background:#fff;
+        }
+
+        /* Head */
+        #tab-{{ admin.uniqid }}-operativa .op-card__head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+        #tab-{{ admin.uniqid }}-operativa .op-card__title{ display:flex; align-items:center; gap:8px; }
+
+        /* Tags */
+        #tab-{{ admin.uniqid }}-operativa .op-tag{ display:inline-block; padding:2px 6px; font-size:12px; border-radius:6px; background:#eef4ff; border:1px solid #d9e6ff; }
+        #tab-{{ admin.uniqid }}-operativa .op-tag--alt{ background:#e8faf8; border-color:#c1efe7; }
+        #tab-{{ admin.uniqid }}-operativa .op-tag--tar{ background:#fff5e6; border-color:#ffe1b8; }
+        #tab-{{ admin.uniqid }}-operativa .op-tag--det{ background:#f3f5f7; border-color:#e3e7ee; }
+
+        /* Grids */
+        #tab-{{ admin.uniqid }}-operativa .op-grid{ display:grid; gap:6px 12px; }
+        #tab-{{ admin.uniqid }}-operativa .op-cell{ display:grid; grid-template-columns:120px 1fr; align-items:baseline; }
+        #tab-{{ admin.uniqid }}-operativa .op-cell .op-label{ font-weight:600; color:#5b667a; }
+        #tab-{{ admin.uniqid }}-operativa .op-cell .op-value{ color:#222; }
+        #tab-{{ admin.uniqid }}-operativa .op-cell--full{ grid-column:1 / -1; }
+        #tab-{{ admin.uniqid }}-operativa .op-sep{ display:inline-block; font-size:12px; color:#77819a; background:#f4f6fa; padding:3px 8px; border:1px solid #e2e7ef; border-radius:999px; }
+
+        /* Chips/Pills */
+        #tab-{{ admin.uniqid }}-operativa .op-chip{ --chip:#3c8dbc; display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; color:#111; background: color-mix(in srgb, var(--chip) 12%, #fff); border:1px solid color-mix(in srgb, var(--chip) 45%, #fff); }
+        #tab-{{ admin.uniqid }}-operativa .op-pill{ display:inline-block; padding:2px 8px; margin:2px 4px 0 0; border:1px solid #dde3ea; border-radius:999px; background:#f7f9fc; font-size:12px; }
+
+        /* Links */
+        #tab-{{ admin.uniqid }}-operativa .op-link{ color:#1a73e8; text-decoration:none; }
+        #tab-{{ admin.uniqid }}-operativa .op-link:hover{ text-decoration:underline; }
+
+        /* Acordeones */
+        #tab-{{ admin.uniqid }}-operativa .op-accordion{ margin-top:8px; }
+        #tab-{{ admin.uniqid }}-operativa .op-accordion[open]{ border-top:1px dashed #e5e9f0; padding-top:8px; }
+        #tab-{{ admin.uniqid }}-operativa .op-accordion__summary{ cursor:pointer; user-select:none; display:inline-flex; align-items:center; gap:8px; padding:6px 10px; margin-bottom:6px; border-radius:6px; background:#f2f6ff; border:1px solid #e0e9ff; }
+        #tab-{{ admin.uniqid }}-operativa .op-accordion__summary::-webkit-details-marker{ display:none; }
+        #tab-{{ admin.uniqid }}-operativa .op-accordion__summary::after{ content:"▸"; margin-left:6px; transform:translateY(1px); transition:transform .2s ease; }
+        #tab-{{ admin.uniqid }}-operativa .op-accordion[open]>.op-accordion__summary::after{ transform:rotate(90deg) translateY(1px); }
+
+        /* ===== Operativa PRIORITARIA ===== */
+        #tab-{{ admin.uniqid }}-operativa .op-operativa{ margin-top:10px; }
+        #tab-{{ admin.uniqid }}-operativa .op-operativa__bar{
+            display:flex; flex-wrap:wrap; gap:8px; padding:8px; border:1px solid #e6eef7; border-radius:8px;
+            background: #f8fbff;
+        }
+        #tab-{{ admin.uniqid }}-operativa .op-kpi{
+            display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
+            background:#fff; border:1px solid #e3e9f2; font-weight:600;
+        }
+        #tab-{{ admin.uniqid }}-operativa .op-kpi--contact{ background:#fff7ef; border-color:#ffe2c5; }
+        #tab-{{ admin.uniqid }}-operativa .op-kpi--note{ background:#f7faff; border-color:#dfe8ff; }
+
+        #tab-{{ admin.uniqid }}-operativa .op-ico{ font-style:normal; }
+
+        #tab-{{ admin.uniqid }}-operativa .op-operativa__notes{
+            margin-top:6px; display:flex; gap:6px; align-items:flex-start; padding:8px; border-radius:8px;
+            background:#fffdf6; border:1px solid #ffe9b3; color:#4a3a10;
+        }
+
+        /* Acordeón mini dentro de la barra */
+        #tab-{{ admin.uniqid }}-operativa .op-mini{ margin-left:auto; }
+        #tab-{{ admin.uniqid }}-operativa .op-mini__summary{
+            cursor:pointer; user-select:none; display:inline-flex; align-items:center; gap:6px; padding:4px 10px;
+            background:#eef2ff; border:1px solid #dbe3ff; border-radius:999px; font-weight:600;
+        }
+        #tab-{{ admin.uniqid }}-operativa .op-mini__summary::-webkit-details-marker{ display:none; }
+
+        /* Responsive */
+        @media (min-width:768px){
+            #tab-{{ admin.uniqid }}-operativa .op-grid--service   { grid-template-columns: repeat(4, minmax(0,1fr)); }
+            #tab-{{ admin.uniqid }}-operativa .op-grid--component { grid-template-columns: repeat(5, minmax(0,1fr)); }
+            #tab-{{ admin.uniqid }}-operativa .op-grid--tarifa    { grid-template-columns: repeat(4, minmax(0,1fr)); }
+            #tab-{{ admin.uniqid }}-operativa .op-grid--detalle   { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            #tab-{{ admin.uniqid }}-operativa .op-grid--operativa { grid-template-columns: repeat(4, minmax(0,1fr)); }
+
+            #tab-{{ admin.uniqid }}-operativa .op-cell{ grid-template-columns:1fr; }
+            #tab-{{ admin.uniqid }}-operativa .op-cell .op-label{ font-size:12px; color:#77819a; }
+            #tab-{{ admin.uniqid }}-operativa .op-cell .op-value{ font-weight:500; }
+        }
+
+
 
         #tab-{{ admin.uniqid }}-resumen .resumen-item { padding: 5px 0;}
         #tab-{{ admin.uniqid }}-resumen .resumen-servicios p.componente-incluye {}

@@ -19,9 +19,14 @@ final class MaestroContactoAdmin extends AbstractAdmin
                 ->add('tipodocumento', null, ['label' => 'Tipo de documento'])
                 ->add('numerodocumento', null, ['label' => 'N° Documento'])
                 ->add('telefono', null, ['label' => 'Teléfono'])
-                ->add('tipocontacto', null, [
-                    'label' => 'Tipo de contacto',
-                    'required' => true,
+                ->add('tipocontacto', ModelType::class, [
+                    'label'       => 'Tipo de contacto',
+                    'required'    => true,
+                    'property'    => 'nombre',
+                    'btn_add'     => 'Agregar Tipo',                 // ← ahora sí funciona
+                    'class'       => \App\Entity\MaestroTipocontacto::class, // target de la relación
+                    'placeholder' => '— seleccionar —',
+                    // 'admin_code' => 'app.admin.maestrotipocontacto', // solo si necesitas forzar el admin asociado
                 ])
             ->end()
             ->with('Datos del Vehículo', ['class' => 'col-md-6'])

@@ -13,7 +13,7 @@ class MaestroContacto
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 150, nullable: true)]
+    #[ORM\Column(length: 150, nullable: false)]
     private ?string $nombre = null;
 
     #[ORM\ManyToOne(targetEntity: MaestroTipodocumento::class)]

@@ -32,6 +32,7 @@ final class CotizacionCotcomponenteoperativaAdmin extends AbstractAdmin
             ->add('contacto', ModelType::class, [
                 'label'       => 'Conductor / Contacto',
                 'required'    => false,
+                'property'    => 'nombre',
                 'btn_add'     => 'Agregar Contacto',                 // ← ahora sí funciona
                 'class'       => \App\Entity\MaestroContacto::class, // target de la relación
                 'placeholder' => '— seleccionar —',

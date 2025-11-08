@@ -68,6 +68,11 @@ file that was distributed with this source code.
 
         //alert('{{ full_name|raw }}' + '------' + '{{ context|raw }}'+ '------' + selectorchain);
         var parentSelector = $(  ":input[name='" + selectorchain + "']"  );
+
+        // --- Cache simple por término/página y contexto de parent ---
+        // Clave: {{ id }}::parentVal::term::page
+        var __s2Cache = {};
+
         var select2Options = {
             {%- set allowClearPlaceholder = (not multiple and not required) ? ' ' : '' -%}
             placeholder: '{{ placeholder ?: allowClearPlaceholder }}', // allowClear needs placeholder to work properly
@@ -95,6 +100,38 @@ file that was distributed with this source code.
                 dataType: 'json',
                 delay: {{ delay == 100 and quiet_millis != 100 ? quiet_millis : delay }}, // NEXT_MAJOR: Replace by `{{ delay }}` instead.
                 cache: {{ cache ? 'true' : 'false' }},
+
+                // --------- TRANSPORT personalizado con caché ----------
+                transport: function (params, success, failure) {
+                    // Nombres provistos por Sonata en data()
+                    var TERM_NAME = '{{ req_param_name_search }}';
+                    var PAGE_NAME = '{{ req_param_name_page_number }}';
+
+                    var term = (params.data && params.data[TERM_NAME]) || '';
+                    var page = (params.data && params.data[PAGE_NAME]) || 1;
+
+                    // Sensible al valor del padre (si presente)
+                    var parentVal = (typeof parentSelector.val() !== 'undefined') ? parentSelector.val() : '';
+                    var cacheKey = '{{ id }}::' + parentVal + '::' + (term || '') + '::' + page;
+
+                    // Si es término vacío y page=1 y ya está cacheado => no XHR
+                    if (term === '' && page === 1 && __s2Cache[cacheKey]) {
+                        success(__s2Cache[cacheKey]);
+                        return; // corta sin llamar al servidor
+                    }
+
+                    // Caso normal: realiza petición y cachea si es term vacío page 1
+                    var request = $.ajax(params);
+                    request.then(function (data) {
+                        if (term === '' && page === 1) {
+                            __s2Cache[cacheKey] = data;
+                        }
+                        success(data);
+                    }, failure);
+                    return request;
+                },
+                // ------------------------------------------------------
+
                 processResults: function (data, params) {
                     return {
                         results: data.items,
@@ -179,6 +216,18 @@ file that was distributed with this source code.
         };
 
         autocompleteInput.select2(select2Options);
+
+        // --- Invalida cache cuando cambia el selector padre ---
+        parentSelector.on('change', function(){
+            var parentVal = (typeof parentSelector.val() !== 'undefined') ? parentSelector.val() : '';
+            var prefix = '{{ id }}::' + parentVal + '::';
+            Object.keys(__s2Cache).forEach(function(k){
+                // invalidamos todas las entradas del mismo campo para nuevo contexto
+                if (k.indexOf('{{ id }}::') === 0) { delete __s2Cache[k]; }
+            });
+            // Opcional: reset visual
+            autocompleteInput.val(null).trigger('change');
+        });
 
         autocompleteInput.on('select2:select select2:unselect', function(e) {
             if (e.type === 'select2:select') {

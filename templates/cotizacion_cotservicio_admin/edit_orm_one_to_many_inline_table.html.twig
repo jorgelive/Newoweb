@@ -36,32 +36,76 @@ file that was distributed with this source code.
             <tr class="row-{{ nested_group_field.vars.sonata_admin.name }}">
                 {% for field_name, nested_field in nested_group_field.children %}
                     {% if field_name != 'cottarifas' and field_name != 'cottarifadetalles' %}
-                    <td class="
-                        sonata-ba-td-{{ id }}-{{ field_name }}
-                        control-group campo-{{ field_name }}
-                        {% if nested_field.vars.errors|length > 0 %} error sonata-ba-field-error{% endif %}
-                        "
-                        {% if (nested_field.vars['attr']['hidden'] is defined) and (nested_field.vars['attr']['hidden']) %}
-                            style="display:none;"
-                        {% endif %}
-                    >
-                        {% if sonata_admin.field_description.associationadmin.formfielddescriptions[field_name] is defined %}
-                            {{ form_widget(nested_field) }}
 
-                            {% set dummy = nested_group_field.setrendered %}
+                        {# ======= CELDA ESPECIAL PARA "operativa" (plegable, cerrada por defecto) ======= #}
+                        {% if field_name == 'operativa' %}
+                            {# detecta si hay datos para resaltar el botón (no abre) #}
+                            {# Evalúa si ALGÚN campo hijo de "operativa" tiene dato real #}
+                            {% set has_data = false %}
+                            {% for ch in nested_field.children %}
+                                {% set val = ch.vars.data is defined ? ch.vars.data : null %}
+                                {% if val is not same as(null) and val is not same as('') %}
+                                    {% set has_data = true %}
+                                {% endif %}
+                            {% endfor %}
+
+                            <td class="
+                                sonata-ba-td-{{ id }}-{{ field_name }}
+                                control-group campo-{{ field_name }}
+                                {% if nested_field.vars.errors|length > 0 %} error sonata-ba-field-error{% endif %}
+                            "
+                                    {% if (nested_field.vars['attr']['hidden'] is defined) and (nested_field.vars['attr']['hidden']) %}
+                                        style="display:none;"
+                                    {% endif %}
+                            >
+                                <details class="op-details">
+                                    <summary class="op-summary{% if has_data %} has-data{% endif %}">
+                                        Operativa
+                                    </summary>
+
+                                    <div class="op-panel">
+                                        {# Render normal del campo compuesto "operativa" #}
+                                        {{ form_widget(nested_field) }}
+                                    </div>
+                                </details>
+
+                                {% if nested_field.vars.errors|length > 0 %}
+                                    <div class="help-inline sonata-ba-field-error-messages">
+                                        {{ form_errors(nested_field) }}
+                                    </div>
+                                {% endif %}
+                            </td>
+
                         {% else %}
-                            {% if field_name == '_delete' %}
-                                {{ form_widget(nested_field, { label: false }) }}
-                            {% else %}
-                                {{ form_widget(nested_field) }}
-                            {% endif %}
+                            {# ======= CELDAS NORMALES ======= #}
+                            <td class="
+                                sonata-ba-td-{{ id }}-{{ field_name }}
+                                control-group campo-{{ field_name }}
+                                {% if nested_field.vars.errors|length > 0 %} error sonata-ba-field-error{% endif %}
+                            "
+                                    {% if (nested_field.vars['attr']['hidden'] is defined) and (nested_field.vars['attr']['hidden']) %}
+                                        style="display:none;"
+                                    {% endif %}
+                            >
+                                {% if sonata_admin.field_description.associationadmin.formfielddescriptions[field_name] is defined %}
+                                    {{ form_widget(nested_field) }}
+                                    {% set dummy = nested_group_field.setrendered %}
+                                {% else %}
+                                    {% if field_name == '_delete' %}
+                                        {{ form_widget(nested_field, { label: false }) }}
+                                    {% else %}
+                                        {{ form_widget(nested_field) }}
+                                    {% endif %}
+                                {% endif %}
+
+                                {% if nested_field.vars.errors|length > 0 %}
+                                    <div class="help-inline sonata-ba-field-error-messages">
+                                        {{ form_errors(nested_field) }}
+                                    </div>
+                                {% endif %}
+                            </td>
                         {% endif %}
-                        {% if nested_field.vars.errors|length > 0 %}
-                            <div class="help-inline sonata-ba-field-error-messages">
-                                {{ form_errors(nested_field) }}
-                            </div>
-                        {% endif %}
-                    </td>
+
                     {% endif %}
                 {% endfor %}
             </tr>

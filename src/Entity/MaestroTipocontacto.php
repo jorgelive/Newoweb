@@ -16,11 +16,11 @@ class MaestroTipocontacto
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 100, nullable: true)]
+    #[ORM\Column(length: 100, nullable: false)]
     private ?string $nombre = null;
 
     #[Gedmo\Translatable]
-    #[ORM\Column(length: 150, nullable: true)]
+    #[ORM\Column(length: 150, nullable: false)]
     private ?string $titulo = null;
 
     #[Gedmo\Locale]
