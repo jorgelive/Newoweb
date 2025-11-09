@@ -189,6 +189,7 @@ class CuentaMovimientoAdmin extends AbstractAdmin
             ->add('periodotransferencia', ModelAutocompleteType::class, [
                 'label' => 'Trans O / D',
                 'property' => 'cuenta',
+                'template' => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
                 'required' => false,
                 'callback' => function ($admin, $property, $value) {
                     $datagrid = $admin->getDatagrid();

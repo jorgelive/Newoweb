@@ -165,6 +165,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
         $formMapper
             ->add('servicio', ModelAutocompleteType::class, [
                 'property' => 'nombre',
+                'template' => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
                 'route' => ['name' => 'app_servicio_servicio_alldropdown', 'parameters' => []],
                 'placeholder' => '',
                 'minimum_input_length' => 0,

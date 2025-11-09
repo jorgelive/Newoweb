@@ -184,7 +184,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
         if (!($this->isCurrentRoute('edit') && $this->getRoot()->getClass() === \App\Entity\CotizacionCotcomponente::class)) {
             $formMapper
                 ->add('componente', ModelAutocompleteType::class, [
-                    'property'             => 'nombre', // (ruta cambiada; se respeta comportamiento original)
+                    'property'             => 'nombre',//  (ruta cambiada; se respeta comportamiento original)
                     'template'             => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
                     'route'                => ['name' => 'app_servicio_componente_porserviciodropdown', 'parameters' => []],
                     'placeholder'          => '',
