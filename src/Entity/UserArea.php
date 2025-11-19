@@ -34,7 +34,7 @@ class UserArea
     /**
      * @var Collection
      */
-    #[ORM\OneToMany(targetEntity: 'UserUser', mappedBy: 'area', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'area', targetEntity: 'UserUser', cascade: ['persist', 'remove'], orphanRemoval: true)]
     protected $users;
 
     public function __construct()

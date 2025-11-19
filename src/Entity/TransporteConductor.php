@@ -44,13 +44,13 @@ class TransporteConductor
     /**
      * @var Collection
      */
-    #[ORM\OneToMany(targetEntity: 'TransporteServicio', mappedBy: 'conductor', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'conductor', targetEntity: 'TransporteServicio', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private $servicios;
 
     /**
      * @var UserUser
      */
-    #[ORM\OneToOne(targetEntity: 'UserUser', inversedBy: 'conductor')]
+    #[ORM\OneToOne(inversedBy: 'conductor', targetEntity: 'UserUser')]
     #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
     private $user;
 
