@@ -14,13 +14,17 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 /**
- * Versión depurable y con soporte de overbooking para Booking (UID#N:x).
+ * Comando para leer iCal (Airbnb / Booking / VRBO) y sincronizar con ReservaReserva.
  *
- * - Auto-migración de registros existentes (UID base -> UID#N:1)
- * - Reactivados quedan en estado INICIAL
- * - Creación de reservas Booking en INICIAL
- * - Soporta múltiples eventos Booking con el mismo UID base (cada uno con UID#N:x distinto)
- * - Se elimina el envío de correo de "duplicados booking"
+ * Características principales:
+ * - Logs verbosos para depuración.
+ * - Soporte de Booking con overbooking, usando UIDs extendidos: UID#N:x
+ *   (mismo UID base puede tener varias reservas, cada una con #N:x distinto).
+ * - Auto-migración de registros antiguos Booking (UID base → UID#N:1).
+ * - Reservas Booking nuevas se crean en estado INICIAL.
+ * - Reservas reactivadas pasan a INICIAL.
+ * - Se ignora "Airbnb (Not available)".
+ * - No se envía correo por “duplicados Booking”.
  */
 #[AsCommand(
     name: 'app:obtener-reservas',
@@ -42,8 +46,14 @@ class ObtenerReservasCommand extends Command
 
     /**
      * Configuración del comando:
-     *  - --dry-run: simula sin guardar en BD
-     *  - --nexo-id: procesa solo un nexo específico (para debug)
+     *
+     *  - --dry-run
+     *      Ejecuta todo el flujo, pero NO hace flush en BD.
+     *      Útil para ver logs sin tocar datos.
+     *
+     *  - --nexo-id=ID
+     *      Solo procesa el nexo indicado (por ejemplo, un solo Booking),
+     *      ideal para pruebas y depuración.
      */
     protected function configure(): void
     {
@@ -57,7 +67,10 @@ class ObtenerReservasCommand extends Command
 
     /**
      * Extrae el índice N del patrón "UID#N:x".
-     * Ejemplo: "abc#N:3" => 3
+     *
+     * Ejemplos:
+     *   "abc#N:3"  => 3
+     *   "abc"      => null
      */
     private function extractIndexFromExtendedUid(string $uid): ?int
     {
@@ -68,15 +81,25 @@ class ObtenerReservasCommand extends Command
     }
 
     /**
-     * Inicializa el "pool" de índices #N existentes para un grupo Booking
-     * (mismo UID base + misma unidad + mismo canal), ignorando las fechas.
+     * Inicializa el "pool" de índices #N existentes para Booking.
+     *
+     * Agrupación:
+     *   - Por UID base
+     *   - Por unidad
+     *   - Por canal
+     *   (NO filtra por fechas)
+     *
+     * ¿Por qué sin fechas?
+     *   Porque Booking puede enviar múltiples VEVENT con el mismo UID base
+     *   pero con rangos de fechas distintos (overbooking). Queremos que cada
+     *   una de esas reservas tenga un índice único (#N:1, #N:2, #N:3, ...),
+     *   y que N no se repita, independientemente de las fechas.
      *
      * Retorna:
-     *   [ colaExistentes(array de "UID#N:x"), siguienteIndex(int) ]
-     *
-     * De esta forma:
-     *   - Se puede tener más de una reserva Booking con el mismo UID base
-     *   - Cada reserva obtiene un UID extendido único (UID#N:1, UID#N:2, ...)
+     *   [
+     *     colaExistentes (array de UID extendidos existentes "UID#N:x" ordenados),
+     *     siguienteIndex (int -> siguiente N libre para ese UID base+unidad+canal)
+     *   ]
      */
     private function initBookingIndexPool(
         EntityManagerInterface $em,
@@ -86,9 +109,8 @@ class ObtenerReservasCommand extends Command
     ): array {
         $repo = $em->getRepository(ReservaReserva::class);
 
-        // Trae TODOS los UID#N:x de ese UID base para esa unidad+canal,
-        // sin importar fechas. Esto permite múltiples reservas distintas
-        // (p.ej. varios VEVENT con mismo UID pero diferentes rangos).
+        // Trae TODOS los UID extendidos que empiecen con "baseUid#N:"
+        // para esa unidad + canal, Sin considerar fechas.
         $existentes = $repo->createQueryBuilder('r')
             ->where('r.unit = :unit')
             ->andWhere('r.channel = :channel')
@@ -99,6 +121,7 @@ class ObtenerReservasCommand extends Command
             ->getQuery()
             ->getResult();
 
+        // Extrae los índices N (del "#N:x")
         $indices = [];
         foreach ($existentes as $r) {
             $idx = $this->extractIndexFromExtendedUid((string)$r->getUid());
@@ -108,10 +131,11 @@ class ObtenerReservasCommand extends Command
         }
         sort($indices);
 
-        // Siguiente índice libre (#N:x)
+        // Si no hay ninguno, el siguiente índice es 1.
+        // Si hay existentes, siguiente = max(indices) + 1.
         $siguiente = empty($indices) ? 1 : (max($indices) + 1);
 
-        // Cola de UIDs ya existentes ordenados (#N:1, #N:2, ...)
+        // Cola de UID extendidos ordenados ("UID#N:1", "UID#N:2", ...)
         $colaExistentes = [];
         foreach ($indices as $idx) {
             $colaExistentes[] = $baseUid . '#N:' . $idx;
@@ -124,17 +148,19 @@ class ObtenerReservasCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        // Zona horaria para todo el comando
         $tz = new \DateTimeZone('America/Lima');
 
         try {
-            // Fecha/hora actual (mutable) para compatibilidad con entidades
+            // Fecha/hora actual (mutable) para setear en entidades si se requiere
             $ahora = new \DateTime('now', $tz);
         } catch (\Exception $e) {
             $output->writeln(sprintf('<error>Excepción capturada al crear fecha actual: %s</error>', $e->getMessage()));
             return Command::FAILURE;
         }
 
-        $dryRun = (bool)$input->getOption('dry-run');
+        // Flags del comando
+        $dryRun      = (bool)$input->getOption('dry-run');
         $nexoFilterId = $input->getOption('nexo-id');
 
         $output->writeln([
@@ -142,9 +168,11 @@ class ObtenerReservasCommand extends Command
             '============',
         ]);
 
-        // 1) Obtener nexos (todos o uno filtrado)
+        // 1) Obtener nexos desde la BD
         $nexosRepo = $this->entityManager->getRepository("App\Entity\ReservaUnitnexo");
+
         if ($nexoFilterId) {
+            // Si se pasa --nexo-id, solo ese
             $nexos = $nexosRepo->findBy(['id' => (int)$nexoFilterId]);
             if (!$nexos) {
                 $output->writeln(sprintf('<comment>No se encontró el nexo con id=%s</comment>', $nexoFilterId));
@@ -152,41 +180,51 @@ class ObtenerReservasCommand extends Command
             }
             $output->writeln(sprintf('<comment>Filtrando por nexo id=%s</comment>', $nexoFilterId));
         } else {
+            // Caso normal: todos los nexos
             $nexos = $nexosRepo->findAll();
         }
 
-        // Contadores globales de la ejecución
+        // Contadores globales para resumen final
         $totalEventosLeidos   = 0;
         $totalInsertados      = 0;
         $totalActualizados    = 0;
         $totalCancelados      = 0;
         $totalReactivados     = 0;
 
-        // Estado en memoria para Booking (por ejecución)
-        // Claves por grupo: "uidBase|unitId"
-        //
-        // bookingPools:   groupKey => [colaExistentes[], siguienteIndex]
-        // bookingClaimed: groupKey => set de UIDs extendidos ya “reclamados” en esta ejecución
+        /**
+         * Estructuras en memoria para Booking durante ESTA ejecución:
+         *
+         * bookingPools:
+         *   - clave: groupKey = "uidBase|unitId"
+         *   - valor: [colaExistentes (uids extendidos), siguienteIndex]
+         *
+         * bookingClaimed:
+         *   - clave: groupKey
+         *   - valor: array associative [uidExtendido => true] para marcar
+         *            qué UID extendido ya fue asociado a un evento en este run.
+         */
         $bookingPools   = [];
         $bookingClaimed = [];
 
+        // 2) Recorrer cada nexo configurado
         foreach ($nexos as $nexo) {
+            // Si el nexo está deshabilitado, se salta
             if ($nexo->isDeshabilitado()) {
                 $output->writeln(sprintf('→ Nexo %d deshabilitado, saltando.', $nexo->getId()));
                 continue;
             }
 
-            // Instancia de ICal para leer el feed remoto
+            // Inicializar lector de iCal
             $ical = new ICal(false, [
                 'defaultSpan'      => 2,
                 'defaultTimeZone'  => 'America/Lima',
                 'defaultWeekStart' => 'MO',
             ]);
 
-            // Desde hoy (00:00) en adelante
+            // Tomamos reservas desde "hoy 00:00" en adelante
             $from = (new \DateTimeImmutable('today', $tz))->setTime(0, 0);
 
-            // Reservas actuales en BD para este nexo+unidad+canal desde hoy
+            // Reservas actuales en BD para este nexo+unidad+canal desde "from"
             $qb = $this->entityManager->createQueryBuilder()
                 ->select('rr')
                 ->from(ReservaReserva::class, 'rr')
@@ -212,27 +250,29 @@ class ObtenerReservasCommand extends Command
                 count($currentReservas)
             ));
 
-            // Cargar iCal remoto
+            // Cargar iCal remoto desde la URL del nexo
             try {
                 $ical->initUrl($nexo->getEnlace());
             } catch (\Exception $e) {
+                // Si falla el iCal de este nexo, se loguea y se pasa al siguiente
                 $output->writeln(sprintf('<error>Excepción al leer iCal de nexo %d: %s</error>', $nexo->getId(), $e->getMessage()));
                 continue;
             }
 
-            $canal          = $nexo->getChannel()->getId(); // 2: Airbnb 3: Booking 4: VRBO (según tu enum)
-            $unidad         = $nexo->getUnit();
+            // Canal numérico (ejemplo: 2:Airbnb, 3:Booking, 4:VRBO, según tu enum)
+            $canal           = $nexo->getChannel()->getId();
+            $unidad          = $nexo->getUnit();
             $establecimiento = $unidad->getEstablecimiento();
 
-            // Arreglo de "eventKeys" para saber qué reservas siguen existiendo en el feed
-            // Formato: uidExtendido|YmdIni|YmdFin
+            // Array de keys para saber qué reservas siguen "presentes" en el feed
+            // Formato de cada key: uidExtendido|YmdIni|YmdFin
             $uidsArray = [];
 
-            // 2) Recorrer eventos del iCal
+            // 3) Procesar cada VEVENT del iCal
             foreach ($ical->events() as $event) {
                 ++$totalEventosLeidos;
 
-                // UID base del evento; si viene vacío se genera uno de fallback
+                // UID base del evento: si falta, generamos uno "fake" único
                 $uid = $event->uid ?? null;
                 if (!$uid) {
                     $uid = hash('sha1', implode('|', [
@@ -246,15 +286,19 @@ class ObtenerReservasCommand extends Command
                     $output->writeln(sprintf('<comment>[WARN] Evento sin UID, generando fallback: %s</comment>', $uid));
                 }
 
+                // Fechas crudas del iCal (formato Ymd)
                 $dtstartRaw = $event->dtstart ?? '';
                 $dtendRaw   = $event->dtend ?? '';
+                // Summary / título del evento (Booking: puede traer "CLOSED - Not available", etc.)
                 $summaryRaw = $event->summary ?? '';
 
-                // Parseo de fechas con hora de check-in / check-out del establecimiento
+                // Formato de fecha+hora para DateTime::createFromFormat
                 $fmt      = 'Ymd H:i';
+                // Horario de checkin/checkout definido en el Establecimiento
                 $checkin  = $establecimiento->getCheckin()  ?? '14:00';
                 $checkout = $establecimiento->getCheckout() ?? '10:00';
 
+                // Construimos DateTime de inicio/fin con la hora de checkin/checkout
                 $start = \DateTime::createFromFormat($fmt, $dtstartRaw . ' ' . $checkin, $tz);
                 $end   = \DateTime::createFromFormat($fmt, $dtendRaw . ' ' . $checkout, $tz);
 
@@ -270,17 +314,25 @@ class ObtenerReservasCommand extends Command
                     continue;
                 }
 
-                // === Soporte de overbooking Booking: extiende UID a UID#N:x ===
-                $uidParaBD = $uid; // será el UID que se usa finalmente en la BD
-                $uidTag    = '';   // etiqueta de diagnóstico (N:x) para logs
+                // === Soporte Booking: convertir UID base a UID extendido UID#N:x ===
+                $uidParaBD = $uid; // Valor por defecto para canales que no son Booking
+                $uidTag    = '';   // Tag informativo N:x para logs
 
                 if ($canal == ReservaChannel::DB_VALOR_BOOKING) {
-                    // Grupo por UID base + unidad (no por fechas),
-                    // para poder tener múltiples reservas con mismo UID base
+                    /**
+                     * groupKey:
+                     *   agrupa por UID base + unidad (NO por fechas).
+                     *
+                     *   Esto permite que:
+                     *     - Mismo UID base + unidad pueda tener varias reservas
+                     *       (overbooking) con diferentes fechas.
+                     *     - Cada una tendrá UID#N:x distinto.
+                     */
                     $groupKey = $uid . '|' . (string)$unidad->getId();
 
+                    // Si aún no se ha inicializado el pool para este UID base + unidad
                     if (!isset($bookingPools[$groupKey])) {
-                        // Inicializa el pool para este UID base + unidad + canal
+                        // Inicializar pool leyendo de BD todos los UID#N:x existentes
                         [$colaExistentes, $siguiente] = $this->initBookingIndexPool(
                             $this->entityManager,
                             $unidad,
@@ -288,12 +340,21 @@ class ObtenerReservasCommand extends Command
                             $uid
                         );
                         $bookingPools[$groupKey]   = [$colaExistentes, $siguiente];
-                        $bookingClaimed[$groupKey] = [];
+                        $bookingClaimed[$groupKey] = []; // todavía ningún UID#N:x “reclamado” en este run
                     }
 
+                    // Obtenemos el estado actual del pool para este groupKey
                     [$colaExistentes, $siguiente] = $bookingPools[$groupKey];
 
-                    // 1) Intentar reusar un UID#N:x existente en BD que no haya sido "reclamado" en esta ejecución
+                    /**
+                     * 1) Intentar reusar un UID#N:x ya existente en BD que:
+                     *    - Pertenezca a este UID base + unidad + canal
+                     *    - No haya sido "reclamado" en esta ejecución
+                     *
+                     *    Esto permite que, si el feed iCal repite el mismo VEVENT
+                     *    (mismo rango de fechas) en una misma corrida, se use
+                     *    el mismo UID extendido y no se creen reservas duplicadas.
+                     */
                     $reusado = null;
                     while (!empty($colaExistentes)) {
                         $candidato = array_shift($colaExistentes);
@@ -304,34 +365,47 @@ class ObtenerReservasCommand extends Command
                     }
 
                     if ($reusado) {
-                        // Reutilizamos una reserva Booking ya existente (mismo UID#N:x)
+                        // Reutilizamos este UID extendido
                         $uidParaBD = $reusado;
                         $uidTag    = 'N:' . $this->extractIndexFromExtendedUid($reusado);
                     } else {
-                        // 2) No hay UID#N:x libre -> generar uno nuevo
+                        /**
+                         * 2) Si no hay ningún UID extendido disponible para reutilizar
+                         *    en este grupo, generamos uno nuevo usando el siguiente índice:
+                         *    UID#N:siguiente
+                         *
+                         *   Ejemplo:
+                         *     base UID = abc
+                         *     siguiente = 3
+                         *     => UID para BD = "abc#N:3"
+                         */
                         $uidParaBD = $uid . '#N:' . $siguiente;
                         $uidTag    = 'N:' . $siguiente;
                         $siguiente++;
                     }
 
-                    // Guardar estado actualizado del pool y marcar el UID extendido como reclamado
-                    $bookingPools[$groupKey]              = [$colaExistentes, $siguiente];
+                    // Guardamos el pool actualizado
+                    $bookingPools[$groupKey] = [$colaExistentes, $siguiente];
+                    // Marcamos este UID extendido como usado en este run
                     $bookingClaimed[$groupKey][$uidParaBD] = true;
                 }
 
-                // Clave única por evento (para detección de presencia / cancelación)
+                // Clave única por evento para saber presencia en el feed:
+                // UID EXTENDIDO + fechas Ymd de inicio y fin
                 $eventKey = $uidParaBD . '|' . $dtstartRaw . '|' . $dtendRaw;
 
+                // Si ya existe un evento idéntico (mismo UID extendido + mismas fechas),
+                // lo logueamos como duplicado en el feed; no hacemos early return
                 if (in_array($eventKey, $uidsArray, true) && $canal == ReservaChannel::DB_VALOR_BOOKING) {
-                    // Si el feed repite EXACTAMENTE el mismo UID extendido + mismas fechas
-                    // en la misma ejecución, solo lo registramos como diagnóstico.
                     $output->writeln(sprintf('<comment>[DUP-FEED] Booking evento idéntico: %s</comment>', $eventKey));
-                    // No se hace "continue": se sigue procesando normalmente.
                 } else {
                     $uidsArray[] = $eventKey;
                 }
 
-                // Buscar reservas existentes en BD por UID extendido (uidParaBD) + unidad + canal
+                // Busca reservas existentes en BD por:
+                //   - UID (ya extendido si Booking)
+                //   - unidad
+                //   - canal
                 $existentes = $this->entityManager->getRepository(ReservaReserva::class)->findBy([
                     'uid'     => $uidParaBD,
                     'unit'    => $unidad,
@@ -339,12 +413,16 @@ class ObtenerReservasCommand extends Command
                 ]);
 
                 // === COMPATIBILIDAD hacia atrás (solo Booking):
-                // Si no existe con UID extendido, intenta encontrar una reserva
-                // antigua por UID base y mismas fechas → la migra a "#N:1".
+                //
+                // Antes se guardaban reservas Booking con uid base (sin #N:x).
+                // Aquí, si no encontramos nada con UID extendido, intentamos buscar:
+                //   - uid base
+                //   - mismas fechas
+                // Si existe, lo migramos a UID#N:1.
                 $existentesPorFechas = [];
                 if ($canal == ReservaChannel::DB_VALOR_BOOKING && empty($existentes)) {
                     $existenteBase = $this->entityManager->getRepository(ReservaReserva::class)->findOneBy([
-                        'uid'             => $uid, // uid base (sin #N:x)
+                        'uid'             => $uid, // uid base
                         'unit'            => $unidad,
                         'channel'         => $nexo->getChannel(),
                         'fechahorainicio' => $start,
@@ -361,15 +439,16 @@ class ObtenerReservasCommand extends Command
                         if (!$dryRun) {
                             $existenteBase->setUid($nuevoUid);
                         }
-                        // Lo tratamos como existente con el nuevo UID extendido
+                        // A partir de ahora, tratamos esa reserva como si tuviera UID extendido
                         $uidParaBD  = $nuevoUid;
                         $existentes = [$existenteBase];
                     }
                 }
 
-                // Fallback diagnóstico: si no se encontró por UID, se intenta por fechas
+                // Fallback diagnóstico: buscar por fechas (mismas fechas, mismo canal+unidad)
                 if (empty($existentes)) {
-                    $existentesPorFechas = $this->entityManager->getRepository(ReservaReserva::class)->createQueryBuilder('r')
+                    $existentesPorFechas = $this->entityManager->getRepository(ReservaReserva::class)
+                        ->createQueryBuilder('r')
                         ->where('r.unit = :unit')
                         ->andWhere('r.channel = :channel')
                         ->andWhere('r.fechahorainicio = :ini')
@@ -380,6 +459,7 @@ class ObtenerReservasCommand extends Command
                         ->setParameter('fin', $end)
                         ->getQuery()
                         ->getResult();
+
                     if ($existentesPorFechas) {
                         $output->writeln(sprintf(
                             '<comment>[INFO] Encontrado por fechas (no por UID) UID:%s %s→%s</comment>',
@@ -390,72 +470,100 @@ class ObtenerReservasCommand extends Command
                     }
                 }
 
-                // Decidir inserción / actualización y estado inicial
+                // Variables para el procesamiento de la reserva (crear/actualizar)
                 $insertar = false;
                 $estado   = null;
                 $nombre   = '';
                 $enlace   = '';
 
-                // Reglas por canal/summary
+                /**
+                 * Lógica según canal/summary:
+                 *
+                 * - Airbnb (Not available) -> se ignora.
+                 * - Airbnb -> se crea en estado PAGO_TOTAL (Completar Airbnb).
+                 * - Booking -> se crea en INICIAL (Completar Booking).
+                 * - VRBO -> se crea en PAGO_TOTAL (Completar VRBO).
+                 * - Otros -> INICIAL, nombre = summary raw.
+                 */
                 if ($summaryRaw === 'Airbnb (Not available)') {
-                    // Bloqueos "Not available" de Airbnb se ignoran
+                    // Bloqueos automáticos "Not available" de Airbnb no se manejan como reservas
                     $insertar = false;
                     $output->writeln(sprintf('[SKIP] Airbnb Not available (UID:%s)', $uid));
                 } elseif ($canal == ReservaChannel::DB_VALOR_AIRBNB) {
                     $insertar = true;
-                    $estado   = $this->entityManager->getReference(ReservaEstado::class, ReservaEstado::DB_VALOR_PAGO_TOTAL);
+                    $estado   = $this->entityManager->getReference(
+                        ReservaEstado::class,
+                        ReservaEstado::DB_VALOR_PAGO_TOTAL
+                    );
                     $nombre   = 'Completar Airbnb';
 
-                    // Intentar sacar un enlace de la descripción (URL)
+                    // Intentar extraer una URL desde la descripción (si existiera)
                     if (preg_match('~[a-z]+://\S+~', (string)($event->description ?? ''), $m)) {
                         $enlace = $m[0];
                     }
                 } elseif ($canal == ReservaChannel::DB_VALOR_BOOKING) {
                     $insertar = true;
-                    // Reservas Booking se crean en INICIAL para que luego se completen
-                    $estado = $this->entityManager->getReference(ReservaEstado::class, ReservaEstado::DB_VALOR_INICIAL);
-
-                    // Normalizar "CLOSED - Not available" vs "CLOSED – Not available"
+                    // Booking: dejar en INICIAL para luego completar datos
+                    $estado = $this->entityManager->getReference(
+                        ReservaEstado::class,
+                        ReservaEstado::DB_VALOR_INICIAL
+                    );
+                    // Limpiar "CLOSED - Not available" del summary, si aparece
                     $cleanSummary = preg_replace('/CLOSED\s*[–-]\s*Not available/i', '', $summaryRaw) ?? $summaryRaw;
                     $nombre       = trim($cleanSummary . ' Completar Booking');
                 } elseif ($canal == ReservaChannel::DB_VALOR_VRBO) {
                     $insertar = true;
-                    $estado   = $this->entityManager->getReference(ReservaEstado::class, ReservaEstado::DB_VALOR_PAGO_TOTAL);
-                    // Quitar prefijo "Reserved - " del summary si existe
+                    $estado   = $this->entityManager->getReference(
+                        ReservaEstado::class,
+                        ReservaEstado::DB_VALOR_PAGO_TOTAL
+                    );
+                    // Limpiar "Reserved - " del summary, si existe
                     $nombre = trim(preg_replace('/^Reserved\s*[-–]\s*/i', '', $summaryRaw) . ' Completar VRBO');
                 } else {
-                    // Canal genérico/desconocido
+                    // Canal genérico / no reconocido
                     $insertar = true;
-                    $estado   = $this->entityManager->getReference(ReservaEstado::class, ReservaEstado::DB_VALOR_INICIAL);
+                    $estado   = $this->entityManager->getReference(
+                        ReservaEstado::class,
+                        ReservaEstado::DB_VALOR_INICIAL
+                    );
                     $nombre   = $summaryRaw ?? 'Reserva';
                 }
 
-                // Si ya existe por UID (extendido) => actualizar fechas (si cambiaron)
+                /**
+                 * Si existe una reserva en BD con ese UID (extendido) + unidad + canal:
+                 *   - Si es manual: no se toca.
+                 *   - Si no es manual: se actualizan solo las fechas (día), manteniendo la hora.
+                 */
                 if (!empty($existentes)) {
                     foreach ($existentes as $existente) {
                         if ($existente->isManual()) {
-                            // Reservas manuales nunca se tocan automáticamente
                             $output->writeln(sprintf('[KEEP] Existe manual (UID:%s), no se toca.', $uidParaBD));
                             continue 2; // salta al siguiente evento iCal
                         }
 
                         $oldIni = $existente->getFechahorainicio();
                         $oldFin = $existente->getFechahorafin();
-
                         $changed = false;
 
-                        // Solo cambiamos la fecha (Ymd), conservando la hora actual
+                        // Actualizar día de inicio si cambió (manteniendo hora actual)
                         if ($oldIni->format('Ymd') !== $dtstartRaw) {
                             $currentStartTime = $oldIni->format('H:i');
-                            $existente->setFechahorainicio(\DateTime::createFromFormat($fmt, $dtstartRaw . ' ' . $currentStartTime, $tz));
-                            $changed = true;
-                        }
-                        if ($oldFin->format('Ymd') !== $dtendRaw) {
-                            $currentEndTime = $oldFin->format('H:i');
-                            $existente->setFechahorafin(\DateTime::createFromFormat($fmt, $dtendRaw . ' ' . $currentEndTime, $tz));
+                            $existente->setFechahorainicio(
+                                \DateTime::createFromFormat($fmt, $dtstartRaw . ' ' . $currentStartTime, $tz)
+                            );
                             $changed = true;
                         }
 
+                        // Actualizar día de fin si cambió (manteniendo hora actual)
+                        if ($oldFin->format('Ymd') !== $dtendRaw) {
+                            $currentEndTime = $oldFin->format('H:i');
+                            $existente->setFechahorafin(
+                                \DateTime::createFromFormat($fmt, $dtendRaw . ' ' . $currentEndTime, $tz)
+                            );
+                            $changed = true;
+                        }
+
+                        // Log de actualización vs “no hubo cambios”
                         if ($changed) {
                             ++$totalActualizados;
                             $output->writeln(sprintf(
@@ -475,10 +583,11 @@ class ObtenerReservasCommand extends Command
                             ));
                         }
                     }
-                    continue; // ya se gestionó este evento por UID
+                    // Como ya se gestionó este UID, continuamos con el siguiente evento del iCal
+                    continue;
                 }
 
-                // Si no existe por UID pero sí por fechas -> solo warning (no se toca)
+                // Si existe por fechas pero no por UID → solo advertimos (no tocamos)
                 if (!empty($existentesPorFechas)) {
                     $output->writeln(sprintf(
                         '<comment>[WARN] Existe por fechas pero no por UID (UID:%s). Revisa proveedor.</comment>',
@@ -486,7 +595,10 @@ class ObtenerReservasCommand extends Command
                     ));
                 }
 
-                // Inserción de nueva reserva, si aplica por reglas de canal/summary
+                /**
+                 * Inserción de nueva reserva si las reglas del canal lo permiten
+                 * (insertar == true).
+                 */
                 if ($insertar) {
                     $output->writeln(sprintf(
                         '<info>[INSERT]</info> Canal:%s | Unit:%s | UID:%s%s | %s → %s | "%s"',
@@ -511,6 +623,7 @@ class ObtenerReservasCommand extends Command
                         $reserva->setUid($uidParaBD);
                         $reserva->setFechahorainicio($start);
                         $reserva->setFechahorafin($end);
+
                         $this->entityManager->persist($reserva);
                     }
                     ++$totalInsertados;
@@ -520,11 +633,22 @@ class ObtenerReservasCommand extends Command
                         $uidParaBD
                     ));
                 }
-            } // foreach events
+            } // fin foreach eventos iCal
 
-            // 3) Cancelar / reactivar reservas actuales según la presencia en el feed
+            /**
+             * 4) Cancelar / reactivar reservas actuales según presencia en el feed.
+             *
+             * Mecanismo:
+             *   - Se construye una key:
+             *       UID (extendido si existe) | YmdInicio | YmdFin
+             *   - Si la key NO está en $uidsArray (feed):
+             *       → Se asume que el evento fue eliminado del iCal → CANCELAR,
+             *         siempre que no esté ya en CANCELADO y no sea manual.
+             *   - Si la key SÍ está en $uidsArray pero la reserva está CANCELADA:
+             *       → REACTIVAR (pasa a INICIAL) porque volvió a aparecer.
+             */
             foreach ($currentReservas as $currentReserva) {
-                // Fix: asegurar que todas tengan unitnexo asociado
+                // Aseguramos que todas las reservas tengan unitnexo seteado
                 if (empty($currentReserva->getUnitnexo())) {
                     $output->writeln(sprintf(
                         '<comment>[FIX] Reserva id:%d sin unitnexo, estableciendo nexo:%d</comment>',
@@ -536,8 +660,8 @@ class ObtenerReservasCommand extends Command
                     }
                 }
 
+                // Las reservas manuales nunca se cancelan/reactivan automáticamente
                 if ($currentReserva->isManual()) {
-                    // Las manuales no se cancelan/reactivan automáticamente
                     $output->writeln(sprintf(
                         '[KEEP] Manual id:%d, no se cancela/reactiva.',
                         $currentReserva->getId()
@@ -545,12 +669,12 @@ class ObtenerReservasCommand extends Command
                     continue;
                 }
 
-                // eventKey generada con el UID (extendido si lo tiene) + fechas Ymd
+                // Clave para comparar contra $uidsArray (feed iCal)
                 $key = ($currentReserva->getUid() ?: '')
                     . '|' . $currentReserva->getFechahorainicio()->format('Ymd')
                     . '|' . $currentReserva->getFechahorafin()->format('Ymd');
 
-                // Si no está presente en el feed -> cancelar
+                // Si la key no está en el feed -> CANCELAR si no está ya cancelada
                 if (!in_array($key, $uidsArray, true)) {
                     if ($currentReserva->getEstado()->getId() != ReservaEstado::DB_VALOR_CANCELADO) {
                         $output->writeln(sprintf(
@@ -561,13 +685,17 @@ class ObtenerReservasCommand extends Command
                         ));
                         if (!$dryRun) {
                             $currentReserva->setEstado(
-                                $this->entityManager->getReference(ReservaEstado::class, ReservaEstado::DB_VALOR_CANCELADO)
+                                $this->entityManager->getReference(
+                                    ReservaEstado::class,
+                                    ReservaEstado::DB_VALOR_CANCELADO
+                                )
                             );
                         }
                         ++$totalCancelados;
                     }
-                } elseif ($currentReserva->getEstado()->getId() == ReservaEstado::DB_VALOR_CANCELADO) {
-                    // Si aparece otra vez en el feed y estaba cancelada -> reactivar a INICIAL
+                }
+                // Si la key está en el feed y la reserva está CANCELADA -> REACTIVAR
+                elseif ($currentReserva->getEstado()->getId() == ReservaEstado::DB_VALOR_CANCELADO) {
                     $output->writeln(sprintf(
                         '<info>[REACTIVATE]</info> %s: %s (id:%d)',
                         $currentReserva->getChannel()->getNombre(),
@@ -576,12 +704,16 @@ class ObtenerReservasCommand extends Command
                     ));
 
                     if (!$dryRun) {
+                        // Reactivar y dejar en INICIAL
                         $currentReserva->setEstado(
-                            $this->entityManager->getReference(ReservaEstado::class, ReservaEstado::DB_VALOR_INICIAL)
+                            $this->entityManager->getReference(
+                                ReservaEstado::class,
+                                ReservaEstado::DB_VALOR_INICIAL
+                            )
                         );
                         $currentReserva->setModificado($ahora);
 
-                        // Limpiezas opcionales específicas para Booking
+                        // Ajustes extra específicos para Booking al reactivar
                         if ($currentReserva->getChannel()->getId() == ReservaChannel::DB_VALOR_BOOKING) {
                             $currentReserva->setNombre('Reactivado - ' . $currentReserva->getNombre());
                             $currentReserva->setEnlace(null);
@@ -594,13 +726,15 @@ class ObtenerReservasCommand extends Command
                     }
                     ++$totalReactivados;
                 }
-            } // foreach currentReservas
-        } // foreach nexos
+            } // fin foreach currentReservas
+        } // fin foreach nexos
 
+        // 5) Persistir cambios si no es dry-run
         if (!$dryRun) {
             $this->entityManager->flush();
         }
 
+        // 6) Resumen final en consola
         $output->writeln([
             '============',
             sprintf(
@@ -615,8 +749,6 @@ class ObtenerReservasCommand extends Command
                 ? '<comment>Dry-run: no se persistieron cambios.</comment>'
                 : '<info>¡Cambios persistidos!</info>',
         ]);
-
-        // Envío de correo eliminado a propósito.
 
         return Command::SUCCESS;
     }
