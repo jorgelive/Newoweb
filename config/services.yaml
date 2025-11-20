@@ -1124,6 +1124,8 @@ services:
               group: Reserva
               label: Característica de unidad
               show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ edit, reserva_unitcaracteristica_admin/edit.html.twig ] ]
         public: true
 
     app.admin.reservaunittipocaracteristica:

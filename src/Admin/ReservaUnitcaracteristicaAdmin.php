@@ -113,6 +113,9 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             // Medios hijos (inline) con botón Agregar
             ->add('medios', CollectionType::class, [
                 'by_reference' => false,
+                'row_attr' => [
+                    'class' => 'medios-collection-wrapper'
+                ],
                 'label' => 'Medios',
                 'required' => false,
                 'btn_add' => 'Agregar medio',

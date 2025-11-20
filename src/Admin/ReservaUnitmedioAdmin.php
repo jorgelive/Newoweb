@@ -184,7 +184,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                     'attr'  => ['style' => 'min-width: 250px;'],
                 ])
                 ->add('prioridad', null, [
-                    'label' => 'Enlace',
+                    'label' => 'Prioridad',
                     'attr'  => ['style' => 'width: 70px;'],
                 ]);
         };

@@ -42,6 +42,12 @@
 
     <script type="text/javascript">
 
+        document.addEventListener('contextmenu', function (e) {
+            if (e.target.closest('.sonata-ba-sortable-handler')) {
+                e.preventDefault();
+            }
+        });
+
         (function ($) {
 
             $.fn.autoFit = function () {
