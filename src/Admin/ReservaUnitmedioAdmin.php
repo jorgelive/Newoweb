@@ -144,21 +144,19 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
         $previewHtml = $thumbUrl
             ? sprintf(
                 '<a href="%1$s" target="_blank" rel="noopener">
-            <img id="%2$s" src="%1$s" alt="Vista previa" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,.15);" />
+            <img id="%2$s" src="%1$s" alt="Vista previa" style="max-width:180px;max-height:180px;object-fit:cover;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,.15);" />
            </a><br/><small>No hay imagen.</small>',
                 htmlspecialchars((string) $thumbUrl, ENT_QUOTES),
                 htmlspecialchars($imgId, ENT_QUOTES)
             )
             : sprintf(
-                '<img id="%1$s" src="" alt="Vista previa" style="display:none;max-width:200px;max-height:200px;object-fit:cover;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,.15);" />
+                '<img id="%1$s" src="" alt="Vista previa" style="display:none;max-width:180px;max-height:180px;object-fit:cover;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,.15);" />
          <br/><small>No hay archivo cargado aún.</small>',
                 htmlspecialchars($imgId, ENT_QUOTES)
             );
 
         $form
             ->add('prioridad')
-            ->add('nombre')
-            ->add('titulo', null, ['label' => 'Título'])
             ->add('archivo', FileType::class, [
                 'required'  => false,
                 'help'      => $previewHtml,   // 👈 miniatura aquí
@@ -166,6 +164,8 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                 // 👇 el input sabrá a qué <img> actualizar
                 'attr'      => ['data-preview-img' => $imgId],
             ])
+            ->add('nombre')
+            ->add('titulo', null, ['label' => 'Título'])
             ->add('enlace')
         ;
 
