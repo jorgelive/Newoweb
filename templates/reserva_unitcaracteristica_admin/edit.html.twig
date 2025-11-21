@@ -4,133 +4,39 @@
     {{ parent() }}
 
     <style>
-        /* ============================================================
-           SCOPE general — solo afecta al campo con la clase asignada
-           ------------------------------------------------------------ */
-        .medios-collection-wrapper {
-
+        .medios-collection-wrapper td[class*="medios-prioridad"] {
+            white-space: nowrap;
+            text-align: center;
         }
 
-        /* ============================================================
-           1) Mejorar el handler (desktop y móvil)
-           ============================================================ */
+        /* Ocultamos el número, se actualiza por JS */
+        .medios-collection-wrapper td[class*="medios-prioridad"] input {
+            display: none;
+        }
+
         .medios-collection-wrapper td[class*="medios-prioridad"] .sonata-ba-sortable-handler {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 36px;
-            height: 36px;
+            width: 22px;
+            height: 22px;
             cursor: grab;
-            font-size: 22px;
-            color: #555;
-            -webkit-touch-callout: none;
+            font-size: 18px;
+            color: #666;
             -webkit-user-select: none;
             user-select: none;
-            touch-action: none;
+            touch-action: pan-y; /* permite scroll vertical */
         }
 
-        .medios-collection-wrapper td[class*="medios-prioridad"] .sonata-ba-sortable-handler i {
-            pointer-events: none;
+        .medios-collection-wrapper td[class*="medios-prioridad"] .sonata-ba-sortable-handler:active {
+            cursor: grabbing;
         }
 
-        /* ============================================================
-           2) Estilos opcionales de fila (visuales)
-           ============================================================ */
-        .medios-collection-wrapper tbody tr.ui-sortable-handle {
-            transition: background 0.2s;
-        }
-
-        .medios-collection-wrapper tbody tr.ui-sortable-helper {
-            background: #fffbea !important;
-            border: 1px solid #f0d98c;
-        }
-
-        /* ============================================================
-           3) MODO RESPONSIVO — convertir filas en tarjetas
-           ============================================================ */
-
-        @media (max-width: 900px) {
-
-            /* Ocultar encabezado */
-            .medios-collection-wrapper table.table thead {
-                display: none !important;
-            }
-
-            /* Fila → tarjeta */
-            .medios-collection-wrapper table.table tbody tr {
-                display: block;
-                margin-bottom: 14px;
-                padding: 12px;
-                border-radius: 8px;
-                background: #fafafa;
-                border: 1px solid #e0e0e0;
-            }
-
-            /* Celda → fila visual */
-            .medios-collection-wrapper table.table tbody td {
-                display: block;
-                border: none !important;
-                padding: 6px 0;
-            }
-
-            /* ----- Labels generados mediante ::before ----- */
-            .medios-collection-wrapper td[class*="medios-nombre"]::before {
-                content: "Nombre:";
-                font-weight: bold;
-                display: block;
-                margin-bottom: 3px;
-            }
-
-            .medios-collection-wrapper td[class*="medios-titulo"]::before {
-                content: "Título:";
-                font-weight: bold;
-                display: block;
-                margin-bottom: 3px;
-            }
-
-            .medios-collection-wrapper td[class*="medios-enlace"]::before {
-                content: "Enlace:";
-                font-weight: bold;
-                display: block;
-                margin-bottom: 3px;
-            }
-
-            .medios-collection-wrapper td[class*="medios-archivo"]::before {
-                content: "Archivo:";
-                font-weight: bold;
-                display: block;
-                margin-bottom: 3px;
-            }
-
-            .medios-collection-wrapper td[class*="_delete"]::before {
-                content: "Eliminar:";
-                font-weight: bold;
-                display: block;
-                margin-bottom: 3px;
-            }
-
-            /* Mostrar la imagen en grande en móvil */
-            .medios-collection-wrapper td[class*="medios-archivo"] img {
-                max-width: 100%;
-                height: auto;
-                border-radius: 8px;
-                box-shadow: 0 0 4px rgba(0,0,0,.15);
-                margin-top: 4px;
-            }
-
-            /* Handler al final, alineado a la derecha */
-            .medios-collection-wrapper td[class*="medios-prioridad"] {
-                margin-top: 10px;
-                text-align: right;
-            }
-        }
-
-        /* ============================================================
-           4) Extra: highlight al arrastrar
-           ============================================================ */
         .medios-collection-wrapper tr.ui-sortable-helper {
-            box-shadow: 0 4px 10px rgba(0,0,0,0.20);
+            background: #fffceb !important;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
         }
+
 
     </style>
 {% endblock %}

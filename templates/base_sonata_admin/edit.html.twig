@@ -37,19 +37,20 @@
 {% endblock %}
 
 {% block javascripts %}
+
     {{ parent() }}
+
     <script src="{{ asset('/app/ckeditor/ckeditor.js') }}"></script>
 
+    {# Debe ir DESPUÉS de jquery-ui.js y ANTES de tu propio JS #}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+
     <script type="text/javascript">
-
-        document.addEventListener('contextmenu', function (e) {
-            if (e.target.closest('.sonata-ba-sortable-handler')) {
-                e.preventDefault();
-            }
-        });
-
         (function ($) {
 
+            // ============================
+            //  autoFit plugin
+            // ============================
             $.fn.autoFit = function () {
 
                 var methods = {
@@ -66,156 +67,125 @@
                         $this.off("dp.change", methods.fitdatetime).on("dp.change", methods.fitdatetime);
                         return $this;
                     },
-                    fitdatetime: function (event){
+                    fitdatetime: function () {
                         return methods.resizelement.call($(this).find("input").first());
                     },
-                    fit: function (event) {
-                        return methods.resizelement.call($(this))
+                    fit: function () {
+                        return methods.resizelement.call($(this));
                     },
-                    resizelement : function () {
-                        $this = this;
-                        val = $this.val().replace(' ', '-');
+                    resizelement: function () {
+                        var $this = $(this);
+                        var val   = ($this.val() || '').replace(' ', '-');
 
                         var fontSize = $this.css('font-size');
-                        var elemento = $('<span style="font-size: ' + fontSize + '; padding: 0; display: inline-block; position: absolute; ">' + val + '</span>').appendTo('body');
+                        var elemento = $('<span style="font-size: ' + fontSize + '; padding: 0; display: inline-block; position: absolute;">' + val + '</span>').appendTo('body');
 
                         var contentWidth = elemento.outerWidth();
 
-                        $this.width((contentWidth) + 'px');
+                        $this.width(contentWidth + 'px');
 
                         elemento.remove();
                         return $this;
                     }
                 };
 
-                return $(this).each(function (i, element) {
+                return this.each(function (i, element) {
                     methods.init.apply($(element));
                     methods.initdatetime.apply($(element).parent());
                 });
             };
 
+            // ============================
+            //  checkDelete plugin
+            // ============================
             $.fn.checkDelete = function () {
 
-                var methods = {
-                    init: function () {
-                        var $this = $(this);
+                var ejecutando = false;
 
-                        $this.off().on("ifChecked", methods.borrar); //ifcheched no funcion en off
-                        return $this;
-                    },
-                    borrar : function () {
-                        var checkbox = $(this);
-                        var fila = $(this).closest('tr');
-                        var siguienteFila  = fila.next('tr');
-                        var subSiguienteFila  = siguienteFila.next('tr');
-                        var tbody  = fila.closest('tbody');
-                        bootbox.confirm({
-                            message: "¿Estas seguro que quieres eliminar el registro?",
-                            buttons: {
-                                confirm: {
-                                    label: 'Si',
-                                    className: 'btn-danger'
-                                },
-                                cancel: {
-                                    label: 'No',
-                                    className: 'btn-success'
-                                }
-                            },
-                            callback: function (result) {
-                                if (result === true) {
-                                    if (subSiguienteFila.hasClass('splitted2')){
-                                        subSiguienteFila.remove();
-                                    }
-                                    if (siguienteFila.hasClass('splitted')){
-                                        siguienteFila.remove();
-                                    }
-                                    fila.remove();
-                                    tbody.closest('table').trigger('table:rowdeleted');
+                function borrar($checkbox) {
+                    var $fila             = $checkbox.closest('tr');
+                    var $siguienteFila    = $fila.next('tr');
+                    var $subSiguienteFila = $siguienteFila.next('tr');
+                    var $tbody            = $fila.closest('tbody');
 
-                                    if(tbody.children('tr').length === 0){
-                                        tbody.closest('table').remove();
-                                    }
-                                }else{
-                                    checkbox.iCheck('uncheck');
+                    bootbox.confirm({
+                        message: "¿Estas seguro que quieres eliminar el registro?",
+                        buttons: {
+                            confirm: { label: 'Si', className: 'btn-danger' },
+                            cancel:  { label: 'No', className: 'btn-success' }
+                        },
+                        callback: function (result) {
+                            if (result === true) {
+                                if ($subSiguienteFila.hasClass('splitted2')) $subSiguienteFila.remove();
+                                if ($siguienteFila.hasClass('splitted'))   $siguienteFila.remove();
+
+                                $fila.remove();
+                                $tbody.closest('table').trigger('table:rowdeleted');
+
+                                if ($tbody.children('tr').length === 0) {
+                                    $tbody.closest('table').remove();
                                 }
+                            } else {
+                                $checkbox.iCheck('uncheck');
                             }
-                        });
-                        return $(this);
-                    }
-                };
+                        }
+                    });
+                }
 
-                return $(this).each(function (i, element) {
-                    methods.init.apply($(element));
+                function init($checkbox) {
+                    // Limpiar eventos anteriores solo con este namespace
+                    $checkbox.off('ifChecked.checkDelete ifUnchecked.checkDelete');
+
+                    // Disparado solo una vez por interacción
+                    $checkbox.on('ifChecked.checkDelete', function () {
+                        if (ejecutando) return;
+                        ejecutando = true;
+
+                        borrar($(this));
+
+                        // liberar bloqueo después de un breve tiempo
+                        setTimeout(function () {
+                            ejecutando = false;
+                        }, 300);
+                    });
+                }
+
+                return this.each(function () {
+                    init($(this));
                 });
             };
 
-        })( jQuery );
+            // ============================
+            //  Fix sortable de "medios"
+            // ============================
+            function fixMediosSortable(context) {
+                var $scope = context ? $(context) : $(document);
 
-        const editors = new Map();
+                $scope
+                    .find('.medios-collection-wrapper tbody.sonata-ba-tbody')
+                    .each(function () {
+                        var $tbody = $(this);
 
-        $(document).on('sonata.add_element', function() {
-            //$('table input.form-control').not('.fechahora, .fecha').autoFit();
-            //$('table textarea.form-control').autoFit();
-            $('input.readonly').attr('readonly', 'readonly');
-            $('input.disabled').attr('disabled', 'disabled');
-            $('input.paralelo').closest('tr').addClass('paralelo');
-
-            $("[id$='_delete']").checkDelete();
-
-            $('.ckeditor').each(function() {
-                if(!$(this).hasClass('ckrendered')){
-                    ClassicEditor.create(this, {
-                        toolbar: {
-                            shouldNotGroupWhenFull: true
-                        },
-                        htmlSupport: {
-                            allow: [
-                                // permite cualquier clase/atributo/estilo en <img>
-                                { name: 'img', classes: true, attributes: true, styles: true }
-                            ]
-                        },
-                        ui: {
-                            viewportOffset: { top: 30 } // ← alto de tu header fijo (ajusta a tu layout)
+                        if (!$tbody.data('medios-sortable-fixed')) {
+                            // Asegurar que exista sortable (lo crea el script de Sonata)
+                            if ($tbody.data('ui-sortable')) {
+                                // que solo arrastre desde el handler
+                                $tbody.sortable('option', 'handle', '.sonata-ba-sortable-handler');
+                                // pequeño delay para no enganchar con cualquier toque
+                                $tbody.sortable('option', 'delay', 120);
+                                $tbody.data('medios-sortable-fixed', true);
+                            }
                         }
-                    }).then(editor => {
-                        editors.set(editor.id, editor);
-                    }).catch( error => {
-                        //console.error( error );
                     });
+            }
 
-                    $(this).addClass('ckrendered');
-                }
-            });
+            // ============================
+            //  CKEditor helpers
+            // ============================
+            const editors = new Map();
 
-            $('.ckeditorread').each(function() {
-                if(!$(this).hasClass('ckrendered')){
-                    ClassicEditor.create(this, {
-                        toolbar: {
-                            shouldNotGroupWhenFull: true
-                        },
-                        readOnly: true
-                    }).then(editor => {
-                        editor.enableReadOnlyMode('my-feature-id') // make the editor read-only right after initialization
-                    }).catch( error => {
-                        //console.error( error );
-                    });
-
-                    $(this).addClass('ckrendered');
-                }
-            });
-        });
-
-        $(document).ready(function() {
-
-            $("[id$='_delete']").checkDelete();
-            //$('table input.form-control').not('.fechahora, .fecha').autoFit();
-            //$('table textarea.form-control').autoFit();
-            $('input.readonly').attr('readonly', 'readonly');
-            $('input.disabled').attr('disabled', 'disabled');
-            $('input.paralelo').closest('tr').addClass('paralelo');
-
-            $('.ckeditor').each(function (index, value) {
-                ClassicEditor.create(this, {
+            function getCkeditorConfigBase() {
+                return {
                     toolbar: {
                         shouldNotGroupWhenFull: true
                     },
@@ -228,34 +198,97 @@
                     ui: {
                         viewportOffset: { top: 30 } // ← alto de tu header fijo (ajusta a tu layout)
                     }
-                }).then(editor => {
-                    editors.set( editor.id, editor );
-                }).catch( error => {
-                    //console.error( error );
-                });
-                $(this).addClass('ckrendered');
-            });
+                };
+            }
 
-            $('.ckeditorread').each(function (index, value) {
-                ClassicEditor.create(this, {
-                    toolbar: {
-                        shouldNotGroupWhenFull: true
+            function initCkEditors(scope) {
+                var $scope = scope ? $(scope) : $(document);
+
+                // Editables
+                $scope.find('.ckeditor').each(function () {
+                    var $textarea = $(this);
+                    if ($textarea.hasClass('ckrendered')) {
+                        return;
                     }
-                }).then(editor => {
-                    editor.enableReadOnlyMode('my-feature-id') // make the editor read-only right after initialization
-                }).catch( error => {
-                    //console.error( error );
+
+                    var config = getCkeditorConfigBase();
+
+                    ClassicEditor.create(this, config).then(editor => {
+                        editors.set(editor.id, editor);
+                    }).catch(error => {
+                        //console.error(error);
+                    });
+
+                    $textarea.addClass('ckrendered');
                 });
 
-                $(this).addClass('ckrendered');
-            });
-        });
+                // Solo lectura
+                $scope.find('.ckeditorread').each(function () {
+                    var $textarea = $(this);
+                    if ($textarea.hasClass('ckrendered')) {
+                        return;
+                    }
 
-        (function () {
-            // Delegación: captura cambios en cualquier input[file] con data-preview-img
+                    var configReadOnly = getCkeditorConfigBase();
+                    configReadOnly.readOnly = true;
+
+                    ClassicEditor.create(this, configReadOnly).then(editor => {
+                        editor.enableReadOnlyMode('my-feature-id');
+                    }).catch(error => {
+                        //console.error(error);
+                    });
+
+                    $textarea.addClass('ckrendered');
+                });
+            }
+
+            // ============================
+            //  Inicialización común de formularios
+            // ============================
+            function initFormEnhancements(scope) {
+                var $scope = scope ? $(scope) : $(document);
+
+                $scope.find("[id$='_delete']").checkDelete();
+
+                //$scope.find('table input.form-control').not('.fechahora, .fecha').autoFit();
+                //$scope.find('table textarea.form-control').autoFit();
+
+                $scope.find('input.readonly').attr('readonly', 'readonly');
+                $scope.find('input.disabled').attr('disabled', 'disabled');
+                $scope.find('input.paralelo').closest('tr').addClass('paralelo');
+
+                initCkEditors($scope);
+            }
+
+            // ============================
+            //  LISTENERS NATIVOS
+            // ============================
+
+            // Cuando el DOM está listo
+            document.addEventListener('DOMContentLoaded', function () {
+                initFormEnhancements(document);
+                fixMediosSortable();
+            });
+
+            // Cuando Sonata añade un nuevo elemento dinámico
+            document.addEventListener('sonata.add_element', function (ev) {
+                var target = ev.target || document;
+                initFormEnhancements(target);
+                fixMediosSortable(target);
+            });
+
+            // Bloquear menú contextual solo en el handler de sortable
+            document.addEventListener('contextmenu', function (ev) {
+                if (ev.target && ev.target.closest && ev.target.closest('.sonata-ba-sortable-handler')) {
+                    ev.preventDefault();
+                }
+            });
+
+            // Preview de imagen para input[type=file] con data-preview-img
             document.addEventListener('change', function (ev) {
                 var input = ev.target;
                 if (!input || input.type !== 'file') return;
+
                 var targetId = input.getAttribute('data-preview-img');
                 if (!targetId) return;
 
@@ -264,19 +297,27 @@
 
                 if (input.files && input.files[0]) {
                     var file = input.files[0];
-                    var url = URL.createObjectURL(file);
-                    img.src = url;
+                    var url  = URL.createObjectURL(file);
+                    img.src  = url;
                     img.style.display = 'inline-block';
-                    img.onload = function () { URL.revokeObjectURL(url); };
+                    img.onload = function () {
+                        URL.revokeObjectURL(url);
+                    };
                 } else {
                     // Limpia si el usuario borra la selección
                     img.removeAttribute('src');
                     img.style.display = 'none';
                 }
-            }, false);
-        })();
+            });
 
+            // (Opcional) Exponer helpers por si los quieres usar desde otros scripts
+            window.initFormEnhancements = initFormEnhancements;
+            window.fixMediosSortable    = fixMediosSortable;
+            window.ckEditorsMap         = editors;
+
+        })(jQuery);
     </script>
 
 {% endblock %}
+
 

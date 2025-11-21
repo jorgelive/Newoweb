@@ -145,7 +145,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
             ? sprintf(
                 '<a href="%1$s" target="_blank" rel="noopener">
             <img id="%2$s" src="%1$s" alt="Vista previa" style="max-width:200px;max-height:200px;object-fit:cover;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,.15);" />
-           </a><br/><small>Al subir un nuevo archivo, se reemplaza.</small>',
+           </a><br/><small>No hay imagen.</small>',
                 htmlspecialchars((string) $thumbUrl, ENT_QUOTES),
                 htmlspecialchars($imgId, ENT_QUOTES)
             )
@@ -156,6 +156,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
             );
 
         $form
+            ->add('prioridad')
             ->add('nombre')
             ->add('titulo', null, ['label' => 'Título'])
             ->add('archivo', FileType::class, [
@@ -166,26 +167,25 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                 'attr'      => ['data-preview-img' => $imgId],
             ])
             ->add('enlace')
-            ->add('prioridad')
         ;
 
         $widthModifier = function (FormInterface $form) {
             $form
                 ->add('nombre', null, [
                     'label' => 'Nombre',
-                    'attr'  => ['style' => 'min-width: 150px;'],
+                    'attr'  => ['style' => 'min-width: 120px;'],
                 ])
                 ->add('titulo', null, [
                     'label' => 'Título',
-                    'attr'  => ['style' => 'min-width: 150px;'],
+                    'attr'  => ['style' => 'min-width: 120px;'],
                 ])
                 ->add('enlace', null, [
                     'label' => 'Enlace',
-                    'attr'  => ['style' => 'min-width: 250px;'],
+                    'attr'  => ['style' => 'min-width: 150px;'],
                 ])
                 ->add('prioridad', null, [
                     'label' => 'Prioridad',
-                    'attr'  => ['style' => 'width: 70px;'],
+                    'attr'  => ['style' => 'width: 50px;'],
                 ]);
         };
 
