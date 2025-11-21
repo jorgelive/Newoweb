@@ -56,7 +56,7 @@ class ReservaUnitcaracteristica
         orphanRemoval: true
     )]
     // Quita OrderBy si ya no existe 'prioridad'
-        // #[ORM\OrderBy(['prioridad' => 'ASC'])]
+    #[ORM\OrderBy(['prioridad' => 'ASC'])]
     private Collection $medios;
 
     #[ORM\OneToMany(
