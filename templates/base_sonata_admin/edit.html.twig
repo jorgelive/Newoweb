@@ -49,56 +49,56 @@
         (function ($) {
 
             // ============================
-            //  autoFit plugin
+            //  autoFit plugin (delegación)
             // ============================
-            $.fn.autoFit = function () {
+            (function () {
+                // Helper compartido
+                function resizeElement($el) {
+                    var val = ($el.val() || '').replace(' ', '-');
+                    var fontSize = $el.css('font-size');
 
-                var methods = {
-                    init: function () {
-                        var $this = $(this);
+                    var elemento = $('<span style="font-size: ' + fontSize + '; padding: 0; display: inline-block; position: absolute; visibility:hidden;">' + val + '</span>').appendTo('body');
+                    var contentWidth = elemento.outerWidth();
+                    elemento.remove();
 
-                        $this.off("input", methods.fit).on("input", methods.fit);
-                        //methods.fit.call(this, null);
-                        return $this;
-                    },
-                    initdatetime: function () {
-                        var $this = $(this);
+                    $el.width(contentWidth + 'px');
+                }
 
-                        $this.off("dp.change", methods.fitdatetime).on("dp.change", methods.fitdatetime);
-                        return $this;
-                    },
-                    fitdatetime: function () {
-                        return methods.resizelement.call($(this).find("input").first());
-                    },
-                    fit: function () {
-                        return methods.resizelement.call($(this));
-                    },
-                    resizelement: function () {
-                        var $this = $(this);
-                        var val   = ($this.val() || '').replace(' ', '-');
-
-                        var fontSize = $this.css('font-size');
-                        var elemento = $('<span style="font-size: ' + fontSize + '; padding: 0; display: inline-block; position: absolute;">' + val + '</span>').appendTo('body');
-
-                        var contentWidth = elemento.outerWidth();
-
-                        $this.width(contentWidth + 'px');
-
-                        elemento.remove();
-                        return $this;
-                    }
-                };
-
-                return this.each(function (i, element) {
-                    methods.init.apply($(element));
-                    methods.initdatetime.apply($(element).parent());
+                // Listener delegado para inputs/textarea marcados con autoFit
+                $(document).on('input', '.js-autofit', function () {
+                    resizeElement($(this));
                 });
-            };
+
+                // Listener delegado para contenedores datetime marcados
+                $(document).on('dp.change', '.js-autofit-datetime', function () {
+                    var $input = $(this).find('input').first();
+                    if ($input.length) {
+                        resizeElement($input);
+                    }
+                });
+
+                $.fn.autoFit = function () {
+                    return this.each(function () {
+                        var $this = $(this);
+
+                        // Marca el elemento para que el listener delegado lo atienda
+                        if (!$this.hasClass('js-autofit')) {
+                            $this.addClass('js-autofit');
+                        }
+
+                        // Marca el padre para eventos de dp.change
+                        var $parent = $this.parent();
+                        if ($parent.length && !$parent.hasClass('js-autofit-datetime')) {
+                            $parent.addClass('js-autofit-datetime');
+                        }
+                    });
+                };
+            })();
 
             // ============================
-            //  checkDelete plugin
+            //  checkDelete plugin (delegación)
             // ============================
-            $.fn.checkDelete = function () {
+            (function () {
 
                 var ejecutando = false;
 
@@ -126,34 +126,45 @@
                                     $tbody.closest('table').remove();
                                 }
                             } else {
-                                $checkbox.iCheck('uncheck');
+                                // Revertir el check
+                                if (typeof $checkbox.iCheck === 'function') {
+                                    $checkbox.iCheck('uncheck');
+                                } else {
+                                    $checkbox.prop('checked', false).trigger('change');
+                                }
                             }
                         }
                     });
                 }
 
-                function init($checkbox) {
-                    // Limpiar eventos anteriores solo con este namespace
-                    $checkbox.off('ifChecked.checkDelete ifUnchecked.checkDelete');
+                // Listener delegado: sirve para inputs existentes y nuevos
+                function bindDelegatedHandler() {
+                    if ($.fn.checkDelete._bound) return;
+                    $.fn.checkDelete._bound = true;
 
-                    // Disparado solo una vez por interacción
-                    $checkbox.on('ifChecked.checkDelete', function () {
+                    // Soporta iCheck (ifChecked) y también change nativo
+                    $(document).on('ifChecked.checkDelete change.checkDelete', "[id$='_delete']", function (e) {
+                        // si es change y está desmarcado, no hacemos nada
+                        if (e.type === 'change' && !this.checked) return;
+
                         if (ejecutando) return;
                         ejecutando = true;
 
                         borrar($(this));
 
-                        // liberar bloqueo después de un breve tiempo
                         setTimeout(function () {
                             ejecutando = false;
                         }, 300);
                     });
                 }
 
-                return this.each(function () {
-                    init($(this));
-                });
-            };
+                $.fn.checkDelete = function () {
+                    // El plugin ahora solo asegura que el handler delegado esté activo
+                    bindDelegatedHandler();
+                    return this;
+                };
+
+            })();
 
             // ============================
             //  Fix sortable de "medios"
@@ -167,11 +178,8 @@
                         var $tbody = $(this);
 
                         if (!$tbody.data('medios-sortable-fixed')) {
-                            // Asegurar que exista sortable (lo crea el script de Sonata)
                             if ($tbody.data('ui-sortable')) {
-                                // que solo arrastre desde el handler
                                 $tbody.sortable('option', 'handle', '.sonata-ba-sortable-handler');
-                                // pequeño delay para no enganchar con cualquier toque
                                 $tbody.sortable('option', 'delay', 120);
                                 $tbody.data('medios-sortable-fixed', true);
                             }
@@ -191,12 +199,11 @@
                     },
                     htmlSupport: {
                         allow: [
-                            // permite cualquier clase/atributo/estilo en <img>
                             { name: 'img', classes: true, attributes: true, styles: true }
                         ]
                     },
                     ui: {
-                        viewportOffset: { top: 30 } // ← alto de tu header fijo (ajusta a tu layout)
+                        viewportOffset: { top: 30 }
                     }
                 };
             }
@@ -248,10 +255,12 @@
             function initFormEnhancements(scope) {
                 var $scope = scope ? $(scope) : $(document);
 
+                // Activa el handler delegado de checkDelete
                 $scope.find("[id$='_delete']").checkDelete();
 
-                //$scope.find('table input.form-control').not('.fechahora, .fecha').autoFit();
-                //$scope.find('table textarea.form-control').autoFit();
+                // Si quieres reactivar autoFit, descomenta esto:
+                // $scope.find('table input.form-control').not('.fechahora, .fecha').autoFit();
+                // $scope.find('table textarea.form-control').autoFit();
 
                 $scope.find('input.readonly').attr('readonly', 'readonly');
                 $scope.find('input.disabled').attr('disabled', 'disabled');
@@ -261,30 +270,28 @@
             }
 
             // ============================
-            //  LISTENERS NATIVOS
+            //  LISTENERS NATIVOS (delegación)
             // ============================
 
-            // Cuando el DOM está listo
             document.addEventListener('DOMContentLoaded', function () {
                 initFormEnhancements(document);
                 fixMediosSortable();
             });
 
-            // Cuando Sonata añade un nuevo elemento dinámico
             document.addEventListener('sonata.add_element', function (ev) {
                 var target = ev.target || document;
                 initFormEnhancements(target);
                 fixMediosSortable(target);
             });
 
-            // Bloquear menú contextual solo en el handler de sortable
+            // Bloquear menú contextual solo en el handler de sortable (delegado)
             document.addEventListener('contextmenu', function (ev) {
                 if (ev.target && ev.target.closest && ev.target.closest('.sonata-ba-sortable-handler')) {
                     ev.preventDefault();
                 }
             });
 
-            // Preview de imagen para input[type=file] con data-preview-img
+            // Preview de imagen para input[type=file] con data-preview-img (delegado)
             document.addEventListener('change', function (ev) {
                 var input = ev.target;
                 if (!input || input.type !== 'file') return;
@@ -304,19 +311,19 @@
                         URL.revokeObjectURL(url);
                     };
                 } else {
-                    // Limpia si el usuario borra la selección
                     img.removeAttribute('src');
                     img.style.display = 'none';
                 }
             });
 
-            // (Opcional) Exponer helpers por si los quieres usar desde otros scripts
+            // Exponer helpers globales
             window.initFormEnhancements = initFormEnhancements;
             window.fixMediosSortable    = fixMediosSortable;
             window.ckEditorsMap         = editors;
 
         })(jQuery);
     </script>
+
 
 {% endblock %}
 

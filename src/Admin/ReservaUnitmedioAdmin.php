@@ -145,13 +145,13 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
             ? sprintf(
                 '<a href="%1$s" target="_blank" rel="noopener">
             <img id="%2$s" src="%1$s" alt="Vista previa" style="max-width:180px;max-height:180px;object-fit:cover;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,.15);" />
-           </a><br/><small>No hay imagen.</small>',
+           </a><br/><small>Se reemplaza al subir.</small>',
                 htmlspecialchars((string) $thumbUrl, ENT_QUOTES),
                 htmlspecialchars($imgId, ENT_QUOTES)
             )
             : sprintf(
                 '<img id="%1$s" src="" alt="Vista previa" style="display:none;max-width:180px;max-height:180px;object-fit:cover;border-radius:6px;box-shadow:0 0 4px rgba(0,0,0,.15);" />
-         <br/><small>No hay archivo cargado aún.</small>',
+         <br/><small>No imagen aún.</small>',
                 htmlspecialchars($imgId, ENT_QUOTES)
             );
 

@@ -12,126 +12,116 @@
     {{ parent() }}
 
     <script type="text/javascript">
+        (function (window, document, $) {
+            'use strict';
 
-        (function ($) {
+            var FORMAT = 'YYYY/MM/DD HH:mm';
 
-            $.fn.cambiovalor = function () {
+            function isInicioInput(input) {
+                if (!input || input.tagName !== 'INPUT') return false;
+                return /\[fechahorainicio\]$/.test(input.name || '');
+            }
 
-                var methods = {
-                    init: function () {
-                        var $this = $(this);
-                        //console.log('Llamado a actualizarFechaHora.methods.init en: ' + $(this).attr("id"));
+            function getBaseName(name) {
+                return name.replace(/\[fechahorainicio\]$/g, '');
+            }
 
-                        if($this.attr('methodActualizarFechaHoraActualizar') === 'true'){
-                            //console.log('On change no necesario: ' + $(this).attr("id"));
-                            return $this;
-                        }else{
-                            //console.log('Seteando valor, methodActualizarFechaHoraActualizar variable: ' + $this.attr('methodActualizarFechaHoraActualizar') + ' en :' + $(this).attr("id"));
-                            $this.attr('methodActualizarFechaHoraActualizar', 'true');
-                            $this.off("input.fechahora").on("input.fechahora", methods.actualizar);
-                            $this.off("focus.fechahora").on("focus.fechahora", methods.savecurrent);
-                            return $this;
-                        }
-                    },
-                    initdatetime: function () {
-                        var $this = $(this);
-                        //console.log('Llamado a actualizarFechaHora.methods.initdatetime en: ' + $(this).attr("id"));
+            function getFinInput(baseName) {
+                var finName = baseName + '[fechahorafin]';
+                return document.querySelector('input[name="' + finName + '"]');
+            }
 
-                        if($this.attr('methodActualizarFechaHoraActualizardatetime') === 'true'){
-                            //console.log('On change no necesario: ' + $(this).attr("id"));
-                            return $this;
-                        }else{
-                            //console.log('Seteando valor, methodActualizarFechaHoraActualizardatetime variable: ' + $this.attr('methodActualizarFechaHoraActualizardatetime') + ' en :' + $(this).attr("id"));
-                            $this.attr('methodActualizarFechaHoraActualizardatetime', 'true');
-                            $this.off("dp.show.fechahora").on("dp.show.fechahora", methods.focusdatetime);
-                            $this.off("dp.change.fechahora").on("dp.change.fechahora", methods.actualizardatetime);
-                            return $this;
-                        }
-                    },
-                    focusdatetime: function (event){
-                        console.log('Llamado a actualizarFechaHora.methods.focusdatetime');
-                        return $(this).find("input").first().trigger("focus");
-                    },
-                    savecurrent: function (event){
-                        console.log('Llamado a actualizarFechaHora.methods.savecurrent');
-                        $(this).attr('oldvalforfin', $(this).val());
-                        $(this).attr('oldvalforcomponentes', $(this).val());
-                    },
-                    actualizardatetime: function (event){
-                        console.log('Llamado a actualizarFechaHora.methods.actualizardatetime');
-                        return methods.seleccion.call($(this).find("input").first(), true);
-                    },
-                    actualizar: function (event) {
+            function parseMoment(value) {
+                var m = moment((value || '').trim(), FORMAT, true);
+                return m.isValid() ? m : null;
+            }
 
-                        var $this = $(this);
+            function actualizarFin(inicioInput, fromDatepicker) {
+                if (!isInicioInput(inicioInput)) return null;
 
-                        console.log('Llamado a actualizarFechaHora.methods.actualizar');
-                        return methods.seleccion.call($this, false)
-                    },
-                    seleccion: function (deBoton) {
-                        console.log('Llamado a actualizarFechaHora.methods.seleccion var deBoton:' + deBoton);
+                var name = inicioInput.name || '';
+                var baseName = getBaseName(name);
 
-                        var inicio;
-                        var basestr;
+                var inicioMoment = parseMoment(inicioInput.value);
+                if (!inicioMoment) return null;
 
-                        if (/\[fechahorainicio\]$/g.test($(this).attr("name"))) {
-                            console.log('Coincidencia con fechahorainicio');
-                            basestr = $(this).attr("name").replace( /\[fechahorainicio\]$/g, '');
-                            inicio = $(this).val();
-                            return methods.cambiarfechafin.call($(this), basestr, inicio)
-                        }
-                    },
-                    cambiarfechafin: function (basestr, inicio) {
-                        console.log('Llamado a actualizarFechaHora.methods.cambiarfechafin');
+                var oldMoment = parseMoment(inicioInput.dataset.oldValForFin || '');
+                var finInput = getFinInput(baseName);
+                if (!finInput) return null;
 
-                        var selector = $(this);
-                        var timestampselector = Date.parse(selector.val());
+                var finMoment = parseMoment(finInput.value);
+                var newFinMoment;
 
-                        if(selector.val().length !== 16 || isNaN(timestampselector) ){
-                            return;
-                        }
+                if (!oldMoment || !finMoment) {
+                    newFinMoment = inicioMoment.clone().add(20, 'hours');
+                } else {
+                    var diff = inicioMoment.diff(oldMoment);
+                    newFinMoment = finMoment.clone().add(diff, 'ms');
+                }
 
-                        var newdatetime = new Date(selector.val());
-                        var olddatetime = new Date(selector.attr('oldvalforfin'));
+                finInput.value = newFinMoment.format(FORMAT);
+                finInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-                        var diffDate = (newdatetime - olddatetime);
+                inicioInput.dataset.oldValForFin = inicioInput.value;
 
-                        var cadenaFin = (basestr + '[fechahorafin]');
-                        var fin = $('input[name=' + cadenaFin.replace(/\[/g, '\\\[').replace(/\]/g, '\\\]') + ']');
-
-
-                        var timestampfin = Date.parse(fin.val());
-                        var newFechaHoraFin;
-
-                        if(isNaN(diffDate) === true || isNaN(timestampfin)){
-                            newFechaHoraFin = moment(inicio,'YYYY/MM/DD HH:mm').add(20, 'hours').format('YYYY/MM/DD HH:mm');
-                            console.log('Cambiando la fechahorafin de acuerdo a la duración');
-                            fin.val(newFechaHoraFin).trigger('change');
-                        }else{
-                            newFechaHoraFin = new Date(new Date(fin.val()).getTime() + diffDate);
-                            console.log('Cambiando la fechahorafin de acuerdo la fecha anterior');
-                            fin.val(moment(newFechaHoraFin).format('YYYY/MM/DD HH:mm')).trigger('change');
-                        }
-                        //actualizamos por la doble ejecucion
-                        console.log('Actualizamos el valor de oldvarforfin a ' + selector.val());
-                        selector.attr('oldvalforfin', selector.val());
-                    }
+                return {
+                    finInput,
+                    finName: baseName + '[fechahorafin]'
                 };
+            }
 
-                return $(this).each(function (i, element) {
-                    methods.init.apply($(element));
-                    methods.initdatetime.apply($(element).parent());
-                });
-            };
-        })(jQuery);
-
-        $(document).ready(function(){
-            $('input').cambiovalor();
-
-            $('body').on('sonata.add_element', function() {
-                $('input').cambiovalor();
+            // Guardar valor previo
+            document.addEventListener('focusin', e => {
+                var target = e.target;
+                if (isInicioInput(target)) {
+                    target.dataset.oldValForFin = target.value || '';
+                }
             });
-        });
+
+            // Escritura manual
+            document.addEventListener('input', e => {
+                var target = e.target;
+                if (isInicioInput(target)) {
+                    actualizarFin(target, false);
+                }
+            });
+
+            // DateTimePicker
+            if ($ && $.fn && $.fn.datetimepicker) {
+
+                $(document).on('dp.show', function (e) {
+                    $(e.target).find('input').first().trigger('focus');
+                });
+
+                $(document).on('dp.change', function (e) {
+                    var input = $(e.target).find('input').get(0);
+                    if (!isInicioInput(input)) return;
+
+                    // 1. Actualizamos
+                    var result = actualizarFin(input, true);
+                    if (!result) return;
+
+                    var finInput = result.finInput;
+                    var finName  = result.finName;
+
+                    // 2. Cerramos picker de inicio
+                    var dtpInicio = $(e.target).data('DateTimePicker');
+                    if (dtpInicio && dtpInicio.hide) dtpInicio.hide();
+
+                    // 3. Seleccionamos datepicker de fin usando EXACTAMENTE el finName
+                    var $pickerFin = $('input[name="' + finName + '"]')
+                        .closest('.input-group.date, .datetimepicker, .date');
+
+                    var dtpFin = $pickerFin.data('DateTimePicker');
+                    if (dtpFin && dtpFin.show) dtpFin.show();
+
+                    // 4. Focus + seleccionar contenido
+                    finInput.focus();
+                    finInput.select();
+                });
+            }
+
+        })(window, document, jQuery);
     </script>
 
 {% endblock %}

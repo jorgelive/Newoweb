@@ -382,7 +382,7 @@ class ReservaReservaAdmin extends AbstractAdmin
 
             ->add('detalles', CollectionType::class, [
                 'by_reference' => false,
-                'label' => 'Detalles'
+                'label' => 'Personal y Labores'
             ], [
                 'edit' => 'inline',
                 'inline' => 'table'
