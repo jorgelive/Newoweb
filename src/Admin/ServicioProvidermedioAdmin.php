@@ -42,7 +42,7 @@ class ServicioProvidermedioAdmin extends AbstractAdmin
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
-        $buttonList['carga'] = ['template' => 'servicio_providermedio_admin/carga_button.html.twig'];
+        $buttonList['carga'] = ['template' => 'admin/servicio_providermedio/carga_button.html.twig'];
 
         return $buttonList;
     }
@@ -72,7 +72,7 @@ class ServicioProvidermedioAdmin extends AbstractAdmin
             ])
             ->add('webThumbPath', 'string', [
                     'label' => 'Archivo',
-                    'template' => 'base_sonata_admin/list_image.html.twig'
+                    'template' => 'admin/base_sonata/list_image.html.twig'
                 ]
             )
             ->add('nombre', null, [
@@ -93,7 +93,7 @@ class ServicioProvidermedioAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'traducir' => [
-                        'template' => 'servicio_providermedio_admin/list__action_traducir.html.twig'
+                        'template' => 'admin/servicio_providermedio/list__action_traducir.html.twig'
                     ]
                 ]
             ])
@@ -168,7 +168,7 @@ class ServicioProvidermedioAdmin extends AbstractAdmin
             ])
             ->add('webThumbPath', null, [
                     'label' => 'Archivo',
-                    'template' => 'base_sonata_admin/show_image.html.twig'
+                    'template' => 'admin/base_sonata/show_image.html.twig'
                 ]
             )
             ->add('enlace')

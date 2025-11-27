@@ -27,7 +27,7 @@ class ServicioItinerarioAdmin extends AbstractAdmin
     public function configure(): void
     {
         $this->classnameLabel = "Itinerario";
-        $this->setFormTheme([0 => 'servicio_itinerario_admin/form_admin_fields.html.twig']);
+        $this->setFormTheme([0 => 'admin/servicio_itinerario/form_admin_fields.html.twig']);
     }
 
     /**
@@ -87,7 +87,7 @@ class ServicioItinerarioAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'clonar' => [
-                        'template' => 'servicio_itinerario_admin/list__action_clonar.html.twig'
+                        'template' => 'servicio_itinerario/list__action_clonar.html.twig'
                     ]
                 ]
             ])

@@ -1,0 +1,70 @@
+{% extends 'admin/base_sonata/edit.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script type="text/javascript">
+
+        (function ($) {
+
+            $.fn.ingresoegreso = function () {
+
+                var methods = {
+                    init: function () {
+                        var $this = $(this);
+                        if($('#resumen').length === 0) {
+                            $this.prepend('<div id="resumen"><table class="table table-bordered"><thead><tr><th>Ingreso</th><th>Egreso</th><th>Balance</th></tr></thead><tbody class="sonata-ba-tbody"><tr><td class="valoringreso">0.00</td><td class="valoregreso">0.00</td><td class="valorbalance">0.00</td></tr></tbody></table></div>');
+                        }
+                        methods.procesar.call($this, event);
+                        return $this;
+                    },
+                    procesar: function (event) {
+                        var totalIngreso = 0;
+                        var totalEgreso = 0;
+                        var balance = 0;
+                        this.find(".ingresoinput").each(function(index) {
+                            var temp = parseFloat($(this).val());
+                            if (!isNaN(temp)) {
+                                totalIngreso += temp;
+                            }
+                        });
+                        this.find(".egresoinput").each(function(index) {
+                            //totalEgreso += parseFloat($(this).val());
+                            var temp = parseFloat($(this).val());
+                            if (!isNaN(temp)) {
+                                totalEgreso += temp;
+                            }
+                        });
+
+                        balance = totalIngreso - totalEgreso;
+
+                        $('.valoringreso').text(totalIngreso.toFixed(2));
+                        $('.valoregreso').text(totalEgreso.toFixed(2));
+                        $('.valorbalance').text(balance.toFixed(2));
+                    }
+                };
+
+                return $(this).each(function (i, element) {
+                    methods.init.apply($(element));
+                });
+            };
+
+        })(jQuery);
+
+        $(document).ready(function(){
+            $('#field_container_{{ admin.uniqid }}_movimientos').ingresoegreso();
+            $('body').on('sonata.add_element', function() {
+                $('#field_container_{{ admin.uniqid }}_movimientos').ingresoegreso();
+            });
+        });
+
+    </script>
+
+{% endblock %}
+
+

@@ -36,7 +36,7 @@ class CotizacionCotnotaAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('titulo')
             ->add('contenido', null, [
-                'template' => 'base_sonata_admin/list_html.html.twig',
+                'template' => 'admin/base_sonata/list_html.html.twig',
                 'header_class' => 'col-long-text'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
@@ -46,7 +46,7 @@ class CotizacionCotnotaAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'traducir' => [
-                        'template' => 'cotizacion_cotnota_admin/list__action_traducir.html.twig'
+                        'template' => 'admin/cotizacion_cotnotalist__action_traducir.html.twig'
                     ]
                 ],
             ])

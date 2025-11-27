@@ -29,7 +29,7 @@ class MaestroMedioAdmin extends AbstractAdmin
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
-        $buttonList['carga'] = ['template' => 'maestro_medio_admin/carga_button.html.twig'];
+        $buttonList['carga'] = ['template' => 'admin/maestro_medio/carga_button.html.twig'];
 
         return $buttonList;
     }
@@ -60,7 +60,7 @@ class MaestroMedioAdmin extends AbstractAdmin
             )
             ->add('webThumbPath', 'string', [
                     'label' => 'Archivo',
-                    'template' => 'base_sonata_admin/list_image.html.twig'
+                    'template' => 'admin/base_sonata/list_image.html.twig'
                 ]
             )
             ->add('nombre', null, [
@@ -74,13 +74,13 @@ class MaestroMedioAdmin extends AbstractAdmin
                 'label' => 'Acciones',
                 'actions' => [
                     'copiar_url' => [
-                        'template' => 'maestro_medio_admin/list__action_url_clipboard.html.twig',
+                        'template' => 'admin/maestro_medio/list__action_url_clipboard.html.twig',
                     ],
                     'show' => [],
                     'edit' => [],
                     'delete' => [],
                     'traducir' => [
-                        'template' => 'maestro_medio_admin/list__action_traducir.html.twig',
+                        'template' => 'admin/maestro_medio/list__action_traducir.html.twig',
                     ],
                 ],
             ])
@@ -112,7 +112,7 @@ class MaestroMedioAdmin extends AbstractAdmin
             ->add('id')
             ->add('webThumbPath', null, [
                     'label' => 'Archivo',
-                    'template' => 'base_sonata_admin/show_image.html.twig'
+                    'template' => 'admin/base_sonata/show_image.html.twig'
                 ]
             )
             ->add('enlace')

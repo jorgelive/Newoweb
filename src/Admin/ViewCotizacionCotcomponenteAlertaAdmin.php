@@ -128,7 +128,7 @@ class ViewCotizacionCotcomponenteAlertaAdmin extends AbstractAdmin
                 'label' => 'Acciones',
                 'actions' => [
                     'show_componente' => [
-                        'template' => 'view_cotizacion_cotcomponente_alerta_admin\list__action_show_componente.html.twig'
+                        'template' => 'view_cotizacion_cotcomponente_alerta\list__action_show_componente.html.twig'
                     ],
                 ],
             ])

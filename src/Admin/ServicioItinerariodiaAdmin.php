@@ -76,7 +76,7 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
 
         $listMapper->add('importante')
             ->add('contenido', null, [
-                'template' => 'base_sonata_admin/list_html.html.twig',
+                'template' => 'admin/base_sonata/list_html.html.twig',
                 'header_class' => 'col-long-text'
             ]);
 
@@ -85,7 +85,7 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
             $listMapper
                 ->add('contenidooriginal', null, [
                     'label' => 'Contenido original',
-                    'template' => 'base_sonata_admin/list_html.html.twig',
+                    'template' => 'admin/base_sonata/list_html.html.twig',
                     'header_class' => 'col-long-text'
                 ]);
         }
@@ -102,7 +102,7 @@ class ServicioItinerariodiaAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'traducir' => [
-                        'template' => 'servicio_itinerariodia_admin/list__action_traducir.html.twig'
+                        'template' => 'admin/servicio_itinerariodia/list__action_traducir.html.twig'
                     ]
                 ],
             ])

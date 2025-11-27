@@ -1,0 +1,232 @@
+{# =====================  OPERATIVA — TARJETAS RESPONSIVAS  ===================== #}
+
+<div id="tab-{{ admin.uniqid }}-operativa" class="op-wrap">
+    <h3 class="no-padding no-margin visible-print">{{ 'tab_operativa'|trans({}, 'messages')|capitalize }}</h3>
+
+    {% if object.cotservicios is defined and object.cotservicios|length > 0 %}
+        {% for servicio in object.cotservicios %}
+
+            <section class="op-card">
+                <header class="op-card__head">
+                    <div class="op-card__title">
+                        <span class="op-tag">Ser</span>
+                        <strong>{{ servicio.servicio.nombre }}</strong>
+                    </div>
+
+                    {% if action == 'show' %}
+                        <div class="op-card__actions">
+                            {% include 'admin/cotizacion_cotizacion/show__action_clonar_servicio.html.twig' with {'object': servicio} %}
+                        </div>
+                    {% endif %}
+                </header>
+
+                {# ---- Datos del servicio ---- #}
+                <div class="op-grid op-grid--service">
+                    <div class="op-cell">
+                        <span class="op-label">Itinerario</span>
+                        <span class="op-value">
+              {{ servicio.itinerario.nombre|length > 30 ? servicio.itinerario.nombre|slice(0,30) ~ '…' : servicio.itinerario.nombre }}
+            </span>
+                    </div>
+                    <div class="op-cell">
+                        <span class="op-label">Inicio</span>
+                        <span class="op-value">
+              <b class="op-hour" style="color: {{ colores.verde_oscuro }};">{{ servicio.fechahorainicio|date('H:i') }}</b>
+              <span class="op-date">{{ servicio.fechahorainicio|date('Y-m-d') }}</span>
+            </span>
+                    </div>
+                    <div class="op-cell">
+                        <span class="op-label">Fin</span>
+                        <span class="op-value">
+              <b class="op-hour" style="color: {{ colores.verde_oscuro }};">{{ servicio.fechahorafin|date('H:i') }}</b>
+              <span class="op-date">{{ servicio.fechahorafin|date('Y-m-d') }}</span>
+            </span>
+                    </div>
+                </div>
+
+                {# ---- Componentes ---- #}
+                {% if servicio.cotcomponentes is defined and servicio.cotcomponentes|length > 0 %}
+                    <details class="op-accordion">
+                        <summary class="op-accordion__summary">
+                            <span class="op-tag op-tag--alt">Com</span>
+                            <span>Componentes ({{ servicio.cotcomponentes|length }})</span>
+                        </summary>
+
+                        {% for componente in servicio.cotcomponentes %}
+                            <section class="op-subcard">
+                                <div class="op-grid op-grid--component">
+                                    <div class="op-cell">
+                                        <span class="op-label">Nombre</span>
+                                        <span class="op-value">{{ componente.componente.nombre }}</span>
+                                    </div>
+                                    <div class="op-cell">
+                                        <span class="op-label">#</span>
+                                        <span class="op-value">{{ componente.cantidad }}</span>
+                                    </div>
+                                    <div class="op-cell">
+                                        <span class="op-label">Inicio</span>
+                                        <span class="op-value">
+                      <b class="op-hour" style="color: {{ colores.verde_oscuro }};">{{ componente.fechahorainicio|date('H:i') }}</b>
+                      <span class="op-date">{{ componente.fechahorainicio|date('Y-m-d') }}</span>
+                    </span>
+                                    </div>
+                                    <div class="op-cell">
+                                        <span class="op-label">Fin</span>
+                                        <span class="op-value">
+                      <b class="op-hour" style="color: {{ colores.verde_oscuro }};">{{ componente.fechahorafin|date('H:i') }}</b>
+                      <span class="op-date">{{ componente.fechahorafin|date('Y-m-d') }}</span>
+                    </span>
+                                    </div>
+                                    <div class="op-cell">
+                                        <span class="op-label">Estado</span>
+                                        <span class="op-value">
+                      <span class="op-chip" style="--chip: {{ componente.estadocotcomponente.color }};">{{ componente.estadocotcomponente.nombre }}</span>
+                    </span>
+                                    </div>
+
+                                    {% if componente.componente.componenteitems is defined and componente.componente.componenteitems|length > 0 %}
+                                        <div class="op-cell op-cell--full">
+                                            <span class="op-label">Items</span>
+                                            <span class="op-value">
+                        {% for item in componente.componente.componenteitems %}
+                            <span class="op-pill">{{ item.titulo }}</span>
+                        {% endfor %}
+                      </span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                {# ====== OPERATIVA (prioridad: horas, tolerancia, contacto) ====== #}
+                                {% set op = componente.operativa is defined ? componente.operativa : null %}
+                                {% if op %}
+                                    {% set resumen_contacto = op.contacto ? op.contacto.nombre : '-' %}
+                                    <section class="op-operativa">
+                                        <div class="op-operativa__bar">
+                                            {% if op.horarecojoinicial %}
+                                                <span class="op-kpi"><i class="op-ico">🕒</i><b>{{ op.horarecojoinicial|date('H:i') }}</b></span>
+                                            {% endif %}
+                                            {% if op.horarecojofinal %}
+                                                <span class="op-kpi"><i class="op-ico">🕘</i><b>{{ op.horarecojofinal|date('H:i') }}</b></span>
+                                            {% endif %}
+                                            {% if op.tolerancia is not null %}
+                                                <span class="op-kpi"><i class="op-ico">⏱️</i>{{ op.tolerancia }} min</span>
+                                            {% endif %}
+                                            {% if op.contacto %}
+                                                <span class="op-kpi op-kpi--contact"><i class="op-ico">📞</i>{{ resumen_contacto }}</span>
+                                            {% endif %}
+                                            {% if op.notas %}
+                                                <span class="op-kpi op-kpi--note"><i class="op-ico">📝</i>Notas</span>
+                                            {% endif %}
+
+                                            {# Toggle detalles contacto/vehículo #}
+                                            {% set show_details = (op.contacto and (
+                                                op.contacto.telefono or op.contacto.tipocontacto is not null or
+                                                op.contacto.tipodocumento is not null or op.contacto.numerodocumento or
+                                                op.contacto.vehiculoplaca or op.contacto.vehiculomarca or
+                                                op.contacto.vehiculomodelo or op.contacto.vehiculocolor or op.contacto.vehiculoanio
+                                                )) %}
+                                            {% if show_details %}
+                                                <details class="op-mini" >
+                                                    <summary class="op-mini__summary">
+                                                        Más del contacto
+                                                    </summary>
+                                                    <div class="op-grid op-grid--operativa">
+                                                        {% if op.contacto.tipocontacto is not null %}
+                                                            <div class="op-cell"><span class="op-label">Tipo</span><span class="op-value">{{ op.contacto.tipocontacto.nombre }}</span></div>
+                                                        {% endif %}
+                                                        {% if op.contacto.telefono %}
+                                                            <div class="op-cell"><span class="op-label">Teléfono</span><span class="op-value">{{ op.contacto.telefono }}</span></div>
+                                                        {% endif %}
+                                                        {% if op.contacto.tipodocumento is not null or op.contacto.numerodocumento %}
+                                                            <div class="op-cell"><span class="op-label">Documento</span>
+                                                                <span class="op-value">
+                                  {% if op.contacto.tipodocumento is not null %}{{ op.contacto.tipodocumento.nombre }} {% endif %}
+                                                                    {% if op.contacto.numerodocumento %}{{ op.contacto.numerodocumento }}{% endif %}
+                                </span>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        {% if op.contacto.vehiculoplaca or op.contacto.vehiculomarca or op.contacto.vehiculomodelo or op.contacto.vehiculocolor or op.contacto.vehiculoanio %}
+                                                            <div class="op-cell op-cell--full"><span class="op-sep">Vehículo</span></div>
+                                                            {% if op.contacto.vehiculoplaca %}
+                                                                <div class="op-cell"><span class="op-label">Placa</span><span class="op-value">{{ op.contacto.vehiculoplaca }}</span></div>
+                                                            {% endif %}
+                                                            {% if op.contacto.vehiculomarca %}
+                                                                <div class="op-cell"><span class="op-label">Marca</span><span class="op-value">{{ op.contacto.vehiculomarca }}</span></div>
+                                                            {% endif %}
+                                                            {% if op.contacto.vehiculomodelo %}
+                                                                <div class="op-cell"><span class="op-label">Modelo</span><span class="op-value">{{ op.contacto.vehiculomodelo }}</span></div>
+                                                            {% endif %}
+                                                            {% if op.contacto.vehiculocolor %}
+                                                                <div class="op-cell"><span class="op-label">Color</span><span class="op-value">{{ op.contacto.vehiculocolor }}</span></div>
+                                                            {% endif %}
+                                                            {% if op.contacto.vehiculoanio %}
+                                                                <div class="op-cell"><span class="op-label">Año</span><span class="op-value">{{ op.contacto.vehiculoanio }}</span></div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    </div>
+                                                </details>
+                                            {% endif %}
+                                        </div>
+
+                                        {% if op.notas %}
+                                            <div class="op-operativa__notes">
+                                                <i class="op-ico">📝</i><span>{{ op.notas }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </section>
+                                {% endif %}
+                                {# ====== FIN OPERATIVA ====== #}
+
+                                {# ---- Tarifas ---- #}
+                                {% if componente.cottarifas is defined and componente.cottarifas|length > 0 %}
+                                    <details class="op-accordion op-accordion--nested">
+                                        <summary class="op-accordion__summary">
+                                            <span class="op-tag op-tag--tar">Tar</span>
+                                            <span>Tarifas ({{ componente.cottarifas|length }})</span>
+                                        </summary>
+
+                                        {% for tarifa in componente.cottarifas %}
+                                            <section class="op-subcard">
+                                                <div class="op-grid op-grid--tarifa">
+                                                    <div class="op-cell"><span class="op-label">Nombre</span><span class="op-value">{{ tarifa.tarifa.nombre }}</span></div>
+                                                    <div class="op-cell"><span class="op-label">#</span><span class="op-value">{{ tarifa.cantidad }}</span></div>
+                                                    <div class="op-cell"><span class="op-label">Proveedor</span>
+                                                        <span class="op-value">
+                              {% if tarifa.provider is not null %}
+                                  <a class="op-link" href="#">{{ tarifa.provider.nombre }}</a>
+                              {% else %}-{% endif %}
+                            </span>
+                                                    </div>
+                                                    <div class="op-cell"><span class="op-label">Tipo</span><span class="op-value">
+                            <span class="op-chip" style="--chip: {{ tarifa.tarifa.tipotarifa.listacolor }};">{{ tarifa.tarifa.tipotarifa.nombre }}</span></span>
+                                                    </div>
+                                                </div>
+
+                                                {% if tarifa.cottarifadetalles is defined and tarifa.cottarifadetalles|length > 0 %}
+                                                    <details class="op-accordion op-accordion--nested">
+                                                        <summary class="op-accordion__summary">
+                                                            <span class="op-tag op-tag--det">Det</span>
+                                                            <span>Detalles ({{ tarifa.cottarifadetalles|length }})</span>
+                                                        </summary>
+                                                        {% for detalle in tarifa.cottarifadetalles %}
+                                                            <div class="op-grid op-grid--detalle">
+                                                                <div class="op-cell"><span class="op-label">Detalle</span><span class="op-value">{{ detalle.detalle }}</span></div>
+                                                                <div class="op-cell"><span class="op-label">Tipo</span><span class="op-value">{{ detalle.tipotarifadetalle.nombre }}</span></div>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </details>
+                                                {% endif %}
+                                            </section>
+                                        {% endfor %}
+                                    </details>
+                                {% endif %}
+                            </section>
+                        {% endfor %}
+                    </details>
+                {% endif %}
+            </section>
+
+        {% endfor %}
+    {% endif %}
+</div>

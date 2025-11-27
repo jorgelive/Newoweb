@@ -41,11 +41,11 @@ class ReservaReservaAdmin extends AbstractAdmin
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
-        $buttonList['delete'] = ['template' => 'reserva_reserva_admin/delete_button.html.twig'];
-        $buttonList['clonar'] = ['template' => 'reserva_reserva_admin/clonar_button.html.twig'];
-        $buttonList['extender'] = ['template' => 'reserva_reserva_admin/extender_button.html.twig'];
-        $buttonList['resumen'] = ['template' => 'reserva_reserva_admin/resumen_button.html.twig'];
-        $buttonList['resumenclipboard'] = ['template' => 'reserva_reserva_admin/resumen_clipboard_button.html.twig'];
+        $buttonList['delete'] = ['template' => 'admin/reserva_reserva/delete_button.html.twig'];
+        $buttonList['clonar'] = ['template' => 'admin/reserva_reserva/clonar_button.html.twig'];
+        $buttonList['extender'] = ['template' => 'admin/reserva_reserva/extender_button.html.twig'];
+        $buttonList['resumen'] = ['template' => 'admin/reserva_reserva/resumen_button.html.twig'];
+        $buttonList['resumenclipboard'] = ['template' => 'admin/reserva_reserva/resumen_clipboard_button.html.twig'];
         return $buttonList;
     }
 
@@ -269,27 +269,27 @@ class ReservaReservaAdmin extends AbstractAdmin
                 'actions' => [
                     'show' => [],
                     'resumen' => [
-                        'template' => 'reserva_reserva_admin\list__action_resumen.html.twig'
+                        'template' => 'admin/reserva_reserva/list__action_resumen.html.twig'
                     ],
                     'edit' => [],
                     'delete' => [],
                     'clonar' => [
-                        'template' => 'reserva_reserva_admin/list__action_clonar.html.twig'
+                        'template' => 'admin/reserva_reserva/list__action_clonar.html.twig'
                     ],
                     'extender' => [
-                        'template' => 'reserva_reserva_admin/list__action_extender.html.twig'
+                        'template' => 'admin/reserva_reserva/list__action_extender.html.twig'
                     ],
                     'llamar' => [
-                        'template' => 'reserva_reserva_admin/list__action_llamar.html.twig'
+                        'template' => 'admin/reserva_reserva/list__action_llamar.html.twig'
                     ],
                     'copiar_portapapeles' => [
-                        'template' => 'reserva_reserva_admin/list__action_copiar_portapapeles.html.twig'
+                        'template' => 'admin/reserva_reserva/list__action_copiar_portapapeles.html.twig'
                     ],
                     'whatsapp' => [
-                        'template' => 'reserva_reserva_admin/list__action_whatsapp.html.twig'
+                        'template' => 'admin/reserva_reserva/list__action_whatsapp.html.twig'
                     ],
                     'reconfirmar' => [
-                        'template' => 'reserva_reserva_admin/list__action_whatsapp_confirmar.html.twig'
+                        'template' => 'admin/reserva_reserva/list__action_whatsapp_confirmar.html.twig'
                     ]
                 ]
             ])
@@ -305,7 +305,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ])
             ->add('enlace', null, [
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],
-                'template' => 'base_sonata_admin/list_url.html.twig'
+                'template' => 'admin/base_sonata/list_url.html.twig'
             ])
             ->add('detalles', null, [
                 'label' => 'Detalles',
@@ -439,7 +439,7 @@ class ReservaReservaAdmin extends AbstractAdmin
             ])
             ->add('enlace', null, [
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],
-                'template' => 'base_sonata_admin/show_url.html.twig'
+                'template' => 'admin/base_sonata/show_url.html.twig'
             ])
 
             ->add('telefono', null, [

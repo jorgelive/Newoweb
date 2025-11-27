@@ -1,6 +1,24 @@
-controllers:
-    resource: ../src/Controller/
+#controllers:
+#    resource: ../src/Controller/
+#    type: annotation
+
+# FRONT (web / CMS)
+front_controllers:
+    resource: ../src/Controller/Front/
     type: annotation
+    host: '%app.host.front%'
+
+# API (ical, ajax, etc.)
+api_controllers:
+    resource: ../src/Controller/Api/
+    type: annotation
+    host: '%app.host.api%'
+
+# Admin propios (NO Sonata bundle, eso va aparte)
+admin_controllers:
+    resource: ../src/Controller/Admin/
+    type: annotation
+    host: '%app.host.oweb%'
 
 kernel:
     resource: ../src/Kernel.php
@@ -8,3 +26,4 @@ kernel:
 
 sonata_translation:
     resource: '@SonataTranslationBundle/Resources/config/routes.yaml'
+

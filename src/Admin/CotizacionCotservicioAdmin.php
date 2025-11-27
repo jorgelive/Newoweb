@@ -29,7 +29,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
     public function configure(): void
     {
         $this->classnameLabel = "Servicio";
-        $this->setFormTheme([0 => 'cotizacion_cotservicio_admin/form_admin_fields.html.twig']);
+        $this->setFormTheme([0 => 'admin/cotizacion_cotservicio/form_admin_fields.html.twig']);
     }
 
     protected function configureDefaultSortValues(array &$sortValues): void
@@ -146,7 +146,7 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
                     'show' => [],
                     'edit' => [],
                     'delete' => [],'clonar' => [
-                        'template' => 'cotizacion_cotservicio_admin\list__action_clonar.html.twig'
+                        'template' => 'admin/cotizacion_cotservicio/list__action_clonar.html.twig'
                     ]
                 ]
             ])
@@ -290,8 +290,8 @@ class CotizacionCotservicioAdmin extends AbstractAdmin
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
         if($action == 'show'){
-            $buttonList['cotizacionshow'] = ['template' => 'cotizacion_cotservicio_admin/cotizacionshow_button.html.twig'];
-            $buttonList['clonar'] = ['template' => 'cotizacion_cotservicio_admin/clonar_button.html.twig'];
+            $buttonList['cotizacionshow'] = ['template' => 'admin/cotizacion_cotservicio/cotizacionshow_button.html.twig'];
+            $buttonList['clonar'] = ['template' => 'admin/cotizacion_cotservicio/clonar_button.html.twig'];
         }
         return $buttonList;
     }

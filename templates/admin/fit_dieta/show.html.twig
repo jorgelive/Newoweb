@@ -1,0 +1,308 @@
+{% extends 'admin/base_sonata/show.html.twig' %}
+
+{% block show %}
+
+<div class="sonata-ba-view">
+
+    {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
+
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+            <div class="box box-primary">
+                <div class="box-header">
+                    <h4 class="box-title">
+                        {{ object.user.nombre }}
+                    </h4>
+                </div>
+                <div class="box-body table-responsive no-padding">
+                    <table class="table">
+                        <tbody>
+                        <tr class="sonata-ba-view-container">
+                            <th>Nombre</th>
+                            <td>{{ object.nombre }}</td>
+
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>Peso</th>
+                            <td>{{ object.peso }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>Indice de grasa</th>
+                            <td>{{ object.indicedegrasa }}</td>
+                        </tr>
+                        <tr>
+                            <th>Tipo de dieta</th>
+                            <td>{{ object.tipodieta.nombre }}</td>
+                        </tr>
+                        <tr>
+                            <th>Fecha</th>
+                            <td>{{ object.fecha|date('Y-m-d') }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+
+            {% if object.dietacomidas is defined and object.dietacomidas|length > 0%}
+
+                {% set grasacolor, carbocolor, protcolor = '#FF6B4B', '#C5C200', '#00B3A0' %}
+
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h5 class="panel-title">
+                            <a>
+                                Resumen
+                            </a>
+                        </h5>
+                    </div>
+                    <div class="panel box-body">
+                        <br / class="panel-body table-responsive no-padding">
+
+                            {% for dietacomida in object.dietacomidas %}
+                                <div style="margin-bottom: 25px; display: block; width: 100%">
+                                <h4>Comida: <strong>{{ dietacomida.numerocomida }}</strong>{% if dietacomida.nota is not empty %} ({{ dietacomida.nota }}){% endif %}</h4>
+                                <p>{% for dietaalimento in dietacomida.dietaalimentos %}{% if loop.first %}{% elseif loop.last %} y {% else %}, {% endif %}{{ dietaalimento.alimento.nombre }} ({{ dietaalimento.medidaCantidadAlimento }}){% endfor %}.</p>
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+                        <br />
+                    </div>
+                </div>
+
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h5 class="panel-title">
+                            <a>
+                                Valores
+                            </a>
+                        </h5>
+                    </div>
+                    <div class="panel box-body">
+                            <div class="panel-body table-responsive no-padding">
+                                <table class="table table-bordered table-striped sonata-ba-list">
+                                    <thead>
+                                    <tr class="sonata-ba-list-field-header">
+                                        <th>
+                                            Grasa
+                                        </th>
+                                        <th>
+                                            Carbo
+                                        </th>
+                                        <th>
+                                            Prot
+                                        </th>
+                                        <th>
+                                            Prot Alto
+                                        </th>
+                                        <th>
+                                            Cal Grasa
+                                        </th>
+                                        <th>
+                                            Cal Carbo
+                                        </th>
+                                        <th>
+                                            Cal Prot
+                                        </th>
+                                        <th>
+                                            Total Cal
+                                        </th>
+                                        <th>
+                                            Energia Cal
+                                        </th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td>
+                                            <strong style="color: {{ grasacolor }};">{{ object.grasaTotal }} g</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ carbocolor }};">{{ object.carbohidratoTotal }} g</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ protcolor }};">{{ object.proteinaTotal }} g</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ protcolor }};">{{ object.proteinaTotalAlto }} g</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ grasacolor }};">{{ object.grasaCalorias }}</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ carbocolor }};">{{ object.carbohidratoCalorias }}</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ protcolor }};">{{ object.proteinaCalorias }}</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="font-size: larger;">{{ object.totalCalorias }}</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="font-size: larger;">{{ object.energiaCalorias }}</strong>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong style="color: {{ grasacolor }};">{{ object.grasaTotalPorKilogramo }} g</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ carbocolor }};">{{ object.carbohidratoTotalPorKilogramo }} g</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ protcolor }};">{{ object.proteinaTotalPorKilogramo }} g</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ protcolor }};">{{ object.proteinaTotalAltoPorKilogramo }} g</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ grasacolor }};">{{ object.grasaPorcentaje }} %</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ carbocolor }};">{{ object.carbohidratoPorcentaje }} %</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ protcolor }};">{{ object.proteinaPorcentaje }} %</strong>
+                                        </td>
+                                        <td>
+                                        </td>
+                                        <td>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <br />
+                    </div>
+                </div>
+
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h5 class="panel-title">
+                            <a>
+                                Comidas
+                            </a>
+                        </h5>
+                    </div>
+                    <div class="panel box-body">
+                        {% for dietacomida in object.dietacomidas %}
+                            <h4>Comida: <strong>{{ dietacomida.numerocomida }}</strong>{% if dietacomida.nota is not empty %} ({{ dietacomida.nota }}){% endif %}</h4>
+                            <div class="panel-body table-responsive no-padding">
+                                <table class="table table-bordered table-striped sonata-ba-list">
+                                    <thead>
+                                    <tr class="sonata-ba-list-field-header">
+                                        <th>
+                                            Nombre de alimento
+                                        </th>
+                                        <th>
+                                            Cantidad
+                                        </th>
+                                        <th>
+                                            Cal Grasa
+                                        </th>
+                                        <th>
+                                            Cal Carbo
+                                        </th>
+                                        <th>
+                                            Cal Prot
+                                        </th>
+                                        <th>
+                                            Total Cal
+                                        </th>
+                                        <th>
+                                            Energia Cal
+                                        </th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td>
+                                            <strong>Total</strong>
+                                        </td>
+                                        <td>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ grasacolor }};">{{ dietacomida.grasaCalorias }}</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ carbocolor }};">{{ dietacomida.carbohidratoCalorias }}</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ protcolor }};">{{ dietacomida.proteinaCalorias }}</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="font-size: larger;">{{ dietacomida.totalCalorias }}</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="font-size: larger;">{{ dietacomida.energiaCalorias }}</strong>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong>Porcentaje</strong>
+                                        </td>
+                                        <td>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ grasacolor }};">{{ dietacomida.grasaPorcentaje }} %</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ carbocolor }};">{{ dietacomida.carbohidratoPorcentaje }} %</strong>
+                                        </td>
+                                        <td>
+                                            <strong style="color: {{ protcolor }};">{{ dietacomida.proteinaPorcentaje }} %</strong>
+                                        </td>
+                                        <td>
+                                            <strong></strong>
+                                        </td>
+                                        <td>
+                                            <strong></strong>
+                                        </td>
+                                    </tr>
+                                    {% for dietaalimento in dietacomida.dietaalimentos %}
+                                        <tr>
+                                            <td>
+                                                {{ dietaalimento.alimento.nombre }}
+                                            </td>
+                                            <td>
+                                                {{ dietaalimento.medidaCantidadAlimento }}
+                                            </td>
+                                            <td>
+                                                {{ dietaalimento.grasaCalorias }}
+                                            </td>
+                                            <td>
+                                                {{ dietaalimento.carbohidratoCalorias }}
+                                            </td>
+                                            <td>
+                                                {{ dietaalimento.proteinaCalorias }}
+                                            </td>
+                                            <td>
+                                                {{ dietaalimento.totalCalorias }}
+                                            </td>
+                                            <td>
+                                                {{ dietaalimento.energiaCalorias }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+
+
+                                    </tbody>
+                                </table>
+                            </div>
+                            <br />
+
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+    {{ sonata_block_render_event('sonata.admin.show.bottom', { 'admin': admin, 'object': object }) }}
+{% endblock %}

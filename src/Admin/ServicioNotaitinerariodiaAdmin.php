@@ -50,7 +50,7 @@ class ServicioNotaitinerariodiaAdmin extends AbstractAdmin
                 'sort_parent_association_mappings' => [['fieldName' => 'itinerariodias']],
             ])
             ->add('contenido', null, [
-                'template' => 'base_sonata_admin/list_html.html.twig',
+                'template' => 'admin/base_sonata/list_html.html.twig',
                 'header_class' => 'col-long-text'
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
@@ -60,7 +60,7 @@ class ServicioNotaitinerariodiaAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'traducir' => [
-                        'template' => 'servicio_notaitinerariodia_admin/list__action_traducir.html.twig'
+                        'template' => 'admin/servicio_notaitinerariodia/list__action_traducir.html.twig'
                     ]
 
                 ],

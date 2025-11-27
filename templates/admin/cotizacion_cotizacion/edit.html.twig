@@ -1,0 +1,508 @@
+{% extends 'admin/base_sonata/edit.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+
+    <style>
+        tr.row-cotservicios{border-top: 3px solid rgba(0, 0, 0, 0.47);}
+    </style>
+
+    <style>
+        /* Botón del plegable */
+        td.campo-operativa {
+            min-width: 0 !important;      /* por si quedó algún min-width */
+            vertical-align: top;           /* mejora visual en tablas */
+        }
+
+        /* Contenedor del colapsable */
+        .op-details {
+            display: block;
+        }
+
+        .op-details .field-container {
+            padding-bottom: 0;
+        }
+
+        /* Botón (no se rompe la línea) */
+        .op-summary {
+            display: inline-flex;          /* evita salto */
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;           /* no se parte “Operativa ▸” */
+            cursor: pointer;
+            user-select: none;
+            padding: 6px 10px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            background: #e3eefc;
+            border: 1px solid #c5d7f3;
+            border-radius: 6px;
+            line-height: 1.1;
+        }
+
+        /* Oculta el marcador nativo (triangulito) en todos los navegadores */
+        .op-summary::-webkit-details-marker { display: none; }
+        .op-summary::marker { content: ""; }
+
+        /* Caret personalizado con animación */
+        .op-summary::after {
+            content: "▸";
+            display: inline-block;
+            transform: translateY(1px);    /* alineación fina */
+            transition: transform .2s ease;
+        }
+        .op-details[open] > .op-summary::after {
+            transform: rotate(90deg) translateY(1px);
+        }
+
+        /* Área colapsable con animación (altura + fade) */
+        .op-panel {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height .32s ease, opacity .2s ease;
+            will-change: max-height, opacity;
+        }
+
+        /* Al abrir <details> */
+        .op-details[open] .op-panel {
+            max-height: 1200px;            /* valor grande para cubrir el contenido */
+            opacity: 1;
+        }
+
+        /* Respeta accesibilidad si el usuario prefiere menos movimiento */
+        @media (prefers-reduced-motion: reduce) {
+            .op-summary::after,
+            .op-panel { transition: none; }
+        }
+
+        .op-summary.has-data{
+            background: #ffecc7;
+            border-color: #f7c66a;
+            box-shadow: 0 0 0 2px rgba(247,198,106,.25);
+        }
+
+    </style>
+{% endblock %}
+
+{# === Bloques condicionales: definir UNA sola vez por plantilla === #}
+{% block condicionalfechahorainicio %}/\[cotservicios\]\[\d+\]\[fechahorainicio\]$/{% endblock %}
+{% block condicionalfechahorafin    %}/\[cotservicios\]\[\d+\]\[fechahorafin\]$/{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script type="text/javascript">
+        (function ($) {
+            // ===== Utils fecha/hora (moment en modo estricto) =====
+            function isValidDateTime(v){ return moment(v, 'YYYY/MM/DD HH:mm', true).isValid(); }
+            function fmt(dt){ return moment(dt).format('YYYY/MM/DD HH:mm'); }
+            function addHours(base, h){
+                return moment(base,'YYYY/MM/DD HH:mm',true)
+                    .add(Number(h||0),'hours')
+                    .format('YYYY/MM/DD HH:mm');
+            }
+            function diffMs(newVal, oldVal){
+                const a=moment(newVal,'YYYY/MM/DD HH:mm',true),
+                    b=moment(oldVal,'YYYY/MM/DD HH:mm',true);
+                if(!a.isValid()||!b.isValid()) return NaN;
+                return a.toDate()-b.toDate();
+            }
+            function normalizeYMD(d){
+                return moment(d,'YYYY/MM/DD',true).format('YYYY/MM/DD HH:mm');
+            }
+            function daysDiff(a,b){
+                const A=moment(a,'YYYY/MM/DD',true),
+                    B=moment(b,'YYYY/MM/DD',true);
+                if(!A.isValid()||!B.isValid()) return 1;
+                const d=B.diff(A,'days');
+                return (isNaN(d)||d<1)?1:d;
+            }
+
+            // ===== Recalcular cantidad de componente (dependeduracion) =====
+            function recalcCantidadComponente($inp){
+                const name = $inp.attr("name") || '';
+                if (
+                    !(/\[cotcomponentes\]\[\d+\]\[fechahorainicio\]$/.test(name) ||
+                        /\[cotcomponentes\]\[\d+\]\[fechahorafin\]$/.test(name))
+                ) {
+                    return;
+                }
+
+                const base    = name.replace(/\[(fechahorainicio|fechahorafin)\]$/,'');
+                const nameIni = base + '[fechahorainicio]';
+                const nameFin = base + '[fechahorafin]';
+                const nameCant= base + '[cantidad]';
+
+                const $ini = $('input[name="'+nameIni.replace(/\[/g,'\\[').replace(/\]/g,'\\]')+'"]');
+                const $fin = $('input[name="'+nameFin.replace(/\[/g,'\\[').replace(/\]/g,'\\]')+'"]');
+                const $cant= $('input[name="'+nameCant.replace(/\[/g,'\\[').replace(/\]/g,'\\]')+'"]');
+
+                if($ini.length && $fin.length && $cant.length && $cant.hasClass('dependeduracion')){
+                    const dIni = ($ini.val()||'').substr(0,10);
+                    const dFin = ($fin.val()||'').substr(0,10);
+                    $cant.val(daysDiff(dIni,dFin)).trigger('input');
+                }
+            }
+
+            // ===== Inyectar bloques condicionales como Regex reutilizables =====
+            var RE_FECHA_INICIO_SERV = {{ block('condicionalfechahorainicio') }};
+            var RE_FECHA_FIN_SERV    = {{ block('condicionalfechahorafin') }};
+
+            // ===== Selectores/Regex (manteniendo tu bloque Twig) =====
+            {% block selectorcambiovalor %}
+            var itinerarioregex = /cotservicios_\d+_itinerario_autocomplete_input$/;
+            var servicioregex   = /cotservicios_\d+_servicio_autocomplete_input$/;
+            var componenteregex = /cotservicios_\d+_cotcomponentes_\d+_componente_autocomplete_input$/;
+            var tarifaregex     = /cotservicios_\d+_cotcomponentes_\d+_cottarifas_\d+_tarifa_autocomplete_input$/;
+            {% endblock %}
+
+            // ===== Procesadores (idénticos en comportamiento) =====
+            function procesarItinerario($sel){
+                const val=$sel.val(); if(!val) return;
+                const url = "{{ path(admin.vars.cotservicios.itinerariopath) }}/" + encodeURIComponent(val);
+                $.ajax({
+                    url,
+                    context:$sel,
+                    success: function(result){
+                        const base = $sel.attr('id').replace(/itinerario_autocomplete_input$/, '');
+                        const $ini = $('#'+base+'fechahorainicio');
+                        const $fin = $('#'+base+'fechahorafin');
+                        if(!$ini.length||!$fin.length||!isValidDateTime($ini.val())) return;
+
+                        const newIni = $ini.val().replace(/\d\d:\d\d$/, result.hora);
+                        $fin.attr('duracion', result.duracion);
+                        $('#field_container_'+base+'cotcomponentes')
+                            .find("input[horariodependiente*='horariodependiente']")
+                            .attr('duracion', result.duracion);
+
+                        $ini.attr('oldvalforfin', $ini.val())
+                            .attr('oldvalforcomponentes', $ini.val());
+                        $fin.val('').trigger('change');
+                        $ini.attr('duracion', result.duracion)
+                            .val('').trigger('change')
+                            .val(newIni).trigger('change');
+                    }
+                });
+            }
+
+            function procesarServicio($sel){
+                const val=$sel.val(); if(!val) return;
+                const url = "{{ path(admin.vars.cotservicios.serviciopath) }}/" + encodeURIComponent(val);
+                $.ajax({
+                    url,
+                    context:$sel,
+                    success: function(result){
+                        const idIni = $sel.attr('id').replace(/servicio_autocomplete_input$/, 'fechahorainicio');
+                        const $ini = $('#'+idIni); if(!$ini.length) return;
+
+                        let fecha = moment(moment(new Date()).format('YYYY/MM/DD'),'YYYY/MM/DD').format('YYYY/MM/DD HH:mm');
+                        const fechaActual = $ini.val()
+                            ? (isValidDateTime($ini.val()) ? $ini.val() : normalizeYMD($ini.val().substr(0,10)))
+                            : '';
+
+                        const $tr = $sel.closest('tr');
+                        if($tr.index()>0){
+                            let $origen = $tr.prevAll().not('.splitted, .paralelo').first();
+                            if(result.paralelo===false && $origen.length){
+                                const $finOrigen = $('input.serviciofechafin',$origen);
+                                const ymd = ($finOrigen.val()||'').substr(0,10);
+                                fecha = moment(ymd,'YYYY/MM/DD',true)
+                                    .add(1,'days')
+                                    .format('YYYY/MM/DD HH:mm');
+                                $tr.removeClass('paralelo');
+                                $ini.removeClass('paralelo');
+                            }else{
+                                const $first = $tr.closest('tbody').children('tr').first();
+                                const $iniRef = $('input.serviciofechainicio',$first);
+                                fecha = $iniRef.val()
+                                    ? (isValidDateTime($iniRef.val())
+                                        ? $iniRef.val()
+                                        : normalizeYMD($iniRef.val().substr(0,10)))
+                                    : fecha;
+                                $tr.addClass('paralelo');
+                                $ini.addClass('paralelo');
+                            }
+                        }else{
+                            if($ini.val()!==''){
+                                $ini.attr('oldvalforfin',$ini.val())
+                                    .attr('oldvalforcomponentes',$ini.val());
+                                $ini.val('').trigger('change')
+                                    .val(fechaActual).trigger('change');
+                            }
+                        }
+
+                        if(fecha !== fechaActual){
+                            $ini.attr('oldvalforfin',$ini.val())
+                                .attr('oldvalforcomponentes',$ini.val());
+                            $ini.val('').trigger('change')
+                                .val(fecha).trigger('change');
+                        }
+                    }
+                });
+            }
+
+            function procesarComponente($sel){
+                const val=$sel.val(); if(!val) return;
+                const url = "{{ path(admin.vars.cotcomponentes.componentepath) }}/" + encodeURIComponent(val);
+                $.ajax({
+                    url,
+                    context:$sel,
+                    success: function(result){
+                        const idBase    = $sel.attr('id');
+                        const idCantidad= idBase.replace(/componente_autocomplete_input$/,'cantidad');
+                        const idIni     = idBase.replace(/componente_autocomplete_input$/,'fechahorainicio');
+                        const idFin     = idBase.replace(/componente_autocomplete_input$/,'fechahorafin');
+                        const idServIni = idBase.replace(/cotcomponentes_\d+_componente_autocomplete_input$/,'fechahorainicio');
+                        const idServFin = idBase.replace(/cotcomponentes_\d+_componente_autocomplete_input$/,'fechahorafin');
+
+                        const $iniComp = $('#'+idIni),
+                            $finComp = $('#'+idFin);
+                        const $iniServ = $('#'+idServIni),
+                            $finServ = $('#'+idServFin);
+                        if(!$iniComp.length||!$finComp.length||!$iniServ.length||!$finServ.length) return;
+
+                        if(result.duracion===null){
+                            const dur = $iniServ.attr('duracion');
+                            $iniComp.removeAttr('horariodependiente')
+                                .attr('horariodependiente','horariodependiente')
+                                .removeAttr('duracion')
+                                .attr('duracion', dur);
+                            $finComp.removeAttr('horariodependiente')
+                                .attr('horariodependiente','horariodependiente')
+                                .removeAttr('duracion')
+                                .attr('duracion', dur);
+                        }else{
+                            $iniComp.removeAttr('horariodependiente')
+                                .attr('duracion', result.duracion);
+                            $finComp.removeAttr('horariodependiente')
+                                .attr('duracion', result.duracion);
+                        }
+
+                        $finComp.val('').trigger('change');
+                        $iniComp.val('').trigger('change')
+                            .val($iniServ.val()).trigger('change');
+
+                        const $cantidad = $('#'+idCantidad);
+                        if(!$cantidad.length) return;
+
+                        if(result.dependeduracion===true){
+                            const dIni = ($iniComp.val()||'').substr(0,10);
+                            const dFin = ($finComp.val()||'').substr(0,10);
+                            const dias = daysDiff(dIni,dFin);
+                            $cantidad.removeClass('dependeduracion')
+                                .addClass('dependeduracion')
+                                .val(dias).trigger('input');
+                        }else{
+                            $cantidad.removeClass('dependeduracion')
+                                .val(1).trigger('input');
+                        }
+                    }
+                });
+            }
+
+            function procesarTarifa($sel){
+                const val=$sel.val(); if(!val) return;
+                const url = "{{ path(admin.vars.cottarifas.tarifapath) }}/" + encodeURIComponent(val);
+                $.ajax({
+                    url,
+                    context:$sel,
+                    success: function(result){
+                        if(!result || !result.id) return;
+                        const idBase   = $sel.attr('id');
+                        const monedaId = idBase.replace(/tarifa_autocomplete_input$/,'moneda');
+                        const providerId = idBase.replace(/tarifa_autocomplete_input$/,'provider_autocomplete_input');
+                        const montoId    = idBase.replace(/tarifa_autocomplete_input$/,'monto');
+                        const cantidadId = idBase.replace(/tarifa_autocomplete_input$/,'cantidad');
+                        const paxId      = idBase.replace(/cotservicios_\d+_cotcomponentes_\d+_cottarifas_\d+_tarifa_autocomplete_input$/,'numeropasajeros');
+                        const tipoId     = idBase.replace(/tarifa_autocomplete_input$/,'tipotarifa');
+
+                        $('#'+montoId).val(result.monto).trigger('input');
+                        $('select#'+monedaId).val(result.moneda).trigger('change');
+                        $('select#'+tipoId).val(result.tipotarifa).trigger('change');
+
+                        const $prov = $('select#'+providerId);
+                        $prov.val(null).trigger('change');
+                        if(result.providerId!=null && result.providerName!=null){
+                            if(!$prov.find("option[value='"+result.providerId+"']").length){
+                                $prov.append(new Option(result.providerName, result.providerId, true, true));
+                            }
+                            if($prov.select2){
+                                $prov.select2("trigger","select",{data:{id:result.providerId}});
+                            }
+                        }
+
+                        const $cant = $('#'+cantidadId);
+                        const $pax  = $('#'+paxId);
+                        if(!$cant.length) return;
+
+                        $cant.removeClass('prorrateado inputwarning readonly')
+                            .removeAttr('readonly');
+                        if(result.prorrateado===true){
+                            $cant.addClass('prorrateado');
+                            if(result.capacidadmax===1){
+                                $cant.addClass('inputwarning');
+                            }else{
+                                $cant.addClass('readonly').attr('readonly','readonly');
+                            }
+                            $cant.val(1).trigger('input');
+                        }else{
+                            $cant.val($pax.val()||'1').trigger('input');
+                        }
+                    }
+                });
+            }
+
+            // ===== Lógica de fechas (servicio + componentes) =====
+            function cambiarFechaFin($input, basestr, inicio){
+                if(!isValidDateTime($input.val())) return;
+                const finName = (basestr+'[fechahorafin]');
+                const $fin = $('input[name="'+finName.replace(/\[/g,'\\[').replace(/\]/g,'\\]')+'"]');
+                if(!$fin.length) return;
+
+                const dur = $fin.attr('duracion');
+                const delta = diffMs($input.val(), $input.attr('oldvalforfin'));
+                let nuevoFin;
+
+                if(isNaN(delta) || !isValidDateTime($fin.val())){
+                    nuevoFin = addHours(inicio, dur);
+                    $fin.val(nuevoFin).trigger('change');
+                }else{
+                    const mFin = moment($fin.val(),'YYYY/MM/DD HH:mm',true);
+                    nuevoFin = fmt(mFin.toDate().getTime() + delta);
+                    $fin.val(nuevoFin).trigger('change');
+                }
+                $input.attr('oldvalforfin', $input.val());
+            }
+
+            function cambiarFechaComponente($selector, basestr, inicio, deBoton){
+                if(deBoton===false) return;
+                const cadIni = (basestr+'[cotcomponentes][\\d+][fechahorainicio]').replace(/\[/g,'\\[').replace(/\]/g,'\\]');
+                const cadFin = (basestr+'[cotcomponentes][\\d+][fechahorafin]').replace(/\[/g,'\\[').replace(/\]/g,'\\]');
+
+                const $ini = $('input').filter(function(){
+                    return $(this).attr('name') && new RegExp(cadIni).test($(this).attr('name'));
+                });
+                const $fin = $('input').filter(function(){
+                    return $(this).attr('name') && new RegExp(cadFin).test($(this).attr('name'));
+                });
+
+                if($ini.length<1 || $fin.length<1) return;
+
+                const newDt = moment($selector.val(),'YYYY/MM/DD HH:mm',true).toDate();
+                const oldDt = moment($selector.attr('oldvalforcomponentes'),'YYYY/MM/DD HH:mm',true).toDate();
+                const diff = newDt - oldDt;
+
+                bootbox.confirm({
+                    message: "Que acción desea realizar?",
+                    buttons: {
+                        confirm: { label: 'Mantener hora de componentes', className: 'btn-warning' },
+                        cancel:  { label: 'Actualizar hora de componentes', className: 'btn-success' }
+                    },
+                    callback: function (mantenerHora) {
+                        $ini.each(function(){
+                            if(typeof $(this).attr('duracion')==='undefined') return;
+                            $(this).attr('oldvalforfin', $(this).val());
+                            const baseTime = moment($(this).val(),'YYYY/MM/DD HH:mm',true).toDate().getTime() + diff;
+                            if(mantenerHora){
+                                // Mantener HH:mm, mover solo fecha
+                                const hhmm = $(this).val().slice(-5);
+                                const nueva = fmt(baseTime).substr(0,11) + hhmm;
+                                $(this).val(nueva).trigger('change');
+                            }else{
+                                // Mover fecha y hora
+                                $(this).val(fmt(baseTime)).trigger('change');
+                            }
+                        });
+                        $selector.attr('oldvalforcomponentes',$selector.val());
+                    }
+                });
+            }
+
+            // ===== Delegación centralizada =====
+            const $scope = $(document); // Cambia a $('[data-controller="cotizacion"]') cuando envuelvas el form
+
+            // 1) SELECTS (itinerario/servicio/componente/tarifa)
+            $scope.on('change.cotizacion', 'select', function(){
+                const id = this.id || '';
+                if(itinerarioregex.test(id)) return procesarItinerario($(this));
+                if(servicioregex.test(id))   return procesarServicio($(this));
+                if(componenteregex.test(id)) return procesarComponente($(this));
+                if(tarifaregex.test(id))     return procesarTarifa($(this));
+            });
+
+            // 2) FECHAS: focus guarda “oldvals”
+            $scope.on('focus.fechahora', 'input[name$="[fechahorainicio]"], input[name$="[fechahorafin]"]', function(){
+                $(this).attr('oldvalforfin', $(this).val());
+                $(this).attr('oldvalforcomponentes', $(this).val());
+            });
+
+            // 3) FECHAS: input (teclado)
+            $scope.on('input.fechahora', 'input[name$="[fechahorainicio]"], input[name$="[fechahorafin]"]', function(){
+                const $inp = $(this);
+                let basestr, inicio;
+
+                if (RE_FECHA_INICIO_SERV.test($inp.attr("name"))) {
+                    basestr = $inp.attr("name").replace(/\[fechahorainicio\]$/, '');
+                    inicio  = $inp.val();
+                    cambiarFechaFin($inp, basestr, inicio);
+                    return cambiarFechaComponente($inp, basestr, inicio, false);
+                }
+
+                if (RE_FECHA_FIN_SERV.test($inp.attr("name"))) {
+                    basestr = $inp.attr("name").replace(/\[fechahorafin\]$/, '');
+                    const fin = $inp.val();
+                    console.log('finservicioafincomponente', fin);
+                    {% block finservicioafincomponentebasestr %}
+                    basestr = basestr.replace(/\]\[/g,'_').replace(/\]/g,'_').replace(/\[/g,'_');
+                    {% endblock %}
+                    return;
+                }
+
+                // COMPONENTES: recalcular cantidad y, si es inicio, ajustar fecha fin
+                recalcCantidadComponente($inp);
+
+                if (/\[cotcomponentes\]\[\d+\]\[fechahorainicio\]$/.test($inp.attr("name"))){
+                    const base = $inp.attr("name").replace(/\[fechahorainicio\]$/, '');
+                    cambiarFechaFin($inp, base, $inp.val());
+                }
+            });
+
+            // 4) FECHAS: dp.show y dp.change (datetimepicker)
+            $scope.on('dp.show.fechahora', '.date, .datetimepicker, [data-provide="datetimepicker"]', function(){
+                $(this).find('input').first().trigger('focus');
+            });
+
+            $scope.on('dp.change.fechahora', '.date, .datetimepicker, [data-provide="datetimepicker"]', function(){
+                const $inp = $(this).find('input').first(); if(!$inp.length) return;
+                let basestr, inicio;
+                const name = $inp.attr("name") || '';
+
+                if (RE_FECHA_INICIO_SERV.test(name)) {
+                    basestr = name.replace(/\[fechahorainicio\]$/, '');
+                    inicio  = $inp.val();
+                    cambiarFechaFin($inp, basestr, inicio);
+                    return cambiarFechaComponente($inp, basestr, inicio, true);
+                }
+
+                // COMPONENTES: tanto inicio como fin
+                if (/\[cotcomponentes\]\[\d+\]\[fechahorainicio\]$/.test(name)) {
+                    basestr = name.replace(/\[fechahorainicio\]$/, '');
+                    inicio  = $inp.val();
+                    cambiarFechaFin($inp, basestr, inicio);
+                    recalcCantidadComponente($inp);
+                    return;
+                }
+
+                if (/\[cotcomponentes\]\[\d+\]\[fechahorafin\]$/.test(name)) {
+                    // solo recalcular cantidad al cambiar fecha fin del componente
+                    recalcCantidadComponente($inp);
+                    return;
+                }
+            });
+
+            // 5) Con delegación NO necesitas rebind en sonata.add_element.
+        })(jQuery);
+    </script>
+
+{% endblock %}

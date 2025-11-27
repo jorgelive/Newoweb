@@ -30,7 +30,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
     public function configure(): void
     {
         $this->classnameLabel = "Componente";
-        $this->setFormTheme([0 => 'cotizacion_cotcomponente_admin/form_admin_fields.html.twig']);
+        $this->setFormTheme([0 => 'admin/cotizacion_cotcomponente/form_admin_fields.html.twig']);
     }
 
     protected function configureDefaultSortValues(array &$sortValues): void
@@ -185,7 +185,7 @@ class CotizacionCotcomponenteAdmin extends AbstractAdmin
             $formMapper
                 ->add('componente', ModelAutocompleteType::class, [
                     'property'             => 'nombre',//  (ruta cambiada; se respeta comportamiento original)
-                    'template'             => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
+                    'template'             => 'form/type/ajax_dropdown_type_cotizacion_base.html.twig',
                     'route'                => ['name' => 'app_servicio_componente_porserviciodropdown', 'parameters' => []],
                     'placeholder'          => '',
                     'context'              => '/\[cotcomponentes\]\[\d*\]\[componente\]$/g, "[servicio]"', // se deja tal cual

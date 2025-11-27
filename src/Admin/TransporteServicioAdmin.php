@@ -243,7 +243,7 @@ class TransporteServicioAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'clonar' => [
-                        'template' => 'transporte_servicio_admin/list__action_clonar.html.twig'
+                        'template' => 'admin/transporte_servicio/list__action_clonar.html.twig'
                     ]
                  ]
             ]);
@@ -351,12 +351,12 @@ class TransporteServicioAdmin extends AbstractAdmin
             ->end()
             ->with('Información Operativa')
             ->add('serviciooperativos', 'collection', [
-                'template' => 'transporte_servicio_admin/show_serviciooperativo_collection.html.twig'
+                'template' => 'admin/transporte_servicio/show_serviciooperativo_collection.html.twig'
             ])
             ->end()
             ->with('Componentes')
             ->add('serviciocomponentes', 'collection', [
-                'template' => 'transporte_servicio_admin/show_serviciocomponente_collection.html.twig'
+                'template' => 'admin/transporte_servicio/show_serviciocomponente_collection.html.twig'
             ])
             ->end()
         ;

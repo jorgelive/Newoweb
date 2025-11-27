@@ -52,7 +52,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
             ])
             ->add('webThumbPath', FieldDescriptionInterface::TYPE_STRING, [
                     'label' => 'Archivo',
-                    'template' => 'base_sonata_admin/list_image.html.twig'
+                    'template' => 'admin/base_sonata/list_image.html.twig'
                 ]
             )
             ->add('prioridad', null, [
@@ -140,7 +140,7 @@ class CotizacionFiledocumentoAdmin extends AbstractAdmin
             ->add('prioridad')
             ->add('webThumbPath', FieldDescriptionInterface::TYPE_STRING, [
                     'label' => 'Archivo',
-                    'template' => 'base_sonata_admin/show_image.html.twig',
+                    'template' => 'admin/base_sonata/show_image.html.twig',
                     'noMostrarBlanco' => true
                 ]
             )

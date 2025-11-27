@@ -42,18 +42,18 @@ class CotizacionFileAdmin extends AbstractAdmin
     {
 
         if(empty($this->tokenStorage->getToken())){
-            $buttonList['show'] = ['template' => 'cotizacion_file_admin/adminview_button.html.twig'];
+            $buttonList['show'] = ['template' => 'admin/cotizacion_file/adminview_button.html.twig'];
         }else{
             if($action != 'resumen'){
-                $buttonList['resumen'] = ['template' => 'cotizacion_file_admin/resumen_button.html.twig'];
+                $buttonList['resumen'] = ['template' => 'admin/cotizacion_file/resumen_button.html.twig'];
             }elseif($action == 'resumen'){
-                $buttonList['show'] = ['template' => 'cotizacion_file_admin/show_button.html.twig'];
+                $buttonList['show'] = ['template' => 'admin/cotizacion_file/show_button.html.twig'];
             }
-            $buttonList['archivomc'] = ['template' => 'cotizacion_file_admin/archivomc_button.html.twig'];
-            $buttonList['archivodcc'] = ['template' => 'cotizacion_file_admin/archivodcc_button.html.twig'];
-            $buttonList['archivopr'] = ['template' => 'cotizacion_file_admin/archivopr_button.html.twig'];
-            $buttonList['archivocon'] = ['template' => 'cotizacion_file_admin/archivocon_button.html.twig'];
-            $buttonList['resumenclipboard'] = ['template' => 'cotizacion_file_admin/resumen_clipboard_button.html.twig'];
+            $buttonList['archivomc'] = ['template' => 'admin/cotizacion_file/archivomc_button.html.twig'];
+            $buttonList['archivodcc'] = ['template' => 'admin/cotizacion_file/archivodcc_button.html.twig'];
+            $buttonList['archivopr'] = ['template' => 'admin/cotizacion_file/archivopr_button.html.twig'];
+            $buttonList['archivocon'] = ['template' => 'admin/cotizacion_file/archivocon_button.html.twig'];
+            $buttonList['resumenclipboard'] = ['template' => 'admin/cotizacion_file/resumen_clipboard_button.html.twig'];
         }
         return $buttonList;
     }
@@ -116,19 +116,19 @@ class CotizacionFileAdmin extends AbstractAdmin
                 'actions' => [
                     'show' => [],
                     'resumen' => [
-                        'template' => 'cotizacion_file_admin\list__action_resumen.html.twig'
+                        'template' => 'admin/cotizacion_file/list__action_resumen.html.twig'
                     ],
                     'archivomc' => [
-                        'template' => 'cotizacion_file_admin\list__action_archivomc.html.twig'
+                        'template' => 'admin/cotizacion_file/list__action_archivomc.html.twig'
                     ],
                     'archivodcc' => [
-                        'template' => 'cotizacion_file_admin\list__action_archivodcc.html.twig'
+                        'template' => 'admin/cotizacion_file/list__action_archivodcc.html.twig'
                     ],
                     'archivopr' => [
-                        'template' => 'cotizacion_file_admin\list__action_archivopr.html.twig'
+                        'template' => 'admin/cotizacion_file/list__action_archivopr.html.twig'
                     ],
                     'archivocon' => [
-                        'template' => 'cotizacion_file_admin\list__action_archivocon.html.twig'
+                        'template' => 'admin/cotizacion_file/list__action_archivocon.html.twig'
                     ],
                     'edit' => [],
                     'delete' => [],

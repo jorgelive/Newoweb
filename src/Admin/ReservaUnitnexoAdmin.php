@@ -60,7 +60,7 @@ class ReservaUnitnexoAdmin extends AbstractAdmin
                 'label' => 'Acciones',
                 'actions' => [
                     'ical' => [
-                        'template' => 'reserva_unitnexo_admin\list__action_ical_clipboard.html.twig'
+                        'template' => 'admin/reserva_unitnexo/list__action_ical_clipboard.html.twig'
                     ],
                     'show' => [],
                     'edit' => [],

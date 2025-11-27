@@ -81,7 +81,7 @@ class ServicioComponenteAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'clonar' => [
-                        'template' => 'servicio_componente_admin/list__action_clonar.html.twig'
+                        'template' => 'admin/servicio_componente/list__action_clonar.html.twig'
                     ]
                 ],
             ])

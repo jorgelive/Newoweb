@@ -199,7 +199,7 @@ class ComprobanteComprobanteAdmin extends AbstractAdmin
             ->add('total')
             ->add('serie')
             ->add('documento', null, [
-                'template' => 'comprobante_comprobante_admin/list_documento.html.twig'
+                'template' => 'admin/comprobante_comprobante/list_documento.html.twig'
             ])
             ->add('fechaemision', null, [
                 'label' => 'Fecha emisión'
@@ -211,13 +211,13 @@ class ComprobanteComprobanteAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'facturar' => [
-                        'template' => 'comprobante_comprobante_admin/list__action_emitir.html.twig'
+                        'template' => 'admin/comprobante_comprobante/list__action_emitir.html.twig'
                     ],
                     'generarnotacredito' => [
-                        'template' => 'comprobante_comprobante_admin/list__action_generarnotacredito.html.twig'
+                        'template' => 'admin/comprobante_comprobante/list__action_generarnotacredito.html.twig'
                     ],
                     'generarcopia' => [
-                        'template' => 'comprobante_comprobante_admin/list__action_generarcopia.html.twig'
+                        'template' => 'admin/comprobante_comprobante/list__action_generarcopia.html.twig'
                     ]
 
                 ],

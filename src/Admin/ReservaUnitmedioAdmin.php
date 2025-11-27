@@ -57,7 +57,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
-        $buttonList['carga'] = ['template' => 'reserva_unitmedio_admin/carga_button.html.twig'];
+        $buttonList['carga'] = ['template' => 'admin/reserva_unitmedio/carga_button.html.twig'];
         return $buttonList;
     }
 
@@ -98,7 +98,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
             ])
             ->add('webThumbPath', 'string', [
                 'label' => 'Archivo',
-                'template' => 'base_sonata_admin/list_image.html.twig',
+                'template' => 'admin/base_sonata/list_image.html.twig',
             ])
             ->add('nombre', null, ['editable' => true])
             ->add('titulo', null, ['label' => 'Título', 'editable' => true])
@@ -110,7 +110,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'traducir' => [
-                        'template' => 'reserva_unitmedio_admin/list__action_traducir.html.twig'
+                        'template' => 'admin/reserva_unitmedio/list__action_traducir.html.twig'
                     ],
                 ],
             ]);
@@ -207,7 +207,7 @@ class ReservaUnitmedioAdmin extends AbstractAdmin
             ->add('unitcaracteristica', null, ['label' => 'Característica'])
             ->add('webThumbPath', null, [
                 'label' => 'Archivo',
-                'template' => 'base_sonata_admin/show_image.html.twig',
+                'template' => 'admin/base_sonata/show_image.html.twig',
             ])
             ->add('enlace')
             ->add('nombre')

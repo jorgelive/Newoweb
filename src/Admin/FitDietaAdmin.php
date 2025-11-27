@@ -26,7 +26,7 @@ class FitDietaAdmin extends AbstractAdmin
 
     public function configure(): void
     {
-        $this->setFormTheme([0 => 'fit_dieta_admin/form_admin_fields.html.twig']);
+        $this->setFormTheme([0 => 'admin/fit_dieta/form_admin_fields.html.twig']);
     }
 
 
@@ -107,10 +107,10 @@ class FitDietaAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'resumen' => [
-                        'template' => 'fit_dieta_admin\list__action_resumen.html.twig'
+                        'template' => 'admin/fit_dieta/list__action_resumen.html.twig'
                     ],
                     'clonar' => [
-                        'template' => 'fit_dieta_admin/list__action_clonar.html.twig'
+                        'template' => 'admin/fit_dieta/list__action_clonar.html.twig'
                     ]
                 ]
             ])

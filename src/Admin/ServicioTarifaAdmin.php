@@ -131,10 +131,10 @@ class ServicioTarifaAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'clonar' => [
-                        'template' => 'servicio_tarifa_admin/list__action_clonar.html.twig'
+                        'template' => 'admin/servicio_tarifa/list__action_clonar.html.twig'
                     ],
                     'traducir' => [
-                        'template' => 'servicio_tarifa_admin/list__action_traducir.html.twig'
+                        'template' => 'admin/servicio_tarifa/list__action_traducir.html.twig'
                     ]
                 ],
             ])
@@ -235,7 +235,7 @@ class ServicioTarifaAdmin extends AbstractAdmin
             ])
             ->add('provider', ModelAutocompleteType::class, [
                 'property' => 'nombre',
-                'template' => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
+                'template' => 'form/type/ajax_dropdown_type_cotizacion_base.html.twig',
                 'minimum_input_length' => 0,
                 'dropdown_auto_width' => false,
                 'required' => false,

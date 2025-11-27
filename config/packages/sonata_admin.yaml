@@ -1,7 +1,7 @@
 sonata_admin:
     title:      Extranet
     title_logo: /app/images/logo_title.png
-    default_controller: 'App\Controller\CRUDAdminController'
+    default_controller: 'App/Controller/Admin/CRUDController'
     persist_filters: true
     security:
         handler: sonata.admin.security.handler.role
@@ -149,9 +149,9 @@ sonata_admin:
                     - app.admin.cuentatipo
     templates:
         # default global templates
-        layout:  base_sonata_admin/standard_layout.html.twig
-        edit:    base_sonata_admin/edit.html.twig
-        list_block: base_sonata_admin/block_admin_list.html.twig
+        layout:  admin/base_sonata/standard_layout.html.twig
+        edit:    admin/base_sonata/edit.html.twig
+        list_block: admin/base_sonata/block_admin_list.html.twig
 
     assets:
         extra_stylesheets:

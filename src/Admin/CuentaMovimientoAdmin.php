@@ -131,12 +131,12 @@ class CuentaMovimientoAdmin extends AbstractAdmin
                 'row_align' => 'right'
             ])
             ->add('debesoles', null, [
-                'template' => 'cuenta_movimiento_admin/list_string_debesoles.html.twig',
+                'template' => 'admin/cuenta_movimiento/list_string_debesoles.html.twig',
                 'label' => 'Ingreso Soles',
                 'row_align' => 'right'
             ])
             ->add('habersoles', null, [
-                'template' => 'cuenta_movimiento_admin/list_string_habersoles.html.twig',
+                'template' => 'admin/cuenta_movimiento/list_string_habersoles.html.twig',
                 'label' => 'Egreso Soles',
                 'row_align' => 'right'
             ])
@@ -189,7 +189,7 @@ class CuentaMovimientoAdmin extends AbstractAdmin
             ->add('periodotransferencia', ModelAutocompleteType::class, [
                 'label' => 'Trans O / D',
                 'property' => 'cuenta',
-                'template' => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
+                'template' => 'form/type/ajax_dropdown_type_cotizacion_base.html.twig',
                 'required' => false,
                 'callback' => function ($admin, $property, $value) {
                     $datagrid = $admin->getDatagrid();

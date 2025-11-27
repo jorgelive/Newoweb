@@ -1,0 +1,280 @@
+<?php
+
+namespace App\Controller\Admin;
+
+use App\Entity\ReservaChannel;
+use App\Entity\ReservaEstado;
+use App\Entity\ReservaReserva;
+use App\Service\IcalGenerator;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use JeroenDesloovere\VCard\VCard;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+
+class ReservaReservaController extends CRUDController
+{
+
+    private IcalGenerator $icalGenerator;
+
+    private EntityManagerInterface $entityManager;
+
+    function __construct(IcalGenerator $icalGenerator, EntityManagerInterface $entityManager)
+    {
+        $this->icalGenerator = $icalGenerator;
+        $this->entityManager = $entityManager;
+    }
+
+    public function listAction(Request $request): Response
+    {
+        $admin     = $this->admin; // disponible en CRUDController
+        $session   = $request->hasSession() ? $request->getSession() : null;
+        $available = array_keys($admin->getListModes());
+        $key       = sprintf('%s._list_mode', $admin->getCode()); // ej: app.admin.medios._list_mode
+
+        // 1) Si la request ya trae _list_mode, úsalo y guárdalo en sesión
+        if ($request->query->has('_list_mode')) {
+            $mode = (string) $request->query->get('_list_mode');
+            if (!in_array($mode, $available, true)) {
+                $mode = 'mosaic'; // fallback si vino algo raro
+                $request->query->set('_list_mode', $mode);
+            }
+            if ($session) {
+                $session->set($key, $mode);
+            }
+            return parent::listAction($request);
+        }
+
+        // 2) Si no viene, usa el último guardado o 'mosaic' como default
+        $mode = ($session && $session->has($key)) ? $session->get($key) : 'mosaic';
+
+        // 3) Inyecta el modo en la query SIN redirigir (evita loop al filtrar)
+        $request->query->set('_list_mode', $mode);
+
+        return parent::listAction($request);
+    }
+
+
+    public function resumenAction(Request $request = null): Response|RedirectResponse
+    {
+        $object = $this->assertObjectExists($request, true);
+        \assert(null !== $object);
+
+        // Validación de token para acceso público
+        if ($request->get('token') != $object->getToken()) {
+            $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
+            return new RedirectResponse($this->admin->generateUrl('list'));
+        }
+
+        $this->checkParentChildAssociation($request, $object);
+
+        if (null !== ($preResponse = $this->preShow($request, $object))) {
+            return $preResponse;
+        }
+
+        $this->admin->setSubject($object);
+
+        // Si el estado habilita el resumen público, mostramos también los TIPO marcados como restringidos
+        $permitirCaractRestringidas = (bool) ($object->getEstado()?->isHabilitarResumenPublico() ?? false);
+
+        return $this->render('admin/reserva_reserva/show.html.twig', [
+            'object'                     => $object,
+            'action'                     => 'resumen',
+            'elements'                   => $this->admin->getShow(),
+            'permitirCaractRestringidas' => $permitirCaractRestringidas,
+        ]);
+    }
+
+    public function showAction(Request $request): Response
+    {
+        $object = $this->assertObjectExists($request, true);
+        \assert(null !== $object);
+
+        $this->checkParentChildAssociation($request, $object);
+
+        $this->admin->checkAccess('show', $object);
+
+        $preResponse = $this->preShow($request, $object);
+        if (null !== $preResponse) {
+            return $preResponse;
+        }
+
+        $this->admin->setSubject($object);
+
+        $fields = $this->admin->getShow();
+
+        $permitirCaractRestringidas = (bool) ($object->getEstado()?->isHabilitarResumenPublico() ?? false);
+
+        return $this->render('admin/reserva_reserva/show.html.twig', [
+            'object'                     => $object,
+            'action'                     => 'show',
+            'elements'                   => $fields,
+            'permitirCaractRestringidas' => $permitirCaractRestringidas,
+        ]);
+    }
+
+
+    public function clonarAction(Request $request): Response
+    {
+        $object = $this->assertObjectExists($request, true);
+
+        $this->admin->checkAccess('create', $object);
+
+        $newObject = clone $object;
+
+        $newObject->setUid('cl-' . $object->getUid());
+        $newObject->setChannel($this->entityManager->getReference('App\Entity\ReservaChannel', ReservaChannel::DB_VALOR_DIRECTO));
+        $newObject->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
+        $newObject->setUnitnexo(null);
+
+        $newObject->setNombre($object->getNombre() . ' (Clone)');
+        $this->admin->create($newObject);
+
+        $this->addFlash('sonata_flash_success', 'Reserva clonada correctamente');
+
+        return new RedirectResponse($this->admin->generateUrl('edit', ['id' => $newObject->getId()]));
+    }
+
+    public function extenderAction(Request $request = null)
+    {
+        $object = $this->assertObjectExists($request, true);
+        $id = $object->getId();
+
+        if(!$object) {
+            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $id));
+        }
+
+        $this->admin->checkAccess('create', $object);
+
+        $newObject = clone $object;
+
+        $nuevaFechaInicial = clone $object->getFechahorafin();
+        //$nuevaFechaInicial->add(new \DateInterval('P1D'));
+        $nuevaFechaFinal = clone $object->getFechahorafin();
+        $nuevaFechaFinal->add(new \DateInterval('P1D'));
+
+        $newObject->setFechahorainicio($nuevaFechaInicial);
+        $newObject->setUid('ad-' . $object->getUid());
+        $newObject->setChannel($this->entityManager->getReference('App\Entity\ReservaChannel', ReservaChannel::DB_VALOR_DIRECTO));
+        $newObject->setEstado($this->entityManager->getReference('App\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO));
+        $newObject->setUnitnexo(null);
+        $newObject->setFechahorafin($nuevaFechaFinal);
+        $newObject->setNombre($object->getNombre() . ' (Adicional)');
+        $this->admin->create($newObject);
+
+        $this->addFlash('sonata_flash_success', 'Reserva extendida correctamente');
+
+        return new RedirectResponse($this->admin->generateUrl('edit', ['id' => $newObject->getId()]));
+
+    }
+
+    public function vcardAction(Request $request = null): Response
+    {
+
+        $object = $this->assertObjectExists($request, true);
+
+        if(!$object) {
+            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $object->getId()));
+        }
+
+        $id = $object->getId();
+
+        $this->admin->checkAccess('show', $object);
+
+        $vcard = new VCard();
+
+        if (!$object instanceof ReservaReserva) {
+            throw $this->createNotFoundException(sprintf('El objeto es invalido with id: %s', $id));
+        }
+
+        $id = $object->getId();
+        $nombre = $object->getNombre();
+        $calificacion = $object->getCalificacion();
+        $cantidad = empty($object->getCantidadninos()) ? $object->getCantidadadultos() : $object->getCantidadadultos() . '+' . $object->getCantidadninos();
+        $inicio = $object->getFechahorainicio();
+        $inicioText =  $inicio->format('Y/m/d');
+        $fin = $object->getFechahorafin();
+        $finText = $fin->format('Y/m/d');
+        $telefono = trim($object->getTelefono());
+        $fechaReservaText = $object->getCreado()->format('Y/m/d');
+
+        $unidad = $object->getUnit()->getNombre();
+        $canal = $object->getChannel()->getNombre();
+        $inicialCanal = substr($object->getChannel()->getNombre(), 0, 1);
+
+        $campoNpmbre = sprintf('%s/%s %s x%s (%s) %s', $inicio->format('Y/m/d'), $fin->format('d'), $inicialCanal, $cantidad, $unidad, $nombre);
+
+        $nota = <<<TXT
+Nombre: $nombre
+Calificacion: $calificacion
+Alojamiento: $unidad
+Ingreso: $inicioText
+Salida: $finText
+Canal: $canal
+Fecha de reserva; $fechaReservaText
+TXT;
+
+        $vcard->addName('', $campoNpmbre);
+        $vcard->addPhoneNumber($telefono, 'CELL');
+        $vcard->addNote($nota);
+        $vcard->addURL($this->admin->generateUrl('show',
+            ['id' => $id]),
+            UrlGeneratorInterface::ABSOLUTE_URL);
+        return new Response(
+            $vcard->getOutput(),
+            200,
+            [
+                'Content-Type' => 'text/vcard',
+                'Content-Disposition' => 'attachment; filename="' . $id . '_contacto.vcf"',
+            ]
+        );
+
+    }
+
+    public function icalAction(Request $request = null): Response
+    {
+        $ahora = new \DateTime('now');
+
+        $qb = $this->entityManager->createQueryBuilder()
+            ->select('rr')
+            ->from('App\Entity\ReservaReserva', 'rr')
+            ->where('rr.estado in (:estado)')
+            ->andWhere('DATE(rr.fechahorafin) >= :fechahorafin')
+            ->orderBy('rr.fechahorainicio', 'ASC')
+            ->setParameter('estado', [ReservaEstado::DB_VALOR_INICIAL, ReservaEstado::DB_VALOR_CONFIRMADO, ReservaEstado::DB_VALOR_PAGO_PARCIAL, ReservaEstado::DB_VALOR_PAGO_TOTAL, ReservaEstado::DB_VALOR_PARA_CANCELACION])
+            ->setParameter('fechahorafin', $ahora->sub(new \DateInterval('P7D'))->format('Y-m-d'));
+        ;
+
+        $reservas = $qb->getQuery()->getResult();
+
+        $calendar = $this->icalGenerator->setTimezone('America/Lima')->setProdid('-//OpenPeru//Cotservicio Calendar //ES')->createCalendar();
+
+        foreach($reservas as $reserva){
+
+            $fechainicioMasUno = new \DateTime($reserva->getFechahorainicio()->format('Y-m-d H:i') . '+1 hour');
+            $fechafinMasUno = new \DateTime($reserva->getFechahorafin()->format('Y-m-d H:i') . '+1 hour');
+
+            $tempEvent = $this->icalGenerator
+                ->createCalendarEvent()
+                ->setStart($reserva->getFechahorainicio())
+                ->setEnd($fechainicioMasUno)
+                ->setSummary(sprintf('Check In: %s %s %s', $reserva->getNombre(),  $reserva->getUnit()->getNombre(), $reserva->getUnit()->getEstablecimiento()->getNombre()))
+                ->setDescription($reserva->getEnlace())
+                ->setUid('i-' . $reserva->getUid());
+            $calendar->addEvent($tempEvent);
+
+            $tempEvent = $this->icalGenerator
+                ->createCalendarEvent()
+                ->setStart($reserva->getFechahorafin())
+                ->setEnd($fechafinMasUno)
+                ->setSummary(sprintf('Check Out: %s %s %s', $reserva->getNombre(),  $reserva->getUnit()->getNombre(), $reserva->getUnit()->getEstablecimiento()->getNombre()))
+                ->setDescription($reserva->getEnlace())
+                ->setUid('o-' . $reserva->getUid());
+            $calendar->addEvent($tempEvent);
+        }
+        $status = Response::HTTP_OK;
+        return $this->makeIcalResponse($calendar, $status);
+    }
+
+}

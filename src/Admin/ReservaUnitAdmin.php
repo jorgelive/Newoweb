@@ -52,11 +52,11 @@ class ReservaUnitAdmin extends AbstractAdmin
                 'label' => 'Acciones',
                 'actions' => [
                     'show' => [],
-                    'resumen' => ['template' => 'reserva_unit_admin/list__action_resumen.html.twig'],
-                    'inventario' => ['template' => 'reserva_unit_admin/list__action_inventario.html.twig'],
+                    'resumen' => ['template' => 'admin/reserva_unit/list__action_resumen.html.twig'],
+                    'inventario' => ['template' => 'admin/reserva_unit/list__action_inventario.html.twig'],
                     'edit' => [],
                     'delete' => [],
-                    'traducir' => ['template' => 'reserva_unit_admin/list__action_traducir.html.twig'],
+                    'traducir' => ['template' => 'admin/reserva_unit/list__action_traducir.html.twig'],
                 ],
             ])
         ;
@@ -104,7 +104,7 @@ class ReservaUnitAdmin extends AbstractAdmin
             ->add('establecimiento')
             ->add('establecimiento.direccion', null, [
                 'label' => 'Dirección',
-                'template' => 'base_sonata_admin/show_map.html.twig',
+                'template' => 'admin/base_sonata/show_map.html.twig',
                 'zoom' => 17,
             ])
             ->add('nombre')

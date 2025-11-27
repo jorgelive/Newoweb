@@ -73,7 +73,7 @@ class FitDietaalimentoAdmin extends AbstractAdmin
             ])
             ->add('alimento', ModelAutocompleteType::class, [
                 'property' => 'nombre',
-                'template' => '/form/type/ajax_dropdown_type_cotizacion_base.html.twig',
+                'template' => 'form/type/ajax_dropdown_type_cotizacion_base.html.twig',
                 'placeholder' => '',
                 'minimum_input_length' => 0,
                 'dropdown_auto_width' => false

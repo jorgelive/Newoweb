@@ -25,6 +25,10 @@ parameters:
 
     app.public_dir: '%kernel.project_dir%/public'
 
+    app.host.oweb: '%env(OWEB_HOST)%'
+    app.host.api: '%env(API_HOST)%'
+    app.host.front: '%env(FRONT_HOST)%'
+
     calendars:
         reserva_reserva_no_canceladas:
             entity: 'App\Entity\ReservaReserva'
@@ -370,13 +374,13 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ComprobanteComprobante
-                controller: App\Controller\ComprobanteComprobanteAdminController
+                controller: App\Controller\Admin\ComprobanteComprobanteController
                 manager_type: orm
                 group: Comprobante
                 label: Documento
                 show_mosaic_button: false
         calls:
-            - [ setTemplate, [edit, comprobante_comprobante_admin/edit.html.twig]]
+            - [ setTemplate, [edit, admin/comprobante_comprobante/edit.html.twig]]
         public: true
 
     app.admin.comprobantecomprobanteitem:
@@ -385,7 +389,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ComprobanteComprobanteitem
-                controller: App\Controller\ComprobanteComprobanteitemAdminController
+                controller: App\Controller\Admin\ComprobanteComprobanteitemController
                 manager_type: orm
                 group: Comprobante
                 label: Item
@@ -458,13 +462,13 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\CotizacionFile
-                controller: App\Controller\CotizacionFileAdminController
+                controller: App\Controller\Admin\CotizacionFileController
                 manager_type: orm
                 group: 'Cotización'
                 label: 'Files de Cotización'
                 show_mosaic_button: false
         calls:
-            - [ setTemplate, [show, cotizacion_file_admin/show.html.twig]]
+            - [ setTemplate, [show, admin/cotizacion_file/show.html.twig]]
         public: true
 
     app.admin.cotizacionestadocotizacion:
@@ -511,14 +515,14 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCotizacion
-                controller: App\Controller\CotizacionCotizacionAdminController
+                controller: App\Controller\Admin\CotizacionCotizacionController
                 manager_type: orm
                 group: Cotizacion
                 label: Cotizaciones
         calls:
-            - [ setTemplate, [show, cotizacion_cotizacion_admin\show.html.twig]]
-            - [ setTemplate, [edit, cotizacion_cotizacion_admin\edit.html.twig]]
-            - [ setTemplate, [list, cotizacion_cotizacion_admin\list.html.twig]]
+            - [ setTemplate, [show, admin/cotizacion_cotizacion/show.html.twig]]
+            - [ setTemplate, [edit, admin/cotizacion_cotizacion/edit.html.twig]]
+            - [ setTemplate, [list, admin/cotizacion_cotizacion/list.html.twig]]
         public: true
 
     app.admin.cotizacioncotservicio:
@@ -527,15 +531,15 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCotservicio
-                controller: App\Controller\CotizacionCotservicioAdminController
+                controller: App\Controller\Admin\CotizacionCotservicioController
                 manager_type: orm
                 group: Cotizacion
                 label: Servicios cotizados
 #                show_mosaic_button: false
         calls:
-            - [ setTemplate, [edit, cotizacion_cotservicio_admin\edit.html.twig]]
-            - [ setTemplate, [list, cotizacion_cotservicio_admin\list.html.twig]]
-            - [ setTemplate, [show, cotizacion_cotservicio_admin\show.html.twig]]
+            - [ setTemplate, [edit, admin/cotizacion_cotservicio/edit.html.twig]]
+            - [ setTemplate, [list, admin/cotizacion_cotservicio/list.html.twig]]
+            - [ setTemplate, [show, admin/cotizacion_cotservicio/show.html.twig]]
         public: true
 
     app.admin.cotizacioncotcomponente:
@@ -544,13 +548,13 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCotcomponente
-                controller: App\Controller\CotizacionCotcomponenteAdminController
+                controller: App\Controller\Admin\CotizacionCotcomponenteController
                 manager_type: orm
                 group: Cotizacion
                 label: Componentes
         calls:
-            - [ setTemplate, [list, cotizacion_cotcomponente_admin\list.html.twig]]
-            - [ setTemplate, [show, cotizacion_cotcomponente_admin\show.html.twig]]
+            - [ setTemplate, [list, admin/cotizacion_cotcomponente/list.html.twig]]
+            - [ setTemplate, [show, admin/cotizacion_cotcomponente/show.html.twig]]
         public: true
 
     app.admin.cotizacioncotcomponenteoperativa:
@@ -653,7 +657,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCotpolitica
-                controller: App\Controller\CotizacionCotpoliticaAdminController
+                controller: App\Controller\Admin\CotizacionCotpoliticaController
                 manager_type: orm
                 group: 'Cotización'
                 label: 'Políticas'
@@ -666,7 +670,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\CotizacionCotnota
-                controller: App\Controller\CotizacionCotnotaAdminController
+                controller: App\Controller\Admin\CotizacionCotnotaController
                 manager_type: orm
                 group: 'Cotización'
                 label: Notas operativas
@@ -696,7 +700,7 @@ services:
                 label: Movimiento
                 show_mosaic_button: false
         calls:
-            - [ setTemplate, [list, cuenta_movimiento_admin/list.html.twig]]
+            - [ setTemplate, [list, admin/cuenta_movimiento/list.html.twig]]
         public: true
 
     app.admin.cuentaclase:
@@ -734,7 +738,7 @@ services:
                 label: Periodo
                 show_mosaic_button: false
         calls:
-            - [ setTemplate, [edit, cuenta_periodo_admin/edit.html.twig]]
+            - [ setTemplate, [edit, admin/cuenta_periodo/edit.html.twig]]
         public: true
 
     app.admin.cuentatipo:
@@ -756,15 +760,15 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\FitDieta
-                controller: App\Controller\FitDietaAdminController
+                controller: App\Controller\Admin\FitDietaController
                 manager_type: orm
                 group: Fit
                 label: Dieta
                 show_mosaic_button: false
         calls:
-            - [ setTemplate, [edit, fit_dieta_admin/edit.html.twig]]
-            - [ setTemplate, [list, fit_dieta_admin/list.html.twig]]
-            - [ setTemplate, [show, fit_dieta_admin/show.html.twig]]
+            - [ setTemplate, [edit, admin/fit_dieta/edit.html.twig]]
+            - [ setTemplate, [list, admin/fit_dieta/list.html.twig]]
+            - [ setTemplate, [show, admin/fit_dieta/show.html.twig]]
         public: true
 
     app.admin.fitdietacomida:
@@ -963,7 +967,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\MaestroMedio
-                controller: App\Controller\MaestroMedioAdminController
+                controller: App\Controller\Admin\MaestroMedioController
                 manager_type: orm
                 group: Maestros
                 label: Multimedia
@@ -988,14 +992,14 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ReservaReserva
-                controller: App\Controller\ReservaReservaAdminController
+                controller: App\Controller\Admin\ReservaReservaController
                 manager_type: orm
                 group: Reserva
                 label: Reservas de alojamiento
         calls:
-            - [ setTemplate, [edit, reserva_reserva_admin/edit.html.twig]]
-            - [ setTemplate, [list, reserva_reserva_admin/list.html.twig]]
-            - [ setTemplate, [show, reserva_reserva_admin/show.html.twig]]
+            - [ setTemplate, [edit, admin/reserva_reserva/edit.html.twig]]
+            - [ setTemplate, [list, admin/reserva_reserva/list.html.twig]]
+            - [ setTemplate, [show, admin/reserva_reserva/show.html.twig]]
         public: true
 
     app.admin.reservachannel:
@@ -1094,13 +1098,13 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ReservaUnit
-              controller: App\Controller\ReservaUnitAdminController
+              controller: App\Controller\Admin\ReservaUnitController
               manager_type: orm
               group: Reserva
               label: Unidad
               show_mosaic_button: false
         calls:
-            - [ setTemplate, [show, reserva_unit_admin/show.html.twig]]
+            - [ setTemplate, [show, admin/reserva_unit/show.html.twig]]
         public: true
 
     app.admin.reservaunitcaracteristicalink:
@@ -1119,13 +1123,13 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ReservaUnitcaracteristica
-              controller: App\Controller\ReservaUnitcaracteristicaAdminController
+              controller: App\Controller\Admin\ReservaUnitcaracteristicaController
               manager_type: orm
               group: Reserva
               label: Característica de unidad
               show_mosaic_button: false
         calls:
-            - [ setTemplate, [ edit, reserva_unitcaracteristica_admin/edit.html.twig ] ]
+            - [ setTemplate, [ edit, admin/reserva_unitcaracteristica/edit.html.twig ] ]
         public: true
 
     app.admin.reservaunittipocaracteristica:
@@ -1144,7 +1148,7 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ReservaUnitmedio
-              controller: App\Controller\ReservaUnitmedioAdminController
+              controller: App\Controller\Admin\ReservaUnitmedioController
               manager_type: orm
               group: Reserva
               label: Unidad Multimedia
@@ -1156,7 +1160,7 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ReservaUnitnexo
-              controller: App\Controller\ReservaUnitnexoAdminController
+              controller: App\Controller\Admin\ReservaUnitnexoController
               manager_type: orm
               group: Reserva
               label: Nexos
@@ -1169,7 +1173,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioServicio
-                controller: App\Controller\ServicioServicioAdminController
+                controller: App\Controller\Admin\ServicioServicioController
                 manager_type: orm
                 group: Servicio
                 label: Servicio para cotizar
@@ -1182,7 +1186,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioItinerario
-                controller: App\Controller\ServicioItinerarioAdminController
+                controller: App\Controller\Admin\ServicioItinerarioController
                 manager_type: orm
                 group: Servicio
                 label: Itinerario
@@ -1195,7 +1199,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioComponente
-                controller: App\Controller\ServicioComponenteAdminController
+                controller: App\Controller\Admin\ServicioComponenteController
                 manager_type: orm
                 group: Servicio
                 label: Componente
@@ -1208,7 +1212,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioComponenteitem
-                controller: App\Controller\ServicioComponenteitemAdminController
+                controller: App\Controller\Admin\ServicioComponenteitemController
                 manager_type: orm
                 group: Servicio
                 label: Item de Componente
@@ -1233,7 +1237,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioTarifa
-                controller: App\Controller\ServicioTarifaAdminController
+                controller: App\Controller\Admin\ServicioTarifaController
                 manager_type: orm
                 group: Servicio
                 label: Tarifa para cotizar
@@ -1257,7 +1261,7 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ServicioProvidermedio
-              controller: App\Controller\ServicioProvidermedioAdminController
+              controller: App\Controller\Admin\ServicioProvidermedioController
               manager_type: orm
               group: Servicio
               label: Proveedor Multimedia
@@ -1270,7 +1274,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\ServicioItinerariodia
-                controller: App\Controller\ServicioItinerariodiaAdminController
+                controller: App\Controller\Admin\ServicioItinerariodiaController
                 manager_type: orm
                 group: Servicio
                 label: Dias de itinerario
@@ -1282,7 +1286,7 @@ services:
         tags:
             - name: sonata.admin
               model_class: App\Entity\ServicioNotaitinerariodia
-              controller: App\Controller\ServicioNotaitinerariodiaAdminController
+              controller: App\Controller\Admin\ServicioNotaitinerariodiaController
               manager_type: orm
               group: Servicio
               label: Notas de itinerarios
@@ -1343,15 +1347,15 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\TransporteServicio
-                controller: App\Controller\TransporteServicioAdminController
+                controller: App\Controller\Admin\TransporteServicioController
                 manager_type: orm
                 group: Transporte
                 label: Servicios de transporte
                 show_mosaic_button: false
         calls:
             - [ setTokenStorage, ["@security.token_storage"]]
-            - [ setTemplate, [list, transporte_servicio_admin/list.html.twig]]
-            - [ setTemplate, [edit, transporte_servicio_admin/edit.html.twig]]
+            - [ setTemplate, [list, admin/transporte_servicio/list.html.twig]]
+            - [ setTemplate, [edit, admin/transporte_servicio/edit.html.twig]]
         public: true
 
     app.admin.transporteserviciooperativo:
@@ -1372,13 +1376,13 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\TransporteServiciocontable
-                controller: App\Controller\TransporteServiciocontableAdminController
+                controller: App\Controller\Admin\TransporteServiciocontableController
                 manager_type: orm
                 group: Transporte
                 label: Contables
                 show_mosaic_button: false
         calls:
-            - [ setTemplate, [edit, transporte_serviciocontable_admin/edit.html.twig]]
+            - [ setTemplate, [edit, admin/transporte_serviciocontable/edit.html.twig]]
         public: true
 
     app.admin.transporteserviciocomponente:
@@ -1387,7 +1391,7 @@ services:
             -
                 name: sonata.admin
                 model_class: App\Entity\TransporteServiciocomponente
-                controller: App\Controller\TransporteServiciocomponenteAdminController
+                controller: App\Controller\Admin\TransporteServiciocomponenteController
                 manager_type: orm
                 group: Transporte
                 label: Files de Transporte
@@ -1417,7 +1421,7 @@ services:
                 label: Unidades
                 show_mosaic_button: false
         calls:
-            - [ setTemplate, [show, transporte_unidad_admin/show.html.twig]]
+            - [ setTemplate, [show, admin/transporte_unidad/show.html.twig]]
         public: true
 
     app.admin.transportetiposeroperativo:

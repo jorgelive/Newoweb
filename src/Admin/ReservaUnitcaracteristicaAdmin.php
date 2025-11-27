@@ -49,7 +49,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
             ->add('nombre', null, ['editable' => true, 'label' => 'Nombre interno'])
             ->add('unittipocaracteristica', null, ['label' => 'Tipo'])
             ->add('contenido', null, [
-                'template' => 'base_sonata_admin/list_html.html.twig',
+                'template' => 'admin/base_sonata/list_html.html.twig',
                 'header_class' => 'col-long-text'
             ])
             ->add('links', null, [
@@ -61,7 +61,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
         if ($this->getRequest() && $this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $listMapper->add('contenidooriginal', null, [
                 'label' => 'Contenido original',
-                'template' => 'base_sonata_admin/list_html.html.twig',
+                'template' => 'admin/base_sonata/list_html.html.twig',
                 'header_class' => 'col-long-text'
             ]);
         }
@@ -73,7 +73,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractAdmin
                 'edit' => [],
                 'delete' => [],
                 'traducir' => [
-                    'template' => 'reserva_unitcaracteristica_admin/list__action_traducir.html.twig'
+                    'template' => 'admin/reserva_unitcaracteristica/list__action_traducir.html.twig'
                 ]
             ],
         ]);

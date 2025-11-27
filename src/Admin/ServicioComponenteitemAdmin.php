@@ -88,7 +88,7 @@ class ServicioComponenteitemAdmin extends AbstractAdmin
                     'edit' => [],
                     'delete' => [],
                     'traducir' => [
-                        'template' => 'servicio_componenteitem_admin/list__action_traducir.html.twig'
+                        'template' => 'admin/servicio_componenteitem/list__action_traducir.html.twig'
                     ]
                 ],
             ])
