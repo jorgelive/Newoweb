@@ -331,10 +331,19 @@ class FullcalendarExtension extends AbstractExtension
                     appendTo: document.body
                 });
 
+                // 🔹 Deshabilitar selección táctil
                 info.el.style.userSelect = 'none';
                 info.el.style.webkitUserSelect = 'none';
                 info.el.style.webkitTouchCallout = 'none';
                 info.el.style.touchAction = 'manipulation';
+            
+                // 🔹 Cambiar cursor si hay acciones de click o doble click
+                if (
+                    (info.event.extendedProps.urlshow && info.event.extendedProps.urlshow !== '') ||
+                    (info.event.extendedProps.urledit && info.event.extendedProps.urledit !== '')
+                ) {
+                    info.el.style.cursor = 'pointer';
+                }
             },
 
             resourceAreaHeaderContent: '$defaultLabel',

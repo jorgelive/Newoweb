@@ -169,17 +169,20 @@ Reemplazo del autocomplete estándar de Sonata con:
                         return;
                     }
 
+                    // 👇 Aquí forzamos credenciales y CORS para este autocomplete
+                    params.xhrFields  = params.xhrFields  || {};
+                    params.xhrFields.withCredentials = true;
+                    params.crossDomain = true;
+
                     var request = $.ajax(params);
                     request.then(function (data) {
                         __s2Cache[cacheKey] = data;
-                        // Cachea todo (termino/página) para máximo rendimiento
                         rememberKey(cacheKey);
                         success(data);
                     }, failure);
 
                     return request;
                 },
-
                 processResults: function (data, params) {
                     return {
                         results: data.items,
