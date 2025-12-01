@@ -241,6 +241,19 @@ class ObtenerReservasCommand extends Command
             /** @var ReservaReserva[] $currentReservas */
             $currentReservas = $qb->getQuery()->getResult();
 
+            // Mapa auxiliar para Booking: UID extendido -> ReservaReserva
+            // Nos sirve para intentar emparejar cada VEVENT con la reserva más "parecida"
+            // (misma fecha de inicio y, en lo posible, misma duración), evitando que
+            // las modificaciones/cancelaciones parezcan aleatorias cuando hay overbooking.
+            $bookingReservasPorUid = [];
+            if ($nexo->getChannel()->getId() === ReservaChannel::DB_VALOR_BOOKING) {
+                foreach ($currentReservas as $r) {
+                    if ($r->getUid()) {
+                        $bookingReservasPorUid[(string)$r->getUid()] = $r;
+                    }
+                }
+            }
+
             $output->writeln(sprintf(
                 '→ Nexo %d | Canal:%s | Unidad:%s | Enlace:%s | Reservas actuales:%d',
                 $nexo->getId(),
@@ -350,17 +363,64 @@ class ObtenerReservasCommand extends Command
                      * 1) Intentar reusar un UID#N:x ya existente en BD que:
                      *    - Pertenezca a este UID base + unidad + canal
                      *    - No haya sido "reclamado" en esta ejecución
+                     *    - Sea el que mejor coincide con la reserva según:
+                     *          a) misma fecha de inicio (Booking ata el UID a la fecha de inicio)
+                     *          b) misma duración (número de noches), si es posible
                      *
-                     *    Esto permite que, si el feed iCal repite el mismo VEVENT
-                     *    (mismo rango de fechas) en una misma corrida, se use
-                     *    el mismo UID extendido y no se creen reservas duplicadas.
+                     *    De este modo, cuando Booking modifica o cancela solo una
+                     *    de las reservas con el mismo UID base, la asociación entre
+                     *    VEVENT y reserva no es "al azar" sino lo más coherente posible.
                      */
                     $reusado = null;
-                    while (!empty($colaExistentes)) {
-                        $candidato = array_shift($colaExistentes);
-                        if (!isset($bookingClaimed[$groupKey][$candidato])) {
-                            $reusado = $candidato;
-                            break;
+
+                    if (!empty($colaExistentes)) {
+                        $bestScore = null;
+                        $bestUid   = null;
+
+                        $targetNights = $start->diff($end)->days;
+                        $targetStart  = $dtstartRaw; // Ymd
+
+                        foreach ($colaExistentes as $candidatoUid) {
+                            if (isset($bookingClaimed[$groupKey][$candidatoUid])) {
+                                // Ya usamos este UID extendido para otro evento en este run
+                                continue;
+                            }
+
+                            // Score alto por defecto; mientras menor, mejor match
+                            $score = 1000;
+
+                            if (isset($bookingReservasPorUid[$candidatoUid])) {
+                                $res = $bookingReservasPorUid[$candidatoUid];
+                                $ini = $res->getFechahorainicio();
+                                $fin = $res->getFechahorafin();
+
+                                $iniYmd = $ini->format('Ymd');
+                                $nights = $ini->diff($fin)->days;
+
+                                // Booking: UID amarrado a la fecha de inicio.
+                                // Prioridad:
+                                //  - score 0: misma fecha inicio + mismas noches
+                                //  - score 1..N: misma fecha inicio, noches distintas
+                                //  - score 10+: fecha inicio distinta (debería ser raro)
+                                if ($iniYmd === $targetStart && $nights === $targetNights) {
+                                    $score = 0;
+                                } elseif ($iniYmd === $targetStart) {
+                                    $score = 1 + abs($nights - $targetNights);
+                                } else {
+                                    $score = 10 + abs($nights - $targetNights);
+                                }
+                            }
+
+                            if ($bestScore === null || $score < $bestScore) {
+                                $bestScore = $score;
+                                $bestUid   = $candidatoUid;
+                            }
+                        }
+
+                        if ($bestUid !== null) {
+                            $reusado = $bestUid;
+                            // Sacamos el UID elegido de la cola
+                            $colaExistentes = array_values(array_diff($colaExistentes, [$bestUid]));
                         }
                     }
 
