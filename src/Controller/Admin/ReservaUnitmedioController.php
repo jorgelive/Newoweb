@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\ReservaUnitmedio;
+use App\Entity\ReservaUnitcaracteristica;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -76,11 +77,17 @@ class ReservaUnitmedioController extends CRUDController
 
         $newObject = $this->admin->getNewInstance();
 
+        // 👉 cargamos TODAS las características, el dropdown será opcional
+        $caracteristicas = $this->entityManager
+            ->getRepository(ReservaUnitcaracteristica::class)
+            ->findBy([], ['id' => 'ASC']);
+
         return $this->renderWithExtraParams($template,
             [
-                'object' => $newObject,
-                'action' => 'carga',
-                'objectId' => null
+                'object'          => $newObject,
+                'action'          => 'carga',
+                'objectId'        => null,
+                'caracteristicas' => $caracteristicas,
                 //'elements' => $fields,
             ]);
     }
@@ -99,6 +106,10 @@ class ReservaUnitmedioController extends CRUDController
         }
 
         $data = json_decode($parsedContent['json']);
+
+        // 👉 puede venir null / vacío: lo tratamos como OPCIONAL
+        $unitcaracteristicaId = $data->unitcaracteristica_id ?? null;
+
         $filename = \sys_get_temp_dir() . '/' . mt_rand() . '_' . $data->name;
 
         $dataFileDec = base64_decode(
@@ -113,6 +124,17 @@ class ReservaUnitmedioController extends CRUDController
         $unitMedio->setArchivo($fakeUpload);
         $unitMedio->setNombre(pathinfo($data->name, PATHINFO_FILENAME));
         $unitMedio->setTitulo(pathinfo($data->name, PATHINFO_FILENAME));
+
+        // 👉 sólo si el id viene y existe, se setea la relación
+        if ($unitcaracteristicaId) {
+            $unitCaracteristica = $this->entityManager
+                ->getRepository(ReservaUnitcaracteristica::class)
+                ->find($unitcaracteristicaId);
+
+            if ($unitCaracteristica) {
+                $unitMedio->setUnitcaracteristica($unitCaracteristica);
+            }
+        }
 
         // tell Doctrine you want to (eventually) save the Product (no queries yet)
 

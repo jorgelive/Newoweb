@@ -50,36 +50,47 @@
 {% endblock %}
 
 {% block show %}
-<div class="sonata-ba-view">
-    {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
+    <div class="sonata-ba-view">
+        {{ sonata_block_render_event('sonata.admin.show.top', { 'admin': admin, 'object': object }) }}
 
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-sm-8 col-sm-offset-2">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-8 col-sm-offset-2">
 
-                <div class="img-zone text-center" id="drop">
-                    <div class="img-drop">
-                        <h2 class="drop-area-label"><small>Arrastre &amp; coloque fotos aqui</small></h2>
-                        <p><em>- o -</em></p>
-                        <h2><i class="glyphicon glyphicon-camera"></i></h2>
-                        <span class="btn btn-success btn-file">
+                    {# Dropdown OPCIONAL para unitcaracteristica #}
+                    <div class="form-group">
+                        <label for="unitcaracteristica_id">Tipo de característica (opcional)</label>
+                        <select id="unitcaracteristica_id" class="form-control">
+                            <option value="">-- Ninguna / sin asignar --</option>
+                            {% for c in caracteristicas %}
+                                <option value="{{ c.id }}">{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="img-zone text-center" id="drop">
+                        <div class="img-drop">
+                            <h2 class="drop-area-label"><small>Arrastre &amp; coloque fotos aqui</small></h2>
+                            <p><em>- o -</em></p>
+                            <h2><i class="glyphicon glyphicon-camera"></i></h2>
+                            <span class="btn btn-success btn-file">
                             Explorador de archivos
                             <form id="upload">
-                            <!-- <input type="file" name="file" id="file" multiple="true" accepts="image/*" /> -->
-                            <input type="file" name="file" id="file" multiple="true" />
+                                <!-- <input type="file" name="file" id="file" multiple="true" accepts="image/*" /> -->
+                                <input type="file" name="file" id="file" multiple="true" />
                             </form>
                         </span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="panel box ">
-                    <div id="uploads" class="panel-body table-responsive no-padding">
+                    <div class="panel box ">
+                        <div id="uploads" class="panel-body table-responsive no-padding">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
     {{ sonata_block_render_event('sonata.admin.show.bottom', { 'admin': admin }) }}
 
     <script>
@@ -109,6 +120,10 @@
 
         var processFiles = function processFiles(event) {
             event.preventDefault();
+
+            // 👇 OPCIONAL: si está vacío, se envía null
+            var unitcaracteristicaId = $("#unitcaracteristica_id").val() || null;
+
             var files = event.target.files || event.dataTransfer.files;
             var images = $.map(files, function (file, i) {
                 var reader = new FileReader();
@@ -128,7 +143,8 @@
                                 "file": data,
                                 "name": this.name,
                                 "size": this.size,
-                                "type": this.type
+                                "type": this.type,
+                                "unitcaracteristica_id": unitcaracteristicaId // 👈 opcional
                             })
                         },
                         dataType: "json",
