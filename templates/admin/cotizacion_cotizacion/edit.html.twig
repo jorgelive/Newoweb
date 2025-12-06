@@ -336,18 +336,81 @@
                         const $pax  = $('#'+paxId);
                         if(!$cant.length) return;
 
-                        $cant.removeClass('prorrateado inputwarning readonly')
+                        // Limpiar estados previos y tooltip previo (si existe)
+                        $cant.removeClass('prorrateado prorrateadoadicional readonly')
                             .removeAttr('readonly');
+                        if ($cant[0] && $cant[0]._tippy) {
+                            $cant[0]._tippy.destroy();
+                        }
+
                         if(result.prorrateado===true){
                             $cant.addClass('prorrateado');
+
+                            // Tooltip específico para tarifas prorrateadas según capacidadmax
+                            let tooltipMsg = '';
                             if(result.capacidadmax===1){
-                                $cant.addClass('inputwarning');
+                                // Caso PASAJERO ADICIONAL PRORRATEADO
+                                $cant.addClass('prorrateadoadicional');
+                                tooltipMsg = 'Cantidad de pasajeros adicionales que se cobrarán con esta tarifa prorrateada.';
                             }else{
+                                // Tarifa prorrateada por servicio/grupo (cantidad fija = 1)
                                 $cant.addClass('readonly').attr('readonly','readonly');
+                                tooltipMsg = 'Tarifa prorrateada por servicio. La cantidad siempre es 1.';
                             }
+
+                            if (typeof tippy !== 'undefined' && $cant[0]) {
+                                tippy($cant[0], {
+                                    content: tooltipMsg,
+                                    placement: 'top',
+                                    arrow: true,
+                                    theme: 'light-border',
+                                    animation: 'scale',
+                                    appendTo: document.body
+                                });
+                            }
+
                             $cant.val(1).trigger('input');
-                        }else{
-                            $cant.val($pax.val()||'1').trigger('input');
+                        } else {
+                            // Tarifa normal: cantidad = pasajeros restantes para este componente
+
+                            // 1) Obtener el total de pasajeros a nivel de servicio usando el name del campo cantidad
+                            const nameCant = $cant.attr('name') || '';
+                            // Ejemplo de name:
+                            // sXXXX[cotservicios][11][cotcomponentes][5][cottarifas][0][cantidad]
+
+                            const servicioBase = nameCant.replace(/\[cotcomponentes\]\[\d+\]\[cottarifas\]\[\d+\]\[cantidad\]$/, '');
+                            const paxName      = servicioBase + '[numeropasajeros]';
+                            const paxSelector  = 'input[name="'+paxName.replace(/\[/g,'\\[').replace(/\]/g,'\\]')+'"]';
+                            const $paxInput    = $(paxSelector);
+                            const totalPax     = parseInt($paxInput.val(), 10) || 1;
+
+                            // 2) Sumar las cantidades de OTRAS tarifas del MISMO componente
+                            let usados = 0;
+
+                            const componenteBase = nameCant.replace(/\[cottarifas\]\[\d+\]\[cantidad\]$/, '');
+                            const reCant = new RegExp('^' +
+                                componenteBase.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') +
+                                '\\[cottarifas\\]\\[\\d+\\]\\[cantidad\\]$'
+                            );
+
+                            $('input').each(function () {
+                                const n = this.name || '';
+                                if (!reCant.test(n)) return;
+                                if (this === $cant[0]) return; // ignorar el actual
+                                const v = parseInt(this.value, 10);
+                                if (!isNaN(v) && v > 0) {
+                                    usados += v;
+                                }
+                            });
+
+                            // 3) Restantes = total pasajeros del servicio - ya usados en otras tarifas de este componente
+                            let restantes = totalPax - usados;
+                            if (restantes < 1) {
+                                // Fallback: al menos 1, por si se “sobre-reparte”
+                                restantes = 1;
+                            }
+
+                            $cant.val(restantes).trigger('input');
                         }
                     }
                 });

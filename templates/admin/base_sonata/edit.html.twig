@@ -15,7 +15,7 @@
         .inputwarning{border-color: #ce563f;
         }
         .serviciofechainicio{background-color: rgba(22, 157, 28, 0.25);}
-        .inputwarning:focus{border-color: #DD1144;
+        .prorrateadoadicional:focus{border-color: #DD1144;
             -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
             box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
         }
@@ -276,6 +276,32 @@
             document.addEventListener('DOMContentLoaded', function () {
                 initFormEnhancements(document);
                 fixMediosSortable();
+
+                if (typeof tippy !== 'undefined') {
+                    // Delegado: pasajero adicional prorrateado
+                    tippy.delegate(document.body, {
+                        target: 'input.prorrateadoadicional',
+                        content: 'Cantidad de PASAJEROS ADICIONALES que se cobrarán con esta tarifa prorrateada.',
+                        placement: 'top',
+                        arrow: true,
+                        theme: 'light-border',
+                        animation: 'scale',
+                        appendTo: document.body,
+                        trigger: 'mouseenter'
+                    });
+
+                    // Delegado: tarifa prorrateada por servicio/grupo (cantidad fija = 1)
+                    tippy.delegate(document.body, {
+                        target: 'input.prorrateado.readonly',
+                        content: 'Tarifa prorrateada por servicio. La cantidad siempre es 1.',
+                        placement: 'top',
+                        arrow: true,
+                        theme: 'light-border',
+                        animation: 'scale',
+                        appendTo: document.body,
+                        trigger: 'mouseenter'
+                    });
+                }
             });
 
             document.addEventListener('sonata.add_element', function (ev) {
@@ -326,5 +352,3 @@
 
 
 {% endblock %}
-
-

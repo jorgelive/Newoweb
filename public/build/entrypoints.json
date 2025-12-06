@@ -4,7 +4,7 @@
       "js": [
         "/build/runtime.js",
         "/build/vendors-node_modules_symfony_stimulus-bridge_dist_index_js.js",
-        "/build/vendors-node_modules_core-js_modules_es_function_bind_js-node_modules_core-js_modules_es_obje-3ba344.js",
+        "/build/vendors-node_modules_core-js_modules_es_date_to-primitive_js-node_modules_core-js_modules_es_-2c8e05.js",
         "/build/front.js"
       ],
       "css": [

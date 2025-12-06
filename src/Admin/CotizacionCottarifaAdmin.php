@@ -150,7 +150,7 @@ class CotizacionCottarifaAdmin extends AbstractAdmin
                     && $event->getData()->getTarifa()->isProrrateado() === true
                 ){
                     if($event->getData()->getTarifa()->getCapacidadmax() == 1){
-                        $clases = 'prorrateado inputwarning';
+                        $clases = 'prorrateado prorrateadoadicional';
                     }else{
                         $clases = 'prorrateado readonly';
                     }
