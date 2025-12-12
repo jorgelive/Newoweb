@@ -1,0 +1,78 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+    app.admin.comprobantecomprobante:
+        class: App\Admin\ComprobanteComprobanteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ComprobanteComprobante
+            controller: App\Controller\Admin\ComprobanteComprobanteController
+            manager_type: orm
+            group: Comprobante
+            label: Documento
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ edit, admin/comprobante_comprobante/edit.html.twig ] ]
+        public: true
+    app.admin.comprobantecomprobanteitem:
+        class: App\Admin\ComprobanteComprobanteitemAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ComprobanteComprobanteitem
+            controller: App\Controller\Admin\ComprobanteComprobanteitemController
+            manager_type: orm
+            group: Comprobante
+            label: Item
+            show_mosaic_button: false
+        public: true
+    app.admin.comprobantemensaje:
+        class: App\Admin\ComprobanteMensajeAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ComprobanteMensaje
+            manager_type: orm
+            group: Comprobante
+            label: Mensajes de emisión
+            show_mosaic_button: false
+        public: true
+    app.admin.comprobantetipo:
+        class: App\Admin\ComprobanteTipoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ComprobanteTipo
+            manager_type: orm
+            group: Comprobante
+            label: Tipo de documento contable
+            show_mosaic_button: false
+        public: true
+    app.admin.comprobanteproductoservicio:
+        class: App\Admin\ComprobanteProductoservicioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ComprobanteProductoservicio
+            manager_type: orm
+            group: Comprobante
+            label: Productos y servicios
+            show_mosaic_button: false
+        public: true
+    app.admin.comprobantetipoproductoservicio:
+        class: App\Admin\ComprobanteTipoproductoservicioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ComprobanteTipoproductoservicio
+            manager_type: orm
+            group: Comprobante
+            label: Tipo de producto
+            show_mosaic_button: false
+        public: true
+    app.admin.comprobanteestado:
+        class: App\Admin\ComprobanteEstadoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ComprobanteEstado
+            manager_type: orm
+            group: Comprobante
+            label: Estado de domprobante
+            show_mosaic_button: false
+        public: true

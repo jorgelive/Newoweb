@@ -1,0 +1,147 @@
+# config/services/pms_admin.yaml
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+    app.admin.pms_beds24_config:
+        class: App\Pms\Admin\Beds24ConfigAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\Beds24Config
+              manager_type: orm
+              group: Pms
+              label: Configuración Beds24
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_beds24_endpoint:
+        class: App\Pms\Admin\PmsBeds24EndpointAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsBeds24Endpoint
+              manager_type: orm
+              group: Pms
+              label: Endpoints Beds24
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_establecimiento:
+        class: App\Pms\Admin\PmsEstablecimientoAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsEstablecimiento
+              manager_type: orm
+              group: Pms
+              label: Establecimientos
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_unidad:
+        class: App\Pms\Admin\PmsUnidadAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsUnidad
+              manager_type: orm
+              group: Pms
+              label: Unidades
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_unidad_beds24_map:
+        class: App\Pms\Admin\PmsUnidadBeds24MapAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsUnidadBeds24Map
+              manager_type: orm
+              group: Pms
+              label: Mapeo PMS ↔ Beds24
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_tarifa_rango:
+        class: App\Pms\Admin\PmsTarifaRangoAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsTarifaRango
+              manager_type: orm
+              group: Pms
+              label: Tarifas (rangos)
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_tarifa_queue:
+        class: App\Pms\Admin\PmsTarifaQueueAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsTarifaQueue
+              manager_type: orm
+              group: Pms
+              label: Cola de tarifas
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_evento_calendario:
+        class: App\Pms\Admin\PmsEventoCalendarioAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsEventoCalendario
+              manager_type: orm
+              group: Pms
+              label: Eventos calendario
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_evento_calendario_queue:
+        class: App\Pms\Admin\PmsEventoCalendarioQueueAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsEventoCalendarioQueue
+              manager_type: orm
+              group: Pms
+              label: Cola eventos calendario
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_reserva:
+        class: App\Pms\Admin\PmsReservaAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsReserva
+              manager_type: orm
+              group: Pms
+              label: Reservas PMS
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_evento_calendario_tipo:
+        class: App\Pms\Admin\PmsEventoCalendarioTipoAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsEventoCalendarioTipo
+              manager_type: orm
+              group: Pms
+              label: Tipos de evento
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_channel:
+        class: App\Pms\Admin\PmsChannelAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsChannel
+              manager_type: orm
+              group: Pms
+              label: Canales (Beds24)
+              show_mosaic_button: false
+        public: true
+
+    app.admin.pms_reserva_estado:
+        class: App\Pms\Admin\PmsReservaEstadoAdmin
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsReservaEstado
+              manager_type: orm
+              group: Pms
+              label: Estados de reserva
+              show_mosaic_button: false
+        public: true

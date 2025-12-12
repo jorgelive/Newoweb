@@ -50,6 +50,37 @@ sonata_admin:
                     - app.admin.serviciomodalidadtarifa
                     - app.admin.serviciotipotarifadetalle
 
+            app.admin.group.pms:
+                label: 'Pms'
+                icon: '<i class="fa fa-map"></i>'
+                items:
+                    # Estructura principal del PMS
+                    - app.admin.pms_establecimiento
+                    - app.admin.pms_unidad
+
+                    # Reservas y su estado
+                    - app.admin.pms_reserva
+                    - app.admin.pms_reserva_estado
+
+                    # Calendario y tipos
+                    - app.admin.pms_evento_calendario
+                    - app.admin.pms_evento_calendario_tipo
+
+                    # Canales (lógico antes que los detalles de Beds24)
+                    - app.admin.pms_channel
+
+                    # Configuración de integración Beds24
+                    - app.admin.pms_beds24_config
+                    - app.admin.pms_beds24_endpoint
+                    - app.admin.pms_unidad_beds24_map
+
+                    # Tarifas
+                    - app.admin.pms_tarifa_rango
+
+                    # Colas (más técnico / menos frecuente)
+                    - app.admin.pms_tarifa_queue
+                    - app.admin.pms_evento_calendario_queue
+
             app.admin.group.reserva:
                 label: 'Reservas'
                 icon: '<i class="fa fa-map"></i>'

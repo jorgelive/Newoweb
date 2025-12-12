@@ -45,7 +45,14 @@ class CotizacionCotizacion
     private ?string $resumen = null;
 
     // Columna generada en BD; se mapea como read-only
-    #[ORM\Column(type: 'text', insertable: false, updatable: false, columnDefinition: 'longtext AS (resumen) VIRTUAL NULL', generated: 'ALWAYS')]
+    #[ORM\Column(
+        name: 'resumenoriginal',
+        type: 'text',
+        nullable: true,
+        insertable: false,
+        updatable: false,
+        columnDefinition: "longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci GENERATED ALWAYS AS (`resumen`) VIRTUAL"
+    )]
     private ?string $resumenoriginal = null;
 
     #[ORM\Column(type: 'integer')]

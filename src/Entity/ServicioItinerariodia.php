@@ -39,7 +39,13 @@ class ServicioItinerariodia
     #[ORM\Column(type: 'string', length: 100)]
     private ?string $titulo = null;
 
-    #[ORM\Column(type: 'string', columnDefinition: 'varchar(100) AS (titulo) VIRTUAL NULL', generated: 'ALWAYS', insertable: false, updatable: false)]
+    #[ORM\Column(
+        name: 'titulooriginal',
+        type: 'string',
+        length: 100,
+        nullable: true,
+        columnDefinition: "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci GENERATED ALWAYS AS (`titulo`) VIRTUAL"
+    )]
     private ?string $titulooriginal = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => 0])]
@@ -49,7 +55,12 @@ class ServicioItinerariodia
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $contenido = null;
 
-    #[ORM\Column(type: 'text', insertable: false, updatable: false, columnDefinition: 'longtext AS (contenido) VIRTUAL NULL', generated: 'ALWAYS')]
+    #[ORM\Column(
+        name: 'contenidooriginal',
+        type: 'text',
+        nullable: true,
+        columnDefinition: "longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci GENERATED ALWAYS AS (`contenido`) VIRTUAL"
+    )]
     private ?string $contenidooriginal = null;
 
     #[Gedmo\Timestampable(on: 'create')]

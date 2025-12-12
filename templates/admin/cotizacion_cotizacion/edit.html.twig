@@ -5,6 +5,10 @@
 
     <style>
         tr.row-cotservicios{border-top: 3px solid rgba(0, 0, 0, 0.47);}
+        .cantidad-no-ajustada{
+            border-color: #ce563f !important;
+            box-shadow: 0 0 0 1px rgba(206,86,63,.55);
+        }
     </style>
 
     <style>
@@ -373,37 +377,53 @@
                         } else {
                             // Tarifa normal: cantidad = pasajeros restantes para este componente
 
-                            // 1) Obtener el total de pasajeros a nivel de servicio usando el name del campo cantidad
-                            const nameCant = $cant.attr('name') || '';
-                            // Ejemplo de name:
-                            // sXXXX[cotservicios][11][cotcomponentes][5][cottarifas][0][cantidad]
+                            // 1) Obtener el total de pasajeros global usando el prefijo del formulario
+                            const nameCant  = $cant.attr('name') || '';
+                            // Ejemplo de nameCant:
+                            // sXXXX[cotservicios][2][cotcomponentes][0][cottarifas][0][cantidad]
 
-                            const servicioBase = nameCant.replace(/\[cotcomponentes\]\[\d+\]\[cottarifas\]\[\d+\]\[cantidad\]$/, '');
-                            const paxName      = servicioBase + '[numeropasajeros]';
-                            const paxSelector  = 'input[name="'+paxName.replace(/\[/g,'\\[').replace(/\]/g,'\\]')+'"]';
-                            const $paxInput    = $(paxSelector);
-                            const totalPax     = parseInt($paxInput.val(), 10) || 1;
+                            const formPrefix = nameCant.replace(/\[cotservicios\]\[\d+\]\[cotcomponentes\]\[\d+\]\[cottarifas\]\[\d+\]\[cantidad\]$/, '');
+                            // name numeropasajeros: sXXXX[numeropasajeros]
+                            const paxName     = formPrefix + '[numeropasajeros]';
+                            const paxSelector = 'input[name="' + paxName.replace(/\[/g, '\\[').replace(/\]/g, '\\]') + '"]';
+                            let   $paxInput   = $(paxSelector);
 
-                            // 2) Sumar las cantidades de OTRAS tarifas del MISMO componente
+                            // Fallback: si no se encuentra por name exacto, tomar el primer numeropasajeros del formulario
+                            if (!$paxInput.length) {
+                                $paxInput = $('input[name$="[numeropasajeros]"]').first();
+                            }
+
+                            const totalPax = parseInt($paxInput.val(), 10) || 1;
+
+                            // 2) Sumar solo las cantidades de tarifas dentro del MISMO componente
                             let usados = 0;
 
-                            const componenteBase = nameCant.replace(/\[cottarifas\]\[\d+\]\[cantidad\]$/, '');
-                            const reCant = new RegExp('^' +
-                                componenteBase.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') +
-                                '\\[cottarifas\\]\\[\\d+\\]\\[cantidad\\]$'
-                            );
+                            // nameCant ejemplo:
+                            // sXXXX[cotservicios][8][cotcomponentes][0][cottarifas][2][cantidad]
+                            // Extraemos el prefijo del componente:
+                            const mComp = nameCant.match(/^(.*\[cotservicios\]\[\d+\]\[cotcomponentes\]\[\d+\])\[cottarifas\]\[\d+\]\[cantidad\]$/);
+                            if (mComp) {
+                                const componentePrefix = mComp[1];
 
-                            $('input').each(function () {
-                                const n = this.name || '';
-                                if (!reCant.test(n)) return;
-                                if (this === $cant[0]) return; // ignorar el actual
-                                const v = parseInt(this.value, 10);
-                                if (!isNaN(v) && v > 0) {
-                                    usados += v;
-                                }
-                            });
+                                // Coincidir SOLO cantidades de tarifas de ese mismo componente:
+                                const reCantComp = new RegExp('^' +
+                                    componentePrefix.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') +
+                                    '\\[cottarifas\\]\\[\\d+\\]\\[cantidad\\]$'
+                                );
 
-                            // 3) Restantes = total pasajeros del servicio - ya usados en otras tarifas de este componente
+                                $('input').each(function () {
+                                    const n = this.name || '';
+                                    if (this === $cant[0]) return; // ignorar el actual
+                                    if (!reCantComp.test(n)) return;
+
+                                    const v = parseInt(this.value, 10);
+                                    if (!isNaN(v) && v > 0) {
+                                        usados += v;
+                                    }
+                                });
+                            }
+
+                            // 3) Restantes = total pasajeros - ya usados en otras tarifas de este componente
                             let restantes = totalPax - usados;
                             if (restantes < 1) {
                                 // Fallback: al menos 1, por si se “sobre-reparte”
@@ -515,7 +535,6 @@
                 if (RE_FECHA_FIN_SERV.test($inp.attr("name"))) {
                     basestr = $inp.attr("name").replace(/\[fechahorafin\]$/, '');
                     const fin = $inp.val();
-                    console.log('finservicioafincomponente', fin);
                     {% block finservicioafincomponentebasestr %}
                     basestr = basestr.replace(/\]\[/g,'_').replace(/\]/g,'_').replace(/\[/g,'_');
                     {% endblock %}
@@ -562,6 +581,67 @@
                     recalcCantidadComponente($inp);
                     return;
                 }
+            });
+
+
+            // ============================
+            // Actualizar tarifas NO prorrateadas cuando cambia numeropasajeros
+            // Solo cambia aquellas cuyo valor actual == valor anterior de pax
+            // ============================
+
+            // 1) Guardar el valor anterior al hacer foco
+            $scope.on('focus', 'input[name$="[numeropasajeros]"]', function () {
+                const $input = $(this);
+                $input.data('old-pax', $input.val());
+            });
+
+            // 2) Cuando cambia el número de pasajeros, actualizar tarifas que coincidan con oldPax
+            $scope.on('change', 'input[name$="[numeropasajeros]"]', function () {
+                const $paxInput = $(this);
+                const oldPax = parseInt($paxInput.data('old-pax'), 10);
+                const newPax = parseInt($paxInput.val(), 10);
+
+                // No continuar si no hay cambio real
+                if (!oldPax || !newPax || oldPax === newPax) return;
+
+                // name = sXXXX[numeropasajeros] → prefijo de formulario
+                const paxName    = $paxInput.attr('name') || '';
+                const formPrefix = paxName.replace(/\[numeropasajeros\]$/, '');
+
+                // Coincidir TODAS las cantidades de tarifas de todos los servicios de esta cotización:
+                // sXXXX[cotservicios][N][cotcomponentes][X][cottarifas][Y][cantidad]
+                const reCant = new RegExp('^' +
+                    formPrefix.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') +
+                    '\\[cotservicios\\]\\[\\d+\\]\\[cotcomponentes\\]\\[\\d+\\]\\[cottarifas\\]\\[\\d+\\]\\[cantidad\\]$'
+                );
+
+                // Recorrer cada campo cantidad de la cotización
+                $('input').each(function () {
+                    const name = this.name || '';
+                    if (!reCant.test(name)) return;
+
+                    const $cant = $(this);
+
+                    // Ignorar tarifas prorrateadas
+                    if ($cant.hasClass('prorrateado') || $cant.hasClass('prorrateadoadicional')) {
+                        // Asegurarnos de que no queden marcadas
+                        $cant.removeClass('cantidad-no-ajustada');
+                        return;
+                    }
+
+                    const v = parseInt(this.value, 10);
+
+
+                    if (v === oldPax) {
+                        // Se actualiza porque estaba pegada al total anterior
+                        this.value = newPax;
+                        $cant.trigger('input');
+                        $cant.removeClass('cantidad-no-ajustada');
+                    } else {
+                        // No se actualiza porque no coincidía con oldPax → resaltamos
+                        $cant.addClass('cantidad-no-ajustada');
+                    }
+                });
             });
 
             // 5) Con delegación NO necesitas rebind en sonata.add_element.

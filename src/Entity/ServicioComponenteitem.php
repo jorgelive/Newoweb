@@ -32,7 +32,15 @@ class ServicioComponenteitem
     #[ORM\Column(type: 'string', length: 160, nullable: true)]
     private ?string $titulo = null;
 
-    #[ORM\Column(type: 'string', insertable: false, updatable: false, columnDefinition: 'varchar(160) AS (titulo) VIRTUAL NULL', generated: 'ALWAYS')]
+    #[ORM\Column(
+        name: 'titulooriginal',
+        type: 'string',
+        length: 160,
+        nullable: true,
+        insertable: false,
+        updatable: false,
+        columnDefinition: "varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci GENERATED ALWAYS AS (`titulo`) VIRTUAL"
+    )]
     private ?string $titulooriginal = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => 0])]

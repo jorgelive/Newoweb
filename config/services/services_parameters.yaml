@@ -1,0 +1,257 @@
+parameters:
+    locale: es
+    router.request_context.host: oweb.openperu.pe
+    router.request_context.scheme: https
+    google_maps_key: '%env(resolve:GOOGLE_MAPS_KEY)%'
+    google_translate_key: '%env(resolve:GOOGLE_TRANSLATE_KEY)%'
+    mailer_sender_email: '%env(resolve:MAILER_SENDER_EMAIL)%'
+    mailer_sender_name: '%env(resolve:MAILER_SENDER_EMAIL)%'
+    mailer_control_email: '%env(resolve:MAILER_CONTROL_EMAIL)%'
+    mailer_alert_receivers: '%env(resolve:MAILER_ALERT_RECEIVERS)%'
+    numero_default: '%env(resolve:NUMERO_DEFAULT)%'
+    facturacion_ruta_prueba: https://www.nubefact.com/api/v1/f76cbd70-fbe8-4a66-96a9-a92d21c0a3ea
+    facturacion_token_prueba: '%env(resolve:FACTURACION_TOKEN_PRUEBA)%'
+    facturacion_ruta_produccion: https://www.nubefact.com/api/v1/b576e284-665a-41cb-9ceb-859de41e8ba7
+    facturacion_token_produccion: '%env(resolve:FACTURACION_TOKEN_PRODUCCION)%'
+    facturacion_igv_porcentaje: '18.00'
+    facturacion_detraccion_monto: '700.00'
+    facturacion_detraccion_texto: OPERACIÓN SUJETA AL SISTEMA DE PAGO DE OBLIGACIONES
+        TRIBUTARIAS CON EL GOBIERNO CENTRAL
+    facturacion_detraccion_cuenta: 00-173-030533
+    app.public_dir: '%kernel.project_dir%/public'
+    app.host.oweb: '%env(OWEB_HOST)%'
+    app.host.api: '%env(API_HOST)%'
+    app.host.front: '%env(FRONT_HOST)%'
+    calendars:
+        reserva_reserva_no_canceladas:
+            entity: App\Entity\ReservaReserva
+            repositorymethod: findCalendarNoCanceladas
+            resource:
+                id: unit.id
+                title: unit.resumen
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                textColor: textcolor
+                classNames: classnames
+                backgroundColor: estado.color
+                tooltip:
+                - resumen
+                - nota
+                - requerimiento
+                url:
+                    id: id
+                    show:
+                        route: admin_app_reservareserva_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_reservareserva_edit
+                        role: ROLE_RESERVAS_EDITOR
+        reserva_reserva_todas:
+            entity: App\Entity\ReservaReserva
+            repositorymethod: findCalendarTodas
+            resource:
+                id: unit.id
+                title: unit.resumen
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                textColor: textcolor
+                backgroundColor: estado.color
+                classNames: classnames
+                tooltip:
+                - resumen
+                - nota
+                - requerimiento
+                url:
+                    id: id
+                    show:
+                        route: admin_app_reservareserva_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_reservareserva_edit
+                        role: ROLE_RESERVAS_EDITOR
+        cotizacion_servicio_aceptado_link_servicio:
+            entity: App\Entity\CotizacionCotservicio
+            repositorymethod: findCalendarAceptado
+            resource:
+                id: cotizacion.file.id
+                title: cotizacion.file.nombre
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotizacion.file.color
+                url:
+                    id: id
+                    show:
+                        route: admin_app_cotizacioncotservicio_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_cotizacioncotservicio_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        cotizacion_servicio_aceptado_efectuado_link_servicio:
+            entity: App\Entity\CotizacionCotservicio
+            repositorymethod: findCalendarAceptadoEfectuado
+            resource:
+                id: cotizacion.file.id
+                title: cotizacion.file.nombre
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotizacion.file.color
+                url:
+                    id: id
+                    show:
+                        route: admin_app_cotizacioncotservicio_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_cotizacioncotservicio_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        cotizacion_componente_aceptado_link_cotizacion:
+            entity: App\Entity\CotizacionCotcomponente
+            repositorymethod: findCalendarAceptado
+            resource:
+                id: cotservicio.cotizacion.id
+                title: cotservicio.cotizacion.file.nombre
+            parameters:
+                title: componente.nombre
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotservicio.cotizacion.file.color
+                textColor: estadocotcomponente.colorcalendar
+                url:
+                    id: cotservicio.cotizacion.id
+                    show:
+                        route: admin_app_cotizacioncotizacion_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_cotizacioncotizacion_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        cotizacion_componente_aceptado_efectuado_link_cotizacion:
+            entity: App\Entity\CotizacionCotcomponente
+            repositorymethod: findCalendarAceptadoEfectuado
+            resource:
+                id: cotservicio.cotizacion.id
+                title: cotservicio.cotizacion.file.nombre
+            parameters:
+                title: componente.nombre
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotservicio.cotizacion.file.color
+                textColor: estadocotcomponente.colorcalendar
+                url:
+                    id: cotservicio.cotizacion.id
+                    show:
+                        route: admin_app_cotizacioncotizacion_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_cotizacioncotizacion_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        cotizacion_componente_aceptado:
+            entity: App\Entity\CotizacionCotcomponente
+            repositorymethod: findCalendarAceptado
+            resource:
+                id: cotservicio.cotizacion.id
+                title: cotservicio.cotizacion.file.nombre
+            parameters:
+                title: componente.nombre
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotservicio.cotizacion.file.color
+                textColor: estadocotcomponente.colorcalendar
+                url:
+                    id: id
+                    show:
+                        route: admin_app_cotizacioncotcomponente_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_cotizacioncotcomponente_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        cotizacion_componente_aceptado_efectuado:
+            entity: App\Entity\CotizacionCotcomponente
+            repositorymethod: findCalendarAceptadoEfectuado
+            resource:
+                id: cotservicio.cotizacion.id
+                title: cotservicio.cotizacion.file.nombre
+            parameters:
+                title: componente.nombre
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotservicio.cotizacion.file.color
+                textColor: estadocotcomponente.colorcalendar
+                url:
+                    id: id
+                    show:
+                        route: admin_app_cotizacioncotcomponente_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_cotizacioncotcomponente_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        transporte_servicio_conductor:
+            entity: App\Entity\TransporteServicio
+            repositorymethod: findCalendarConductorColored
+            resource:
+                id: conductor.id
+                title: conductor.nombre
+            filters:
+            -   field: conductor
+                value: conductor.id
+                exception: null
+            -   field: dependencia
+                value: dependencia.id
+                exception: 1
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                color: conductor.color
+                url:
+                    id: id
+                    show:
+                        route: admin_gopro_transporte_servicio_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_gopro_transporte_servicio_edit
+                        role: ROLE_TRANSPORTES_EDITOR
+        transporte_servicio_unidad:
+            entity: App\Entity\TransporteServicio
+            repositorymethod: findCalendarUnidadColored
+            resource:
+                id: unidad.id
+                title: unidad.nombre
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                color: unidad.color
+                url:
+                    id: id
+                    show:
+                        route: admin_gopro_transporte_servicio_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_gopro_transporte_servicio_edit
+                        role: ROLE_TRANSPORTES_EDITOR
+        transporte_servicio_cliente:
+            entity: App\Entity\TransporteServicio
+            repositorymethod: findCalendarClienteColored
+            resource:
+                id: conductor.id
+                title: conductor.nombre
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                color: dependencia.color
+                url:
+                    id: id
+                    show:
+                        route: admin_gopro_transporte_servicio_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_gopro_transporte_servicio_edit
+                        role: ROLE_TRANSPORTES_EDITOR

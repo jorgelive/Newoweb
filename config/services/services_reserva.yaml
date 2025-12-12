@@ -1,0 +1,166 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+    app.admin.reservareserva:
+        class: App\Admin\ReservaReservaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaReserva
+            controller: App\Controller\Admin\ReservaReservaController
+            manager_type: orm
+            group: Reserva
+            label: Reservas de alojamiento
+        calls:
+            - [ setTemplate, [ edit, admin/reserva_reserva/edit.html.twig ] ]
+            - [ setTemplate, [ list, admin/reserva_reserva/list.html.twig ] ]
+            - [ setTemplate, [ show, admin/reserva_reserva/show.html.twig ] ]
+        public: true
+    app.admin.reservachannel:
+        class: App\Admin\ReservaChannelAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaChannel
+            manager_type: orm
+            group: Reserva
+            label: Canal de reserva
+            show_mosaic_button: false
+        public: true
+    app.admin.reservaestado:
+        class: App\Admin\ReservaEstadoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaEstado
+            manager_type: orm
+            group: Reserva
+            label: Estado de reserva
+            show_mosaic_button: false
+        public: true
+    app.admin.reservadetalle:
+        class: App\Admin\ReservaDetalleAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaDetalle
+            manager_type: orm
+            group: Reserva
+            label: Detalles de reserva
+            show_mosaic_button: false
+        public: true
+    app.admin.reservatipodetalle:
+        class: App\Admin\ReservaTipodetalleAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaTipodetalle
+            manager_type: orm
+            group: Reserva
+            label: Tipo de detalle
+            show_mosaic_button: false
+        public: true
+    app.admin.reservapago:
+        class: App\Admin\ReservaPagoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaPago
+            manager_type: orm
+            group: Reserva
+            label: Pagos de reserva
+            show_mosaic_button: false
+        public: true
+    app.admin.reservaimporte:
+        class: App\Admin\ReservaImporteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaImporte
+            manager_type: orm
+            group: Reserva
+            label: Importe de reserva
+            show_mosaic_button: false
+        public: true
+    app.admin.reservatipoimporte:
+        class: App\Admin\ReservaTipoimporteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaTipoimporte
+            manager_type: orm
+            group: Reserva
+            label: Tipo de importe
+            show_mosaic_button: false
+        public: true
+    app.admin.reservaestablecimiento:
+        class: App\Admin\ReservaEstablecimientoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaEstablecimiento
+            manager_type: orm
+            group: Reserva
+            label: Establecimiento
+            show_mosaic_button: false
+        public: true
+    app.admin.reservaunit:
+        class: App\Admin\ReservaUnitAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaUnit
+            controller: App\Controller\Admin\ReservaUnitController
+            manager_type: orm
+            group: Reserva
+            label: Unidad
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ show, admin/reserva_unit/show.html.twig ] ]
+        public: true
+    app.admin.reservaunitcaracteristicalink:
+        class: App\Admin\ReservaUnitCaracteristicaLinkAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaUnitCaracteristicaLink
+            manager_type: orm
+            group: Reserva
+            label: Vínculo Característica
+            show_mosaic_button: false
+        public: true
+    app.admin.reservaunitcaracteristica:
+        class: App\Admin\ReservaUnitcaracteristicaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaUnitcaracteristica
+            controller: App\Controller\Admin\ReservaUnitcaracteristicaController
+            manager_type: orm
+            group: Reserva
+            label: Característica de unidad
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ edit, admin/reserva_unitcaracteristica/edit.html.twig ] ]
+        public: true
+    app.admin.reservaunittipocaracteristica:
+        class: App\Admin\ReservaUnittipocaracteristicaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaUnittipocaracteristica
+            manager_type: orm
+            group: Reserva
+            label: Tipo de característica
+            show_mosaic_button: false
+        public: true
+    app.admin.reservaunitmedio:
+        class: App\Admin\ReservaUnitmedioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaUnitmedio
+            controller: App\Controller\Admin\ReservaUnitmedioController
+            manager_type: orm
+            group: Reserva
+            label: Unidad Multimedia
+            show_mosaic_button: false
+        public: true
+    app.admin.reservaunitnexo:
+        class: App\Admin\ReservaUnitnexoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\ReservaUnitnexo
+            controller: App\Controller\Admin\ReservaUnitnexoController
+            manager_type: orm
+            group: Reserva
+            label: Nexos
+            show_mosaic_button: false
+        public: true

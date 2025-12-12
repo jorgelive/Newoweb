@@ -61,7 +61,15 @@ class ServicioTarifa
     /**
      * @var string
      */
-    #[ORM\Column(type: 'string', columnDefinition: 'varchar(100) AS (titulo) VIRTUAL NULL', generated: 'ALWAYS', insertable: false, updatable: false)]
+    #[ORM\Column(
+        name: 'titulooriginal',
+        type: 'string',
+        length: 100,
+        nullable: true,
+        insertable: false,
+        updatable: false,
+        columnDefinition: "varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci GENERATED ALWAYS AS (`titulo`) VIRTUAL"
+    )]
     private $titulooriginal;
 
     /**
