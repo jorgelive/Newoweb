@@ -1,0 +1,184 @@
+{% macro render_groups(admin, form, groups, has_tab) %}
+    <div class="row">
+    {# Recorremos los grupos definidos en el Admin #}
+    {% for code in groups|filter(code => admin.formgroups[code] is defined) %}
+        {% set form_group = admin.formgroups[code] %}
+
+        <div class="{{ form_group.class|default('col-md-12') }}">
+
+            {# ==========================================================
+                   PARSE BOX_CLASS -> (css class normal) + (data-* stimulus)
+                   ========================================================== #}
+            {% set rawBoxClass = form_group.box_class|default('box') %}
+            {% set tokens = rawBoxClass|split(' ') %}
+
+            {# CSS real (sin js-*) #}
+            {% set cssClass = '' %}
+
+            {# data-controller / data-action (multi) #}
+            {% set controllers = '' %}
+            {% set actions = '' %}
+
+            {# attrs finales data-* (map) #}
+            {% set boxAttrs = {} %}
+
+            {# helper simple para concatenar con espacio (sin macros extra) #}
+            {% set _sep = ' ' %}
+
+            {% for c in tokens %}
+                {% set c = c|trim %}
+
+                {# Twig old: sin continue #}
+                {% if c is not empty %}
+
+                    {# ---------------------------
+            Shortcuts tuyos
+            --------------------------- #}
+                    {% if c == 'js-accordion' %}
+                        {% set controllers = (controllers is empty) ? 'admin--accordion-box' : controllers ~ _sep ~ 'admin--accordion-box' %}
+
+                    {% elseif c == 'js-accordion--collapsed' %}
+                        {% set boxAttrs = boxAttrs|merge({
+                            'data-admin--accordion-box-collapsed-value': 'true'
+                        }) %}
+
+                        {# ---------------------------
+            Controllers (multi)
+            js-controller-<name>
+            --------------------------- #}
+                    {% elseif c starts with 'js-controller-' %}
+                        {% set controller = c|replace({'js-controller-': ''}) %}
+                        {% if controller is not empty %}
+                            {% set controllers = (controllers is empty) ? controller : controllers ~ _sep ~ controller %}
+                        {% endif %}
+
+                        {# ---------------------------
+            Actions (multi)
+            js-action-<action>
+            --------------------------- #}
+                    {% elseif c starts with 'js-action-' %}
+                        {% set action = c|replace({'js-action-': ''}) %}
+                        {% if action is not empty %}
+                            {% set actions = (actions is empty) ? action : actions ~ _sep ~ action %}
+                        {% endif %}
+
+                        {# ---------------------------
+            Targets
+            js-target-<controller>--<target>
+            --------------------------- #}
+                    {% elseif c starts with 'js-target-' %}
+                        {% set raw = c|replace({'js-target-': ''}) %}
+                        {% set parts = raw|split('--') %}
+                        {% if parts|length >= 2 %}
+                            {% set target = parts|last %}
+                            {% set controllerParts = parts|slice(0, parts|length - 1) %}
+                            {% set controller = controllerParts|join('--') %}
+                            {% if controller is not empty and target is not empty %}
+                                {% set key = 'data-' ~ controller ~ '-target' %}
+                                {% set current = boxAttrs[key]|default('') %}
+                                {% set merged = (current is empty) ? target : current ~ _sep ~ target %}
+                                {% set boxAttrs = boxAttrs|merge({ (key): merged }) %}
+                            {% endif %}
+                        {% endif %}
+
+                        {# ---------------------------
+            Values
+            js-value-<controller>--<name>--<val>
+            --------------------------- #}
+                    {% elseif c starts with 'js-value-' %}
+                        {% set raw = c|replace({'js-value-': ''}) %}
+                        {% set parts = raw|split('--') %}
+                        {% if parts|length >= 3 %}
+                            {% set value = parts|last %}
+                            {% set name  = parts[parts|length - 2] %}
+                            {% set controllerParts = parts|slice(0, parts|length - 2) %}
+                            {% set controller = controllerParts|join('--') %}
+                            {% if controller is not empty and name is not empty %}
+                                {% set key = 'data-' ~ controller ~ '-' ~ name ~ '-value' %}
+                                {% set boxAttrs = boxAttrs|merge({ (key): value }) %}
+                            {% endif %}
+                        {% endif %}
+
+                        {# ---------------------------
+            Params
+            js-param-<controller>--<name>--<val>
+            --------------------------- #}
+                    {% elseif c starts with 'js-param-' %}
+                        {% set raw = c|replace({'js-param-': ''}) %}
+                        {% set parts = raw|split('--') %}
+                        {% if parts|length >= 3 %}
+                            {% set value = parts|last %}
+                            {% set name  = parts[parts|length - 2] %}
+                            {% set controllerParts = parts|slice(0, parts|length - 2) %}
+                            {% set controller = controllerParts|join('--') %}
+                            {% if controller is not empty and name is not empty %}
+                                {% set key = 'data-' ~ controller ~ '-' ~ name ~ '-param' %}
+                                {% set boxAttrs = boxAttrs|merge({ (key): value }) %}
+                            {% endif %}
+                        {% endif %}
+
+                        {# ---------------------------
+            Si no es js-*, es CSS normal
+            --------------------------- #}
+                    {% else %}
+                        {% set cssClass = (cssClass is empty) ? c : cssClass ~ _sep ~ c %}
+                    {% endif %}
+
+                {% endif %}
+            {% endfor %}
+
+            {# Consolidamos multi controller/action #}
+            {% if controllers|trim is not empty %}
+                {% set boxAttrs = boxAttrs|merge({ 'data-controller': controllers|trim }) %}
+            {% endif %}
+            {% if actions|trim is not empty %}
+                {% set boxAttrs = boxAttrs|merge({ 'data-action': actions|trim }) %}
+            {% endif %}
+
+            {# ==========================================================
+                   BOX PRINCIPAL
+                   ========================================================== #}
+            <div class="{{ cssClass|default('box') }}"
+            {% for k, v in boxAttrs %}
+                {{ k }}="{{ v }}"
+            {% endfor %}
+            >
+            <div class="box-header">
+                <h4 class="box-title">
+                    {% if form_group.translation_domain is defined and form_group.translation_domain is same as(false) %}
+                        {{ form_group.label }}
+                    {% else %}
+                        {{ form_group.label|trans({}, form_group.translation_domain ?? admin.translationDomain) }}
+                    {% endif %}
+                </h4>
+            </div>
+
+            <div class="box-body">
+                <div class="sonata-ba-collapsed-fields">
+                    {% if form_group.description %}
+                        {% if form_group.translation_domain is defined and form_group.translation_domain is same as(false) %}
+                            <p>{{ form_group.description|raw }}</p>
+                        {% else %}
+                            <p>{{ form_group.description|trans({}, form_group.translation_domain ?? admin.translationDomain)|raw }}</p>
+                        {% endif %}
+                    {% endif %}
+
+                    {% for form_field_name in form_group.fields|filter(form_field_name => form[form_field_name] is defined) %}
+                        {{ form_row(form[form_field_name]) }}
+                    {% else %}
+                        {% if form_group.empty_message != false %}
+                            {% if form_group.empty_message_translation_domain is defined and form_group.empty_message_translation_domain is same as(false) %}
+                                <em>{{ form_group.empty_message }}</em>
+                            {% else %}
+                                <em>{{ form_group.empty_message|trans({}, form_group.empty_message_translation_domain ?? admin.translationDomain) }}</em>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+     </div>
+    {% endfor %}
+    </div>
+{% endmacro %}

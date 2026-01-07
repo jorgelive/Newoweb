@@ -28,8 +28,22 @@ class ReservaReservaAdmin extends AbstractAdmin
 
     protected function configureExportFields(): array
     {
-
-        return ['Unidad' => 'unit.nombre', 'nombre', 'Fecha Inicio' => 'fechahorainicio', 'Fecha Fin' => 'fechahorafin', 'Adultos' => 'cantidadadultos', 'Niños' => 'cantidadninos', 'Canal' => 'channel.nombre', 'Nota' => 'nota' ];
+        /**
+         * Nota:
+         * Las columnas "Fecha Inicio" y "Fecha Fin" son detectadas por
+         * AdminDecoratingDataSource para aplicar formato de fecha sin hora
+         * (Y-m-d) en el exportador de reservas.
+         */
+        return [
+            'Unidad'       => 'unit.nombre',
+            'nombre',
+            'Fecha Inicio' => 'fechahorainicio',
+            'Fecha Fin'    => 'fechahorafin',
+            'Adultos'      => 'cantidadadultos',
+            'Niños'        => 'cantidadninos',
+            'Canal'        => 'channel.nombre',
+            'Nota'         => 'nota',
+        ];
     }
 
     protected function configureDefaultSortValues(array &$sortValues): void

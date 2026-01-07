@@ -1,16 +1,20 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Pms\Admin;
 
 use App\Pms\Entity\PmsUnidad;
+use App\Entity\MaestroMoneda;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\AdminBundle\Form\Type\ModelType;
+use Sonata\Form\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 
 class PmsUnidadAdmin extends AbstractAdmin
@@ -45,6 +49,39 @@ class PmsUnidadAdmin extends AbstractAdmin
                     'required' => false,
                 ])
             ->end()
+            ->with('Tarifa base', ['class' => 'col-md-12'])
+                ->add('tarifaBaseActiva', CheckboxType::class, [
+                    'label' => 'Tarifa base activa',
+                    'required' => false,
+                ])
+                ->add('tarifaBasePrecio', MoneyType::class, [
+                    'label' => 'Precio base',
+                    'required' => true,
+                    'currency' => false,
+                    'scale' => 2,
+                ])
+                ->add('tarifaBaseMinStay', IntegerType::class, [
+                    'label' => 'Min. stay base',
+                    'required' => true,
+                ])
+                ->add('tarifaBaseMoneda', ModelType::class, [
+                    'label' => 'Moneda base',
+                    'required' => true,
+                    'class' => MaestroMoneda::class,
+                    'btn_add' => false,
+                ])
+            ->end()
+            ->with('Beds24', ['class' => 'col-md-12'])
+                ->add('beds24Maps', CollectionType::class, [
+                    'label' => 'Maps Beds24',
+                    'required' => false,
+                    'by_reference' => false,
+                ], [
+                    'edit' => 'inline',
+                    'inline' => 'table',
+                    'sortable' => 'id',
+                ])
+            ->end()
         ;
     }
 
@@ -54,7 +91,12 @@ class PmsUnidadAdmin extends AbstractAdmin
             ->add('establecimiento')
             ->add('nombre')
             ->add('codigoInterno')
-            ->add('activo');
+            ->add('activo')
+            ->add('tarifaBaseActiva')
+            ->add('tarifaBasePrecio')
+            ->add('tarifaBaseMinStay')
+            ->add('tarifaBaseMoneda')
+            ->add('beds24Maps.beds24Config');
     }
 
     protected function configureListFields(ListMapper $list): void
@@ -64,7 +106,14 @@ class PmsUnidadAdmin extends AbstractAdmin
             ->add('establecimiento')
             ->add('codigoInterno')
             ->add('capacidad')
+            ->add('tarifaBaseActiva', null, ['editable' => true])
+            ->add('tarifaBasePrecio')
+            ->add('tarifaBaseMinStay')
+            ->add('tarifaBaseMoneda')
             ->add('activo', null, ['editable' => true])
+            ->add('beds24Maps', null, [
+                'label' => 'Beds24 Maps'
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'actions' => [
                     'edit' => [],
@@ -81,6 +130,13 @@ class PmsUnidadAdmin extends AbstractAdmin
             ->add('nombre')
             ->add('codigoInterno')
             ->add('capacidad')
-            ->add('activo');
+            ->add('activo')
+            ->add('tarifaBaseActiva')
+            ->add('tarifaBasePrecio')
+            ->add('tarifaBaseMinStay')
+            ->add('tarifaBaseMoneda')
+            ->add('beds24Maps', null, [
+                'label' => 'Beds24 Maps',
+            ]);
     }
 }

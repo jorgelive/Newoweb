@@ -1,10 +1,10 @@
 import { startStimulusApp } from '@symfony/stimulus-bridge';
 
 // Registers Stimulus controllers from controllers.json and in the controllers/ directory
-export const frontStimulus = startStimulusApp(require.context(
-    '@symfony/stimulus-bridge/lazy-controller-loader!./controllers/front',
+export const adminStimulus = startStimulusApp(require.context(
+    './controllers',
     true,
-    /\.[jt]sx?$/
+    /^\.\/front\/.*_controller\.[jt]sx?$/
 ));
 
 // register any custom, 3rd party controllers here

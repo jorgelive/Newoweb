@@ -44,9 +44,6 @@ class PmsEstablecimiento
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $timezone = null;
 
-    #[ORM\ManyToOne(targetEntity: Beds24Config::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Beds24Config $beds24Config = null;
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
@@ -168,17 +165,6 @@ class PmsEstablecimiento
         return $this;
     }
 
-    public function getBeds24Config(): ?Beds24Config
-    {
-        return $this->beds24Config;
-    }
-
-    public function setBeds24Config(?Beds24Config $beds24Config): self
-    {
-        $this->beds24Config = $beds24Config;
-
-        return $this;
-    }
 
     public function getCreated(): ?DateTimeInterface
     {

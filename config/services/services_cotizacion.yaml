@@ -3,6 +3,34 @@ services:
         autowire: true
         autoconfigure: true
 
+    app.event_listener.cotizacion_file_doctrine_event_listener:
+        class: App\EventListener\CotizacionFileDoctrineEventListener
+        tags:
+            - name: doctrine.event_listener
+              event: prePersist
+    app.event_listener.cotizacion_cotizacion_doctrine_event_listener:
+        class: App\EventListener\CotizacionCotizacionDoctrineEventListener
+        tags:
+            - name: doctrine.event_listener
+              event: prePersist
+            - name: doctrine.event_listener
+              event: postPersist
+            - name: doctrine.event_listener
+              event: postUpdate
+            - name: doctrine.event_listener
+              event: postLoad
+
+    app.event_listener_cotizacion_cotservicio_doctrine_event_listener:
+        class: App\EventListener\CotizacionCotservicioDoctrineEventListener
+        tags:
+            - name: doctrine.event_listener
+              event: onFlush
+    app.event_listener_cotizacion_cotcomponente_doctrine_event_listener:
+        class: App\EventListener\CotizacionCotcomponenteDoctrineEventListener
+        tags:
+            - name: doctrine.event_listener
+              event: onFlush
+
     app.admin.cotizacionfile:
         class: App\Admin\CotizacionFileAdmin
         tags:

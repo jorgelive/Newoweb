@@ -3,6 +3,7 @@
 namespace App\Pms\Admin;
 
 use App\Pms\Entity\PmsTarifaRango;
+use App\Repository\MaestroMonedaRepository;
 use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
@@ -12,10 +13,31 @@ use Sonata\AdminBundle\Form\Type\ModelType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
-use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Sonata\Form\Type\DatePickerType;
 
 class PmsTarifaRangoAdmin extends AbstractAdmin
 {
+    public function __construct(
+        string $code,
+        string $class,
+        string $baseControllerName,
+        private MaestroMonedaRepository $maestroMonedaRepository
+    ) {
+        parent::__construct($code, $class, $baseControllerName);
+    }
+
+    protected function createNewInstance(): object
+    {
+        $entity = new PmsTarifaRango();
+
+        $usd = $this->maestroMonedaRepository->findUsd();
+        if ($usd !== null) {
+            $entity->setMoneda($usd);
+        }
+
+        return $entity;
+    }
+
     protected function configureDefaultSortValues(array &$sortValues): void
     {
         $sortValues['_sort_by'] = 'fechaInicio';
@@ -30,11 +52,11 @@ class PmsTarifaRangoAdmin extends AbstractAdmin
                     'label' => 'Unidad',
                     'btn_add' => false,
                 ])
-                ->add('fechaInicio', DateType::class, [
-                    'widget' => 'single_text',
+                ->add('fechaInicio', DatePickerType::class, [
+                    'format' => 'yyyy/MM/dd',
                 ])
-                ->add('fechaFin', DateType::class, [
-                    'widget' => 'single_text',
+                ->add('fechaFin', DatePickerType::class, [
+                    'format' => 'yyyy/MM/dd',
                 ])
             ->end()
             ->with('Precio', ['class' => 'col-md-6'])
@@ -45,6 +67,10 @@ class PmsTarifaRangoAdmin extends AbstractAdmin
                 ->add('precio', MoneyType::class, [
                     'currency' => false,
                     'divisor' => 1,
+                ])
+                ->add('minStay', IntegerType::class, [
+                    'label' => 'Min. stay',
+                    'required' => false,
                 ])
                 ->add('importante', CheckboxType::class, [
                     'required' => false,
@@ -67,8 +93,10 @@ class PmsTarifaRangoAdmin extends AbstractAdmin
             ->add('moneda')
             ->add('fechaInicio')
             ->add('fechaFin')
+            ->add('minStay')
             ->add('importante')
-            ->add('activo');
+            ->add('activo')
+            ->add('queues', null, ['label' => 'Queue']);
     }
 
     protected function configureListFields(ListMapper $list): void
@@ -77,14 +105,16 @@ class PmsTarifaRangoAdmin extends AbstractAdmin
             ->addIdentifier('id')
             ->add('unidad')
             ->add('moneda')
-            ->add('fechaInicio')
-            ->add('fechaFin')
+            ->add('fechaInicio', null, ['format' => 'Y/m/d'])
+            ->add('fechaFin', null, ['format' => 'Y/m/d'])
+            ->add('minStay')
             ->add('precio')
             ->add('importante', null, ['editable' => true])
             ->add('peso')
             ->add('activo', null, ['editable' => true])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'actions' => [
+                    'show' => [],
                     'edit' => [],
                     'delete' => [],
                 ],
@@ -97,11 +127,13 @@ class PmsTarifaRangoAdmin extends AbstractAdmin
             ->add('id')
             ->add('unidad')
             ->add('moneda')
-            ->add('fechaInicio')
-            ->add('fechaFin')
+            ->add('fechaInicio', null, ['format' => 'Y/m/d'])
+            ->add('fechaFin', null, ['format' => 'Y/m/d'])
+            ->add('minStay')
             ->add('precio')
             ->add('importante')
             ->add('peso')
-            ->add('activo');
+            ->add('activo')
+            ->add('queues', null, ['label' => 'Queue']);
     }
 }

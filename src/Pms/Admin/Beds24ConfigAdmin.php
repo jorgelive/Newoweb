@@ -9,8 +9,8 @@ use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Sonata\Form\Type\DateTimePickerType;
 
 class Beds24ConfigAdmin extends AbstractAdmin
 {
@@ -28,23 +28,34 @@ class Beds24ConfigAdmin extends AbstractAdmin
                     'required' => false,
                     'label' => 'Nombre interno',
                 ])
-                ->add('apiKey', TextType::class, [
-                    'required' => false,
-                    'label' => 'API key',
+                ->add('refreshToken', TextType::class, [
+                    'required' => true,
+                    'label' => 'Refresh Token',
+                    'help' => 'Credencial principal (API v2). Con este refresh token se genera el auth token automáticamente. Debe usarse al menos 1 vez cada 30 días para mantenerlo vigente.',
                 ])
-                ->add('propKey', TextType::class, [
+                ->add('authToken', TextType::class, [
                     'required' => false,
-                    'label' => 'PropKey',
+                    'disabled' => true,
+                    'label' => 'Auth Token (cache)',
+                    'help' => 'Token de sesión generado automáticamente a partir del refresh token.',
                 ])
-                ->add('propId', IntegerType::class, [
+                ->add('webhookToken', TextType::class, [
                     'required' => false,
-                    'label' => 'PropId',
+                    'label' => 'Webhook Token',
+                    'help' => 'Token secreto para enrutar/validar webhooks (ej: /pms/webhooks/beds24/{token}/bookings). Debe ser largo y no predecible. Si está vacío, no se podrá validar por token.',
                 ])
             ->end()
             ->with('Estado', ['class' => 'col-md-4'])
                 ->add('activo', CheckboxType::class, [
                     'required' => false,
                     'label' => 'Activo',
+                ])
+                ->add('authTokenExpiresAt', DateTimePickerType::class, [
+                    'required' => false,
+                    'label' => 'Auth token expira',
+                    'format' => 'yyyy/MM/dd HH:mm',
+                    'disabled' => true,
+                    'help' => 'Se calcula automáticamente según expiresIn de Beds24. No se edita manualmente.',
                 ])
             ->end()
         ;
@@ -54,7 +65,7 @@ class Beds24ConfigAdmin extends AbstractAdmin
     {
         $filter
             ->add('nombre')
-            ->add('propId')
+            ->add('webhookToken')
             ->add('activo');
     }
 
@@ -63,8 +74,11 @@ class Beds24ConfigAdmin extends AbstractAdmin
         $list
             ->addIdentifier('id')
             ->add('nombre')
-            ->add('propId')
+            ->add('webhookToken')
             ->add('activo', null, ['editable' => true])
+            ->add('authTokenExpiresAt', null, [
+                'format' => 'Y/m/d H:i',
+            ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'actions' => [
                     'edit' => [],
@@ -79,9 +93,15 @@ class Beds24ConfigAdmin extends AbstractAdmin
         $show
             ->add('id')
             ->add('nombre')
-            ->add('apiKey')
-            ->add('propKey')
-            ->add('propId')
+            ->add('refreshToken')
+            ->add('authToken')
+            ->add('webhookToken')
+            ->add('authTokenExpiresAt', null, [
+                'format' => 'Y/m/d H:i',
+            ])
+            ->add('unidadMaps', null, [
+                'label' => 'Unidades Beds24 (Maps)',
+            ])
             ->add('activo');
     }
 }

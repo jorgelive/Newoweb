@@ -1,0 +1,32 @@
+{% extends '@SonataAdmin/CRUD/base_list.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+
+
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script type="text/javascript">
+        $( document ).ready(function() {
+
+        });
+    </script>
+{% endblock %}
+
+{% block sonata_admin_content %}
+
+    {% if admin.listmode == 'mosaic' %}
+        {% block notice %}
+            {% include '@SonataTwig/FlashMessage/render.html.twig' %}
+        {% endblock notice %}
+        {{ fullcalendar('pms_tarifa_rango', {'Compactada' : 'tarifa_rangos_compactados', 'Desplegada' : 'tarifa_rangos_raw'}, 'resourceTimelineTwoMonths', {1 : 'dayGridMonth', 2 : 'resourceTimelineTwoMonths'}) }}
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+
+{% endblock %}

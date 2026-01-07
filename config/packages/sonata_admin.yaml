@@ -51,35 +51,40 @@ sonata_admin:
                     - app.admin.serviciotipotarifadetalle
 
             app.admin.group.pms:
-                label: 'Pms'
+                label: 'pms'
                 icon: '<i class="fa fa-map"></i>'
                 items:
-                    # Estructura principal del PMS
-                    - app.admin.pms_establecimiento
-                    - app.admin.pms_unidad
 
-                    # Reservas y su estado
-                    - app.admin.pms_reserva
-                    - app.admin.pms_reserva_estado
+                    # Reservas / eventos / links
+                    - App\Pms\Admin\PmsReservaAdmin
+                    - App\Pms\Admin\PmsEventoCalendarioAdmin
+                    - App\Pms\Admin\PmsEventoBeds24LinkAdmin
 
-                    # Calendario y tipos
-                    - app.admin.pms_evento_calendario
-                    - app.admin.pms_evento_calendario_tipo
-
-                    # Canales (lógico antes que los detalles de Beds24)
-                    - app.admin.pms_channel
+                    # Estados / pagos / canal
+                    - App\Pms\Admin\PmsEventoEstadoAdmin
+                    - App\Pms\Admin\PmsEventoEstadoPagoAdmin
+                    - App\Pms\Admin\PmsChannelAdmin
 
                     # Configuración de integración Beds24
-                    - app.admin.pms_beds24_config
-                    - app.admin.pms_beds24_endpoint
-                    - app.admin.pms_unidad_beds24_map
+                    - App\Pms\Admin\Beds24ConfigAdmin
+                    - App\Pms\Admin\PmsBeds24EndpointAdmin
+                    - App\Pms\Admin\PmsUnidadBeds24MapAdmin
+
+                    # Pull queue (nuevo)
+                    - App\Pms\Admin\PmsPullQueueJobAdmin
 
                     # Tarifas
-                    - app.admin.pms_tarifa_rango
+                    - App\Pms\Admin\PmsTarifaRangoAdmin
 
-                    # Colas (más técnico / menos frecuente)
-                    - app.admin.pms_tarifa_queue
-                    - app.admin.pms_evento_calendario_queue
+                    # Estructura principal del PMS
+                    - App\Pms\Admin\PmsEstablecimientoAdmin
+                    - App\Pms\Admin\PmsUnidadAdmin
+
+                    # Colas técnicas / background (menos frecuente)
+                    - App\Pms\Admin\PmsBeds24LinkQueueAdmin
+                    - App\Pms\Admin\PmsTarifaQueueAdmin
+                    - App\Pms\Admin\PmsTarifaQueueDeliveryAdmin
+                    - App\Pms\Admin\PmsBeds24WebhookAuditAdmin
 
             app.admin.group.reserva:
                 label: 'Reservas'

@@ -1,0 +1,32 @@
+{% extends '@SonataAdmin/CRUD/base_list.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+
+
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script type="text/javascript">
+        $( document ).ready(function() {
+
+        });
+    </script>
+{% endblock %}
+
+{% block sonata_admin_content %}
+
+    {% if admin.listmode == 'mosaic' %}
+        {% block notice %}
+            {% include '@SonataTwig/FlashMessage/render.html.twig' %}
+        {% endblock notice %}
+        {{ fullcalendar('pms_reserva', {'No Cancelador' : 'pms_eventos_raw', 'Todos' : 'pms_eventos_raw'}, 'resourceTimelineOneMonth', {1 : 'dayGridMonth', 2 : 'resourceTimelineOneMonth'}) }}
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+
+{% endblock %}

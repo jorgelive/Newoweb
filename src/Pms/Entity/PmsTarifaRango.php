@@ -2,11 +2,14 @@
 namespace App\Pms\Entity;
 
 use App\Entity\MaestroMoneda;
+use App\Pms\Repository\PmsTarifaRangoRepository;
 use DateTimeInterface;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: PmsTarifaRangoRepository::class)]
 #[ORM\Table(name: 'pms_tarifa_rango')]
 class PmsTarifaRango {
     #[ORM\Id]
@@ -31,14 +34,20 @@ class PmsTarifaRango {
     #[ORM\JoinColumn(nullable: false)]
     private ?MaestroMoneda $moneda = null;
 
+    #[ORM\Column(type: 'integer', options: ['default' => 2])]
+    private ?int $minStay = 2;
+
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private ?bool $importante = null;
 
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
-    private ?int $peso = null;
+    private ?int $peso = 0;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    private ?bool $activo = null;
+    private ?bool $activo = true;
+
+    #[ORM\OneToMany(mappedBy: 'tarifaRango', targetEntity: PmsTarifaQueue::class, orphanRemoval: true)]
+    private Collection $queues;
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
@@ -47,6 +56,11 @@ class PmsTarifaRango {
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
     private ?DateTimeInterface $updated = null;
+
+    public function __construct()
+    {
+        $this->queues = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -108,6 +122,40 @@ class PmsTarifaRango {
         return $this;
     }
 
+    public function getMinStay(): ?int
+    {
+        return $this->minStay;
+    }
+    public function setMinStay(?int $minStay): self
+    {
+        $this->minStay = $minStay;
+        return $this;
+    }
+
+    public function getQueues(): Collection
+    {
+        return $this->queues;
+    }
+
+    public function addQueue(PmsTarifaQueue $queue): self
+    {
+        if (!$this->queues->contains($queue)) {
+            $this->queues->add($queue);
+            $queue->setTarifaRango($this);
+        }
+
+        return $this;
+    }
+
+    public function removeQueue(PmsTarifaQueue $queue): self
+    {
+        if ($this->queues->removeElement($queue)) {
+            // owning side handled by orphanRemoval
+        }
+
+        return $this;
+    }
+
     public function isImportante(): ?bool
     {
         return $this->importante;
@@ -160,4 +208,3 @@ class PmsTarifaRango {
         return $unidad . ' (' . $inicio . ' → ' . $fin . ')';
     }
 }
-?>

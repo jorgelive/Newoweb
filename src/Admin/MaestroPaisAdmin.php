@@ -18,6 +18,9 @@ class MaestroPaisAdmin extends AbstractAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
+            ->add('iso2', null, [
+                'label' => 'ISO2'
+            ])
             ->add('codigomc',  null, [
                 'label' => 'Código MC'
             ])
@@ -38,6 +41,10 @@ class MaestroPaisAdmin extends AbstractAdmin
         $listMapper
             ->add('id')
             ->add('nombre', null, [
+                'editable' => true
+            ])
+            ->add('iso2', null, [
+                'label' => 'ISO2',
                 'editable' => true
             ])
             ->add('codigomc',  null, [
@@ -69,6 +76,10 @@ class MaestroPaisAdmin extends AbstractAdmin
     {
         $formMapper
             ->add('nombre')
+            ->add('iso2', null, [
+                'label' => 'ISO2',
+                'help' => 'Código ISO 3166-1 alfa-2 (PE, ES, FR, etc.)'
+            ])
             ->add('codigomc',  null, [
                 'label' => 'Código MC'
             ])
@@ -89,6 +100,9 @@ class MaestroPaisAdmin extends AbstractAdmin
         $showMapper
             ->add('id')
             ->add('nombre')
+            ->add('iso2', null, [
+                'label' => 'ISO2'
+            ])
             ->add('codigomc',  null, [
                 'label' => 'Código MC'
             ])

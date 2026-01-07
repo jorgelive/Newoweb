@@ -1,6 +1,7 @@
 imports:
     - { resource: 'services/services_parameters.yaml' }
     - { resource: 'services/services_core.yaml' }
+    - { resource: 'services/services_calendar.yaml' }
     - { resource: 'services/services_comprobante.yaml' }
     - { resource: 'services/services_cotizacion.yaml' }
     - { resource: 'services/services_cuenta.yaml' }

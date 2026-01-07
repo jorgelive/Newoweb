@@ -2,12 +2,20 @@
 
 namespace App\EventListener;
 
-use Doctrine\Persistence\ManagerRegistry;
+use Gedmo\Translatable\TranslatableListener;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 
+#[AsEventListener(
+    event: 'kernel.request',
+    method: 'onKernelRequest',
+    priority: 101
+)]
 class KernelRequestKernelEventListener
 {
-    public function __construct(private ManagerRegistry $doctrine) {}
+    public function __construct(
+        private TranslatableListener $translatableListener
+    ) {}
 
     public function onKernelRequest(RequestEvent $event): void
     {
@@ -16,24 +24,40 @@ class KernelRequestKernelEventListener
         }
 
         $request = $event->getRequest();
-        $session = $request->getSession();
+        $session = $request->hasSession() ? $request->getSession() : null;
 
-        // 1) Lee locale del switcher (ruta o query)
-        $locale = $request->attributes->get('_locale') ?? $request->query->get('_locale');
+        $fromSwitcher = false;
 
-        // 2) Si no viene, usa lo de sesión
-        if (!$locale && $session->has('_locale')) {
-            $locale = $session->get('_locale');
+        // 1) Switcher explícito (?_locale=es / ruta)
+        $locale = $request->attributes->get('_locale')
+            ?? $request->query->get('_locale');
+
+        if ($locale) {
+            $fromSwitcher = true;
         }
 
-        // 3) Fallback a Accept-Language o 'es'
+        // 2) Sesión (si ya eligió antes)
+        if (!$locale && $session && $session->has('_locale')) {
+            $locale = $session->get('_locale');
+            $fromSwitcher = true;
+        }
+
+        // 3) Detección automática (primera visita)
         if (!$locale) {
             $preferred = $request->getPreferredLanguage(['es', 'en']) ?: 'es';
             $locale = str_starts_with($preferred, 'es') ? 'es' : 'en';
         }
 
-        // 4) Persistir y fijar SIEMPRE (elimina la bandera preferred_language)
-        $session->set('_locale', $locale);
+        // 4) Aplicar locale activo (Symfony)
         $request->setLocale($locale);
+
+        // 5) ✅ Aplicar SIEMPRE a Gedmo
+        $this->translatableListener->setTranslatableLocale($locale);
+        $this->translatableListener->setDefaultLocale($locale);
+
+        // 6) Persistir SOLO si fue elección del usuario
+        if ($fromSwitcher && $session) {
+            $session->set('_locale', $locale);
+        }
     }
 }

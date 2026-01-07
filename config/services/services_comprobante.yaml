@@ -2,6 +2,7 @@ services:
     _defaults:
         autowire: true
         autoconfigure: true
+
     app.admin.comprobantecomprobante:
         class: App\Admin\ComprobanteComprobanteAdmin
         tags:

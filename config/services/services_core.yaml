@@ -2,14 +2,17 @@ services:
     _defaults:
         autowire: true
         autoconfigure: true
+
     App\:
         resource: ../../src/
         exclude:
-        - ../../src/DependencyInjection/
-        - ../../src/Entity/
-        - ../../src/Kernel.php
+            - ../../src/DependencyInjection/
+            - ../../src/Entity/
+            - ../../src/Kernel.php
+            - ../../src/pms/Service/Beds24/Sync/SyncContextScope.php
+
     app.doctrine.entity_path_initializer:
-        class: App\Doctrine\EntityPathInitializer
+        class: App\EventSubscriber\EntityPathInitializerSubscriber
         arguments:
             $publicDir: '%app.public_dir%'
         tags:
@@ -17,55 +20,14 @@ services:
     app.service.admin_decorating_data_source:
         class: App\Service\AdminDecoratingDataSource
         decorates: sonata.admin.data_source.orm
-    app.eventlistener.cuenta_movimiento_doctrine_event_listener:
-        class: App\EventListener\CuentaMovimientoDoctrineEventListener
-        arguments:
-        - '@security.token_storage'
-        tags:
-        -   name: doctrine.event_listener
-            event: prePersist
-    app.eventlistener.cotizacion_file_doctrine_event_listener:
-        class: App\EventListener\CotizacionFileDoctrineEventListener
-        tags:
-        -   name: doctrine.event_listener
-            event: prePersist
-    app.eventlistener.cotizacion_cotizacion_doctrine_event_listener:
-        class: App\EventListener\CotizacionCotizacionDoctrineEventListener
-        tags:
-        -   name: doctrine.event_listener
-            event: prePersist
-        -   name: doctrine.event_listener
-            event: postPersist
-        -   name: doctrine.event_listener
-            event: postUpdate
-        -   name: doctrine.event_listener
-            event: postLoad
-    app.eventlistener.reserva_reserva_doctrine_event_listener:
-        class: App\EventListener\ReservaReservaDoctrineEventListener
-        arguments:
-        - '@App\Service\MainVariableproceso'
-        tags:
-        -   name: doctrine.event_listener
-            event: prePersist
-        -   name: doctrine.event_listener
-            event: preUpdate
-    app.eventlistener_cotizacion_cotservicio_doctrine_event_listener:
-        class: App\EventListener\CotizacionCotservicioDoctrineEventListener
-        tags:
-        -   name: doctrine.event_listener
-            event: onFlush
-    app.eventlistener_cotizacion_cotcomponente_doctrine_event_listener:
-        class: App\EventListener\CotizacionCotcomponenteDoctrineEventListener
-        tags:
-        -   name: doctrine.event_listener
-            event: onFlush
-    app.eventListener_controller_request_kernel_event_listener:
+
+    app.event_Listener_controller_request_kernel_event_listener:
         class: App\EventListener\ControllerRequestKernelEventListener
         tags:
         -   name: kernel.event_listener
             event: kernel.controller
             method: onControllerRequest
-    app.eventListener_kernel_request_kernel_event_listener:
+    app.event_Listener_kernel_request_kernel_event_listener:
         class: App\EventListener\KernelRequestKernelEventListener
         tags:
         -   name: kernel.event_listener
@@ -76,3 +38,6 @@ services:
         class: App\Block\TareasBlockService
         tags:
         -   name: sonata.block
+
+    Gedmo\Translatable\TranslatableListener:
+        alias: 'stof_doctrine_extensions.listener.translatable'

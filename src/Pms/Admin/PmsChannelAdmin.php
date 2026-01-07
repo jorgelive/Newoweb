@@ -16,7 +16,10 @@ class PmsChannelAdmin extends AbstractAdmin
     protected function configureFormFields(FormMapper $form): void
     {
         $form
-            ->add('codigo', TextType::class, ['label' => 'Código (Beds24)'])
+            ->add('codigo', TextType::class, [
+                'label' => 'Código (slug interno)',
+                'help' => 'Identificador interno del canal (ej: booking, airbnb, directo)',
+            ])
             ->add('nombre', TextType::class)
             ->add('beds24ChannelId', TextType::class, [
                 'label' => 'ID real Beds24',

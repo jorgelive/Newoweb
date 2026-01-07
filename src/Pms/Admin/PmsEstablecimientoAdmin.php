@@ -8,8 +8,9 @@ use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
-use Sonata\AdminBundle\Form\Type\ModelType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use App\Entity\MaestroPais;
+use Sonata\AdminBundle\Form\Type\ModelAutocompleteType;
 
 class PmsEstablecimientoAdmin extends AbstractAdmin
 {
@@ -33,10 +34,10 @@ class PmsEstablecimientoAdmin extends AbstractAdmin
                 ->add('ciudad', TextType::class, [
                     'required' => false,
                 ])
-                ->add('pais', ModelType::class, [
+                ->add('pais', ModelAutocompleteType::class, [
+                    'property' => 'nombre',
                     'required' => false,
                     'label' => 'País',
-                    'btn_add' => false,
                 ])
                 ->add('telefonoPrincipal', TextType::class, [
                     'required' => false,
@@ -44,15 +45,17 @@ class PmsEstablecimientoAdmin extends AbstractAdmin
                 ->add('emailContacto', TextType::class, [
                     'required' => false,
                 ])
+                ->add('horaCheckIn', null, [
+                    'required' => false,
+                    'label' => 'Hora Check-in',
+                ])
+                ->add('horaCheckOut', null, [
+                    'required' => false,
+                    'label' => 'Hora Check-out',
+                ])
                 ->add('timezone', TextType::class, [
                     'required' => false,
-                ])
-            ->end()
-            ->with('Beds24', ['class' => 'col-md-4'])
-                ->add('beds24Config', ModelType::class, [
-                    'required' => false,
-                    'label' => 'Configuración Beds24',
-                    'btn_add' => false,
+                    'help' => 'Ej: America/Lima',
                 ])
             ->end()
         ;
@@ -63,8 +66,15 @@ class PmsEstablecimientoAdmin extends AbstractAdmin
         $filter
             ->add('nombreComercial')
             ->add('ciudad')
-            ->add('pais')
-            ->add('beds24Config');
+            ->add('pais', null, [
+                'field_type' => ModelAutocompleteType::class,
+                'field_options' => [
+                    'property' => 'nombre',
+                ],
+            ])
+            ->add('horaCheckIn')
+            ->add('horaCheckOut')
+            ->add('timezone');
     }
 
     protected function configureListFields(ListMapper $list): void
@@ -73,7 +83,15 @@ class PmsEstablecimientoAdmin extends AbstractAdmin
             ->addIdentifier('nombreComercial')
             ->add('ciudad')
             ->add('pais')
-            ->add('beds24Config')
+            ->add('horaCheckIn', null, [
+                'label' => 'Check-in',
+                'format' => 'H:i',
+            ])
+            ->add('horaCheckOut', null, [
+                'label' => 'Check-out',
+                'format' => 'H:i',
+            ])
+            ->add('timezone')
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'actions' => [
                     'edit' => [],
@@ -92,9 +110,14 @@ class PmsEstablecimientoAdmin extends AbstractAdmin
             ->add('pais')
             ->add('telefonoPrincipal')
             ->add('emailContacto')
-            ->add('horaCheckIn')
-            ->add('horaCheckOut')
-            ->add('timezone')
-            ->add('beds24Config');
+            ->add('horaCheckIn', null, [
+                'label' => 'Hora Check-in',
+                'format' => 'H:i',
+            ])
+            ->add('horaCheckOut', null, [
+                'label' => 'Hora Check-out',
+                'format' => 'H:i',
+            ])
+            ->add('timezone');
     }
 }

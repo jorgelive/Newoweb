@@ -15,20 +15,130 @@ parameters:
     facturacion_token_produccion: '%env(resolve:FACTURACION_TOKEN_PRODUCCION)%'
     facturacion_igv_porcentaje: '18.00'
     facturacion_detraccion_monto: '700.00'
-    facturacion_detraccion_texto: OPERACIÓN SUJETA AL SISTEMA DE PAGO DE OBLIGACIONES
-        TRIBUTARIAS CON EL GOBIERNO CENTRAL
+    facturacion_detraccion_texto: OPERACIÓN SUJETA AL SISTEMA DE PAGO DE OBLIGACIONES TRIBUTARIAS CON EL GOBIERNO CENTRAL
     facturacion_detraccion_cuenta: 00-173-030533
     app.public_dir: '%kernel.project_dir%/public'
     app.host.oweb: '%env(OWEB_HOST)%'
+    app.host.panel: '%env(PANEL_HOST)%'
     app.host.api: '%env(API_HOST)%'
     app.host.front: '%env(FRONT_HOST)%'
     calendars:
+        pms_eventos_raw:
+            provider: pms_eventos_raw
+            filters:
+                establecimientoId: null
+                unidadIds: [ ]
+                estado:
+                    in: [ ]        # ej: [confirmada, bloqueado]
+                    not_in: [ ]    # ej: [cancelada]
+                estadoPago:
+                    in: [ ]        # ej: [no-pagado, pago-parcial]
+                    not_in: [ ]    # ej: [pago-total]
+            event:
+                url:
+                    # Si hay reserva -> usa ReservaAdmin
+                    reservaEdit:
+                        role: ROLE_RESERVAS_EDITOR
+                        route: admin_app_pms_pmsreserva_edit
+                        params:
+                            tl: es
+
+                    reservaShow:
+                        role: ROLE_USER
+                        route: admin_app_pms_pmsreserva_show
+                        params:
+                            tl: es
+
+                    # Si NO hay reserva -> usa EventoCalendarioAdmin
+                    eventoCalendarioEdit:
+                        role: ROLE_RESERVAS_EDITOR
+                        route: admin_app_pms_pmseventocalendario_edit
+                        params:
+                            tl: es
+
+                    eventoCalendarioShow:
+                        role: ROLE_USER
+                        route: admin_app_pms_pmseventocalendario_show
+                        params:
+                            tl: es
+
+        tarifa_rangos_raw:
+            provider: tarifa_ranges_raw
+            entity: App\Pms\Entity\PmsTarifaRango
+            fields:
+                id: id
+                resourceRoot: unidad
+                resourceId: unidad.id
+                resourceTitle: unidad.nombre
+
+                start: fechaInicio
+                end: fechaFin
+                price: precio
+                minStay: minStay
+                currency: moneda.codigo
+
+                active: activo
+            filters:
+                activeOnly: false
+            event:
+                includeCurrency: false
+                titleFormat: '{price} | {minStay}'
+                url:
+                    id: id
+                    show:
+                        route: admin_app_pms_pmstarifarango_show
+                        role: ROLE_USER
+                        params: { tl: 'es' }
+                    edit:
+                        route: admin_app_pms_pmstarifarango_edit
+                        role: ROLE_TARIFAS_EDITOR
+                        params: { tl: 'es' }
+            eventTime:
+                start: '12:00:00'
+                end: '11:59:59'
+        tarifa_rangos_compactados:
+            provider: tarifa_compressed_ranges
+            entity: App\Pms\Entity\PmsTarifaRango
+            fields:
+                unit: unidad
+                unitId: unidad.id
+                unitTitle: unidad.nombre
+
+                start: fechaInicio
+                end: fechaFin
+
+                price: precio
+                minStay: minStay
+                currency: moneda.codigo
+
+                important: importante
+                weight: peso
+                id: id
+
+                active: activo
+            filters:
+                activeOnly: true
+            event:
+                url:
+                    show:
+                        route: admin_app_pms_pmstarifarango_show
+                        role: ROLE_USER
+                        params: { tl: 'es' }
+                    edit:
+                        route: admin_app_pms_pmstarifarango_edit
+                        role: ROLE_TARIFAS_EDITOR
+                        params: { tl: 'es' }
+            eventTime:
+                start: '12:00:00'
+                end: '11:59:59'
+
         reserva_reserva_no_canceladas:
             entity: App\Entity\ReservaReserva
             repositorymethod: findCalendarNoCanceladas
             resource:
-                id: unit.id
-                title: unit.resumen
+                root: unit
+                id: id
+                title: resumen
             parameters:
                 title: resumen
                 start: fechahorainicio
@@ -52,8 +162,9 @@ parameters:
             entity: App\Entity\ReservaReserva
             repositorymethod: findCalendarTodas
             resource:
-                id: unit.id
-                title: unit.resumen
+                root: unit
+                id: id
+                title: resumen
             parameters:
                 title: resumen
                 start: fechahorainicio
@@ -77,8 +188,9 @@ parameters:
             entity: App\Entity\CotizacionCotservicio
             repositorymethod: findCalendarAceptado
             resource:
-                id: cotizacion.file.id
-                title: cotizacion.file.nombre
+                root: cotizacion.file
+                id: id
+                title: nombre
             parameters:
                 title: resumen
                 start: fechahorainicio
@@ -96,8 +208,9 @@ parameters:
             entity: App\Entity\CotizacionCotservicio
             repositorymethod: findCalendarAceptadoEfectuado
             resource:
-                id: cotizacion.file.id
-                title: cotizacion.file.nombre
+                root: cotizacion.file
+                id: id
+                title: nombre
             parameters:
                 title: resumen
                 start: fechahorainicio
@@ -115,8 +228,9 @@ parameters:
             entity: App\Entity\CotizacionCotcomponente
             repositorymethod: findCalendarAceptado
             resource:
-                id: cotservicio.cotizacion.id
-                title: cotservicio.cotizacion.file.nombre
+                root: cotservicio.cotizacion
+                id: id
+                title: file.nombre
             parameters:
                 title: componente.nombre
                 start: fechahorainicio
@@ -135,8 +249,9 @@ parameters:
             entity: App\Entity\CotizacionCotcomponente
             repositorymethod: findCalendarAceptadoEfectuado
             resource:
-                id: cotservicio.cotizacion.id
-                title: cotservicio.cotizacion.file.nombre
+                root: cotservicio.cotizacion
+                id: id
+                title: file.nombre
             parameters:
                 title: componente.nombre
                 start: fechahorainicio
@@ -155,8 +270,9 @@ parameters:
             entity: App\Entity\CotizacionCotcomponente
             repositorymethod: findCalendarAceptado
             resource:
-                id: cotservicio.cotizacion.id
-                title: cotservicio.cotizacion.file.nombre
+                root: cotservicio.cotizacion
+                id: id
+                title: file.nombre
             parameters:
                 title: componente.nombre
                 start: fechahorainicio
@@ -175,8 +291,9 @@ parameters:
             entity: App\Entity\CotizacionCotcomponente
             repositorymethod: findCalendarAceptadoEfectuado
             resource:
-                id: cotservicio.cotizacion.id
-                title: cotservicio.cotizacion.file.nombre
+                root: cotservicio.cotizacion
+                id: id
+                title: file.nombre
             parameters:
                 title: componente.nombre
                 start: fechahorainicio
@@ -195,15 +312,9 @@ parameters:
             entity: App\Entity\TransporteServicio
             repositorymethod: findCalendarConductorColored
             resource:
-                id: conductor.id
-                title: conductor.nombre
-            filters:
-            -   field: conductor
-                value: conductor.id
-                exception: null
-            -   field: dependencia
-                value: dependencia.id
-                exception: 1
+                root: conductor
+                id: id
+                title: nombre
             parameters:
                 title: resumen
                 start: fechahorainicio
@@ -221,8 +332,9 @@ parameters:
             entity: App\Entity\TransporteServicio
             repositorymethod: findCalendarUnidadColored
             resource:
-                id: unidad.id
-                title: unidad.nombre
+                root: unidad
+                id: id
+                title: nombre
             parameters:
                 title: resumen
                 start: fechahorainicio
@@ -240,8 +352,9 @@ parameters:
             entity: App\Entity\TransporteServicio
             repositorymethod: findCalendarClienteColored
             resource:
-                id: conductor.id
-                title: conductor.nombre
+                root: conductor
+                id: id
+                title: nombre
             parameters:
                 title: resumen
                 start: fechahorainicio

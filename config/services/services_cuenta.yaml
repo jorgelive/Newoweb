@@ -2,6 +2,15 @@ services:
     _defaults:
         autowire: true
         autoconfigure: true
+
+    app.event_listener.cuenta_movimiento_doctrine_event_listener:
+        class: App\EventListener\CuentaMovimientoDoctrineEventListener
+        arguments:
+            - '@security.token_storage'
+        tags:
+            - name: doctrine.event_listener
+              event: prePersist
+
     app.admin.cuentacuenta:
         class: App\Admin\CuentaCuentaAdmin
         tags:

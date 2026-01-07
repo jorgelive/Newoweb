@@ -36,6 +36,7 @@ class PmsBeds24EndpointAdmin extends AbstractAdmin
                     'choices' => [
                         'POST' => 'POST',
                         'GET' => 'GET',
+                        'DELETE' => 'DELETE',
                     ],
                 ])
                 ->add('descripcion', TextareaType::class, [

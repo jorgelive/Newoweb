@@ -5,6 +5,8 @@ namespace App\Pms\Entity;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_beds24_config')]
@@ -18,17 +20,21 @@ class Beds24Config
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombre = null;
 
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $apiKey = null;
 
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $propKey = null;
+    #[ORM\Column(type: 'string', length: 512, nullable: true)]
+    private ?string $refreshToken = null;
 
-    #[ORM\Column(type: 'integer', nullable: true)]
-    private ?int $propId = null;
+    #[ORM\Column(type: 'string', length: 512, nullable: true)]
+    private ?string $authToken = null;
 
-    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTimeInterface $authTokenExpiresAt = null;
+
+    #[ORM\Column(type: 'boolean', nullable: false, options: ['default' => true])]
     private ?bool $activo = null;
+
+    #[ORM\Column(type: 'string', length: 64, unique: true)]
+    private ?string $webhookToken = null;
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
@@ -37,6 +43,14 @@ class Beds24Config
     #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime')]
     private ?DateTimeInterface $updated = null;
+
+    #[ORM\OneToMany(mappedBy: 'beds24Config', targetEntity: PmsUnidadBeds24Map::class, orphanRemoval: true)]
+    private Collection $unidadMaps;
+
+    public function __construct()
+    {
+        $this->unidadMaps = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -55,39 +69,37 @@ class Beds24Config
         return $this;
     }
 
-    public function getApiKey(): ?string
+
+    public function getRefreshToken(): ?string
     {
-        return $this->apiKey;
+        return $this->refreshToken;
     }
 
-    public function setApiKey(?string $apiKey): self
+    public function setRefreshToken(?string $refreshToken): self
     {
-        $this->apiKey = $apiKey;
-
+        $this->refreshToken = $refreshToken;
         return $this;
     }
 
-    public function getPropKey(): ?string
+    public function getAuthToken(): ?string
     {
-        return $this->propKey;
+        return $this->authToken;
     }
 
-    public function setPropKey(?string $propKey): self
+    public function setAuthToken(?string $authToken): self
     {
-        $this->propKey = $propKey;
-
+        $this->authToken = $authToken;
         return $this;
     }
 
-    public function getPropId(): ?int
+    public function getAuthTokenExpiresAt(): ?DateTimeInterface
     {
-        return $this->propId;
+        return $this->authTokenExpiresAt;
     }
 
-    public function setPropId(?int $propId): self
+    public function setAuthTokenExpiresAt(?DateTimeInterface $authTokenExpiresAt): self
     {
-        $this->propId = $propId;
-
+        $this->authTokenExpiresAt = $authTokenExpiresAt;
         return $this;
     }
 
@@ -112,6 +124,40 @@ class Beds24Config
     {
         return $this->updated;
     }
+
+    public function getUnidadMaps(): Collection
+    {
+        return $this->unidadMaps;
+    }
+
+    public function addUnidadMap(PmsUnidadBeds24Map $map): self
+    {
+        if (!$this->unidadMaps->contains($map)) {
+            $this->unidadMaps->add($map);
+            $map->setBeds24Config($this);
+        }
+        return $this;
+    }
+
+    public function removeUnidadMap(PmsUnidadBeds24Map $map): self
+    {
+        if ($this->unidadMaps->removeElement($map)) {
+            // owning side handled by orphanRemoval
+        }
+        return $this;
+    }
+
+
+    public function getWebhookToken(): ?string
+    {
+        return $this->webhookToken;
+    }
+
+    public function setWebhookToken(string $token): void
+    {
+        $this->webhookToken = $token;
+    }
+
     public function __toString(): string
     {
         return $this->nombre ?? ('Config #' . $this->id);

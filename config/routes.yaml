@@ -5,16 +5,34 @@
 # FRONT (web / CMS)
 front_controllers:
     resource: ../src/Controller/Front/
-    type: annotation
+    type: attribute
     host: '%app.host.front%'
 
-# API (ical, ajax, etc.)
+# API (ajax, ical, calendar, etc.)
 api_controllers:
     resource: ../src/Controller/Api/
-    type: annotation
+    type: attribute
     host: '%app.host.api%'
 
-# Admin propios (NO Sonata bundle, eso va aparte)
+# Calendar (módulo nuevo)
+calendar_controllers:
+    resource: ../src/Calendar/Controller/
+    type: attribute
+    host: '%app.host.api%'
+
+# webhook (módulo nuevo)
+webhook_controllers:
+    resource: ../src/Pms/Controller/Webhook/
+    type: attribute
+    host: '%app.host.api%'
+
+# Panel (Easyadmin)
+panel_controllers:
+    resource: ../src/Controller/Panel/
+    type: attribute
+    host: '%app.host.panel%'
+
+# Admin (Sonata / legacy controlado)
 admin_controllers:
     resource: ../src/Controller/Admin/
     type: annotation
@@ -22,8 +40,9 @@ admin_controllers:
 
 kernel:
     resource: ../src/Kernel.php
-    type: annotation
+    type: attribute
 
 sonata_translation:
     resource: '@SonataTranslationBundle/Resources/config/routes.yaml'
+    host: '%app.host.oweb%'
 

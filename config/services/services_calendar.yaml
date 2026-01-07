@@ -1,0 +1,34 @@
+services:
+    # =========================
+    # Reglas por instanceof
+    # =========================
+    _instanceof:
+        App\Calendar\Provider\CalendarProviderInterface:
+            tags:
+                - 'app.calendar_provider'
+
+    # =========================
+    # Módulo Calendar (general)
+    # =========================
+    App\Calendar\:
+        resource: '../../src/Calendar/'
+        autowire: true
+        autoconfigure: true
+
+    # =========================
+    # Controllers del módulo Calendar
+    # (fuera de src/Controller/)
+    # =========================
+    App\Calendar\Controller\:
+        resource: '../../src/Calendar/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+            - 'controller.service_arguments'
+
+    # =========================
+    # Provider Registry
+    # =========================
+    App\Calendar\Provider\ProviderRegistry:
+        arguments:
+            $providers: !tagged_iterator app.calendar_provider

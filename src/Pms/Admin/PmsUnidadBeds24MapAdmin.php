@@ -21,40 +21,61 @@ class PmsUnidadBeds24MapAdmin extends AbstractAdmin
         $sortValues['_sort_order'] = 'ASC';
     }
 
+
+
     protected function configureFormFields(FormMapper $form): void
     {
         $form
             ->with('Relación', ['class' => 'col-md-8'])
+                ->add('beds24Config', ModelType::class, [
+                    'label' => 'Beds24 Config',
+                    'btn_add' => false,
+                ])
                 ->add('pmsUnidad', ModelType::class, [
                     'label' => 'Unidad PMS',
                     'btn_add' => false,
+                ])
+                ->add('beds24PropertyId', IntegerType::class, [
+                    'required' => false,
+                    'label' => 'Beds24 Property ID',
+                    'help' => 'PropertyId real de Beds24 asociado a este room/unit.',
                 ])
                 ->add('beds24RoomId', IntegerType::class, [
                     'label' => 'Beds24 Room ID',
                 ])
                 ->add('beds24UnitId', IntegerType::class, [
                     'required' => false,
-                    'label' => 'Beds24 Unit ID',
+                    'label' => 'Beds24 Unit ID (opcional)',
+                    'help' => 'Opcional. Solo se utiliza si Beds24 está configurado para trabajar con Units (unidades físicas). En modo cantidad por habitación (Room-based), dejar vacío.',
                 ])
                 ->add('nota', TextType::class, [
                     'required' => false,
                 ])
             ->end()
             ->with('Flags', ['class' => 'col-md-4'])
+                ->add('activo', CheckboxType::class, [
+                    'required' => false,
+                    'label' => 'Activo',
+                ])
                 ->add('esPrincipal', CheckboxType::class, [
                     'required' => false,
                     'label' => 'Principal',
+                    'help' => 'Solo puede existir una asignación PRINCIPAL por unidad. Si intentas marcar una segunda, el cambio será rechazado.',
                 ])
             ->end()
         ;
     }
 
+
     protected function configureDatagridFilters(DatagridMapper $filter): void
     {
         $filter
+            ->add('beds24Config', null, ['label' => 'Beds24 Config'])
+            ->add('beds24PropertyId', null, ['label' => 'Beds24 Property ID'])
             ->add('pmsUnidad.establecimiento', null, ['label' => 'Establecimiento'])
             ->add('pmsUnidad')
             ->add('beds24RoomId')
+            ->add('activo')
             ->add('esPrincipal');
     }
 
@@ -63,9 +84,15 @@ class PmsUnidadBeds24MapAdmin extends AbstractAdmin
         $list
             ->addIdentifier('pmsUnidad')
             ->add('pmsUnidad.establecimiento', null, ['label' => 'Establecimiento'])
+            ->add('esPrincipal', null, [
+                'label' => 'Principal',
+                'sortable' => false,
+            ])
+            ->add('beds24Config')
+            ->add('beds24PropertyId')
             ->add('beds24RoomId')
             ->add('beds24UnitId')
-            ->add('esPrincipal', null, ['editable' => true])
+            ->add('activo')
             ->add('nota')
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'actions' => [
@@ -80,9 +107,15 @@ class PmsUnidadBeds24MapAdmin extends AbstractAdmin
         $show
             ->add('id')
             ->add('pmsUnidad')
+            ->add('pmsUnidad.establecimiento')
+            ->add('esPrincipal', null, [
+                'label' => 'Principal',
+            ])
+            ->add('beds24Config')
+            ->add('beds24PropertyId')
             ->add('beds24RoomId')
             ->add('beds24UnitId')
-            ->add('esPrincipal')
+            ->add('activo')
             ->add('nota');
     }
 }

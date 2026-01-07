@@ -3,8 +3,36 @@ services:
     _defaults:
         autowire: true
         autoconfigure: true
-    app.admin.pms_beds24_config:
-        class: App\Pms\Admin\Beds24ConfigAdmin
+
+  # =========================
+  # Controllers del módulo Pms
+  # (fuera de src/Controller/)
+  # =========================
+    App\Pms\Controller\:
+      resource: '../../src/Pms/Controller/'
+      autowire: true
+      autoconfigure: true
+      tags:
+        - 'controller.service_arguments'
+
+
+    App\Pms\Service\Beds24\Client\Beds24AuthService:
+        arguments:
+            $beds24BaseUrl: '%env(string:BEDS24_URL)%'
+
+    App\Pms\Service\Beds24\Client\Beds24BookingsGetClient:
+        arguments:
+            $beds24BaseUrl: '%env(string:BEDS24_URL)%'
+
+    App\Pms\Service\Beds24\Client\Beds24BookingsPostDeleteClient:
+      arguments:
+        $beds24BaseUrl: '%env(string:BEDS24_URL)%'
+
+    App\Pms\Service\Beds24\Client\Beds24RatesCalendarPostClient:
+      arguments:
+        $beds24BaseUrl: '%env(string:BEDS24_URL)%'
+
+    App\Pms\Admin\Beds24ConfigAdmin:
         tags:
             - name: sonata.admin
               model_class: App\Pms\Entity\Beds24Config
@@ -14,8 +42,17 @@ services:
               show_mosaic_button: false
         public: true
 
-    app.admin.pms_beds24_endpoint:
-        class: App\Pms\Admin\PmsBeds24EndpointAdmin
+    App\Pms\Admin\PmsBeds24WebhookAuditAdmin:
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsBeds24WebhookAudit
+              manager_type: orm
+              group: Pms
+              label: Auditoría Webhook
+              show_mosaic_button: false
+        public: true
+
+    App\Pms\Admin\PmsBeds24EndpointAdmin:
         tags:
             - name: sonata.admin
               model_class: App\Pms\Entity\PmsBeds24Endpoint
@@ -25,8 +62,7 @@ services:
               show_mosaic_button: false
         public: true
 
-    app.admin.pms_establecimiento:
-        class: App\Pms\Admin\PmsEstablecimientoAdmin
+    App\Pms\Admin\PmsEstablecimientoAdmin:
         tags:
             - name: sonata.admin
               model_class: App\Pms\Entity\PmsEstablecimiento
@@ -36,8 +72,7 @@ services:
               show_mosaic_button: false
         public: true
 
-    app.admin.pms_unidad:
-        class: App\Pms\Admin\PmsUnidadAdmin
+    App\Pms\Admin\PmsUnidadAdmin:
         tags:
             - name: sonata.admin
               model_class: App\Pms\Entity\PmsUnidad
@@ -47,8 +82,7 @@ services:
               show_mosaic_button: false
         public: true
 
-    app.admin.pms_unidad_beds24_map:
-        class: App\Pms\Admin\PmsUnidadBeds24MapAdmin
+    App\Pms\Admin\PmsUnidadBeds24MapAdmin:
         tags:
             - name: sonata.admin
               model_class: App\Pms\Entity\PmsUnidadBeds24Map
@@ -58,19 +92,33 @@ services:
               show_mosaic_button: false
         public: true
 
-    app.admin.pms_tarifa_rango:
-        class: App\Pms\Admin\PmsTarifaRangoAdmin
+    App\Pms\Admin\PmsPullQueueJobAdmin:
+        tags:
+           - name: sonata.admin
+             model_class: App\Pms\Entity\PmsPullQueueJob
+             manager_type: orm
+             group: Pms
+             label: "Pull Queue Jobs"
+             show_mosaic_button: false
+        public: true
+
+    App\Pms\Admin\PmsTarifaRangoAdmin:
+        public: true
+        #Por el factory le paso manualmente al por el constructor override
+        arguments:
+            $code: 'app.pms.admin.pms_tarifa_rango' #legacy service name, no FQCN
+            $class: App\Pms\Entity\PmsTarifaRango
+            $baseControllerName: Sonata\AdminBundle\Controller\CRUDController
         tags:
             - name: sonata.admin
               model_class: App\Pms\Entity\PmsTarifaRango
               manager_type: orm
               group: Pms
               label: Tarifas (rangos)
-              show_mosaic_button: false
-        public: true
+        calls:
+          - [ setTemplate, [ list, pms/admin/pms_tarifa_rango/list.html.twig ] ]
 
-    app.admin.pms_tarifa_queue:
-        class: App\Pms\Admin\PmsTarifaQueueAdmin
+    App\Pms\Admin\PmsTarifaQueueAdmin:
         tags:
             - name: sonata.admin
               model_class: App\Pms\Entity\PmsTarifaQueue
@@ -80,8 +128,27 @@ services:
               show_mosaic_button: false
         public: true
 
-    app.admin.pms_evento_calendario:
-        class: App\Pms\Admin\PmsEventoCalendarioAdmin
+    App\Pms\Admin\PmsTarifaQueueDeliveryAdmin:
+      tags:
+        - name: sonata.admin
+          model_class: App\Pms\Entity\PmsTarifaQueueDelivery
+          manager_type: orm
+          group: Pms
+          label: Delivery de tarifas (maps)
+          show_mosaic_button: false
+      public: true
+
+    App\Pms\Admin\PmsEventoBeds24LinkAdmin:
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsEventoBeds24Link
+              manager_type: orm
+              group: Pms
+              label: Links
+              show_mosaic_button: false
+        public: true
+
+    App\Pms\Admin\PmsEventoCalendarioAdmin:
         tags:
             - name: sonata.admin
               model_class: App\Pms\Entity\PmsEventoCalendario
@@ -91,41 +158,28 @@ services:
               show_mosaic_button: false
         public: true
 
-    app.admin.pms_evento_calendario_queue:
-        class: App\Pms\Admin\PmsEventoCalendarioQueueAdmin
+    App\Pms\Admin\PmsBeds24LinkQueueAdmin:
         tags:
             - name: sonata.admin
-              model_class: App\Pms\Entity\PmsEventoCalendarioQueue
+              model_class: App\Pms\Entity\PmsBeds24LinkQueue
               manager_type: orm
               group: Pms
-              label: Cola eventos calendario
+              label: Cola Beds24 (Links)
               show_mosaic_button: false
         public: true
 
-    app.admin.pms_reserva:
-        class: App\Pms\Admin\PmsReservaAdmin
+    App\Pms\Admin\PmsReservaAdmin:
         tags:
             - name: sonata.admin
               model_class: App\Pms\Entity\PmsReserva
               manager_type: orm
               group: Pms
               label: Reservas PMS
-              show_mosaic_button: false
         public: true
+        calls:
+          - [ setTemplate, [ list, pms/admin/pms_reserva/list.html.twig ] ]
 
-    app.admin.pms_evento_calendario_tipo:
-        class: App\Pms\Admin\PmsEventoCalendarioTipoAdmin
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsEventoCalendarioTipo
-              manager_type: orm
-              group: Pms
-              label: Tipos de evento
-              show_mosaic_button: false
-        public: true
-
-    app.admin.pms_channel:
-        class: App\Pms\Admin\PmsChannelAdmin
+    App\Pms\Admin\PmsChannelAdmin:
         tags:
             - name: sonata.admin
               model_class: App\Pms\Entity\PmsChannel
@@ -135,13 +189,22 @@ services:
               show_mosaic_button: false
         public: true
 
-    app.admin.pms_reserva_estado:
-        class: App\Pms\Admin\PmsReservaEstadoAdmin
+    App\Pms\Admin\PmsEventoEstadoAdmin:
         tags:
             - name: sonata.admin
-              model_class: App\Pms\Entity\PmsReservaEstado
+              model_class: App\Pms\Entity\PmsEventoEstado
               manager_type: orm
               group: Pms
-              label: Estados de reserva
+              label: Estados del evento
+              show_mosaic_button: false
+        public: true
+
+    App\Pms\Admin\PmsEventoEstadoPagoAdmin:
+        tags:
+            - name: sonata.admin
+              model_class: App\Pms\Entity\PmsEventoEstadoPago
+              manager_type: orm
+              group: Pms
+              label: Estados de pago del evento
               show_mosaic_button: false
         public: true

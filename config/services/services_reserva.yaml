@@ -2,6 +2,18 @@ services:
     _defaults:
         autowire: true
         autoconfigure: true
+
+    app.event_listener.reserva_reserva_doctrine_event_listener:
+        class: App\EventListener\ReservaReservaDoctrineEventListener
+        arguments:
+            - '@App\Service\MainVariableproceso'
+        tags:
+            - name: doctrine.event_listener
+              event: prePersist
+            - name: doctrine.event_listener
+              event: preUpdate
+
+
     app.admin.reservareserva:
         class: App\Admin\ReservaReservaAdmin
         tags:

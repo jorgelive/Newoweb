@@ -25,6 +25,9 @@ class MaestroPais
     #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombre;
 
+    #[ORM\Column(type: 'string', length: 2, nullable: true)]
+    private ?string $iso2 = null;
+
     /**
      * MC
      */
@@ -70,13 +73,24 @@ class MaestroPais
     public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
-    
+
         return $this;
     }
 
     public function getNombre(): ?string
     {
         return $this->nombre;
+    }
+
+    public function getIso2(): ?string
+    {
+        return $this->iso2;
+    }
+
+    public function setIso2(?string $iso2): self
+    {
+        $this->iso2 = $iso2 !== null ? strtoupper($iso2) : null;
+        return $this;
     }
 
     public function getProcedenciaMcNombre(): string

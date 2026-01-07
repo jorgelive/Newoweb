@@ -2,18 +2,42 @@
 
 namespace App\Pms\Entity;
 
+use App\Pms\Repository\PmsUnidadBeds24MapRepository;
 use DateTimeInterface;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
+use App\Pms\Entity\Beds24Config;
+use App\Pms\Entity\PmsTarifaQueueDelivery;
 
-#[ORM\Entity]
-#[ORM\Table(name: 'pms_unidad_beds24_map')]
+#[ORM\Entity(repositoryClass: PmsUnidadBeds24MapRepository::class)]
+#[ORM\Table(
+    name: 'pms_unidad_beds24_map',
+    indexes: [
+        new ORM\Index(columns: ['beds24RoomId', 'beds24UnitId'], name: 'idx_beds24_room_unit'),
+        new ORM\Index(columns: ['beds24_config_id'], name: 'idx_beds24_config'),
+        new ORM\Index(columns: ['beds24PropertyId'], name: 'idx_beds24_property')
+    ],
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uniq_pms_unidad_beds24_config', columns: ['pms_unidad_id', 'beds24_config_id'])
+    ]
+)]
 class PmsUnidadBeds24Map
 {
+    public function __construct()
+    {
+        $this->tarifaQueueDeliveries = new ArrayCollection();
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
+
+    #[ORM\ManyToOne(targetEntity: Beds24Config::class)]
+    #[ORM\JoinColumn(name: 'beds24_config_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private ?Beds24Config $beds24Config = null;
 
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class)]
     #[ORM\JoinColumn(nullable: false)]
@@ -22,8 +46,21 @@ class PmsUnidadBeds24Map
     #[ORM\Column(type: 'integer')]
     private ?int $beds24RoomId = null;
 
+    #[ORM\Column(type: 'integer')]
+    private ?int $beds24PropertyId = null;
+
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $beds24UnitId = null;
+
+    /**
+     * ID de la propiedad en el Canal Externo (Booking Hotel ID, Airbnb Listing ID).
+     * Usado para generar enlaces dinámicos.
+     */
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $channelPropId = null;
+
+    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    private ?bool $activo = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private ?bool $esPrincipal = null;
@@ -39,9 +76,23 @@ class PmsUnidadBeds24Map
     #[ORM\Column(type: 'datetime')]
     private ?DateTimeInterface $updated = null;
 
+    #[ORM\OneToMany(mappedBy: 'unidadBeds24Map', targetEntity: PmsTarifaQueueDelivery::class, orphanRemoval: true)]
+    private Collection $tarifaQueueDeliveries;
+
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getBeds24Config(): ?Beds24Config
+    {
+        return $this->beds24Config;
+    }
+
+    public function setBeds24Config(?Beds24Config $beds24Config): self
+    {
+        $this->beds24Config = $beds24Config;
+        return $this;
     }
 
     public function getPmsUnidad(): ?PmsUnidad
@@ -52,7 +103,6 @@ class PmsUnidadBeds24Map
     public function setPmsUnidad(?PmsUnidad $pmsUnidad): self
     {
         $this->pmsUnidad = $pmsUnidad;
-
         return $this;
     }
 
@@ -64,7 +114,17 @@ class PmsUnidadBeds24Map
     public function setBeds24RoomId(?int $beds24RoomId): self
     {
         $this->beds24RoomId = $beds24RoomId;
+        return $this;
+    }
 
+    public function getBeds24PropertyId(): ?int
+    {
+        return $this->beds24PropertyId;
+    }
+
+    public function setBeds24PropertyId(?int $beds24PropertyId): self
+    {
+        $this->beds24PropertyId = $beds24PropertyId;
         return $this;
     }
 
@@ -76,7 +136,28 @@ class PmsUnidadBeds24Map
     public function setBeds24UnitId(?int $beds24UnitId): self
     {
         $this->beds24UnitId = $beds24UnitId;
+        return $this;
+    }
 
+    public function getChannelPropId(): ?string
+    {
+        return $this->channelPropId;
+    }
+
+    public function setChannelPropId(?string $channelPropId): self
+    {
+        $this->channelPropId = $channelPropId;
+        return $this;
+    }
+
+    public function isActivo(): ?bool
+    {
+        return $this->activo;
+    }
+
+    public function setActivo(?bool $activo): self
+    {
+        $this->activo = $activo;
         return $this;
     }
 
@@ -88,7 +169,6 @@ class PmsUnidadBeds24Map
     public function setEsPrincipal(?bool $esPrincipal): self
     {
         $this->esPrincipal = $esPrincipal;
-
         return $this;
     }
 
@@ -100,7 +180,6 @@ class PmsUnidadBeds24Map
     public function setNota(?string $nota): self
     {
         $this->nota = $nota;
-
         return $this;
     }
 
@@ -114,10 +193,47 @@ class PmsUnidadBeds24Map
         return $this->updated;
     }
 
+    public function getTarifaQueueDeliveries(): Collection
+    {
+        return $this->tarifaQueueDeliveries;
+    }
+
+    public function addTarifaQueueDelivery(PmsTarifaQueueDelivery $delivery): self
+    {
+        if (!$this->tarifaQueueDeliveries->contains($delivery)) {
+            $this->tarifaQueueDeliveries->add($delivery);
+            $delivery->setUnidadBeds24Map($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTarifaQueueDelivery(PmsTarifaQueueDelivery $delivery): self
+    {
+        if ($this->tarifaQueueDeliveries->removeElement($delivery)) {
+            // owning side handled by orphanRemoval
+        }
+
+        return $this;
+    }
+
     public function __toString(): string
     {
         $unidad = $this->pmsUnidad?->getNombre() ?? 'Unidad';
+        $cfg = $this->beds24Config ? (string) $this->beds24Config : 'Beds24';
+        $prop = $this->beds24PropertyId ?? '?';
         $room = $this->beds24RoomId ?? '?';
-        return $unidad . ' (Room ' . $room . ')';
+        $unit = $this->beds24UnitId ?? '-';
+        $estado = ($this->activo ?? false) ? 'activo' : 'inactivo';
+
+        return sprintf(
+            '%s (%s • Prop %s • Room %s • Unit %s • %s)',
+            $unidad,
+            $cfg,
+            $prop,
+            $room,
+            $unit,
+            $estado
+        );
     }
 }

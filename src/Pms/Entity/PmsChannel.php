@@ -9,6 +9,11 @@ use Gedmo\Mapping\Annotation as Gedmo;
 #[ORM\Table(name: 'pms_channel')]
 class PmsChannel
 {
+
+    public const CODIGO_DIRECTO  = 'directo';
+    public const CODIGO_AIRBNB   = 'airbnb';
+    public const CODIGO_BOOKING = 'booking';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
@@ -67,5 +72,24 @@ class PmsChannel
 
     public function __toString(): string {
         return $this->nombre ?? $this->codigo ?? (string) $this->id;
+    }
+
+    // ------------------------------------------------------------------
+    // Helpers semánticos
+    // ------------------------------------------------------------------
+
+    public function isDirecto(): bool
+    {
+        return (bool) $this->esDirecto;
+    }
+
+    public function isExterno(): bool
+    {
+        return (bool) $this->esExterno;
+    }
+
+    public function isBeds24(): bool
+    {
+        return $this->beds24ChannelId !== null && $this->beds24ChannelId !== '';
     }
 }
