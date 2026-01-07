@@ -35,11 +35,11 @@ class PmsUnidadBeds24Map
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Beds24Config::class)]
+    #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'unidadMaps')]
     #[ORM\JoinColumn(name: 'beds24_config_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?Beds24Config $beds24Config = null;
 
-    #[ORM\ManyToOne(targetEntity: PmsUnidad::class)]
+    #[ORM\ManyToOne(targetEntity: PmsUnidad::class, inversedBy: 'beds24Maps')]
     #[ORM\JoinColumn(nullable: false)]
     private ?PmsUnidad $pmsUnidad = null;
 

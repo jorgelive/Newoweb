@@ -46,7 +46,8 @@ class PmsTarifaQueueDelivery
     #[ORM\JoinColumn(name: 'pms_tarifa_queue_id', nullable: false, onDelete: 'CASCADE')]
     private ?PmsTarifaQueue $queue = null;
 
-    #[ORM\ManyToOne(targetEntity: PmsUnidadBeds24Map::class)]
+    // Inversa en PmsUnidadBeds24Map::$tarifaQueueDeliveries
+    #[ORM\ManyToOne(targetEntity: PmsUnidadBeds24Map::class, inversedBy: 'tarifaQueueDeliveries')]
     #[ORM\JoinColumn(name: 'pms_unidad_beds24_map_id', nullable: false, onDelete: 'CASCADE')]
     private ?PmsUnidadBeds24Map $unidadBeds24Map = null;
 

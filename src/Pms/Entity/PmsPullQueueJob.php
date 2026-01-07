@@ -61,7 +61,10 @@ class PmsPullQueueJob
      * Unidades opcionales.
      * Solo se usan para resolver roomIds desde los maps.
      */
-    #[ORM\ManyToMany(targetEntity: PmsUnidad::class)]
+    #[ORM\ManyToMany(
+        targetEntity: PmsUnidad::class,
+        inversedBy: 'pullQueueJobs'
+    )]
     #[ORM\JoinTable(name: 'pms_pull_queue_job_unidad')]
     private Collection $unidades;
 

@@ -24,7 +24,7 @@ class PmsBeds24LinkQueue
     private ?int $id = null;
 
 
-    #[ORM\ManyToOne(targetEntity: PmsEventoBeds24Link::class)]
+    #[ORM\ManyToOne(targetEntity: PmsEventoBeds24Link::class, inversedBy: 'queues')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?PmsEventoBeds24Link $link = null;
 
@@ -34,7 +34,7 @@ class PmsBeds24LinkQueue
     #[ORM\Column(type: 'bigint', nullable: true)]
     private ?string $beds24BookIdOriginal = null;
 
-    #[ORM\ManyToOne(targetEntity: PmsBeds24Endpoint::class)]
+    #[ORM\ManyToOne(targetEntity: PmsBeds24Endpoint::class, inversedBy: 'queues')]
     #[ORM\JoinColumn(nullable: false)]
     private ?PmsBeds24Endpoint $endpoint = null;
 

@@ -35,7 +35,7 @@ class PmsEventoBeds24Link
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: PmsEventoCalendario::class)]
+    #[ORM\ManyToOne(targetEntity: PmsEventoCalendario::class, inversedBy: 'beds24Links')]
     #[ORM\JoinColumn(name: 'evento_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?PmsEventoCalendario $evento = null;
 
@@ -79,7 +79,7 @@ class PmsEventoBeds24Link
     #[ORM\Column(type: 'datetime')]
     private ?DateTimeInterface $updated = null;
 
-    #[ORM\OneToMany(mappedBy: 'link', targetEntity: PmsBeds24LinkQueue::class, cascade: ['persist'], orphanRemoval: false)]
+    #[ORM\OneToMany(mappedBy: 'link', targetEntity: PmsBeds24LinkQueue::class, cascade: ['persist'], orphanRemoval: false,)]
     private Collection $queues;
 
     public function __construct()

@@ -32,7 +32,10 @@ class ReservaUnitCaracteristicaLink
     #[ORM\JoinColumn(name: 'unit_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?ReservaUnit $unit = null;
 
-    #[ORM\ManyToOne(targetEntity: ReservaUnitcaracteristica::class)]
+    #[ORM\ManyToOne(
+        targetEntity: ReservaUnitcaracteristica::class,
+        inversedBy: 'links'
+    )]
     #[ORM\JoinColumn(name: 'unitcaracteristica_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?ReservaUnitcaracteristica $caracteristica = null;
 

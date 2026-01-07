@@ -36,11 +36,13 @@ class PmsTarifaQueue
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: PmsTarifaRango::class)]
+    // Owning side: el inverso vive en PmsTarifaRango::$queues
+    #[ORM\ManyToOne(targetEntity: PmsTarifaRango::class, inversedBy: 'queues')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?PmsTarifaRango $tarifaRango = null;
 
-    #[ORM\ManyToOne(targetEntity: PmsUnidad::class)]
+    // Owning side: el inverso vive en PmsUnidad::$tarifaQueues
+    #[ORM\ManyToOne(targetEntity: PmsUnidad::class, inversedBy: 'tarifaQueues')]
     #[ORM\JoinColumn(nullable: false)]
     private ?PmsUnidad $unidad = null;
 
