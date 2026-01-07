@@ -30,7 +30,7 @@ doctrine:
             Pms:
                 is_bundle: false
                 type: attribute
-                dir: '%kernel.project_dir%/src/pms/Entity'
+                dir: '%kernel.project_dir%/src/Pms/Entity'
                 prefix: 'App\Pms\Entity'
                 alias: pms
             gedmo_translatable:
