@@ -29,7 +29,7 @@ doctrine:
             Oweb:
                 is_bundle: false
                 type: attribute
-                dir: '%kernel.project_dir%/src/Entity'
+                dir: '%kernel.project_dir%/src/Oweb/Entity'
                 prefix: 'App\Oweb\Entity'
                 alias: oweb
             Pms:
