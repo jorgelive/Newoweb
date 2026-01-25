@@ -105,6 +105,8 @@ security:
         - { path: '^/app/cotizacionfile/\d+/resumen/[A-Za-z0-9]+$',    roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: '^/app/fitdieta/\d+/resumen/[A-Za-z0-9]+$',          roles: PUBLIC_ACCESS, methods: [GET] }
 
+        - { path: '^/locale', roles: PUBLIC_ACCESS }
+
         # PANEL: todo requiere login (por host)
         - { host: '%app.host.panel%', path: '^/', roles: ROLE_USER }
 
