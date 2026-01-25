@@ -18,10 +18,10 @@ parameters:
                     id: id
                     show:
                         route: admin_gopro_transporte_servicio_show
-                        role: ROLE_USER
+                        role: ROLE_OPERACIONES_SHOW
                     edit:
                         route: admin_gopro_transporte_servicio_edit
-                        role: ROLE_TRANSPORTES_EDITOR
+                        role: ROLE_OPERACIONES_WRITE
         transporte_servicio_unidad:
             entity: App\Oweb\Entity\TransporteServicio
             repositorymethod: findCalendarUnidadColored
@@ -38,10 +38,10 @@ parameters:
                     id: id
                     show:
                         route: admin_gopro_transporte_servicio_show
-                        role: ROLE_USER
+                        role: ROLE_OPERACIONES_SHOW
                     edit:
                         route: admin_gopro_transporte_servicio_edit
-                        role: ROLE_TRANSPORTES_EDITOR
+                        role: ROLE_OPERACIONES_WRITE
         transporte_servicio_cliente:
             entity: App\Oweb\Entity\TransporteServicio
             repositorymethod: findCalendarClienteColored
@@ -58,10 +58,10 @@ parameters:
                     id: id
                     show:
                         route: admin_gopro_transporte_servicio_show
-                        role: ROLE_USER
+                        role: ROLE_OPERACIONES_SHOW
                     edit:
                         route: admin_gopro_transporte_servicio_edit
-                        role: ROLE_TRANSPORTES_EDITOR
+                        role: ROLE_OPERACIONES_WRITE
 services:
 
     _defaults:

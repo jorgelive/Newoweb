@@ -24,10 +24,10 @@ parameters:
                     id: id
                     show:
                         route: admin_app_oweb_reservareserva_show
-                        role: ROLE_USER
+                        role: ROLE_RESERVAS_SHOW
                     edit:
                         route: admin_app_oweb_reservareserva_edit
-                        role: ROLE_RESERVAS_EDITOR
+                        role: ROLE_RESERVAS_WRITE
         reserva_reserva_todas:
             entity: App\Oweb\Entity\ReservaReserva
             repositorymethod: findCalendarTodas
@@ -50,10 +50,10 @@ parameters:
                     id: id
                     show:
                         route: admin_app_oweb_reservareserva_show
-                        role: ROLE_USER
+                        role: ROLE_RESERVAS_SHOW
                     edit:
                         route: admin_app_oweb_reservareserva_edit
-                        role: ROLE_RESERVAS_EDITOR
+                        role: ROLE_RESERVAS_WRITE
 
 services:
 

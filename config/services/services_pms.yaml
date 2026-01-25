@@ -18,26 +18,26 @@ parameters:
                 url:
                     # Si hay reserva -> usa ReservaAdmin
                     reservaEdit:
-                        role: ROLE_RESERVAS_EDITOR
+                        role: ROLE_RESERVAS_WRITE
                         route: panel_dashboard_pms_reserva_edit
                         params:
                             tl: es
 
                     reservaShow:
-                        role: ROLE_USER
+                        role: ROLE_RESERVAS_SHOW
                         route: panel_dashboard_pms_reserva_detail
                         params:
                             tl: es
 
                     # Si NO hay reserva -> usa EventoCalendarioAdmin
                     eventoCalendarioEdit:
-                        role: ROLE_RESERVAS_EDITOR
+                        role: ROLE_RESERVAS_WRITE
                         route: panel_dashboard_pms_evento_calendario_edit
                         params:
                             tl: es
 
                     eventoCalendarioShow:
-                        role: ROLE_USER
+                        role: ROLE_RESERVAS_SHOW
                         route: panel_dashboard_pms_evento_calendario_detail
                         params:
                             tl: es
@@ -56,26 +56,26 @@ parameters:
                 url:
                     # Si hay reserva -> usa ReservaAdmin
                     reservaEdit:
-                        role: ROLE_RESERVAS_EDITOR
+                        role: ROLE_RESERVAS_WRITE
                         route: panel_dashboard_pms_reserva_edit
                         params:
                             tl: es
 
                     reservaShow:
-                        role: ROLE_USER
+                        role: ROLE_RESERVAS_SHOW
                         route: panel_dashboard_pms_reserva_detail
                         params:
                             tl: es
 
                     # Si NO hay reserva -> usa EventoCalendarioAdmin
                     eventoCalendarioEdit:
-                        role: ROLE_RESERVAS_EDITOR
+                        role: ROLE_RESERVAS_WRITE
                         route: panel_dashboard_pms_evento_calendario_edit
                         params:
                             tl: es
 
                     eventoCalendarioShow:
-                        role: ROLE_USER
+                        role: ROLE_RESERVAS_SHOW
                         route: panel_dashboard_pms_evento_calendario_detail
                         params:
                             tl: es
@@ -108,11 +108,11 @@ parameters:
                     id: id
                     show:
                         route: panel_dashboard_pms_tarifa_rango_detail
-                        role: ROLE_USER
+                        role: ROLE_RESERVAS_SHOW
                         params: { tl: 'es' }
                     edit:
                         route: panel_dashboard_pms_tarifa_rango_edit
-                        role: ROLE_TARIFAS_EDITOR
+                        role: ROLE_RESERVAS_WRITE
                         params: { tl: 'es' }
             eventTime:
                 start: '12:00:00'
@@ -143,11 +143,11 @@ parameters:
                 url:
                     show:
                         route: panel_dashboard_pms_tarifa_rango_detail
-                        role: ROLE_USER
+                        role: ROLE_RESERVAS_SHOW
                         params: { tl: 'es' }
                     edit:
                         route: panel_dashboard_pms_tarifa_rango_edit
-                        role: ROLE_TARIFAS_EDITOR
+                        role: ROLE_RESERVAS_WRITE
                         params: { tl: 'es' }
             eventTime:
                 start: '12:00:00'

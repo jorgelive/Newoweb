@@ -18,10 +18,10 @@ parameters:
                     id: id
                     show:
                         route: admin_app_oweb_cotizacioncotservicio_show
-                        role: ROLE_USER
+                        role: ROLE_OPERACIONES_SHOW
                     edit:
                         route: admin_app_oweb_cotizacioncotservicio_edit
-                        role: ROLE_COTIZACIONES_EDITOR
+                        role: ROLE_RESERVAS_WRITE
         cotizacion_servicio_aceptado_efectuado_link_servicio:
             entity: App\Oweb\Entity\CotizacionCotservicio
             repositorymethod: findCalendarAceptadoEfectuado
@@ -38,10 +38,10 @@ parameters:
                     id: id
                     show:
                         route: admin_app_oweb_cotizacioncotservicio_show
-                        role: ROLE_USER
+                        role: ROLE_OPERACIONES_SHOW
                     edit:
                         route: admin_app_oweb_cotizacioncotservicio_edit
-                        role: ROLE_COTIZACIONES_EDITOR
+                        role: ROLE_RESERVAS_WRITE
         cotizacion_componente_aceptado_link_cotizacion:
             entity: App\Oweb\Entity\CotizacionCotcomponente
             repositorymethod: findCalendarAceptado
@@ -59,10 +59,10 @@ parameters:
                     id: cotservicio.cotizacion.id
                     show:
                         route: admin_app_oweb_cotizacioncotizacion_show
-                        role: ROLE_USER
+                        role: ROLE_OPERACIONES_SHOW
                     edit:
                         route: admin_app_oweb_cotizacioncotizacion_edit
-                        role: ROLE_COTIZACIONES_EDITOR
+                        role: ROLE_OPERACIONES_WRITE
         cotizacion_componente_aceptado_efectuado_link_cotizacion:
             entity: App\Oweb\Entity\CotizacionCotcomponente
             repositorymethod: findCalendarAceptadoEfectuado
@@ -80,10 +80,10 @@ parameters:
                     id: cotservicio.cotizacion.id
                     show:
                         route: admin_app_oweb_cotizacioncotizacion_show
-                        role: ROLE_USER
+                        role: ROLE_OPERACIONES_SHOW
                     edit:
                         route: admin_app_oweb_cotizacioncotizacion_edit
-                        role: ROLE_COTIZACIONES_EDITOR
+                        role: ROLE_OPERACIONES_WRITE
         cotizacion_componente_aceptado:
             entity: App\Oweb\Entity\CotizacionCotcomponente
             repositorymethod: findCalendarAceptado
@@ -101,10 +101,10 @@ parameters:
                     id: id
                     show:
                         route: admin_app_oweb_cotizacioncotcomponente_show
-                        role: ROLE_USER
+                        role: ROLE_OPERACIONES_SHOW
                     edit:
                         route: admin_app_oweb_cotizacioncotcomponente_edit
-                        role: ROLE_COTIZACIONES_EDITOR
+                        role: ROLE_OPERACIONES_WRITE
         cotizacion_componente_aceptado_efectuado:
             entity: App\Oweb\Entity\CotizacionCotcomponente
             repositorymethod: findCalendarAceptadoEfectuado
@@ -122,10 +122,10 @@ parameters:
                     id: id
                     show:
                         route: admin_app_oweb_cotizacioncotcomponente_show
-                        role: ROLE_USER
+                        role: ROLE_OPERACIONES_SHOW
                     edit:
                         route: admin_app_oweb_cotizacioncotcomponente_edit
-                        role: ROLE_COTIZACIONES_EDITOR
+                        role: ROLE_OPERACIONES_WRITE
 
 services:
 
