@@ -193,4 +193,9 @@ class FitDietaAdmin extends AbstractSecureAdmin
         $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
         $collection->add('clonar', $this->getRouterIdParameter() . '/clonar');
     }
+
+    protected function generateBaseRoutePattern(bool $isChildAdmin = false): string
+    {
+        return 'app/fitdieta';
+    }
 }

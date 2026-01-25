@@ -3,7 +3,6 @@
 namespace App\Oweb\Admin;
 
 use App\Form\ReservaUnitCaracteristicaLinkType;
-use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
@@ -11,9 +10,25 @@ use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\Form\Type\CollectionType;
 use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
+use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Contracts\Service\Attribute\Required;
 
 class ReservaUnitAdmin extends AbstractSecureAdmin
 {
+    /**
+     * Servicio de seguridad inyectado por setter.
+     */
+    private Security $security;
+
+    /**
+     * Inyección segura usando atributos de Symfony 7.
+     */
+    #[Required]
+    public function setSecurity(Security $security): void
+    {
+        $this->security = $security;
+    }
+
     public function getModulePrefix(): string
     {
         return 'RESERVAS';
@@ -22,6 +37,32 @@ class ReservaUnitAdmin extends AbstractSecureAdmin
     public function configure(): void
     {
         $this->classnameLabel = "Unidad";
+    }
+
+    /**
+     * Configura los botones superiores.
+     * Muestra el botón de login si es anónimo, o las acciones del negocio si está logueado.
+     */
+    protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
+    {
+        $user = $this->security->getUser();
+
+        if (!$user) {
+            // Caso Anónimo: Limpiamos todo y mostramos botón de Login
+            $buttonList = [];
+            $buttonList['login_action'] = ['template' => 'oweb/admin/reserva_unit/adminview_button.html.twig'];
+        } else {
+            if ($action === 'resumen') {
+                $buttonList['edit'] = ['template' => '@SonataAdmin/Button/edit_button.html.twig'];
+                $buttonList['list'] = ['template' => '@SonataAdmin/Button/list_button.html.twig'];
+                $buttonList['show'] = ['template' => '@SonataAdmin/Button/show_button.html.twig'];
+            }elseif ($object && $object->getId()) {
+                $buttonList['resumen'] = ['template' => 'oweb/admin/reserva_unit/resumen_button.html.twig'];
+            }
+
+        }
+
+        return $buttonList;
     }
 
     protected function configureDatagridFilters(DatagridMapper $filter): void
@@ -86,7 +127,6 @@ class ReservaUnitAdmin extends AbstractSecureAdmin
                 'sortable' => 'prioridad',
             ])
 
-            // Nexos al final (si lo tienes igual que antes)
             ->add('unitnexos', CollectionType::class, [
                 'by_reference' => false,
                 'label' => 'Nexos',
@@ -133,6 +173,4 @@ class ReservaUnitAdmin extends AbstractSecureAdmin
     {
         return 'app/reservaunit';
     }
-
-
 }

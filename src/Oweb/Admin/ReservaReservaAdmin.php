@@ -16,10 +16,26 @@ use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
 use Sonata\Form\Type\DateRangePickerType;
 use Sonata\Form\Type\DateTimePickerType;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Contracts\Service\Attribute\Required;
 
 class ReservaReservaAdmin extends AbstractSecureAdmin
 {
+    /**
+     * Servicio de seguridad inyectado por setter.
+     */
+    private Security $security;
+
+    /**
+     * Inyección segura sin modificar el constructor padre.
+     */
+    #[Required]
+    public function setSecurity(Security $security): void
+    {
+        $this->security = $security;
+    }
+
     public function getModulePrefix(): string
     {
         return 'RESERVAS';
@@ -32,12 +48,6 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
 
     protected function configureExportFields(): array
     {
-        /**
-         * Nota:
-         * Las columnas "Fecha Inicio" y "Fecha Fin" son detectadas por
-         * AdminDecoratingDataSource para aplicar formato de fecha sin hora
-         * (Y-m-d) en el exportador de reservas.
-         */
         return [
             'Unidad'       => 'unit.nombre',
             'nombre',
@@ -59,18 +69,39 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
 
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
-        $buttonList['delete'] = ['template' => 'oweb/admin/reserva_reserva/delete_button.html.twig'];
-        $buttonList['clonar'] = ['template' => 'oweb/admin/reserva_reserva/clonar_button.html.twig'];
-        $buttonList['extender'] = ['template' => 'oweb/admin/reserva_reserva/extender_button.html.twig'];
-        $buttonList['resumen'] = ['template' => 'oweb/admin/reserva_reserva/resumen_button.html.twig'];
-        $buttonList['resumenclipboard'] = ['template' => 'oweb/admin/reserva_reserva/resumen_clipboard_button.html.twig'];
+        // 1. Detección de usuario (Logueado vs Anónimo)
+        $user = $this->security->getUser();
+
+        if (!$user) {
+            // CASO ANÓNIMO: Limpiamos botones de gestión y mostramos botón de Login/Admin
+            $buttonList = [];
+
+            // Apuntamos a la plantilla que crearás para este módulo
+            $buttonList['login_action'] = [
+                'template' => 'oweb/admin/reserva_reserva/adminview_button.html.twig'
+            ];
+        } else {
+            // CASO LOGUEADO: Botones normales de gestión
+            $buttonList['delete'] = ['template' => 'oweb/admin/reserva_reserva/delete_button.html.twig'];
+            $buttonList['clonar'] = ['template' => 'oweb/admin/reserva_reserva/clonar_button.html.twig'];
+            $buttonList['extender'] = ['template' => 'oweb/admin/reserva_reserva/extender_button.html.twig'];
+            $buttonList['resumenclipboard'] = ['template' => 'oweb/admin/reserva_reserva/resumen_clipboard_button.html.twig'];
+            if ($action === 'resumen') {
+                $buttonList['edit'] = ['template' => '@SonataAdmin/Button/edit_button.html.twig'];
+                $buttonList['list'] = ['template' => '@SonataAdmin/Button/list_button.html.twig'];
+                $buttonList['show'] = ['template' => '@SonataAdmin/Button/show_button.html.twig'];
+            }elseif ($object && $object->getId()) {
+                $buttonList['resumen'] = ['template' => 'oweb/admin/reserva_reserva/resumen_button.html.twig'];
+            }
+
+        }
+
         return $buttonList;
     }
 
     protected function configureFilterParameters(array $parameters): array
     {
-
-        if(count($parameters) <= 4){
+        if (count($parameters) <= 4) {
             $fecha = new \DateTime();
             $fechaFinal = new \DateTime('now +1 month');
             $parameters = array_merge([
@@ -100,7 +131,7 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
 
         $inicio = new \DateTime('today');
         $inicio = $inicio->add(\DateInterval::createFromDateString('14 hours'));
-        $fin = new \DateTime( 'tomorrow + 1day');
+        $fin = new \DateTime('tomorrow + 1day');
         $fin = $fin->add(\DateInterval::createFromDateString('10 hours'));
 
         $estadoReference = $entityManager->getReference('App\Oweb\Entity\ReservaEstado', ReservaEstado::DB_VALOR_CONFIRMADO);
@@ -122,24 +153,23 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
             ->add('manual')
             ->add('estado')
             ->add('nombre')
-            ->add('fechahorainicio', CallbackFilter::class,[
+            ->add('fechahorainicio', CallbackFilter::class, [
                 'label' => 'Check-in',
-                'callback' => function($queryBuilder, $alias, $field, $filterData) {
-
+                'callback' => function ($queryBuilder, $alias, $field, $filterData) {
                     $valor = $filterData->getValue();
-                    if(!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
+                    if (!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
                         return false;
                     }
                     $fechaMasUno = clone ($valor['end']);
                     $fechaMasUno->add(new \DateInterval('P1D'));
 
-                    if(empty($filterData->getType())){
+                    if (empty($filterData->getType())) {
                         $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
                         $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
                         $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
                         $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
                         return true;
-                    }else{
+                    } else {
                         return false;
                     }
                 },
@@ -148,12 +178,12 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
                     'field_options_start' => [
                         'dp_use_current' => true,
                         'dp_show_today' => true,
-                        'format'=> 'yyyy/MM/dd'
+                        'format' => 'yyyy/MM/dd'
                     ],
                     'field_options_end' => [
                         'dp_use_current' => true,
                         'dp_show_today' => true,
-                        'format'=> 'yyyy/MM/dd'
+                        'format' => 'yyyy/MM/dd'
                     ]
                 ],
                 'operator_type' => ChoiceType::class,
@@ -163,24 +193,23 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
                     ]
                 ]
             ])
-            ->add('fechahorafin', CallbackFilter::class,[
+            ->add('fechahorafin', CallbackFilter::class, [
                 'label' => 'Check-out',
-                'callback' => function($queryBuilder, $alias, $field, $filterData) {
-
+                'callback' => function ($queryBuilder, $alias, $field, $filterData) {
                     $valor = $filterData->getValue();
-                    if(!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
+                    if (!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
                         return false;
                     }
                     $fechaMasUno = clone ($valor['end']);
                     $fechaMasUno->add(new \DateInterval('P1D'));
 
-                    if(empty($filterData->getType())){
+                    if (empty($filterData->getType())) {
                         $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
                         $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
                         $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
                         $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
                         return true;
-                    }else{
+                    } else {
                         return false;
                     }
                 },
@@ -189,12 +218,12 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
                     'field_options_start' => [
                         'dp_use_current' => true,
                         'dp_show_today' => true,
-                        'format'=> 'yyyy/MM/dd'
+                        'format' => 'yyyy/MM/dd'
                     ],
                     'field_options_end' => [
                         'dp_use_current' => true,
                         'dp_show_today' => true,
-                        'format'=> 'yyyy/MM/dd'
+                        'format' => 'yyyy/MM/dd'
                     ]
                 ],
                 'operator_type' => ChoiceType::class,
@@ -344,7 +373,6 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
                 'label' => 'Creación',
                 'format' => 'Y/m/d H:i'
             ])
-
         ;
     }
 
@@ -369,7 +397,6 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
                 'attr' => [
                     'placeholder' => 'Teléfono...',
                 ],
-
             ])
             ->add('nota', null, [
                 'label' => 'Nota',
@@ -386,12 +413,12 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
             ->add('fechahorainicio', DateTimePickerType::class, [
                 'label' => 'Check-in',
                 'dp_show_today' => true,
-                'format'=> 'yyyy/MM/dd HH:mm'
+                'format' => 'yyyy/MM/dd HH:mm'
             ])
             ->add('fechahorafin', DateTimePickerType::class, [
                 'label' => 'Check-out',
                 'dp_show_today' => true,
-                'format'=> 'yyyy/MM/dd HH:mm'
+                'format' => 'yyyy/MM/dd HH:mm'
             ])
             ->add('channel', null, [
                 'label' => 'Canal'
@@ -419,7 +446,6 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
                 'edit' => 'inline',
                 'inline' => 'table'
             ])
-
         ;
     }
 
@@ -459,7 +485,6 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
                 'attributes' => ['target' => '_blank', 'text' => 'Link'],
                 'template' => 'admin/base_sonata/show_url.html.twig'
             ])
-
             ->add('telefono', null, [
                 'label' => 'Teléfono'
             ])
@@ -506,7 +531,4 @@ class ReservaReservaAdmin extends AbstractSecureAdmin
     {
         return 'app/reservareserva';
     }
-
-
-
 }

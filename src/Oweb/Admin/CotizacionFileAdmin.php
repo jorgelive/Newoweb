@@ -2,40 +2,67 @@
 
 namespace App\Oweb\Admin;
 
-use Sonata\AdminBundle\Admin\AbstractAdmin;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\FieldDescription\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
-use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Sonata\Form\Type\CollectionType;
+use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Contracts\Service\Attribute\Required;
 
-
+/**
+ * Administración para la entidad CotizacionFile.
+ * Gestiona la creación, edición y visualización de Files de Cotización.
+ */
 class CotizacionFileAdmin extends AbstractSecureAdmin
 {
+    /**
+     * @var array<string, mixed> Variables personalizadas para la vista.
+     */
+    public array $vars = [];
+
+    /**
+     * Servicio de seguridad para verificar el usuario actual.
+     */
+    private Security $security;
+
+    /**
+     * Inyecta el servicio de seguridad mediante setter para evitar sobrescribir el constructor.
+     *
+     * @param Security $security El helper de seguridad de Symfony.
+     */
+    #[Required]
+    public function setSecurity(Security $security): void
+    {
+        $this->security = $security;
+    }
+
+    /**
+     * Define el prefijo del módulo para la organización en el menú.
+     *
+     * @return string
+     */
     public function getModulePrefix(): string
     {
         return 'OPERACIONES';
     }
 
-    public array $vars = [];
-
-    private TokenStorageInterface $tokenStorage;
-
-    public function __construct(TokenStorageInterface $tokenStorage)
-    {
-        $this->tokenStorage = $tokenStorage;
-
-    }
-
+    /**
+     * Configuración inicial del admin.
+     */
     public function configure(): void
     {
         $this->classnameLabel = "File";
     }
 
+    /**
+     * Configura los valores de ordenamiento por defecto en el listado.
+     *
+     * @param array $sortValues
+     */
     protected function configureDefaultSortValues(array &$sortValues): void
     {
         $sortValues[DatagridInterface::PAGE] = 1;
@@ -43,26 +70,49 @@ class CotizacionFileAdmin extends AbstractSecureAdmin
         $sortValues[DatagridInterface::SORT_BY] = 'modificado';
     }
 
+    /**
+     * Configura los botones de acción disponibles en las vistas.
+     * Detecta si el usuario es anónimo para mostrar solo el botón de login/retorno.
+     *
+     * @param array       $buttonList Lista actual de botones.
+     * @param string      $action     La acción actual (list, create, show, etc.).
+     * @param object|null $object     El objeto actual (si aplica).
+     *
+     * @return array
+     */
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
+        // En Symfony moderno, getUser() devuelve null si no hay usuario o es anónimo.
+        $user = $this->security->getUser();
 
-        if(empty($this->tokenStorage->getToken())){
-            $buttonList['show'] = ['template' => 'oweb/admin/cotizacion_file/adminview_button.html.twig'];
-        }else{
-            if($action != 'resumen'){
+        if (!$user) {
+            // Caso Anónimo: Limpiamos botones estándar y mostramos solo el acceso administrativo.
+            // Esto evita errores de renderizado de botones que requieren permisos.
+            $buttonList = [];
+            $buttonList['login_action'] = ['template' => 'oweb/admin/cotizacion_file/adminview_button.html.twig'];
+        } else {
+            // Caso Logueado: Lógica estándar de botones.
+            if ($action != 'resumen') {
                 $buttonList['resumen'] = ['template' => 'oweb/admin/cotizacion_file/resumen_button.html.twig'];
-            }elseif($action == 'resumen'){
+            } elseif ($action == 'resumen') {
                 $buttonList['show'] = ['template' => 'oweb/admin/cotizacion_file/show_button.html.twig'];
             }
+
             $buttonList['archivomc'] = ['template' => 'oweb/admin/cotizacion_file/archivomc_button.html.twig'];
             $buttonList['archivodcc'] = ['template' => 'oweb/admin/cotizacion_file/archivodcc_button.html.twig'];
             $buttonList['archivopr'] = ['template' => 'oweb/admin/cotizacion_file/archivopr_button.html.twig'];
             $buttonList['archivocon'] = ['template' => 'oweb/admin/cotizacion_file/archivocon_button.html.twig'];
             $buttonList['resumenclipboard'] = ['template' => 'oweb/admin/cotizacion_file/resumen_clipboard_button.html.twig'];
         }
+
         return $buttonList;
     }
 
+    /**
+     * Configura los filtros disponibles en el listado.
+     *
+     * @param DatagridMapper $datagridMapper
+     */
     protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
     {
         $datagridMapper
@@ -79,6 +129,11 @@ class CotizacionFileAdmin extends AbstractSecureAdmin
         ;
     }
 
+    /**
+     * Configura los campos mostrados en el listado.
+     *
+     * @param ListMapper $listMapper
+     */
     protected function configureListFields(ListMapper $listMapper): void
     {
         $listMapper
@@ -114,7 +169,6 @@ class CotizacionFileAdmin extends AbstractSecureAdmin
             ->add('modificado',  null, [
                 'label' => 'Modificación',
                 'format' => 'Y/m/d H:i'
-
             ])
             ->add(ListMapper::NAME_ACTIONS, null, [
                 'label' => 'Acciones',
@@ -142,8 +196,14 @@ class CotizacionFileAdmin extends AbstractSecureAdmin
         ;
     }
 
+    /**
+     * Configura los campos del formulario de edición/creación.
+     *
+     * @param FormMapper $formMapper
+     */
     protected function configureFormFields(FormMapper $formMapper): void
     {
+        // Se obtiene el parámetro 'pcode' del request actual si existe
         $temp = $this->getRequest()->get('pcode');
 
         $formMapper
@@ -158,32 +218,39 @@ class CotizacionFileAdmin extends AbstractSecureAdmin
             ])
         ;
 
-        //no mostrar en la vista de selección
-        //if($this->getRequest()->get('pcode') != 'app.admin.cotizacioncotizacion'){
-            $formMapper
-                ->add('filepasajeros', CollectionType::class, [
-                    'by_reference' => false,
-                    'label' => 'Name List'
-                ], [
-                    'edit' => 'inline',
-                    'inline' => 'table'
-                ])
-                ->add('filedocumentos', CollectionType::class, [
-                    'by_reference' => false,
-                    'label' => 'Documentos'
-                ], [
-                    'edit' => 'inline',
-                    'inline' => 'table'
-                ]);
-        //}
+        // Lógica condicional para mostrar colecciones
+        // Nota: Se mantiene comentada la condición original según el código provisto,
+        // pero se mantiene la estructura por si se desea reactivar.
+        // if($this->getRequest()->get('pcode') != 'app.admin.cotizacioncotizacion'){
+        $formMapper
+            ->add('filepasajeros', CollectionType::class, [
+                'by_reference' => false,
+                'label' => 'Name List'
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table'
+            ])
+            ->add('filedocumentos', CollectionType::class, [
+                'by_reference' => false,
+                'label' => 'Documentos'
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table'
+            ]);
+        // }
 
+        // Definición de variables de rutas para componentes JS/AJAX
         $this->vars['cotservicios']['serviciopath'] = 'api_oweb_servicio_servicio_ajaxinfo';
         $this->vars['cotcomponentes']['componentepath'] = 'api_oweb_servicio_componente_ajaxinfo';
         $this->vars['cotservicios']['itinerariopath'] = 'api_oweb_servicio_itinerario_ajaxinfo';
         $this->vars['cottarifas']['tarifapath'] = 'api_oweb_servicio_tarifa_ajaxinfo';
-
     }
 
+    /**
+     * Configura los campos de la vista de detalle (Show).
+     *
+     * @param ShowMapper $showMapper
+     */
     protected function configureShowFields(ShowMapper $showMapper): void
     {
         $showMapper
@@ -209,6 +276,11 @@ class CotizacionFileAdmin extends AbstractSecureAdmin
         ;
     }
 
+    /**
+     * Configura las rutas personalizadas del admin.
+     *
+     * @param RouteCollectionInterface $collection
+     */
     protected function configureRoutes(RouteCollectionInterface $collection): void
     {
         $collection->add('resumen', $this->getRouterIdParameter() . '/resumen/{token}');
@@ -218,4 +290,14 @@ class CotizacionFileAdmin extends AbstractSecureAdmin
         $collection->add('archivocon', $this->getRouterIdParameter() . '/archivocon');
     }
 
+    /**
+     * Define el patrón base para las rutas de este admin.
+     *
+     * @param bool $isChildAdmin
+     * @return string
+     */
+    protected function generateBaseRoutePattern(bool $isChildAdmin = false): string
+    {
+        return 'app/cotizacionfile';
+    }
 }

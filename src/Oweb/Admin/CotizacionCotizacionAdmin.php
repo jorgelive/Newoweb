@@ -15,24 +15,37 @@ use Sonata\DoctrineORMAdminBundle\Filter\CallbackFilter;
 use Sonata\Form\Type\CollectionType;
 use Sonata\Form\Type\DatePickerType;
 use Sonata\Form\Type\DateRangePickerType;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Contracts\Service\Attribute\Required;
 
+/**
+ * Administración para la entidad CotizacionCotizacion.
+ */
 class CotizacionCotizacionAdmin extends AbstractSecureAdmin
 {
+    /**
+     * @var array<string, mixed> Variables para la vista.
+     */
+    public array $vars = [];
+
+    /**
+     * Servicio de seguridad moderno.
+     */
+    private Security $security;
+
+    /**
+     * Inyección de dependencia por setter.
+     */
+    #[Required]
+    public function setSecurity(Security $security): void
+    {
+        $this->security = $security;
+    }
+
     public function getModulePrefix(): string
     {
         return 'OPERACIONES';
-    }
-
-    public array $vars = [];
-
-    private TokenStorageInterface $tokenStorage;
-
-    public function __construct(TokenStorageInterface $tokenStorage)
-    {
-        $this->tokenStorage = $tokenStorage;
-
     }
 
     public function configure(): void
@@ -48,37 +61,47 @@ class CotizacionCotizacionAdmin extends AbstractSecureAdmin
         $sortValues[DatagridInterface::SORT_BY] = 'fechaingreso';
     }
 
+    /**
+     * Configura los botones de acción según el estado de autenticación.
+     */
     protected function configureActionButtons(array $buttonList, string $action, ?object $object = null): array
     {
-        if(empty($this->tokenStorage->getToken())){
-            $buttonList['show'] = ['template' => 'oweb/admin/cotizacion_file/adminview_button.html.twig'];
-        }else{
+        // Verificación moderna de usuario
+        $user = $this->security->getUser();
 
-            if($action == 'resumen'){
+        if (!$user) {
+            // Caso Anónimo: Limpiamos botones por defecto para seguridad y dejamos solo el de vista admin/login
+            $buttonList = [];
+            $buttonList['show'] = ['template' => 'oweb/admin/cotizacion_file/adminview_button.html.twig'];
+        } else {
+            // Caso Logueado: Lógica de negocio original
+            if ($action == 'resumen') {
                 $buttonList['operaciones'] = ['template' => 'oweb/admin/cotizacion_cotizacion/operaciones_button.html.twig'];
-            }elseif($action == 'operaciones'){
+            } elseif ($action == 'operaciones') {
                 $buttonList['resumen'] = ['template' => 'oweb/admin/cotizacion_cotizacion/resumen_button.html.twig'];
-            }elseif($action != 'resumen'){
+            } elseif ($action != 'resumen') {
                 $buttonList['resumen'] = ['template' => 'oweb/admin/cotizacion_cotizacion/resumen_button.html.twig'];
                 $buttonList['operaciones'] = ['template' => 'oweb/admin/cotizacion_cotizacion/operaciones_button.html.twig'];
             }
+
             $buttonList['show'] = ['template' => 'oweb/admin/cotizacion_cotizacion/show_button.html.twig'];
             $buttonList['edit'] = ['template' => 'oweb/admin/cotizacion_cotizacion/edit_button.html.twig'];
             $buttonList['resumenclipboard'] = ['template' => 'oweb/admin/cotizacion_cotizacion/resumen_clipboard_button.html.twig'];
             $buttonList['clonar'] = ['template' => 'oweb/admin/cotizacion_cotizacion/clonar_button.html.twig'];
             $buttonList['fileshow'] = ['template' => 'oweb/admin/cotizacion_cotizacion/fileshow_button.html.twig'];
         }
+
         return $buttonList;
     }
 
     protected function configureFilterParameters(array $parameters): array
     {
-        //si no hay filtro
-        if(count($parameters) <= 4){ //cuando no hay filtro existen 4 parametros
+        // si no hay filtro (estado inicial)
+        if (count($parameters) <= 4) { // cuando no hay filtro existen 4 parametros por defecto
             $parameters = array_merge([
                 'estadocotizacion' => [
                     'value' => 3,
-                    //'type' => 1
+                    // 'type' => 1
                 ]
             ], $parameters);
         }
@@ -94,24 +117,23 @@ class CotizacionCotizacionAdmin extends AbstractSecureAdmin
             ->add('estadocotizacion', null, [
                 'label' => 'Estado'
             ])
-            ->add('fechaingreso', CallbackFilter::class,[
+            ->add('fechaingreso', CallbackFilter::class, [
                 'label' => 'Fecha de ingreso',
-                'callback' => function($queryBuilder, $alias, $field, $filterData) {
-
+                'callback' => function ($queryBuilder, $alias, $field, $filterData) {
                     $valor = $filterData->getValue();
-                    if(!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
+                    if (!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
                         return false;
                     }
                     $fechaMasUno = clone ($valor['end']);
                     $fechaMasUno->add(new \DateInterval('P1D'));
 
-                    if(empty($filterData->getType())){
+                    if (empty($filterData->getType())) {
                         $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
                         $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
                         $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
                         $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
                         return true;
-                    }else{
+                    } else {
                         return false;
                     }
                 },
@@ -120,12 +142,12 @@ class CotizacionCotizacionAdmin extends AbstractSecureAdmin
                     'field_options_start' => [
                         'dp_use_current' => true,
                         'dp_show_today' => true,
-                        'format'=> 'yyyy/MM/dd'
+                        'format' => 'yyyy/MM/dd'
                     ],
                     'field_options_end' => [
                         'dp_use_current' => true,
                         'dp_show_today' => true,
-                        'format'=> 'yyyy/MM/dd'
+                        'format' => 'yyyy/MM/dd'
                     ]
                 ],
                 'operator_type' => ChoiceType::class,
@@ -135,24 +157,23 @@ class CotizacionCotizacionAdmin extends AbstractSecureAdmin
                     ]
                 ]
             ])
-            ->add('fecha', CallbackFilter::class,[
+            ->add('fecha', CallbackFilter::class, [
                 'label' => 'Fecha cotización',
-                'callback' => function($queryBuilder, $alias, $field, $filterData) {
-
+                'callback' => function ($queryBuilder, $alias, $field, $filterData) {
                     $valor = $filterData->getValue();
-                    if(!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
+                    if (!($valor['start'] instanceof \DateTime) || !($valor['end'] instanceof \DateTime)) {
                         return false;
                     }
                     $fechaMasUno = clone ($valor['end']);
                     $fechaMasUno->add(new \DateInterval('P1D'));
 
-                    if(empty($filterData->getType())){
+                    if (empty($filterData->getType())) {
                         $queryBuilder->andWhere("DATE($alias.$field) >= :fechahora");
                         $queryBuilder->andWhere("DATE($alias.$field) < :fechahoraMasUno");
                         $queryBuilder->setParameter('fechahora', $valor['start']->format('Y-m-d'));
                         $queryBuilder->setParameter('fechahoraMasUno', $fechaMasUno->format('Y-m-d'));
                         return true;
-                    }else{
+                    } else {
                         return false;
                     }
                 },
@@ -161,12 +182,12 @@ class CotizacionCotizacionAdmin extends AbstractSecureAdmin
                     'field_options_start' => [
                         'dp_use_current' => true,
                         'dp_show_today' => true,
-                        'format'=> 'yyyy/MM/dd'
+                        'format' => 'yyyy/MM/dd'
                     ],
                     'field_options_end' => [
                         'dp_use_current' => true,
                         'dp_show_today' => true,
-                        'format'=> 'yyyy/MM/dd'
+                        'format' => 'yyyy/MM/dd'
                     ]
                 ],
                 'operator_type' => ChoiceType::class,
@@ -192,7 +213,6 @@ class CotizacionCotizacionAdmin extends AbstractSecureAdmin
             ->add('cotnotas',  null, [
                 'label' => 'Notas'
             ])
-
             ->add('menulinks',  null, [
                 'label' => 'Menus'
             ])
@@ -292,27 +312,28 @@ class CotizacionCotizacionAdmin extends AbstractSecureAdmin
                 'format' => 'Y/m/d H:i',
                 'sortable' => true
             ])
-
         ;
     }
 
     protected function configureFormFields(FormMapper $formMapper): void
     {
-
         $hoy = new \DateTime('today');
         $hoy = $hoy->format('Y/m/d');
-        if($this->getRoot()->getClass() != 'App\Oweb\Entity\CotizacionFile'){
-            $formMapper->add('file', ModelListType::class,[
+
+        // Verificamos si es hijo para no mostrar el selector de file duplicado
+        if ($this->getRoot()->getClass() != 'App\Oweb\Entity\CotizacionFile') {
+            $formMapper->add('file', ModelListType::class, [
                 'btn_delete' => false
             ]);
         }
+
         $formMapper
             ->add('nombre')
             ->add('fecha', DatePickerType::class, [
                 'label' => 'Fecha cotización',
                 'dp_default_date' => $hoy,
                 'dp_show_today' => true,
-                'format'=> 'yyyy/MM/dd'
+                'format' => 'yyyy/MM/dd'
             ])
             ->add('resumen', null, [
                 'label' => 'Resumen',
@@ -320,7 +341,8 @@ class CotizacionCotizacionAdmin extends AbstractSecureAdmin
                 'attr' => ['class' => 'ckeditor']
             ]);
 
-        if($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
+        // Mostrar resumen original en solo lectura si estamos en otro idioma
+        if ($this->getRequest()->getLocale() != $this->getRequest()->getDefaultLocale()) {
             $formMapper
                 ->add('resumenoriginal', null, [
                     'label' => 'Resumen original',
@@ -365,9 +387,9 @@ class CotizacionCotizacionAdmin extends AbstractSecureAdmin
                 'edit' => 'inline',
                 'inline' => 'table'
             ])
-
         ;
 
+        // Variables para JS/AJAX en las vistas
         $this->vars['cotservicios']['serviciopath'] = 'api_oweb_servicio_servicio_ajaxinfo';
         $this->vars['cotcomponentes']['componentepath'] = 'api_oweb_servicio_componente_ajaxinfo';
         $this->vars['cotservicios']['itinerariopath'] = 'api_oweb_servicio_itinerario_ajaxinfo';
@@ -405,7 +427,6 @@ class CotizacionCotizacionAdmin extends AbstractSecureAdmin
             ->add('menulinks',  null, [
                 'label' => 'Menus'
             ])
-
         ;
     }
 

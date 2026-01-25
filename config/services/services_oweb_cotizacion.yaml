@@ -277,8 +277,6 @@ services:
         public: true
     app.oweb.admin.cotizacioncotizacion:
         class: App\Oweb\Admin\CotizacionCotizacionAdmin
-        arguments:
-        - '@security.token_storage'
         tags:
         -   name: sonata.admin
             model_class: App\Oweb\Entity\CotizacionCotizacion
