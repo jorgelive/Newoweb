@@ -22,7 +22,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
  * NOTA: Se ha eliminado toda compatibilidad con serialización antigua de SonataUserBundle.
  * Los roles ahora se manejan estrictamente como arrays JSON nativos.
  */
-#[ORM\Table(name: 'fos_user_user')]
+#[ORM\Table(name: 'user')]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
