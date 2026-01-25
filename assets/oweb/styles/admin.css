@@ -1,3 +1,5 @@
 /* IMPORTANTE: Usa los nombres de archivo originales, sin códigos raros */
+@import "../../styles/variables.css";
 @import "layout.css";
 @import "modern-b3.css";
+@import "../../styles/fullcalendar.css";

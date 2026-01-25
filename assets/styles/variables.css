@@ -1,17 +1,59 @@
+/* =========================================================
+   VARIABLES GLOBALES
+   ========================================================= */
 :root {
-    /* Identidad PMS */
+    /* =========================
+       Identidad PMS
+       ========================= */
     --pms-primary: #2d3f4f;
     --pms-accent: #ff8a00;
     --pms-success: #2e9e6d;
 
-    /* Paleta Neutral */
+    /* =========================
+       Paleta neutral base
+       ========================= */
     --c-text: #222222;
     --c-muted: #6c757d;
     --c-border: #eef1f4;
-    --c-shadow: rgba(0,0,0,.08);
+    --c-shadow: rgba(0, 0, 0, 0.08);
+    --c-shadow-soft: rgba(0, 0, 0, 0.04);
+
+    /* =========================
+       Estados / feedback
+       ========================= */
+    --c-danger: #FF807E;
+    --c-danger-hover: #f54f4b;
 
     /* Estados Beds24 */
     --sync-pending: #f1c40f;
     --sync-error: #e74c3c;
     --sync-ok: #27ae60;
+
+    /* =========================
+       Layout
+       ========================= */
+    --header-h: 100px;
+
+    /* =========================
+       Accent UI
+       ========================= */
+    --c-accent: #ff8a00; /* bullets, highlights */
+
+    /* =========================
+       FullCalendar – Theme
+       ========================= */
+    --fc-page-bg-color: #ffffff;
+
+    --fc-button-bg-color: #2d3f4f;
+    --fc-button-border-color: #2d3f4f;
+    --fc-button-text-color: #ffffff;
+
+    --fc-button-hover-bg-color: #395268;
+    --fc-button-hover-border-color: #395268;
+
+    --fc-button-active-bg-color: #1f2d39;
+    --fc-button-active-border-color: #1f2d39;
+
+    --fc-neutral-bg-color: #f7f9fc;
+    --fc-border-color: #e2e8f0;
 }

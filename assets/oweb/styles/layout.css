@@ -1,29 +1,5 @@
 /* Estilos base */
-/* =========================
-   VARIABLES Y BASE MODERNA
-   ========================= */
-:root {
-    --header-h: 100px;
-    --c-text: #222222;
-    --c-muted: #6c757d;
-    --c-border: #eef1f4;
-    --c-shadow: rgba(0,0,0,.08);
-    --c-shadow-soft: rgba(0,0,0,.04);
-    --c-danger: #FF807E;
-    --c-danger-hover: #f54f4b;
-    --c-accent: #ff8a00; /* bullets personalizados */
-    /* FullCalendar variables */
-    --fc-page-bg-color: #ffffff;
-    --fc-button-bg-color: #2d3f4f;
-    --fc-button-border-color: #2d3f4f;
-    --fc-button-text-color: #fff;
-    --fc-button-hover-bg-color: #395268;
-    --fc-button-hover-border-color: #395268;
-    --fc-button-active-bg-color: #1f2d39;
-    --fc-button-active-border-color: #1f2d39;
-    --fc-neutral-bg-color: #f7f9fc;
-    --fc-border-color: #e2e8f0;
-}
+
 
 /* =========================
    AJUSTES GENERALES
@@ -189,65 +165,7 @@ section.content .btn-group > .btn {
     background-color: #ffffff;
 }
 
-/* =========================
-   FULLCALENDAR ESTILOS
-   ========================= */
-.fc .fc-header-toolbar {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 12px 0 6px;
-    background: var(--fc-page-bg-color, #fff);
-    border-bottom: 1px solid var(--fc-border-color);
-    box-shadow: 0 2px 4px var(--c-shadow-soft);
-}
 
-.fc .fc-toolbar-title {
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: var(--c-accent);
-    letter-spacing: 0.5px;
-    margin: 0;
-}
-
-.fc .fc-footer-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px 14px;
-    background: var(--fc-page-bg-color, #fff);
-    border-top: 1px solid var(--fc-border-color);
-    box-shadow: 0 -2px 4px var(--c-shadow-soft);
-}
-
-.fc .fc-footer-toolbar .fc-toolbar-chunk {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.fc .fc-button {
-    border-radius: 10px;
-    padding: 6px 12px;
-    border-width: 1px;
-}
-
-.fc .fc-button-group {
-    display: inline-flex;
-}
-
-.fc .fc-prev-button {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-.fc .fc-next-button {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-    margin-left: -1px;
-}
 
 /* =========================
    GALERÍAS Y THUMBNAILS
