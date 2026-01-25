@@ -1,0 +1,127 @@
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    app.oweb.admin.maestrosexo:
+        class: App\Oweb\Admin\MaestroSexoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\MaestroSexo
+            manager_type: orm
+            group: Maestros
+            label: Sexo
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestrotipodocumento:
+        class: App\Oweb\Admin\MaestroTipodocumentoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\MaestroTipodocumento
+            manager_type: orm
+            group: Maestros
+            label: Tipo de documento de identidad
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestromoneda:
+        class: App\Oweb\Admin\MaestroMonedaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\MaestroMoneda
+            manager_type: orm
+            group: Maestros
+            label: Monedas
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestrotipocambio:
+        class: App\Oweb\Admin\MaestroTipocambioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\MaestroTipocambio
+            manager_type: orm
+            group: Maestros
+            label: Tipo de cambio
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestrocontacto:
+        class: App\Oweb\Admin\MaestroContactoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\MaestroContacto
+            manager_type: orm
+            group: Maestros
+            label: Contacto
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestrotipocontacto:
+        class: App\Oweb\Admin\MaestroTipocontactoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\MaestroTipocontacto
+            manager_type: orm
+            group: Maestros
+            label: Tipo de contacto
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestropais:
+        class: App\Oweb\Admin\MaestroPaisAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\MaestroPais
+            manager_type: orm
+            group: Maestros
+            label: Pais
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestroidioma:
+        class: App\Oweb\Admin\MaestroIdiomaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Entity\MaestroIdioma
+            manager_type: orm
+            group: Maestros
+            label: Idioma
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestrotipopax:
+        class: App\Oweb\Admin\MaestroTipopaxAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\MaestroTipopax
+            manager_type: orm
+            group: Maestros
+            label: Tipo de pasajero
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestrocategoriatour:
+        class: App\Oweb\Admin\MaestroCategoriatourAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\MaestroCategoriatour
+            manager_type: orm
+            group: Maestros
+            label: Categoria de tour
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestromedio:
+        class: App\Oweb\Admin\MaestroMedioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\MaestroMedio
+            controller: App\Oweb\Controller\MaestroMedioController
+            manager_type: orm
+            group: Maestros
+            label: Multimedia
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.maestroclasemedio:
+        class: App\Oweb\Admin\MaestroClasemedioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\MaestroClasemedio
+            manager_type: orm
+            group: Maestros
+            label: Clase Multimedia
+            show_mosaic_button: false
+        public: true

@@ -1,0 +1,19 @@
+/* Variables compartidas */
+@import "../../styles/variables.css";
+
+/* Estilos para EasyAdmin */
+:root {
+    --accent-color: var(--pms-accent);
+}
+
+.ea-side-menu {
+    background-color: var(--pms-primary);
+}
+
+/* Estilos para gráficos o widgets del dashboard */
+.dashboard-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px var(--c-shadow);
+    padding: 1.5rem;
+    background: #fff;
+}

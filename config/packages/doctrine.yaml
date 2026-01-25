@@ -20,13 +20,18 @@ doctrine:
         naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
         auto_mapping: true
         mappings:
-            SonataUserBundle: ~
             App:
                 is_bundle: false
                 type: attribute
                 dir: '%kernel.project_dir%/src/Entity'
                 prefix: 'App\Entity'
                 alias: App
+            Oweb:
+                is_bundle: false
+                type: attribute
+                dir: '%kernel.project_dir%/src/Entity'
+                prefix: 'App\Oweb\Entity'
+                alias: oweb
             Pms:
                 is_bundle: false
                 type: attribute
@@ -58,7 +63,7 @@ doctrine:
                 alias: GedmoTree # (optional) it will default to the name set for the mapping
                 is_bundle: false
         schema_ignore_classes:
-            - App\Entity\ViewCotizacionCotcomponenteAlerta
+            - App\Oweb\Entity\ViewCotizacionCotcomponenteAlerta
 
 when@test:
     doctrine:

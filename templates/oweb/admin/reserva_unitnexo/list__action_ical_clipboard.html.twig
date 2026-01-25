@@ -1,0 +1,11 @@
+{% if admin.isGranted('show', object) and admin.hasRoute('ical') %}
+    <a data-text="{{ url('admin_app_oweb_reservaunitnexo_ical', {'id': object.id}) }}"
+       data-tooltiptext="Copiado al portapapeles"
+       class="clipboard-trigger btn btn-sm btn-info">
+        <i class="fa fa-calendar" aria-hidden="true"></i>
+        Ical
+    </a>
+{% endif %}
+
+
+

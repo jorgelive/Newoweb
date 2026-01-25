@@ -1,0 +1,253 @@
+{% import 'oweb/macros/resumen_macros.html.twig' as resumenMacros %}
+{% set whatsappText = resumenMacros.whatsappText(tabs.resumen, object) %}
+
+<div class="container-fluid" style="padding-top:15px;padding-bottom:15px;">
+    <div class="panel panel-default" style="border-radius:8px;">
+        <div class="panel-body">
+            <h3 class="no-margin" style="color:#2e7d32;">
+                <i class="fa fa-list-alt"></i>
+                {{ 'tab_resumen'|trans({}, 'messages')|capitalize }}
+            </h3>
+
+            <ul class="list-unstyled" style="margin-top:15px;">
+
+                {# -------------------- ALOJAMIENTOS -------------------- #}
+                {% if tabs.resumen.alojamientos is defined %}
+                    {% for alojamiento in tabs.resumen.alojamientos %}
+                        {% set idxAloj = loop.index0 %}
+                        <div class="panel panel-default" style="border-radius:8px; box-shadow: 0 6px 18px rgba(0,0,0,.08); margin-bottom:15px;">
+                            <div class="panel-body">
+                                <div class="row">
+
+                                    <div class="col-md-6">
+                                        <h4 style="margin-top:0; font-weight:600;">
+                                            {% if alojamiento.tipoTarifa.id != constant('App\\Oweb\\Entity\\ServicioTipotarifa::DB_VALOR_NORMAL') %}
+                                                <span class="label label-warning" style="display:inline-block;margin-right:6px;">{{ alojamiento.tipoTarifa.titulo }}</span>
+                                            {% else %}
+                                                <span class="label label-info" style="display:inline-block;margin-right:6px;">{{ alojamiento.tipoTarifa.titulo }}</span>
+                                            {% endif %}
+                                            {{ alojamiento.duracionStr }} {{ 'de'|trans({}, 'messages') }} {{ alojamiento.titulo }}
+                                            {% if alojamiento.tarifaTitulo is defined %}
+                                                <small class="text-muted"> {{ 'en'|trans({}, 'messages')}} {{ alojamiento.tarifaTitulo }}</small>
+                                            {% endif %}
+                                        </h4>
+
+                                        {% if object.file.catalogo != true %}
+                                            <p class="text-muted" style="margin-bottom:6px;">
+                                                <i class="fa fa-calendar"></i>
+                                                {{ 'del'|trans({}, 'messages')|capitalize }} {{ alojamiento.fechaInicio|date('Y-m-d') }}
+                                                {{ 'al'|trans({}, 'messages') }} {{ alojamiento.fechaFin|date('Y-m-d') }}
+                                            </p>
+                                        {% endif %}
+
+                                        {% if alojamiento.detalles is defined %}
+                                            <ul style="padding-left:18px; margin-bottom:0;">
+                                                {% for detalle in alojamiento.detalles %}
+                                                    <li> {{ detalle }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+                                    </div>
+
+                                    {% if alojamiento.proveedor is defined %}
+                                        <div class="col-md-6">
+                                            {% if action == 'show' or object.hoteloculto == false %}
+                                                <h5 style="font-weight:600;margin-top:0;">
+                                                    <i class="fa fa-building"></i> {{ alojamiento.proveedor.nombre }}
+                                                </h5>
+                                            {% endif %}
+
+                                            {% if alojamiento.proveedor.providermedios is not empty %}
+                                                <div id="carousel_{{ idxAloj }}" class="carousel slide" data-ride="carousel" data-interval="8000" style="margin-top:8px; border-radius:10px; overflow:hidden;">
+                                                    {# Indicadores (máx 7) #}
+                                                    {% if alojamiento.proveedor.providermedios|length < 8 %}
+                                                        <ol class="carousel-indicators">
+                                                            {% for medio in alojamiento.proveedor.providermedios %}
+                                                                <li data-target="#carousel_{{ idxAloj }}" data-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active"{% endif %}></li>
+                                                            {% endfor %}
+                                                        </ol>
+                                                    {% endif %}
+
+                                                    <div class="carousel-inner" role="listbox">
+                                                        {% for medio in alojamiento.proveedor.providermedios %}
+                                                            <div class="item{% if loop.first %} active{% endif %}">
+                                                                <a href="{% if medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ medio.webPath|raw }}{% else %}{{ medio.webPath|raw }}{% endif %}"
+                                                                        {% if medio.inModal %} data-toggle="lightbox" data-gallery="galeria_hotel_{{ idxAloj }}"{% else %} target="_blank"{% endif %}>
+                                                                    <img
+                                                                            src="{% if medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ medio.webThumbPath|raw }}{% else %}{{ medio.webThumbPath|raw }}{% endif %}"
+                                                                            alt="{{ medio.titulo }}"
+                                                                            class="img-responsive img-rounded {% if medio.inModal %}in-modal{% endif %}"
+                                                                            style="width:100%; max-height:420px; object-fit:cover;"
+                                                                            loading="lazy">
+                                                                    <div class="carousel-caption">
+                                                                        <p class="small">{{ medio.titulo }}</p>
+                                                                    </div>
+                                                                </a>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+
+                                                    <a class="left carousel-control" href="#carousel_{{ idxAloj }}" role="button" data-slide="prev">
+                                                        <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+                                                        <span class="sr-only">{{ 'anterior'|trans({}, 'messages')|capitalize }}</span>
+                                                    </a>
+                                                    <a class="right carousel-control" href="#carousel_{{ idxAloj }}" role="button" data-slide="next">
+                                                        <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                                                        <span class="sr-only">{{ 'siguiente'|trans({}, 'messages')|capitalize }}</span>
+                                                    </a>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {# -------------------- SERVICIOS CON ITINERARIO -------------------- #}
+                {% if tabs.resumen.serviciosConTituloItinerario is defined %}
+                    {% for servicio in tabs.resumen.serviciosConTituloItinerario %}
+                        {% set idxServ = loop.index0 %}
+                        <div class="panel panel-default" style="border-radius:8px; box-shadow: 0 6px 18px rgba(0,0,0,.08); margin-bottom:15px;">
+                            <div class="panel-body">
+                                <h4 style="color:#2e7d32; font-weight:600; margin-top:0;">{{ servicio.tituloItinerario }}</h4>
+
+                                {% if servicio.fechaInicio is defined and object.file.catalogo != true %}
+                                    {% if servicio.fechahorasdiferentes %}
+                                        {% for fecha in servicio.fechas %}
+                                            <p style="margin-bottom:4px;"><i class="fa fa-calendar"></i> <strong>{{ fecha.fecha|date('Y-m-d') }}</strong></p>
+                                            {% for item in fecha.items %}
+                                                <p style="margin-left:10px; margin-bottom:4px;">
+                                                    <i class="fa fa-clock-o" style="color:#1e88e5;"></i>
+                                                    <strong>{{ item.fechahoraInicio|date('H:i') }}</strong> {{ item.titulo }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <p style="margin-bottom:6px;">
+                                            <i class="fa fa-clock-o" style="color:#1e88e5;"></i>
+                                            <strong>{{ 'inicio'|trans({}, 'messages')|capitalize }}:</strong>
+                                            {{ servicio.fechahoraInicio|date('Y-m-d H:i') }}
+                                        </p>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% if servicio.duracionStr is defined %}
+                                    <p style="margin-bottom:6px;">
+                                        <i class="fa fa-hourglass-half"></i>
+                                        <strong>{{ 'duracion'|trans({}, 'messages')|capitalize }}:</strong> {{ servicio.duracionStr }}
+                                    </p>
+                                {% endif %}
+
+                                {# --- Compacto en línea: título — variantes (solo si hay repetidos) --- #}
+                                {% for tipoTarifa in servicio.tipoTarifas %}
+                                    <p style="margin-bottom:6px;">
+                                        <i class="{{ tipoTarifa.claseTipotarifa }}" style="color:{{ tipoTarifa.colorTipotarifa }};"></i>
+                                        <strong>{{ tipoTarifa.tituloTipotarifa }}:</strong>
+                                        {{
+                                        tipoTarifa.componentes
+                                        |map(c =>
+                                            c.titulo ~ (
+                                            c.variantes is defined and c.variantes|length > 0
+                                            ? ' — ' ~ (c.variantes|map(v => v.label)|join(', '))
+                                        : ''
+                                        )
+                                        )
+                                        |join('; ')
+                                        }}.
+                                    </p>
+                                {% endfor %}
+
+                                {% if servicio.fotos is not empty %}
+                                    {% set anyPortada = servicio.fotos|filter(f => f.portada is defined and f.portada)|length > 0 %}
+                                    <div style="margin-top:10px;">
+                                        <div id="carousel_servicio_{{ idxServ }}" class="carousel slide" data-ride="carousel" data-interval="8000" style="border-radius:10px; overflow:hidden;">
+                                            {% if servicio.fotos|length < 8 %}
+                                                <ol class="carousel-indicators">
+                                                    {% for foto in servicio.fotos %}
+                                                        {% set isActive = (anyPortada and foto.portada) or (not anyPortada and loop.first) %}
+                                                        <li data-target="#carousel_servicio_{{ idxServ }}" data-slide-to="{{ loop.index0 }}" {% if isActive %}class="active"{% endif %}></li>
+                                                    {% endfor %}
+                                                </ol>
+                                            {% endif %}
+
+                                            <div class="carousel-inner" role="listbox">
+                                                {% for foto in servicio.fotos %}
+                                                    {% set isActive = (anyPortada and foto.portada) or (not anyPortada and loop.first) %}
+                                                    <div class="item{% if isActive %} active{% endif %}">
+                                                        <a href="{% if foto.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ foto.medio.webPath|raw }}{% else %}{{ foto.medio.webPath|raw }}{% endif %}"
+                                                                {% if foto.medio.inModal %} data-toggle="lightbox" data-gallery="galeria_servicio_{{ idxServ }}"{% else %} target="_blank"{% endif %}>
+                                                            <img
+                                                                    src="{% if foto.medio.tipo == 'local' %}{{ app.request.getSchemeAndHttpHost() ~ foto.medio.webThumbPath|raw }}{% else %}{{ foto.medio.webThumbPath|raw }}{% endif %}"
+                                                                    alt="{{ foto.medio.titulo }}"
+                                                                    class="img-responsive img-rounded {% if foto.medio.inModal %}in-modal{% endif %}"
+                                                                    style="width:100%; max-height:420px; object-fit:cover;"
+                                                                    loading="lazy">
+                                                            <div class="carousel-caption">
+                                                                <p class="small">{{ foto.medio.titulo }}</p>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+
+                                            <a class="left carousel-control" href="#carousel_servicio_{{ idxServ }}" role="button" data-slide="prev">
+                                                <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+                                                <span class="sr-only">{{ 'anterior'|trans({}, 'messages')|capitalize }}</span>
+                                            </a>
+                                            <a class="right carousel-control" href="#carousel_servicio_{{ idxServ }}" role="button" data-slide="next">
+                                                <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                                                <span class="sr-only">{{ 'siguiente'|trans({}, 'messages')|capitalize }}</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {# -------------------- OTROS SERVICIOS -------------------- #}
+                {% if tabs.resumen.serviciosSinTituloItinerario is defined %}
+                    <div class="panel panel-default" style="border-radius:8px; box-shadow: 0 6px 18px rgba(0,0,0,.08); padding:10px; margin-bottom:15px;">
+                        <div class="panel-body" style="padding-top:10px;">
+                            <h4 style="color:#2e7d32; font-weight:600; margin-top:0;">{{ 'otros_servicios'|trans({}, 'messages')|capitalize }}</h4>
+
+                            {% for tipoTarifa in tabs.resumen.serviciosSinTituloItinerario.tipoTarifas %}
+                                <p style="margin-bottom:6px;">
+                                    <i class="{{ tipoTarifa.claseTipotarifa }}" style="color:{{ tipoTarifa.colorTipotarifa }};"></i>
+                                    <strong>{{ tipoTarifa.tituloTipotarifa }}:</strong>
+                                    {{
+                                    tipoTarifa.componentes
+                                    |map(c =>
+                                        c.titulo ~ (
+                                        c.variantes is defined and c.variantes|length > 0
+                                        ? ' — ' ~ (c.variantes|map(v => v.label)|join(', '))
+                                    : ''
+                                    )
+                                    )
+                                    |join('; ')
+                                    }}.
+                                </p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                {# -------------------- BOTÓN WHATSAPP -------------------- #}
+                {% if action == 'show' %}
+                    {% set whatsappNumero = object.file.telefono is not empty ? object.file.telefono : numero_default %}
+                    <li style="margin-top:10px;">
+                        <a href="https://wa.me/{{ whatsappNumero|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                           target="_blank" class="btn btn-success btn-block btn-lg">
+                            <i class="fa fa-whatsapp"></i> Enviar por WhatsApp
+                        </a>
+                    </li>
+                {% endif %}
+
+            </ul>
+        </div>
+    </div>
+</div>

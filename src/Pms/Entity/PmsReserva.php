@@ -2,13 +2,16 @@
 
 namespace App\Pms\Entity;
 
+use App\Entity\MaestroIdioma;
+use App\Entity\MaestroPais;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
-use App\Entity\MaestroPais;
-use App\Entity\MaestroIdioma;
+use Symfony\Component\Validator\Constraints as Assert;
+
+// Importante para la relación
 
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_reserva')]
@@ -19,26 +22,24 @@ class PmsReserva
     #[ORM\Column]
     private ?int $id = null;
 
-    // --- IDENTIFICADORES Y RELACIONES B24 ---
-
     #[ORM\Column(type: 'bigint', unique: true, nullable: true)]
     private ?string $beds24MasterId = null;
 
-    // Beds24: fallback cuando masterId es null. Corresponde al campo "id" del payload /api/v2/bookings.
     #[ORM\Column(type: 'bigint', nullable: true)]
     private ?string $beds24BookIdPrincipal = null;
 
-    // Beds24: aquí guardamos el apiReference (ej: HMZCX8HZ2K). Booking/Airbnb: aquí va la referencia del canal.
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $referenciaCanal = null;
 
-    // ----------------------------------------
-
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
+    #[Assert\NotBlank(message: "El nombre del cliente es obligatorio.")]
     private ?string $nombreCliente = null;
 
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
+    #[Assert\NotBlank(message: "El apellido del cliente es obligatorio.")]
     private ?string $apellidoCliente = null;
+
+    // --- Se eliminaron $documento y $tipoDocumento ---
 
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $telefono = null;
@@ -50,12 +51,15 @@ class PmsReserva
     private ?bool $datosLocked = false;
 
     #[ORM\Column(type: 'integer', nullable: true)]
+    #[Assert\PositiveOrZero(message: "No puede haber adultos negativos.")]
     private ?int $cantidadAdultos = null;
 
     #[ORM\Column(type: 'integer', nullable: true)]
+    #[Assert\PositiveOrZero(message: "No puede haber niños negativos.")]
     private ?int $cantidadNinos = null;
 
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    #[Assert\Email(message: "El formato del correo electrónico no es válido.")]
     private ?string $emailCliente = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -81,6 +85,7 @@ class PmsReserva
 
     #[ORM\ManyToOne(targetEntity: PmsChannel::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: "Debes asignar un Canal a la reserva.")]
     private ?PmsChannel $channel = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
@@ -95,6 +100,7 @@ class PmsReserva
 
     #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: "Debes seleccionar un idioma principal.")]
     private ?MaestroIdioma $idioma = null;
 
     #[ORM\OneToMany(
@@ -103,7 +109,19 @@ class PmsReserva
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
+    #[Assert\Valid]
     private Collection $eventosCalendario;
+
+    /**
+     * NAMELIST: Colección de huéspedes para el Pre Check-in
+     */
+    #[ORM\OneToMany(
+        mappedBy: 'reserva',
+        targetEntity: PmsReservaHuesped::class,
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
+    private Collection $huespedes;
 
     #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime')]
@@ -116,16 +134,13 @@ class PmsReserva
     public function __construct()
     {
         $this->eventosCalendario = new ArrayCollection();
+        $this->huespedes = new ArrayCollection();
     }
 
-    // ========================================================================
-    //                 LINKS VIRTUALES (Booking, Airbnb, Beds24)
-    // ========================================================================
+    // =========================================================================
+    // LÓGICA DE NEGOCIO Y URLS PRESERVADA AL 100%
+    // =========================================================================
 
-    /**
-     * Con el modelo nuevo (Beds24Link), el map vive en el link.
-     * Tomamos el primer map disponible en cualquier evento.
-     */
     public function getUnidadBeds24MapPrincipal(): ?PmsUnidadBeds24Map
     {
         if ($this->eventosCalendario->count() === 0) {
@@ -176,14 +191,6 @@ class PmsReserva
         );
     }
 
-    /**
-     * Con el modelo nuevo, ya no existe getBeds24BookId() en el evento.
-     * Buscamos un bookId primero en:
-     *  - beds24MasterId
-     *  - beds24BookIdPrincipal
-     *  - primer link con beds24BookId
-     *  - si el link no tiene, usamos originLink->beds24BookId (caso mirrors)
-     */
     public function getUrlBeds24(): ?string
     {
         $bookId = $this->beds24MasterId ?: $this->beds24BookIdPrincipal;
@@ -220,7 +227,9 @@ class PmsReserva
         );
     }
 
-    // --- GETTERS Y SETTERS ---
+    // =========================================================================
+    // GETTERS Y SETTERS
+    // =========================================================================
 
     public function getId(): ?int { return $this->id; }
 
@@ -238,6 +247,15 @@ class PmsReserva
 
     public function getApellidoCliente(): ?string { return $this->apellidoCliente; }
     public function setApellidoCliente(?string $apellidoCliente): self { $this->apellidoCliente = $apellidoCliente; return $this; }
+
+    public function getNombreApellido(): ?string
+    {
+        $nombre = trim((string) ($this->getNombreCliente() ?? ''));
+        $apellido = trim((string) ($this->apellidoCliente ?? ''));
+
+        $full = trim($nombre . ' ' . $apellido);
+        return $full !== '' ? $full : null;
+    }
 
     public function getTelefono(): ?string { return $this->telefono; }
     public function setTelefono(?string $telefono): self { $this->telefono = $telefono; return $this; }
@@ -287,18 +305,12 @@ class PmsReserva
 
     public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
 
-    /**
-     * Setter de compatibilidad para Symfony Form / Sonata.
-     * Mantiene la consistencia usando add/remove (no reemplaza la colección a lo bruto).
-     */
     public function setEventosCalendario(iterable $eventosCalendario): self
     {
-        // Remover los que ya no están
         foreach ($this->eventosCalendario as $existente) {
             if (!$existente instanceof PmsEventoCalendario) {
                 continue;
             }
-
             $enNuevo = false;
             foreach ($eventosCalendario as $nuevo) {
                 if ($nuevo === $existente) {
@@ -306,13 +318,11 @@ class PmsReserva
                     break;
                 }
             }
-
             if (!$enNuevo) {
                 $this->removeEventoCalendario($existente);
             }
         }
 
-        // Agregar nuevos
         foreach ($eventosCalendario as $evento) {
             if ($evento instanceof PmsEventoCalendario) {
                 $this->addEventoCalendario($evento);
@@ -369,5 +379,56 @@ class PmsReserva
         }
         $this->idioma = $idioma;
         return $this;
+    }
+
+    /**
+     * @return Collection<int, PmsReservaHuesped>
+     */
+    public function getHuespedes(): Collection
+    {
+        return $this->huespedes;
+    }
+
+    public function addHuesped(PmsReservaHuesped $huesped): self
+    {
+        if (!$this->huespedes->contains($huesped)) {
+            $this->huespedes->add($huesped);
+            $huesped->setReserva($this);
+        }
+        return $this;
+    }
+
+    public function removeHuesped(PmsReservaHuesped $huesped): self
+    {
+        if ($this->huespedes->removeElement($huesped)) {
+            if ($huesped->getReserva() === $this) {
+                $huesped->setReserva(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getSyncStatusAggregate(): string
+    {
+        $allSynced = true;
+        $hasError = false;
+
+        foreach ($this->getEventosCalendario() as $evento) {
+            if (!$evento->isSynced()) {
+                $allSynced = false;
+                foreach ($evento->getBeds24Links() as $link) {
+                    foreach ($link->getQueues() as $queue) {
+                        if ($queue->getStatus() === PmsBookingsPushQueue::STATUS_FAILED) {
+                            $hasError = true;
+                            break 3;
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($hasError) return 'error';
+        if (!$allSynced) return 'pending';
+        return 'synced';
     }
 }

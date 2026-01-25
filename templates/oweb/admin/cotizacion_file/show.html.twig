@@ -1,0 +1,328 @@
+{% extends '@SonataAdmin/CRUD/show.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* ===== utilidades locales (no rompen tus globales) ===== */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr;   /* móvil */
+            gap: 16px;
+        }
+        @media (min-width: 768px) { .grid-3 { grid-template-columns: 1fr 1fr; } }    /* tablet */
+        @media (min-width: 992px) { .grid-3 { grid-template-columns: 1fr 1fr 1fr; } }/* desktop */
+
+        .row-cotizacion { padding: 12px 0; border-bottom: 1px solid #eee; }
+        .row-cotizacion:last-child { border-bottom: 0; }
+
+        .thumbnail-fluid img { width:100%; height:auto; display:block; border-radius: 6px; }
+        .thumbnail-fluid .caption { padding:6px 4px; }
+
+        /* botones con wrap en móvil */
+        .btn-group .btn { margin-bottom: 6px; }
+    </style>
+{% endblock %}
+
+{% block show %}
+
+    {% set MAX_INDICADORES = 7 %}
+    {% set TIEMPO_CAROUSEL = 10000 %}
+
+    <div class="sonata-ba-view">
+
+        {{ sonata_block_render_event('oweb.admin.show.top', { 'admin': admin, 'object': object }) }}
+
+        <div class="box box-primary">
+            {% if object.catalogo == false %}
+                <div class="box-body table-responsive no-padding">
+                    <table class="table">
+                        <tbody>
+                        <tr class="sonata-ba-view-container">
+                            <th>{{ 'nombre'|trans({},'messages')|capitalize }}</th>
+                            <td>{{ object.nombre }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>{{ 'pais'|trans({},'messages')|capitalize }}</th>
+                            <td>{{ object.pais.nombre }}</td>
+                        </tr>
+                        <tr class="sonata-ba-view-container">
+                            <th>{{ 'idioma'|trans({},'messages')|capitalize }}</th>
+                            <td>{{ object.idioma.nombre }}</td>
+                        </tr>
+                        {% if action != 'resumen' and object.telefono is not empty %}
+                            <tr class="sonata-ba-view-container">
+                                <td colspan="2">
+                                    <a href="tel:{{ object.telefono }}" class="btn btn-sm btn-success">
+                                        <i class="fa fa-phone" aria-hidden="true"></i> Llamar
+                                    </a>
+                                    <a data-text="{{ object.telefono }}" data-tooltiptext="Copiado al portapapeles" class="btn btn-sm btn-success clipboard-trigger">
+                                        <i class="fa fa-file-text" aria-hidden="true"></i> Copiar número
+                                    </a>
+                                    <a href="https://wa.me/{{object.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}"
+                                       target="_blank" rel="noopener" class="btn btn-sm btn-success edit_link">
+                                        <i class="fa fa-whatsapp" aria-hidden="true"></i> Whatsapp
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="box-body">
+                    <h3>{{ object.nombre }}</h3>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if object.filepasajeros is defined or object.filedocumentos is defined or object.cotizaciones is defined %}
+            <div class="panel-group box box-primary" id="accordion">
+                {% if object.filepasajeros is defined and object.filepasajeros|length > 0 %}
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h5 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion" href="#collapse1" aria-expanded="false" aria-controls="collapse1">
+                                    {{ 'namelist'|trans({},'messages')|capitalize }}
+                                </a>
+                            </h5>
+                        </div>
+                        <div id="collapse1" class="panel-collapse collapse" role="region" aria-labelledby="collapse1">
+                            <div class="panel-body table-responsive no-padding">
+                                <table class="table table-bordered table-striped sonata-ba-list">
+                                    <thead>
+                                    <tr class="sonata-ba-list-field-header">
+                                        <th>{{ 'nombres'|trans({},'messages')|capitalize }}</th>
+                                        <th>{{ 'apellidos'|trans({},'messages')|capitalize }}</th>
+                                        <th>{{ 'pais'|trans({},'messages')|capitalize }}</th>
+                                        <th>{{ 'sexo'|trans({},'messages')|capitalize }}</th>
+                                        <th>{{ 'tipodoc'|trans({},'messages')|capitalize }}</th>
+                                        <th>{{ 'numerodoc'|trans({},'messages')|capitalize }}</th>
+                                        <th>{{ 'fechanacimiento'|trans({},'messages')|capitalize }}</th>
+                                        <th>{{ 'edad'|trans({},'messages')|capitalize }}</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for pasajero in object.filepasajeros %}
+                                        <tr>
+                                            <td>{{ pasajero.nombre }}</td>
+                                            <td>{{ pasajero.apellido }}</td>
+                                            <td>{{ pasajero.pais }}</td>
+                                            <td>{{ pasajero.sexo }}</td>
+                                            <td>{{ pasajero.tipodocumento }}</td>
+                                            <td>{{ pasajero.numerodocumento }}</td>
+                                            <td>{{ pasajero.fechanacimiento|date('d/m/Y') }}</td>
+                                            <td>{{ pasajero.edad }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if object.filedocumentos is defined and object.filedocumentos|length > 0 %}
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h5 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion" href="#collapse2" aria-expanded="false" aria-controls="collapse2">
+                                    {{ 'tickets_y_documentos' | trans({},'messages') | capitalize }}
+                                </a>
+                            </h5>
+                        </div>
+                        <div id="collapse2" class="panel-collapse collapse" role="region" aria-labelledby="collapse2">
+                            <div class="panel-body">
+                                <div class="grid-3">
+                                    {% for archivo in object.filedocumentos %}
+                                        <div>
+                                            <div class="thumbnail thumbnail-fluid">
+                                                <a href="{{ app.request.getSchemeAndHttpHost() ~ archivo.webpath|raw }}"{% if archivo.inmodal == true %} data-toggle="lightbox"{% else %} target="_blank" rel="noopener" {% endif %}>
+                                                    <img src="{{ app.request.getSchemeAndHttpHost() ~ archivo.webThumbPath|raw }}"
+                                                         alt="{{ archivo.nombre }}"
+                                                         loading="lazy"
+                                                         class="{% if archivo.inModal == true %}in-modal{% endif %} {% if archivo.aspectRatio is not null and archivo.aspectRatio < 1 %}portrait{% elseif archivo.aspectRatio >= 1 %}landscape{% endif %}">
+                                                    <div class="caption">
+                                                        <p class="small text-center" style="overflow-wrap: break-word;">{{ archivo.nombre }}</p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if object.cotizaciones is defined and object.cotizaciones|length > 0 %}
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h5 class="panel-title">
+                                <a data-toggle="collapse" data-parent="#accordion" href="#collapse3" aria-expanded="true" aria-controls="collapse3">
+                                    {% if object.catalogo == false %}
+                                        {{ 'cotizaciones' | trans({},'messages') | capitalize }}
+                                    {% else %}
+                                        {{ 'excursiones' | trans({},'messages') | capitalize }}
+                                    {% endif %}
+                                </a>
+                            </h5>
+                        </div>
+                        <div id="collapse3" class="panel-collapse collapse in" role="region" aria-labelledby="collapse3">
+                            <div class="box panel-body col-md-12 col-sm-12 col-xs-12">
+                                {% set continue = false %}
+                                {% set existe = false %}
+
+                                {% for cotizacion in object.cotizaciones %}
+                                    {% if action == 'resumen' and cotizacion.estadocotizacion.id not in [1, 3, 6] %}
+                                        {% set continue = true %}
+                                    {% endif %}
+
+                                    {% if not continue %}
+                                        {% set existe = true %}
+                                        {% set fotos = cotizacion.portadafotos ?? [] %}
+                                        {% set fotosCount = fotos|length %}
+                                        {% set carouselId = 'carousel_' ~ cotizacion.id %}
+
+                                        <div class="row-cotizacion">
+                                            <div class="grid-3">
+
+                                                {# Columna 1: Carrusel #}
+                                                <div>
+                                                    {% if fotosCount > 0 %}
+                                                        <div id="{{ carouselId }}" class="carousel slide" data-interval="{{ TIEMPO_CAROUSEL }}" data-ride="carousel" aria-label="Galería {{ cotizacion.codigo }}">
+
+                                                            {# Indicadores: solo si >1 y <= MAX_INDICADORES #}
+                                                            {% if fotosCount > 1 and fotosCount <= MAX_INDICADORES %}
+                                                                <ol class="carousel-indicators">
+                                                                    {% for i, medio in fotos %}
+                                                                        <li data-target="#{{ carouselId }}"
+                                                                            data-slide-to="{{ i }}"
+                                                                            {% if loop.first %}class="active"{% endif %}
+                                                                            aria-label="Ir a la foto {{ i + 1 }}"></li>
+                                                                    {% endfor %}
+                                                                </ol>
+                                                            {% endif %}
+
+                                                            <div class="carousel-inner" role="listbox">
+                                                                {% for medio in fotos %}
+                                                                    {% set hrefFull = medio.tipo == 'local'
+                                                                        ? app.request.getSchemeAndHttpHost() ~ medio.webPath|raw
+                                                                        : medio.webPath|raw
+                                                                    %}
+                                                                    {% set srcThumb = medio.tipo == 'local'
+                                                                        ? app.request.getSchemeAndHttpHost() ~ medio.webThumbPath|raw
+                                                                        : medio.webThumbPath|raw
+                                                                    %}
+                                                                    <div class="item{% if loop.first %} active{% endif %}">
+                                                                        <a href="{{ hrefFull }}"
+                                                                                {% if medio.inModal == true %}
+                                                                            data-toggle="lightbox" data-gallery="galeria_cotizacion_{{ cotizacion.id }}"
+                                                                        {% else %}
+                                                                            target="_blank" rel="noopener"
+                                                                                {% endif %}>
+                                                                            <img
+                                                                                    src="{{ srcThumb }}"
+                                                                                    alt="{{ medio.titulo ?: ('Foto ' ~ loop.index) }}"
+                                                                                    loading="lazy"
+                                                                                    class="{% if medio.inModal == true %}in-modal{% endif %} {% if medio.aspectRatio is not null and medio.aspectRatio < 1 %}portrait{% elseif medio.aspectRatio >= 1 %}landscape{% endif %}">
+                                                                            {% if medio.titulo %}
+                                                                                <div class="carousel-caption">
+                                                                                    <p class="small text-center">{{ medio.titulo }}</p>
+                                                                                </div>
+                                                                            {% endif %}
+                                                                        </a>
+                                                                    </div>
+                                                                {% endfor %}
+                                                            </div>
+
+                                                            {# Controles: solo si hay más de 1 #}
+                                                            {% if fotosCount > 1 %}
+                                                                <a class="left carousel-control" href="#{{ carouselId }}" role="button" data-slide="prev" aria-label="Anterior">
+                                                                    <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+                                                                    <span class="sr-only">{{ 'anterior'|trans({}, 'messages')|capitalize }}</span>
+                                                                </a>
+                                                                <a class="right carousel-control" href="#{{ carouselId }}" role="button" data-slide="next" aria-label="Siguiente">
+                                                                    <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                                                                    <span class="sr-only">{{ 'siguiente'|trans({}, 'messages')|capitalize }}</span>
+                                                                </a>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+
+                                                {# Columna 2: Texto (CKEditor) #}
+                                                <div class="ck-content">
+                                                    <div class="margin-bottom-10">
+                                                        <span class="cotcodigo">{{ cotizacion.codigo }}</span>
+                                                        {% if object.catalogo == false or action != 'resumen' %}
+                                                            <span class="cotcantidad">x{{ cotizacion.numeropasajeros }}</span>
+                                                            <span class="cotestado">({{ cotizacion.estadocotizacion.nombre }})</span>
+                                                        {% endif %}
+                                                    </div>
+
+                                                    {% if action != 'resumen' %}
+                                                        <div class="margin-bottom-10">{{ cotizacion.nombre }}</div>
+                                                    {% endif %}
+
+                                                    <div class="resumen-text" style="font-size: 1.07em; color: var(--c-primario, #003d72);">
+                                                        {% if cotizacion.resumen is not null and cotizacion.resumen is not empty %}
+                                                            {{ cotizacion.resumen|raw }}
+                                                        {% else %}
+                                                            {% if app.request.locale != app.request.defaultLocale %}
+                                                                {{ cotizacion.resumenoriginal|raw }}
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+
+                                                {# Columna 3: Fechas y acciones #}
+                                                <div>
+                                                    <div class="margin-bottom-10" style="text-align: right;">
+                                                        {% if object.catalogo == false %}
+                                                            <p class="fechas-mono">{{ 'fecha_inicio'|trans({},'messages')|capitalize}} : {{ cotizacion.fechaingreso|date('Y-m-d') }}</p>
+                                                        {% endif %}
+                                                        {% if object.catalogo == false or action != 'resumen' %}
+                                                            <p class="fechas-mono">{{ 'fecha_cotizacion'|trans({},'messages')|capitalize}} : {{ cotizacion.fecha|date('Y-m-d') }}</p>
+                                                        {% endif %}
+                                                    </div>
+
+                                                    <div class="margin-bottom-10" style="text-align: right;">
+                                                        <div class="btn-group">
+                                                            <a class="btn btn-sm btn-primary view_link" href="{{ path('admin_app_oweb_cotizacioncotizacion_resumen', {'id': cotizacion.id, 'token': cotizacion.token}) }}">
+                                                                <i class="fa fa-info" aria-hidden="true"></i>
+                                                                {% if action != 'resumen' %}{{ 'resumen'|trans({},'messages')|capitalize}}{% else %}{{ 'mostrar'|trans({},'messages')|capitalize}}{% endif %}
+                                                            </a>
+                                                            {% if action != 'resumen' %}
+                                                                <a class="btn btn-sm btn-success view_link" href="{{ path('admin_app_oweb_cotizacioncotizacion_show', {'id': cotizacion.id}) }}">
+                                                                    <i class="fa fa-eye" aria-hidden="true"></i>
+                                                                    {{ 'mostrar'|trans({},'messages')|capitalize}}
+                                                                </a>
+                                                                <a class="btn btn-sm btn-default view_link" href="{{ path('admin_app_oweb_cotizacioncotizacion_edit', {'id': cotizacion.id}) }}">
+                                                                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                                                                    {{ 'editar'|trans({},'messages')|capitalize}}
+                                                                </a>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                    {% if continue %}{% set continue = false %}{% endif %}
+                                {% endfor %}
+
+                                {% if not existe %}
+                                    <div class="panel-body col-md-12 col-sm-12 col-xs-12"><p>No se encontraron registros</p></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+    </div>
+
+    {{ sonata_block_render_event('oweb.admin.show.bottom', { 'admin': admin, 'object': object }) }}
+{% endblock %}

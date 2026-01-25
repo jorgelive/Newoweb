@@ -1,0 +1,244 @@
+{% extends '@SonataAdmin/CRUD/show.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .btn-file {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-file input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 100%;
+            min-height: 100%;
+            font-size: 100px;
+            text-align: right;
+            filter: alpha(opacity=0);
+            opacity: 0;
+            outline: none;
+            background: white;
+            cursor: inherit;
+            display: block;
+        }
+
+        .img-zone {
+            background-color: #f4faf7;
+            border: 3px dashed {{ colores.verde_claro}};
+            border-radius: 5px;
+            padding: 20px;
+        }
+
+        .img-zone h2 {
+            margin-top: 0;
+        }
+
+        .progressContainer {
+            margin-bottom: 15px;
+        }
+
+        .progressContainer progress{
+            width: 100%;
+        }
+
+        .progressContainer .filename{
+            display: block;
+        }
+    </style>
+{% endblock %}
+
+{% block show %}
+<div class="sonata-ba-view">
+    {{ sonata_block_render_event('oweb.admin.show.top', { 'admin': admin, 'object': object }) }}
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-8 col-sm-offset-2">
+
+                <div class="img-zone text-center" id="drop">
+                    <div class="img-drop">
+                        <h2 class="drop-area-label"><small>Arrastre &amp; coloque fotos aqui</small></h2>
+                        <p><em>- o -</em></p>
+                        <h2><i class="glyphicon glyphicon-camera"></i></h2>
+                        <span class="btn btn-success btn-file">
+                            Explorador de archivos
+                            <form id="upload">
+                            <!-- <input type="file" name="file" id="file" multiple="true" accepts="image/*" /> -->
+                            <input type="file" name="file" id="file" multiple="true" />
+                            </form>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="panel box ">
+                    <div id="uploads" class="panel-body table-responsive no-padding">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    {{ sonata_block_render_event('oweb.admin.show.bottom', { 'admin': admin }) }}
+
+    <script>
+        var display = $("#uploads");
+        var droppable = $("#drop")[0];
+        $.ajaxSetup({
+            context: display,
+            contentType:"application/json",
+            dataType:"json",
+            beforeSend: function (jqxhr, settings) {
+                var file = JSON.parse(decodeURIComponent(settings.data.split(/json=/)[1]));
+
+                let identificador = "file-" + (!!$("progress").length ? $("progress").length : "0");
+                var progress = $("<progress />", {
+                    "class": identificador,
+                    "min": 0,
+                    "max": 0,
+                    "value": 0,
+                    "data-name": file.name
+                });
+
+                this.append(progress);
+                this.find("progress[class=" + identificador + "]").wrap('<div class="col-xs-12 col-sm-12 progressContainer"></div>').after('<span class="filename">' + file.name + '</span>')
+                jqxhr.name = progress.attr("class");
+            }
+        });
+
+        var processFiles = function processFiles(event) {
+            event.preventDefault();
+            var files = event.target.files || event.dataTransfer.files;
+            var images = $.map(files, function (file, i) {
+                var reader = new FileReader();
+                var dfd = new $.Deferred();
+                reader.onload = function (e) {
+                    dfd.resolveWith(file, [e.target.result])
+                };
+                reader.readAsDataURL(new Blob([file], {
+                    "type": file.type
+                }));
+                return dfd.then(function (data) {
+                    return $.ajax({
+                        type: "POST",
+                        url: "{{ admin.generateObjectUrl('ajaxcrear', object) }}",
+                        data: {
+                            json: JSON.stringify({
+                                "file": data,
+                                "name": this.name,
+                                "size": this.size,
+                                "type": this.type
+                            })
+                        },
+                        dataType: "json",
+                        xhr: function () {
+                            var uploads = this.context;
+                            var progress = this.context.find("progress:last");
+                            var xhrUpload = $.ajaxSettings.xhr();
+                            if (xhrUpload.upload) {
+                                xhrUpload.upload.onprogress = function (evt) {
+                                    progress.attr({
+                                        "max": evt.total,
+                                        "value": evt.loaded
+                                    })
+                                };
+                                xhrUpload.upload.onloadend = function (evt) {
+                                    var progressData = progress.eq(-1);
+                                    console.log(progressData.data("name")
+                                        + " carga completa...");
+                                    var img = new Image;
+                                    $(img).addClass(progressData.eq(-1)
+                                        .attr("class"));
+                                    img.onload = function () {
+                                        if (this.complete) {
+                                            console.log(
+                                                progressData.data("name")
+                                                + " cargando vista previa..."
+                                            );
+                                        };
+
+                                    };
+                                    uploads.append(img);
+                                };
+                            }
+                            return xhrUpload;
+                        }
+                    })
+                        .then(function (data, textStatus, jqxhr) {
+                            console.log(data)
+                            this.find("img[class=" + jqxhr.name + "]")
+                                .attr("src", data.file)
+                                .wrap( '<div class="col-xs-12 col-sm-12"><div class="thumbnail thumbnail-fluid"></div></div>' )
+                                .after('<div class="caption"><p style="overflow-wrap: break-word;" class="small text-center">' + data.name + '</p></div>');
+
+                            if(typeof data.aspectRatio !== 'undefined' && data.aspectRatio > 0 && data.aspectRatio < 1){
+                                this.find("img[class=" + jqxhr.name + "]")
+                                    .addClass("portrait")
+                            } else if (typeof data.aspectRatio !== 'undefined' && data.aspectRatio >= 1){
+                                this.find("img[class=" + jqxhr.name + "]")
+                                    .addClass("landscape")
+                            }
+                            return data
+                        }, function (jqxhr, textStatus, errorThrown) {
+                            console.log(errorThrown);
+                            return errorThrown
+                        });
+                })
+            });
+            $.when.apply(display, images).then(function () {
+                var result = $.makeArray(arguments);
+                console.log(result.length, "Carga completa");
+            }, function err(jqxhr, textStatus, errorThrown) {
+                console.log(jqxhr, textStatus, errorThrown)
+            })
+        };
+
+        $(document)
+            .on("change", "input[name^=file]", processFiles);
+
+        droppable.ondragover = function () {
+            $(this).addClass("hover");
+            return false;
+        };
+        droppable.ondragend = function () {
+            $(this).removeClass("hover")
+            return false;
+        };
+        droppable.ondrop = function (e) {
+            $(this).removeClass("hover");
+            var image = Array.prototype.slice.call(e.dataTransfer.files)
+                .every(function (img, i) {
+                    return /^image/.test(img.type)
+                });
+
+            e.preventDefault();
+            //si quisiera procesar solo imágenes
+            //if (!!e.dataTransfer.files.length && image) {
+            if (!!e.dataTransfer.files.length) {
+                $(this).find(".drop-area-label")
+                    .css("color", "blue")
+                    .html(function (i, html) {
+                        $(this).delay(3000, "msg").queue("msg", function () {
+                            $(this).css("color", "initial").html(html)
+                        }).dequeue("msg");
+                        return "Archivo colocado, procesando carga...";
+                    });
+                processFiles(e);
+            } else {
+                $(this)
+                    .removeClass("hover")
+                    .addClass("err")
+                    .find(".drop-area-label")
+                    .css("color", "darkred")
+                    .html(function (i, html) {
+                        $(this).delay(3000, "msg").queue("msg", function () {
+                            $(this).css("color", "initial").html(html)
+                                .parent("#drop").removeClass("err")
+                        }).dequeue("msg");
+                        return "Por favor coloque un archivo válido...";
+                    });
+            };
+        };
+    </script>
+{% endblock %}

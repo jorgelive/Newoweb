@@ -46,7 +46,7 @@ class PmsTarifaRango {
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private ?bool $activo = true;
 
-    #[ORM\OneToMany(mappedBy: 'tarifaRango', targetEntity: PmsTarifaQueue::class, orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'tarifaRango', targetEntity: PmsRatesPushQueue::class, orphanRemoval: true)]
     private Collection $queues;
 
     #[Gedmo\Timestampable(on: 'create')]
@@ -137,7 +137,7 @@ class PmsTarifaRango {
         return $this->queues;
     }
 
-    public function addQueue(PmsTarifaQueue $queue): self
+    public function addQueue(PmsRatesPushQueue $queue): self
     {
         if (!$this->queues->contains($queue)) {
             $this->queues->add($queue);
@@ -147,7 +147,7 @@ class PmsTarifaRango {
         return $this;
     }
 
-    public function removeQueue(PmsTarifaQueue $queue): self
+    public function removeQueue(PmsRatesPushQueue $queue): self
     {
         if ($this->queues->removeElement($queue)) {
             // owning side handled by orphanRemoval

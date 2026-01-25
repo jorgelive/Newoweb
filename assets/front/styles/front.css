@@ -1,0 +1,23 @@
+@import "../../styles/variables.css";
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--c-text);
+    background-color: #f8fafc;
+}
+
+.hero-section {
+    padding: 4rem 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, var(--pms-primary), var(--pms-accent));
+    color: white;
+}
+
+.btn-booking {
+    background-color: var(--c-accent);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+}

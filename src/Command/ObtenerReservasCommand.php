@@ -1,9 +1,9 @@
 <?php
 namespace App\Command;
 
-use App\Entity\ReservaEstado;
-use App\Entity\ReservaChannel;
-use App\Entity\ReservaReserva;
+use App\Oweb\Entity\ReservaChannel;
+use App\Oweb\Entity\ReservaEstado;
+use App\Oweb\Entity\ReservaReserva;
 use Doctrine\ORM\EntityManagerInterface;
 use ICal\ICal;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -169,7 +169,7 @@ class ObtenerReservasCommand extends Command
         ]);
 
         // 1) Obtener nexos desde la BD
-        $nexosRepo = $this->entityManager->getRepository("App\Entity\ReservaUnitnexo");
+        $nexosRepo = $this->entityManager->getRepository("App\Oweb\Entity\ReservaUnitnexo");
 
         if ($nexoFilterId) {
             // Si se pasa --nexo-id, solo ese

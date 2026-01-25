@@ -1,0 +1,56 @@
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    app.oweb.admin.userorganizacion:
+        class: App\Oweb\Admin\UserOrganizacionAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\UserOrganizacion
+            manager_type: orm
+            group: Organización
+            label: Organizaciones
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.userdependencia:
+        class: App\Oweb\Admin\UserDependenciaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\UserDependencia
+            manager_type: orm
+            group: Organización
+            label: Dependencias
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.userarea:
+        class: App\Oweb\Admin\UserAreaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\UserArea
+            manager_type: orm
+            group: Organización
+            label: Areas
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.usercuenta:
+        class: App\Oweb\Admin\UserCuentaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\UserCuenta
+            manager_type: orm
+            group: Organización
+            label: Cuentas de usuario
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.usercuentatipo:
+        class: App\Oweb\Admin\UserCuentatipoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\UserCuentatipo
+            manager_type: orm
+            group: Organización
+            label: Tipos de cuentas
+            show_mosaic_button: false
+        public: true

@@ -22,11 +22,29 @@ final class FullcalendarLoadController extends AbstractController
     #[Route('/event/{calendar}', name: 'app_fullcalendar_load_event', methods: ['GET'])]
     public function events(Request $request, string $calendar): JsonResponse
     {
-        // FullCalendar manda start/end (ISO). Convertimos directo a DateTimeImmutable.
-        $from = new DateTimeImmutable((string) $request->query->get('start'));
-        $to   = new DateTimeImmutable((string) $request->query->get('end'));
+        // Se permiten fechas vacías o inválidas? Idealmente validar, pero mantenemos tu lógica actual.
+        $startStr = (string) $request->query->get('start');
+        $endStr   = (string) $request->query->get('end');
+
+        try {
+            $from = new DateTimeImmutable($startStr);
+            $to   = new DateTimeImmutable($endStr);
+        } catch (\Exception $e) {
+            // Fallback por si FullCalendar no envía fechas válidas (raro pero posible)
+            $from = new DateTimeImmutable('first day of this month');
+            $to   = new DateTimeImmutable('last day of this month');
+        }
 
         $config = $this->configResolver->getConfig($calendar);
+
+        // 🔥 CORRECCIÓN CRÍTICA: PASO DE TESTIGO (TOKEN BASE64)
+        // Recibimos el 'current_page' (que viene en btoa desde JS) y NO LO TOCAMOS.
+        // Lo pasamos crudo a la configuración para que el provider lo use en los links.
+        $encodedPage = $request->query->get('current_page');
+        if (!empty($encodedPage)) {
+            $config['runtime_returnTo'] = $encodedPage;
+        }
+
         $provider = $this->providerRegistry->getProviderForConfig($config);
 
         return $this->json($provider->getEvents($from, $to, $config));
@@ -35,10 +53,25 @@ final class FullcalendarLoadController extends AbstractController
     #[Route('/resource/{calendar}', name: 'app_fullcalendar_load_resource', methods: ['GET'])]
     public function resources(Request $request, string $calendar): JsonResponse
     {
-        $from = new DateTimeImmutable((string) $request->query->get('start'));
-        $to   = new DateTimeImmutable((string) $request->query->get('end'));
+        $startStr = (string) $request->query->get('start');
+        $endStr   = (string) $request->query->get('end');
+
+        try {
+            $from = new DateTimeImmutable($startStr);
+            $to   = new DateTimeImmutable($endStr);
+        } catch (\Exception $e) {
+            $from = new DateTimeImmutable('first day of this month');
+            $to   = new DateTimeImmutable('last day of this month');
+        }
 
         $config = $this->configResolver->getConfig($calendar);
+
+        // Misma lógica para recursos, por si los necesitas con links
+        $encodedPage = $request->query->get('current_page');
+        if (!empty($encodedPage)) {
+            $config['runtime_returnTo'] = $encodedPage;
+        }
+
         $provider = $this->providerRegistry->getProviderForConfig($config);
 
         return $this->json($provider->getResources($from, $to, $config));

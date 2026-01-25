@@ -1,0 +1,81 @@
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    app.oweb.admin.fitdieta:
+        class: App\Oweb\Admin\FitDietaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\FitDieta
+            controller: App\Oweb\Controller\FitDietaController
+            manager_type: orm
+            group: Fit
+            label: Dieta
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ edit, oweb/admin/fit_dieta/edit.html.twig ] ]
+            - [ setTemplate, [ list, oweb/admin/fit_dieta/list.html.twig ] ]
+            - [ setTemplate, [ show, oweb/admin/fit_dieta/show.html.twig ] ]
+        public: true
+    app.oweb.admin.fitdietacomida:
+        class: App\Oweb\Admin\FitDietacomidaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\FitDietacomida
+            manager_type: orm
+            group: Fit
+            label: Comidas
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.fitdietaalimento:
+        class: App\Oweb\Admin\FitDietaalimentoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\FitDietaalimento
+            manager_type: orm
+            group: Fit
+            label: Alimentos de la dieta
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.fittipodieta:
+        class: App\Oweb\Admin\FitTipodietaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\FitTipodieta
+            manager_type: orm
+            group: Fit
+            label: Tipo de dietas
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.fitalimento:
+        class: App\Oweb\Admin\FitAlimentoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\FitAlimento
+            manager_type: orm
+            group: Fit
+            label: Lista de alimentos
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.fittipoalimento:
+        class: App\Oweb\Admin\FitTipoalimentoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\FitTipoalimento
+            manager_type: orm
+            group: Fit
+            label: Tipo de alimento
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.fitmedidaalimento:
+        class: App\Oweb\Admin\FitMedidaalimentoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\FitMedidaalimento
+            manager_type: orm
+            group: Fit
+            label: Medida de alimento
+            show_mosaic_button: false
+        public: true

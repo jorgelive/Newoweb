@@ -2,15 +2,19 @@
 #    resource: ../src/Controller/
 #    type: annotation
 
+security_global:
+    resource: ../src/Controller/SecurityController.php
+    type: attribute
+
 # FRONT (web / CMS)
 front_controllers:
-    resource: ../src/Controller/Front/
+    resource: ../src/Front/Controller/
     type: attribute
     host: '%app.host.front%'
 
 # API (ajax, ical, calendar, etc.)
 api_controllers:
-    resource: ../src/Controller/Api/
+    resource: ../src/Api/Controller/
     type: attribute
     host: '%app.host.api%'
 
@@ -28,14 +32,14 @@ webhook_controllers:
 
 # Panel (Easyadmin)
 panel_controllers:
-    resource: ../src/Controller/Panel/
+    resource: ../src/Panel/Controller/
     type: attribute
     host: '%app.host.panel%'
 
-# Admin (Sonata / legacy controlado)
-admin_controllers:
-    resource: ../src/Controller/Admin/
-    type: annotation
+# Admin (Oweb / legacy controlado)
+oweb_controllers:
+    resource: ../src/Oweb/Controller/
+    type: attribute
     host: '%app.host.oweb%'
 
 kernel:

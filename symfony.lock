@@ -83,6 +83,18 @@
     "doctrine/sql-formatter": {
         "version": "1.1.2"
     },
+    "easycorp/easyadmin-bundle": {
+        "version": "4.27",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "4.14",
+            "ref": "13b3e524d1038a6861ad6c7fc64e31b644ba0c54"
+        },
+        "files": [
+            "config/routes/easyadmin.yaml"
+        ]
+    },
     "egulias/email-validator": {
         "version": "3.1.2"
     },
@@ -118,6 +130,19 @@
     },
     "laminas/laminas-code": {
         "version": "4.5.1"
+    },
+    "liip/imagine-bundle": {
+        "version": "2.17",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "1.8",
+            "ref": "d1227d002b70d1a1f941d91845fcd7ac7fbfc929"
+        },
+        "files": [
+            "config/packages/liip_imagine.yaml",
+            "config/routes/liip_imagine.yaml"
+        ]
     },
     "maennchen/zipstream-php": {
         "version": "2.1.0"
@@ -166,18 +191,6 @@
     },
     "phpstan/phpdoc-parser": {
         "version": "1.5.1"
-    },
-    "phpstan/phpstan": {
-        "version": "2.1",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "1.0",
-            "ref": "5e490cc197fb6bb1ae22e5abbc531ddc633b6767"
-        },
-        "files": [
-            "phpstan.dist.neon"
-        ]
     },
     "psr/cache": {
         "version": "3.0.0"
@@ -295,9 +308,6 @@
             "ref": "30dba2f9b719f21b497a6302f41aac07f9079e13"
         }
     },
-    "sonata-project/user-bundle": {
-        "version": "5.1.0"
-    },
     "stof/doctrine-extensions-bundle": {
         "version": "1.7",
         "recipe": {
@@ -321,6 +331,21 @@
     },
     "symfony/asset": {
         "version": "v6.0.7"
+    },
+    "symfony/asset-mapper": {
+        "version": "6.4",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "6.4",
+            "ref": "5ad1308aa756d58f999ffbe1540d1189f5d7d14a"
+        },
+        "files": [
+            "assets/app.js",
+            "assets/styles/app.css",
+            "config/packages/asset_mapper.yaml",
+            "importmap.php"
+        ]
     },
     "symfony/cache": {
         "version": "v6.0.8"
@@ -626,6 +651,30 @@
             "./templates/base.html.twig"
         ]
     },
+    "symfony/uid": {
+        "version": "6.4",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "6.2",
+            "ref": "d294ad4add3e15d7eb1bae0221588ca89b38e558"
+        },
+        "files": [
+            "config/packages/uid.yaml"
+        ]
+    },
+    "symfony/ux-twig-component": {
+        "version": "2.32",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "2.13",
+            "ref": "f367ae2a1faf01c503de2171f1ec22567febeead"
+        },
+        "files": [
+            "config/packages/twig_component.yaml"
+        ]
+    },
     "symfony/validator": {
         "version": "6.0",
         "recipe": {
@@ -660,25 +709,6 @@
             "./config/routes/web_profiler.yaml"
         ]
     },
-    "symfony/webpack-encore-bundle": {
-        "version": "1.14",
-        "recipe": {
-            "repo": "github.com/symfony/recipes",
-            "branch": "main",
-            "version": "1.10",
-            "ref": "2858aeed7e1d81a45365c049eb533cc8827e380b"
-        },
-        "files": [
-            "./assets/app.js",
-            "./assets/bootstrap_app.js",
-            "./assets/controllers.json",
-            "./assets/controllers/hello_controller.js",
-            "./assets/styles/app.css",
-            "./config/packages/webpack_encore.yaml",
-            "./package.json",
-            "./webpack.config.js"
-        ]
-    },
     "symfony/yaml": {
         "version": "v6.0.3"
     },
@@ -690,6 +720,18 @@
     },
     "twig/twig": {
         "version": "v3.3.10"
+    },
+    "vich/uploader-bundle": {
+        "version": "2.9",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "1.13",
+            "ref": "1b3064c2f6b255c2bc2f56461aaeb76b11e07e36"
+        },
+        "files": [
+            "config/packages/vich_uploader.yaml"
+        ]
     },
     "webmozart/assert": {
         "version": "1.10.0"

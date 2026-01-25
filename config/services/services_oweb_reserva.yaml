@@ -1,0 +1,235 @@
+parameters:
+    # Las claves de calendatio deben empezar por calendar
+    # y ser distintas para que no se sobrescribab
+    calendars_reserva:
+        reserva_reserva_no_canceladas:
+            entity: App\Oweb\Entity\ReservaReserva
+            repositorymethod: findCalendarNoCanceladas
+            resource:
+                root: unit
+                id: id
+                title: resumen
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                textColor: textcolor
+                classNames: classnames
+                backgroundColor: estado.color
+                tooltip:
+                    - resumen
+                    - nota
+                    - requerimiento
+                url:
+                    id: id
+                    show:
+                        route: admin_app_oweb_reservareserva_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_oweb_reservareserva_edit
+                        role: ROLE_RESERVAS_EDITOR
+        reserva_reserva_todas:
+            entity: App\Oweb\Entity\ReservaReserva
+            repositorymethod: findCalendarTodas
+            resource:
+                root: unit
+                id: id
+                title: resumen
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                textColor: textcolor
+                backgroundColor: estado.color
+                classNames: classnames
+                tooltip:
+                    - resumen
+                    - nota
+                    - requerimiento
+                url:
+                    id: id
+                    show:
+                        route: admin_app_oweb_reservareserva_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_oweb_reservareserva_edit
+                        role: ROLE_RESERVAS_EDITOR
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\Oweb\EventListener\ReservaReservaDoctrineEventListener:
+        arguments:
+            - '@App\Oweb\Service\MainVariableproceso'
+        tags:
+            - name: doctrine.event_listener
+              event: prePersist
+            - name: doctrine.event_listener
+              event: preUpdate
+
+
+    app.oweb.admin.reservareserva:
+        class: App\Oweb\Admin\ReservaReservaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaReserva
+            controller: App\Oweb\Controller\ReservaReservaController
+            manager_type: orm
+            group: Reserva
+            label: Reservas de alojamiento
+        calls:
+            - [ setTemplate, [ edit, oweb/admin/reserva_reserva/edit.html.twig ] ]
+            - [ setTemplate, [ list, oweb/admin/reserva_reserva/list.html.twig ] ]
+            - [ setTemplate, [ show, oweb/admin/reserva_reserva/show.html.twig ] ]
+        public: true
+    app.oweb.admin.reservachannel:
+        class: App\Oweb\Admin\ReservaChannelAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaChannel
+            manager_type: orm
+            group: Reserva
+            label: Canal de reserva
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservaestado:
+        class: App\Oweb\Admin\ReservaEstadoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaEstado
+            manager_type: orm
+            group: Reserva
+            label: Estado de reserva
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservadetalle:
+        class: App\Oweb\Admin\ReservaDetalleAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaDetalle
+            manager_type: orm
+            group: Reserva
+            label: Detalles de reserva
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservatipodetalle:
+        class: App\Oweb\Admin\ReservaTipodetalleAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaTipodetalle
+            manager_type: orm
+            group: Reserva
+            label: Tipo de detalle
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservapago:
+        class: App\Oweb\Admin\ReservaPagoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaPago
+            manager_type: orm
+            group: Reserva
+            label: Pagos de reserva
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservaimporte:
+        class: App\Oweb\Admin\ReservaImporteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaImporte
+            manager_type: orm
+            group: Reserva
+            label: Importe de reserva
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservatipoimporte:
+        class: App\Oweb\Admin\ReservaTipoimporteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaTipoimporte
+            manager_type: orm
+            group: Reserva
+            label: Tipo de importe
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservaestablecimiento:
+        class: App\Oweb\Admin\ReservaEstablecimientoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaEstablecimiento
+            manager_type: orm
+            group: Reserva
+            label: Establecimiento
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservaunit:
+        class: App\Oweb\Admin\ReservaUnitAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaUnit
+            controller: App\Oweb\Controller\ReservaUnitController
+            manager_type: orm
+            group: Reserva
+            label: Unidad
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ show, oweb/admin/reserva_unit/show.html.twig ] ]
+        public: true
+    app.oweb.admin.reservaunitcaracteristicalink:
+        class: App\Oweb\Admin\ReservaUnitCaracteristicaLinkAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaUnitCaracteristicaLink
+            manager_type: orm
+            group: Reserva
+            label: Vínculo Característica
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservaunitcaracteristica:
+        class: App\Oweb\Admin\ReservaUnitcaracteristicaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaUnitcaracteristica
+            controller: App\Oweb\Controller\ReservaUnitcaracteristicaController
+            manager_type: orm
+            group: Reserva
+            label: Característica de unidad
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ edit, oweb/admin/reserva_unitcaracteristica/edit.html.twig ] ]
+        public: true
+    app.oweb.admin.reservaunittipocaracteristica:
+        class: App\Oweb\Admin\ReservaUnittipocaracteristicaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaUnittipocaracteristica
+            manager_type: orm
+            group: Reserva
+            label: Tipo de característica
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservaunitmedio:
+        class: App\Oweb\Admin\ReservaUnitmedioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaUnitmedio
+            controller: App\Oweb\Controller\ReservaUnitmedioController
+            manager_type: orm
+            group: Reserva
+            label: Unidad Multimedia
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.reservaunitnexo:
+        class: App\Oweb\Admin\ReservaUnitnexoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ReservaUnitnexo
+            controller: App\Oweb\Controller\ReservaUnitnexoController
+            manager_type: orm
+            group: Reserva
+            label: Nexos
+            show_mosaic_button: false
+        public: true

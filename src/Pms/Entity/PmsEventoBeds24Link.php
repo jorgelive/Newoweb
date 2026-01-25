@@ -7,7 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use App\Pms\Entity\PmsBeds24LinkQueue;
+use App\Pms\Entity\PmsBookingsPushQueue;
 
 #[ORM\Entity]
 #[ORM\Table(
@@ -79,7 +79,7 @@ class PmsEventoBeds24Link
     #[ORM\Column(type: 'datetime')]
     private ?DateTimeInterface $updated = null;
 
-    #[ORM\OneToMany(mappedBy: 'link', targetEntity: PmsBeds24LinkQueue::class, cascade: ['persist'], orphanRemoval: false,)]
+    #[ORM\OneToMany(mappedBy: 'link', targetEntity: PmsBookingsPushQueue::class, cascade: ['persist'], orphanRemoval: false,)]
     private Collection $queues;
 
     public function __construct()
@@ -259,7 +259,7 @@ class PmsEventoBeds24Link
         return $this->queues;
     }
 
-    public function addQueue(PmsBeds24LinkQueue $queue): self
+    public function addQueue(PmsBookingsPushQueue $queue): self
     {
         if (!$this->queues->contains($queue)) {
             $this->queues->add($queue);
@@ -269,13 +269,14 @@ class PmsEventoBeds24Link
         return $this;
     }
 
-    public function removeQueue(PmsBeds24LinkQueue $queue): self
+    public function removeQueue(PmsBookingsPushQueue $queue): self
     {
         $this->queues->removeElement($queue);
 
-        if (method_exists($queue, 'getLink') && $queue->getLink() === $this) {
-            $queue->setLink(null);
-        }
+        // NO hacemos setLink(null):
+        // - link es NOT NULL en la cola
+        // - las colas son históricas
+        // - una cola no se “despega”, se reemplaza creando otra
 
         return $this;
     }

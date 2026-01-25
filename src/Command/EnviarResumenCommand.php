@@ -1,21 +1,16 @@
 <?php
 namespace App\Command;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Input\InputArgument;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Address;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use App\Entity\ReservaReserva;
-use Symfony\Component\HttpClient\HttpClient;
-
 
 
 #[AsCommand(name: 'app:enviar-resumen', description: 'Envia resumen a correo electrónico.')]
@@ -49,7 +44,7 @@ class EnviarResumenCommand extends Command
             '============'
         ]);
 
-        $componenteAlertas = $this->entityManager->getRepository("App\Entity\ViewCotizacionCotcomponenteAlerta")->findAll();
+        $componenteAlertas = $this->entityManager->getRepository("App\Oweb\Entity\ViewCotizacionCotcomponenteAlerta")->findAll();
         if(count($componenteAlertas) > 0){
             foreach($componenteAlertas as $id => $componenteAlerta){
                 $alertas[$id]['id'] = $componenteAlerta->getId();
@@ -71,7 +66,7 @@ class EnviarResumenCommand extends Command
         $qb = $this->entityManager->createQueryBuilder();
 
         $qb->select('rr')
-            ->from('App\Entity\ReservaReserva', 'rr')
+            ->from('App\Oweb\Entity\ReservaReserva', 'rr')
             ->innerJoin('rr.estado', 'e')
             ->where(
                 $qb->expr()->orX(
@@ -125,7 +120,7 @@ class EnviarResumenCommand extends Command
 
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('cs')
-            ->from('App\Entity\CotizacionCotservicio', 'cs')
+            ->from('App\Oweb\Entity\CotizacionCotservicio', 'cs')
             ->innerJoin('cs.cotizacion', 'c')
             ->innerJoin('c.estadocotizacion', 'e')
             ->where(

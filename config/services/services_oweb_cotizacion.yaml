@@ -1,0 +1,348 @@
+parameters:
+    # Las claves de calendatio deben empezar por calendar
+    # y ser distintas para que no se sobrescribab
+    calendars_cotizacion:
+        cotizacion_servicio_aceptado_link_servicio:
+            entity: App\Oweb\Entity\CotizacionCotservicio
+            repositorymethod: findCalendarAceptado
+            resource:
+                root: cotizacion.file
+                id: id
+                title: nombre
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotizacion.file.color
+                url:
+                    id: id
+                    show:
+                        route: admin_app_oweb_cotizacioncotservicio_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_oweb_cotizacioncotservicio_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        cotizacion_servicio_aceptado_efectuado_link_servicio:
+            entity: App\Oweb\Entity\CotizacionCotservicio
+            repositorymethod: findCalendarAceptadoEfectuado
+            resource:
+                root: cotizacion.file
+                id: id
+                title: nombre
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotizacion.file.color
+                url:
+                    id: id
+                    show:
+                        route: admin_app_oweb_cotizacioncotservicio_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_oweb_cotizacioncotservicio_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        cotizacion_componente_aceptado_link_cotizacion:
+            entity: App\Oweb\Entity\CotizacionCotcomponente
+            repositorymethod: findCalendarAceptado
+            resource:
+                root: cotservicio.cotizacion
+                id: id
+                title: file.nombre
+            parameters:
+                title: componente.nombre
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotservicio.cotizacion.file.color
+                textColor: estadocotcomponente.colorcalendar
+                url:
+                    id: cotservicio.cotizacion.id
+                    show:
+                        route: admin_app_oweb_cotizacioncotizacion_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_oweb_cotizacioncotizacion_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        cotizacion_componente_aceptado_efectuado_link_cotizacion:
+            entity: App\Oweb\Entity\CotizacionCotcomponente
+            repositorymethod: findCalendarAceptadoEfectuado
+            resource:
+                root: cotservicio.cotizacion
+                id: id
+                title: file.nombre
+            parameters:
+                title: componente.nombre
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotservicio.cotizacion.file.color
+                textColor: estadocotcomponente.colorcalendar
+                url:
+                    id: cotservicio.cotizacion.id
+                    show:
+                        route: admin_app_oweb_cotizacioncotizacion_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_oweb_cotizacioncotizacion_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        cotizacion_componente_aceptado:
+            entity: App\Oweb\Entity\CotizacionCotcomponente
+            repositorymethod: findCalendarAceptado
+            resource:
+                root: cotservicio.cotizacion
+                id: id
+                title: file.nombre
+            parameters:
+                title: componente.nombre
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotservicio.cotizacion.file.color
+                textColor: estadocotcomponente.colorcalendar
+                url:
+                    id: id
+                    show:
+                        route: admin_app_oweb_cotizacioncotcomponente_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_oweb_cotizacioncotcomponente_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+        cotizacion_componente_aceptado_efectuado:
+            entity: App\Oweb\Entity\CotizacionCotcomponente
+            repositorymethod: findCalendarAceptadoEfectuado
+            resource:
+                root: cotservicio.cotizacion
+                id: id
+                title: file.nombre
+            parameters:
+                title: componente.nombre
+                start: fechahorainicio
+                end: fechahorafin
+                backgroundColor: cotservicio.cotizacion.file.color
+                textColor: estadocotcomponente.colorcalendar
+                url:
+                    id: id
+                    show:
+                        route: admin_app_oweb_cotizacioncotcomponente_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_app_oweb_cotizacioncotcomponente_edit
+                        role: ROLE_COTIZACIONES_EDITOR
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    app.event_listener.cotizacion_file_doctrine_event_listener:
+        class: App\Oweb\EventListener\CotizacionFileDoctrineEventListener
+        tags:
+            - name: doctrine.event_listener
+              event: prePersist
+    app.event_listener.cotizacion_cotizacion_doctrine_event_listener:
+        class: App\Oweb\EventListener\CotizacionCotizacionDoctrineEventListener
+        tags:
+            - name: doctrine.event_listener
+              event: prePersist
+            - name: doctrine.event_listener
+              event: postPersist
+            - name: doctrine.event_listener
+              event: postUpdate
+            - name: doctrine.event_listener
+              event: postLoad
+
+    app.event_listener_cotizacion_cotservicio_doctrine_event_listener:
+        class: App\Oweb\EventListener\CotizacionCotservicioDoctrineEventListener
+        tags:
+            - name: doctrine.event_listener
+              event: onFlush
+    app.event_listener_cotizacion_cotcomponente_doctrine_event_listener:
+        class: App\Oweb\EventListener\CotizacionCotcomponenteDoctrineEventListener
+        tags:
+            - name: doctrine.event_listener
+              event: onFlush
+
+    app.oweb.admin.cotizacionfile:
+        class: App\Oweb\Admin\CotizacionFileAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionFile
+            controller: App\Oweb\Controller\CotizacionFileController
+            manager_type: orm
+            group: Cotización
+            label: Files de Cotización
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ show, oweb/admin/cotizacion_file/show.html.twig ] ]
+        public: true
+    app.oweb.admin.cotizacionestadocotizacion:
+        class: App\Oweb\Admin\CotizacionEstadocotizacionAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionEstadocotizacion
+            manager_type: orm
+            group: Cotización
+            label: Estado de cotización
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cotizacionestadocotcomponente:
+        class: App\Oweb\Admin\CotizacionEstadocotcomponenteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionEstadocotcomponente
+            manager_type: orm
+            group: Cotización
+            label: Estado de componente
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cotizacionfilepasajero:
+        class: App\Oweb\Admin\CotizacionFilepasajeroAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionFilepasajero
+            manager_type: orm
+            group: Cotización
+            label: Name List
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cotizacioncottarifadetalle:
+        class: App\Oweb\Admin\CotizacionCottarifadetalleAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionCottarifadetalle
+            manager_type: orm
+            group: Cotización
+            label: Detalle de tarifa cotizada
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cotizaciontipofiledocumento:
+        class: App\Oweb\Admin\CotizacionTipofiledocumentoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionTipofiledocumento
+            manager_type: orm
+            group: Cotización
+            label: Tipo de archivo adjunto
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cotizacionfiledocumento:
+        class: App\Oweb\Admin\CotizacionFiledocumentoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionFiledocumento
+            manager_type: orm
+            group: Cotización
+            label: Archivos adjuntos
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cotizacionmenu:
+        class: App\Oweb\Admin\CotizacionMenuAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionMenu
+            manager_type: orm
+            group: Cotización
+            label: Menús de Cotización
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cotizacionmenulink:
+        class: App\Oweb\Admin\CotizacionMenulinkAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionMenulink
+            manager_type: orm
+            group: Cotización
+            label: Vínculos Menú ↔ Cotización
+            show_mosaic_button: false
+    app.oweb.admin.cotizacioncotpolitica:
+        class: App\Oweb\Admin\CotizacionCotpoliticaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionCotpolitica
+            controller: App\Oweb\Controller\CotizacionCotpoliticaController
+            manager_type: orm
+            group: Cotización
+            label: Políticas
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cotizacioncotnota:
+        class: App\Oweb\Admin\CotizacionCotnotaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionCotnota
+            controller: App\Oweb\Controller\CotizacionCotnotaController
+            manager_type: orm
+            group: Cotización
+            label: Notas operativas
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cotizacioncotizacion:
+        class: App\Oweb\Admin\CotizacionCotizacionAdmin
+        arguments:
+        - '@security.token_storage'
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionCotizacion
+            controller: App\Oweb\Controller\CotizacionCotizacionController
+            manager_type: orm
+            group: Cotizacion
+            label: Cotizaciones
+        calls:
+            - [ setTemplate, [ show, oweb/admin/cotizacion_cotizacion/show.html.twig ] ]
+            - [ setTemplate, [ edit, oweb/admin/cotizacion_cotizacion/edit.html.twig ] ]
+            - [ setTemplate, [ list, oweb/admin/cotizacion_cotizacion/list.html.twig ] ]
+        public: true
+    app.oweb.admin.cotizacioncotservicio:
+        class: App\Oweb\Admin\CotizacionCotservicioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionCotservicio
+            controller: App\Oweb\Controller\CotizacionCotservicioController
+            manager_type: orm
+            group: Cotizacion
+            label: Servicios cotizados
+        calls:
+            - [ setTemplate, [ edit, oweb/admin/cotizacion_cotservicio/edit.html.twig ] ]
+            - [ setTemplate, [ list, oweb/admin/cotizacion_cotservicio/list.html.twig ] ]
+            - [ setTemplate, [ show, oweb/admin/cotizacion_cotservicio/show.html.twig ] ]
+        public: true
+    app.oweb.admin.cotizacioncotcomponente:
+        class: App\Oweb\Admin\CotizacionCotcomponenteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionCotcomponente
+            controller: App\Oweb\Controller\CotizacionCotcomponenteController
+            manager_type: orm
+            group: Cotizacion
+            label: Componentes
+        calls:
+            - [ setTemplate, [ list, oweb/admin/cotizacion_cotcomponente/list.html.twig ] ]
+            - [ setTemplate, [ show, oweb/admin/cotizacion_cotcomponente/show.html.twig ] ]
+        public: true
+    app.oweb.admin.cotizacioncotcomponenteoperativa:
+        class: App\Oweb\Admin\CotizacionCotcomponenteoperativaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionCotcomponenteoperativa
+            manager_type: orm
+            group: Cotizacion
+            label: Comp. Operativa
+        public: true
+    app.oweb.admin.viewcotizacioncotcomponentealerta:
+        class: App\Oweb\Admin\ViewCotizacionCotcomponenteAlertaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ViewCotizacionCotcomponenteAlerta
+            manager_type: orm
+            group: Cotizacion
+            label: Alertas
+        public: true
+    app.oweb.admin.cotizacioncottarifa:
+        class: App\Oweb\Admin\CotizacionCottarifaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CotizacionCottarifa
+            manager_type: orm
+            group: Cotizacion
+            label: Tarifa cotizada
+            show_mosaic_button: false
+        public: true

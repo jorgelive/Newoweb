@@ -1,0 +1,193 @@
+{#
+
+This file is part of the Oweb package.
+
+(c) Thomas Rabaix <thomas.rabaix@oweb-project.org>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+
+#}
+{% if not sonata_admin.field_description.hasassociationadmin %}
+    {% for element in value %}
+        {{ element|render_relation_element(sonata_admin.field_description) }}
+    {% endfor %}
+{% else %}
+
+    <div id="field_container_{{ id }}" class="field-container field-container-{{ form.vars.name }}">
+        <span id="field_widget_{{ id }}" >
+            {% if sonata_admin.edit == 'inline' %}
+                {% if sonata_admin.inline == 'table' %}
+                    {% if form.children|length > 0 %}
+                        {% include 'oweb/admin/fit_dieta/edit_orm_one_to_many_inline_table.html.twig' %}
+
+                        {% if form.vars.name == 'dietaalimentos' or form.vars.name == 'dietacomidas' %}
+
+                            {% if form.vars.name == 'dietaalimentos' %}
+                                {% set prefijo = 'resumen' %}
+                            {% endif %}
+                            {% if form.vars.name == 'dietacomidas' %}
+                                {% set prefijo = 'total' %}
+                            {% endif %}
+                            {% set anchomedida, anchovalor, anchovalorgrande = '120', '70', '90' %}
+                            {% set grasacolor1, grasacolor2, grasacolor3 = '#FFEBE6', '#FFCABE', '#FF6B4B' %}
+                            {% set carbocolor1, carbocolor2, carbocolor3 = '#FFFFE1', '#FFFEBE', '#FFFC3C'  %}
+                            {% set protcolor1, protcolor2, protcolor3 = '#DCFDF9', '#BEFFF8', '#2AFFE8' %}
+                            <table class="table table-bordered">
+                                <thead>
+                                <tr>
+                                    <th>Grasa Total</th>
+                                    <th>Carbo Total</th>
+                                    <th>Prot Total</th>
+                                    <th>Prot Alto</th>
+                                    <th>Cal Grasa</th>
+                                    <th>Cal Carbo</th>
+                                    <th>Cal Prot</th>
+                                    <th>Cal total</th>
+                                    <th>Cal energ</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        <input readonly style="text-align: right; width: {{ anchovalorgrande }}px; background-color: {{ grasacolor2 }}" type="text" class="{{ prefijo }}_grasatotal form-control" id="{{ form.vars.id }}_{{ prefijo }}_grasatotal" value="">
+                                    </td>
+                                    <td>
+                                        <input readonly style="text-align: right; width: {{ anchovalorgrande }}px; background-color: {{ carbocolor2 }}" type="text" class="{{ prefijo }}_carbohidratototal form-control" id="{{ form.vars.id }}_{{ prefijo }}_carbohidratototal" value="">
+                                    </td>
+                                    <td>
+                                        <input readonly style="text-align: right; width: {{ anchovalorgrande }}px; background-color: {{ protcolor2 }}" type="text" class="{{ prefijo }}_proteinatotal form-control" id="{{ form.vars.id }}_{{ prefijo }}_proteinatotal" value="">
+                                    </td>
+                                    <td>
+                                        <input readonly style="text-align: right; width: {{ anchovalorgrande }}px; background-color: {{ protcolor2 }}" type="text" class="{{ prefijo }}_proteinatotalalto form-control" id="{{ form.vars.id }}_{{ prefijo }}_proteinatotalalto" value="">
+                                    </td>
+                                    <td>
+                                        <input readonly style="text-align: right; width: {{ anchovalorgrande }}px; background-color: {{ grasacolor3 }}" type="text" class="{{ prefijo }}_grasacalorias form-control" id="{{ form.vars.id }}_{{ prefijo }}_grasacalorias" value="">
+                                    </td>
+                                    <td>
+                                        <input readonly style="text-align: right; width: {{ anchovalorgrande }}px; background-color: {{ carbocolor3 }}" type="text" class="{{ prefijo }}_carbohidratocalorias form-control" id="{{ form.vars.id }}_{{ prefijo }}_carbohidratocalorias" value="">
+                                    </td>
+                                    <td>
+                                        <input readonly style="text-align: right; width: {{ anchovalorgrande }}px; background-color: {{ protcolor3 }}" type="text" class="{{ prefijo }}_proteinacalorias form-control" id="{{ form.vars.id }}_{{ prefijo }}_proteinacalorias" value="">
+                                    </td>
+                                    <td>
+                                        <input readonly style="text-align: right; font-size: larger; font-weight: bold; width: {{ anchovalorgrande }}px;" type="text" class="{{ prefijo }}_totalcalorias form-control" id="{{ form.vars.id }}_{{ prefijo }}_totalcalorias" value="">
+                                    </td>
+                                    <td>
+                                        <input readonly style="text-align: right; font-size: larger; font-weight: bold; width: {{ anchovalorgrande }}px;" type="text" class="{{ prefijo }}_energiacalorias form-control" id="{{ form.vars.id }}_{{ prefijo }}_energiacalorias" value="">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+
+                                        {% if form.vars.name == 'dietacomidas' %}
+                                            <input style="text-align: right; font-weight: bold; width: {{ anchovalorgrande }}px; background-color: {{ grasacolor2 }}" type="text" class="{{ prefijo }}_grasatotalporkilogramo form-control" id="{{ form.vars.id }}_{{ prefijo }}_grasatotalporkilogramo" value="">
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if form.vars.name == 'dietacomidas' %}
+                                            <input style="text-align: right; font-weight: bold; width: {{ anchovalorgrande }}px; background-color: {{ carbocolor2 }}" type="text" class="{{ prefijo }}_carbohidratototalporkilogramo form-control" id="{{ form.vars.id }}_{{ prefijo }}_carbohidratototalporkilogramo" value="">
+                                        {% endif %}
+
+                                    </td>
+                                    <td>
+                                        {% if form.vars.name == 'dietacomidas' %}
+                                            <input style="text-align: right; font-weight: bold; width: {{ anchovalorgrande }}px; background-color: {{ protcolor2 }}" type="text" class="{{ prefijo }}_proteinatotalporkilogramo form-control" id="{{ form.vars.id }}_{{ prefijo }}_proteinatotalporkilogramo" value="">
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if form.vars.name == 'dietacomidas' %}
+                                            <input style="text-align: right; font-weight: bold; width: {{ anchovalorgrande }}px; background-color: {{ protcolor2 }}" type="text" class="{{ prefijo }}_proteinaaltototalporkilogramo form-control" id="{{ form.vars.id }}_{{ prefijo }}_proteinatotalaltoporkilogramo" value="">
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <input style="text-align: right; font-weight: bold; width: {{ anchovalorgrande }}px; background-color: {{ grasacolor3 }}" type="text" class="{{ prefijo }}_grasacaloriasporcentaje form-control" id="{{ form.vars.id }}_{{ prefijo }}_grasacaloriasporcentaje" value="">
+                                    </td>
+                                    <td>
+                                        <input style="text-align: right; font-weight: bold; width: {{ anchovalorgrande }}px; background-color: {{ carbocolor3 }}" type="text" class="{{ prefijo }}_carbohidratocaloriasporcentaje form-control" id="{{ form.vars.id }}_{{ prefijo }}_carbohidratocaloriasporcentaje" value="">
+                                    </td>
+                                    <td>
+                                        <input style="text-align: right; font-weight: bold; width: {{ anchovalorgrande }}px; background-color: {{ protcolor3 }}" type="text" class="{{ prefijo }}_proteinacaloriasporcentaje form-control" id="{{ form.vars.id }}_{{ prefijo }}_proteinacaloriasporcentaje" value="">
+                                    </td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+
+                                </tbody>
+                            </table>
+
+                        {% endif %}
+                    {% endif %}
+                {% elseif form.children|length > 0 %}
+                    {% set associationAdmin = sonata_admin.field_description.associationadmin %}
+                    {% include '@SonataAdmin/CRUD/Association/edit_one_to_many_inline_tabs.html.twig' %}
+
+                {% endif %}
+            {% else %}
+                {{ form_widget(form) }}
+            {% endif %}
+
+        </span>
+
+        {% set display_create_button = sonata_admin.field_description.associationadmin.hasroute('create')
+            and sonata_admin.field_description.associationadmin.isGranted('CREATE')
+            and btn_add
+            and (
+                sonata_admin.field_description.options.limit is not defined or
+                form.children|length < sonata_admin.field_description.options.limit
+            ) %}
+
+        {% if sonata_admin.edit == 'inline' %}
+
+            {% if display_create_button %}
+                <span id="field_actions_{{ id }}" >
+                    <a
+                        href="{{ sonata_admin.field_description.associationadmin.generateUrl(
+                            'create',
+                            sonata_admin.field_description.getOption('link_parameters', {})
+                        ) }}"
+                        onclick="return start_field_retrieve_{{ id }}(this);"
+                        class="btn btn-success btn-sm sonata-ba-action"
+                        title="{{ btn_add|trans({}, btn_catalogue) }}"
+                    >
+                        <i class="fa fa-plus-circle"></i>
+                        {{ btn_add|trans({}, btn_catalogue) }}
+                    </a>
+                </span>
+            {% endif %}
+
+            {# add code for the sortable options #}
+            {% if sonata_admin.field_description.options.sortable is defined %}
+                {% if sonata_admin.inline == 'table' %}
+                    {% include '@SonataAdmin/CRUD/Association/edit_one_to_many_sortable_script_table.html.twig' %}
+                {% else %}
+                    {% include '@SonataAdmin/CRUD/Association/edit_one_to_many_sortable_script_tabs.html.twig' %}
+                {% endif %}
+            {% endif %}
+
+            {# include association code #}
+            {% include '@SonataAdmin/CRUD/Association/edit_one_script.html.twig' %}
+
+        {% else %}
+            <span id="field_actions_{{ id }}" >
+                {% if display_create_button %}
+                    <a
+                        href="{{ sonata_admin.field_description.associationadmin.generateUrl(
+                            'create',
+                            sonata_admin.field_description.getOption('link_parameters', {})
+                        ) }}"
+                        onclick="return start_field_dialog_form_add_{{ id }}(this);"
+                        class="btn btn-success btn-sm sonata-ba-action"
+                        title="{{ btn_add|trans({}, btn_catalogue) }}"
+                    >
+                        <i class="fa fa-plus-circle"></i>
+                        {{ btn_add|trans({}, btn_catalogue) }}
+                    </a>
+                {% endif %}
+            </span>
+
+            {% include '@SonataAdmin/CRUD/Association/edit_modal.html.twig' %}
+            {% include '@SonataAdmin/CRUD/Association/edit_many_script.html.twig' %}
+        {% endif %}
+    </div>
+{% endif %}

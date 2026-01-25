@@ -1,210 +1,188 @@
 # config/services/pms_admin.yaml
+parameters:
+    # Las claves de calendatio deben empezar por calendar
+    # y ser distintas para que no se sobrescribab
+    calendars_pms:
+        pms_eventos_no_cancelados:
+            provider: pms_eventos_raw
+            filters:
+                establecimientoId: null
+                unidadIds: [ ]
+                estado:
+                    in: [ ]        # ej: [confirmada, bloqueado]
+                    not_in: [cancelado]    # ej: [cancelada]
+                estadoPago:
+                    in: [ ]        # ej: [no-pagado, pago-parcial]
+                    not_in: [ ]    # ej: [pago-total]
+            event:
+                url:
+                    # Si hay reserva -> usa ReservaAdmin
+                    reservaEdit:
+                        role: ROLE_RESERVAS_EDITOR
+                        route: panel_dashboard_pms_reserva_edit
+                        params:
+                            tl: es
+
+                    reservaShow:
+                        role: ROLE_USER
+                        route: panel_dashboard_pms_reserva_detail
+                        params:
+                            tl: es
+
+                    # Si NO hay reserva -> usa EventoCalendarioAdmin
+                    eventoCalendarioEdit:
+                        role: ROLE_RESERVAS_EDITOR
+                        route: panel_dashboard_pms_evento_calendario_edit
+                        params:
+                            tl: es
+
+                    eventoCalendarioShow:
+                        role: ROLE_USER
+                        route: panel_dashboard_pms_evento_calendario_detail
+                        params:
+                            tl: es
+        pms_eventos_todos:
+            provider: pms_eventos_raw
+            filters:
+                establecimientoId: null
+                unidadIds: [ ]
+                estado:
+                    in: [ ]        # ej: [confirmada, bloqueado]
+                    not_in: [ ]    # ej: [cancelada]
+                estadoPago:
+                    in: [ ]        # ej: [no-pagado, pago-parcial]
+                    not_in: [ ]    # ej: [pago-total]
+            event:
+                url:
+                    # Si hay reserva -> usa ReservaAdmin
+                    reservaEdit:
+                        role: ROLE_RESERVAS_EDITOR
+                        route: panel_dashboard_pms_reserva_edit
+                        params:
+                            tl: es
+
+                    reservaShow:
+                        role: ROLE_USER
+                        route: panel_dashboard_pms_reserva_detail
+                        params:
+                            tl: es
+
+                    # Si NO hay reserva -> usa EventoCalendarioAdmin
+                    eventoCalendarioEdit:
+                        role: ROLE_RESERVAS_EDITOR
+                        route: panel_dashboard_pms_evento_calendario_edit
+                        params:
+                            tl: es
+
+                    eventoCalendarioShow:
+                        role: ROLE_USER
+                        route: panel_dashboard_pms_evento_calendario_detail
+                        params:
+                            tl: es
+
+        tarifa_rangos_raw:
+            provider: tarifa_ranges_raw
+            entity: App\Pms\Entity\PmsTarifaRango
+            fields:
+                id: id
+                resourceRoot: unidad
+                resourceId: unidad.id
+                resourceTitle: unidad.nombre
+
+                start: fechaInicio
+                end: fechaFin
+                price: precio
+                minStay: minStay
+                currency: moneda.codigo
+
+                active: activo
+
+                weight: peso          # Mapea a getPeso()
+                important: importante # Mapea a isImportante()
+            filters:
+                activeOnly: false
+            event:
+                includeCurrency: false
+                titleFormat: '{price} | {minStay}'
+                url:
+                    id: id
+                    show:
+                        route: panel_dashboard_pms_tarifa_rango_detail
+                        role: ROLE_USER
+                        params: { tl: 'es' }
+                    edit:
+                        route: panel_dashboard_pms_tarifa_rango_edit
+                        role: ROLE_TARIFAS_EDITOR
+                        params: { tl: 'es' }
+            eventTime:
+                start: '12:00:00'
+                end: '11:59:59'
+        tarifa_rangos_compactados:
+            provider: tarifa_compressed_ranges
+            entity: App\Pms\Entity\PmsTarifaRango
+            fields:
+                unit: unidad
+                unitId: unidad.id
+                unitTitle: unidad.nombre
+
+                start: fechaInicio
+                end: fechaFin
+
+                price: precio
+                minStay: minStay
+                currency: moneda.codigo
+
+                important: importante
+                weight: peso
+                id: id
+
+                active: activo
+            filters:
+                activeOnly: true
+            event:
+                url:
+                    show:
+                        route: panel_dashboard_pms_tarifa_rango_detail
+                        role: ROLE_USER
+                        params: { tl: 'es' }
+                    edit:
+                        route: panel_dashboard_pms_tarifa_rango_edit
+                        role: ROLE_TARIFAS_EDITOR
+                        params: { tl: 'es' }
+            eventTime:
+                start: '12:00:00'
+                end: '11:59:59'
+
 services:
+
     _defaults:
         autowire: true
         autoconfigure: true
 
-  # =========================
-  # Controllers del módulo Pms
-  # (fuera de src/Controller/)
-  # =========================
+    App\Pms\:
+        resource: '../../src/Pms/'
+        exclude:
+            - '../src/Pms/Dto/'
+            - '../src/Pms/Entity/'
+
+    # =========================
+    # controllers del módulo Pms
+    # (fuera de src/Controller/)
+    # =========================
     App\Pms\Controller\:
-      resource: '../../src/Pms/Controller/'
-      autowire: true
-      autoconfigure: true
-      tags:
-        - 'controller.service_arguments'
-
-
-    App\Pms\Service\Beds24\Client\Beds24AuthService:
-        arguments:
-            $beds24BaseUrl: '%env(string:BEDS24_URL)%'
-
-    App\Pms\Service\Beds24\Client\Beds24BookingsGetClient:
-        arguments:
-            $beds24BaseUrl: '%env(string:BEDS24_URL)%'
-
-    App\Pms\Service\Beds24\Client\Beds24BookingsPostDeleteClient:
-      arguments:
-        $beds24BaseUrl: '%env(string:BEDS24_URL)%'
-
-    App\Pms\Service\Beds24\Client\Beds24RatesCalendarPostClient:
-      arguments:
-        $beds24BaseUrl: '%env(string:BEDS24_URL)%'
-
-    App\Pms\Admin\Beds24ConfigAdmin:
+        resource: '../../src/Pms/Controller/'
+        autowire: true
+        autoconfigure: true
         tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\Beds24Config
-              manager_type: orm
-              group: Pms
-              label: Configuración Beds24
-              show_mosaic_button: false
-        public: true
+          - 'controller.service_arguments'
 
-    App\Pms\Admin\PmsBeds24WebhookAuditAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsBeds24WebhookAudit
-              manager_type: orm
-              group: Pms
-              label: Auditoría Webhook
-              show_mosaic_button: false
-        public: true
+    # =========================
+    # Reglas por instanceof lo estouy poniendo como tag directo al archivo
+    # =========================
+    #_instanceof:
+    #    App\Pms\Service\Cron\CronJobInterface:
+    #        tags:
+    #          - 'app.cron_job'
 
-    App\Pms\Admin\PmsBeds24EndpointAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsBeds24Endpoint
-              manager_type: orm
-              group: Pms
-              label: Endpoints Beds24
-              show_mosaic_button: false
-        public: true
 
-    App\Pms\Admin\PmsEstablecimientoAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsEstablecimiento
-              manager_type: orm
-              group: Pms
-              label: Establecimientos
-              show_mosaic_button: false
-        public: true
 
-    App\Pms\Admin\PmsUnidadAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsUnidad
-              manager_type: orm
-              group: Pms
-              label: Unidades
-              show_mosaic_button: false
-        public: true
-
-    App\Pms\Admin\PmsUnidadBeds24MapAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsUnidadBeds24Map
-              manager_type: orm
-              group: Pms
-              label: Mapeo PMS ↔ Beds24
-              show_mosaic_button: false
-        public: true
-
-    App\Pms\Admin\PmsPullQueueJobAdmin:
-        tags:
-           - name: sonata.admin
-             model_class: App\Pms\Entity\PmsPullQueueJob
-             manager_type: orm
-             group: Pms
-             label: "Pull Queue Jobs"
-             show_mosaic_button: false
-        public: true
-
-    App\Pms\Admin\PmsTarifaRangoAdmin:
-        public: true
-        #Por el factory le paso manualmente al por el constructor override
-        arguments:
-            $code: 'app.pms.admin.pms_tarifa_rango' #legacy service name, no FQCN
-            $class: App\Pms\Entity\PmsTarifaRango
-            $baseControllerName: Sonata\AdminBundle\Controller\CRUDController
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsTarifaRango
-              manager_type: orm
-              group: Pms
-              label: Tarifas (rangos)
-        calls:
-          - [ setTemplate, [ list, pms/admin/pms_tarifa_rango/list.html.twig ] ]
-
-    App\Pms\Admin\PmsTarifaQueueAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsTarifaQueue
-              manager_type: orm
-              group: Pms
-              label: Cola de tarifas
-              show_mosaic_button: false
-        public: true
-
-    App\Pms\Admin\PmsTarifaQueueDeliveryAdmin:
-      tags:
-        - name: sonata.admin
-          model_class: App\Pms\Entity\PmsTarifaQueueDelivery
-          manager_type: orm
-          group: Pms
-          label: Delivery de tarifas (maps)
-          show_mosaic_button: false
-      public: true
-
-    App\Pms\Admin\PmsEventoBeds24LinkAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsEventoBeds24Link
-              manager_type: orm
-              group: Pms
-              label: Links
-              show_mosaic_button: false
-        public: true
-
-    App\Pms\Admin\PmsEventoCalendarioAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsEventoCalendario
-              manager_type: orm
-              group: Pms
-              label: Eventos calendario
-              show_mosaic_button: false
-        public: true
-
-    App\Pms\Admin\PmsBeds24LinkQueueAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsBeds24LinkQueue
-              manager_type: orm
-              group: Pms
-              label: Cola Beds24 (Links)
-              show_mosaic_button: false
-        public: true
-
-    App\Pms\Admin\PmsReservaAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsReserva
-              manager_type: orm
-              group: Pms
-              label: Reservas PMS
-        public: true
-        calls:
-          - [ setTemplate, [ list, pms/admin/pms_reserva/list.html.twig ] ]
-
-    App\Pms\Admin\PmsChannelAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsChannel
-              manager_type: orm
-              group: Pms
-              label: Canales (Beds24)
-              show_mosaic_button: false
-        public: true
-
-    App\Pms\Admin\PmsEventoEstadoAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsEventoEstado
-              manager_type: orm
-              group: Pms
-              label: Estados del evento
-              show_mosaic_button: false
-        public: true
-
-    App\Pms\Admin\PmsEventoEstadoPagoAdmin:
-        tags:
-            - name: sonata.admin
-              model_class: App\Pms\Entity\PmsEventoEstadoPago
-              manager_type: orm
-              group: Pms
-              label: Estados de pago del evento
-              show_mosaic_button: false
-        public: true

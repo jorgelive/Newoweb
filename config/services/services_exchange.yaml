@@ -1,0 +1,46 @@
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+
+
+    App\Exchange\:
+        resource: '../../src/Exchange/'
+        exclude:
+            - '../src/Exchange/Dto/'
+            - '../src/Exchange/Entity/'
+
+    # 1. Repetimos la definicion de los las carpetas donde haya etiquetas
+    # Sin este bloque, los servicios existen en el contenedor pero son "invisibles"
+    App\Pms\:
+        resource: '../../src/Pms/'
+        exclude:
+            - '../src/Pms/Dto/'
+            - '../src/Pms/Entity/'
+
+
+    # 2. VINCULACIÓN AUTOMÁTICA (La clave está aquí)
+    # Cualquier clase que implemente esta interfaz recibirá el TAG
+    _instanceof:
+        App\Exchange\Service\Contract\ExchangeTaskInterface:
+            tags: ['app_exchange_task']
+
+        App\Exchange\Service\Contract\ExchangeClientInterface:
+            tags: [ 'app.exchange.client' ]
+
+
+    # 3. EL LOCALIZADOR
+    App\Exchange\Service\Common\ExchangeTaskLocator:
+        arguments:
+            # Recogemos todos los servicios que tienen el tag definido arriba
+            $tasks: !tagged_locator
+                tag: 'app_exchange_task'
+                default_index_method: 'getTaskName'
+
+    App\Exchange\Service\Engine\ExchangeBatchProcessor:
+        arguments:
+            $clientLocator: !tagged_locator
+                tag: 'app.exchange.client'
+                default_index_method: 'getClientAlias'

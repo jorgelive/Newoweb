@@ -3,7 +3,7 @@
 namespace App\Pms\Command;
 
 use App\Pms\Entity\Beds24Config;
-use App\Pms\Service\Beds24\Client\Beds24AuthService;
+use App\Pms\Service\Exchange\Auth\Beds24AuthService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

@@ -1,0 +1,177 @@
+{# templates/panel/pms/pms_reserva/fields/detail_eventos.html.twig #}
+
+{% if field.value is empty %}
+    <div class="alert alert-light border text-center text-muted">
+        <i class="fas fa-info-circle"></i> Sin eventos registrados
+    </div>
+{% else %}
+
+    {# LÓGICA PREVIA #}
+    {% set hasComision = false %}
+    {% set hasMonto = false %}
+    {% for evento in field.value %}
+        {% if evento.comision is defined and evento.comision != 0 %} {% set hasComision = true %} {% endif %}
+        {% if evento.monto is defined and evento.monto != 0 %} {% set hasMonto = true %} {% endif %}
+    {% endfor %}
+
+    {# ========================================================= #}
+    {#  VISTA MÓVIL (Cards)                                      #}
+    {# ========================================================= #}
+    <div class="d-block d-md-none">
+        {% for evento in field.value %}
+
+            {% set st = evento.estado ? evento.estado.nombre|lower : '' %}
+            {% set colorBase = 'cancel' in st ? 'danger' : ('confirm' in st ? 'success' : 'secondary') %}
+            {% set pg = evento.estadoPago ? evento.estadoPago.nombre|lower : '' %}
+            {% set pagoColor = 'no' in pg ? 'danger' : ('parcial' in pg ? 'warning' : 'success') %}
+
+            <div class="card mb-3 shadow-sm border border-light-subtle rounded-3 overflow-hidden">
+                <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Unidad</small>
+                        <span class="fw-bold text-primary">
+                            {{ evento.pmsUnidad|default('Sin Asignar') }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-body pt-2">
+                    {# FECHAS #}
+                    <div class="d-flex justify-content-between align-items-center mb-2 py-2 border-top border-bottom border-light-subtle">
+                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Fechas</small>
+                        <div class="text-end" style="font-size: 0.9rem;">
+                            <div class="text-dark"><i class="fas fa-arrow-right text-success me-1 small"></i> {{ evento.inicio|date('d/m H:i') }}</div>
+                            <div class="text-dark"><i class="fas fa-arrow-left text-danger me-1 small"></i> {{ evento.fin|date('d/m H:i') }}</div>
+                        </div>
+                    </div>
+
+                    {# ESTADO #}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Estado</small>
+                        <span class="badge rounded-pill border border-{{ colorBase }} text-{{ colorBase }} bg-white fw-medium px-2 py-1">
+                            {{ evento.estado|default('-') }}
+                        </span>
+                    </div>
+
+                    {# PAGO #}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Pago</small>
+                        {% if evento.estadoPago %}
+                            <span class="badge rounded-pill border border-{{ pagoColor }} text-{{ pagoColor }} bg-white fw-medium px-2 py-1">
+                                {{ evento.estadoPago }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted small">-</span>
+                        {% endif %}
+                    </div>
+
+                    {# PAX #}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Pax</small>
+                        <div class="text-dark fw-bold small">
+                            {{ evento.cantidadAdultos }}
+                            {% if evento.cantidadNinos > 0 %}
+                                <span class="text-muted">+{{ evento.cantidadNinos }}</span>
+                            {% endif %}
+                            <i class="fas fa-user text-muted ms-1" style="font-size: 0.7rem;"></i>
+                        </div>
+                    </div>
+
+                    {# MONTOS #}
+                    {% if hasMonto or hasComision %}
+                        <div class="mt-2 pt-2 border-top border-light-subtle d-flex justify-content-end align-items-center gap-3">
+                            {% if hasComision and evento.comision != 0 %}
+                                <small class="text-muted" style="font-size: 0.8rem;">Com: {{ evento.comision }}</small>
+                            {% endif %}
+
+                            {% if hasMonto and evento.monto != 0 %}
+                                <span class="fw-bold text-dark font-monospace" style="font-size: 1rem;">{{ evento.monto }}</span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {# ========================================================= #}
+    {#  VISTA ESCRITORIO (Tabla con Badges Estilizados)          #}
+    {# ========================================================= #}
+    <div class="d-none d-md-block table-responsive-custom">
+        <table class="table table-hover bg-white mb-0 align-middle">
+            <thead class="table-light text-secondary text-uppercase small">
+            <tr>
+                <th class="fw-bold">Unidad</th>
+                <th class="fw-bold">Fechas (In/Out)</th>
+                <th class="fw-bold">Estado</th>
+                <th class="fw-bold">Pago</th>
+                <th class="fw-bold text-center">Pax</th>
+                {% if hasComision %}<th class="fw-bold text-end">Comisión</th>{% endif %}
+                {% if hasMonto %}<th class="fw-bold text-end">Monto</th>{% endif %}
+            </tr>
+            </thead>
+            <tbody>
+            {% for evento in field.value %}
+                {# Variables Locales #}
+                {% set st = evento.estado ? evento.estado.nombre|lower : '' %}
+                {% set estadoBadge = 'cancel' in st ? 'danger' : ('confirm' in st ? 'success' : 'secondary') %}
+                {% set pg = evento.estadoPago ? evento.estadoPago.nombre|lower : '' %}
+                {% set pagoClass = 'no' in pg ? 'danger' : ('parcial' in pg ? 'warning' : 'success') %}
+
+                <tr>
+                    {# UNIDAD #}
+                    <td class="fw-bold text-primary">{{ evento.pmsUnidad|default('Sin Asignar') }}</td>
+
+                    {# FECHAS #}
+                    <td>
+                        <div class="d-flex flex-column small" style="line-height: 1.4;">
+                            <span><i class="fas fa-sign-in-alt text-success me-1"></i> {{ evento.inicio|date('d/m H:i') }}</span>
+                            <span><i class="fas fa-sign-out-alt text-danger me-1"></i> {{ evento.fin|date('d/m H:i') }}</span>
+                        </div>
+                    </td>
+
+                    {# ESTADO (Badge Outline) #}
+                    <td>
+                        <span class="badge rounded-pill border border-{{ estadoBadge }} text-{{ estadoBadge }} bg-white fw-medium px-2 py-1">
+                            {{ evento.estado|default('-') }}
+                        </span>
+                    </td>
+
+                    {# PAGO (Badge Outline) #}
+                    <td>
+                        {% if evento.estadoPago %}
+                            <span class="badge rounded-pill border border-{{ pagoClass }} text-{{ pagoClass }} bg-white fw-medium px-2 py-1">
+                                {{ evento.estadoPago }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted small">-</span>
+                        {% endif %}
+                    </td>
+
+                    {# PAX #}
+                    <td class="text-center">
+                        <strong>{{ evento.cantidadAdultos }}</strong>
+                        {% if evento.cantidadNinos > 0 %}
+                            <span class="text-muted small">+{{ evento.cantidadNinos }}</span>
+                        {% endif %}
+                    </td>
+
+                    {# COMISIÓN #}
+                    {% if hasComision %}
+                        <td class="text-end text-muted small">
+                            {% if evento.comision != 0 %}{{ evento.comision }}{% endif %}
+                        </td>
+                    {% endif %}
+
+                    {# MONTO #}
+                    {% if hasMonto %}
+                        <td class="text-end fw-bold font-monospace text-dark">
+                            {% if evento.monto != 0 %}{{ evento.monto }}{% endif %}
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

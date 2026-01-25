@@ -1,10 +1,10 @@
 sonata_admin:
     title:      Extranet
     title_logo: /app/images/logo_title.png
-    default_controller: 'App\Controller\Admin\CRUDController'
+    default_controller: 'App\Oweb\Controller\CRUDController'
     persist_filters: true
     security:
-        handler: sonata.admin.security.handler.role
+        handler: App\Oweb\Security\RoleMappingSecurityHandler
 
         role_admin: ROLE_ADMIN
         role_super_admin: ROLE_SUPER_ADMIN
@@ -12,182 +12,146 @@ sonata_admin:
         blocks:
             - { type: sonata.admin.block.admin_list, position: left }
         groups:
-            app.admin.group.cotizacion:
+            app.oweb.admin.group.cotizacion:
                 label: 'Cotizaciones'
                 icon: '<i class="fa fa-calendar"></i>'
                 items:
-                    - app.admin.cotizacioncotizacion
-                    - app.admin.cotizacionfile
-                    - app.admin.cotizacioncotservicio
-                    - app.admin.cotizacioncotcomponente
-                    - app.admin.cotizacioncotcomponenteoperativa
-                    - app.admin.viewcotizacioncotcomponentealerta
-                    - app.admin.cotizacionfilepasajero
-                    - app.admin.cotizacionfiledocumento
-                    - app.admin.cotizacionestadocotizacion
-                    - app.admin.cotizacionestadocotcomponente
-                    - app.admin.cotizaciontipofiledocumento
-                    - app.admin.cotizacioncotpolitica
-                    - app.admin.cotizacioncotnota
-                    - app.admin.cotizacionmenu
-                    - app.admin.cotizacionmenulink
+                    - app.oweb.admin.cotizacioncotizacion
+                    - app.oweb.admin.cotizacionfile
+                    - app.oweb.admin.cotizacioncotservicio
+                    - app.oweb.admin.cotizacioncotcomponente
+                    - app.oweb.admin.cotizacioncotcomponenteoperativa
+                    - app.oweb.admin.viewcotizacioncotcomponentealerta
+                    - app.oweb.admin.cotizacionfilepasajero
+                    - app.oweb.admin.cotizacionfiledocumento
+                    - app.oweb.admin.cotizacionestadocotizacion
+                    - app.oweb.admin.cotizacionestadocotcomponente
+                    - app.oweb.admin.cotizaciontipofiledocumento
+                    - app.oweb.admin.cotizacioncotpolitica
+                    - app.oweb.admin.cotizacioncotnota
+                    - app.oweb.admin.cotizacionmenu
+                    - app.oweb.admin.cotizacionmenulink
 
-            app.admin.group.servicio:
+            app.oweb.admin.group.servicio:
                 label: 'Servicios'
                 icon: '<i class="fa fa-map"></i>'
                 items:
-                    - app.admin.servicioservicio
-                    - app.admin.servicioitinerario
-                    - app.admin.servicioitinerariodia
-                    - app.admin.servicionotaitinerariodia
-                    - app.admin.serviciocomponente
-                    - app.admin.serviciocomponenteitem
-                    - app.admin.serviciotarifa
-                    - app.admin.servicioprovider
-                    - app.admin.servicioprovidermedio
-                    - app.admin.serviciotipocomponente
-                    - app.admin.serviciotipotarifa
-                    - app.admin.serviciomodalidadtarifa
-                    - app.admin.serviciotipotarifadetalle
+                    - app.oweb.admin.servicioservicio
+                    - app.oweb.admin.servicioitinerario
+                    - app.oweb.admin.servicioitinerariodia
+                    - app.oweb.admin.servicionotaitinerariodia
+                    - app.oweb.admin.serviciocomponente
+                    - app.oweb.admin.serviciocomponenteitem
+                    - app.oweb.admin.serviciotarifa
+                    - app.oweb.admin.servicioprovider
+                    - app.oweb.admin.servicioprovidermedio
+                    - app.oweb.admin.serviciotipocomponente
+                    - app.oweb.admin.serviciotipotarifa
+                    - app.oweb.admin.serviciomodalidadtarifa
+                    - app.oweb.admin.serviciotipotarifadetalle
 
-            app.admin.group.pms:
-                label: 'pms'
-                icon: '<i class="fa fa-map"></i>'
-                items:
-
-                    # Reservas / eventos / links
-                    - App\Pms\Admin\PmsReservaAdmin
-                    - App\Pms\Admin\PmsEventoCalendarioAdmin
-                    - App\Pms\Admin\PmsEventoBeds24LinkAdmin
-
-                    # Estados / pagos / canal
-                    - App\Pms\Admin\PmsEventoEstadoAdmin
-                    - App\Pms\Admin\PmsEventoEstadoPagoAdmin
-                    - App\Pms\Admin\PmsChannelAdmin
-
-                    # Configuración de integración Beds24
-                    - App\Pms\Admin\Beds24ConfigAdmin
-                    - App\Pms\Admin\PmsBeds24EndpointAdmin
-                    - App\Pms\Admin\PmsUnidadBeds24MapAdmin
-
-                    # Pull queue (nuevo)
-                    - App\Pms\Admin\PmsPullQueueJobAdmin
-
-                    # Tarifas
-                    - App\Pms\Admin\PmsTarifaRangoAdmin
-
-                    # Estructura principal del PMS
-                    - App\Pms\Admin\PmsEstablecimientoAdmin
-                    - App\Pms\Admin\PmsUnidadAdmin
-
-                    # Colas técnicas / background (menos frecuente)
-                    - App\Pms\Admin\PmsBeds24LinkQueueAdmin
-                    - App\Pms\Admin\PmsTarifaQueueAdmin
-                    - App\Pms\Admin\PmsTarifaQueueDeliveryAdmin
-                    - App\Pms\Admin\PmsBeds24WebhookAuditAdmin
-
-            app.admin.group.reserva:
+            app.oweb.admin.group.reserva:
                 label: 'Reservas'
                 icon: '<i class="fa fa-map"></i>'
                 items:
-                    - app.admin.reservareserva
-                    - app.admin.reservaunit
-                    - app.admin.reservaunitmedio
-                    - app.admin.reservaunitcaracteristica
-                    - app.admin.reservaunitcaracteristicalink
-                    - app.admin.reservaunittipocaracteristica
-                    - app.admin.reservachannel
-                    - app.admin.reservaestado
-                    - app.admin.reservadetalle
-                    - app.admin.reservatipodetalle
-                    - app.admin.reservaimporte
-                    - app.admin.reservatipoimporte
-                    - app.admin.reservapago
-                    - app.admin.reservaestablecimiento
-                    - app.admin.reservaunitnexo
+                    - app.oweb.admin.reservareserva
+                    - app.oweb.admin.reservaunit
+                    - app.oweb.admin.reservaunitmedio
+                    - app.oweb.admin.reservaunitcaracteristica
+                    - app.oweb.admin.reservaunitcaracteristicalink
+                    - app.oweb.admin.reservaunittipocaracteristica
+                    - app.oweb.admin.reservachannel
+                    - app.oweb.admin.reservaestado
+                    - app.oweb.admin.reservadetalle
+                    - app.oweb.admin.reservatipodetalle
+                    - app.oweb.admin.reservaimporte
+                    - app.oweb.admin.reservatipoimporte
+                    - app.oweb.admin.reservapago
+                    - app.oweb.admin.reservaestablecimiento
+                    - app.oweb.admin.reservaunitnexo
 
-            app.admin.group.maestro:
+            app.oweb.admin.group.maestro:
                 label: 'Maestros'
                 icon: '<i class="fa fa-puzzle-piece"></i>'
                 items:
-                    - app.admin.maestrotipocambio
-                    - app.admin.maestromedio
-                    - app.admin.maestroclasemedio
-                    - app.admin.maestrocategoriatour
-                    - app.admin.maestrotipopax
-                    - app.admin.maestrocontacto
-                    - app.admin.maestrotipocontacto
-                    - app.admin.maestroidioma
-                    - app.admin.maestropais
-                    - app.admin.maestromoneda
-                    - app.admin.maestrotipodocumento
-                    - app.admin.maestrosexo
+                    - app.oweb.admin.maestrotipocambio
+                    - app.oweb.admin.maestromedio
+                    - app.oweb.admin.maestroclasemedio
+                    - app.oweb.admin.maestrocategoriatour
+                    - app.oweb.admin.maestrotipopax
+                    - app.oweb.admin.maestrocontacto
+                    - app.oweb.admin.maestrotipocontacto
+                    - app.oweb.admin.maestroidioma
+                    - app.oweb.admin.maestropais
+                    - app.oweb.admin.maestromoneda
+                    - app.oweb.admin.maestrotipodocumento
+                    - app.oweb.admin.maestrosexo
 
-            app.admin.group.usuario:
+            app.oweb.admin.group.usuario:
                 label: 'Usuario'
                 icon: '<i class="fa fa-user-circle"></i>'
                 items:
-                    - sonata.user.admin.user
-                    - app.admin.usercuenta
-                    - app.admin.usercuentatipo
+                    - app.oweb.admin.usercuenta
+                    - app.oweb.admin.usercuentatipo
 
-            app.admin.group.organizacion:
+            app.oweb.admin.group.organizacion:
                 label: 'Empresa'
                 icon: '<i class="fa fa-institution"></i>'
                 items:
-                    - app.admin.userorganizacion
-                    - app.admin.userdependencia
-                    - app.admin.userarea
+                    - app.oweb.admin.userorganizacion
+                    - app.oweb.admin.userdependencia
+                    - app.oweb.admin.userarea
 
-            app.admin.group.fit:
+            app.oweb.admin.group.fit:
                 label: 'Fit'
                 icon: '<i class="fa fa-bar-chart"></i>'
                 items:
-                    - app.admin.fitdieta
-                    - app.admin.fittipodieta
-                    - app.admin.fitalimento
-                    - app.admin.fitmedidaalimento
-                    - app.admin.fittipoalimento
+                    - app.oweb.admin.fitdieta
+                    - app.oweb.admin.fittipodieta
+                    - app.oweb.admin.fitalimento
+                    - app.oweb.admin.fitmedidaalimento
+                    - app.oweb.admin.fittipoalimento
 
-            app.admin.group.transporte:
+            app.oweb.admin.group.transporte:
                 label: 'Transportes'
                 icon: '<i class="fa fa-bus"></i>'
                 items:
-                    - app.admin.transporteservicio
-                    - app.admin.transporteserviciocontable
-                    - app.admin.transporteconductor
-                    - app.admin.transporteunidad
-                    - app.admin.transporteunidadbitacora
-                    - app.admin.transporteserviciooperativo
-                    - app.admin.transportetiposeroperativo
-                    - app.admin.transportetipounibit
+                    - app.oweb.admin.transporteservicio
+                    - app.oweb.admin.transporteserviciocontable
+                    - app.oweb.admin.transporteconductor
+                    - app.oweb.admin.transporteunidad
+                    - app.oweb.admin.transporteunidadbitacora
+                    - app.oweb.admin.transporteserviciooperativo
+                    - app.oweb.admin.transportetiposeroperativo
+                    - app.oweb.admin.transportetipounibit
 #                    - {route: gopro_transporte_cargador_genericoprograma, label: 'Cargador de servicios', roles: [ROLE_CARGA]}
 
             goprosonata.admin.group.comprobante:
                 label: 'Comprobantes de venta'
                 icon: '<i class="fa fa-bus"></i>'
                 items:
-                    - app.admin.comprobantecomprobante
-                    - app.admin.comprobantetipo
-                    - app.admin.comprobanteestado
-                    - app.admin.comprobanteproductoservicio
-                    - app.admin.comprobantetipoproductoservicio
+                    - app.oweb.admin.comprobantecomprobante
+                    - app.oweb.admin.comprobantetipo
+                    - app.oweb.admin.comprobanteestado
+                    - app.oweb.admin.comprobanteproductoservicio
+                    - app.oweb.admin.comprobantetipoproductoservicio
 
             goprosonata.admin.group.cuenta:
                 label: 'Cuentas'
                 icon: '<i class="fa fa-line-chart"></i>'
                 items:
-                    - app.admin.cuentaperiodo
-                    - app.admin.cuentamovimiento
-                    - app.admin.cuentacuenta
-                    - app.admin.cuentacentro
-                    - app.admin.cuentaclase
-                    - app.admin.cuentatipo
+                    - app.oweb.admin.cuentaperiodo
+                    - app.oweb.admin.cuentamovimiento
+                    - app.oweb.admin.cuentacuenta
+                    - app.oweb.admin.cuentacentro
+                    - app.oweb.admin.cuentaclase
+                    - app.oweb.admin.cuentatipo
     templates:
         # default global templates
-        layout:  admin/base_sonata/standard_layout.html.twig
-        edit:    admin/base_sonata/edit.html.twig
-        list_block: admin/base_sonata/block_admin_list.html.twig
+        layout:  oweb/admin/base_sonata/standard_layout.html.twig
+        edit:    oweb/admin/base_sonata/edit.html.twig
+        list_block: oweb/admin/base_sonata/block_admin_list.html.twig
+        user_block: oweb/block/user_block.html.twig
 
     assets:
         extra_stylesheets:

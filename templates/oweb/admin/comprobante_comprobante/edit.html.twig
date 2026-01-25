@@ -1,0 +1,74 @@
+{% extends '@SonataAdmin/CRUD/edit.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+
+    <style type="text/css">
+
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script type="text/javascript">
+        {#
+        (function ($) {
+
+            $.fn.cambiovalor = function () {
+
+                var methods = {
+                    init: function () {
+                        var $this = $(this);
+                        $this.off("input", methods.seleccionar).on("input", methods.seleccionar);
+                        return $this;
+                    },
+                    seleccionar: function (event) {
+
+                        var itinerarioregex = /\[total\]$/g;
+
+                        if(itinerarioregex.test($(this).attr("name")) === true) {
+                            return methods.actualizarnetoigv.call(this, event);
+                        }
+                    },
+                    actualizarnetoigv: function (event) {
+
+                        var igv = {{ facturacion_igv_porcentaje }};
+                        var basestr = $(this).attr("name").replace(/\[total\]$/g, '');
+                        var tipoName = (basestr + '[tiposercontable]').replace(/\[/g, '\\\[').replace(/\]/g, '\\\]');
+                        if($('select[name="' + tipoName + '"]').val() < 0){
+                            igv = 0.00;
+                        }
+
+                        var neto = ($(this).val().replace(',', '.') / (1 + igv / 100)).toFixed(2);
+                        var impuesto = ($(this).val().replace(',', '.') - neto).toFixed(2);
+
+
+                        var netoName = (basestr + '[neto]').replace(/\[/g, '\\\[').replace(/\]/g, '\\\]');
+                        var impuestoName = (basestr + '[impuesto]').replace(/\[/g, '\\\[').replace(/\]/g, '\\\]');
+                        $('input[name="' + netoName + '"]').val(neto.replace('.', ','));
+                        $('input[name="' + impuestoName + '"]').val(impuesto.replace('.', ','));
+
+                    }
+                };
+
+                return $(this).each(function (i, element) {
+                    methods.init.apply($(element));
+                });
+            };
+        })(jQuery);
+
+
+        $(document).ready(function(){
+            $('input').cambiovalor();
+
+            $('body').on('oweb.add_element', function() {
+                $('input').cambiovalor();
+
+            });
+        });
+        #}
+
+    </script>
+
+{% endblock %}

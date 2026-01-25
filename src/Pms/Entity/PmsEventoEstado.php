@@ -11,6 +11,34 @@ use DateTimeInterface;
 #[ORM\HasLifecycleCallbacks]
 class PmsEventoEstado
 {
+
+/* ======================================================
+ * CONSTANTES DE CÓDIGO (estado interno PMS)
+ * ====================================================== */
+
+    public const CODIGO_PENDIENTE      = 'new';
+    public const CODIGO_CONFIRMADA     = 'confirmada';
+    public const CODIGO_CANCELADA      = 'cancelada';
+    public const CODIGO_CONSULTA       = 'consulta';
+    public const CODIGO_REQUERIMIENTO  = 'requerimiento';
+    public const CODIGO_BLOQUEO        = 'bloqueo';
+
+    /**
+     * Lista completa de códigos válidos
+     */
+    public const CODIGOS_VALIDOS = [
+        self::CODIGO_PENDIENTE,
+        self::CODIGO_CONFIRMADA,
+        self::CODIGO_CANCELADA,
+        self::CODIGO_CONSULTA,
+        self::CODIGO_REQUERIMIENTO,
+        self::CODIGO_BLOQUEO,
+    ];
+
+    /* ======================================================
+     * CAMPOS
+     * ====================================================== */
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

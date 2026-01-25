@@ -14,6 +14,53 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
+/**
+ * Proveedor de Calendario para PmsEventoCalendario (Raw).
+ *
+ * Carga eventos directamente de la entidad `PmsEventoCalendario` sin procesamiento
+ * complejo de tarifas (pricing engine). Ideal para vistas administrativas,
+ * auditoría de ocupación y gestión directa de bloqueos/reservas.
+ *
+ * Configuración esperada:
+ *      pms_eventos_no_cancelados:
+ *            provider: pms_eventos_raw
+ *            filters:
+ *                establecimientoId: null
+ *                unidadIds: [ ]
+ *                estado:
+ *                    in: [ ]        # ej: [confirmada, bloqueado]
+ *                    not_in: [cancelado]    # ej: [cancelada]
+ *                estadoPago:
+ *                    in: [ ]        # ej: [no-pagado, pago-parcial]
+ *                    not_in: [ ]    # ej: [pago-total]
+ *            event:
+ *                url:
+ *                    # Si hay reserva -> usa ReservaAdmin
+ *                    reservaEdit:
+ *                        role: ROLE_RESERVAS_EDITOR
+ *                        route: dashboard_pms_reserva_edit
+ *                        params:
+ *                            tl: es
+ *
+ *                    reservaShow:
+ *                        role: ROLE_USER
+ *                        route: dashboard_pms_reserva_detail
+ *                        params:
+ *                            tl: es
+ *
+ *                    # Si NO hay reserva -> usa EventoCalendarioAdmin
+ *                    eventoCalendarioEdit:
+ *                        role: ROLE_RESERVAS_EDITOR
+ *                        route: dashboard_pms_evento_calendario_edit
+ *                        params:
+ *                            tl: es
+ *
+ *                    eventoCalendarioShow:
+ *                        role: ROLE_USER
+ *                        route: dashboard_pms_evento_calendario_detail
+ *                        params:
+ *                            tl: es
+ **/
 final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
 {
     public function __construct(
@@ -22,11 +69,27 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         private readonly UrlGeneratorInterface $router,
     ) {}
 
+    /**
+     * Verifica si este proveedor soporta la configuración solicitada.
+     * Se basa en la clave 'provider' === 'pms_eventos_raw'.
+     */
     public function supports(array $config): bool
     {
         return (($config['provider'] ?? null) === 'pms_eventos_raw');
     }
 
+    /**
+     * Obtiene los eventos del calendario transformados a DTOs.
+     *
+     * Incluye lógica para:
+     * 1. Filtrado por fechas y unidades.
+     * 2. Formateo de títulos (Canal, Cliente, PAX).
+     * 3. Cálculo de colores según Estado o EstadoPago.
+     * 4. Generación de Tooltips detallados.
+     * 5. Inyección de URLs de edición con soporte para navegación circular ('returnTo').
+     *
+     * @return list<CalendarEventDto>
+     */
     public function getEvents(DateTimeInterface $from, DateTimeInterface $to, array $config): array
     {
         $eventos = $this->fetchEventos($from, $to, $config);
@@ -56,7 +119,6 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             // =========================
             // TITULO
             // =========================
-
             $channelCode = (string) ($reserva?->getChannel()?->getCodigo() ?? '');
             $channelLetter = $channelCode !== '' ? strtoupper($channelCode[0]) : 'X';
 
@@ -86,7 +148,6 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             // COLOR
             // =========================
             $backgroundColor = null;
-
             if ($estado && $estado->isColorOverride()) {
                 $backgroundColor = $estado->getColor();
             } elseif ($estadoPago && $estadoPago->getColor()) {
@@ -111,6 +172,7 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
                 $tooltip[] = 'Ref: ' . $reserva->getReferenciaCanal();
             }
 
+            // Generamos las URLs inyectando el returnTo
             [$urledit, $urlshow] = $this->buildUrls($evento, $reserva, $config);
 
             $out[] = new CalendarEventDto(
@@ -129,6 +191,12 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         return $out;
     }
 
+    /**
+     * Obtiene los recursos (Unidades) asociados a los eventos del rango.
+     * Útil para vistas de tipo 'resourceTimeline'.
+     *
+     * @return list<CalendarResourceDto>
+     */
     public function getResources(DateTimeInterface $from, DateTimeInterface $to, array $config): array
     {
         $eventos = $this->fetchEventos($from, $to, $config);
@@ -148,11 +216,22 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         return $out;
     }
 
+    /**
+     * Realiza la consulta a la base de datos aplicando filtros dinámicos.
+     *
+     * Filtros soportados:
+     * - establecimientoId (int)
+     * - unidadIds (array<int>)
+     * - estado (string|array) -> filtra por código de PmsEventoEstado
+     * - estadoPago (string|array) -> filtra por código de PmsEstadoPago
+     *
+     * @return list<PmsEventoCalendario>
+     */
     private function fetchEventos(DateTimeInterface $from, DateTimeInterface $to, array $config): array
     {
         $em = $this->managerRegistry->getManagerForClass(PmsEventoCalendario::class);
         if (!$em instanceof EntityManagerInterface) {
-            throw new HttpException(500, 'No hay EntityManager');
+            throw new HttpException(500, 'No hay EntityManager disponible para PmsEventoCalendario.');
         }
 
         $filters = (array) ($config['filters'] ?? []);
@@ -171,14 +250,12 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             ->setParameter('from', $from)
             ->setParameter('to', $to);
 
-        // filters.establecimientoId (int|null)
         $establecimientoId = $filters['establecimientoId'] ?? null;
         if ($establecimientoId !== null && $establecimientoId !== '' && is_numeric($establecimientoId)) {
             $qb->andWhere('est.id = :establecimientoId')
                 ->setParameter('establecimientoId', (int) $establecimientoId);
         }
 
-        // filters.unidadIds (list<int>)
         $unidadIds = $filters['unidadIds'] ?? null;
         if (is_array($unidadIds) && count($unidadIds) > 0) {
             $unidadIds = array_values(array_filter(array_map('intval', $unidadIds), static fn (int $v): bool => $v > 0));
@@ -194,6 +271,10 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * Aplica filtros por "código" (string) sobre una relación (Estado o EstadoPago).
+     * Soporta valores únicos, arrays 'IN', y arrays con 'in'/'not_in'.
+     */
     private function applyCodigoFilter(QueryBuilder $qb, string $alias, string $key, array $filters): void
     {
         if (!array_key_exists($key, $filters)) {
@@ -226,6 +307,16 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
         }
     }
 
+    /**
+     * Construye las URLs de edición y visualización para el evento.
+     *
+     * 🔥 LÓGICA DE NAVEGACIÓN:
+     * Recupera el parámetro 'runtime_returnTo' inyectado por el controlador
+     * y lo agrega a la URL generada como 'returnTo'. Esto permite que, al
+     * guardar en el Admin, el usuario regrese automáticamente al calendario.
+     *
+     * @return array{0: ?string, 1: ?string} [urlEdit, urlShow]
+     */
     private function buildUrls(PmsEventoCalendario $evento, ?object $reserva, array $config): array
     {
         $cfg = $config['event']['url'] ?? null;
@@ -233,7 +324,10 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             return [null, null];
         }
 
-        // Decide target admin depending on whether there is a reserva
+        // 1. CAPTURAMOS EL PASAPORTE (TOKEN BASE64)
+        // Esta variable se inyecta dinámicamente en el Controller (FullcalendarLoadController)
+        $runtimeReturnTo = $config['runtime_returnTo'] ?? null;
+
         $useReserva = false;
         $targetId = null;
 
@@ -253,14 +347,12 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             $targetId = $eid;
         }
 
-        // Base params (optional)
         $baseParams = [];
         if (isset($cfg['params']) && is_array($cfg['params'])) {
             $baseParams = $cfg['params'];
         }
 
-        // Key mapping (support legacy keys too)
-        // NOTE: user yaml sometimes had a typo `reseervaEdit`, we support it.
+        // Selección de claves según si editamos la Reserva o el Evento suelto
         if ($useReserva) {
             $keyEdit = array_key_exists('reservaEdit', $cfg) ? 'reservaEdit' : (array_key_exists('reseervaEdit', $cfg) ? 'reseervaEdit' : 'edit');
             $keyShow = array_key_exists('reservaShow', $cfg) ? 'reservaShow' : 'show';
@@ -269,11 +361,11 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             $keyShow = array_key_exists('eventoCalendarioShow', $cfg) ? 'eventoCalendarioShow' : 'show';
         }
 
-        $edit = null;
-        $show = null;
-
-        // Helper to build a single url from a block
-        $build = function (string $blockKey) use ($cfg, $baseParams, $targetId): ?string {
+        /**
+         * Closure auxiliar para construir una URL específica.
+         * Importamos $runtimeReturnTo para inyectarlo en los parámetros.
+         */
+        $build = function (string $blockKey) use ($cfg, $baseParams, $targetId, $runtimeReturnTo): ?string {
             if (!isset($cfg[$blockKey]) || !is_array($cfg[$blockKey])) {
                 return null;
             }
@@ -288,7 +380,10 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
                 return null;
             }
 
-            $params = ['id' => $targetId];
+            $params = [
+                'id'       => $targetId, // Parámetro para Legacy Admin / Oweb
+                'entityId' => $targetId, // Parámetro estándar para EasyAdmin
+            ];
 
             if (!empty($baseParams)) {
                 $params = array_merge($params, $baseParams);
@@ -298,17 +393,20 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
                 $params = array_merge($params, $cfg[$blockKey]['params']);
             }
 
-            // default tl=es if not provided
             if (!array_key_exists('tl', $params)) {
                 $params['tl'] = 'es';
+            }
+
+            // 🔥 2. INYECCIÓN DEL TOKEN DE NAVEGACIÓN
+            // Si existe el token, lo agregamos como 'returnTo'.
+            // El Listener y los Controladores del Panel usarán esto para volver.
+            if (!empty($runtimeReturnTo)) {
+                $params['returnTo'] = $runtimeReturnTo;
             }
 
             return $this->router->generate($route, $params);
         };
 
-        $edit = $build($keyEdit);
-        $show = $build($keyShow);
-
-        return [$edit, $show];
+        return [$build($keyEdit), $build($keyShow)];
     }
 }

@@ -2,9 +2,9 @@
 
 namespace App\Pms\Factory;
 
-use App\Pms\Entity\PmsTarifaRango;
 use App\Entity\MaestroMoneda;
-use App\Repository\MaestroMonedaRepository;
+use App\Oweb\Repository\MaestroMonedaRepository;
+use App\Pms\Entity\PmsTarifaRango;
 
 /**
  * Factory para la creación de entidades {@see PmsTarifaRango}.

@@ -1,0 +1,141 @@
+{# templates/oweb/block/user_block.html.twig #}
+{% if app.user %}
+    <li class="dropdown user user-menu">
+        {# Link principal: con ambos atributos data-toggle para máxima compatibilidad #}
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fa fa-user" aria-hidden="true"></i>
+            <span class="hidden-xs font-weight-bold">{{ app.user.email }}</span>
+            <span class="caret"></span>
+        </a>
+
+        <ul class="dropdown-menu shadow-lg">
+            {# --- HEADER: Fondo oscuro con avatar simulado --- #}
+            <li class="user-header">
+                <div class="user-avatar-placeholder">
+                    <i class="fa fa-user" aria-hidden="true"></i>
+                </div>
+
+                <p>
+                    <strong class="user-email-text">{{ app.user.email }}</strong>
+                    <small class="user-role-text">
+                        {% if app.user.roles is defined %}
+                            {{ app.user.roles|last|replace({'ROLE_':'','_':' '})|title }}
+                        {% else %}
+                            Administrador
+                        {% endif %}
+                    </small>
+                </p>
+            </li>
+
+            {# --- FOOTER: Botones de acción --- #}
+            <li class="user-footer">
+                <div class="pull-left">
+                    <a href="#" class="btn btn-default btn-flat btn-custom">Perfil</a>
+                </div>
+                <div class="pull-right">
+                    {# Logout seguro via POST #}
+                    <form method="post" action="{{ path('app_logout') }}" class="logout-form">
+                        <button type="submit" class="btn btn-default btn-flat btn-custom">
+                            Salir <i class="fa fa-sign-out" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+    </li>
+
+    {# Estilos específicos para este bloque #}
+    <style>
+        /* 1. CONTENEDOR DEL MENÚ */
+        .navbar-nav > .user-menu > .dropdown-menu {
+            width: 300px !important; /* Ancho suficiente para correos largos */
+
+            /* Alineación a la derecha CRÍTICA para evitar desborde */
+            right: 0 !important;
+            left: auto !important;
+
+            border: 0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+            margin-top: 0;
+            padding: 0; /* Reset del padding del UL */
+        }
+
+        /* 2. CABECERA OSCURA */
+        .user-header {
+            background-color: #222d32 !important; /* Gris oscuro AdminLTE */
+            padding: 25px 10px !important;
+            text-align: center;
+        }
+
+        /* 3. AVATAR (CIRCULO) */
+        .user-avatar-placeholder {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px auto;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.1);
+        }
+
+        .user-avatar-placeholder i {
+            font-size: 40px;
+            color: #fff;
+        }
+
+        /* 4. TIPOGRAFÍA */
+        .user-email-text {
+            display: block;
+            font-size: 16px;
+            color: #fff;
+            margin-bottom: 5px;
+            white-space: nowrap; /* Mantiene el correo en una línea */
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-role-text {
+            display: block;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6) !important;
+            font-weight: 300;
+        }
+
+        /* 5. PIE DE PÁGINA (FOOTER) */
+        .user-footer {
+            background-color: #f9f9f9 !important;
+            padding: 15px !important;
+            border-top: 1px solid #eee;
+        }
+
+        /* Fix para floats (clearfix) */
+        .user-footer::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        /* 6. BOTONES */
+        .btn-custom {
+            border-radius: 4px !important;
+            padding: 6px 16px !important;
+            font-weight: 600;
+            color: #666;
+            border-color: #ddd;
+            background-color: #f4f4f4;
+        }
+
+        .btn-custom:hover {
+            background-color: #e7e7e7;
+            color: #333;
+            border-color: #adadad;
+        }
+
+        .logout-form {
+            display: inline-block;
+            margin: 0;
+        }
+    </style>
+{% endif %}

@@ -1,0 +1,17 @@
+:root {
+    /* Identidad PMS */
+    --pms-primary: #2d3f4f;
+    --pms-accent: #ff8a00;
+    --pms-success: #2e9e6d;
+
+    /* Paleta Neutral */
+    --c-text: #222222;
+    --c-muted: #6c757d;
+    --c-border: #eef1f4;
+    --c-shadow: rgba(0,0,0,.08);
+
+    /* Estados Beds24 */
+    --sync-pending: #f1c40f;
+    --sync-error: #e74c3c;
+    --sync-ok: #27ae60;
+}

@@ -1,14 +1,28 @@
 imports:
+
     - { resource: 'services/services_parameters.yaml' }
     - { resource: 'services/services_core.yaml' }
+
+
     - { resource: 'services/services_calendar.yaml' }
-    - { resource: 'services/services_comprobante.yaml' }
-    - { resource: 'services/services_cotizacion.yaml' }
-    - { resource: 'services/services_cuenta.yaml' }
-    - { resource: 'services/services_fit.yaml' }
-    - { resource: 'services/services_maestros.yaml' }
-    - { resource: 'services/services_organizacion.yaml' }
+
     - { resource: 'services/services_pms.yaml' }
-    - { resource: 'services/services_reserva.yaml' }
-    - { resource: 'services/services_servicio.yaml' }
-    - { resource: 'services/services_transporte.yaml' }
+
+    - { resource: 'services/services_exchange.yaml' }
+
+    - { resource: 'services/services_api.yaml' }
+
+    - { resource: 'services/services_front.yaml' }
+
+    - { resource: 'services/services_oweb.yaml' }
+    - { resource: 'services/services_oweb_comprobante.yaml' }
+    - { resource: 'services/services_oweb_cotizacion.yaml' }
+    - { resource: 'services/services_oweb_cuenta.yaml' }
+    - { resource: 'services/services_oweb_fit.yaml' }
+    - { resource: 'services/services_oweb_maestros.yaml' }
+    - { resource: 'services/services_oweb_organizacion.yaml' }
+    - { resource: 'services/services_oweb_reserva.yaml' }
+    - { resource: 'services/services_oweb_servicio.yaml' }
+    - { resource: 'services/services_oweb_transporte.yaml' }
+
+    - { resource: 'services/services_panel.yaml' }

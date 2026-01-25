@@ -1,30 +1,43 @@
-
 ###> symfony/framework-bundle ###
 /.env.local
 /.env.local.php
 /.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
 /public/bundles/
-/public/carga/
-/public/debug/
 /var/
 /vendor/
-###< symfony/framework-bundle ###
 
-###> symfony/webpack-encore-bundle ###
+
+###> PERSONALIZADO PMS ###
+# Carpetas de carga de archivos/documentos del sistema
+/public/carga/
+/public/debug/
+
+# Evitar que se suban por accidente si alguien intenta usar npm
 /node_modules/
-#/public/build/
-npm-debug.log
+/public/build/
 yarn-error.log
-###< symfony/webpack-encore-bundle ###
+npm-debug.log
+.DS_Store
+###< PERSONALIZADO PMS ###
 
+###> HERRAMIENTAS ###
 /composer.lock
-/yarn.lock
-
-###> phpstan/phpstan ###
 phpstan.neon
-###< phpstan/phpstan ###
-
-###> PHPStorm ###
 .idea/
-###< PHPStorm ###
+.vscode/
+###< HERRAMIENTAS ###
+###> symfony/asset-mapper ###
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###
+
+###> liip/imagine-bundle ###
+/public/media/cache/
+###< liip/imagine-bundle ###
+
+###> varios ###
+cookies.txt
+/debug/
+###< varios ###
+

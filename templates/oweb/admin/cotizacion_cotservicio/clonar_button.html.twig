@@ -1,0 +1,92 @@
+{% if object is defined and object.id is not null and admin.isGranted('EDIT', object) and admin.hasRoute('clonar')%}
+    <li>
+        <a id="clonarLink-{{ object.id }}" class="sonata-action-element" href="{{ admin.generateObjectUrl('clonar', object) }}">
+            <i class="fa fa-clone" aria-hidden="true"></i>
+            Clonar
+        </a>
+        <script>
+            $("#clonarLink-{{ object.id }}").click(function(e) {
+                e.preventDefault();
+                var $link = $(this);
+
+                bootbox.confirm({
+                    title: "Esta seguro que desea clonar el servicio a otra cotización? (Opcionalmente cambie la fecha de inicio)",
+                    message:
+                        '<div id="oweb-ba-field-containerb-cotizacion-{{ object.id }}" class="form-group">' +
+
+                            '<label class="control-label required" for="b_cotizacion-{{ object.id }}">Cotización de destino</label>' +
+
+                            '<div class="oweb-ba-field oweb-ba-field-standard-natural">' +
+                                '<div class="input-group">' +
+                                    '<div class="input-group date">' +
+                                        '<input type="text" id="b_cotizacion-{{ object.id }}" name="cotizacion" class="form-control">' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div id="oweb-ba-field-containerb-fechainicio-{{ object.id }}" class="form-group">' +
+
+                            '<label class="control-label required" for="b_fechainicio-{{ object.id }}">Fecha de inicio</label>' +
+
+                            '<div class="oweb-ba-field oweb-ba-field-standard-natural">' +
+                                '<div class="input-group">' +
+                                    '<div class="input-group date" id="dpb_fechainicio-{{ object.id }}">' +
+                                        '<input type="text" id="b_fechainicio-{{ object.id }}" name="fechainicio" class="oweb-medium-date form-control" data-date-format="YYYY/MM/DD">' +
+                                            '<span class="input-group-addon">' +
+                                                '<span class="fa-calendar fa"></span>' +
+                                            '</span>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>',
+                    buttons: {
+                        confirm: {
+                            label: 'Si',
+                            className: 'btn-danger'
+                        },
+                        cancel: {
+                            label: 'No',
+                        }
+                    },
+                    callback: function (result) {
+                        if (result === true) {
+                            document.location.assign($link.attr('href'));
+                        }
+                    }
+                });
+                $('#dpb_fechainicio-{{ object.id }}').datetimepicker({"pickTime":false,"pickDate":true,"useCurrent":true,"minDate":"{{ 'now'|date('Y/m/d')|escape('js') }}","maxDate":null,"language":"es","disabledDates":[],"enabledDates":[],"icons":{"time":"fa fa-clock-o","date":"fa fa-calendar","up":"fa fa-chevron-up","down":"fa fa-chevron-down"},"useStrict":false,"sideBySide":false,"daysOfWeekDisabled":[],"collapse":true,"calendarWeeks":false,"viewMode":"days","minViewMode":"days","showToday":true,"useSeconds":false}).on('dp.change', function (ev) {
+                    $('#b_fechainicio-{{ object.id }}').change();
+                });
+
+                function replaceUrlParam(url, paramName, paramValue){
+                    let pattern = new RegExp('(\\?|\\&)(' + paramName + '=).*?(&|$)');
+                    let newUrl = url;
+                    if(url.search(pattern) >= 0){
+                        newUrl = url.replace(pattern,'$1$2' + paramValue + '$3');
+                    }
+                    else{
+                        newUrl = newUrl + (newUrl.indexOf('?') > 0 ? '&' : '?') + paramName + '=' + paramValue
+                    }
+                    return newUrl
+                }
+                //limpio
+                let paramsString = $('#clonarLink-{{ object.id }}').attr('href');
+                $('#clonarLink-{{ object.id }}').attr('href', replaceUrlParam(paramsString, 'fechainicio', ''));
+
+                paramsString = $('#clonarLink-{{ object.id }}').attr('href');
+                $('#clonarLink-{{ object.id }}').attr('href', replaceUrlParam(paramsString, 'cotizacion_id', ''));
+
+
+                $('#b_fechainicio-{{ object.id }}').on('input change',function(e){
+                    let paramsString = $('#clonarLink-{{ object.id }}').attr('href');
+                    $('#clonarLink-{{ object.id }}').attr('href', replaceUrlParam(paramsString, 'fechainicio', encodeURIComponent($(this).val())));
+                })
+                $('#b_cotizacion-{{ object.id }}').on('input change',function(e){
+                    let paramsString = $('#clonarLink-{{ object.id }}').attr('href');
+                    $('#clonarLink-{{ object.id }}').attr('href', replaceUrlParam(paramsString, 'cotizacion_id', encodeURIComponent($(this).val())));
+                })
+
+            });
+        </script>
+    </li>
+{% endif %}

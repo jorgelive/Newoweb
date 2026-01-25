@@ -1,0 +1,30 @@
+# config/services/services_oweb.yaml
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # =========================
+    # controllers del módulo Pms
+    # (fuera de src/Controller/)
+    # =========================
+    App\Oweb\Controller\:
+        resource: '../../src/Oweb/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+            - 'controller.service_arguments'
+
+    app.oweb.block.tareas_block_service:
+        class: 'App\Oweb\Block\TareasBlockService'
+        tags:
+            -   name: sonata.block
+
+    Gedmo\Translatable\TranslatableListener:
+        alias: 'stof_doctrine_extensions.listener.translatable'
+
+    App\Oweb\Service\AdminDecoratingDataSource:
+        decorates: sonata.admin.data_source.orm
+
+

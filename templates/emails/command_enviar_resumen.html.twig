@@ -22,7 +22,7 @@
         </tr>
         {% for alerta in alertas %}
             <tr style="border-bottom: 1px solid {{ colores.azul_acero }};">
-                 {% if alerta.idEstado == constant('App\\Entity\\CotizacionEstadocotcomponente::DB_VALOR_PENDIENTE') %}
+                 {% if alerta.idEstado == constant('App\\Oweb\\Entity\\CotizacionEstadocotcomponente::DB_VALOR_PENDIENTE') %}
                      {% set color = colores.rojo_oscuro %}
                  {% else %}
                      {% set color = colores.naranja %}
@@ -33,13 +33,13 @@
                     <span style="font-weight: bold;">{{ alerta.nombreFile }}</span>
                 </td>
                 <td style="padding: 0 4px 0 4px;">
-                    {{alerta.nombreServicio}}<br /> <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_cotizacioncotservicio_edit', {'id': alerta.idServicio }) }}">Editar</a>
+                    {{alerta.nombreServicio}}<br /> <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_oweb_cotizacioncotservicio_edit', {'id': alerta.idServicio }) }}">Editar</a>
                 </td>
                 <td style="padding: 0 4px 0 4px;">
-                    {{alerta.nombreComponente}}<br /> <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_cotizacioncotcomponente_show', {'id': alerta.id }) }}">Enviar reconfirmación</a>
+                    {{alerta.nombreComponente}}<br /> <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_oweb_cotizacioncotcomponente_show', {'id': alerta.id }) }}">Enviar reconfirmación</a>
                 </td>
                 <td style="padding: 0 4px 0 4px;">
-                    {{alerta.codigoCotizacion}}<br /> <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_cotizacioncotizacion_show', {'id': alerta.idCotizacion }) }}">Mostrar</a>
+                    {{alerta.codigoCotizacion}}<br /> <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_oweb_cotizacioncotizacion_show', {'id': alerta.idCotizacion }) }}">Mostrar</a>
                 </td>
             </tr>
         {% endfor %}
@@ -81,7 +81,7 @@
                             {{ reserva.channel.nombre }}
                         </td>
                         <td style="padding: 0 4px 0 4px;">
-                            <a href="{{ url('admin_app_reservareserva_show', {'id': reserva.id }) }}">{{ reserva.nombre }}</a>
+                            <a href="{{ url('admin_app_oweb_reservareserva_show', {'id': reserva.id }) }}">{{ reserva.nombre }}</a>
                         </td>
                         <td style="padding: 0 4px 0 4px;">
                             {{ reserva.cantidadadultos }}
@@ -125,7 +125,7 @@
                             {{ servicio.fechahorainicio|date('H:i') }}
                         </td>
                         <td style="padding: 0 4px 0 4px;">
-                            <a href="{{ url('admin_app_cotizacioncotservicio_show', {'id': servicio.id }) }}">{{ servicio.resumen }}</a>
+                            <a href="{{ url('admin_app_oweb_cotizacioncotservicio_show', {'id': servicio.id }) }}">{{ servicio.resumen }}</a>
                         </td>
                         <td style="padding: 0 4px 0 4px;">
                             {{ servicio.itinerario.nombre }}

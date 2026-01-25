@@ -7,8 +7,8 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use App\Pms\Entity\PmsTarifaQueue;
-use App\Pms\Entity\PmsPullQueueJob;
+use App\Pms\Entity\PmsRatesPushQueue;
+use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Entity\MaestroMoneda;
 
 #[ORM\Entity]
@@ -38,15 +38,15 @@ class PmsUnidad
 
     // --- TARIFA BASE (fallback cuando no hay rangos ganadores) ---
 
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
-    private ?string $tarifaBasePrecio = null;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: false)]
+    private string $tarifaBasePrecio = '0.00';
 
-    #[ORM\Column(type: 'smallint', options: ['default' => 2], nullable: true)]
-    private ?int $tarifaBaseMinStay = 2;
+    #[ORM\Column(type: 'smallint', options: ['default' => 2], nullable: false)]
+    private int $tarifaBaseMinStay = 2;
 
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?MaestroMoneda $tarifaBaseMoneda = null;
+    #[ORM\JoinColumn(nullable: false)]
+    private MaestroMoneda $tarifaBaseMoneda;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true], nullable: true)]
     private ?bool $tarifaBaseActiva = true;
@@ -54,10 +54,10 @@ class PmsUnidad
     #[ORM\OneToMany(mappedBy: 'pmsUnidad', targetEntity: PmsUnidadBeds24Map::class, orphanRemoval: true)]
     private Collection $beds24Maps;
 
-    #[ORM\OneToMany(mappedBy: 'unidad', targetEntity: PmsTarifaQueue::class, orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'unidad', targetEntity: PmsRatesPushQueue::class, orphanRemoval: true)]
     private Collection $tarifaQueues;
 
-    #[ORM\ManyToMany(targetEntity: PmsPullQueueJob::class, mappedBy: 'unidades')]
+    #[ORM\ManyToMany(targetEntity: PmsBookingsPullQueue::class, mappedBy: 'unidades')]
     private Collection $pullQueueJobs;
 
     #[Gedmo\Timestampable(on: 'create')]
@@ -69,10 +69,6 @@ class PmsUnidad
         $this->beds24Maps = new ArrayCollection();
         $this->tarifaQueues = new ArrayCollection();
         $this->pullQueueJobs = new ArrayCollection();
-        // Ensure tarifa base fields are not null at runtime
-        $this->tarifaBasePrecio = $this->tarifaBasePrecio ?? '0.00';
-        $this->tarifaBaseMinStay = $this->tarifaBaseMinStay ?? 2;
-        $this->tarifaBaseActiva = $this->tarifaBaseActiva ?? true;
     }
 
 
@@ -145,31 +141,30 @@ class PmsUnidad
         return $this;
     }
 
-    public function getTarifaBasePrecio(): ?string
+    public function getTarifaBasePrecio(): string
     {
-        return $this->tarifaBasePrecio ?? '0.00';
+        return $this->tarifaBasePrecio;
     }
 
-    public function setTarifaBasePrecio(?string $tarifaBasePrecio): self
+    public function setTarifaBasePrecio(string $tarifaBasePrecio): self
     {
         $this->tarifaBasePrecio = $tarifaBasePrecio;
         return $this;
     }
 
-    public function getTarifaBaseMinStay(): ?int
+    public function getTarifaBaseMinStay(): int
     {
-        return $this->tarifaBaseMinStay ?? 2;
+        return $this->tarifaBaseMinStay;
     }
 
-    public function setTarifaBaseMinStay(?int $tarifaBaseMinStay): self
+    public function setTarifaBaseMinStay(int $tarifaBaseMinStay): self
     {
         $this->tarifaBaseMinStay = $tarifaBaseMinStay;
         return $this;
     }
 
-    public function getTarifaBaseMoneda(): ?MaestroMoneda
+    public function getTarifaBaseMoneda(): MaestroMoneda
     {
-        // May return null if not set; use getTarifaBaseMonedaOrFail() for a guaranteed value.
         return $this->tarifaBaseMoneda;
     }
 
@@ -181,7 +176,7 @@ class PmsUnidad
         return $this->tarifaBaseMoneda;
     }
 
-    public function setTarifaBaseMoneda(?MaestroMoneda $tarifaBaseMoneda): self
+    public function setTarifaBaseMoneda(MaestroMoneda $tarifaBaseMoneda): self
     {
         $this->tarifaBaseMoneda = $tarifaBaseMoneda;
         return $this;
@@ -242,7 +237,7 @@ class PmsUnidad
         return $this->tarifaQueues;
     }
 
-    public function addTarifaQueue(PmsTarifaQueue $queue): self
+    public function addTarifaQueue(PmsRatesPushQueue $queue): self
     {
         if (!$this->tarifaQueues->contains($queue)) {
             $this->tarifaQueues->add($queue);
@@ -252,7 +247,7 @@ class PmsUnidad
         return $this;
     }
 
-    public function removeTarifaQueue(PmsTarifaQueue $queue): self
+    public function removeTarifaQueue(PmsRatesPushQueue $queue): self
     {
         if ($this->tarifaQueues->removeElement($queue)) {
             // owning side handled by orphanRemoval
@@ -266,7 +261,7 @@ class PmsUnidad
         return $this->pullQueueJobs;
     }
 
-    public function addPullQueueJob(PmsPullQueueJob $job): self
+    public function addPullQueueJob(PmsBookingsPullQueue $job): self
     {
         if (!$this->pullQueueJobs->contains($job)) {
             $this->pullQueueJobs->add($job);
@@ -276,10 +271,10 @@ class PmsUnidad
         return $this;
     }
 
-    public function removePullQueueJob(PmsPullQueueJob $job): self
+    public function removePullQueueJob(PmsBookingsPullQueue $job): self
     {
         if ($this->pullQueueJobs->removeElement($job)) {
-            // owning side handled by PmsPullQueueJob
+            // owning side handled by PmsBookingsPullQueue
         }
 
         return $this;

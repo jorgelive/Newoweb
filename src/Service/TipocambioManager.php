@@ -1,122 +1,246 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Dto\ExchangeRateDto;
 use App\Entity\MaestroMoneda;
-use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\MaestroTipocambio;
+use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use DateTime;
+use DateTimeImmutable;
+use Exception;
 
-class TipocambioManager{
+class TipocambioManager
+{
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly HttpClientInterface $client,
+        private readonly LoggerInterface $logger,
+        private readonly string $sunatApiToken
+    ) {}
 
-    private EntityManagerInterface $em;
-
-    function __construct(EntityManagerInterface $em)
+    public function getTipodecambio(DateTime $fecha): ?MaestroTipocambio
     {
-        $this->em = $em;
-    }
+        $repo = $this->em->getRepository(MaestroTipocambio::class);
 
-    public function getTipodecambio(\DateTime $fecha): MaestroTipocambio
-    {
-        $enDB = $this->em->getRepository('App\Entity\MaestroTipocambio')
-            ->findOneBy(['moneda' => 2, 'fecha' => $fecha]);
+        // 1) Caché Local (BD): día exacto
+        $enDB = $repo->findOneBy([
+            'moneda' => MaestroMoneda::DB_VALOR_DOLAR,
+            'fecha' => $fecha
+        ]);
 
-        if($enDB){
+        if ($enDB instanceof MaestroTipocambio) {
             return $enDB;
         }
 
-        $valoresMensual = $this->formatearValores($this->leerPagina($fecha));
+        // 2) Consultar API (mes o día)
+        $dtos = $this->fetchExternalData($fecha);
 
-        if(!empty($valoresMensual)){
-            if(isset($valoresMensual[$fecha->format('Y-m-d')])){
-                $valorFecha = $valoresMensual[$fecha->format('Y-m-d')];
-            }else{
-                //retornamos el ultimo valor del array
-                $valorFecha = end($valoresMensual);
-            }
-            return $this->insertTipo($valorFecha, $fecha);
-        }else{
-            //retornamos la entidad vacia
-            return new MaestroTipocambio();
+        // 3) Si API no responde / vacío => fallback a última fecha disponible en BD
+        if (empty($dtos)) {
+            return $this->findLastAvailableInDb($fecha);
         }
+
+        // 4) Guardado Masivo
+        $this->persistMonthData($dtos, $fecha);
+
+        // 5) Retorno: buscamos el día exacto o el último hábil anterior (de la data de API)
+        $bestDto = $this->findBestMatch($dtos, $fecha);
+
+        if (!$bestDto instanceof ExchangeRateDto) {
+            // Por seguridad: si vino data pero no match, igual caemos a BD
+            return $this->findLastAvailableInDb($fecha);
+        }
+
+        // Buscamos la entidad recién creada para retornarla (o la existente)
+        $entity = $repo->findOneBy([
+            'moneda' => MaestroMoneda::DB_VALOR_DOLAR,
+            'fecha' => DateTime::createFromImmutable($bestDto->date)
+        ]);
+
+        // Si por alguna razón no quedó en BD, fallback final
+        return $entity instanceof MaestroTipocambio ? $entity : $this->findLastAvailableInDb($fecha);
     }
 
-    private function insertTipo(array $tipo, \DateTime $fecha): MaestroTipocambio
+    private function fetchExternalData(DateTime $fecha): array
     {
+        $headersNavegador = [
+            'Authorization' => 'Bearer ' . $this->sunatApiToken,
+            'Referer'       => 'https://apis.net.pe/tipo-de-cambio-sunat-api',
+            'User-Agent'    => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept'        => 'application/json',
+        ];
 
-        $moneda = $this->em->getReference('App\Entity\MaestroMoneda', MaestroMoneda::DB_VALOR_DOLAR);
-
-        $entity = new MaestroTipocambio();
-        $entity->setCompra($tipo['compra']);
-        $entity->setVenta($tipo['venta']);
-        $entity->setFecha($fecha);
-        $entity->setMoneda($moneda);
-
-        $this->em->persist($entity);
-        $this->em->flush();
-
-        return $entity;
-    }
-
-    private function leerPagina(\DateTime $fecha): array
-    {
-        $token = 'apis-token-1.aTSI1U7KEuT-6bbbCguH-4Y8TI6KS73N';
-
+        // --- INTENTO A: Traer todo el MES (v1) ---
         try {
-            $ch = curl_init();
+            $response = $this->client->request('GET', 'https://api.apis.net.pe/v1/tipo-cambio-sunat', [
+                'query' => [
+                    'month' => $fecha->format('m'),
+                    'year'  => $fecha->format('Y'),
+                ],
+                'headers' => $headersNavegador,
+                'timeout' => 8,
+            ]);
 
-            // Check if initialization had gone wrong*
-            if($ch === false) {
-                throw new \Exception('failed to initialize');
+            if ($response->getStatusCode() === 200) {
+                return $this->parseResponse($response->toArray());
             }
 
-            curl_setopt_array($ch, array(
-                CURLOPT_URL => 'https://api.apis.net.pe/v1/tipo-cambio-sunat?month=' . $fecha->format('m') . '&year=' .  $fecha->format('Y'),
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 2,
-                CURLOPT_TIMEOUT => 0,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'GET',
-                CURLOPT_HTTPHEADER => array(
-                    'Referer: https://apis.net.pe/tipo-de-cambio-sunat-api',
-                    'Authorization: Bearer ' . $token
-                ),
-            ));
+            $this->logger->warning(sprintf('Consulta mensual v1 falló con código %d. Intentando diaria.', $response->getStatusCode()));
 
-            $content = curl_exec($ch);
+        } catch (Exception $e) {
+            $this->logger->warning('Error conexión mensual v1: ' . $e->getMessage());
+        }
 
-            // Check the return value of curl_exec(), too
-            if($content === false) {
-                throw new \Exception(curl_error($ch), curl_errno($ch));
+        // --- INTENTO B: Fallback al DÍA EXACTO (v1) ---
+        try {
+            $response = $this->client->request('GET', 'https://api.apis.net.pe/v1/tipo-cambio-sunat', [
+                'query' => [
+                    'fecha' => $fecha->format('Y-m-d')
+                ],
+                'headers' => $headersNavegador,
+                'timeout' => 10,
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                return $this->parseResponse($response->toArray());
             }
 
-            $data = json_decode($content,true);
+            return [];
 
-            curl_close($ch);
-
-            return $data;
-
-        } catch(\Exception $e) {
-
-            trigger_error(sprintf(
-                'Falló la lectura de la pagina apis.net.pe #%d: %s',
-                $e->getCode(), $e->getMessage()),
-                E_USER_ERROR);
+        } catch (Exception $e) {
+            $this->logger->critical('Error fatal API SUNAT: ' . $e->getMessage());
+            return [];
         }
     }
 
-    private function formatearValores(array $array): array
+    private function parseResponse(array $data): array
     {
-        $result = [];
+        $listaProcesar = [];
 
-        foreach($array as $index => $valor) {
-            $fecha = $valor['fecha'];
-            $result[$fecha]['date'] = new \DateTime($fecha);
-            $result[$fecha]['compra'] = $valor['compra'];
-            $result[$fecha]['venta'] = $valor['venta'];
+        if (isset($data['fecha'])) {
+            $listaProcesar = [$data];
+        } else {
+            $listaProcesar = $data;
         }
-        return $result;
+
+        $dtos = [];
+        foreach ($listaProcesar as $item) {
+            if (!isset($item['fecha'], $item['compra'], $item['venta'])) {
+                continue;
+            }
+
+            $fechaStr = substr((string)$item['fecha'], 0, 10);
+
+            // 🔥 CORRECCIÓN AQUÍ: Casting explícito a (string)
+            $dtos[$fechaStr] = new ExchangeRateDto(
+                new DateTimeImmutable($fechaStr),
+                (string) $item['compra'], // Force String
+                (string) $item['venta'],  // Force String
+                (string) ($item['moneda'] ?? MaestroMoneda::DB_CODIGO_DOLAR)
+            );
+        }
+
+        return $dtos;
     }
 
+    private function persistMonthData(array $dtos, DateTime $fechaReferencia): void
+    {
+        $inicio = (clone $fechaReferencia)->modify('first day of this month')->setTime(0,0,0);
+        $fin    = (clone $fechaReferencia)->modify('last day of this month')->setTime(23,59,59);
+
+        $existingRows = $this->em->getRepository(MaestroTipocambio::class)
+            ->createQueryBuilder('tc')
+            ->select('tc.fecha')
+            ->where('tc.moneda = :moneda')
+            ->andWhere('tc.fecha >= :inicio AND tc.fecha <= :fin')
+            ->setParameter('moneda', MaestroMoneda::DB_VALOR_DOLAR)
+            ->setParameter('inicio', $inicio)
+            ->setParameter('fin', $fin)
+            ->getQuery()
+            ->getResult();
+
+        $existingMap = [];
+        foreach ($existingRows as $row) {
+            $f = $row['fecha'] instanceof \DateTimeInterface ? $row['fecha'] : new DateTime((string)$row['fecha']);
+            $existingMap[$f->format('Y-m-d')] = true;
+        }
+
+        $monedaRef = $this->em->getReference(MaestroMoneda::class, MaestroMoneda::DB_VALOR_DOLAR);
+        $batchSize = 20;
+        $i = 0;
+
+        foreach ($dtos as $dto) {
+            if ($dto->currencyCode !== 'USD' && $dto->currencyCode !== MaestroMoneda::DB_CODIGO_DOLAR) {
+                continue;
+            }
+
+            $key = $dto->date->format('Y-m-d');
+
+            if (isset($existingMap[$key])) {
+                continue;
+            }
+
+            $entity = new MaestroTipocambio();
+            $entity->setFecha(DateTime::createFromImmutable($dto->date));
+            // Ahora $dto->buy y $dto->sell son strings, así que esto funcionará perfecto
+            $entity->setCompra($dto->buy);
+            $entity->setVenta($dto->sell);
+            $entity->setMoneda($monedaRef);
+
+            $this->em->persist($entity);
+            $existingMap[$key] = true;
+
+            if (($i++ % $batchSize) === 0) {
+                $this->em->flush();
+            }
+        }
+        $this->em->flush();
+    }
+
+    private function findBestMatch(array $dtos, DateTime $targetDate): ?ExchangeRateDto
+    {
+        $tempDate = clone $targetDate;
+        for ($i = 0; $i < 7; $i++) {
+            $key = $tempDate->format('Y-m-d');
+            if (isset($dtos[$key])) {
+                return $dtos[$key];
+            }
+            $tempDate->modify('-1 day');
+        }
+        return null;
+    }
+
+    private function findLastAvailableInDb(DateTime $fecha): ?MaestroTipocambio
+    {
+        // Preferencia: último <= fecha solicitada (lo más correcto para contabilidad)
+        $qb = $this->em->getRepository(MaestroTipocambio::class)->createQueryBuilder('tc');
+
+        $result = $qb
+            ->where('tc.moneda = :moneda')
+            ->andWhere('tc.fecha <= :fecha')
+            ->setParameter('moneda', MaestroMoneda::DB_VALOR_DOLAR)
+            ->setParameter('fecha', $fecha)
+            ->orderBy('tc.fecha', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($result instanceof MaestroTipocambio) {
+            return $result;
+        }
+
+        // Si no existe nada <= fecha (BD vacía o solo fechas futuras), devolvemos el último global
+        $qb2 = $this->em->getRepository(MaestroTipocambio::class)->createQueryBuilder('tc');
+        return $qb2
+            ->where('tc.moneda = :moneda')
+            ->setParameter('moneda', MaestroMoneda::DB_VALOR_DOLAR)
+            ->orderBy('tc.fecha', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

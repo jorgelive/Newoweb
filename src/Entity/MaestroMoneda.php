@@ -14,6 +14,8 @@ class MaestroMoneda
 {
     public const DB_VALOR_SOL = 1;
     public const DB_VALOR_DOLAR = 2;
+    public const DB_CODIGO_SOL = 'PEN';
+    public const DB_CODIGO_DOLAR = 'USD';
 
     #[ORM\Id]
     #[ORM\Column(type: 'integer')]
@@ -35,7 +37,7 @@ class MaestroMoneda
     /**
      * @var Collection
      */
-    #[ORM\OneToMany(targetEntity: 'MaestroTipocambio', mappedBy: 'moneda')]
+    #[ORM\OneToMany(targetEntity: MaestroTipocambio::class, mappedBy: 'moneda')]
     protected $tipocambios;
 
     /**

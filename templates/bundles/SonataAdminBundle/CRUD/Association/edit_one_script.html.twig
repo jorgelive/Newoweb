@@ -1,8 +1,8 @@
 {#
 
-This file is part of the Sonata package.
+This file is part of the Oweb package.
 
-(c) Thomas Rabaix <thomas.rabaix@sonata-project.org>
+(c) Thomas Rabaix <thomas.rabaix@oweb-project.org>
 
 For the full copyright and license information, please view the LICENSE
 file that was distributed with this source code.
@@ -78,8 +78,8 @@ This code manages the one-to-many association field popup
                     jQuery(form).attr('enctype', 'multipart/form-data');
                     jQuery(form).attr('encoding', 'multipart/form-data');
                 }
-                jQuery('#sonata-ba-field-container-{{ id }}').trigger('sonata.add_element');
-                jQuery('#field_container_{{ id }}').trigger('sonata.add_element');
+                jQuery('#oweb-ba-field-container-{{ id }}').trigger('oweb.add_element');
+                jQuery('#field_container_{{ id }}').trigger('oweb.add_element');
             }
         });
 

@@ -1,23 +1,64 @@
 security:
     role_hierarchy:
-        ROLE_USER:                  []  # <-- sin PUBLIC_ACCESS
-        ROLE_ADMIN:                 [ROLE_USER]
-        ROLE_FIT_EDITOR:            [ROLE_ADMIN]
-        ROLE_TARIFAS_EDITOR:        [ROLE_ADMIN]
-        ROLE_TRANSPORTES_EDITOR:    [ROLE_ADMIN]
-        ROLE_ADMINISTRACION_EDITOR: [ROLE_ADMIN]
-        ROLE_RESERVAS_EDITOR:       [ROLE_ADMIN]
-        ROLE_COTIZACIONES_EDITOR:   [ROLE_ADMIN]
-        ROLE_OPERACIONES_EDITOR:    [ROLE_ADMIN]
-        ROLE_SUPER_ADMIN:           [ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH, ROLE_FIT_EDITOR, ROLE_TRANSPORTES_EDITOR, ROLE_CARGA, ROLE_ADMINISTRACION_EDITOR, ROLE_TARIFAS_EDITOR, ROLE_RESERVAS_EDITOR, ROLE_COTIZACIONES_EDITOR, ROLE_OPERACIONES_EDITOR]
+        ROLE_USER: []
+
+        # --- 1. Lógica de Cascada (CRUD) ---
+        # Esto permite que tus Voters sean sencillos.
+        # Si preguntas is_granted('ROLE_..._SHOW'), responderá TRUE incluso si el usuario tiene WRITE o DELETE.
+
+        # Maestros
+        ROLE_MAESTROS_WRITE: [ ROLE_MAESTROS_SHOW ]
+        ROLE_MAESTROS_DELETE: [ ROLE_MAESTROS_WRITE ]
+
+        # Operaciones
+        ROLE_OPERACIONES_WRITE:     [ROLE_OPERACIONES_SHOW]
+        ROLE_OPERACIONES_DELETE:    [ROLE_OPERACIONES_WRITE]
+
+        # Reservas
+        ROLE_RESERVAS_WRITE:        [ROLE_RESERVAS_SHOW]
+        ROLE_RESERVAS_DELETE:       [ROLE_RESERVAS_WRITE]
+
+        # Mensajes
+        ROLE_MENSAJES_WRITE:        [ROLE_MENSAJES_SHOW]
+        ROLE_MENSAJES_DELETE:       [ROLE_MENSAJES_WRITE]
+
+        # --- 2. Roles Operativos (Personal de Campo) ---
+        # Estos roles suelen heredar solo de ROLE_USER porque su acceso es específico vía Voters.
+
+        ROLE_LIMPIEZA:           [ROLE_USER]
+        ROLE_MANTENIMIENTO:      [ROLE_USER]
+        ROLE_CONDUCTOR:          [ROLE_USER]
+        ROLE_TRASLADISTA:        [ROLE_USER]
+        ROLE_GUIA:               [ROLE_USER]
+
+        # Admin: Control total de los módulos de negocio
+        # Al heredar los _DELETE, automáticamente hereda _WRITE y _SHOW de todo.
+        ROLE_ADMIN:
+            - ROLE_USER
+            - ROLE_MAESTROS_DELETE
+            - ROLE_OPERACIONES_DELETE
+            - ROLE_RESERVAS_DELETE
+            - ROLE_MENSAJES_DELETE
+            # El Admin también puede actuar como personal de campo si es necesario
+            - ROLE_LIMPIEZA
+            - ROLE_MANTENIMIENTO
+            - ROLE_CONDUCTOR
+            - ROLE_TRASLADISTA
+            - ROLE_GUIA
+
+        # Super Admin: Acceso técnico total + Impersonación
+        ROLE_SUPER_ADMIN:
+            - ROLE_ADMIN
+            - ROLE_ALLOWED_TO_SWITCH
 
     password_hashers:
-        Sonata\UserBundle\Model\UserInterface: auto
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
     providers:
-        users_in_memory: { memory: null }
-        sonata_user_bundle:
-            id: sonata.user.security.user_provider
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: username
 
     firewalls:
         dev:
@@ -26,74 +67,49 @@ security:
 
         main:
             lazy: true
-            provider: sonata_user_bundle
-            context: user
+            provider: app_user_provider
+
             form_login:
-                login_path: sonata_user_admin_security_login
-                check_path: sonata_user_admin_security_check
-                default_target_path: sonata_admin_dashboard
-                use_referer: true
-                enable_csrf: true
-                csrf_token_id: authenticate
+                login_path: app_login
+                check_path: app_login
+
             logout:
-                path: sonata_user_admin_security_logout
-                target: sonata_user_admin_security_login
-                invalidate_session: true                  # <- invalida la sesión
-                delete_cookies: # <- borra cookies que te reautentican
-                    REMEMBERME: { path: / }                 # usa el mismo "path" que en remember_me
-                    PHPSESSID: { path: / }                  # opcional: borra cookie de sesión
+                path: app_logout
+                target: app_login
+                invalidate_session: true
 
             remember_me:
                 secret: '%env(APP_SECRET)%'
                 name: REMEMBERME
-                lifetime: 2629746           # ~30 días
-                path: /                # Si quieres “recordarme” también en /app, cambia a: /
+                lifetime: 2629746
+                path: /
+                domain: '%env(FRAMEWORK_SESION_COOKIE_DOMAIN)%'
 
     access_control:
-        # --- Públicos específicos (solo GET) ---
-        - { path: '^/app/cotizacioncotservicio/ical$',                 roles: PUBLIC_ACCESS, methods: [GET] }
+        # Login/logout públicos
+        - { path: '^/login$',  roles: PUBLIC_ACCESS }
+        - { path: '^/logout$', roles: PUBLIC_ACCESS }
 
+        # APIs públicas específicas (las tuyas)
+        - { path: '^/app/cotizacioncotservicio/ical$',                 roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: '^/app/reservareserva/ical$',                        roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: '^/app/reservareserva/\d+/resumen/[A-Za-z0-9]+$',    roles: PUBLIC_ACCESS, methods: [GET] }
-
         - { path: '^/app/reservaunit/\d+/ical$',                       roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: '^/app/reservaunit/\d+/ical\.ics$',                  roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: '^/app/reservaunitnexo/\d+/ical$',                   roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: '^/app/reservaunitnexo/\d+/ical\.ics$',              roles: PUBLIC_ACCESS, methods: [GET] }
-
         - { path: '^/app/reservaunit/\d+/inventario$',                 roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: '^/app/reservaunit/\d+/resumen$',                    roles: PUBLIC_ACCESS, methods: [GET] }
-
         - { path: '^/app/cotizacioncotizacion/\d+/resumen/[A-Za-z0-9]+$',  roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: '^/app/cotizacioncotizacion/\d+/operaciones/[A-Za-z0-9]+$', roles: PUBLIC_ACCESS, methods: [GET] }
-
         - { path: '^/app/cotizacionfile/\d+/resumen/[A-Za-z0-9]+$',    roles: PUBLIC_ACCESS, methods: [GET] }
-
         - { path: '^/app/fitdieta/\d+/resumen/[A-Za-z0-9]+$',          roles: PUBLIC_ACCESS, methods: [GET] }
 
-        # --- Admin: páginas de login/reset públicas ---
-        - { path: '^/admin/login$',        roles: PUBLIC_ACCESS }
-        - { path: '^/admin/logout$',       roles: PUBLIC_ACCESS }
-        - { path: '^/admin/login_check$',  roles: PUBLIC_ACCESS }
-        - { path: '^/admin/request$',      roles: PUBLIC_ACCESS }
-        - { path: '^/admin/check-email$',  roles: PUBLIC_ACCESS }
-        - { path: '^/admin/reset/.*$',     roles: PUBLIC_ACCESS }
+        # PANEL: todo requiere login (por host)
+        - { host: '%app.host.panel%', path: '^/', roles: ROLE_USER }
 
-        # --- Admin protegido ---
-        - { path: '^/admin',               roles: ROLE_USER }
+        # OWEB legacy (si quieres, también por host)
+        - { host: '%app.host.oweb%',  path: '^/', roles: ROLE_USER }
 
-        # --- App autenticada ---
-        - { path: '^/dashboard$',          roles: ROLE_USER }
-        - { path: '^/app/',                roles: ROLE_USER }
-
-        # --- Resto del sitio: público (si lo deseas así) ---
-        - { path: '^/.*',                  roles: PUBLIC_ACCESS }
-
-when@test:
-    security:
-        password_hashers:
-            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
-                algorithm: auto
-                cost: 4
-                time_cost: 3
-                memory_cost: 10
+        # Resto público
+        - { path: '^/.*', roles: PUBLIC_ACCESS }

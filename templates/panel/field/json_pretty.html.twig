@@ -1,0 +1,19 @@
+{# templates/panel/field/json_pretty.html.twig #}
+
+{% if value is empty %}
+    <span class="text-muted">—</span>
+{% else %}
+    <pre style="
+        max-height: 400px;
+        overflow: auto;
+        background: #0f172a;
+        color: #e5e7eb;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        line-height: 1.4;
+    ">{{ value is iterable
+        ? value|json_encode(constant('JSON_PRETTY_PRINT'))
+        : value
+        }}</pre>
+{% endif %}

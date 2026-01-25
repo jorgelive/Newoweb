@@ -4,12 +4,9 @@ namespace App\Pms\Entity;
 
 use App\Pms\Repository\PmsUnidadBeds24MapRepository;
 use DateTimeInterface;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use App\Pms\Entity\Beds24Config;
-use App\Pms\Entity\PmsTarifaQueueDelivery;
 
 #[ORM\Entity(repositoryClass: PmsUnidadBeds24MapRepository::class)]
 #[ORM\Table(
@@ -27,7 +24,7 @@ class PmsUnidadBeds24Map
 {
     public function __construct()
     {
-        $this->tarifaQueueDeliveries = new ArrayCollection();
+        // Colección eliminada por aplanamiento de arquitectura
     }
 
     #[ORM\Id]
@@ -76,8 +73,7 @@ class PmsUnidadBeds24Map
     #[ORM\Column(type: 'datetime')]
     private ?DateTimeInterface $updated = null;
 
-    #[ORM\OneToMany(mappedBy: 'unidadBeds24Map', targetEntity: PmsTarifaQueueDelivery::class, orphanRemoval: true)]
-    private Collection $tarifaQueueDeliveries;
+    // Relación OneToMany hacia Delivery eliminada.
 
     public function getId(): ?int
     {
@@ -191,30 +187,6 @@ class PmsUnidadBeds24Map
     public function getUpdated(): ?DateTimeInterface
     {
         return $this->updated;
-    }
-
-    public function getTarifaQueueDeliveries(): Collection
-    {
-        return $this->tarifaQueueDeliveries;
-    }
-
-    public function addTarifaQueueDelivery(PmsTarifaQueueDelivery $delivery): self
-    {
-        if (!$this->tarifaQueueDeliveries->contains($delivery)) {
-            $this->tarifaQueueDeliveries->add($delivery);
-            $delivery->setUnidadBeds24Map($this);
-        }
-
-        return $this;
-    }
-
-    public function removeTarifaQueueDelivery(PmsTarifaQueueDelivery $delivery): self
-    {
-        if ($this->tarifaQueueDeliveries->removeElement($delivery)) {
-            // owning side handled by orphanRemoval
-        }
-
-        return $this;
     }
 
     public function __toString(): string

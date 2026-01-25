@@ -1,0 +1,11 @@
+{% if admin.isGranted('show', object) %}
+    <a href="{{ url('admin_app_oweb_cotizacioncotcomponente_show', {'id': object.id }) }}"
+       class="btn btn-sm btn-success"
+       title="Mostrar componente">
+        <i class="fa fa-info" aria-hidden="true"></i>
+        Componente
+    </a>
+{% endif %}
+
+
+

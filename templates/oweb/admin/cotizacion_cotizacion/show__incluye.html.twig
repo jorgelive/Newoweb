@@ -1,0 +1,88 @@
+<div class="box-body container-fluid">
+    <div class="sonata-ba-collapsed-fields">
+        <div class="panel-body table-responsive">
+            <h3 class="no-padding no-margin visible-print">{{ 'tab_incluidos'|trans({}, 'messages')|capitalize}}</h3>
+            <ul class="list-unstyled">
+                {% for incluido in tabs.incluye.incluidos %}
+                    <li>
+                        {# Mantener el resto tal cual (solo la primera letra a mayúscula)#}
+                        <h4 class="titulo-verde">{{ (incluido.tituloItinerario|slice(0, 1)|upper) ~ (incluido.tituloItinerario|slice(1)) }}:</h4>
+                        <ul class="fa-ul" style="margin-left: 1.2em;">
+                            {% for tipotarifa in incluido.tipotarifas %}
+                                <li>
+                                    <h5 style="font-weight: 600;">{{ tipotarifa.tituloTipotarifa }}</h5> {#{% if componente.cantidadcomponente > 1 %} <strong>x {{ componente.cantidadcomponente }}</strong> {% endif %}{% if componente.tituloItinerario is defined %} en {{ componente.tituloItinerario }} {% endif %} {% if componente.fecha is defined %} ({{ componente.fecha }}) {% endif %}#}
+                                    <ul class="fa-ul">
+                                        {% for componente in tipotarifa.componentes %}
+                                            <li><i style="color: {{ componente.listacolor }};" class="fa-li fas {{ componente.listaclase }}"></i>
+                                                {{ componente.titulo }}
+                                                {% if componente.cantidadComponente > 1 %}
+                                                    <span style="font-weight: bold;"> x {{ componente.cantidadComponente }}
+                                                        {% if incluido.caso == 'hotel' %}
+                                                            {{ 'noches'|trans({},'messages') }}
+                                                        {% else %}
+                                                            {{ 'dias'|trans({},'messages') }}
+                                                        {% endif %}
+                                                    </span>
+                                                {% endif %}
+                                                {% if object.file.catalogo != true %}
+                                                    ({{ componente.fecha }})
+                                                {% endif %}
+                                                {% if componente.tarifas is defined %}
+                                                    <ul style="list-style: none; padding-left: 20px;">
+                                                        {% for tarifa in componente.tarifas %}
+                                                            <li>- {% if tarifa.titulo is defined %}
+                                                                    {{ tarifa.titulo }}
+                                                                {% endif %}
+                                                                {% if tarifa.modalidad is defined %}
+                                                                    <span style="font-size: 0.8em; font-weight: bold; color: {{ colores.azul_acero }};">Mod:</span> {{ tarifa.modalidad }}
+                                                                {% endif %}
+                                                                {% if tarifa.categoria is defined %}
+                                                                    <span style="font-size: 0.8em;font-weight: bold; color: {{ colores.azul_acero }};">Cat:</span> {{ tarifa.categoria }}
+                                                                {% endif %}
+                                                                {% if tarifa.cantidad > 1 and object.file.catalogo != true %}
+                                                                    <span style="font-weight: bold;">x {{ tarifa.cantidad }}</span>
+                                                                {% endif %}
+                                                                {% if tarifa.mostrarcostoincluye == true %}
+                                                                    ({{ tarifa.simboloMoneda }} {{ tarifa.costo }})
+                                                                {% endif %}
+                                                                {% if tarifa.detalles is defined %}
+                                                                    (
+                                                                    {% for detalle in tarifa.detalles %}
+                                                                        {% if not loop.first %}
+                                                                            &nbsp;
+                                                                        {% endif %}
+
+
+                                                                        {% if detalle.tipoId == constant('App\\Oweb\\Entity\\ServicioTipotarifadetalle::DB_VALOR_SITIO_WEB') %}
+
+                                                                            {% if action == 'show' or object.hoteloculto == false %}
+                                                                                <a target="_blank" href="{{ detalle.contenido }}">{{ detalle.tipoTitulo }}</a>
+                                                                            {% endif %}
+
+                                                                        {% elseif detalle.tipoId == constant('App\\Oweb\\Entity\\ServicioTipotarifadetalle::DB_VALOR_PROVEEDOR') %}
+                                                                            {% if action == 'show' or object.hoteloculto == false %}
+                                                                                <span>{{ detalle.contenido }}</span>
+                                                                            {% endif %}
+
+                                                                        {% else %}
+                                                                            <span>{{ detalle.contenido }}</span>
+                                                                        {% endif %}
+                                                                    {% endfor %}
+                                                                    )
+                                                                {% endif %}
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% endif %}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>

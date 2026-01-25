@@ -3,155 +3,123 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Webhook;
 
-use App\Pms\Service\Beds24\Webhook\Beds24BookingWebhookHandler;
-use Doctrine\DBAL\Connection;
+use App\Pms\Entity\PmsBeds24WebhookAudit;
+use App\Pms\Service\Beds24\Webhook\Beds24WebhookFastTrackService;
+use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 #[Route('/pms/webhooks', name: 'webhook_beds24_')]
-final class Beds24WebhookController
+final class Beds24WebhookController extends AbstractController
 {
     public function __construct(
-        private readonly Connection $connection,
-        private readonly Beds24BookingWebhookHandler $handler,
+        private readonly EntityManagerInterface $em,
+        private readonly Beds24WebhookFastTrackService $fastTrackService,
     ) {}
 
     #[Route('/bookings', name: 'bookings_v2', methods: ['POST'])]
     public function __invoke(Request $request): JsonResponse
     {
-        $content = (string) $request->getContent();
-        $payload = json_decode($content, true);
+        // 1. Auditoría Inicial (Siempre guardamos lo que llega)
+        $audit = new PmsBeds24WebhookAudit();
+        $audit->setReceivedAt(new DateTimeImmutable());
+        $audit->setRemoteIp($request->getClientIp());
+        $audit->setHeaders($request->headers->all());
 
+        $content = (string) $request->getContent();
+        $audit->setPayloadRaw($content);
+
+        // Extracción de Token (Header o Query)
         $token = $request->headers->get('X-Beds24-Webhook-Token')
             ?? $request->query->get('token');
 
-        if ($token === null || trim((string) $token) === '') {
-            $this->connection->insert('pms_beds24_webhook_audit', [
-                'received_at'    => (new \DateTimeImmutable('now'))->format('Y-m-d H:i:s'),
-                'event_type'     => null,
-                'remote_ip'      => $request->getClientIp(),
-                'headers_json'   => json_encode($request->headers->all(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                'payload_raw'    => $content,
-                'payload_json'   => null,
-                'status'         => 'error',
-                'error_message'  => 'missing_token',
-                'processing_meta'=> json_encode([
-                    'received_token' => null,
-                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: null,
-            ]);
+        if (empty($token)) {
+            $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
+            $audit->setErrorMessage('missing_token');
+            $this->persistAudit($audit);
 
-            return new JsonResponse(['ok' => false, 'error' => 'missing_token'], 403);
+            // Usamos el helper para respuesta legible
+            return $this->prettyJson(['ok' => false, 'error' => 'missing_token'], 403);
         }
 
-        if ($payload === null && json_last_error() !== JSON_ERROR_NONE) {
-            // Auditoría mínima incluso para JSON inválido
-            $this->connection->insert('pms_beds24_webhook_audit', [
-                'received_at'    => (new \DateTimeImmutable('now'))->format('Y-m-d H:i:s'),
-                'event_type'     => null,
-                'remote_ip'      => $request->getClientIp(),
-                'headers_json'   => json_encode($request->headers->all(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                'payload_raw'    => $content,
-                'payload_json'   => null,
-                'status'         => 'error',
-                'error_message'  => 'invalid_json',
-                'processing_meta' => json_encode([
-                    'received_token' => $token,
-                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: null,
-            ]);
-
-            return new JsonResponse(['ok' => false], 400);
-        }
-
-        $eventType = null;
-        if (is_array($payload)) {
-            $eventType = $payload['type'] ?? $payload['eventType'] ?? null;
-            if ($eventType !== null && !is_string($eventType)) {
-                $eventType = (string) $eventType;
-            }
-        }
-
-        // 1) Insert inicial
-        $this->connection->insert('pms_beds24_webhook_audit', [
-            'received_at'    => (new \DateTimeImmutable('now'))->format('Y-m-d H:i:s'),
-            'event_type'     => $eventType,
-            'remote_ip'      => $request->getClientIp(),
-            'headers_json'   => json_encode($request->headers->all(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: null,
-            'payload_raw'    => $content,
-            'payload_json'   => is_array($payload) ? (json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: null) : null,
-            'status'         => 'received',
-            'error_message'  => null,
-            'processing_meta' => json_encode([
-                'received_token' => $token,
-            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: null,
-        ]);
-
-        $auditId = (int) $this->connection->lastInsertId();
-
-        // 2) Ejecutar (y si falla, actualizar auditoría)
         try {
-            // ==========================================
-            // Webhook v2 payload (Beds24)
-            // - Por ahora procesamos SOLO "booking".
-            // - Las demás secciones quedan como placeholders
-            //   para implementar handlers separados.
-            // ==========================================
+            $payload = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+            $audit->setPayload($payload);
 
-            $bookingPayload = null;
-            $infoItemsPayload = null;
-            $invoiceItemsPayload = null;
-            $messagesPayload = null;
-
+            // Extracción de EventType para índice
             if (is_array($payload)) {
-                $bookingPayload = (isset($payload['booking']) && is_array($payload['booking'])) ? $payload['booking'] : null;
-
-                // Placeholders (no procesados aún):
-                $infoItemsPayload = (isset($payload['infoItems']) && is_array($payload['infoItems'])) ? $payload['infoItems'] : null;
-                $invoiceItemsPayload = (isset($payload['invoiceItems']) && is_array($payload['invoiceItems'])) ? $payload['invoiceItems'] : null;
-                $messagesPayload = (isset($payload['messages']) && is_array($payload['messages'])) ? $payload['messages'] : null;
+                $eventType = $payload['type'] ?? $payload['eventType'] ?? null;
+                $audit->setEventType(is_string($eventType) ? $eventType : null);
             }
 
-            if ($bookingPayload === null) {
-                throw new \RuntimeException('Webhook Beds24 inválido: falta booking.');
+            // Persistimos el "Recibido" antes de procesar para tener traza si el proceso muere
+            $this->persistAudit($audit);
+
+            // ==========================================
+            // Lógica FAST TRACK v2
+            // ==========================================
+
+            // Validamos estructura mínima (booking es obligatorio)
+            if (!isset($payload['booking']) || !is_array($payload['booking'])) {
+                throw new \RuntimeException('Webhook Beds24 inválido: falta objeto "booking".');
             }
 
-            // Procesamos SOLO la sección booking.
-            $meta = $this->handler->handle((string) $token, $bookingPayload);
+            // Delegamos al servicio FastTrack
+            // Este servicio actualiza el estado de $audit a 'processed' o 'error'
+            $result = $this->fastTrackService->process((string)$token, $payload['booking'], $audit);
 
-            // TODO: implementar handlers separados cuando definas el comportamiento real.
-            // if ($infoItemsPayload !== null) { ... }
-            // if ($invoiceItemsPayload !== null) { ... }
-            // if ($messagesPayload !== null) { ... }
+            // Actualizamos la auditoría final
+            $this->persistAudit($audit);
 
-            // En meta devolvemos también contadores para debug/auditoría.
-            $meta = array_merge((array) $meta, [
-                'sections' => [
-                    'booking' => true,
-                    'infoItems' => is_array($infoItemsPayload) ? count($infoItemsPayload) : 0,
-                    'invoiceItems' => is_array($invoiceItemsPayload) ? count($invoiceItemsPayload) : 0,
-                    'messages' => is_array($messagesPayload) ? count($messagesPayload) : 0,
-                ],
-            ]);
+            return $this->prettyJson(array_merge(['ok' => true], $result));
 
-            $this->connection->update('pms_beds24_webhook_audit', [
-                'status' => 'processed',
-                'processing_meta' => (json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: null),
-                'error_message' => null,
-            ], ['id' => $auditId]);
+        } catch (\JsonException $e) {
+            $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
+            $audit->setErrorMessage("JSON Inválido: " . $e->getMessage());
+            $this->persistAudit($audit);
+
+            return $this->prettyJson(['ok' => false, 'error' => 'invalid_json'], 400);
+
         } catch (\Throwable $e) {
-            // Guardar el error en auditoría (sin romper el 200)
-            $this->connection->update('pms_beds24_webhook_audit', [
-                'status'         => 'error',
-                'error_message'  => mb_substr($e->getMessage(), 0, 2000),
-                'processing_meta'=> (json_encode([
-                    'error' => 'process_failed',
-                    'exception' => $e::class,
-                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: null),
-            ], ['id' => $auditId]);
+            // El servicio FastTrack ya debería haber marcado el audit como error,
+            // pero por si la excepción vino de otro lado, aseguramos.
+            $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
+            $audit->setErrorMessage(mb_substr($e->getMessage(), 0, 2000));
+
+            $this->persistAudit($audit);
+
+            // Retornamos 200 OK para que Beds24 no reintente infinitamente si es un error lógico nuestro.
+            // Solo retornamos 500 si queremos que reintente.
+            return $this->prettyJson(['ok' => false, 'error' => $e->getMessage()], 200);
+        }
+    }
+
+    /**
+     * Helper para devolver JSON limpio, sin escapar caracteres Unicode ni Slashes.
+     */
+    private function prettyJson(array $data, int $status = 200): JsonResponse
+    {
+        return (new JsonResponse($data, $status))
+            ->setEncodingOptions(
+                JsonResponse::DEFAULT_ENCODING_OPTIONS |
+                JSON_UNESCAPED_UNICODE | // Tildes y Ñ legibles
+                JSON_UNESCAPED_SLASHES | // URLs limpias
+                JSON_PRETTY_PRINT        // Formato visual agradable
+            );
+    }
+
+    private function persistAudit(PmsBeds24WebhookAudit $audit): void
+    {
+        if (!$this->em->isOpen()) {
+            return;
         }
 
-        // Para webhooks: 200 siempre (si quieres 400 solo para invalid_json)
-        return new JsonResponse(['ok' => true], 200);
+        if (!$this->em->contains($audit)) {
+            $this->em->persist($audit);
+        }
+        $this->em->flush();
     }
 }

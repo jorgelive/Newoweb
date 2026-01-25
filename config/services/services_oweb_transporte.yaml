@@ -1,0 +1,171 @@
+parameters:
+    # Las claves de calendatio deben empezar por calendar
+    # y ser distintas para que no se sobrescribab
+    calendars_trasnporte:
+        transporte_servicio_conductor:
+            entity: App\Oweb\Entity\TransporteServicio
+            repositorymethod: findCalendarConductorColored
+            resource:
+                root: conductor
+                id: id
+                title: nombre
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                color: conductor.color
+                url:
+                    id: id
+                    show:
+                        route: admin_gopro_transporte_servicio_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_gopro_transporte_servicio_edit
+                        role: ROLE_TRANSPORTES_EDITOR
+        transporte_servicio_unidad:
+            entity: App\Oweb\Entity\TransporteServicio
+            repositorymethod: findCalendarUnidadColored
+            resource:
+                root: unidad
+                id: id
+                title: nombre
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                color: unidad.color
+                url:
+                    id: id
+                    show:
+                        route: admin_gopro_transporte_servicio_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_gopro_transporte_servicio_edit
+                        role: ROLE_TRANSPORTES_EDITOR
+        transporte_servicio_cliente:
+            entity: App\Oweb\Entity\TransporteServicio
+            repositorymethod: findCalendarClienteColored
+            resource:
+                root: conductor
+                id: id
+                title: nombre
+            parameters:
+                title: resumen
+                start: fechahorainicio
+                end: fechahorafin
+                color: dependencia.color
+                url:
+                    id: id
+                    show:
+                        route: admin_gopro_transporte_servicio_show
+                        role: ROLE_USER
+                    edit:
+                        route: admin_gopro_transporte_servicio_edit
+                        role: ROLE_TRANSPORTES_EDITOR
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    app.oweb.admin.transporteservicio:
+        class: App\Oweb\Admin\TransporteServicioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\TransporteServicio
+            controller: App\Oweb\Controller\TransporteServicioController
+            manager_type: orm
+            group: Transporte
+            label: Servicios de transporte
+            show_mosaic_button: false
+        calls:
+            - [ setTokenStorage, [ "@security.token_storage" ] ]
+            - [ setTemplate, [ list, oweb/admin/transporte_servicio/list.html.twig ] ]
+            - [ setTemplate, [ edit, oweb/admin/transporte_servicio/edit.html.twig ] ]
+        public: true
+    app.oweb.admin.transporteserviciooperativo:
+        class: App\Oweb\Admin\TransporteServiciooperativoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\TransporteServiciooperativo
+            manager_type: orm
+            group: Transporte
+            label: Información Operativa
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.transporteserviciocontable:
+        class: App\Oweb\Admin\TransporteServiciocontableAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\TransporteServiciocontable
+            controller: App\Oweb\Controller\TransporteServiciocontableController
+            manager_type: orm
+            group: Transporte
+            label: Contables
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ edit, oweb/admin/transporte_serviciocontable/edit.html.twig ] ]
+        public: true
+    app.oweb.admin.transporteserviciocomponente:
+        class: App\Oweb\Admin\TransporteServiciocomponenteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\TransporteServiciocomponente
+            controller: App\Oweb\Controller\TransporteServiciocomponenteController
+            manager_type: orm
+            group: Transporte
+            label: Files de Transporte
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.transporteconductor:
+        class: App\Oweb\Admin\TransporteConductorAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\TransporteConductor
+            manager_type: orm
+            group: Transporte
+            label: Conductores
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.transporteunidad:
+        class: App\Oweb\Admin\TransporteUnidadAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\TransporteUnidad
+            manager_type: orm
+            group: Transporte
+            label: Unidades
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ show, oweb/admin/transporte_unidad/show.html.twig ] ]
+        public: true
+    app.oweb.admin.transportetiposeroperativo:
+        class: App\Oweb\Admin\TransporteTiposeroperativoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\TransporteTiposeroperativo
+            manager_type: orm
+            group: Transporte
+            label: Tipo operativo
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.transportetipounibit:
+        class: App\Oweb\Admin\TransporteTipounibitAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\TransporteTipounibit
+            manager_type: orm
+            group: Transporte
+            label: Tipo de bitácora
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.transporteunidadbitacora:
+        class: App\Oweb\Admin\TransporteUnidadbitacoraAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\TransporteUnidadbitacora
+            manager_type: orm
+            group: Transporte
+            label: Bitácoras
+            show_mosaic_button: false
+        public: true

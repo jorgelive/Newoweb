@@ -1,0 +1,232 @@
+{% extends sonata_block.templates.block_base %}
+
+{% block block %}
+
+        <div class="tareas-block no-print border-0 text-center text-md-left">
+            <a href="#menu1" class="list-group-item d-inline-block collapsed" data-toggle="collapse" aria-expanded="false">
+                <i class="fa fa-dashboard" {% if vencimientos|length > 0 %}style="color: #a94442;"{% endif %}></i>
+                <span class="d-none d-md-inline" {% if vencimientos|length > 0 %}style="color: #a94442;"{% endif %}>{{ settings.title }}</span>
+            </a>
+            <div class="collapse box text-left" id="menu1">
+
+                {% if vencimientos|length > 0 %}
+                    <div class="panel panel-danger margin">
+                        <div class="panel-heading">
+                            <div style="margin-left: 10px; font-size: 16px; font-weight: bold;">
+                                Vencimientos de reservas:
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <table style="margin-left: 30px; border-collapse: collapse;">
+                                <tr style="border-bottom: 1px solid steelblue;">
+                                    <th>
+                                        Fecha
+                                    </th>
+                                    <th>
+                                        Info
+                                    </th>
+                                    <th>
+                                        Fle
+                                    </th>
+                                </tr>
+                                {% for vencimiento in vencimientos %}
+                                    <tr style="border-bottom: 1px solid steelblue;">
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {{vencimiento.vencimiento|date('Y-m-d')}}
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px;">
+                                            {{vencimiento.nombre}}
+                                        </td>
+                                        <td style="padding: 0 4px 0 4px;">
+                                            <a href="{{ url('admin_app_oweb_cotizacionfile_show', {'id': vencimiento.file.id }) }}">
+                                                {{vencimiento.file.nombre}}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+                <div class="panel panel-success margin">
+                    <div class="panel-heading">
+                        <div style="margin-left: 10px; font-size: 16px; font-weight: bold;">
+                            Ingresos y salidas:
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        {% if reservasordenadas|length > 0 %}
+                        {% for dia in reservasordenadas %}
+                            {% if dia|length > 0 %}
+                                <div style="font-weight: bold; font-size: 1.2em; margin-left: 20px; {% if not loop.first %} margin-top: 15px; {% endif %}">
+                                    {{ dia.nombre }}:
+                                </div>
+
+                                {% for clase in dia.clases %}
+                                    {% if clase|length > 0 %}
+                                        <div style="margin: 10px 0 5px 30px;">
+                                            <img style="width: 25px;" src="/app/icons/{{ clase.icono }}.png">
+                                            <span style="margin-left: 5px; vertical-align: bottom; font-weight: bold; font-size: 1.1em;">
+                                                {{ clase.nombre }}:
+                                            </span>
+                                        </div>
+                                        <table style="margin-left: 40px; border-collapse: collapse;">
+                                            <tr style="border-bottom: 1px solid steelblue;">
+                                                <th style="padding: 0 5px;">
+                                                    Dep
+                                                </th>
+                                                <th style="padding: 0 5px;">
+                                                    Canal
+                                                </th>
+                                                <th style="padding: 0 5px;">
+                                                    Nombre
+                                                </th>
+                                                <th style="padding: 0 5px;">
+                                                    Adl
+                                                </th>
+                                                <th style="padding: 0 5px;">
+                                                    Chd
+                                                </th>
+                                            </tr>
+                                            {% for reserva in clase.reservas %}
+                                                <tr style="border-bottom: 1px solid steelblue;">
+                                                    <td style="padding: 0 4px 0 4px;">
+                                                        {{ reserva.unit.nombre }}
+                                                    </td>
+                                                    <td style="padding: 0 4px 0 4px;">
+                                                        {{ reserva.channel.nombre }}
+                                                    </td>
+                                                    <td style="padding: 0 4px 0 4px; width: 150px; ">
+                                                        <a href="{{ url('admin_app_oweb_reservareserva_show', {'id': reserva.id }) }}">{{ reserva.nombre }}</a>
+                                                    </td>
+                                                    <td style="padding: 0 4px 0 4px;">
+                                                        {{ reserva.cantidadadultos }}
+                                                    </td>
+                                                    <td style="padding: 0 4px 0 4px;">
+                                                        {{ reserva.cantidadninos }}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </table>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p style="font-size: 1em; color: {{ colores.lila }};">
+                            No hay reservas ingresando o saliendo para el dia de hoy ni mañana.
+                        </p>
+                    {% endif %}
+                    </div>
+                </div>
+                <div class="panel panel-success margin">
+                    <div class="panel-heading">
+                        <div style="margin-left: 10px; font-size: 16px; font-weight: bold;">
+                            Toures y excursiones:
+                        </div>
+
+                    </div>
+                    <div class="panel-body">
+                        {% if serviciosordenados|length > 0 %}
+                        {% for tipo in serviciosordenados %}
+                            {% if tipo|length > 0 %}
+                                <h4 style="margin-left: 15px;">{{ tipo.nombre }}:</h4>
+                                <table style="margin-left: 30px; border-collapse: collapse;">
+                                    <tr style="border-bottom: 1px solid steelblue;">
+                                        <th>
+                                            Hora
+                                        </th>
+                                        <th>
+                                            Servicio
+                                        </th>
+                                        <th>
+                                            Itinerario
+                                        </th>
+                                        <th>
+                                            Componentes
+                                        </th>
+                                    </tr>
+                                    {% for servicio in tipo.servicios %} {# siempre tiene contenido, ya no validamos #}
+                                        <tr style="border-bottom: 1px solid steelblue;">
+                                            <td style="padding: 0 4px 0 4px;">
+                                                {{ servicio.fechahorainicio|date('H:i') }}
+                                            </td>
+                                            <td style="padding: 0 4px 0 4px;">
+                                                <a href="{{ url('admin_app_oweb_cotizacioncotservicio_show', {'id': servicio.id }) }}">{{ servicio.resumen }}</a>
+                                            </td>
+                                            <td style="padding: 0 4px 0 4px;">
+                                                {{ servicio.itinerario.nombre }}
+                                            </td>
+                                            <td style="padding: 0 4px 0 4px;">
+                                                {% if servicio.cotcomponentes|length > 0 %}
+                                                    <ul>
+                                                        {% for componente in servicio.cotcomponentes %}
+                                                            <li>
+                                                                <a style="color: {{componente.estadocotcomponente.color}};">{{ componente.componente.nombre }} ({{ componente.estadocotcomponente.nombre }})</a>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p style="margin-left: 15px; font-size: 1em; color: {{ colores.lila }};">No hay servicios para el dia de hoy ni mañana.</p>
+                    {% endif %}
+                    </div>
+                </div>
+                <div class="panel panel-success margin">
+                    <div class="panel-heading">
+                        <div style="margin-left: 10px; font-size: 16px; font-weight: bold;">Componentes pendientes de confirmación: </div>
+                    </div>
+                    <div class="panel-body">
+                        {% if alertas|length > 0 %}
+                        <table style="margin-left: 15px; border-collapse: collapse;">
+                            <tr style="border-bottom: 1px solid steelblue;">
+                                <th>
+                                    Datos
+                                </th>
+                                <th>
+                                    Servicio
+                                </th>
+                                <th>
+                                    Componente
+                                </th>
+                            </tr>
+                            {% for alerta in alertas %}
+                                <tr style="border-bottom: 1px solid {{ colores.azul_acero }};">
+                                    {% if alerta.idEstado == constant('App\\Oweb\\Entity\\CotizacionEstadocotcomponente::DB_VALOR_PENDIENTE') %}
+                                        {% set color = colores.rojo_oscuro %}
+                                    {% else %}
+                                        {% set color = colores.naranja %}
+                                    {% endif %}
+                                    <td style="padding: 0 4px 10px 4px;">
+                                        <span style="white-space: nowrap; font-size: 0.8em">{{ alerta.fechaHoraInicio|date("Y-m-d H:i") }}</span><br />
+                                        <span style="color: {{ color }};">{{ alerta.nombreEstado }}</span><br />
+                                        <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_oweb_cotizacioncotizacion_show', {'id': alerta.idCotizacion }) }}"><span style="font-weight: bold;">{{ alerta.nombreFile }}</span></a>
+
+                                    </td>
+                                    <td style="padding: 0 4px 10px 4px;">
+                                        {{alerta.nombreServicio}}<br />
+                                        <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_oweb_cotizacioncotservicio_edit', {'id': alerta.idServicio }) }}">Editar</a>
+                                    </td>
+                                    <td style="padding: 0 4px 10px 4px;">
+                                        {{alerta.nombreComponente}}<br />
+                                        <a style="white-space: nowrap; font-size: 0.8em" href="{{ url('admin_app_oweb_cotizacioncotcomponente_show', {'id': alerta.id }) }}">Mostrar componete</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% else %}
+                        <p style="margin-left: 15px; font-size: 1em; color: {{ colores.verde_oscuro }};">Los servicios próximos se encuentran confirmados y reconfirmados.</p>
+                    {% endif %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+{% endblock %}

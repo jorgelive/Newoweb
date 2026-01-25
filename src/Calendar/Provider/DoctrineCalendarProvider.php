@@ -237,7 +237,7 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
                 }
             }
 
-            // URLs con permisos (Sonata admin)
+            // URLs con permisos (Oweb admin)
             $urledit = null;
             $urlshow = null;
             if (isset($p['url']) && is_array($p['url'])) {

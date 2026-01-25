@@ -5,9 +5,14 @@ namespace App\Pms\EventListener;
 
 use App\Pms\Entity\PmsEventoCalendario;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
-use Doctrine\ORM\Event\LifecycleEventArgs;
+use Doctrine\ORM\Event\LifecycleEventArgs; // O PrePersistEventArgs en Doctrine > 2.13 recomendado
 use Doctrine\ORM\Events;
 
+/**
+ * Normaliza los campos de caché (titulo) antes de insertar en BD.
+ * * Se ejecuta con prioridad ALTA (400) para asegurar que los datos estén listos
+ * antes que otros listeners de validación o workflow.
+ */
 #[AsDoctrineListener(event: Events::prePersist, priority: 400)]
 final class PmsEventoCalendarioCacheNormalizerListener
 {
@@ -15,70 +20,39 @@ final class PmsEventoCalendarioCacheNormalizerListener
     {
         $entity = $args->getObject();
 
-        // Esto solo aplica cuando INSERTAMOS un evento nuevo (típicamente desde UI).
         if (!$entity instanceof PmsEventoCalendario) {
             return;
         }
 
-        // No pisa datos que ya vinieron seteados (pull/CLI/UI).
+        // Normalizamos solo si no vienen ya seteados
         $this->normalizeTituloCache($entity);
-        $this->normalizeOrigenCache($entity);
     }
 
-    /**
-     * Título cache:
-     * - No pisa datos que ya vinieron del pull
-     * - Solo rellena si está vacío
-     */
-    private function normalizeTituloCache(PmsEventoCalendario $evento): bool
+    private function normalizeTituloCache(PmsEventoCalendario $evento): void
     {
-        if (trim((string) ($evento->getTituloCache() ?? '')) !== '') {
-            return false;
+        // 1. Si ya tiene título manual o pre-cargado, no tocar.
+        if (trim($evento->getTituloCache() ?? '') !== '') {
+            return;
         }
 
         $reserva = $evento->getReserva();
         if ($reserva === null) {
-            return false;
+            return;
         }
 
-        $nombre = trim(
-            (string) ($reserva->getNombreCliente() ?? '') . ' ' .
-            (string) ($reserva->getApellidoCliente() ?? '')
+        // 2. Construir Nombre + Apellido
+        $nombreCompleto = trim(
+            ($reserva->getNombreCliente() ?? '') . ' ' . ($reserva->getApellidoCliente() ?? '')
         );
 
-        if ($nombre === '') {
-            return false;
+        // 3. Fallback final: Si no hay nombre, usar el ID de reserva o un texto genérico
+        if ($nombreCompleto === '') {
+            // Opcional: Usar ID si ya existe (en prePersist el ID de reserva suele existir si es relación)
+            // Si $reserva->getId() es null (ambos nuevos), ponemos un texto genérico.
+            $nombreCompleto = $reserva->getId() ? "Reserva #{$reserva->getId()}" : 'Sin Nombre';
         }
 
-        $evento->setTituloCache($nombre);
-        return true;
+        $evento->setTituloCache($nombreCompleto);
     }
 
-    /**
-     * Origen cache:
-     * - SIEMPRE usa beds24ChannelId
-     * - Uniforme en UI / pull / CLI
-     * - Fallback explícito: "direct"
-     */
-    private function normalizeOrigenCache(PmsEventoCalendario $evento): bool
-    {
-        if (trim((string) ($evento->getOrigenCache() ?? '')) !== '') {
-            return false;
-        }
-
-        $channel = $evento->getReserva()?->getChannel();
-        if ($channel === null) {
-            return false;
-        }
-
-        $beds24ChannelId = trim((string) ($channel->getBeds24ChannelId() ?? ''));
-
-        $evento->setOrigenCache(
-            $beds24ChannelId !== ''
-                ? $beds24ChannelId   // direct | booking | airbnb
-                : 'direct'           // fallback único y explícito
-        );
-
-        return true;
-    }
 }

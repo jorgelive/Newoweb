@@ -1,0 +1,19 @@
+{# templates/panel/dashboard.html.twig #}
+{% extends 'panel/layout.html.twig' %}
+{% block content_title %}Panel principal{% endblock %}
+
+{% block main %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm" {{ stimulus_controller('panel--beds24-sync') }}>
+                <div class="card-body">
+                    <h3>Sincronización de Beds24</h3>
+                    <p>Haz clic para forzar la actualización de la cola.</p>
+                    <button class="btn btn-primary" data-action="panel--beds24-sync#update">
+                        <i class="fa fa-refresh"></i> Sincronizar ahora
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

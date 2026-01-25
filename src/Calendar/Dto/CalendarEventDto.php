@@ -8,10 +8,8 @@ use JsonSerializable;
 
 /**
  * DTO de Event para FullCalendar.
- *
- * Notas:
- * - FullCalendar mueve claves desconocidas a `extendedProps`, pero tu frontend
- *   ya consume algunas claves planas (urledit/urlshow/tooltip), así que las emitimos igual.
+ * * Se ha agregado la propiedad explícita $prioridadImportante para controlar
+ * el ordenamiento visual (Z-Index lógico) en el timeline.
  *
  * @phpstan-type TooltipType string|list<string>|null
  */
@@ -42,6 +40,9 @@ final class CalendarEventDto implements JsonSerializable
 
         /** @var TooltipType */
         public readonly string|array|null $tooltip = null,
+
+        // 🔥 NUEVA PROPIEDAD EXPLÍCITA (Tipada)
+        public readonly ?int $prioridadImportante = null,
     ) {}
 
     public function toArray(): array
@@ -88,6 +89,12 @@ final class CalendarEventDto implements JsonSerializable
 
         if ($this->tooltip !== null && $this->tooltip !== '' && $this->tooltip !== []) {
             $out['tooltip'] = $this->tooltip;
+        }
+
+        // 🔥 SALIDA AL JSON
+        // FullCalendar lo recibirá y lo moverá a event.extendedProps.prioridadImportante
+        if ($this->prioridadImportante !== null) {
+            $out['prioridadImportante'] = $this->prioridadImportante;
         }
 
         return $out;

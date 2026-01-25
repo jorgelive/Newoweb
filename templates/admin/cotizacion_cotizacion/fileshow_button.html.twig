@@ -1,9 +1,0 @@
-{% if object is defined and admin.hasRoute('show') and object.id is not null %}
-    <li>
-        <a class="sonata-action-element" href="{{ url('admin_app_cotizacionfile_show', {'id': object.file.id }) }}">
-            <i class="fa fa-newspaper-o" aria-hidden="true"></i>
-            Mostrar File
-        </a>
-    </li>
-{% endif %}
-

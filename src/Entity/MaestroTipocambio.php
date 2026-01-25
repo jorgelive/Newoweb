@@ -15,7 +15,7 @@ class MaestroTipocambio
     #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: 'MaestroMoneda', inversedBy: 'tipocambios')]
+    #[ORM\ManyToOne(targetEntity:MaestroMoneda::class, inversedBy: 'tipocambios')]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
     protected ?MaestroMoneda $moneda;
 
@@ -45,14 +45,34 @@ class MaestroTipocambio
         return $this->getFecha()->format('Y-m-d');
     }
 
+    /**
+     * Calcula el promedio exacto con 3 decimales usando BCMath.
+     * * @example "3.354" + "3.363" = "6.717" / 2 = "3.358"
+     */
     public function getPromedio(): string
     {
-        return (string)(( (float)$this->getCompra() + (float)$this->getVenta() ) / 2);
+        $compra = $this->getCompra() ?? '0.000';
+        $venta = $this->getVenta() ?? '0.000';
+
+        // Sumamos compra y venta
+        $suma = bcadd($compra, $venta, 3);
+
+        // Dividimos entre 2
+        return bcdiv($suma, '2', 3);
     }
 
+    /**
+     * Calcula el promedio y lo redondea a 2 decimales.
+     * * @example "3.3585" -> "3.36"
+     */
     public function getPromedioredondeado(): string
     {
-        return (string)(round(( (float)$this->getCompra() + (float)$this->getVenta() ) / 2, 2));
+        // Usamos el método anterior para obtener la base
+        $promedio = $this->getPromedio();
+
+        // Round en PHP funciona bien para presentación final (2 decimales)
+        // pero lo casteamos a float solo en el último paso.
+        return (string) round((float) $promedio, 2);
     }
 
     public function getId(): ?int

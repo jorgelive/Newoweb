@@ -1,7 +1,16 @@
 services:
+
     _defaults:
         autowire: true
         autoconfigure: true
+        bind:
+            # Ahora cualquier constructor que pida $owebHost recibirá este valor automáticamente
+            $publicDir: '%app.public_dir%'
+            $owebHost: '%app.host.oweb%'
+            $panelHost: '%app.host.panel%'
+            $googleTranslateCredentials: '%google_translate_auth%'
+            $sunatApiToken: '%env(SUNAT_API_TOKEN)%'
+
 
     App\:
         resource: ../../src/
@@ -10,34 +19,15 @@ services:
             - ../../src/Entity/
             - ../../src/Kernel.php
             - ../../src/pms/Service/Beds24/Sync/SyncContextScope.php
+            - ../../src/Pms/
+            - ../../src/Calendar/
+            - ../../src/Exchange/
 
-    app.doctrine.entity_path_initializer:
-        class: App\EventSubscriber\EntityPathInitializerSubscriber
+    Google\Cloud\Translate\V3\Client\TranslationServiceClient:
         arguments:
-            $publicDir: '%app.public_dir%'
-        tags:
-        -   name: doctrine.event_subscriber
-    app.service.admin_decorating_data_source:
-        class: App\Service\AdminDecoratingDataSource
-        decorates: sonata.admin.data_source.orm
+            $options:
+                credentials: '%google_translate_auth%'
 
-    app.event_Listener_controller_request_kernel_event_listener:
-        class: App\EventListener\ControllerRequestKernelEventListener
-        tags:
-        -   name: kernel.event_listener
-            event: kernel.controller
-            method: onControllerRequest
-    app.event_Listener_kernel_request_kernel_event_listener:
-        class: App\EventListener\KernelRequestKernelEventListener
-        tags:
-        -   name: kernel.event_listener
-            event: kernel.request
-            method: onKernelRequest
-            priority: 101
-    app.block.tareas_block_service:
-        class: App\Block\TareasBlockService
-        tags:
-        -   name: sonata.block
 
-    Gedmo\Translatable\TranslatableListener:
-        alias: 'stof_doctrine_extensions.listener.translatable'
+
+

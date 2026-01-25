@@ -1,0 +1,165 @@
+<div class="box-body container-fluid">
+    <div class="sonata-ba-collapsed-fields">
+        <div class="box-body table-responsive">
+            <h3 class="no-padding no-margin visible-print">{{ 'tab_mensajes'|trans({}, 'messages')|capitalize}}</h3>
+            {% if tabs.proveedores is defined and tabs.proveedores|length > 0 %}
+                {% for proveedor in tabs.proveedores %}
+
+                    {% set emailTitulo = 'Reserva OpenPeru Pax: ' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros %}
+
+                    <h3>{{ proveedor.nombreMostrar }} <span style="font-size: 70%;">({{ proveedor.nombre }})</span></h3>
+                    {% set whatsappText = 'Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase *reservar* los siguientes servicios:\n\n'%}
+                    {% set emailMensaje = '<p>Señor(a/es) ' ~ proveedor.nombreMostrar ~ ', sírvase <span style="font-weight: bold;">reservar</span> los siguientes servicios:</p>'%}
+
+                    <h4>Pax: <span style="font-weight: bold;"> {{ object.file.nombre }} x{{ object.numeropasajeros }}</span> ({{ object.file.pais.nombre }} - <span style="font-weight: bold;">{{ object.file.idioma.nombre }}</span>)</h4>
+                    {% set whatsappText = whatsappText ~ 'Pax: *' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '* (' ~ object.file.pais.nombre ~ ' - *' ~ object.file.idioma.nombre ~ '*)' ~ '\n\n' %}
+                    {% set emailMensaje = emailMensaje ~ '<h4>Pax: <span style="font-weight: bold;">' ~ object.file.nombre ~ ' x' ~ object.numeropasajeros ~ '</span> (' ~ object.file.pais.nombre ~ ' - <span style="font-weight: bold;">' ~ object.file.idioma.nombre ~ '</span>)' ~ '</h4>' %}
+
+                    {% if proveedor.componentes is defined and proveedor.componentes|length > 0%}
+                        {% for componente in proveedor.componentes %}
+                            <p>
+                                {% set emailMensaje = emailMensaje ~ '<p>' %}
+                                {% if componente.tipoComponenteId == constant('App\\Oweb\\Entity\\ServicioTipocomponente::DB_VALOR_TICKET_HORARIO_VARIABLE')
+                                    or componente.tipoComponenteId == constant('App\\Oweb\\Entity\\ServicioTipocomponente::DB_VALOR_ALIMENTACION')
+                                    or componente.tipoComponenteId == constant('App\\Oweb\\Entity\\ServicioTipocomponente::DB_VALOR_ALOJAMIENTO')
+                                    or componente.tipoComponenteId == constant('App\\Oweb\\Entity\\ServicioTipocomponente::DB_VALOR_EXCURSION_POOL') %} {# tickets 1 hoteles 4 pool 6#}
+                                    <span style="font-weight: bold;">{{ componente.fechaHoraInicio|date("Y-m-d") }}</span>
+                                    {% set whatsappText = whatsappText ~ '*' ~ componente.fechaHoraInicio|date("Y-m-d") ~ '*' %}
+                                    {% set emailMensaje = emailMensaje ~ '<span style="font-weight: bold;">' ~ componente.fechaHoraInicio|date("Y-m-d") ~ '</span>' %}
+                                {% else %}
+                                    <span style="font-weight: bold;">{{ componente.fechaHoraInicio|date("Y-m-d H:i") }}</span>
+                                    {% set whatsappText = whatsappText ~ '*' ~ componente.fechaHoraInicio|date("Y-m-d H:i") ~ '*' %}
+                                    {% set emailMensaje = emailMensaje ~ '<span style="font-weight: bold;">' ~ componente.fechaHoraInicio|date("Y-m-d H:i") ~ '</span>' %}
+                                {% endif %}
+
+                                {{ componente.componenteNombre }}
+                                {% set whatsappText = whatsappText ~ ' ' ~ componente.componenteNombre %}
+                                {% set emailMensaje = emailMensaje ~ ' ' ~ componente.componenteNombre %}
+                                {% if componente.componenteCantidad > 1 or componente.tipoComponenteId == constant('App\\Oweb\\Entity\\ServicioTipocomponente::DB_VALOR_ALOJAMIENTO') %} {# 4 mostrar siempre si es hotel #}
+                                    <span style="font-weight: bold;">x{{ componente.componenteCantidad }}</span>
+                                    {% set whatsappText = whatsappText ~ ' *x' ~ componente.componenteCantidad ~ '*' %}
+                                    {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">x' ~ componente.componenteCantidad ~ '</span>' %}
+                                {% endif %}
+                                {% if componente.tipoComponenteId == constant('App\\Oweb\\Entity\\ServicioTipocomponente::DB_VALOR_ALOJAMIENTO') %} {# 4 hotel #}
+                                    noches
+                                    {% set whatsappText = whatsappText ~ ' noches' %}
+                                    {% set emailMensaje = emailMensaje ~ ' noches' %}
+                                {% endif %}
+
+                                {% for tarifa in componente.tarifas %}
+                                    {% if not loop.first %}
+                                        |
+                                        {% set whatsappText = whatsappText ~ ', ' %}
+                                        {% set emailMensaje = emailMensaje ~ ', ' %}
+                                    {% endif %}
+                                    {% if componente.tipoComponenteId != constant('App\\Oweb\\Entity\\ServicioTipocomponente::DB_VALOR_ALOJAMIENTO') %} {# no es hotel #}
+                                        <span style="font-weight: bold;">{{ tarifa.tarifaNombre }}</span>
+                                        {% set whatsappText = whatsappText ~ ' *' ~ tarifa.tarifaNombre ~ '*' %}
+                                        {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">' ~ tarifa.tarifaNombre ~ '</span>' %}
+                                    {% endif %}
+                                    {% if tarifa.tarifaCantidad is defined %} {# depende del prorrateo #}
+                                        <span style="font-weight: bold;">x{{ tarifa.tarifaCantidad }}</span>
+                                        {% set whatsappText = whatsappText ~ ' *x' ~ tarifa.tarifaCantidad ~ '*' %}
+                                        {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold;">x' ~ tarifa.tarifaCantidad ~ '</span>' %}
+                                    {% endif %}
+                                    {% if tarifa.infoOperativa is defined %}
+                                        <span style="font-weight: bold; color: {{ colores.azul_oscuro }};">{{ tarifa.infoOperativa }}</span>
+                                        {% set whatsappText = whatsappText ~ ' / *' ~ tarifa.infoOperativa ~ '*' %}
+                                        {% set emailMensaje = emailMensaje ~ ' <span style="font-weight: bold; color: {{ colores.azul_oscuro }};">' ~ tarifa.infoOperativa  ~ '</span>' %}
+                                    {% endif %}
+                                    {% if tarifa.tipoTarifaId != 1  %}
+                                        ({{ tarifa.tipoTarifaNombre }})
+                                        {% set whatsappText = whatsappText ~ ' (' ~ tarifa.tipoTarifaNombre ~ ')' %}
+                                        {% set emailMensaje = emailMensaje ~ ' (' ~ tarifa.tipoTarifaNombre ~ ')' %}
+                                    {% endif %}
+                                    <span style="font-weight: 600; color: {{ colores.naranja }};">({{ tarifa.moneda.simbolo }} {{ tarifa.monto }})</span>
+                                {% endfor %}
+                                <span style="color: {{ componente.componenteEstadoColor }};">{{ componente.componenteEstadoNombre }}</span>
+                            </p>
+                            {% set whatsappText = whatsappText ~ '\n' %}
+                            {% set emailMensaje = emailMensaje ~ '</p>' %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if proveedor.hoteles is defined and proveedor.hoteles|length > 0%}
+                        {% set whatsappText = whatsappText ~ '\n' %}
+                        <h4>Hoteles:</h4>
+                        {% set whatsappText = whatsappText ~ '*Hoteles:*\n' %}
+                        {% set emailMensaje = emailMensaje  ~ '<h4>Hoteles:</h4>' %}
+                        {% for hotel in proveedor.hoteles %}
+                            <p>
+                                {% set emailMensaje = emailMensaje ~ '<p>' %}
+                                Del {{hotel.fechaHoraInicio|date("Y-m-d") }} al {{hotel.fechaHoraFin|date("Y-m-d") }} <span style="font-weight: bold;">{{hotel.nombreMostrar }}</span>
+                                {% set whatsappText = whatsappText ~ 'Del ' ~ hotel.fechaHoraInicio|date("Y-m-d") ~ ' al ' ~ hotel.fechaHoraFin|date("Y-m-d") ~ ' *' ~ hotel.nombreMostrar ~ '*' %}
+                                {% set emailMensaje = emailMensaje ~ 'Del ' ~ hotel.fechaHoraInicio|date("Y-m-d") ~ ' al ' ~ hotel.fechaHoraFin|date("Y-m-d") ~ ' <span style="font-weight: bold;">' ~ hotel.nombreMostrar ~ '</span>' %}
+                                {% if hotel.direccion is defined %}
+                                    {{ hotel.direccion }}
+                                    {% set whatsappText = whatsappText ~ ' ' ~ hotel.direccion %}
+                                    {% set emailMensaje = emailMensaje ~ ' ' ~ hotel.direccion %}
+                                {% endif %}
+
+                            </p>
+                            {% set whatsappText = whatsappText ~ '*\n' %}
+                            {% set emailMensaje = emailMensaje ~ '</p>' %}
+
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if object.file.telefono is not empty %}
+                        <p>Teléfono del Cliente: <span style="font-weight: 600;">{{ object.file.telefono }}</span></p>
+                        {% set whatsappText = whatsappText ~ '\n\nTeléfono del Cliente: *' ~ object.file.telefono ~ '*'%}
+                        {% set emailMensaje = emailMensaje ~ '<p>Teléfono del Cliente: <span style="font-weight: 600;">' ~ object.file.telefono ~ '</span></p>' %}
+                    {% endif %}
+
+                    <p>Teléfono de Oficina OpenPeru: <span style="font-weight: 600;">{{ numero_default }}</span></p>
+                    {% set whatsappText = whatsappText ~ '\n\nTeléfono de Oficina OpenPeru: *' ~ numero_default ~ '*\n\n'%}
+                    {% set emailMensaje = emailMensaje ~ '<p>Teléfono de Oficina OpenPeru: <span style="font-weight: 600;">' ~ numero_default ~ '</span></p>' %}
+                    {% set emailMensaje = emailMensaje ~ '<p>&nbsp;</p> <p>Saludos Cordiales</p> <p>Jorge Gomez</p> <p>Reservas</p> <p>OpenPeru Travel Group</p> <p>RUC: 20600633164</p>' %}
+
+                    {% if proveedor.telefono is defined %}
+                        <a href="https://wa.me/{{proveedor.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
+                           target="_blank" class="btn btn-sm btn-success edit_link">
+                            <i class="fa fa-whatsapp" aria-hidden="true"></i>
+                            Enviar por Whatsapp
+                        </a>
+                    {% endif %}
+
+                    {% if proveedor.email is defined %}
+                        <a href="#"
+                           class="btn btn-sm btn-info edit_link"
+                           data-toggle="modal"
+                           data-target="#emailModal-{{ loop.index }}">
+                            <i class="fa fa-envelope" aria-hidden="true"></i>
+                            Enviar por Correo
+                        </a>
+
+                        <div class="modal fade" id="emailModal-{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="emailLabel">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                        <h4 class="modal-title">Enviar Mensaje</h4>
+                                    </div>
+                                    <div class="modal-body">
+                                        Esta seguro que desea enviar el mensaje al proveedor?
+                                    </div>
+                                    <div class="modal-footer">
+                                        <div class="form-group">
+                                            <form action="{{ admin.generateObjectUrl('email', object ) }}" method="POST">
+                                                <input type="hidden" name="email[mensaje]" value="{{ emailMensaje|url_encode }}" />
+                                                <input type="hidden" name="email[titulo]" value="{{ emailTitulo|url_encode }}" />
+                                                <input type="hidden" name="email[destinatario]"  value="{{ proveedor.email|url_encode }}" />
+                                                <button type="submit" class="btn btn-danger">Enviar E-Mail</button>
+                                                <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>

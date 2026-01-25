@@ -1,0 +1,154 @@
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    app.oweb.admin.servicioservicio:
+        class: App\Oweb\Admin\ServicioServicioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioServicio
+            controller: App\Oweb\Controller\ServicioServicioController
+            manager_type: orm
+            group: Servicio
+            label: Servicio para cotizar
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.servicioitinerario:
+        class: App\Oweb\Admin\ServicioItinerarioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioItinerario
+            controller: App\Oweb\Controller\ServicioItinerarioController
+            manager_type: orm
+            group: Servicio
+            label: Itinerario
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.serviciocomponente:
+        class: App\Oweb\Admin\ServicioComponenteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioComponente
+            controller: App\Oweb\Controller\ServicioComponenteController
+            manager_type: orm
+            group: Servicio
+            label: Componente
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.serviciocomponenteitem:
+        class: App\Oweb\Admin\ServicioComponenteitemAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioComponenteitem
+            controller: App\Oweb\Controller\ServicioComponenteitemController
+            manager_type: orm
+            group: Servicio
+            label: Item de Componente
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.serviciotipocomponente:
+        class: App\Oweb\Admin\ServicioTipocomponenteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioTipocomponente
+            manager_type: orm
+            group: Servicio
+            label: Tipo de componente
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.serviciotarifa:
+        class: App\Oweb\Admin\ServicioTarifaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioTarifa
+            controller: App\Oweb\Controller\ServicioTarifaController
+            manager_type: orm
+            group: Servicio
+            label: Tarifa para cotizar
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.servicioprovider:
+        class: App\Oweb\Admin\ServicioProviderAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioProvider
+            manager_type: orm
+            group: Servicio
+            label: Proveedor
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.servicioprovidermedio:
+        class: App\Oweb\Admin\ServicioProvidermedioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioProvidermedio
+            controller: App\Oweb\Controller\ServicioProvidermedioController
+            manager_type: orm
+            group: Servicio
+            label: Proveedor Multimedia
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.servicioitinerariodia:
+        class: App\Oweb\Admin\ServicioItinerariodiaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioItinerariodia
+            controller: App\Oweb\Controller\ServicioItinerariodiaController
+            manager_type: orm
+            group: Servicio
+            label: Dias de itinerario
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.servicionotaitinerariodia:
+        class: App\Oweb\Admin\ServicioNotaitinerariodiaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioNotaitinerariodia
+            controller: App\Oweb\Controller\ServicioNotaitinerariodiaController
+            manager_type: orm
+            group: Servicio
+            label: Notas de itinerarios
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.servicioitidiaarchivo:
+        class: App\Oweb\Admin\ServicioItidiaarchivoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioItidiaarchivo
+            manager_type: orm
+            group: Servicio
+            label: Archivo del itinerario
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.serviciotipotarifa:
+        class: App\Oweb\Admin\ServicioTipotarifaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioTipotarifa
+            manager_type: orm
+            group: Servicio
+            label: Tipo de tarifa
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.serviciomodalidadtarifa:
+        class: App\Oweb\Admin\ServicioModalidadtarifaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioModalidadtarifa
+            manager_type: orm
+            group: Servicio
+            label: Modalidad de tarifa
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.serviciotipotarifadetalle:
+        class: App\Oweb\Admin\ServicioTipotarifadetalleAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ServicioTipotarifadetalle
+            manager_type: orm
+            group: Servicio Maestro
+            label: Tipo de detalle de tarifa
+            show_mosaic_button: false
+        public: true

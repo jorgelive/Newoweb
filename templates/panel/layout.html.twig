@@ -1,0 +1,32 @@
+{# templates/panel/layout.html.twig #}
+
+{# 1. ESTO ES VITAL: Heredar del diseño base de EasyAdmin #}
+{% extends '@EasyAdmin/layout.html.twig' %}
+
+{% block head_javascript %}
+    {{ parent() }}
+
+    <!-- Core -->
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.10/index.global.min.js"></script>
+
+    {# 2. Scheduler (Orden Estricto) #}
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/premium-common@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/scrollgrid@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timeline@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.10/index.global.min.js"></script>
+
+    <script type="module">import 'panel';</script>
+{% endblock %}
+
+{% block head_stylesheets %}
+    {{ parent() }}
+
+    {# Estilos de Tippy #}
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css">
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css">
+{% endblock %}

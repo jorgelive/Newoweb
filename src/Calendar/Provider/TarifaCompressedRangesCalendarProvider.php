@@ -26,12 +26,12 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  * - SOLO para UI se aplican horas con eventTime.
  *
  * Config esperada:
- *   provider: tarifa_compressed_ranges
- *   entity: ...
- *   fields: unit/unitId/unitTitle/start/end/price/...
- *   eventTime:
- *     start: '12:00:00'
- *     end: '11:59:59'
+ * provider: tarifa_compressed_ranges
+ * entity: ...
+ * fields: unit/unitId/unitTitle/start/end/price/...
+ * eventTime:
+ * start: '12:00:00'
+ * end: '11:59:59'
  */
 final class TarifaCompressedRangesCalendarProvider implements CalendarProviderInterface
 {
@@ -55,6 +55,9 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
     public function getEvents(DateTimeInterface $from, DateTimeInterface $to, array $config): array
     {
         $this->assertConfig($config);
+
+        // 🔥 1. CAPTURA DEL PASAPORTE (TOKEN BASE64)
+        $runtimeReturnTo = $config['runtime_returnTo'] ?? null;
 
         $entities = $this->fetchEntities($from, $to, $config);
 
@@ -98,7 +101,7 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                     $currency,
                 ];
 
-                // URLs edit/show (Sonata)
+                // URLs edit/show (Oweb/EasyAdmin)
                 $urledit = null;
                 $urlshow = null;
 
@@ -130,6 +133,7 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                     }
 
                     if ($urlId !== null) {
+                        // --- URL SHOW ---
                         if (isset($urlCfg['show']) && is_array($urlCfg['show'])) {
                             $show = $urlCfg['show'];
                             if (isset($show['role']) && $this->authorizationChecker->isGranted((string)$show['role'])) {
@@ -137,11 +141,19 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                                 if (isset($show['params']) && is_array($show['params'])) {
                                     $params = $show['params'];
                                 }
-                                $params = array_merge($params, ['id' => $urlId]);
+
+                                $params = array_merge($params, ['entityId' => $urlId]);
+
+                                // 🔥 2. INYECCIÓN returnTo
+                                if (!empty($runtimeReturnTo)) {
+                                    $params['returnTo'] = $runtimeReturnTo;
+                                }
+
                                 $urlshow = $this->router->generate((string)$show['route'], $params);
                             }
                         }
 
+                        // --- URL EDIT ---
                         if (isset($urlCfg['edit']) && is_array($urlCfg['edit'])) {
                             $edit = $urlCfg['edit'];
                             if (isset($edit['role']) && $this->authorizationChecker->isGranted((string)$edit['role'])) {
@@ -149,7 +161,13 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                                 if (isset($edit['params']) && is_array($edit['params'])) {
                                     $params = $edit['params'];
                                 }
-                                $params = array_merge($params, ['id' => $urlId]);
+                                $params = array_merge($params, ['entityId' => $urlId]);
+
+                                // 🔥 2. INYECCIÓN returnTo
+                                if (!empty($runtimeReturnTo)) {
+                                    $params['returnTo'] = $runtimeReturnTo;
+                                }
+
                                 $urledit = $this->router->generate((string)$edit['route'], $params);
                             }
                         }
@@ -306,14 +324,14 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
      * Range accessor para TarifaPricingEngine (sin inclusive/exclusive shifts).
      *
      * @return array{
-     *   start:DateTimeInterface,
-     *   end:DateTimeInterface,
-     *   price:float,
-     *   minStay?:int|null,
-     *   currency?:string|null,
-     *   important?:bool,
-     *   weight?:int,
-     *   id?:int|string
+     * start:DateTimeInterface,
+     * end:DateTimeInterface,
+     * price:float,
+     * minStay?:int|null,
+     * currency?:string|null,
+     * important?:bool,
+     * weight?:int,
+     * id?:int|string
      * }
      */
     private function rangeAccessor(object $r, array $config): array

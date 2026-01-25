@@ -1,0 +1,52 @@
+{# templates/panel/pms_reserva/index.html.twig #}
+{% extends '@EasyAdmin/crud/index.html.twig' %}
+
+{% block main %}
+
+    <div class="accordion" id="accordionReserva">
+
+        {# --- ÍTEM 1: CALENDARIO --- #}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingCalendar">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCalendar" aria-expanded="true" aria-controls="collapseCalendar">
+                    <i class="fa fa-calendar me-2"></i> Vista de Calendario
+                </button>
+            </h2>
+            <div id="collapseCalendar" class="accordion-collapse collapse show" aria-labelledby="headingCalendar" data-bs-parent="#accordionReserva">
+                <div class="accordion-body">
+                    {{ fullcalendar_stimulus('pms_tarifa_rango', {
+                        'Todas': 'tarifa_rangos_raw',
+                        'Compactados': 'tarifa_rangos_compactados'
+                    }, 'resourceTimelineTwoMonths', {
+                        1: 'resourceTimelineTwoMonths',
+                        2: 'resourceTimelineOneMonth'
+                    }) }}
+                </div>
+            </div>
+        </div>
+
+        {# --- ÍTEM 2: LISTA --- #}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingList">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseList" aria-expanded="false" aria-controls="collapseList">
+                    <i class="fa fa-list me-2"></i> Listado de Tarifas
+                </button>
+            </h2>
+
+            {# 🔥 CONEXIÓN STIMULUS CORREGIDA 🔥 #}
+            {# 'panel' es la carpeta, 'accordion_filters' es el archivo #}
+            <div id="collapseList"
+                 class="accordion-collapse collapse"
+                 aria-labelledby="headingList"
+                 data-bs-parent="#accordionReserva"
+                    {{ stimulus_controller('panel--accordion_filters') }}
+            >
+                <div class="accordion-body p-0">
+                    {{ parent() }}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}

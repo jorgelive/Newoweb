@@ -5,24 +5,30 @@
     "prefer-stable": true,
     "require": {
         "php": ">=8.2.0",
+        "ext-bcmath": "*",
         "ext-calendar": "*",
         "ext-ctype": "*",
         "ext-curl": "*",
         "ext-exif": "*",
+        "ext-fileinfo": "*",
         "ext-iconv": "*",
-        "ext-zip": "*",
+        "ext-imagick": "*",
         "ext-pdo": "*",
+        "ext-zip": "*",
         "beberlei/doctrineextensions": "^1.3",
+        "behat/transliterator": "^1.5",
         "doctrine/annotations": "^1.0",
         "doctrine/doctrine-bundle": "^2.6",
         "doctrine/doctrine-migrations-bundle": "^3.2",
         "doctrine/orm": "^2.12",
-        "google/cloud-translate": "^1.12",
+        "easycorp/easyadmin-bundle": "^4.27",
+        "google/cloud-translate": "^2.0",
         "jeroendesloovere/vcard": "^1.7",
         "johngrogg/ics-parser": "^3.1",
         "jsvrcek/ics": "^0.8.4",
         "knplabs/doctrine-behaviors": "^2.6",
         "knplabs/knp-paginator-bundle": "^6.0",
+        "liip/imagine-bundle": "^2.17",
         "nelmio/cors-bundle": "*",
         "phpdocumentor/reflection-docblock": "^5.3",
         "phpoffice/phpspreadsheet": "^1.23",
@@ -31,10 +37,10 @@
         "sonata-project/doctrine-orm-admin-bundle": "^4.2",
         "sonata-project/form-extensions": "^1.15",
         "sonata-project/translation-bundle": "^3.0",
-        "sonata-project/user-bundle": "^5.1",
-        "stof/doctrine-extensions-bundle": "^1.7",
+        "stof/doctrine-extensions-bundle": "^1.15",
         "symfony/amazon-mailer": "6.4.*",
         "symfony/asset": "6.4.*",
+        "symfony/asset-mapper": "6.4.*",
         "symfony/console": "6.4.*",
         "symfony/doctrine-messenger": "6.4.*",
         "symfony/dotenv": "6.4.*",
@@ -55,16 +61,17 @@
         "symfony/runtime": "6.4.*",
         "symfony/security-bundle": "6.4.*",
         "symfony/serializer": "6.4.*",
+        "symfony/stimulus-bundle": "^2.32",
         "symfony/string": "6.4.*",
         "symfony/translation": "6.4.*",
         "symfony/twig-bundle": "6.4.*",
         "symfony/validator": "6.4.*",
         "symfony/web-link": "6.4.*",
-        "symfony/webpack-encore-bundle": "^1.14",
         "symfony/yaml": "6.4.*",
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/intl-extra": "^3.21",
-        "twig/twig": "^2.12|^3.0"
+        "twig/twig": "^2.12|^3.0",
+        "vich/uploader-bundle": "^2.9"
     },
     "config": {
         "allow-plugins": {
@@ -99,7 +106,8 @@
     "scripts": {
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
-            "assets:install %PUBLIC_DIR%": "symfony-cmd"
+            "assets:install %PUBLIC_DIR%": "symfony-cmd",
+            "importmap:install": "symfony-cmd"
         },
         "post-install-cmd": [
             "@auto-scripts"
@@ -118,7 +126,6 @@
         }
     },
     "require-dev": {
-        "rector/rector": "^2.0",
         "symfony/debug-bundle": "6.4.*",
         "symfony/maker-bundle": "^1.0",
         "symfony/stopwatch": "6.4.*",

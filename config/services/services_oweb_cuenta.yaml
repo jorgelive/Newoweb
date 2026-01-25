@@ -1,0 +1,78 @@
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    app.event_listener.cuenta_movimiento_doctrine_event_listener:
+        class: App\Oweb\EventListener\CuentaMovimientoDoctrineEventListener
+        arguments:
+            - '@security.token_storage'
+        tags:
+            - name: doctrine.event_listener
+              event: prePersist
+
+    app.oweb.admin.cuentacuenta:
+        class: App\Oweb\Admin\CuentaCuentaAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CuentaCuenta
+            manager_type: orm
+            group: Cuentas y cajas
+            label: Cuenta
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cuentamovimiento:
+        class: App\Oweb\Admin\CuentaMovimientoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CuentaMovimiento
+            manager_type: orm
+            group: Cuenta
+            label: Movimiento
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ list, oweb/admin/cuenta_movimiento/list.html.twig ] ]
+        public: true
+    app.oweb.admin.cuentaclase:
+        class: App\Oweb\Admin\CuentaClaseAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CuentaClase
+            manager_type: orm
+            group: Cuenta
+            label: Clase de movimiento
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cuentacentro:
+        class: App\Oweb\Admin\CuentaCentroAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CuentaCentro
+            manager_type: orm
+            group: Cuenta
+            label: Centro de costo
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.cuentaperiodo:
+        class: App\Oweb\Admin\CuentaPeriodoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CuentaPeriodo
+            manager_type: orm
+            group: Cuenta
+            label: Periodo
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ edit, oweb/admin/cuenta_periodo/edit.html.twig ] ]
+        public: true
+    app.oweb.admin.cuentatipo:
+        class: App\Oweb\Admin\CuentaTipoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\CuentaTipo
+            manager_type: orm
+            group: Cuenta
+            label: Tipo de movimiento
+            show_mosaic_button: false
+        public: true

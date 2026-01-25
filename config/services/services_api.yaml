@@ -1,0 +1,18 @@
+# config/services/services_panel.yaml
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # =========================
+    # controllers del módulo Pms
+    # (fuera de src/Controller/)
+    # =========================
+    App\Api\Controller\:
+        resource: '../../src/Api/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+            - 'controller.service_arguments'
+

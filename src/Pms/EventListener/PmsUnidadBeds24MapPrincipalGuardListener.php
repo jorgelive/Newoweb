@@ -25,7 +25,7 @@ use Doctrine\ORM\Events;
  *      - UNIQUE sobre esa columna
  *  - Esto evitará race conditions en escenarios concurrentes.
  */
-//#[AsDoctrineListener(event: Events::preFlush)]
+#[AsDoctrineListener(event: Events::preFlush)]
 final class PmsUnidadBeds24MapPrincipalGuardListener
 {
     public function preFlush(PreFlushEventArgs $args): void

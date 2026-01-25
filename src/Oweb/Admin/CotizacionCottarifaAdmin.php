@@ -1,0 +1,191 @@
+<?php
+
+namespace App\Oweb\Admin;
+
+use Sonata\AdminBundle\Datagrid\DatagridMapper;
+use Sonata\AdminBundle\Datagrid\ListMapper;
+use Sonata\AdminBundle\Form\FormMapper;
+use Sonata\AdminBundle\Form\Type\ModelAutocompleteType;
+use Sonata\AdminBundle\Show\ShowMapper;
+use Sonata\Form\Type\CollectionType;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
+
+class CotizacionCottarifaAdmin extends AbstractSecureAdmin
+{
+    public function getModulePrefix(): string
+    {
+        return 'OPERACIONES';
+    }
+    public function configure(): void
+    {
+        $this->classnameLabel = "Tarifa";
+    }
+
+    /**
+     * @param DatagridMapper $datagridMapper
+     */
+    protected function configureDatagridFilters(DatagridMapper $datagridMapper): void
+    {
+        $datagridMapper
+            ->add('id')
+            ->add('cantidad')
+            ->add('cotcomponente',  null, [
+                'label' => 'Componente'
+            ])
+            ->add('tarifa')
+            ->add('provider',  null, [
+                'label' => 'Proveedor'
+            ])
+            ->add('moneda')
+            ->add('monto')
+            ->add('tipotarifa',  null, [
+                'label' => 'Tipo'
+            ])
+        ;
+    }
+
+    /**
+     * @param ListMapper $listMapper
+     */
+    protected function configureListFields(ListMapper $listMapper): void
+    {
+        $listMapper
+            ->add('id')
+            ->add('cantidad')
+            ->add('cotcomponente',  null, [
+                'label' => 'Componente'
+            ])
+            ->add('tarifa')
+            ->add('provider',  null, [
+                'label' => 'Proveedor'
+            ])
+            ->add('moneda')
+            ->add('monto')
+            ->add('tipotarifa',  null, [
+                'label' => 'Tipo'
+            ])
+            ->add(ListMapper::NAME_ACTIONS, null, [
+                'label' => 'Acciones',
+                'actions' => [
+                    'show' => [],
+                    'edit' => [],
+                    'delete' => [],
+                ],
+            ])
+        ;
+    }
+
+    /**
+     * @param FormMapper $formMapper
+     */
+    protected function configureFormFields(FormMapper $formMapper): void
+    {
+        if($this->getRoot()->getClass() != 'App\Oweb\Entity\CotizacionFile'
+            && $this->getRoot()->getClass() != 'App\Oweb\Entity\CotizacionCotizacion'
+            && $this->getRoot()->getClass() != 'App\Oweb\Entity\CotizacionCotservicio'
+            && $this->getRoot()->getClass() != 'App\Oweb\Entity\CotizacionCotcomponente'
+        ){
+            $formMapper->add('cotcomponente',  null, [
+                'label' => 'Componente'
+            ]);
+        }
+
+        $formMapper
+            ->add('tarifa', ModelAutocompleteType::class, [
+                'property' => 'nombre', //no funciona ya que se cambió la ruta
+                'template' => 'form/type/ajax_dropdown_type_cotizacion_cottarifa.html.twig',
+                'route' => ['name' => 'api_oweb_servicio_tarifa_porcomponentedropdown', 'parameters' => []],
+                'placeholder' => '',
+                'context' => '/\[cottarifas\]\[\d*\]\[tarifa\]$/g, "[componente]"',
+                'minimum_input_length' => 0,
+                'dropdown_auto_width' => false,
+                'btn_add' => false
+            ])
+            ->add('cantidad')
+            ->add('moneda')
+            ->add('monto', null, [
+                'attr' => [
+                    'style' => 'min-width: 5em;'
+                ]
+            ])
+            ->add('provider', ModelAutocompleteType::class, [
+                'property' => 'nombre',
+                'template'=> 'form/type/ajax_dropdown_type_cotizacion_base.html.twig',
+                'minimum_input_length' => 0,
+                'dropdown_auto_width' => false,
+                'required' => false,
+                'label' => 'Proveedor'
+            ])
+            ->add('tipotarifa',  null, [
+                'label' => 'Tipo'
+            ])
+            ->add('cottarifadetalles', CollectionType::class , [
+                'by_reference' => false,
+                'label' => 'Detalles',
+                'btn_add' => 'Agregar nuevo Detalle'
+            ], [
+                'edit' => 'inline',
+                'inline' => 'table'
+            ])
+        ;
+
+        $cantidadModifier = function (FormInterface $form, $clases) {
+
+            $form->add(
+                'cantidad',
+                null,
+                [
+                    'label' => 'Cantidad',
+                    'attr' => ['class' => $clases]
+                ]
+            );
+        };
+
+        $formBuilder = $formMapper->getFormBuilder();
+        $formBuilder->addEventListener(
+            FormEvents::PRE_SET_DATA,
+            function (FormEvent $event) use ($cantidadModifier) {
+
+                if($event->getData()
+                    && $event->getData()->getTarifa()
+                    && $event->getData()->getTarifa()->isProrrateado() === true
+                ){
+                    if($event->getData()->getTarifa()->getCapacidadmax() == 1){
+                        $clases = 'prorrateado prorrateadoadicional';
+                    }else{
+                        $clases = 'prorrateado readonly';
+                    }
+
+                    //var_dump($event->getData()->getComponente()->getTipocomponente()->isDependeduracion());
+                    $cantidadModifier($event->getForm(), $clases);
+                }
+            }
+        );
+
+    }
+
+    /**
+     * @param ShowMapper $showMapper
+     */
+    protected function configureShowFields(ShowMapper $showMapper): void
+    {
+        $showMapper
+            ->add('id')
+            ->add('cotcomponente',  null, [
+                'label' => 'Componente'
+            ])
+            ->add('tarifa')
+            ->add('provider',  null, [
+                'label' => 'Proveedor'
+            ])
+            ->add('cantidad')
+            ->add('moneda')
+            ->add('monto')
+            ->add('tipotarifa',  null, [
+                'label' => 'Tipo'
+            ])
+        ;
+    }
+}

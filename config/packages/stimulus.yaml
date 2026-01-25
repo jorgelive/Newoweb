@@ -1,0 +1,4 @@
+stimulus:
+    controller_paths:
+        # La carpeta base obligatoria (la creamos vacía para evitar errores)
+        - '%kernel.project_dir%/assets/controllers'

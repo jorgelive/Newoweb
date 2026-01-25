@@ -1,0 +1,90 @@
+parameters:
+    facturacion_ruta_prueba: https://www.nubefact.com/api/v1/f76cbd70-fbe8-4a66-96a9-a92d21c0a3ea
+    facturacion_token_prueba: '%env(resolve:FACTURACION_TOKEN_PRUEBA)%'
+    facturacion_ruta_produccion: https://www.nubefact.com/api/v1/b576e284-665a-41cb-9ceb-859de41e8ba7
+    facturacion_token_produccion: '%env(resolve:FACTURACION_TOKEN_PRODUCCION)%'
+    facturacion_igv_porcentaje: '18.00'
+    facturacion_detraccion_monto: '700.00'
+    facturacion_detraccion_texto: OPERACIÓN SUJETA AL SISTEMA DE PAGO DE OBLIGACIONES TRIBUTARIAS CON EL GOBIERNO CENTRAL
+    facturacion_detraccion_cuenta: 00-173-030533
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    app.oweb.admin.comprobantecomprobante:
+        class: App\Oweb\Admin\ComprobanteComprobanteAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ComprobanteComprobante
+            controller: App\Oweb\Controller\ComprobanteComprobanteController
+            manager_type: orm
+            group: Comprobante
+            label: Documento
+            show_mosaic_button: false
+        calls:
+            - [ setTemplate, [ edit, oweb/admin/comprobante_comprobante/edit.html.twig ] ]
+        public: true
+    app.oweb.admin.comprobantecomprobanteitem:
+        class: App\Oweb\Admin\ComprobanteComprobanteitemAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ComprobanteComprobanteitem
+            controller: App\Oweb\Controller\ComprobanteComprobanteitemController
+            manager_type: orm
+            group: Comprobante
+            label: Item
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.comprobantemensaje:
+        class: App\Oweb\Admin\ComprobanteMensajeAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ComprobanteMensaje
+            manager_type: orm
+            group: Comprobante
+            label: Mensajes de emisión
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.comprobantetipo:
+        class: App\Oweb\Admin\ComprobanteTipoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ComprobanteTipo
+            manager_type: orm
+            group: Comprobante
+            label: Tipo de documento contable
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.comprobanteproductoservicio:
+        class: App\Oweb\Admin\ComprobanteProductoservicioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ComprobanteProductoservicio
+            manager_type: orm
+            group: Comprobante
+            label: Productos y servicios
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.comprobantetipoproductoservicio:
+        class: App\Oweb\Admin\ComprobanteTipoproductoservicioAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ComprobanteTipoproductoservicio
+            manager_type: orm
+            group: Comprobante
+            label: Tipo de producto
+            show_mosaic_button: false
+        public: true
+    app.oweb.admin.comprobanteestado:
+        class: App\Oweb\Admin\ComprobanteEstadoAdmin
+        tags:
+        -   name: sonata.admin
+            model_class: App\Oweb\Entity\ComprobanteEstado
+            manager_type: orm
+            group: Comprobante
+            label: Estado de domprobante
+            show_mosaic_button: false
+        public: true
