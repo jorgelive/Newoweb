@@ -2,7 +2,7 @@
 
 namespace App\Pms\Factory;
 
-use App\Entity\MaestroMoneda;
+use App\Oweb\Entity\MaestroMoneda;
 use App\Oweb\Repository\MaestroMonedaRepository;
 use App\Pms\Entity\PmsTarifaRango;
 

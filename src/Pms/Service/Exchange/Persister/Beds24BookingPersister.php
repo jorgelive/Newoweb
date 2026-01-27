@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Pms\Service\Exchange\Persister;
 
 use App\Entity\MaestroIdioma;
-use App\Entity\MaestroPais;
+use App\Oweb\Entity\MaestroPais;
 use App\Pms\Dto\Beds24BookingDto;
 use App\Pms\Entity\Beds24Config;
 use App\Pms\Entity\PmsChannel;
@@ -205,7 +205,9 @@ final class Beds24BookingPersister
     private function resolvePais(Beds24BookingDto $dto): MaestroPais {
         $iso2 = strtoupper((string)($dto->country2 ?? ''));
         $pais = $iso2 ? $this->em->getRepository(MaestroPais::class)->findOneBy(['iso2' => $iso2]) : null;
-        return $pais ?: $this->em->getRepository(MaestroPais::class)->find(MaestroPais::DB_VALOR_PERU);
+        return $pais ?: $this->em->getRepository(MaestroPais::class)->findOneBy([
+            'iso2' => MaestroPais::ISO_PERU
+        ]);
     }
 
     private function resolveIdioma(Beds24BookingDto $dto): MaestroIdioma {

@@ -10,13 +10,15 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
- * FitDieta
+ * Entidad FitDieta.
+ * Gestiona los planes nutricionales y cálculos antropométricos de los usuarios.
  */
 #[ORM\Table(name: 'fit_dieta')]
 #[ORM\Entity]
 class FitDieta
 {
     /**
+     * Identificador autoincremental de la dieta.
      * @var int
      */
     #[ORM\Column(name: 'id', type: 'integer')]
@@ -63,10 +65,17 @@ class FitDieta
     private $dietacomidas;
 
     /**
+     * Relación con el usuario.
+     * Se ajusta el JoinColumn para soportar el identificador UUID BINARY(16).
      * @var User
      */
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(
+        name: 'user_id',
+        referencedColumnName: 'id',
+        nullable: false,
+        columnDefinition: 'BINARY(16)'
+    )]
     private $user;
 
     /**
@@ -93,6 +102,9 @@ class FitDieta
         $this->dietacomidas = new ArrayCollection();
     }
 
+    /**
+     * Implementación de clonación profunda para duplicar dietas con sus comidas.
+     */
     public function __clone() {
         if($this->id) {
             $this->id = null;
@@ -118,18 +130,19 @@ class FitDieta
             return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
         }
 
-
         return sprintf("%s : %s.", $this->getUser()->getFullname(), $this->getNombre()) ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
+
+    /**
+     * LÓGICA DE CÁLCULO ANTROPOMÉTRICO
+     */
 
     public function getPesoMagro()
     {
         if(empty($this->getPeso()) || empty($this->getIndicedegrasa())){
             return 0;
         }
-
         return round($this->getPeso() - ($this->getPeso()*$this->getIndicedegrasa()/100), 2);
-
     }
 
     public function getGrasaTotal()
@@ -138,16 +151,12 @@ class FitDieta
         foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getGrasaTotal();
         endforeach;
-
         return round($result, 2);
     }
 
     public function getGrasaTotalPorKilogramo()
     {
-        if(empty($this->getPesoMagro())){
-            return 0;
-        }
-
+        if(empty($this->getPesoMagro())){ return 0; }
         return round($this->getGrasaTotal()/ $this->getPesoMagro(), 2);
     }
 
@@ -157,16 +166,12 @@ class FitDieta
         foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getCarbohidratoTotal();
         endforeach;
-
         return round($result, 2);
     }
 
     public function getCarbohidratoTotalPorKilogramo()
     {
-        if(empty($this->getPesoMagro())){
-            return 0;
-        }
-
+        if(empty($this->getPesoMagro())){ return 0; }
         return round($this->getCarbohidratoTotal()/ $this->getPesoMagro(), 2);
     }
 
@@ -176,16 +181,12 @@ class FitDieta
         foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getProteinaTotal();
         endforeach;
-
         return round($result, 2);
     }
 
     public function getProteinaTotalPorKilogramo()
     {
-        if(empty($this->getPesoMagro())){
-            return 0;
-        }
-
+        if(empty($this->getPesoMagro())){ return 0; }
         return round($this->getProteinaTotal()/ $this->getPesoMagro(), 2);
     }
 
@@ -195,16 +196,12 @@ class FitDieta
         foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getProteinaTotalAlto();
         endforeach;
-
         return round($result, 2);
     }
 
     public function getProteinaTotalAltoPorKilogramo()
     {
-        if(empty($this->getPesoMagro())){
-            return 0;
-        }
-
+        if(empty($this->getPesoMagro())){ return 0; }
         return round($this->getProteinaTotalAlto()/ $this->getPesoMagro(), 2);
     }
 
@@ -214,7 +211,6 @@ class FitDieta
         foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getGrasaCalorias();
         endforeach;
-
         return round($result, 2);
     }
 
@@ -224,7 +220,6 @@ class FitDieta
         foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getCarbohidratoCalorias();
         endforeach;
-
         return round($result, 2);
     }
 
@@ -234,314 +229,164 @@ class FitDieta
         foreach($this->dietacomidas as $dietacomida):
             $result += $dietacomida->getProteinaCalorias();
         endforeach;
-
         return round($result, 2);
     }
 
     public function getTotalCalorias()
     {
         $result = $this->getGrasaCalorias() + $this->getCarbohidratoCalorias() + $this->getProteinaCalorias();
-
         return round($result, 2);
     }
 
     public function getEnergiaCalorias()
     {
         $result = $this->getGrasaCalorias() + $this->getCarbohidratoCalorias();
-
         return round($result, 2);
     }
 
     public function getGrasaPorcentaje()
     {
         if(empty($this->getTotalCalorias())){return 0;}
-
         $result = $this->getGrasaCalorias() / $this->getTotalCalorias() * 100;
-
         return round($result, 2);
     }
 
     public function getCarbohidratoPorcentaje()
     {
         if(empty($this->getTotalCalorias())){return 0;}
-
         $result = $this->getCarbohidratoCalorias() / $this->getTotalCalorias() * 100;
-
         return round($result, 2);
     }
 
     public function getProteinaPorcentaje()
     {
         if(empty($this->getTotalCalorias())){return 0;}
-
         $result = $this->getProteinaCalorias() / $this->getTotalCalorias() * 100;
-
         return round($result, 2);
     }
 
-
     /**
-     * Get id
-     *
-     * @return integer
+     * GETTERS Y SETTERS EXPLÍCITOS
      */
+
     public function getId()
     {
         return $this->id;
     }
 
-    /**
-     * Set token
-     *
-     * @param string $token
-     *
-     * @return FitDieta
-     */
     public function setToken($token)
     {
         $this->token = $token;
-
         return $this;
     }
 
-    /**
-     * Get token
-     *
-     * @return string
-     */
     public function getToken()
     {
         return $this->token;
     }
 
-    /**
-     * Set nombre
-     *
-     * @param string $nombre
-     *
-     * @return FitDieta
-     */
     public function setNombre($nombre)
     {
         $this->nombre = $nombre;
-    
         return $this;
     }
 
-    /**
-     * Get nombre
-     *
-     * @return string
-     */
     public function getNombre()
     {
         return $this->nombre;
     }
 
-
-    /**
-     * Set tipodieta
-     *
-     * @param FitTipodieta $tipodieta
-     *
-     * @return FitDieta
-     */
     public function setTipodieta(FitTipodieta $tipodieta)
     {
         $this->tipodieta = $tipodieta;
-    
         return $this;
     }
 
-    /**
-     * Get tipodieta
-     *
-     * @return FitTipodieta
-     */
     public function getTipodieta()
     {
         return $this->tipodieta;
     }
 
-    /**
-     * Add dietacomida
-     *
-     * @param FitDietacomida $dietacomida
-     *
-     * @return FitDieta
-     */
     public function addDietacomida(FitDietacomida $dietacomida)
     {
         $dietacomida->setDieta($this);
-
         $this->dietacomidas[] = $dietacomida;
-    
         return $this;
     }
 
-    /**
-     * Remove dietacomida
-     *
-     * @param FitDietacomida $dietacomida
-     */
     public function removeDietacomida(FitDietacomida $dietacomida)
     {
         $this->dietacomidas->removeElement($dietacomida);
     }
 
-    /**
-     * Get dietacomidas
-     *
-     * @return Collection
-     */
     public function getDietacomidas()
     {
         return $this->dietacomidas;
     }
 
-    /**
-     * Set peso.
-     *
-     * @param string $peso
-     *
-     * @return FitDieta
-     */
     public function setPeso($peso)
     {
         $this->peso = $peso;
-    
         return $this;
     }
 
-    /**
-     * Get peso.
-     *
-     * @return string
-     */
     public function getPeso()
     {
         return $this->peso;
     }
 
-    /**
-     * Set indicedegrasa.
-     *
-     * @param string $indicedegrasa
-     *
-     * @return FitDieta
-     */
     public function setIndicedegrasa($indicedegrasa)
     {
         $this->indicedegrasa= $indicedegrasa;
-
         return $this;
     }
 
-    /**
-     * Get indicedegrasa.
-     *
-     * @return string
-     */
     public function getIndicedegrasa()
     {
         return $this->indicedegrasa;
     }
 
-    /**
-     * Set user
-     *
-     * @param User $user
-     *
-     * @return FitDieta
-     */
     public function setUser(User $user = null)
     {
         $this->user = $user;
-
         return $this;
     }
 
-    /**
-     * Get user
-     *
-     * @return User
-     */
     public function getUser()
     {
         return $this->user;
     }
 
-    /**
-     * Set fecha
-     *
-     * @param DateTime $fecha
-     *
-     * @return FitDieta
-     */
     public function setFecha($fecha)
     {
         $this->fecha = $fecha;
-
         return $this;
     }
 
-    /**
-     * Get fecha
-     *
-     * @return DateTime
-     */
     public function getFecha()
     {
         return $this->fecha;
     }
 
-    /**
-     * Set creado
-     *
-     * @param DateTime $creado
-     *
-     * @return FitDieta
-     */
     public function setCreado($creado)
     {
         $this->creado = $creado;
-
         return $this;
     }
 
-    /**
-     * Get creado
-     *
-     * @return DateTime
-     */
     public function getCreado()
     {
         return $this->creado;
     }
 
-    /**
-     * Set modificado
-     *
-     * @param DateTime $modificado
-     *
-     * @return FitDieta
-     */
     public function setModificado($modificado)
     {
         $this->modificado = $modificado;
-
         return $this;
     }
 
-    /**
-     * Get modificado
-     *
-     * @return DateTime
-     */
     public function getModificado()
     {
         return $this->modificado;
     }
-
-
 }

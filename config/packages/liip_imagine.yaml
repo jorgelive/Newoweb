@@ -1,36 +1,26 @@
 liip_imagine:
-    # Usamos imagick para soportar WebP, HEIC y mejor rendimiento
+    # Usamos imagick (asegúrate de que tu Docker lo tenga, si no usa "gd")
     driver: "imagick"
 
-    # Definimos dónde se guardará la caché de las imágenes procesadas
     resolvers:
         default:
             web_path:
-                # La caché se generará en public/media/cache
                 web_root: "%kernel.project_dir%/public"
                 cache_prefix: "media/cache"
 
     filter_sets:
-        # --- FILTRO 1: COMPRESIÓN INICIAL (Ingesta) ---
-        # Este filtro lo llama el VichCompressionListener justo al subir el archivo.
-        # Reduce fotos gigantes (10MB) a un tamaño manejable (~500KB) sobrescribiendo el original.
+        # --- FILTRO 1: COMPRESIÓN INICIAL ---
         pms_compress_initial:
             quality: 80
+            format: webp  # ✅ CORRECTO: Va aquí afuera, no dentro de 'filters'
             filters:
-                # Redimensiona si es mayor a 1600x1600, pero no estira si es pequeña
                 downscale: { max: [1600, 1600] }
-                # Elimina metadatos EXIF/GPS para privacidad y ahorro de espacio
                 strip: ~
-                # Fuerza conversión a WebP (más eficiente que JPEG/PNG)
-                format: { name: webp }
 
-        # --- FILTRO 2: THUMBNAIL ADMIN (Visualización) ---
-        # Este filtro lo usas en el Template de Twig de EasyAdmin.
-        # Genera miniaturas cuadradas perfectas bajo demanda.
+        # --- FILTRO 2: THUMBNAIL ADMIN ---
         pms_thumb_admin:
             quality: 75
+            format: webp  # ✅ CORRECTO: Define el formato de salida del set
             filters:
-                # Recorta al centro (outbound) para llenar el cuadrado de 150x150
                 thumbnail: { size: [150, 150], mode: outbound, allow_upscale: true }
-                # Salida WebP para carga instantánea en el listado
-                format: { name: webp }
+                # ❌ ELIMINA: format: { name: webp } de aquí adentro

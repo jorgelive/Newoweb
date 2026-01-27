@@ -3,8 +3,8 @@
 
 namespace App\Pms\Form\Type;
 
-use App\Entity\MaestroPais;
-use App\Entity\MaestroTipodocumento;
+use App\Oweb\Entity\MaestroPais;
+use App\Oweb\Entity\MaestroTipodocumento;
 use App\Pms\Entity\PmsReservaHuesped;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;

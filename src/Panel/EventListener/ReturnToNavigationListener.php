@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Listener de Navegación Circular Inteligente.
- * Versión Corregida: Soporte total para Pretty URLs.
+ * Versión Final: Excluye explícitamente assets, cargas y LiipImagine.
  */
 class ReturnToNavigationListener
 {
@@ -30,42 +30,60 @@ class ReturnToNavigationListener
         if (!$event->isMainRequest()) return;
 
         $request = $event->getRequest();
-
-        // 1. Filtro de Host (Seguridad básica)
-        if ($request->getHost() !== $this->panelHost) return;
-
-        // 2. Ignorar rutas técnicas de Symfony/Security
+        $path = $request->getPathInfo();
         $route = $request->attributes->get('_route');
-        if (in_array($route, ['app_login', 'app_logout', '_wdt', '_profiler'], true)) return;
 
-        // 3. Ignorar llamadas AJAX (opcional, pero recomendado para no ensuciar XHR)
+        // =====================================================================
+        // 0. IGNORAR ASSETS Y RUTAS DE SISTEMA (Anti-Bucle)
+        // =====================================================================
+
+        // A. Rutas de LiipImagine (Generación de miniaturas)
+        // Usualmente son 'liip_imagine_filter'
+        if ($route && (str_starts_with($route, 'liip_') || str_contains($route, 'imagine'))) {
+            return;
+        }
+
+        // B. Exclusión por Carpetas Físicas (Basado en tu estructura 'public')
+        // Si la URL empieza por cualquiera de estas, NO es una página del admin.
+        if (str_starts_with($path, '/media/') ||   // Caché de imágenes
+            str_starts_with($path, '/carga/') ||   // Tus subidas originales
+            str_starts_with($path, '/assets/') ||  // JS/CSS estáticos
+            str_starts_with($path, '/bundles/') || // EasyAdmin y otros bundles
+            str_starts_with($path, '/app/') ||     // Otros recursos
+            str_starts_with($path, '/_wdt') ||     // Web Debug Toolbar
+            str_starts_with($path, '/_profiler')) { // Symfony Profiler
+            return;
+        }
+
+        // C. Exclusión por Formato
+        // Si piden una imagen (.jpg, .webp, etc), no interceptar.
+        // request_format suele ser 'html' para páginas normales.
+        if ($request->getRequestFormat() !== 'html') {
+            return;
+        }
+
+        // =====================================================================
+        // 1. FILTROS DE SEGURIDAD
+        // =====================================================================
+        if ($request->getHost() !== $this->panelHost) return;
         if ($request->isXmlHttpRequest()) return;
 
-        // 4. Si ya trae pasaporte explícito, confiamos en él y salimos.
+        if (in_array($route, ['app_login', 'app_logout'], true)) return;
+
+        // 2. IMPORTANTE: Si es el Dashboard, NO hacer nada.
+        $controller = $request->query->get(EA::CRUD_CONTROLLER_FQCN);
+        if ($controller && str_contains($controller, 'DashboardController')) {
+            return;
+        }
+
+        // 3. Si ya trae pasaporte, no lo tocamos.
         if ($request->query->has('returnTo')) return;
 
         // --- LÓGICA DE AUTO-GENERACIÓN ---
 
-        // Si detectamos que es una página INDEX, forzamos la inyección.
         if ($this->isIndexPage($request)) {
             $currentUrl = $request->getUri();
-            // INYECCIÓN: Modificamos la query del request actual.
-            // Esto no cambia la URL del navegador, pero el BaseCrudController lo verá.
             $request->query->set('returnTo', base64_encode($currentUrl));
-            return;
-        }
-
-        // Fallback: Si no es Index (ej: entré directo a Edit), intento rescatar el Referer.
-        $referer = $request->headers->get('referer');
-        if ($referer) {
-            $refererParts = parse_url($referer);
-            // Solo si viene del mismo dominio
-            if (($refererParts['host'] ?? '') === $this->panelHost) {
-                // Evitamos bucles: Si el referer es la misma página, no lo usamos
-                if (($refererParts['path'] ?? '') !== $request->getPathInfo()) {
-                    $request->query->set('returnTo', base64_encode($referer));
-                }
-            }
         }
     }
 
@@ -73,22 +91,31 @@ class ReturnToNavigationListener
     public function onKernelResponse(ResponseEvent $event): void
     {
         if (!$event->isMainRequest()) return;
+
         $request = $event->getRequest();
+        $path = $request->getPathInfo();
+
+        // VALIDACIÓN EXTRA EN RESPUESTA:
+        // Si por alguna razón pasamos el filtro de Request pero es una imagen, abortar.
+        if (str_starts_with($path, '/media/') ||
+            str_starts_with($path, '/carga/') ||
+            str_starts_with((string)$request->attributes->get('_route'), 'liip_')) {
+            return;
+        }
 
         $encodedReturnTo = $request->query->get('returnTo');
+
         if (empty($encodedReturnTo)) return;
 
         $response = $event->getResponse();
 
         if ($response instanceof RedirectResponse) {
-            // Detectamos qué botón se pulsó
             $eaRequest = $request->request->all('ea');
             $btn = $eaRequest['newForm']['btn'] ?? $eaRequest['editForm']['btn'] ?? null;
 
-            // CASO A: Guardar y Continuar (Loop) -> Perpetuamos el token
+            // CASO A: Botones de "Guardar y..."
             if (in_array($btn, ['saveAndAddAnother', 'saveAndContinue'])) {
                 $targetUrl = $response->getTargetUrl();
-                // Verificamos si ya lo tiene para no duplicar
                 if (!str_contains($targetUrl, 'returnTo=')) {
                     $sep = (parse_url($targetUrl, PHP_URL_QUERY) ? '&' : '?');
                     $response->setTargetUrl($targetUrl . $sep . 'returnTo=' . $encodedReturnTo);
@@ -96,57 +123,44 @@ class ReturnToNavigationListener
                 return;
             }
 
-            // CASO B: Guardar y Salir -> Usamos el token para volver
-            $decodedUrl = base64_decode((string) $encodedReturnTo, true);
-            // Validación de seguridad para evitar Open Redirects
-            if ($decodedUrl && filter_var($decodedUrl, FILTER_VALIDATE_URL)) {
-                // Verificamos que sea del mismo dominio
-                $parts = parse_url($decodedUrl);
-                if (($parts['host'] ?? '') === $this->panelHost) {
-                    $response->setTargetUrl($decodedUrl);
+            // CASO B: Guardar y Salir
+            if ($btn === 'saveAndReturn') {
+                $decodedUrl = base64_decode((string) $encodedReturnTo, true);
+                if ($decodedUrl && filter_var($decodedUrl, FILTER_VALIDATE_URL)) {
+                    $parts = parse_url($decodedUrl);
+                    if (($parts['host'] ?? '') === $this->panelHost) {
+                        $response->setTargetUrl($decodedUrl);
+                    }
                 }
             }
         }
     }
 
-    /**
-     * Detecta si es un Listado (Index) soportando Pretty URLs y parámetros EA.
-     */
     private function isIndexPage(Request $request): bool
     {
-        // 1. Detección por parámetro explícito (EasyAdmin estándar)
-        $crudAction = $request->query->get(EA::CRUD_ACTION);
-        if ($crudAction === Action::INDEX) return true;
-
-        // Si hay una acción explícita que NO es index, retornamos false.
-        if (in_array($crudAction, [Action::DETAIL, Action::EDIT, Action::NEW, Action::BATCH_DELETE], true)) {
-            return false;
-        }
-
         $path = $request->getPathInfo();
 
-        // 2. 🔥 CORRECCIÓN: Excluir explícitamente la Raíz y el Admin base
-        // Si la URL es exactamente "/" o "/admin" o /panel por silas, es el Dashboard, NO un listado.
-        if ($path === '/' || $path === '/admin' || $path === '/panel') {
+        if ($path === '/' || rtrim($path, '/') === '/admin' || rtrim($path, '/') === '/panel') {
             return false;
         }
 
-        // 3. Detección por URL (Pretty URLs)
-        // Filtros negativos: Si contiene estas palabras, NO es un index.
-        if (str_ends_with($path, '/new') ||
+        $crudAction = $request->query->get(EA::CRUD_ACTION);
+        if ($crudAction) {
+            return $crudAction === Action::INDEX;
+        }
+
+        if (str_contains($path, '/new') ||
             str_contains($path, '/edit') ||
             str_contains($path, '/batch') ||
-            str_contains($path, '/login') ||
-            str_contains($path, '/logout')) {
+            str_contains($path, '/render-filters') ||
+            str_contains($path, '/autocomplete')) {
             return false;
         }
 
-        // Filtro de ID al final: Si termina en número o UUID, es un DETALLE.
         if (preg_match('/\/(?:\d+|[a-f0-9-]{20,})$/i', $path)) {
             return false;
         }
 
-        // Si ha pasado todos los filtros, asumimos que es un Index.
         return true;
     }
 }

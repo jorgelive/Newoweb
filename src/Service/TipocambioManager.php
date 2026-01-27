@@ -4,14 +4,14 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Dto\ExchangeRateDto;
-use App\Entity\MaestroMoneda;
-use App\Entity\MaestroTipocambio;
-use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
+use App\Oweb\Entity\MaestroMoneda;
+use App\Oweb\Entity\MaestroTipocambio;
 use DateTime;
 use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
 use Exception;
+use Psr\Log\LoggerInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class TipocambioManager
 {

@@ -9,13 +9,15 @@ use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * cuenta
+ * Entidad UserCuenta.
+ * Gestiona las credenciales y perfiles de cuenta vinculados a los usuarios del sistema.
  */
 #[ORM\Table(name: 'use_cuenta')]
 #[ORM\Entity]
 class UserCuenta
 {
     /**
+     * Identificador autoincremental de la cuenta de usuario.
      * @var integer
      */
     #[ORM\Column(name: 'id', type: 'integer')]
@@ -38,6 +40,7 @@ class UserCuenta
     private $password;
 
     /**
+     * Fecha de creación del registro.
      * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
@@ -45,6 +48,7 @@ class UserCuenta
     private $creado;
 
     /**
+     * Fecha de la última modificación del registro.
      * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
@@ -52,10 +56,17 @@ class UserCuenta
     private $modificado;
 
     /**
+     * Relación ManyToOne con la entidad User.
+     * Se especifica BINARY(16) para el mapeo con el ID UUID.
      * @var User
      */
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'cuentas')]
-    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(
+        name: 'user_id',
+        referencedColumnName: 'id',
+        nullable: false,
+        columnDefinition: 'BINARY(16)'
+    )]
     private $user;
 
     /**
@@ -66,6 +77,7 @@ class UserCuenta
     private $cuentatipo;
 
     /**
+     * Representación textual de la cuenta.
      * @return string
      */
     public function __toString()
@@ -73,11 +85,15 @@ class UserCuenta
         return $this->getNombre() ?? sprintf("Id: %s.", $this->getId()) ?? '';
     }
 
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS EXPLÍCITOS
+     * -------------------------------------------------------------------------
+     */
 
     /**
      * Get id
-     *
-     * @return integer 
+     * @return integer
      */
     public function getId()
     {
@@ -86,21 +102,18 @@ class UserCuenta
 
     /**
      * Set nombre
-     *
      * @param string $nombre
      * @return UserCuenta
      */
     public function setNombre($nombre)
     {
         $this->nombre = $nombre;
-
         return $this;
     }
 
     /**
      * Get nombre
-     *
-     * @return string 
+     * @return string
      */
     public function getNombre()
     {
@@ -109,20 +122,17 @@ class UserCuenta
 
     /**
      * Set password
-     *
      * @param string $password
      * @return UserCuenta
      */
     public function setPassword($password)
     {
         $this->password = $password;
-
         return $this;
     }
 
     /**
      * Get password
-     *
      * @return string
      */
     public function getPassword()
@@ -132,20 +142,17 @@ class UserCuenta
 
     /**
      * Set creado
-     *
      * @param DateTime $creado
      * @return UserCuenta
      */
     public function setCreado($creado)
     {
         $this->creado = $creado;
-
         return $this;
     }
 
     /**
      * Get creado
-     *
      * @return DateTime
      */
     public function getCreado()
@@ -155,20 +162,17 @@ class UserCuenta
 
     /**
      * Set modificado
-     *
      * @param DateTime $modificado
      * @return UserCuenta
      */
     public function setModificado($modificado)
     {
         $this->modificado = $modificado;
-
         return $this;
     }
 
     /**
      * Get modificado
-     *
      * @return DateTime
      */
     public function getModificado()
@@ -178,21 +182,18 @@ class UserCuenta
 
     /**
      * Set user
-     *
-     * @param User $user
+     * @param User|null $user
      * @return UserCuenta
      */
     public function setUser(User $user = null)
     {
         $this->user = $user;
-
         return $this;
     }
 
     /**
      * Get user
-     *
-     * @return User
+     * @return User|null
      */
     public function getUser()
     {
@@ -201,25 +202,21 @@ class UserCuenta
 
     /**
      * Set cuentatipo
-     *
-     * @param UserCuentatipo $cuentatipo
+     * @param UserCuentatipo|null $cuentatipo
      * @return UserCuenta
      */
     public function setCuentatipo(UserCuentatipo $cuentatipo = null)
     {
         $this->cuentatipo = $cuentatipo;
-
         return $this;
     }
 
     /**
      * Get cuentatipo
-     *
-     * @return UserCuentatipo
+     * @return UserCuentatipo|null
      */
     public function getCuentatipo()
     {
         return $this->cuentatipo;
     }
-
 }

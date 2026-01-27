@@ -7,7 +7,6 @@ use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
-
 #[ORM\Entity]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: 'mai_archivo')]
@@ -40,10 +39,17 @@ class MainArchivo
     private $modificado;
 
     /**
-     * @var User
+     * Relación con el usuario propietario.
+     * Se especifica columnDefinition como BINARY(16) para coincidir con el nuevo ID de User.
+     * * @var User
      */
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(
+        name: 'user_id',
+        referencedColumnName: 'id',
+        nullable: false,
+        columnDefinition: 'BINARY(16)'
+    )]
     private $user;
 
     /**
@@ -57,7 +63,7 @@ class MainArchivo
     /**
      * Get id
      *
-     * @return integer 
+     * @return integer
      */
     public function getId()
     {
@@ -103,7 +109,7 @@ class MainArchivo
     /**
      * Get operacion
      *
-     * @return string 
+     * @return string
      */
     public function getOperacion()
     {
@@ -155,5 +161,4 @@ class MainArchivo
     {
         return $this->modificado;
     }
-
 }

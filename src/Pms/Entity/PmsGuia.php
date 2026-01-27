@@ -1,72 +1,171 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pms\Entity;
 
 use App\Attribute\AutoTranslate;
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
+use App\Trait\AutoTranslateControlTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 
+/**
+ * Entidad que representa la guía de una unidad.
+ * Utiliza UUID como identificador primario y auditoría inmutable.
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_guia')]
+#[ORM\HasLifecycleCallbacks]
 class PmsGuia
 {
-    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column]
-    private ?int $id = null;
+    /**
+     * Gestión de Identificador UUID (BINARY 16).
+     */
+    use IdTrait;
 
+    /**
+     * Gestión de auditoría temporal (DateTimeImmutable).
+     */
+    use TimestampTrait;
+
+    /**
+     * Trait global para el control de latencia en traducciones.
+     * Inyecta el flag virtual 'ejecutarTraduccion'.
+     */
+    use AutoTranslateControlTrait;
+
+    /**
+     * Relación uno a uno con la unidad.
+     * Se especifica BINARY(16) para coincidir con el IdTrait de PmsUnidad.
+     */
     #[ORM\OneToOne(targetEntity: PmsUnidad::class, cascade: ['persist'])]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(
+        name: 'unidad_id',
+        referencedColumnName: 'id',
+        nullable: false,
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
     private ?PmsUnidad $unidad = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    private ?bool $activo = true;
+    private bool $activo = true;
 
+    /**
+     * Campo JSON multiidioma con traducción automática.
+     * @var array
+     */
     #[ORM\Column(type: 'json')]
-    #[AutoTranslate(sourceLanguage: 'es')]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private array $titulo = [];
 
     /**
-     * Relación con la tabla de enlace para permitir secciones compartidas
+     * Relación con la tabla de enlace para secciones compartidas.
+     * @var Collection<int, PmsGuiaHasSeccion>
      */
-    #[ORM\OneToMany(mappedBy: 'guia', targetEntity: PmsGuiaHasSeccion::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(
+        mappedBy: 'guia',
+        targetEntity: PmsGuiaHasSeccion::class,
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
     #[ORM\OrderBy(['orden' => 'ASC'])]
     private Collection $guiaHasSecciones;
 
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $creado = null;
-
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $modificado = null;
-
-    public function __construct() {
+    /**
+     * Constructor de la entidad.
+     */
+    public function __construct()
+    {
         $this->guiaHasSecciones = new ArrayCollection();
         $this->titulo = [];
     }
 
-    public function __toString(): string { return $this->unidad?->getNombre() ?? 'Guía'; }
+    /**
+     * Representación textual de la guía.
+     */
+    public function __toString(): string
+    {
+        return $this->unidad?->getNombre() ?? ('Guía UUID ' . $this->getId());
+    }
 
-    public function getId(): ?int { return $this->id; }
-    public function getUnidad(): ?PmsUnidad { return $this->unidad; }
-    public function setUnidad(?PmsUnidad $u): self { $this->unidad = $u; return $this; }
-    public function isActivo(): ?bool { return $this->activo; }
-    public function setActivo(bool $activo): self { $this->activo = $activo; return $this; }
-    public function getTitulo(): array { return $this->titulo; }
-    public function setTitulo(array $t): self { $this->titulo = $t; return $this; }
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS EXPLÍCITOS (Regla 2026-01-14)
+     * -------------------------------------------------------------------------
+     */
 
-    /** @return Collection<int, PmsGuiaHasSeccion> */
-    public function getGuiaHasSecciones(): Collection { return $this->guiaHasSecciones; }
+    public function getUnidad(): ?PmsUnidad
+    {
+        return $this->unidad;
+    }
 
-    public function addGuiaHasSeccion(PmsGuiaHasSeccion $link): self {
-        if (!$this->guiaHasSecciones->contains($link)) {
-            $this->guiaHasSecciones->add($link);
-            $link->setGuia($this);
+    public function setUnidad(?PmsUnidad $unidad): self
+    {
+        $this->unidad = $unidad;
+        return $this;
+    }
+
+    public function isActivo(): bool
+    {
+        return $this->activo;
+    }
+
+    public function setActivo(bool $activo): self
+    {
+        $this->activo = $activo;
+        return $this;
+    }
+
+    /**
+     * Getter para el título (JSON). Usado por el AutoTranslationEventListener.
+     */
+    public function getTitulo(): array
+    {
+        return $this->titulo;
+    }
+
+    /**
+     * Setter para el título (JSON). Permite la inyección de traducciones.
+     */
+    public function setTitulo(array $titulo): self
+    {
+        $this->titulo = $titulo;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, PmsGuiaHasSeccion>
+     */
+    public function getGuiaHasSecciones(): Collection
+    {
+        return $this->guiaHasSecciones;
+    }
+
+    /**
+     * Adder explícito para garantizar la relación bidireccional.
+     */
+    public function addGuiaHasSeccion(PmsGuiaHasSeccion $guiaHasSeccion): self
+    {
+        if (!$this->guiaHasSecciones->contains($guiaHasSeccion)) {
+            $this->guiaHasSecciones->add($guiaHasSeccion);
+            $guiaHasSeccion->setGuia($this);
         }
         return $this;
     }
 
-    public function getCreado(): ?\DateTimeInterface { return $this->creado; }
-    public function getModificado(): ?\DateTimeInterface { return $this->modificado; }
+    /**
+     * Remover explícito para orphanRemoval.
+     */
+    public function removeGuiaHasSeccion(PmsGuiaHasSeccion $guiaHasSeccion): self
+    {
+        if ($this->guiaHasSecciones->removeElement($guiaHasSeccion)) {
+            if ($guiaHasSeccion->getGuia() === $this) {
+                $guiaHasSeccion->setGuia(null);
+            }
+        }
+        return $this;
+    }
 }

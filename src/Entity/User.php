@@ -2,96 +2,93 @@
 
 namespace App\Entity;
 
+use App\Entity\Trait\IdTrait;
 use App\Oweb\Entity\CuentaMovimiento;
 use App\Oweb\Entity\TransporteConductor;
 use App\Oweb\Entity\UserArea;
 use App\Oweb\Entity\UserCuenta;
 use App\Oweb\Entity\UserDependencia;
 use App\Repository\UserRepository;
+use App\Entity\Trait\TimestampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
- * User Entity.
- *
- * Implementación de seguridad nativa de Symfony.
- * NOTA: Se ha eliminado toda compatibilidad con serialización antigua de SonataUserBundle.
- * Los roles ahora se manejan estrictamente como arrays JSON nativos.
+ * Entidad User.
+ * * Gestiona la identidad central del sistema, combinando la seguridad de Symfony
+ * con las relaciones de negocio de los módulos Oweb y PMS.
+ * * Se utiliza una estrategia de Identificadores UUID (BINARY 16) para permitir
+ * la coexistencia de sesiones y datos entre el panel moderno y el sistema legacy.
  */
 #[ORM\Table(name: 'user')]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     /**
-     * @var int|null
+     * Trait para la gestión de ID en formato UUID BINARY(16).
      */
-    #[ORM\Id]
-    #[ORM\Column(type: 'integer')]
-    #[ORM\GeneratedValue(strategy: 'AUTO')]
-    protected ?int $id = null;
+    use IdTrait;
 
     /**
-     * CAMPOS DE SEGURIDAD
+     * Trait para la gestión automática de createdAt y updatedAt.
      */
+    use TimestampTrait;
 
     /**
+     * Identificador de usuario único para el login.
      * @var string|null
      */
     #[ORM\Column(type: 'string', length: 180, unique: true)]
     protected ?string $username = null;
 
     /**
+     * Correo electrónico del usuario, utilizado como identificador principal en Symfony.
      * @var string|null
      */
     #[ORM\Column(type: 'string', length: 180, unique: true)]
     protected ?string $email = null;
 
     /**
+     * Contraseña cifrada del usuario.
      * @var string|null
      */
     #[ORM\Column(type: 'string')]
     protected ?string $password = null;
 
     /**
-     * Roles del usuario.
-     * Almacenados como JSON en base de datos, pero manipulados como array nativo en PHP.
-     *
+     * Listado de roles asignados (JSON).
      * @var array
      */
     #[ORM\Column(type: 'json')]
     private array $roles = [];
 
     /**
+     * Estado de activación del usuario.
      * @var bool
      */
     #[ORM\Column(type: 'boolean')]
     protected bool $enabled = true;
 
     /**
-     * CAMPOS PERSONALIZADOS
-     */
-
-    /**
+     * Nombre(s) del usuario.
      * @var string|null
      */
     #[ORM\Column(type: 'string', length: 64, nullable: true)]
     private ?string $firstname = null;
 
     /**
+     * Apellido(s) del usuario.
      * @var string|null
      */
     #[ORM\Column(type: 'string', length: 64, nullable: true)]
     private ?string $lastname = null;
 
     /**
-     * RELACIONES
-     */
-
-    /**
+     * Relación con la Dependencia (Oweb).
      * @var UserDependencia|null
      */
     #[ORM\ManyToOne(targetEntity: UserDependencia::class, inversedBy: 'users')]
@@ -99,6 +96,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     protected ?UserDependencia $dependencia = null;
 
     /**
+     * Relación con el Área (Oweb).
      * @var UserArea|null
      */
     #[ORM\ManyToOne(targetEntity: UserArea::class, inversedBy: 'users')]
@@ -106,40 +104,29 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     protected ?UserArea $area = null;
 
     /**
+     * Relación OneToMany con Cuentas de Usuario.
      * @var Collection<int, UserCuenta>
      */
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: UserCuenta::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $cuentas;
 
     /**
+     * Relación OneToMany con Movimientos de Cuenta.
      * @var Collection<int, CuentaMovimiento>
      */
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: CuentaMovimiento::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $movimientos;
 
     /**
+     * Relación OneToOne con Conductor (Transporte).
      * @var TransporteConductor|null
      */
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: TransporteConductor::class)]
     private ?TransporteConductor $conductor = null;
 
     /**
-     * @var \DateTimeInterface|null
-     */
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $createdAt = null;
-
-    /**
-     * @var \DateTimeInterface|null
-     */
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $updatedAt = null;
-
-    /**
      * Constructor de la entidad.
-     * Inicializa las colecciones y establece valores por defecto.
+     * Inicializa las colecciones Doctrine y valores por defecto.
      */
     public function __construct()
     {
@@ -149,14 +136,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->roles = [];
     }
 
-    /**
-     * GETTERS Y SETTERS BÁSICOS
+    /*
+     * -------------------------------------------------------------------------
+     * IMPLEMENTACIÓN DE SEGURIDAD (UserInterface)
+     * -------------------------------------------------------------------------
      */
-
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
 
     public function getUsername(): ?string
     {
@@ -179,10 +163,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->email = $email;
         return $this;
     }
-
-    /**
-     * Lógica de Seguridad (UserInterface / PasswordAuthenticatedUserInterface)
-     */
 
     public function getPassword(): string
     {
@@ -229,10 +209,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function eraseCredentials(): void
     {
+        // No se almacenan credenciales en texto plano.
     }
 
-    /**
-     * GETTERS Y SETTERS PERSONALIZADOS
+    /*
+     * -------------------------------------------------------------------------
+     * PROPIEDADES DE PERFIL PERSONALIZADAS
+     * -------------------------------------------------------------------------
      */
 
     public function setFirstname(?string $firstname): self
@@ -257,15 +240,29 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->lastname;
     }
 
+    /**
+     * Obtiene el nombre completo concatenado.
+     * @return string
+     */
     public function getFullname(): string
     {
         return trim((string)$this->firstname . ' ' . (string)$this->lastname);
     }
 
+    /**
+     * Alias semántico para el nombre completo.
+     * @return string
+     */
     public function getNombre(): string
     {
         return $this->getFullname();
     }
+
+    /*
+     * -------------------------------------------------------------------------
+     * GESTIÓN DE RELACIONES (GETTERS / SETTERS / ADDERS)
+     * -------------------------------------------------------------------------
+     */
 
     public function setDependencia(?UserDependencia $dependencia): self
     {
@@ -308,6 +305,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /**
+     * @return Collection<int, UserCuenta>
+     */
     public function getCuentas(): Collection
     {
         return $this->cuentas;
@@ -316,11 +316,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setConductor(?TransporteConductor $conductor): self
     {
         $this->conductor = $conductor;
-
         if ($conductor && $conductor->getUser() !== $this) {
             $conductor->setUser($this);
         }
-
         return $this;
     }
 
@@ -348,35 +346,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /**
+     * @return Collection<int, CuentaMovimiento>
+     */
     public function getMovimientos(): Collection
     {
         return $this->movimientos;
     }
 
+    /**
+     * Representación de cadena de la entidad.
+     * @return string
+     */
     public function __toString(): string
     {
         return (string) $this->username;
-    }
-
-    public function getCreatedAt(): ?\DateTimeInterface
-    {
-        return $this->createdAt;
-    }
-
-    public function setCreatedAt(?\DateTimeInterface $createdAt): self
-    {
-        $this->createdAt = $createdAt;
-        return $this;
-    }
-
-    public function getUpdatedAt(): ?\DateTimeInterface
-    {
-        return $this->updatedAt;
-    }
-
-    public function setUpdatedAt(?\DateTimeInterface $updatedAt): self
-    {
-        $this->updatedAt = $updatedAt;
-        return $this;
     }
 }

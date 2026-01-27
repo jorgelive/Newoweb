@@ -2,7 +2,6 @@
 
 namespace App\Oweb\Entity;
 
-use App\Entity\MaestroMoneda;
 use App\Entity\User;
 use DateTime;
 use DateTimeInterface;
@@ -10,14 +9,15 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
- * ReservaPago
+ * Entidad ReservaPago.
+ * Gestiona el registro de transacciones financieras vinculadas a las reservas.
  */
 #[ORM\Table(name: 'res_pago')]
 #[ORM\Entity]
 class ReservaPago
 {
-
     /**
+     * Identificador autoincremental del pago.
      * @var int
      */
     #[ORM\Column(type: 'integer')]
@@ -26,6 +26,7 @@ class ReservaPago
     private $id;
 
     /**
+     * Relación con la reserva principal.
      * @var ReservaReserva
      */
     #[ORM\ManyToOne(targetEntity: ReservaReserva::class, inversedBy: 'pagos')]
@@ -39,6 +40,7 @@ class ReservaPago
     private $fecha;
 
     /**
+     * Relación con la moneda del pago.
      * @var MaestroMoneda
      */
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
@@ -52,14 +54,22 @@ class ReservaPago
     private $monto = '00.00';
 
     /**
-     * @var User
+     * Usuario que registró o está vinculado al pago.
+     * Mapeado a BINARY(16) para coincidir con el identificador UUID de la tabla user.
+     * @var User|null
      */
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: true)]
+    #[ORM\JoinColumn(
+        name: 'user_id',
+        referencedColumnName: 'id',
+        nullable: true,
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
     protected $user;
 
     /**
-     * @var string
+     * Observaciones adicionales del pago.
+     * @var string|null
      */
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private $nota;
@@ -79,12 +89,16 @@ class ReservaPago
     private $modificado;
 
     /**
-     * Constructor
+     * Constructor.
      */
     public function __construct()
     {
     }
 
+    /**
+     * Representación textual detallada del pago.
+     * @return string
+     */
     public function __toString()
     {
         $contenido = [];
@@ -97,6 +111,10 @@ class ReservaPago
         return (sprintf('Fecha: %s, Monto: %s %s, Nota: %s', $this->getFecha()->format('Y-m-d'), $this->getMoneda()->getSimbolo(), $this->getMonto(), implode(' ', $contenido)));
     }
 
+    /**
+     * Genera un resumen legible de la transacción.
+     * @return string|null
+     */
     public function getResumen(): ?string
     {
         $contenido = [];
@@ -108,6 +126,12 @@ class ReservaPago
         }
         return (sprintf('Fecha: %s, Monto: %s %s, Nota: %s', $this->getFecha()->format('Y-m-d'), $this->getMoneda()->getSimbolo(), $this->getMonto(), implode(' ', $contenido)));
     }
+
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS EXPLÍCITOS
+     * -------------------------------------------------------------------------
+     */
 
     public function getId(): ?int
     {
@@ -198,11 +222,20 @@ class ReservaPago
         return $this;
     }
 
+    /**
+     * Obtiene el usuario relacionado.
+     * @return User|null
+     */
     public function getUser(): ?User
     {
         return $this->user;
     }
 
+    /**
+     * Establece el usuario relacionado.
+     * @param User|null $user
+     * @return self
+     */
     public function setUser(?User $user): self
     {
         $this->user = $user;

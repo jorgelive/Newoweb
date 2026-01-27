@@ -1,23 +1,36 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 
+/**
+ * Entidad Beds24Config.
+ * Gestiona la configuración de conexión con la API de Beds24 (V2).
+ * Implementa UUID como identificador primario.
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_beds24_config')]
+#[ORM\HasLifecycleCallbacks]
 class Beds24Config implements ChannelConfigInterface
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    /**
+     * Gestión de Identificador UUID (BINARY 16).
+     */
+    use IdTrait;
+
+    /**
+     * Gestión de auditoría temporal (DateTimeImmutable).
+     */
+    use TimestampTrait;
 
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombre = null;
@@ -40,26 +53,22 @@ class Beds24Config implements ChannelConfigInterface
     #[ORM\Column(type: 'string', length: 255, nullable: true, options: ['default' => 'https://api.beds24.com/v2'])]
     private ?string $baseUrl = 'https://api.beds24.com/v2';
 
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $created = null;
-
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $updated = null;
-
+    /**
+     * Relación con mapeos de unidad.
+     * @var Collection<int, PmsUnidadBeds24Map>
+     */
     #[ORM\OneToMany(mappedBy: 'beds24Config', targetEntity: PmsUnidadBeds24Map::class, orphanRemoval: true)]
     private Collection $unidadMaps;
 
     /**
-     * ✅ AGREGADO: Lado inverso para PullQueue
+     * Lado inverso para PullQueue.
      * @var Collection<int, PmsBookingsPullQueue>
      */
     #[ORM\OneToMany(mappedBy: 'beds24Config', targetEntity: PmsBookingsPullQueue::class)]
     private Collection $pullQueueJobs;
 
     /**
-     * ✅ AGREGADO: Lado inverso para Rates (Entidad Plana)
+     * Lado inverso para Rates (Entidad Plana).
      * @var Collection<int, PmsRatesPushQueue>
      */
     #[ORM\OneToMany(mappedBy: 'beds24Config', targetEntity: PmsRatesPushQueue::class)]
@@ -72,43 +81,110 @@ class Beds24Config implements ChannelConfigInterface
         $this->ratesQueues = new ArrayCollection();
     }
 
-    // --- IMPLEMENTACIÓN ChannelConfigInterface ---
+    /*
+     * -------------------------------------------------------------------------
+     * IMPLEMENTACIÓN ChannelConfigInterface
+     * -------------------------------------------------------------------------
+     */
 
-    public function getProviderName(): string { return 'beds24'; }
+    public function getProviderName(): string
+    {
+        return 'beds24';
+    }
 
-    public function getBaseUrl(): string { return $this->baseUrl ?? 'https://api.beds24.com/v2'; }
+    public function getBaseUrl(): string
+    {
+        return $this->baseUrl ?? 'https://api.beds24.com/v2';
+    }
 
-    public function isActivo(): ?bool { return $this->activo; }
+    public function isActivo(): ?bool
+    {
+        return $this->activo;
+    }
 
-    // --- GETTERS Y SETTERS ---
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS EXPLÍCITOS
+     * -------------------------------------------------------------------------
+     */
 
-    public function getId(): ?int { return $this->id; }
+    public function getNombre(): ?string
+    {
+        return $this->nombre;
+    }
 
-    public function getNombre(): ?string { return $this->nombre; }
-    public function setNombre(?string $nombre): self { $this->nombre = $nombre; return $this; }
+    public function setNombre(?string $nombre): self
+    {
+        $this->nombre = $nombre;
+        return $this;
+    }
 
-    public function getRefreshToken(): ?string { return $this->refreshToken; }
-    public function setRefreshToken(?string $refreshToken): self { $this->refreshToken = $refreshToken; return $this; }
+    public function getRefreshToken(): ?string
+    {
+        return $this->refreshToken;
+    }
 
-    public function getAuthToken(): ?string { return $this->authToken; }
-    public function setAuthToken(?string $authToken): self { $this->authToken = $authToken; return $this; }
+    public function setRefreshToken(?string $refreshToken): self
+    {
+        $this->refreshToken = $refreshToken;
+        return $this;
+    }
 
-    public function getAuthTokenExpiresAt(): ?DateTimeInterface { return $this->authTokenExpiresAt; }
-    public function setAuthTokenExpiresAt(?DateTimeInterface $expiresAt): self { $this->authTokenExpiresAt = $expiresAt; return $this; }
+    public function getAuthToken(): ?string
+    {
+        return $this->authToken;
+    }
 
-    public function setActivo(?bool $activo): self { $this->activo = $activo; return $this; }
+    public function setAuthToken(?string $authToken): self
+    {
+        $this->authToken = $authToken;
+        return $this;
+    }
 
-    public function getBaseUrlRaw(): ?string { return $this->baseUrl; }
-    public function setBaseUrl(?string $baseUrl): self { $this->baseUrl = $baseUrl; return $this; }
+    public function getAuthTokenExpiresAt(): ?DateTimeInterface
+    {
+        return $this->authTokenExpiresAt;
+    }
 
-    public function getWebhookToken(): ?string { return $this->webhookToken; }
-    public function setWebhookToken(?string $token): self { $this->webhookToken = $token; return $this; }
+    public function setAuthTokenExpiresAt(?DateTimeInterface $expiresAt): self
+    {
+        $this->authTokenExpiresAt = $expiresAt;
+        return $this;
+    }
 
-    public function getCreated(): ?DateTimeInterface { return $this->created; }
-    public function getUpdated(): ?DateTimeInterface { return $this->updated; }
+    public function setActivo(?bool $activo): self
+    {
+        $this->activo = $activo;
+        return $this;
+    }
+
+    public function getBaseUrlRaw(): ?string
+    {
+        return $this->baseUrl;
+    }
+
+    public function setBaseUrl(?string $baseUrl): self
+    {
+        $this->baseUrl = $baseUrl;
+        return $this;
+    }
+
+    public function getWebhookToken(): ?string
+    {
+        return $this->webhookToken;
+    }
+
+    public function setWebhookToken(?string $token): self
+    {
+        $this->webhookToken = $token;
+        return $this;
+    }
 
     /** @return Collection<int, PmsUnidadBeds24Map> */
-    public function getUnidadMaps(): Collection { return $this->unidadMaps; }
+    public function getUnidadMaps(): Collection
+    {
+        return $this->unidadMaps;
+    }
 
     public function addUnidadMap(PmsUnidadBeds24Map $map): self
     {
@@ -128,7 +204,10 @@ class Beds24Config implements ChannelConfigInterface
     }
 
     /** @return Collection<int, PmsBookingsPullQueue> */
-    public function getPullQueueJobs(): Collection { return $this->pullQueueJobs; }
+    public function getPullQueueJobs(): Collection
+    {
+        return $this->pullQueueJobs;
+    }
 
     public function addPullQueueJob(PmsBookingsPullQueue $job): self
     {
@@ -148,7 +227,10 @@ class Beds24Config implements ChannelConfigInterface
     }
 
     /** @return Collection<int, PmsRatesPushQueue> */
-    public function getRatesQueues(): Collection { return $this->ratesQueues; }
+    public function getRatesQueues(): Collection
+    {
+        return $this->ratesQueues;
+    }
 
     public function addRatesQueue(PmsRatesPushQueue $rq): self
     {
@@ -167,5 +249,11 @@ class Beds24Config implements ChannelConfigInterface
         return $this;
     }
 
-    public function __toString(): string { return $this->nombre ?? ('Config #' . $this->id); }
+    /**
+     * Representación textual de la configuración.
+     */
+    public function __toString(): string
+    {
+        return $this->nombre ?? ('Config (UUID) ' . $this->getId());
+    }
 }

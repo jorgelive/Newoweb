@@ -1,13 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pms\Entity;
 
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
 use App\Pms\Repository\PmsUnidadBeds24MapRepository;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
-use App\Pms\Entity\Beds24Config;
 
+/**
+ * Entidad PmsUnidadBeds24Map.
+ * Mapea una unidad física del PMS con los identificadores técnicos de Beds24 (Property, Room, Unit).
+ * Utiliza UUID para identificación única y auditoría temporal inmutable.
+ */
 #[ORM\Entity(repositoryClass: PmsUnidadBeds24MapRepository::class)]
 #[ORM\Table(
     name: 'pms_unidad_beds24_map',
@@ -20,65 +27,92 @@ use App\Pms\Entity\Beds24Config;
         new ORM\UniqueConstraint(name: 'uniq_pms_unidad_beds24_config', columns: ['pms_unidad_id', 'beds24_config_id'])
     ]
 )]
+#[ORM\HasLifecycleCallbacks]
 class PmsUnidadBeds24Map
 {
-    public function __construct()
-    {
-        // Colección eliminada por aplanamiento de arquitectura
-    }
+    /** Gestión de Identificador UUID (BINARY 16) */
+    use IdTrait;
 
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    /** Gestión de auditoría temporal (DateTimeImmutable) */
+    use TimestampTrait;
 
+    /**
+     * Configuración de API de Beds24 vinculada.
+     */
     #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'unidadMaps')]
-    #[ORM\JoinColumn(name: 'beds24_config_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(
+        name: 'beds24_config_id',
+        referencedColumnName: 'id',
+        nullable: false,
+        onDelete: 'CASCADE',
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
     private ?Beds24Config $beds24Config = null;
 
+    /**
+     * Unidad interna del PMS vinculada.
+     */
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class, inversedBy: 'beds24Maps')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(
+        name: 'pms_unidad_id',
+        referencedColumnName: 'id',
+        nullable: false,
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
     private ?PmsUnidad $pmsUnidad = null;
 
+    /**
+     * ID de la habitación en Beds24.
+     */
     #[ORM\Column(type: 'integer')]
     private ?int $beds24RoomId = null;
 
+    /**
+     * ID de la propiedad en Beds24.
+     */
     #[ORM\Column(type: 'integer')]
     private ?int $beds24PropertyId = null;
 
+    /**
+     * ID de la unidad específica en Beds24 (opcional).
+     */
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $beds24UnitId = null;
 
     /**
      * ID de la propiedad en el Canal Externo (Booking Hotel ID, Airbnb Listing ID).
-     * Usado para generar enlaces dinámicos.
+     * Usado para generar enlaces dinámicos en la UI.
      */
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $channelPropId = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    private ?bool $activo = null;
+    private ?bool $activo = true;
 
+    /**
+     * Indica si es el mapa principal para la unidad.
+     */
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private ?bool $esPrincipal = null;
+    private ?bool $esPrincipal = false;
 
+    /**
+     * Notas técnicas o administrativas sobre el mapeo.
+     */
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nota = null;
 
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $created = null;
-
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $updated = null;
-
-    // Relación OneToMany hacia Delivery eliminada.
-
-    public function getId(): ?int
+    /**
+     * Constructor de la entidad.
+     */
+    public function __construct()
     {
-        return $this->id;
     }
+
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS EXPLÍCITOS (Regla 2026-01-14)
+     * -------------------------------------------------------------------------
+     */
 
     public function getBeds24Config(): ?Beds24Config
     {
@@ -179,33 +213,20 @@ class PmsUnidadBeds24Map
         return $this;
     }
 
-    public function getCreated(): ?DateTimeInterface
-    {
-        return $this->created;
-    }
-
-    public function getUpdated(): ?DateTimeInterface
-    {
-        return $this->updated;
-    }
-
+    /**
+     * Representación textual.
+     */
     public function __toString(): string
     {
         $unidad = $this->pmsUnidad?->getNombre() ?? 'Unidad';
-        $cfg = $this->beds24Config ? (string) $this->beds24Config : 'Beds24';
         $prop = $this->beds24PropertyId ?? '?';
         $room = $this->beds24RoomId ?? '?';
-        $unit = $this->beds24UnitId ?? '-';
-        $estado = ($this->activo ?? false) ? 'activo' : 'inactivo';
 
         return sprintf(
-            '%s (%s • Prop %s • Room %s • Unit %s • %s)',
+            '%s (Beds24 P:%s R:%s)',
             $unidad,
-            $cfg,
             $prop,
-            $room,
-            $unit,
-            $estado
+            $room
         );
     }
 }

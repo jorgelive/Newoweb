@@ -1,70 +1,80 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
-use App\Entity\MaestroMoneda;
+use App\Entity\Maestro\MaestroMoneda;
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Repository\PmsRatesPushQueueRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 
+/**
+ * Entidad PmsRatesPushQueue.
+ * Gestiona la cola de actualización de tarifas hacia Beds24.
+ * IDs: UUID para negocio, String(3) para Moneda.
+ */
 #[ORM\Entity(repositoryClass: PmsRatesPushQueueRepository::class)]
 #[ORM\Table(
     name: 'pms_rates_push_queue',
     indexes: [
-        // Índices de Negocio
-        new ORM\Index(columns: ['pms_unidad_id'], name: 'idx_rpq_unidad'),
+        new ORM\Index(columns: ['unidad_id'], name: 'idx_rpq_unidad'),
         new ORM\Index(columns: ['pms_unidad_beds24_map_id'], name: 'idx_rpq_map'),
         new ORM\Index(columns: ['fechaInicio', 'fechaFin'], name: 'idx_rpq_fechas'),
-        new ORM\Index(columns: ['effectiveAt'], name: 'idx_rpq_effective'),
-
-        // Índices Técnicos (Worker)
         new ORM\Index(columns: ['status'], name: 'idx_rpq_status'),
         new ORM\Index(columns: ['run_at'], name: 'idx_rpq_run_at'),
-        new ORM\Index(columns: ['endpoint_id'], name: 'idx_rpq_endpoint'),
     ]
 )]
+#[ORM\HasLifecycleCallbacks]
 class PmsRatesPushQueue implements ExchangeQueueItemInterface
 {
+    /** Identificador UUID (BINARY 16) */
+    use IdTrait;
+
+    /** Auditoría (CreatedAt, UpdatedAt) */
+    use TimestampTrait;
+
     public const STATUS_PENDING    = 'pending';
     public const STATUS_PROCESSING = 'processing';
     public const STATUS_SUCCESS    = 'success';
     public const STATUS_FAILED     = 'failed';
 
-    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column]
-    private ?int $id = null;
+    /* ======================================================
+     * CONTEXTO DE NEGOCIO (UUIDs - BINARY 16)
+     * ====================================================== */
 
-    // --- 1. CONTEXTO DE NEGOCIO ---
-
-    /**
-     * inversedBy: Debe coincidir con PmsUnidad::$tarifaQueues
-     */
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class, inversedBy: 'tarifaQueues')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
     private ?PmsUnidad $unidad = null;
 
-    /**
-     * El mapa es vital para obtener el roomid. Sin inversedBy (unidireccional preferido aquí).
-     */
     #[ORM\ManyToOne(targetEntity: PmsUnidadBeds24Map::class)]
-    #[ORM\JoinColumn(name: 'pms_unidad_beds24_map_id', nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'pms_unidad_beds24_map_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE', columnDefinition: 'BINARY(16)')]
     private ?PmsUnidadBeds24Map $unidadBeds24Map = null;
 
     #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'ratesQueues')]
-    #[ORM\JoinColumn(name: 'beds24_config_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(name: 'beds24_config_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
     private ?Beds24Config $beds24Config = null;
 
-    /**
-     * inversedBy: Debe coincidir con PmsBeds24Endpoint::$ratesQueues
-     */
     #[ORM\ManyToOne(targetEntity: PmsBeds24Endpoint::class, inversedBy: 'ratesQueues')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(
+        name: 'endpoint_id',
+        referencedColumnName: 'id',
+        nullable: false,
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
     private ?PmsBeds24Endpoint $endpoint = null;
 
-    // --- 2. DATOS DE TARIFA (PAYLOAD) ---
+    #[ORM\ManyToOne(targetEntity: PmsTarifaRango::class, inversedBy: 'queues')]
+    #[ORM\JoinColumn(name: 'tarifa_rango_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL', columnDefinition: 'BINARY(16)')]
+    private ?PmsTarifaRango $tarifaRango = null;
+
+    /* ======================================================
+     * DATOS DE TARIFA (PAYLOAD)
+     * ====================================================== */
 
     #[ORM\Column(type: 'date')]
     private ?DateTimeInterface $fechaInicio = null;
@@ -76,20 +86,19 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
     private ?string $precio = null;
 
     #[ORM\Column(type: 'smallint', options: ['default' => 2])]
-    private ?int $minStay = 2;
-
-    #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?MaestroMoneda $moneda = null;
+    private int $minStay = 2;
 
     /**
-     * inversedBy: Debe coincidir con PmsTarifaRango::$queues
+     * Moneda: ID Natural String(3).
+     * SE ELIMINA BINARY(16)
      */
-    #[ORM\ManyToOne(targetEntity: PmsTarifaRango::class, inversedBy: 'queues')]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?PmsTarifaRango $tarifaRango = null;
+    #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
+    #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: true)]
+    private ?MaestroMoneda $moneda = null;
 
-    // --- 3. DATOS DE EXCHANGE (WORKER) ---
+    /* ======================================================
+     * DATOS DE MOTOR DE INTERCAMBIO (WORKER)
+     * ====================================================== */
 
     #[ORM\Column(type: 'string', length: 20, options: ['default' => self::STATUS_PENDING])]
     private string $status = self::STATUS_PENDING;
@@ -115,7 +124,9 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
     #[ORM\Column(name: 'max_attempts', type: 'smallint', options: ['default' => 5])]
     private int $maxAttempts = 5;
 
-    // --- 4. AUDITORÍA ---
+    /* ======================================================
+     * AUDITORÍA HTTP Y RESULTADOS
+     * ====================================================== */
 
     #[ORM\Column(name: 'last_request_raw', type: 'text', nullable: true)]
     private ?string $lastRequestRaw = null;
@@ -132,30 +143,16 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
     #[ORM\Column(name: 'failed_reason', type: 'string', length: 255, nullable: true)]
     private ?string $failedReason = null;
 
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $created = null;
-
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $updated = null;
-
-    // =========================================================================
-    // INTERFAZ ExchangeQueueItemInterface
-    // =========================================================================
-
-    public function getId(): ?int { return $this->id; }
+    /* ======================================================
+     * IMPLEMENTACIÓN ExchangeQueueItemInterface
+     * ====================================================== */
 
     public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
-
     public function getEndpoint(): ?PmsBeds24Endpoint { return $this->endpoint; }
-
     public function getRunAt(): ?DateTimeInterface { return $this->runAt; }
     public function setRunAt(?DateTimeInterface $at): self { $this->runAt = $at; return $this; }
-
     public function getRetryCount(): int { return $this->retryCount; }
     public function setRetryCount(int $count): self { $this->retryCount = $count; return $this; }
-
     public function getMaxAttempts(): int { return $this->maxAttempts; }
     public function setMaxAttempts(int $limit): self { $this->maxAttempts = $limit; return $this; }
 
@@ -171,6 +168,7 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
         $this->lockedBy = null;
         $this->failedReason = null;
         $this->retryCount = 0;
+        $this->effectiveAt = $now;
     }
 
     public function markFailure(string $reason, ?int $httpCode, DateTimeImmutable $nextRetry): void {
@@ -180,11 +178,12 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
         $this->runAt = $nextRetry;
         $this->lockedAt = null;
         $this->lockedBy = null;
+        $this->retryCount++;
     }
 
-    // =========================================================================
-    // GETTERS & SETTERS COMPLETOS
-    // =========================================================================
+    /* ======================================================
+     * GETTERS & SETTERS EXPLÍCITOS
+     * ====================================================== */
 
     public function getUnidad(): ?PmsUnidad { return $this->unidad; }
     public function setUnidad(?PmsUnidad $u): self { $this->unidad = $u; return $this; }
@@ -209,8 +208,8 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
     public function getPrecio(): ?string { return $this->precio; }
     public function setPrecio(?string $p): self { $this->precio = $p; return $this; }
 
-    public function getMinStay(): ?int { return $this->minStay; }
-    public function setMinStay(?int $m): self { $this->minStay = $m; return $this; }
+    public function getMinStay(): int { return $this->minStay; }
+    public function setMinStay(int $m): self { $this->minStay = $m; return $this; }
 
     public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
     public function setMoneda(?MaestroMoneda $m): self { $this->moneda = $m; return $this; }
@@ -248,18 +247,12 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
     public function setFailedReason(?string $reason): self { $this->failedReason = $reason; return $this; }
     public function getFailedReason(): ?string { return $this->failedReason; }
 
-    public function getCreated(): ?DateTimeInterface { return $this->created; }
-    public function getUpdated(): ?DateTimeInterface { return $this->updated; }
-
-    public function __toString(): string
-    {
+    public function __toString(): string {
         return sprintf(
-            'RatesQueue #%d [%s] %s->%s (%s)',
-            $this->id ?? 0,
+            'RatesQueue [%s] %s->%s',
             $this->status,
             $this->fechaInicio?->format('Y-m-d') ?? '?',
-            $this->fechaFin?->format('Y-m-d') ?? '?',
-            $this->unidadBeds24Map?->getBeds24RoomId() ?? 'NoMap'
+            $this->fechaFin?->format('Y-m-d') ?? '?'
         );
     }
 }

@@ -1,26 +1,39 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pms\Entity;
 
-use App\Entity\MaestroIdioma;
-use App\Entity\MaestroPais;
+use App\Entity\Maestro\MaestroMoneda;
+use App\Entity\Maestro\MaestroPais;
+use App\Entity\Maestro\MaestroIdioma;
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Component\Validator\Constraints as Assert;
 
-// Importante para la relación
-
+/**
+ * Entidad PmsReserva.
+ * Centraliza la información de una reserva maestra.
+ * IDs: UUID (Negocio), Strings (Maestros).
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_reserva')]
+#[ORM\HasLifecycleCallbacks]
 class PmsReserva
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    /** Gestión de Identificador UUID (BINARY 16) */
+    use IdTrait;
+
+    /** Gestión de auditoría temporal (DateTimeImmutable) */
+    use TimestampTrait;
+
+    /* ======================================================
+     * IDENTIFICADORES EXTERNOS (Beds24 / Canales)
+     * ====================================================== */
 
     #[ORM\Column(type: 'bigint', unique: true, nullable: true)]
     private ?string $beds24MasterId = null;
@@ -31,6 +44,10 @@ class PmsReserva
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $referenciaCanal = null;
 
+    /* ======================================================
+     * DATOS DEL CLIENTE
+     * ====================================================== */
+
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
     #[Assert\NotBlank(message: "El nombre del cliente es obligatorio.")]
     private ?string $nombreCliente = null;
@@ -39,54 +56,47 @@ class PmsReserva
     #[Assert\NotBlank(message: "El apellido del cliente es obligatorio.")]
     private ?string $apellidoCliente = null;
 
-    // --- Se eliminaron $documento y $tipoDocumento ---
-
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $telefono = null;
 
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $telefono2 = null;
 
-    #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private ?bool $datosLocked = false;
-
-    #[ORM\Column(type: 'integer', nullable: true)]
-    #[Assert\PositiveOrZero(message: "No puede haber adultos negativos.")]
-    private ?int $cantidadAdultos = null;
-
-    #[ORM\Column(type: 'integer', nullable: true)]
-    #[Assert\PositiveOrZero(message: "No puede haber niños negativos.")]
-    private ?int $cantidadNinos = null;
-
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     #[Assert\Email(message: "El formato del correo electrónico no es válido.")]
     private ?string $emailCliente = null;
 
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $nota = null;
+    /* ======================================================
+     * RELACIONES MAESTRAS (IDs NATURALES - Strings)
+     * ====================================================== */
 
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $comentariosHuesped = null;
+    #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
+    #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: true)]
+    private ?MaestroMoneda $moneda = null;
 
-    #[ORM\Column(type: 'string', length: 20, nullable: true)]
-    private ?string $horaLlegadaCanal = null;
+    #[ORM\ManyToOne(targetEntity: MaestroPais::class, inversedBy: 'reservas')]
+    #[ORM\JoinColumn(name: 'pais_id', referencedColumnName: 'id', nullable: true)]
+    private ?MaestroPais $pais = null;
 
-    #[ORM\Column(type: 'date', nullable: true)]
-    private ?DateTimeInterface $fechaLlegada = null;
-
-    #[ORM\Column(type: 'date', nullable: true)]
-    private ?DateTimeInterface $fechaSalida = null;
-
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?DateTimeInterface $fechaReservaCanal = null;
-
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?DateTimeInterface $fechaModificacionCanal = null;
+    #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
+    #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: false)]
+    #[Assert\NotNull(message: "Debes seleccionar un idioma principal.")]
+    private ?MaestroIdioma $idioma = null;
 
     #[ORM\ManyToOne(targetEntity: PmsChannel::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: false)]
     #[Assert\NotNull(message: "Debes asignar un Canal a la reserva.")]
     private ?PmsChannel $channel = null;
+
+    /* ======================================================
+     * DETALLES DE ESTANCIA Y MONTOS
+     * ====================================================== */
+
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $cantidadAdultos = null;
+
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $cantidadNinos = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
     private ?string $montoTotal = null;
@@ -94,42 +104,41 @@ class PmsReserva
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: true)]
     private ?string $comisionTotal = null;
 
-    #[ORM\ManyToOne(targetEntity: MaestroPais::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?MaestroPais $pais = null;
+    #[ORM\Column(type: 'date', nullable: true)]
+    private ?DateTimeInterface $fechaLlegada = null;
 
-    #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Assert\NotNull(message: "Debes seleccionar un idioma principal.")]
-    private ?MaestroIdioma $idioma = null;
+    #[ORM\Column(type: 'date', nullable: true)]
+    private ?DateTimeInterface $fechaSalida = null;
 
-    #[ORM\OneToMany(
-        mappedBy: 'reserva',
-        targetEntity: PmsEventoCalendario::class,
-        cascade: ['persist', 'remove'],
-        orphanRemoval: true
-    )]
-    #[Assert\Valid]
+    #[ORM\Column(type: 'string', length: 20, nullable: true)]
+    private ?string $horaLlegadaCanal = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTimeInterface $fechaReservaCanal = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTimeInterface $fechaModificacionCanal = null;
+
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $datosLocked = false;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $nota = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $comentariosHuesped = null;
+
+    /* ======================================================
+     * COLECCIONES
+     * ====================================================== */
+
+    /** @var Collection<int, PmsEventoCalendario> */
+    #[ORM\OneToMany(mappedBy: 'reserva', targetEntity: PmsEventoCalendario::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $eventosCalendario;
 
-    /**
-     * NAMELIST: Colección de huéspedes para el Pre Check-in
-     */
-    #[ORM\OneToMany(
-        mappedBy: 'reserva',
-        targetEntity: PmsReservaHuesped::class,
-        cascade: ['persist', 'remove'],
-        orphanRemoval: true
-    )]
+    /** @var Collection<int, PmsReservaHuesped> */
+    #[ORM\OneToMany(mappedBy: 'reserva', targetEntity: PmsReservaHuesped::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $huespedes;
-
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $created = null;
-
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $updated = null;
 
     public function __construct()
     {
@@ -137,200 +146,117 @@ class PmsReserva
         $this->huespedes = new ArrayCollection();
     }
 
-    // =========================================================================
-    // LÓGICA DE NEGOCIO Y URLS PRESERVADA AL 100%
-    // =========================================================================
+    /* ======================================================
+     * LÓGICA DE NEGOCIO Y MÉTODOS DE BEDS24
+     * ====================================================== */
 
-    public function getUnidadBeds24MapPrincipal(): ?PmsUnidadBeds24Map
-    {
-        if ($this->eventosCalendario->count() === 0) {
-            return null;
-        }
-
-        foreach ($this->eventosCalendario as $evento) {
-            if (!$evento instanceof PmsEventoCalendario) {
-                continue;
-            }
-
-            foreach ($evento->getBeds24Links() as $link) {
-                if ($link instanceof PmsEventoBeds24Link) {
-                    $map = $link->getUnidadBeds24Map();
-                    if ($map instanceof PmsUnidadBeds24Map) {
-                        return $map;
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    public function getUrlBooking(): ?string
-    {
-        if (!$this->referenciaCanal) return null;
-        if ($this->channel && stripos($this->channel->getNombre(), 'booking') === false) return null;
-
-        $hotelId = $this->getUnidadBeds24MapPrincipal()?->getChannelPropId();
-        if (!$hotelId) return null;
-
-        return sprintf(
-            'https://admin.booking.com/hotel/bookings/booking/%s?hotel_id=%s',
-            $this->referenciaCanal,
-            $hotelId
-        );
-    }
-
-    public function getUrlAirbnb(): ?string
-    {
-        if (!$this->referenciaCanal) return null;
-        if ($this->channel && stripos($this->channel->getNombre(), 'airbnb') === false) return null;
-
-        return sprintf(
-            'https://www.airbnb.com/hosting/reservations/details/%s',
-            $this->referenciaCanal
-        );
+    public function getNombreApellido(): ?string {
+        return trim(($this->nombreCliente ?? '') . ' ' . ($this->apellidoCliente ?? '')) ?: null;
     }
 
     public function getUrlBeds24(): ?string
     {
         $bookId = $this->beds24MasterId ?: $this->beds24BookIdPrincipal;
-
-        if (!$bookId && $this->eventosCalendario->count() > 0) {
+        if (!$bookId) {
             foreach ($this->eventosCalendario as $evento) {
-                if (!$evento instanceof PmsEventoCalendario) {
-                    continue;
-                }
-
                 foreach ($evento->getBeds24Links() as $link) {
-                    if (!$link instanceof PmsEventoBeds24Link) {
-                        continue;
-                    }
-
                     $tmp = $link->getBeds24BookId();
-                    if (($tmp === null || $tmp === '') && $link->getOriginLink() !== null) {
-                        $tmp = $link->getOriginLink()?->getBeds24BookId();
-                    }
-
-                    if ($tmp !== null && $tmp !== '') {
-                        $bookId = (string) $tmp;
-                        break 2;
-                    }
+                    if ($tmp) { $bookId = (string) $tmp; break 2; }
                 }
             }
         }
-
-        if (!$bookId) return null;
-
-        return sprintf(
-            'https://beds24.com/control2.php?pagetype=bookingedit&bookid=%s',
-            $bookId
-        );
+        return $bookId ? sprintf('https://beds24.com/control2.php?pagetype=bookingedit&bookid=%s', $bookId) : null;
     }
 
-    // =========================================================================
-    // GETTERS Y SETTERS
-    // =========================================================================
+    public function getSyncStatusAggregate(): string
+    {
+        $allSynced = true; $hasError = false;
+        foreach ($this->eventosCalendario as $evento) {
+            $status = $evento->getSyncStatus();
+            if ($status === 'error') { $hasError = true; break; }
+            if ($status !== 'synced' && $status !== 'local') $allSynced = false;
+        }
+        return $hasError ? 'error' : (!$allSynced ? 'pending' : 'synced');
+    }
 
-    public function getId(): ?int { return $this->id; }
+    /* ======================================================
+     * GETTERS Y SETTERS
+     * ====================================================== */
 
     public function getBeds24MasterId(): ?string { return $this->beds24MasterId; }
-    public function setBeds24MasterId(?string $beds24MasterId): self { $this->beds24MasterId = $beds24MasterId; return $this; }
+    public function setBeds24MasterId(?string $val): self { $this->beds24MasterId = $val; return $this; }
 
     public function getBeds24BookIdPrincipal(): ?string { return $this->beds24BookIdPrincipal; }
-    public function setBeds24BookIdPrincipal(?string $beds24BookIdPrincipal): self { $this->beds24BookIdPrincipal = $beds24BookIdPrincipal; return $this; }
+    public function setBeds24BookIdPrincipal(?string $val): self { $this->beds24BookIdPrincipal = $val; return $this; }
 
     public function getReferenciaCanal(): ?string { return $this->referenciaCanal; }
-    public function setReferenciaCanal(?string $referenciaCanal): self { $this->referenciaCanal = $referenciaCanal; return $this; }
+    public function setReferenciaCanal(?string $val): self { $this->referenciaCanal = $val; return $this; }
 
     public function getNombreCliente(): ?string { return $this->nombreCliente; }
-    public function setNombreCliente(?string $nombreCliente): self { $this->nombreCliente = $nombreCliente; return $this; }
+    public function setNombreCliente(?string $val): self { $this->nombreCliente = $val; return $this; }
 
     public function getApellidoCliente(): ?string { return $this->apellidoCliente; }
-    public function setApellidoCliente(?string $apellidoCliente): self { $this->apellidoCliente = $apellidoCliente; return $this; }
-
-    public function getNombreApellido(): ?string
-    {
-        $nombre = trim((string) ($this->getNombreCliente() ?? ''));
-        $apellido = trim((string) ($this->apellidoCliente ?? ''));
-
-        $full = trim($nombre . ' ' . $apellido);
-        return $full !== '' ? $full : null;
-    }
+    public function setApellidoCliente(?string $val): self { $this->apellidoCliente = $val; return $this; }
 
     public function getTelefono(): ?string { return $this->telefono; }
-    public function setTelefono(?string $telefono): self { $this->telefono = $telefono; return $this; }
+    public function setTelefono(?string $val): self { $this->telefono = $val; return $this; }
 
     public function getTelefono2(): ?string { return $this->telefono2; }
-    public function setTelefono2(?string $telefono2): self { $this->telefono2 = $telefono2; return $this; }
+    public function setTelefono2(?string $val): self { $this->telefono2 = $val; return $this; }
 
     public function getEmailCliente(): ?string { return $this->emailCliente; }
-    public function setEmailCliente(?string $emailCliente): self { $this->emailCliente = $emailCliente; return $this; }
+    public function setEmailCliente(?string $val): self { $this->emailCliente = $val; return $this; }
 
-    public function getNota(): ?string { return $this->nota; }
-    public function setNota(?string $nota): self { $this->nota = $nota; return $this; }
+    public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
+    public function setMoneda(?MaestroMoneda $val): self { $this->moneda = $val; return $this; }
 
-    public function getComentariosHuesped(): ?string { return $this->comentariosHuesped; }
-    public function setComentariosHuesped(?string $comentariosHuesped): self { $this->comentariosHuesped = $comentariosHuesped; return $this; }
+    public function getPais(): ?MaestroPais { return $this->pais; }
+    public function setPais(?MaestroPais $val): self { $this->pais = $val; return $this; }
 
-    public function getHoraLlegadaCanal(): ?string { return $this->horaLlegadaCanal; }
-    public function setHoraLlegadaCanal(?string $horaLlegadaCanal): self { $this->horaLlegadaCanal = $horaLlegadaCanal; return $this; }
-
-    public function getFechaLlegada(): ?DateTimeInterface { return $this->fechaLlegada; }
-    public function setFechaLlegada(?DateTimeInterface $fechaLlegada): self { $this->fechaLlegada = $fechaLlegada; return $this; }
-
-    public function getFechaSalida(): ?DateTimeInterface { return $this->fechaSalida; }
-    public function setFechaSalida(?DateTimeInterface $fechaSalida): self { $this->fechaSalida = $fechaSalida; return $this; }
-
-    public function getFechaReservaCanal(): ?DateTimeInterface { return $this->fechaReservaCanal; }
-    public function setFechaReservaCanal(?DateTimeInterface $fechaReservaCanal): self { $this->fechaReservaCanal = $fechaReservaCanal; return $this; }
-
-    public function getFechaModificacionCanal(): ?DateTimeInterface { return $this->fechaModificacionCanal; }
-    public function setFechaModificacionCanal(?DateTimeInterface $fechaModificacionCanal): self { $this->fechaModificacionCanal = $fechaModificacionCanal; return $this; }
+    public function getIdioma(): ?MaestroIdioma { return $this->idioma; }
+    public function setIdioma(?MaestroIdioma $val): self { $this->idioma = $val; return $this; }
 
     public function getChannel(): ?PmsChannel { return $this->channel; }
-    public function setChannel(?PmsChannel $channel): self
-    {
-        if ($channel === null) {
-            return $this;
-        }
-        $this->channel = $channel;
-        return $this;
-    }
+    public function setChannel(?PmsChannel $val): self { $this->channel = $val; return $this; }
+
+    public function getCantidadAdultos(): ?int { return $this->cantidadAdultos; }
+    public function setCantidadAdultos(?int $val): self { $this->cantidadAdultos = $val; return $this; }
+
+    public function getCantidadNinos(): ?int { return $this->cantidadNinos; }
+    public function setCantidadNinos(?int $val): self { $this->cantidadNinos = $val; return $this; }
 
     public function getMontoTotal(): ?string { return $this->montoTotal; }
-    public function setMontoTotal(?string $montoTotal): self { $this->montoTotal = $montoTotal; return $this; }
+    public function setMontoTotal(?string $val): self { $this->montoTotal = $val; return $this; }
 
     public function getComisionTotal(): ?string { return $this->comisionTotal; }
-    public function setComisionTotal(?string $comisionTotal): self { $this->comisionTotal = $comisionTotal; return $this; }
+    public function setComisionTotal(?string $val): self { $this->comisionTotal = $val; return $this; }
 
+    public function getFechaLlegada(): ?DateTimeInterface { return $this->fechaLlegada; }
+    public function setFechaLlegada(?DateTimeInterface $val): self { $this->fechaLlegada = $val; return $this; }
+
+    public function getFechaSalida(): ?DateTimeInterface { return $this->fechaSalida; }
+    public function setFechaSalida(?DateTimeInterface $val): self { $this->fechaSalida = $val; return $this; }
+
+    public function getHoraLlegadaCanal(): ?string { return $this->horaLlegadaCanal; }
+    public function setHoraLlegadaCanal(?string $val): self { $this->horaLlegadaCanal = $val; return $this; }
+
+    public function getFechaReservaCanal(): ?DateTimeInterface { return $this->fechaReservaCanal; }
+    public function setFechaReservaCanal(?DateTimeInterface $val): self { $this->fechaReservaCanal = $val; return $this; }
+
+    public function getFechaModificacionCanal(): ?DateTimeInterface { return $this->fechaModificacionCanal; }
+    public function setFechaModificacionCanal(?DateTimeInterface $val): self { $this->fechaModificacionCanal = $val; return $this; }
+
+    public function isDatosLocked(): bool { return $this->datosLocked; }
+    public function setDatosLocked(bool $val): self { $this->datosLocked = $val; return $this; }
+
+    public function getNota(): ?string { return $this->nota; }
+    public function setNota(?string $val): self { $this->nota = $val; return $this; }
+
+    public function getComentariosHuesped(): ?string { return $this->comentariosHuesped; }
+    public function setComentariosHuesped(?string $val): self { $this->comentariosHuesped = $val; return $this; }
+
+    /** @return Collection<int, PmsEventoCalendario> */
     public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
-
-    public function setEventosCalendario(iterable $eventosCalendario): self
-    {
-        foreach ($this->eventosCalendario as $existente) {
-            if (!$existente instanceof PmsEventoCalendario) {
-                continue;
-            }
-            $enNuevo = false;
-            foreach ($eventosCalendario as $nuevo) {
-                if ($nuevo === $existente) {
-                    $enNuevo = true;
-                    break;
-                }
-            }
-            if (!$enNuevo) {
-                $this->removeEventoCalendario($existente);
-            }
-        }
-
-        foreach ($eventosCalendario as $evento) {
-            if ($evento instanceof PmsEventoCalendario) {
-                $this->addEventoCalendario($evento);
-            }
-        }
-
-        return $this;
-    }
 
     public function addEventoCalendario(PmsEventoCalendario $evento): self {
         if (!$this->eventosCalendario->contains($evento)) {
@@ -339,58 +265,18 @@ class PmsReserva
         }
         return $this;
     }
+
     public function removeEventoCalendario(PmsEventoCalendario $evento): self {
         if ($this->eventosCalendario->removeElement($evento)) {
-            if ($evento->getReserva() === $this) {
-                $evento->setReserva(null);
-            }
+            if ($evento->getReserva() === $this) $evento->setReserva(null);
         }
         return $this;
     }
 
-    public function getCreated(): ?DateTimeInterface { return $this->created; }
-    public function getUpdated(): ?DateTimeInterface { return $this->updated; }
+    /** @return Collection<int, PmsReservaHuesped> */
+    public function getHuespedes(): Collection { return $this->huespedes; }
 
-    public function __toString(): string
-    {
-        $ref = $this->referenciaCanal ? " [$this->referenciaCanal]" : '';
-        $nombre = trim(($this->nombreCliente ?? '') . ' ' . ($this->apellidoCliente ?? ''));
-        $cliente = $nombre !== '' ? $nombre : 'Cliente';
-        return sprintf('%s%s', $cliente, $ref);
-    }
-
-    public function isDatosLocked(): ?bool { return $this->datosLocked; }
-    public function setDatosLocked(?bool $datosLocked): self { $this->datosLocked = $datosLocked; return $this; }
-
-    public function getCantidadAdultos(): ?int { return $this->cantidadAdultos; }
-    public function setCantidadAdultos(?int $cantidadAdultos): self { $this->cantidadAdultos = $cantidadAdultos; return $this; }
-
-    public function getCantidadNinos(): ?int { return $this->cantidadNinos; }
-    public function setCantidadNinos(?int $cantidadNinos): self { $this->cantidadNinos = $cantidadNinos; return $this; }
-
-    public function getPais(): ?MaestroPais { return $this->pais; }
-    public function setPais(?MaestroPais $pais): self { $this->pais = $pais; return $this; }
-
-    public function getIdioma(): ?MaestroIdioma { return $this->idioma; }
-    public function setIdioma(?MaestroIdioma $idioma): self
-    {
-        if ($idioma === null) {
-            return $this;
-        }
-        $this->idioma = $idioma;
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, PmsReservaHuesped>
-     */
-    public function getHuespedes(): Collection
-    {
-        return $this->huespedes;
-    }
-
-    public function addHuesped(PmsReservaHuesped $huesped): self
-    {
+    public function addHuesped(PmsReservaHuesped $huesped): self {
         if (!$this->huespedes->contains($huesped)) {
             $this->huespedes->add($huesped);
             $huesped->setReserva($this);
@@ -398,37 +284,14 @@ class PmsReserva
         return $this;
     }
 
-    public function removeHuesped(PmsReservaHuesped $huesped): self
-    {
+    public function removeHuesped(PmsReservaHuesped $huesped): self {
         if ($this->huespedes->removeElement($huesped)) {
-            if ($huesped->getReserva() === $this) {
-                $huesped->setReserva(null);
-            }
+            if ($huesped->getReserva() === $this) $huesped->setReserva(null);
         }
         return $this;
     }
 
-    public function getSyncStatusAggregate(): string
-    {
-        $allSynced = true;
-        $hasError = false;
-
-        foreach ($this->getEventosCalendario() as $evento) {
-            if (!$evento->isSynced()) {
-                $allSynced = false;
-                foreach ($evento->getBeds24Links() as $link) {
-                    foreach ($link->getQueues() as $queue) {
-                        if ($queue->getStatus() === PmsBookingsPushQueue::STATUS_FAILED) {
-                            $hasError = true;
-                            break 3;
-                        }
-                    }
-                }
-            }
-        }
-
-        if ($hasError) return 'error';
-        if (!$allSynced) return 'pending';
-        return 'synced';
+    public function __toString(): string {
+        return sprintf('%s [%s]', $this->getNombreApellido() ?? 'Cliente', $this->referenciaCanal ?? 'Local');
     }
 }

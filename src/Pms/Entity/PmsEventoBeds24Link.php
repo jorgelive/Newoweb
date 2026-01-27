@@ -1,67 +1,101 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pms\Entity;
 
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
+use App\Pms\Entity\PmsBookingsPushQueue;
 use DateTimeInterface;
-use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use App\Pms\Entity\PmsBookingsPushQueue;
+use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * Entidad PmsEventoBeds24Link.
+ * Vincula técnicamente un evento del sistema con una sub-reserva de Beds24.
+ * Soporta lógica de espejos (mirrors) para reservas multi-unidad mediante relaciones UUID.
+ */
 #[ORM\Entity]
 #[ORM\Table(
     name: 'pms_evento_beds24_link',
-    indexes: array(
-        new ORM\Index(columns: array('evento_id'), name: 'idx_pms_evento_beds24_evento'),
-        new ORM\Index(columns: array('unidad_beds24_map_id'), name: 'idx_pms_evento_beds24_map'),
-        new ORM\Index(columns: array('origin_link_id'), name: 'idx_pms_evento_beds24_origin'),
-    ),
+    indexes: [
+        new ORM\Index(columns: ['evento_id'], name: 'idx_pms_evento_beds24_evento'),
+        new ORM\Index(columns: ['unidad_beds24_map_id'], name: 'idx_pms_evento_beds24_map'),
+        new ORM\Index(columns: ['origin_link_id'], name: 'idx_pms_evento_beds24_origin'),
+    ],
     uniqueConstraints: [
         new ORM\UniqueConstraint(name: 'uniq_pms_evento_beds24_bookid', columns: ['beds24BookId']),
         new ORM\UniqueConstraint(name: 'uniq_pms_evento_beds24_evento_map', columns: ['evento_id', 'unidad_beds24_map_id']),
     ]
 )]
+#[ORM\HasLifecycleCallbacks]
 class PmsEventoBeds24Link
 {
+    /**
+     * Gestión de Identificador UUID (BINARY 16).
+     */
+    use IdTrait;
+
+    /**
+     * Gestión de auditoría temporal (DateTimeImmutable).
+     */
+    use TimestampTrait;
+
     public const STATUS_ACTIVE = 'active';
     public const STATUS_DETACHED = 'detached';
     public const STATUS_PENDING_DELETE = 'pending_delete';
     public const STATUS_PENDING_MOVE = 'pending_move';
     public const STATUS_SYNCED_DELETED = 'synced_deleted';
 
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
-
+    /**
+     * Relación con el evento del calendario.
+     * Se debe asegurar que PmsEventoCalendario también use IdTrait.
+     */
     #[ORM\ManyToOne(targetEntity: PmsEventoCalendario::class, inversedBy: 'beds24Links')]
-    #[ORM\JoinColumn(name: 'evento_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(
+        name: 'evento_id',
+        referencedColumnName: 'id',
+        nullable: false,
+        onDelete: 'CASCADE',
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
     private ?PmsEventoCalendario $evento = null;
 
+    /**
+     * Relación con el mapeo de unidad de Beds24.
+     */
     #[ORM\ManyToOne(targetEntity: PmsUnidadBeds24Map::class)]
-    #[ORM\JoinColumn(name: 'unidad_beds24_map_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(
+        name: 'unidad_beds24_map_id',
+        referencedColumnName: 'id',
+        nullable: false,
+        onDelete: 'CASCADE',
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
     private ?PmsUnidadBeds24Map $unidadBeds24Map = null;
 
     /**
      * ID único de la sub-reserva en Beds24 (bookId).
-     * Este es el identificador técnico clave para resolver resync sin duplicar.
      */
     #[ORM\Column(type: 'bigint', unique: true, nullable: true)]
     private ?string $beds24BookId = null;
 
     /**
-     * Si está seteado, este link es derivado (mirror) del originLink.
-     * Si es null, este link es raíz (principal en el sentido de origen).
+     * Referencia al link principal si este es un espejo (mirror).
+     * Relación reflexiva vinculada mediante UUID.
      */
     #[ORM\ManyToOne(targetEntity: self::class)]
-    #[ORM\JoinColumn(name: 'origin_link_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(
+        name: 'origin_link_id',
+        referencedColumnName: 'id',
+        nullable: true,
+        onDelete: 'SET NULL',
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
     private ?self $originLink = null;
 
-    /**
-     * Marca opcional para auditoría (no necesaria para lógica).
-     * Útil si quieres ver rápidamente qué link está “vivo” en un resync.
-     */
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTimeInterface $lastSeenAt = null;
 
@@ -71,15 +105,10 @@ class PmsEventoBeds24Link
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTimeInterface $deactivatedAt = null;
 
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $created = null;
-
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $updated = null;
-
-    #[ORM\OneToMany(mappedBy: 'link', targetEntity: PmsBookingsPushQueue::class, cascade: ['persist'], orphanRemoval: false,)]
+    /**
+     * @var Collection<int, PmsBookingsPushQueue>
+     */
+    #[ORM\OneToMany(mappedBy: 'link', targetEntity: PmsBookingsPushQueue::class, cascade: ['persist'], orphanRemoval: false)]
     private Collection $queues;
 
     public function __construct()
@@ -87,10 +116,11 @@ class PmsEventoBeds24Link
         $this->queues = new ArrayCollection();
     }
 
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS EXPLÍCITOS
+     * -------------------------------------------------------------------------
+     */
 
     public function getEvento(): ?PmsEventoCalendario
     {
@@ -99,11 +129,9 @@ class PmsEventoBeds24Link
 
     public function setEvento(?PmsEventoCalendario $evento): self
     {
-        if ($evento === null) {
-            return $this; // guard: evento es obligatorio
+        if ($evento !== null) {
+            $this->evento = $evento;
         }
-
-        $this->evento = $evento;
         return $this;
     }
 
@@ -114,11 +142,9 @@ class PmsEventoBeds24Link
 
     public function setUnidadBeds24Map(?PmsUnidadBeds24Map $unidadBeds24Map): self
     {
-        if ($unidadBeds24Map === null) {
-            return $this; // guard: map es obligatorio
+        if ($unidadBeds24Map !== null) {
+            $this->unidadBeds24Map = $unidadBeds24Map;
         }
-
-        $this->unidadBeds24Map = $unidadBeds24Map;
         return $this;
     }
 
@@ -149,17 +175,6 @@ class PmsEventoBeds24Link
         return $this->originLink !== null;
     }
 
-    /**
-     * Indica explícitamente si este link es un espejo (mirror).
-     *
-     * Regla de dominio:
-     * - Un link es mirror si y solo si tiene originLink.
-     *
-     * Este método existe por claridad semántica:
-     * - Evita que otros servicios dependan directamente de originLink !== null
-     * - Centraliza la regla de negocio
-     * - Permite, a futuro, cambiar la implementación sin romper contratos
-     */
     public function isMirror(): bool
     {
         return $this->originLink !== null;
@@ -191,6 +206,44 @@ class PmsEventoBeds24Link
         $this->deactivatedAt = $deactivatedAt;
         return $this;
     }
+
+    public function getLastSeenAt(): ?DateTimeInterface
+    {
+        return $this->lastSeenAt;
+    }
+
+    public function setLastSeenAt(?DateTimeInterface $lastSeenAt): self
+    {
+        $this->lastSeenAt = $lastSeenAt;
+        return $this;
+    }
+
+    /** @return Collection<int, PmsBookingsPushQueue> */
+    public function getQueues(): Collection
+    {
+        return $this->queues;
+    }
+
+    public function addQueue(PmsBookingsPushQueue $queue): self
+    {
+        if (!$this->queues->contains($queue)) {
+            $this->queues->add($queue);
+            $queue->setLink($this);
+        }
+        return $this;
+    }
+
+    public function removeQueue(PmsBookingsPushQueue $queue): self
+    {
+        $this->queues->removeElement($queue);
+        return $this;
+    }
+
+    /*
+     * -------------------------------------------------------------------------
+     * LÓGICA DE ESTADOS SEMÁNTICOS
+     * -------------------------------------------------------------------------
+     */
 
     public function markActive(): self
     {
@@ -233,62 +286,13 @@ class PmsEventoBeds24Link
         return $this;
     }
 
-    public function getLastSeenAt(): ?DateTimeInterface
-    {
-        return $this->lastSeenAt;
-    }
-
-    public function setLastSeenAt(?DateTimeInterface $lastSeenAt): self
-    {
-        $this->lastSeenAt = $lastSeenAt;
-        return $this;
-    }
-
-    public function getCreated(): ?DateTimeInterface
-    {
-        return $this->created;
-    }
-
-    public function getUpdated(): ?DateTimeInterface
-    {
-        return $this->updated;
-    }
-
-    public function getQueues(): Collection
-    {
-        return $this->queues;
-    }
-
-    public function addQueue(PmsBookingsPushQueue $queue): self
-    {
-        if (!$this->queues->contains($queue)) {
-            $this->queues->add($queue);
-            $queue->setLink($this);
-        }
-
-        return $this;
-    }
-
-    public function removeQueue(PmsBookingsPushQueue $queue): self
-    {
-        $this->queues->removeElement($queue);
-
-        // NO hacemos setLink(null):
-        // - link es NOT NULL en la cola
-        // - las colas son históricas
-        // - una cola no se “despega”, se reemplaza creando otra
-
-        return $this;
-    }
-
     public function __toString(): string
     {
-        $id = $this->id ?? '¿?';
+        $id = $this->getId() ?? 'NEW';
         $bookId = $this->beds24BookId ?? '-';
         $kind = $this->originLink ? 'mirror' : 'root';
-        $mapId = $this->unidadBeds24Map?->getId() ?? '?';
         $status = $this->status ?? self::STATUS_ACTIVE;
 
-        return sprintf('Link #%s • %s • %s • bookId %s • map %s', $id, $kind, $status, $bookId, $mapId);
+        return sprintf('Link #%s • %s • %s • bookId %s', (string)$id, $kind, $status, $bookId);
     }
 }

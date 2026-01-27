@@ -10,7 +10,8 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
- * ReservaDetalle
+ * Entidad ReservaDetalle.
+ * Gestiona los componentes específicos y servicios adicionales de una reserva.
  */
 #[ORM\Table(name: 'res_detalle')]
 #[ORM\Entity]
@@ -18,6 +19,7 @@ class ReservaDetalle
 {
 
     /**
+     * Identificador autoincremental del detalle.
      * @var int
      */
     #[ORM\Column(type: 'integer')]
@@ -26,6 +28,7 @@ class ReservaDetalle
     private $id;
 
     /**
+     * Relación con la reserva padre.
      * @var ReservaReserva
      */
     #[ORM\ManyToOne(targetEntity: ReservaReserva::class, inversedBy: 'detalles')]
@@ -33,26 +36,36 @@ class ReservaDetalle
     protected $reserva;
 
     /**
-     * @var ReservaTipodetallle
+     * Relación con el tipo de detalle de reserva.
+     * @var ReservaTipodetalle
      */
     #[ORM\ManyToOne(targetEntity: ReservaTipodetalle::class)]
     #[ORM\JoinColumn(name: 'tipodetalle_id', referencedColumnName: 'id', nullable: false)]
     protected $tipodetalle;
 
     /**
-     * @var User
+     * Usuario vinculado a este detalle específico.
+     * Se mapea como BINARY(16) para ser compatible con el ID UUID de User.
+     * @var User|null
      */
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: true)]
+    #[ORM\JoinColumn(
+        name: 'user_id',
+        referencedColumnName: 'id',
+        nullable: true,
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
     protected $user;
 
     /**
-     * @var string
+     * Notas o comentarios adicionales.
+     * @var string|null
      */
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private $nota;
 
     /**
+     * Fecha de creación del registro.
      * @var DateTime $creado
      */
     #[Gedmo\Timestampable(on: 'create')]
@@ -60,6 +73,7 @@ class ReservaDetalle
     private $creado;
 
     /**
+     * Fecha de la última modificación del registro.
      * @var DateTime $modificado
      */
     #[Gedmo\Timestampable(on: 'update')]
@@ -67,12 +81,16 @@ class ReservaDetalle
     private $modificado;
 
     /**
-     * Constructor
+     * Constructor.
      */
     public function __construct()
     {
     }
 
+    /**
+     * Genera un resumen textual del detalle.
+     * @return string|null
+     */
     public function getResumen(): ?string
     {
         $contenido = [];
@@ -84,6 +102,12 @@ class ReservaDetalle
         }
         return (sprintf('%s %s', $this->getTipodetalle()->getNombre(), implode(' ', $contenido)));
     }
+
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS EXPLÍCITOS
+     * -------------------------------------------------------------------------
+     */
 
     public function getId(): ?int
     {

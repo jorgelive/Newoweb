@@ -2,8 +2,9 @@
 
 namespace App\Oweb\Controller;
 
+use App\Oweb\Entity\MaestroTipocambio;
 use App\Oweb\Service\MainVariableproceso;
-use App\Service\TipocambioManager;
+use App\Oweb\Service\TipocambioManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -109,7 +110,7 @@ class TransporteServiciocontableController extends CRUDController
         $solicitud['moneda'] = $object->getMoneda()->getCodigoexterno();
         $tipoCambioStr = '';
         if($object->getMoneda()->getId() != 1){
-            $tipoCambio = $em->getRepository('App\Entity\MaestroTipocambio')->findOneBy(['moneda' => $object->getMoneda()->getId(), 'fecha' => $fechaEmision]);
+            $tipoCambio = $em->getRepository(MaestroTipocambio::class)->findOneBy(['moneda' => $object->getMoneda()->getId(), 'fecha' => $fechaEmision]);
             if(!$tipoCambio){
                 $this->addFlash('sonata_flash_error', sprintf('No se puede obtener la el tipo de cambio para %s del dia %s.', $object->getMoneda()->getNombre(), $fechaEmision->format('Y-m-d') ));
                 return new RedirectResponse($this->admin->generateUrl('list'));

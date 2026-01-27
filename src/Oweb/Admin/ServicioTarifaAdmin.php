@@ -2,8 +2,8 @@
 
 namespace App\Oweb\Admin;
 
-use App\Entity\MaestroMoneda;
 use App\Oweb\Entity\MaestroCategoriatour;
+use App\Oweb\Entity\MaestroMoneda;
 use App\Oweb\Entity\ServicioModalidadtarifa;
 use Sonata\AdminBundle\Datagrid\DatagridInterface;
 use Sonata\AdminBundle\Datagrid\DatagridMapper;
@@ -92,7 +92,7 @@ class ServicioTarifaAdmin extends AbstractSecureAdmin
                 'sort_parent_association_mappings' => [['fieldName' => 'moneda']],
                 'label' => 'Moneda',
                 'editable' => true,
-                'class' => 'App\Entity\MaestroMoneda',
+                'class' => 'App\Oweb\Entity\MaestroMoneda',
                 'required' => false,
                 'choices' => [
                     MaestroMoneda::DB_VALOR_SOL => 'Soles',

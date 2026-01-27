@@ -1,11 +1,10 @@
 <?php
-namespace App\Entity;
+namespace App\Oweb\Entity;
 
 use DateTime;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\Common\Collections\ArrayCollection;
-use Symfony\Component\Validator\Constraints as Assert;
 use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Table(name: 'mae_moneda')]
@@ -31,8 +30,14 @@ class MaestroMoneda
     #[ORM\Column(type: 'string', length: 3)]
     private $codigo;
 
+    /*
+     * Legacy para comprobante
+    */
     #[ORM\Column(type: 'string', length: 3)]
     private $codigoexterno;
+
+    #[ORM\Column(name: 'prioritario', type: 'boolean', options: ['default' => false])]
+    private bool $prioritario = false;
 
     /**
      * @var Collection

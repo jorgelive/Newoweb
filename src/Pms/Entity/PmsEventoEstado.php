@@ -1,122 +1,113 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pms\Entity;
 
+use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
-use DateTimeInterface;
 
+/**
+ * Entidad PmsEventoEstado.
+ * Define los estados internos del PMS y su mapeo con Beds24.
+ * IDs Naturales basados en los códigos originales.
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_evento_estado')]
 #[ORM\HasLifecycleCallbacks]
 class PmsEventoEstado
 {
+    /** Gestión de auditoría temporal (createdAt, updatedAt) */
+    use TimestampTrait;
 
-/* ======================================================
- * CONSTANTES DE CÓDIGO (estado interno PMS)
- * ====================================================== */
+    /* ======================================================
+     * CONSTANTES DE ID (Valores originales restaurados)
+     * ====================================================== */
 
     public const CODIGO_PENDIENTE      = 'new';
     public const CODIGO_CONFIRMADA     = 'confirmada';
     public const CODIGO_CANCELADA      = 'cancelada';
     public const CODIGO_CONSULTA       = 'consulta';
-    public const CODIGO_REQUERIMIENTO  = 'requerimiento';
+    public const CODIGO_REQUERIMIENTO  = 'request';
     public const CODIGO_BLOQUEO        = 'bloqueo';
 
     /**
-     * Lista completa de códigos válidos
+     * El ID es el código string del estado.
+     * Sin GeneratedValue por ser ID Natural.
      */
-    public const CODIGOS_VALIDOS = [
-        self::CODIGO_PENDIENTE,
-        self::CODIGO_CONFIRMADA,
-        self::CODIGO_CANCELADA,
-        self::CODIGO_CONSULTA,
-        self::CODIGO_REQUERIMIENTO,
-        self::CODIGO_BLOQUEO,
-    ];
-
-    /* ======================================================
-     * CAMPOS
-     * ====================================================== */
-
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: 'string', length: 50)]
+    private ?string $id = null;
 
-    // Estado interno del PMS (ej: pendiente, confirmada, cancelada)
-    #[ORM\Column(type: 'string', length: 50, unique: true)]
-    private ?string $codigo = null;
-
-    // Nombre de visualización
+    /**
+     * Nombre de visualización para la interfaz.
+     */
     #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombre = null;
 
-    // Color visual (para listas, calendario)
+    /**
+     * Color visual en formato hexadecimal (ej: #FF5733).
+     */
     #[ORM\Column(type: 'string', length: 7, nullable: true)]
     private ?string $color = null;
 
-    // Código que se envía a Beds24 (ej: confirmed, cancelled)
+    /**
+     * Valor que espera Beds24 (ej: "confirmed", "cancelled", "request").
+     */
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $codigoBeds24 = null;
 
-    // Si este estado fuerza su color visual e ignora el estado de pago
+    /**
+     * Si este estado fuerza su color e ignora otras reglas visuales.
+     */
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private ?bool $colorOverride = false;
+    private bool $colorOverride = false;
 
-    // Orden para UI
+    /**
+     * Orden para listados en la UI.
+     */
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $orden = null;
 
-    #[ORM\Column(type: 'datetime')]
-    #[Gedmo\Timestampable(on: 'create')]
-    private ?DateTimeInterface $created = null;
+    public function __construct(?string $id = null)
+    {
+        if ($id) {
+            $this->id = $id;
+        }
+    }
 
-    #[ORM\Column(type: 'datetime')]
-    #[Gedmo\Timestampable(on: 'update')]
-    private ?DateTimeInterface $updated = null;
+    /* ======================================================
+     * LÓGICA DE NORMALIZACIÓN DE COLOR
+     * ====================================================== */
 
     #[ORM\PrePersist]
     #[ORM\PreUpdate]
     public function normalizeColor(): void
     {
-        $c = $this->color;
-
-        if ($c === null) {
-            return;
-        }
-
-        $c = trim($c);
-
-        // Vacío => null
-        if ($c === '') {
+        if (empty($this->color)) {
             $this->color = null;
             return;
         }
 
-        // Si viene como "RRGGBB" sin #, lo aceptamos
-        if (!str_starts_with($c, '#') && preg_match('/^[0-9a-fA-F]{6}$/', $c) === 1) {
+        $c = trim($this->color);
+
+        if (!str_starts_with($c, '#') && preg_match('/^[0-9a-fA-F]{6}$/', $c)) {
             $c = '#' . $c;
         }
 
-        // Hard cap por seguridad (columna length=7)
-        if (strlen($c) > 7) {
-            $c = substr($c, 0, 7);
-        }
-
-        // Validación final: #RRGGBB
-        if (preg_match('/^#[0-9a-fA-F]{6}$/', $c) !== 1) {
+        if (str_starts_with($c, '#') && preg_match('/^#[0-9a-fA-F]{6}$/', $c)) {
+            $this->color = strtoupper($c);
+        } else {
             $this->color = null;
-            return;
         }
-
-        $this->color = strtoupper($c);
     }
 
-    public function getId(): ?int { return $this->id; }
+    /* ======================================================
+     * GETTERS Y SETTERS
+     * ====================================================== */
 
-    public function getCodigo(): ?string { return $this->codigo; }
-    public function setCodigo(?string $codigo): self { $this->codigo = $codigo; return $this; }
+    public function getId(): ?string { return $this->id; }
+    public function setId(string $id): self { $this->id = $id; return $this; }
 
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $nombre): self { $this->nombre = $nombre; return $this; }
@@ -127,17 +118,14 @@ class PmsEventoEstado
     public function getCodigoBeds24(): ?string { return $this->codigoBeds24; }
     public function setCodigoBeds24(?string $codigoBeds24): self { $this->codigoBeds24 = $codigoBeds24; return $this; }
 
-    public function isColorOverride(): ?bool { return $this->colorOverride; }
-    public function setColorOverride(?bool $colorOverride): self { $this->colorOverride = $colorOverride; return $this; }
+    public function isColorOverride(): bool { return $this->colorOverride; }
+    public function setColorOverride(bool $colorOverride): self { $this->colorOverride = $colorOverride; return $this; }
 
     public function getOrden(): ?int { return $this->orden; }
     public function setOrden(?int $orden): self { $this->orden = $orden; return $this; }
 
-    public function getCreated(): ?DateTimeInterface { return $this->created; }
-    public function getUpdated(): ?DateTimeInterface { return $this->updated; }
-
     public function __toString(): string
     {
-        return $this->nombre ?? $this->codigo ?? (string) $this->id;
+        return $this->nombre ?? (string) $this->id;
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Oweb\Entity;
 
-use App\Entity\MaestroMoneda;
 use DateTime;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;

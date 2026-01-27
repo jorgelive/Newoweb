@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
-use App\Pms\Entity\Beds24Config;
+use App\Pms\Entity\PmsBeds24Config; // Asegúrate de usar el FQCN correcto (PmsBeds24Config)
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -13,12 +13,10 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
-
 
 class Beds24ConfigCrudController extends BaseCrudController
 {
@@ -29,14 +27,18 @@ class Beds24ConfigCrudController extends BaseCrudController
         parent::__construct($adminUrlGenerator, $requestStack);
     }
 
-    public static function getEntityFqcn(): string { return Beds24Config::class; }
+    public static function getEntityFqcn(): string
+    {
+        return PmsBeds24Config::class;
+    }
 
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
             ->setEntityLabelInSingular('Config Beds24')
             ->setEntityLabelInPlural('Configs Beds24')
-            ->setDefaultSort(['id' => 'ASC'])
+            // ✅ UUID v7 permite ordenar por ID de forma cronológica
+            ->setDefaultSort(['id' => 'DESC'])
             ->showEntityActionsInlined();
     }
 
@@ -59,16 +61,18 @@ class Beds24ConfigCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        // ✅ ID como texto oculto en formularios (generado por UuidV7Generator)
+        yield TextField::new('id', 'UUID')
+            ->onlyOnDetail();
+
         yield TextField::new('nombre', 'Nombre interno');
 
-        // ✅ AGREGADO: Base URL para control total desde el panel
         yield UrlField::new('baseUrl', 'API Base URL')
             ->setHelp('Por defecto: https://api.beds24.com/v2')
             ->hideOnIndex();
 
         yield TextField::new('refreshToken', 'Refresh Token')
-            ->setHelp('API v2 Credential. Usar periódicamente para evitar expiración.')
+            ->setHelp('API v2 Credential.')
             ->hideOnIndex();
 
         yield TextField::new('authToken', 'Auth Token (Cache)')
@@ -86,9 +90,15 @@ class Beds24ConfigCrudController extends BaseCrudController
         yield CollectionField::new('unidadMaps', 'Mapeos (Maps)')
             ->onlyOnDetail();
 
-        // Paneles de Auditoría
+        // ✅ Paneles de Auditoría actualizados a createdAt / updatedAt
         yield FormField::addPanel('Tiempos')->setIcon('fa fa-clock')->renderCollapsed();
-        yield DateTimeField::new('created', 'Creado')->setFormTypeOption('disabled', true)->onlyOnDetail();
-        yield DateTimeField::new('updated', 'Actualizado')->setFormTypeOption('disabled', true)->onlyOnDetail();
+
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->setFormTypeOption('disabled', true)
+            ->onlyOnDetail();
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->setFormTypeOption('disabled', true)
+            ->onlyOnDetail();
     }
 }

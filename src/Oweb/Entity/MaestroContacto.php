@@ -1,7 +1,6 @@
 <?php
 namespace App\Oweb\Entity;
 
-use App\Entity\MaestroTipodocumento;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 

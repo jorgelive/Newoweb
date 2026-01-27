@@ -17,13 +17,12 @@ class HuespedNamer implements NamerInterface
         }
 
         $slugger = new AsciiSlugger();
+
+        // Datos base
         $reservaId = $object->getReserva()?->getId() ?? '0';
         $nombre = $slugger->slug($object->getNombre() . ' ' . $object->getApellido())->lower();
 
-        // Obtenemos el token (si no existe, null fallback)
-        $token = method_exists($object, 'getToken') ? $object->getToken() : bin2hex(random_bytes(4));
-        if (!$token) $token = bin2hex(random_bytes(4));
-
+        // TIPO DE DOCUMENTO
         $tipo = match($mapping->getFilePropertyName()) {
             'documentoFile' => 'dni',
             'tamFile'       => 'tam',
@@ -31,26 +30,28 @@ class HuespedNamer implements NamerInterface
             default         => 'doc'
         };
 
+        // --- CLAVE DEL CACHE BUSTING ---
+        // Generamos un hash corto y ÚNICO para esta subida específica.
+        // No usamos $object->getToken() porque si el usuario resube la foto,
+        // necesitamos que el nombre CAMBIE para obligar al navegador a refrescar.
+        $token = bin2hex(random_bytes(4)); // Ejemplo: 'a1b2c3d4'
+
         // --- LÓGICA DE EXTENSIÓN INTELIGENTE ---
-        // Recuperamos el archivo real que se está subiendo para ver qué es
         $file = $mapping->getFile($object);
-        $extension = 'bin'; // Fallback
+        $extension = 'bin'; // Fallback por seguridad
 
         if ($file instanceof UploadedFile) {
             $origExt = strtolower($file->getClientOriginalExtension());
-
-            // Lista de formatos que SÍ vamos a convertir a WebP
             $imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'avif'];
 
             if (in_array($origExt, $imageFormats)) {
-                // Si es imagen, forzamos .webp (porque el Listener lo convertirá)
-                $extension = 'webp';
+                $extension = 'webp'; // Tu lógica: forzar webp en imágenes
             } else {
-                // Si es PDF, Excel, Word, etc., respetamos la original
                 $extension = $origExt;
             }
         }
 
+        // Resultado: 467-jorge-gomez-dni-a1b2c3d4.webp
         return sprintf('%s-%s-%s-%s.%s', $reservaId, $nombre, $tipo, $token, $extension);
     }
 }

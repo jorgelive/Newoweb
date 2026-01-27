@@ -1,0 +1,51 @@
+{# templates/panel/field/liip_image.html.twig #}
+
+{% if field.value %}
+    {# 1. Variables #}
+    {% set fullUrl = field.value %}
+    {% set filter = field.customOptions.get('liip_filter') %}
+
+    {# 2. Generar Miniatura con Liip #}
+    {% set thumbUrl = fullUrl|trim('/')|imagine_filter(filter) %}
+
+    {# 3. ID único para el modal (Combinamos ID de entidad y ID de campo) #}
+    {% set modalId = 'modal-' ~ entity.primaryKeyValue ~ '-' ~ field.uniqueId %}
+
+    {# 4. Renderizado: Thumbnail con Trigger de Modal #}
+    {# IMPORTANTE: event.stopPropagation() evita que EasyAdmin abra la fila al hacer clic #}
+    <div onclick="event.stopPropagation();">
+        <a href="#"
+           data-bs-toggle="modal"
+           data-bs-target="#{{ modalId }}"
+           class="d-inline-block">
+            <img src="{{ thumbUrl }}"
+                 style="max-height: 50px; max-width: 100px; border-radius: 4px; object-fit: cover; cursor: zoom-in;"
+                 class="img-fluid shadow-sm"
+                 alt="Ver imagen">
+        </a>
+    </div>
+
+    {# 5. El Modal (Oculto por defecto) #}
+    {# Usamos 'modal-dialog-centered' para que salga al medio #}
+    <div class="modal fade" id="{{ modalId }}" tabindex="-1" aria-hidden="true" onclick="event.stopPropagation();">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content bg-transparent border-0 shadow-none">
+                <div class="modal-body p-0 text-center position-relative">
+                    {# Botón cerrar flotante #}
+                    <button type="button"
+                            class="btn-close btn-close-white position-absolute top-0 end-0 m-3 shadow-none"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"
+                            style="z-index: 1056; background-color: rgba(0,0,0,0.5); padding: 1rem; border-radius: 50%;">
+                    </button>
+
+                    {# Imagen Grande #}
+                    <img src="{{ fullUrl }}" class="img-fluid rounded shadow-lg" style="max-height: 90vh;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <span class="badge badge-secondary text-muted" style="font-size: 0.8em;">Sin imagen</span>
+{% endif %}

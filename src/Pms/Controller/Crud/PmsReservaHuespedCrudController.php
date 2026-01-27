@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
+use App\Panel\Field\LiipImageField; // <--- Tu nuevo campo personalizado
 use App\Pms\Entity\PmsReservaHuesped;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -13,6 +16,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -20,6 +24,7 @@ use Vich\UploaderBundle\Form\Type\VichImageType;
 
 class PmsReservaHuespedCrudController extends BaseCrudController
 {
+    // Constructor limpio: Ya no necesitamos CacheManager aquí
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack
@@ -38,7 +43,6 @@ class PmsReservaHuespedCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Huésped')
             ->setEntityLabelInPlural('Namelist / Huéspedes')
             ->setSearchFields(['nombre', 'apellido', 'documentoNumero'])
-            // Aquí 'creado' está bien porque se refiere a PmsReservaHuesped
             ->setDefaultSort(['creado' => 'DESC'])
             ->setFormOptions(['attr' => ['enctype' => 'multipart/form-data']]);
     }
@@ -63,22 +67,22 @@ class PmsReservaHuespedCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        // Rutas base definidas en vich_uploader.yaml
-        $pathDocs = 'uploads/carga/pms/pms_reserva_huesped/documento';
-        $pathFirmas = 'uploads/carga/pms/pms_reserva_huesped/firmas';
-
-        // 1. Cabecera y Relación
+        // ---------------------------------------------------------------------
+        // 1. CABECERA Y VÍNCULOS
+        // ---------------------------------------------------------------------
         yield FormField::addPanel('Vínculo de Reserva')->setIcon('fa fa-link');
 
         yield AssociationField::new('reserva', 'Reserva Padre')
-            // CORRECCIÓN AQUÍ: Usamos 'entity.created' porque PmsReserva usa inglés
             ->setQueryBuilder(fn($queryBuilder) => $queryBuilder->orderBy('entity.created', 'DESC'))
             ->setColumns(6);
 
         yield BooleanField::new('esPrincipal', 'Titular de Reserva')->setColumns(6);
 
-        // 2. Datos Personales
+        // ---------------------------------------------------------------------
+        // 2. DATOS PERSONALES
+        // ---------------------------------------------------------------------
         yield FormField::addPanel('Datos Personales')->setIcon('fa fa-id-card');
+
         yield TextField::new('nombre')->setColumns(6);
         yield TextField::new('apellido')->setColumns(6);
         yield DateField::new('fechaNacimiento', 'F. Nacimiento')->setColumns(4);
@@ -86,20 +90,29 @@ class PmsReservaHuespedCrudController extends BaseCrudController
         yield AssociationField::new('tipoDocumento', 'Tipo Doc.')->setColumns(4);
         yield TextField::new('documentoNumero', 'Número Documento')->setColumns(4);
 
-        // 3. Documentación Digital
+        // ---------------------------------------------------------------------
+        // 3. DOCUMENTACIÓN DIGITAL
+        // ---------------------------------------------------------------------
         yield FormField::addPanel('Documentos Digitalizados')->setIcon('fa fa-camera');
 
         // --- A. DOCUMENTO DE IDENTIDAD ---
+        // 1. FORMULARIO: Subida con Vich
         yield TextField::new('documentoFile', 'Subir DNI/Pasaporte')
             ->setFormType(VichImageType::class)
             ->setFormTypeOptions(['allow_delete' => true, 'download_uri' => false])
             ->onlyOnForms()
             ->setColumns(6);
 
-        yield TextField::new('documentoName', 'DNI / Pasaporte')
-            ->setTemplatePath('panel/field/media.html.twig')
-            ->setCustomOption('base_path', $pathDocs)
-            ->hideOnForm()
+        // 2. INDEX: Miniatura Liip + Lightbox (Usando tu nuevo campo)
+        yield LiipImageField::new('documentoUrl', 'DNI / Pasaporte')
+            ->onlyOnIndex() // Solo en el listado
+            ->setSortable(false)
+            ->setColumns(6);
+
+        // 3. DETAIL: Imagen grande estándar
+        yield ImageField::new('documentoUrl', 'DNI / Pasaporte')
+            ->setBasePath('')
+            ->onlyOnDetail()
             ->setColumns(6);
 
         // --- B. TARJETA TAM ---
@@ -109,13 +122,19 @@ class PmsReservaHuespedCrudController extends BaseCrudController
             ->onlyOnForms()
             ->setColumns(6);
 
-        yield TextField::new('tamName', 'TAM (Migraciones)')
-            ->setTemplatePath('panel/field/media.html.twig')
-            ->setCustomOption('base_path', $pathDocs)
-            ->hideOnForm()
+        yield LiipImageField::new('tamUrl', 'TAM (Migraciones)')
+            ->onlyOnIndex()
+            ->setSortable(false)
             ->setColumns(6);
 
-        // --- C. FIRMA DIGITAL ---
+        yield ImageField::new('tamUrl', 'TAM (Migraciones)')
+            ->setBasePath('')
+            ->onlyOnDetail()
+            ->setColumns(6);
+
+        // ---------------------------------------------------------------------
+        // 4. CONFORMIDAD LEGAL (FIRMAS)
+        // ---------------------------------------------------------------------
         yield FormField::addPanel('Conformidad Legal')->setIcon('fa fa-file-signature');
 
         yield TextField::new('firmaFile', 'Subir Firma')
@@ -123,19 +142,24 @@ class PmsReservaHuespedCrudController extends BaseCrudController
             ->onlyOnForms()
             ->setColumns(6);
 
-        yield TextField::new('firmaName', 'Firma Huésped')
-            ->setTemplatePath('panel/field/media.html.twig')
-            ->setCustomOption('base_path', $pathFirmas)
-            ->hideOnForm()
+        yield LiipImageField::new('firmaUrl', 'Firma Huésped')
+            ->onlyOnIndex()
+            ->setSortable(false)
+            ->setColumns(6);
+
+        yield ImageField::new('firmaUrl', 'Firma Huésped')
+            ->setBasePath('')
+            ->onlyOnDetail()
             ->setColumns(6);
 
         yield DateTimeField::new('firmadoEn', 'Fecha Firma')
             ->onlyOnDetail();
 
-        // 4. Auditoría
+        // ---------------------------------------------------------------------
+        // 5. AUDITORÍA
+        // ---------------------------------------------------------------------
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-clock')->renderCollapsed();
 
-        // Aquí 'creado' está bien porque se refiere a la entidad actual (Huésped)
         yield DateTimeField::new('creado')->hideOnForm();
         yield DateTimeField::new('modificado')->hideOnForm();
     }

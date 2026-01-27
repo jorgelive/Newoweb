@@ -3,11 +3,11 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Exchange\Tasks\RatesPush;
 
-use App\Entity\MaestroMoneda;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
+use App\Oweb\Entity\MaestroMoneda;
 use App\Pms\Entity\PmsRatesPushQueue;
 use App\Service\TipocambioManager;
 

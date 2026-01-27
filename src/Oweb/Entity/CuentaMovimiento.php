@@ -8,14 +8,18 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
- * CuentaMovimiento
+ * Entidad CuentaMovimiento.
+ * Gestiona los registros financieros vinculados a periodos y usuarios.
  */
 #[ORM\Table(name: 'cue_movimiento')]
 #[ORM\Entity]
 class CuentaMovimiento
 {
-
+    /**
+     * Factor de conversión para cálculos legacy.
+     */
     const TIPO_CAMBIO = 3.2;
+
     /**
      * @var int
      */
@@ -40,10 +44,17 @@ class CuentaMovimiento
     protected $periodotransferencia;
 
     /**
+     * Relación con el usuario.
+     * Mapeado explícito a BINARY(16) para coincidir con el nuevo ID UUID de la tabla user.
      * @var User
      */
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'movimientos')]
-    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(
+        name: 'user_id',
+        referencedColumnName: 'id',
+        nullable: false,
+        columnDefinition: 'BINARY(16)'
+    )]
     protected $user;
 
     /**
@@ -85,6 +96,7 @@ class CuentaMovimiento
     private $debe;
 
     /**
+     * Campo virtual para cálculo en moneda local.
      * @var string
      */
     private $debesoles;
@@ -96,6 +108,7 @@ class CuentaMovimiento
     private $haber;
 
     /**
+     * Campo virtual para cálculo en moneda local.
      * @var string
      */
     private $habersoles;
@@ -114,6 +127,10 @@ class CuentaMovimiento
     #[ORM\Column(type: 'datetime')]
     private $modificado;
 
+    /**
+     * Representación textual del movimiento.
+     * @return string
+     */
     public function __toString()
     {
         return $this->getDescripcion() ?? sprintf("Id: %s.", $this->getId()) ?? '';
@@ -133,13 +150,11 @@ class CuentaMovimiento
      * Set fechahora.
      *
      * @param DateTime $fechahora
-     *
      * @return CuentaMovimiento
      */
     public function setFechahora($fechahora)
     {
         $this->fechahora = $fechahora;
-    
         return $this;
     }
 
@@ -157,13 +172,11 @@ class CuentaMovimiento
      * Set descripcion.
      *
      * @param string $descripcion
-     *
      * @return CuentaMovimiento
      */
     public function setDescripcion($descripcion)
     {
         $this->descripcion = $descripcion;
-    
         return $this;
     }
 
@@ -181,13 +194,11 @@ class CuentaMovimiento
      * Set cobradorpagador.
      *
      * @param string $cobradorpagador
-     *
      * @return CuentaMovimiento
      */
     public function setCobradorpagador($cobradorpagador = null)
     {
         $this->cobradorpagador = $cobradorpagador;
-
         return $this;
     }
 
@@ -205,13 +216,11 @@ class CuentaMovimiento
      * Set debe.
      *
      * @param string $debe
-     *
      * @return CuentaMovimiento
      */
     public function setDebe($debe)
     {
         $this->debe = $debe;
-    
         return $this;
     }
 
@@ -226,13 +235,11 @@ class CuentaMovimiento
     }
 
     /**
-     * Get debesoles.
-     *
+     * Calcula y obtiene el monto del debe en soles.
      * @return string
      */
     public function getDebesoles()
     {
-
         if(empty($this->getDebe())){
             return $this->getDebe();
         }
@@ -249,13 +256,11 @@ class CuentaMovimiento
      * Set haber.
      *
      * @param string $haber
-     *
      * @return CuentaMovimiento
      */
     public function setHaber($haber)
     {
         $this->haber = $haber;
-    
         return $this;
     }
 
@@ -270,8 +275,7 @@ class CuentaMovimiento
     }
 
     /**
-     * Get habersoles.
-     *
+     * Calcula y obtiene el monto del haber en soles.
      * @return string
      */
     public function getHabersoles()
@@ -292,13 +296,11 @@ class CuentaMovimiento
      * Set creado.
      *
      * @param DateTime $creado
-     *
      * @return CuentaMovimiento
      */
     public function setCreado($creado)
     {
         $this->creado = $creado;
-    
         return $this;
     }
 
@@ -316,13 +318,11 @@ class CuentaMovimiento
      * Set modificado.
      *
      * @param DateTime $modificado
-     *
      * @return CuentaMovimiento
      */
     public function setModificado($modificado)
     {
         $this->modificado = $modificado;
-    
         return $this;
     }
 
@@ -340,13 +340,11 @@ class CuentaMovimiento
      * Set periodo.
      *
      * @param CuentaPeriodo $periodo
-     *
      * @return CuentaMovimiento
      */
     public function setPeriodo(CuentaPeriodo $periodo)
     {
         $this->periodo = $periodo;
-    
         return $this;
     }
 
@@ -364,13 +362,11 @@ class CuentaMovimiento
      * Set user.
      *
      * @param User $user
-     *
      * @return CuentaMovimiento
      */
     public function setUser(User $user)
     {
         $this->user = $user;
-    
         return $this;
     }
 
@@ -388,13 +384,11 @@ class CuentaMovimiento
      * Set clase.
      *
      * @param CuentaClase $clase
-     *
      * @return CuentaMovimiento
      */
     public function setClase(CuentaClase $clase)
     {
         $this->clase = $clase;
-    
         return $this;
     }
 
@@ -412,13 +406,11 @@ class CuentaMovimiento
      * Set centro.
      *
      * @param CuentaCentro $centro
-     *
      * @return CuentaMovimiento
      */
     public function setCentro(CuentaCentro $centro = null)
     {
         $this->centro = $centro;
-    
         return $this;
     }
 
@@ -436,13 +428,11 @@ class CuentaMovimiento
      * Set periodotransferencia.
      *
      * @param CuentaPeriodo|null $periodotransferencia
-     *
      * @return CuentaMovimiento
      */
     public function setPeriodotransferencia(CuentaPeriodo $periodotransferencia = null)
     {
         $this->periodotransferencia = $periodotransferencia;
-    
         return $this;
     }
 

@@ -1,27 +1,41 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Repository\PmsBookingsPushQueueRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 
+/**
+ * Entidad PmsBookingsPushQueue.
+ * Gestiona la cola de envío (Push) de actualizaciones hacia Beds24.
+ */
 #[ORM\Entity(repositoryClass: PmsBookingsPushQueueRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: 'pms_bookings_push_queue')]
 class PmsBookingsPushQueue implements ExchangeQueueItemInterface
 {
+    /**
+     * Gestión de Identificador UUID (BINARY 16).
+     */
+    use IdTrait;
+
+    /**
+     * Gestión de auditoría temporal (DateTimeImmutable).
+     */
+    use TimestampTrait;
+
     public const STATUS_PENDING    = 'pending';
     public const STATUS_PROCESSING = 'processing';
     public const STATUS_SUCCESS    = 'success';
     public const STATUS_FAILED     = 'failed';
     public const STATUS_CANCELLED  = 'canceled';
-
-    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column]
-    private ?int $id = null;
 
     // --- RELACIONES ESPECÍFICAS DE PUSH ---
 
@@ -35,8 +49,7 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
     #[ORM\Column(type: 'bigint', nullable: true)]
     private ?string $beds24BookIdOriginal = null;
 
-    // ✅ CORRECCIÓN: Se añade inversedBy para solucionar el error de validación de Doctrine
-    #[ORM\ManyToOne(targetEntity: PmsBeds24Endpoint::class, inversedBy: 'queues')]
+    #[ORM\ManyToOne(targetEntity: PmsBeds24Endpoint::class, inversedBy: 'bookingsPushQueues')]
     #[ORM\JoinColumn(nullable: false)]
     private ?PmsBeds24Endpoint $endpoint = null;
 
@@ -92,21 +105,11 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
     #[ORM\Column(name: 'failed_reason', type: 'string', length: 255, nullable: true)]
     private ?string $failedReason = null;
 
-    // --- TIMESTAMPS ---
-
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $created = null;
-
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $updated = null;
-
-    // =========================================================================
-    // IMPLEMENTACIÓN ExchangeQueueItemInterface
-    // =========================================================================
-
-    public function getId(): ?int { return $this->id; }
+    /*
+     * -------------------------------------------------------------------------
+     * IMPLEMENTACIÓN ExchangeQueueItemInterface
+     * -------------------------------------------------------------------------
+     */
 
     public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
 
@@ -136,7 +139,7 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
         $this->lockedAt = null;
         $this->lockedBy = null;
         $this->failedReason = null;
-        $this->retryCount = 0; // Reset en éxito
+        $this->retryCount = 0;
     }
 
     public function markFailure(string $reason, ?int $httpCode, DateTimeImmutable $nextRetry): void {
@@ -148,9 +151,11 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
         $this->lockedBy = null;
     }
 
-    // =========================================================================
-    // GETTERS & SETTERS COMPLETOS
-    // =========================================================================
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS EXPLÍCITOS
+     * -------------------------------------------------------------------------
+     */
 
     public function setLastRequestRaw(?string $raw): self { $this->lastRequestRaw = $raw; return $this; }
     public function getLastRequestRaw(): ?string { return $this->lastRequestRaw; }
@@ -168,23 +173,19 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
     public function getFailedReason(): ?string { return $this->failedReason; }
 
     public function getLink(): ?PmsEventoBeds24Link { return $this->link; }
+
     public function setLink(?PmsEventoBeds24Link $link): self
     {
         $this->link = $link;
-
         if ($link) {
-            // 1. ID interno
             if ($link->getId() !== null) {
-                $this->linkIdOriginal = $link->getId();
+                $this->linkIdOriginal = (int) $link->getId();
             }
-
-            // 2. Booking ID
             $bookId = $link->getBeds24BookId();
             if ($bookId !== null && $bookId !== '') {
                 $this->beds24BookIdOriginal = (string) $bookId;
             }
         }
-
         return $this;
     }
 
@@ -216,6 +217,11 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
     public function getLockedBy(): ?string { return $this->lockedBy; }
     public function setLockedBy(?string $by): self { $this->lockedBy = $by; return $this; }
 
-    public function getCreated(): ?DateTimeInterface { return $this->created; }
-    public function getUpdated(): ?DateTimeInterface { return $this->updated; }
+    /**
+     * Representación textual de la tarea de Push.
+     */
+    public function __toString(): string
+    {
+        return 'Beds24PushQueue (UUID) ' . ($this->getId() ?? 'NEW') . ' [' . $this->status . ']';
+    }
 }

@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  * Trait para forzar la redirección al 'referrer' tras guardar en EasyAdmin.
  * Útil para volver al Calendario en lugar del Index estándar.
  */
-trait RedirectToReferrerTrait
+trait FantasmaRedirectToReferrerTrait
 {
     protected function getRedirectResponseAfterSave(AdminContext $context, string $action): RedirectResponse
     {

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Exchange\Service\Contract;
@@ -9,15 +10,22 @@ use DateTimeImmutable;
 use DateTimeInterface;
 
 /**
- * Contrato universal para ítems de cola procesables por el motor de Exchange.
- * Define los métodos necesarios para el ciclo de vida (Creation -> Locking -> Processing -> Auditing).
+ * Interface ExchangeQueueItemInterface.
+ * Define el ciclo de vida de un ítem en la cola de sincronización.
+ * Compatible con identificación UUID (BINARY 16).
  */
 interface ExchangeQueueItemInterface
 {
-    /** Identificador único del registro en DB */
-    public function getId(): ?int;
+    /** * Identificador único.
+     * Cambiado a 'mixed' para soportar UUIDs del IdTrait.
+     */
+    public function getId(): mixed;
 
-    // --- Configuración y Enrutamiento ---
+    /*
+     * -------------------------------------------------------------------------
+     * CONFIGURACIÓN Y ENRUTAMIENTO
+     * -------------------------------------------------------------------------
+     */
 
     /** Configuración de acceso al canal (API Keys, tokens) */
     public function getBeds24Config(): ?Beds24Config;
@@ -25,69 +33,68 @@ interface ExchangeQueueItemInterface
     /** Definición técnica del destino (path, método) */
     public function getEndpoint(): ?PmsBeds24Endpoint;
 
-    /** * ✅ NUEVO: Obliga a que la entidad permita asignar el endpoint.
-     * Vital para la desnormalización en RatesPush y la creación en Listeners.
-     */
+    /** Asigna el endpoint técnico al ítem de la cola */
     public function setEndpoint(?PmsBeds24Endpoint $endpoint): self;
 
-    // --- Control de Tiempos y Programación ---
+    /*
+     * -------------------------------------------------------------------------
+     * CONTROL DE TIEMPOS Y PROGRAMACIÓN
+     * -------------------------------------------------------------------------
+     */
 
-    /** Fecha programada para la siguiente ejecución */
+    /** Fecha programada para la ejecución */
     public function getRunAt(): ?DateTimeInterface;
 
-    /** Define cuándo debe volver a ejecutarse el ítem */
     public function setRunAt(?DateTimeInterface $at): self;
 
-    /** Número de intentos realizados */
     public function getRetryCount(): int;
 
-    /** Incrementa o define el contador de intentos */
     public function setRetryCount(int $count): self;
 
-    /** Límite máximo de intentos permitidos antes de morir */
     public function getMaxAttempts(): int;
 
-    // --- Auditoría Técnica RAW (HTTP Body) ---
+    /*
+     * -------------------------------------------------------------------------
+     * AUDITORÍA TÉCNICA (RAW HTTP)
+     * -------------------------------------------------------------------------
+     */
 
-    /** Guarda el cuerpo exacto enviado a la API */
     public function setLastRequestRaw(?string $raw): self;
 
-    /** Guarda el cuerpo exacto recibido de la API */
     public function setLastResponseRaw(?string $raw): self;
 
-    /** Guarda el código de estado HTTP (200, 401, 500, etc.) */
     public function setLastHttpCode(?int $code): self;
 
-    /** Recupera la última respuesta para el fallback SQL */
     public function getLastResponseRaw(): ?string;
 
-    /** Recupera el último código HTTP para auditoría */
     public function getLastHttpCode(): ?int;
 
-    // --- Auditoría de Negocio (JSON Procesado) ---
+    /*
+     * -------------------------------------------------------------------------
+     * AUDITORÍA DE NEGOCIO Y ESTADOS
+     * -------------------------------------------------------------------------
+     */
 
-    /** Guarda un resumen estructurado del resultado del Handler */
     public function setExecutionResult(?array $result): self;
 
-    /** Recupera el resumen del resultado */
     public function getExecutionResult(): ?array;
 
-    // --- Gestión de Estados y Errores ---
-
-    /** Define el mensaje de error legible */
     public function setFailedReason(?string $reason): self;
 
-    /** Recupera el último mensaje de fallo */
     public function getFailedReason(): ?string;
 
-    // --- Transiciones de Estado (Workflow) ---
+    /*
+     * -------------------------------------------------------------------------
+     * TRANSICIONES DE ESTADO (WORKFLOW)
+     * -------------------------------------------------------------------------
+     */
 
-    /** Transición: marca el ítem como tomado por un worker */
+    /** Marca el inicio del procesamiento por un Worker */
     public function markProcessing(string $workerId, DateTimeImmutable $now): void;
 
-    /** Transición: marca el ítem como completado con éxito */
+    /** Marca la finalización exitosa */
     public function markSuccess(DateTimeImmutable $now): void;
 
-    /** Transición: marca fallo y programa reintento o muerte */
+    /** Gestiona el fallo y decide la programación del reintento */
     public function markFailure(string $reason, ?int $httpCode, DateTimeImmutable $nextRetry): void;
 }

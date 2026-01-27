@@ -1,8 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Repository\PmsBookingsPullQueueRepository;
 use DateTimeImmutable;
@@ -10,21 +13,31 @@ use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 
+/**
+ * Entidad PmsBookingsPullQueue.
+ * Gestiona la cola de procesos para la obtención (Pull) de reservas desde canales externos.
+ */
 #[ORM\Entity(repositoryClass: PmsBookingsPullQueueRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: 'pms_bookings_pull_queue')]
 class PmsBookingsPullQueue implements ExchangeQueueItemInterface
 {
+    /**
+     * Gestión de Identificador UUID (BINARY 16).
+     */
+    use IdTrait;
+
+    /**
+     * Gestión de auditoría temporal (DateTimeImmutable).
+     */
+    use TimestampTrait;
+
     // --- CONSTANTES DE ESTADO ---
     public const STATUS_PENDING    = 'pending';
     public const STATUS_PROCESSING = 'processing';
     public const STATUS_SUCCESS    = 'success';
     public const STATUS_FAILED     = 'failed';
-
-    #[ORM\Id] #[ORM\GeneratedValue] #[ORM\Column]
-    private ?int $id = null;
 
     #[ORM\Column(type: 'string', length: 50)]
     private string $type = 'beds24_bookings_arrival_range';
@@ -33,16 +46,16 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Beds24Config $beds24Config = null;
 
-    // ✅ CORRECCIÓN: Se añade inversedBy para sincronizar con PmsBeds24Endpoint
     #[ORM\ManyToOne(targetEntity: PmsBeds24Endpoint::class, inversedBy: 'pullQueueJobs')]
     #[ORM\JoinColumn(nullable: false)]
     private ?PmsBeds24Endpoint $endpoint = null;
 
     /** * @var Collection<int, PmsUnidad>
-     * ✅ CORRECCIÓN: Se añade inversedBy para sincronizar con PmsUnidad
      */
     #[ORM\ManyToMany(targetEntity: PmsUnidad::class, inversedBy: 'pullQueueJobs')]
     #[ORM\JoinTable(name: 'pms_pull_queue_job_unidad')]
+    #[ORM\JoinColumn(name: 'pull_queue_id', referencedColumnName: 'id', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\InverseJoinColumn(name: 'unidad_id', referencedColumnName: 'id', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
     private Collection $unidades;
 
     #[ORM\Column(type: 'date', nullable: true)]
@@ -84,18 +97,13 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
     #[ORM\Column(name: 'failed_reason', type: 'string', length: 255, nullable: true)]
     private ?string $failedReason = null;
 
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $created = null;
-
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $updated = null;
-
     public function __construct() {
         $this->unidades = new ArrayCollection();
     }
 
+    /**
+     * Asegura que el trabajo tenga una fecha de ejecución al crearse.
+     */
     #[ORM\PrePersist]
     public function ensureRunAtOnCreate(): void {
         if ($this->runAt === null) {
@@ -106,8 +114,6 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
     // =========================================================================
     // IMPLEMENTACIÓN ExchangeQueueItemInterface
     // =========================================================================
-
-    public function getId(): ?int { return $this->id; }
 
     public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
 
@@ -166,45 +172,35 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
         return $this;
     }
 
-    public function getLastRequestRaw(): ?string {
-        return $this->lastRequestRaw;
-    }
+    public function getLastRequestRaw(): ?string { return $this->lastRequestRaw; }
 
     public function setLastResponseRaw(?string $raw): self {
         $this->lastResponseRaw = $raw;
         return $this;
     }
 
-    public function getLastResponseRaw(): ?string {
-        return $this->lastResponseRaw;
-    }
+    public function getLastResponseRaw(): ?string { return $this->lastResponseRaw; }
 
     public function setLastHttpCode(?int $code): self {
         $this->lastHttpCode = $code;
         return $this;
     }
 
-    public function getLastHttpCode(): ?int {
-        return $this->lastHttpCode;
-    }
+    public function getLastHttpCode(): ?int { return $this->lastHttpCode; }
 
     public function setExecutionResult(?array $result): self {
         $this->executionResult = $result;
         return $this;
     }
 
-    public function getExecutionResult(): ?array {
-        return $this->executionResult;
-    }
+    public function getExecutionResult(): ?array { return $this->executionResult; }
 
     public function setFailedReason(?string $reason): self {
         $this->failedReason = $reason;
         return $this;
     }
 
-    public function getFailedReason(): ?string {
-        return $this->failedReason;
-    }
+    public function getFailedReason(): ?string { return $this->failedReason; }
 
     // =========================================================================
     // GETTERS Y SETTERS PROPIOS
@@ -269,8 +265,4 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
         $this->lockedBy = $by;
         return $this;
     }
-
-    public function getCreated(): ?DateTimeInterface { return $this->created; }
-
-    public function getUpdated(): ?DateTimeInterface { return $this->updated; }
 }

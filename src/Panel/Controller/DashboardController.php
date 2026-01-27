@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Panel\Controller;
 
+use App\Entity\MaestroIdioma;
 use App\Entity\User;
+use App\Oweb\Entity\MaestroPais;
 use App\Pms\Entity\Beds24Config;
 use App\Pms\Entity\PmsBeds24Endpoint;
 use App\Pms\Entity\PmsBeds24WebhookAudit;
@@ -16,6 +20,9 @@ use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
+use App\Pms\Entity\PmsGuia;
+use App\Pms\Entity\PmsGuiaItem;
+use App\Pms\Entity\PmsGuiaSeccion;
 use App\Pms\Entity\PmsRatesPushQueue;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsReservaHuesped;
@@ -30,10 +37,12 @@ use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-
+/**
+ * Dashboard Principal del Panel de Gestión.
+ * Organizado por capas operativas y de configuración.
+ */
 class DashboardController extends AbstractDashboardController
 {
-
     #[Route('/', name: 'panel_dashboard')]
     public function index(): Response
     {
@@ -57,40 +66,57 @@ class DashboardController extends AbstractDashboardController
     {
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
 
-        yield MenuItem::section('Reservas PMS');
+        // --- SECCIÓN 1: OPERATIVA DIARIA ---
+        yield MenuItem::section('Reservas y Operaciones');
 
-        // Gestión de Reservas (Oficina)
-        yield MenuItem::subMenu('Gestión Reservas', 'fa fa-calendar-check')
+        yield MenuItem::subMenu('Gestión PMS', 'fa fa-calendar-check')
             ->setSubItems([
                 MenuItem::linkToCrud('Reservas', 'fa fa-bed', PmsReserva::class),
                 MenuItem::linkToCrud('Namelist (Huéspedes)', 'fa fa-users-viewfinder', PmsReservaHuesped::class),
-                MenuItem::linkToCrud('Eventos', 'fa fa-calendar', PmsEventoCalendario::class),
-                MenuItem::linkToCrud('Beds24 Links', 'fa fa-link', PmsEventoBeds24Link::class),
+                MenuItem::linkToCrud('Eventos Calendario', 'fa fa-calendar', PmsEventoCalendario::class),
                 MenuItem::linkToCrud('Tarifas Rango', 'fa fa-tags', PmsTarifaRango::class),
+                MenuItem::linkToCrud('Beds24 Links', 'fa fa-link', PmsEventoBeds24Link::class),
             ])
             ->setPermission(Roles::RESERVAS_SHOW);
 
-        // Módulo Independiente de Mensajería
         yield MenuItem::subMenu('Mensajería', 'fa fa-comments')
-            ->setSubItems([
-                // Aquí irán tus CRUDS de mensajes cuando los tengas
-            ])
+            ->setSubItems([])
             ->setPermission(Roles::MENSAJES_SHOW);
 
-        // Maestros (Configuración)
-        yield MenuItem::subMenu('Maestros', 'fa fa-database')
+        // --- SECCIÓN 2: CONTENIDOS PARA EL HUÉSPED ---
+        yield MenuItem::section('Experiencia del Huésped');
+
+        yield MenuItem::subMenu('Guía Digital', 'fa fa-map-signs')
             ->setSubItems([
-                MenuItem::linkToCrud('Actividades (Tareas)', 'fa fa-clipboard-list', PmsEventAssignmentActivity::class),
-                MenuItem::linkToCrud('Unidades', 'fa fa-door-open', PmsUnidad::class),
-                MenuItem::linkToCrud('Establecimientos', 'fa fa-building', PmsEstablecimiento::class),
-                MenuItem::linkToCrud('Canales', 'fa fa-plug', PmsChannel::class),
-                MenuItem::linkToCrud('Estados de evento', 'fa fa-tag', PmsEventoEstado::class),
-                MenuItem::linkToCrud('Estados de pago', 'fa fa-credit-card', PmsEventoEstadoPago::class),
+                MenuItem::linkToCrud('Guías por Unidad', 'fa fa-book', PmsGuia::class),
+                MenuItem::linkToCrud('Secciones (Bloques)', 'fa fa-puzzle-piece', PmsGuiaSeccion::class),
+                MenuItem::linkToCrud('Ítems de Contenido', 'fa fa-info-circle', PmsGuiaItem::class),
+            ])
+            ->setPermission(Roles::RESERVAS_SHOW);
+
+        // --- SECCIÓN 3: CONFIGURACIÓN Y MAESTROS ---
+        yield MenuItem::section('Configuración');
+
+        yield MenuItem::subMenu('Maestros Globales', 'fa fa-globe-americas')
+            ->setSubItems([
+                MenuItem::linkToCrud('Idiomas', 'fa fa-language', MaestroIdioma::class),
+                MenuItem::linkToCrud('Países', 'fa fa-flag', MaestroPais::class),
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 
-        // Infraestructura Técnica
-        yield MenuItem::section('Infraestructura');
+        yield MenuItem::subMenu('Maestros PMS', 'fa fa-hotel')
+            ->setSubItems([
+                MenuItem::linkToCrud('Establecimientos', 'fa fa-building', PmsEstablecimiento::class),
+                MenuItem::linkToCrud('Unidades', 'fa fa-door-open', PmsUnidad::class),
+                MenuItem::linkToCrud('Canales', 'fa fa-exchange-alt', PmsChannel::class),
+                MenuItem::linkToCrud('Actividades (Tareas)', 'fa fa-clipboard-list', PmsEventAssignmentActivity::class),
+                MenuItem::linkToCrud('Estados de Evento', 'fa fa-tag', PmsEventoEstado::class),
+                MenuItem::linkToCrud('Estados de Pago', 'fa fa-credit-card', PmsEventoEstadoPago::class),
+            ])
+            ->setPermission(Roles::MAESTROS_SHOW);
+
+        // --- SECCIÓN 4: INFRAESTRUCTURA Y SISTEMA ---
+        yield MenuItem::section('Sistema');
 
         yield MenuItem::subMenu('Jobs / Queues', 'fa fa-server')
             ->setSubItems([
@@ -109,9 +135,6 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkToCrud('Webhook Audit', 'fa fa-bug', PmsBeds24WebhookAudit::class),
             ])
             ->setPermission(Roles::ADMIN);
-
-        // --- SECCIÓN SISTEMA ---
-        yield MenuItem::section('Sistema');
 
         yield MenuItem::linkToCrud('Usuarios', 'fa fa-users-gear', User::class)
             ->setPermission(Roles::ADMIN);

@@ -1,193 +1,102 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
-use App\Exchange\Service\Contract\EndpointInterface;
-use App\Pms\Repository\PmsBeds24EndpointRepository;
-use DateTimeInterface;
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 
-#[ORM\Entity(repositoryClass: PmsBeds24EndpointRepository::class)]
+/**
+ * Entidad PmsBeds24Endpoint.
+ * Define los puntos de acceso técnicos para la API de Beds24 (v1 y v2).
+ */
+#[ORM\Entity]
 #[ORM\Table(name: 'pms_beds24_endpoint')]
-class PmsBeds24Endpoint implements EndpointInterface
+#[ORM\HasLifecycleCallbacks]
+class PmsBeds24Endpoint
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    use IdTrait;
+    use TimestampTrait;
 
-    /**
-     * Nombre lógico de la acción (ej: 'GET_BOOKINGS', 'CALENDAR_POST').
-     */
+    #[ORM\Column(type: 'string', length: 150)]
+    private ?string $nombre = null;
+
+    /** Slug técnico único (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
     #[ORM\Column(type: 'string', length: 50, unique: true)]
     private ?string $accion = null;
 
-    /**
-     * Path relativo del endpoint (ej: '/bookings', '/inventory/calendar').
-     */
     #[ORM\Column(type: 'string', length: 255)]
-    private ?string $endpoint = null;
+    private ?string $path = null;
 
-    /**
-     * Método HTTP (ej: 'GET', 'POST', 'DELETE').
-     */
     #[ORM\Column(type: 'string', length: 10)]
-    private ?string $metodo = null;
+    private string $method = 'POST';
+
+    #[ORM\Column(type: 'string', length: 10, options: ['default' => 'v2'])]
+    private string $version = 'v2';
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $descripcion = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    private ?bool $activo = true;
+    private bool $activo = true;
 
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $created = null;
-
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime')]
-    private ?DateTimeInterface $updated = null;
-
-    /**
-     * Relación con la cola de Reservas (Push)
-     * @var Collection<int, PmsBookingsPushQueue>
-     */
-    #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: PmsBookingsPushQueue::class)]
-    private Collection $queues;
-
-    /**
-     * Relación con la cola de Tarifas (Push - Entidad Plana)
-     * ✅ AGREGADO para resolver error de validación
-     * @var Collection<int, PmsRatesPushQueue>
-     */
+    /** @var Collection<int, PmsRatesPushQueue> */
     #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: PmsRatesPushQueue::class)]
     private Collection $ratesQueues;
 
-    /**
-     * Relación con los procesos de Pull
-     * ✅ AGREGADO para resolver error de validación
-     * @var Collection<int, PmsBookingsPullQueue>
-     */
+    /** @var Collection<int, PmsBookingsPushQueue> */
+    #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: PmsBookingsPushQueue::class)]
+    private Collection $bookingsPushQueues;
+
+    /** @var Collection<int, PmsBookingsPullQueue> */
     #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: PmsBookingsPullQueue::class)]
     private Collection $pullQueueJobs;
 
     public function __construct()
     {
-        $this->queues = new ArrayCollection();
         $this->ratesQueues = new ArrayCollection();
+        $this->bookingsPushQueues = new ArrayCollection();
         $this->pullQueueJobs = new ArrayCollection();
-    }
-
-    // --- IMPLEMENTACIÓN EndpointInterface ---
-
-    public function getEndpoint(): ?string
-    {
-        return $this->endpoint;
-    }
-
-    public function getMetodo(): ?string
-    {
-        return $this->metodo;
-    }
-
-    // --- GETTERS Y SETTERS ---
-
-    public function getId(): ?int { return $this->id; }
-
-    public function getAccion(): ?string { return $this->accion; }
-    public function setAccion(?string $accion): self { $this->accion = $accion; return $this; }
-
-    public function setEndpoint(?string $endpoint): self { $this->endpoint = $endpoint; return $this; }
-
-    public function setMetodo(?string $metodo): self { $this->metodo = $metodo; return $this; }
-
-    public function getDescripcion(): ?string { return $this->descripcion; }
-    public function setDescripcion(?string $descripcion): self { $this->descripcion = $descripcion; return $this; }
-
-    public function isActivo(): ?bool { return $this->activo; }
-    public function setActivo(?bool $activo): self { $this->activo = $activo; return $this; }
-
-    public function getCreated(): ?DateTimeInterface { return $this->created; }
-    public function getUpdated(): ?DateTimeInterface { return $this->updated; }
-
-    // --- GESTIÓN DE BOOKINGS PUSH QUEUE ---
-
-    /** @return Collection<int, PmsBookingsPushQueue> */
-    public function getQueues(): Collection { return $this->queues; }
-
-    public function addQueue(PmsBookingsPushQueue $queue): self
-    {
-        if (!$this->queues->contains($queue)) {
-            $this->queues->add($queue);
-            $queue->setEndpoint($this);
-        }
-        return $this;
-    }
-
-    public function removeQueue(PmsBookingsPushQueue $queue): self
-    {
-        if ($this->queues->removeElement($queue)) {
-            if ($queue->getEndpoint() === $this) {
-                $queue->setEndpoint(null);
-            }
-        }
-        return $this;
-    }
-
-    // --- GESTIÓN DE RATES PUSH QUEUE ---
-
-    /** @return Collection<int, PmsRatesPushQueue> */
-    public function getRatesQueues(): Collection { return $this->ratesQueues; }
-
-    public function addRatesQueue(PmsRatesPushQueue $ratesQueue): self
-    {
-        if (!$this->ratesQueues->contains($ratesQueue)) {
-            $this->ratesQueues->add($ratesQueue);
-            $ratesQueue->setEndpoint($this);
-        }
-        return $this;
-    }
-
-    public function removeRatesQueue(PmsRatesPushQueue $ratesQueue): self
-    {
-        if ($this->ratesQueues->removeElement($ratesQueue)) {
-            if ($ratesQueue->getEndpoint() === $this) {
-                $ratesQueue->setEndpoint(null);
-            }
-        }
-        return $this;
-    }
-
-    // --- GESTIÓN DE BOOKINGS PULL QUEUE ---
-
-    /** @return Collection<int, PmsBookingsPullQueue> */
-    public function getPullQueueJobs(): Collection { return $this->pullQueueJobs; }
-
-    public function addPullQueueJob(PmsBookingsPullQueue $pullJob): self
-    {
-        if (!$this->pullQueueJobs->contains($pullJob)) {
-            $this->pullQueueJobs->add($pullJob);
-            $pullJob->setEndpoint($this);
-        }
-        return $this;
-    }
-
-    public function removePullQueueJob(PmsBookingsPullQueue $pullJob): self
-    {
-        if ($this->pullQueueJobs->removeElement($pullJob)) {
-            if ($pullJob->getEndpoint() === $this) {
-                $pullJob->setEndpoint(null);
-            }
-        }
-        return $this;
     }
 
     public function __toString(): string
     {
-        return $this->accion ?? ('Endpoint #' . $this->id);
+        return sprintf('%s [%s]', $this->nombre, $this->accion);
     }
+
+    /* GETTERS Y SETTERS */
+
+    public function getNombre(): ?string { return $this->nombre; }
+    public function setNombre(?string $nombre): self { $this->nombre = $nombre; return $this; }
+
+    public function getAccion(): ?string { return $this->accion; }
+    public function setAccion(string $accion): self { $this->accion = $accion; return $this; }
+
+    public function getPath(): ?string { return $this->path; }
+    public function setPath(?string $path): self { $this->path = $path; return $this; }
+
+    public function getMethod(): string { return $this->method; }
+    public function setMethod(string $method): self { $this->method = $method; return $this; }
+
+    public function getVersion(): string { return $this->version; }
+    public function setVersion(string $version): self { $this->version = $version; return $this; }
+
+    public function getDescripcion(): ?string { return $this->descripcion; }
+    public function setDescripcion(?string $descripcion): self { $this->descripcion = $descripcion; return $this; }
+
+    public function isActivo(): bool { return $this->activo; }
+    public function setActivo(bool $activo): self { $this->activo = $activo; return $this; }
+
+    /** @return Collection<int, PmsRatesPushQueue> */
+    public function getRatesQueues(): Collection { return $this->ratesQueues; }
+
+    /** @return Collection<int, PmsBookingsPushQueue> */
+    public function getBookingsPushQueues(): Collection { return $this->bookingsPushQueues; }
+
+    /** @return Collection<int, PmsBookingsPullQueue> */
+    public function getPullQueueJobs(): Collection { return $this->pullQueueJobs; }
 }

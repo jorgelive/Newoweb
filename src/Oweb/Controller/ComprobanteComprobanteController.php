@@ -2,9 +2,9 @@
 
 namespace App\Oweb\Controller;
 
-use App\Controller\Admin\Mensaje;
+//use App\Oweb\Controller\Admin\Mensaje;
 use App\Oweb\Service\MainVariableproceso;
-use App\Service\TipocambioManager;
+use App\Oweb\Service\TipocambioManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -386,10 +386,10 @@ class ComprobanteComprobanteController extends CRUDController
                 $object->setUrl($value);
             }else{
                 if(!(is_array($value) || empty($value))){
-                    $mensaje = new Mensaje();
+/*                    $mensaje = new Mensaje();
                     $mensaje->setClave($key);
                     $mensaje->setContenido($value);
-                    $object->addMensaje($mensaje);
+                    $object->addMensaje($mensaje);*/
                 }
             }
         }

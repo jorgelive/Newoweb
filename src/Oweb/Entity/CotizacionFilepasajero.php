@@ -2,9 +2,6 @@
 
 namespace App\Oweb\Entity;
 
-use App\Entity\MaestroPais;
-use App\Entity\MaestroSexo;
-use App\Entity\MaestroTipodocumento;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;

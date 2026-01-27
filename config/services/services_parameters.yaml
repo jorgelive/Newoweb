@@ -12,8 +12,14 @@ parameters:
     mailer_control_email: '%env(resolve:MAILER_CONTROL_EMAIL)%'
     mailer_alert_receivers: '%env(resolve:MAILER_ALERT_RECEIVERS)%'
     numero_default: '%env(resolve:NUMERO_DEFAULT)%'
+
+
     app.public_dir: '%kernel.project_dir%/public'
+
     app.host.oweb: '%env(OWEB_HOST)%'
     app.host.panel: '%env(PANEL_HOST)%'
     app.host.api: '%env(API_HOST)%'
     app.host.front: '%env(FRONT_HOST)%'
+
+    pms.path.huesped_docs: 'carga/pms/pms_reserva_huesped/documento'
+    pms.path.huesped_firmas: 'carga/pms/pms_reserva_huesped/firmas'

@@ -2,7 +2,7 @@
 
 namespace App\Oweb\Repository;
 
-use App\Entity\MaestroMoneda;
+use App\Oweb\Entity\MaestroMoneda;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 

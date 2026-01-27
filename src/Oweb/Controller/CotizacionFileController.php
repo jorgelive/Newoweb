@@ -2,7 +2,7 @@
 
 namespace App\Oweb\Controller;
 
-use App\Entity\MaestroPais;
+use App\Oweb\Entity\MaestroPais;
 use App\Oweb\Service\MainArchivoexcel;
 use App\Oweb\Service\MainArchivozip;
 use App\Oweb\Service\MainVariableproceso;
@@ -377,9 +377,10 @@ class CotizacionFileController extends CRUDController
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('Y-m-d');
 
             $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigocon();
-            if($filePasajero->getPais()->getId() == MaestroPais::DB_VALOR_PERU){//si es peruano pongo (1610) Lima
-                $resultados[$key]['ciudad'] = '1610';
-            }else{
+            if ($filePasajero->getPais()->getIso2() === MaestroPais::ISO_PERU) {
+                // Si es peruano, asignamos el código por defecto (Lima) definido en la entidad
+                $resultados[$key]['ciudad'] = MaestroPais::CODIGO_CIUDAD_DEFAULT_COSETTUR_PERU;
+            } else {
                 $resultados[$key]['ciudad'] = '';
             }
             $resultados[$key]['sexo'] = $filePasajero->getSexo()->getInicial();

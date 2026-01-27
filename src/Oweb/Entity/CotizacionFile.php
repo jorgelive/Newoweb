@@ -2,8 +2,6 @@
 
 namespace App\Oweb\Entity;
 
-use App\Entity\MaestroIdioma;
-use App\Entity\MaestroPais;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;

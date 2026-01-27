@@ -1,31 +1,20 @@
 vich_uploader:
-    # 1. INDISPENSABLE: Le dice al bundle que usamos Doctrine ORM
     db_driver: orm
-
-    # 2. Configura cómo lee la entidad (estamos usando Atributos de PHP 8)
-    metadata:
-        type: attribute
-
-    # 3. Tus mapeos específicos para Cusco
     mappings:
         huesped_docs:
-            uri_prefix: /carga/pms/pms_reserva_huesped/documento
-            upload_destination: '%kernel.project_dir%/public/carga/pms/pms_reserva_huesped/documento'
-            # Tu Naming específico (Nombre + Apellido)
-            namer: App\Pms\Naming\HuespedNamer
+            # URL Web: /carga/pms/...
+            uri_prefix: '/%pms.path.huesped_docs%'
 
-            # Opciones de limpieza automática
-            inject_on_load: false
+            upload_destination: '%app.public_dir%/%pms.path.huesped_docs%'
+
+            namer: App\Pms\Naming\HuespedNamer
             delete_on_update: true
             delete_on_remove: true
 
         huesped_firmas:
-            uri_prefix: /carga/pms/pms_reserva_huesped/firmas
-            upload_destination: '%kernel.project_dir%/public/carga/pms/pms_reserva_huesped/firmas'
+            uri_prefix: '/%pms.path.huesped_firmas%'
+            upload_destination: '%app.public_dir%/%pms.path.huesped_firmas%'
 
-            # Reutilizamos el Naming (él sabe distinguir internamente)
             namer: App\Pms\Naming\HuespedNamer
-
-            inject_on_load: false
             delete_on_update: true
             delete_on_remove: true

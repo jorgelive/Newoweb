@@ -1,49 +1,67 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
 use App\Entity\User;
-use DateTimeInterface;
+use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 
+/**
+ * Entidad PmsEventAssignment.
+ * Gestiona la asignación de usuarios a eventos utilizando identificadores UUID.
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_event_assignment')]
+#[ORM\HasLifecycleCallbacks]
 class PmsEventAssignment
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    /**
+     * Gestión de Identificador UUID (BINARY 16).
+     */
+    use IdTrait;
 
-    #[ORM\ManyToOne(inversedBy: 'assignments')]
+    /**
+     * Gestión de auditoría temporal (DateTimeImmutable).
+     */
+    use TimestampTrait;
+
+    /**
+     * El campo $id ahora es heredado del IdTrait como UUID.
+     * Se elimina la definición manual de integer.
+     */
+
+    #[ORM\ManyToOne(targetEntity: PmsEventoCalendario::class, inversedBy: 'assignments')]
     #[ORM\JoinColumn(nullable: false)]
     private ?PmsEventoCalendario $evento = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(targetEntity: PmsEventAssignmentActivity::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?PmsEventAssignmentActivity $activity = null;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: true)]
+    /**
+     * Relación con el usuario central.
+     * Mapeado explícitamente a BINARY(16) y respetando el nombre usuario_id.
+     */
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(
+        name: 'usuario_id',
+        referencedColumnName: 'id',
+        nullable: true,
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
     private ?User $usuario = null;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $nota = null;
 
-    #[Gedmo\Timestampable(on: 'create')]
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?DateTimeInterface $creado = null;
-
-    #[Gedmo\Timestampable(on: 'update')]
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?DateTimeInterface $modificado = null;
-
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS EXPLÍCITOS
+     * -------------------------------------------------------------------------
+     */
 
     public function getEvento(): ?PmsEventoCalendario
     {
@@ -89,30 +107,6 @@ class PmsEventAssignment
     public function setNota(?string $nota): self
     {
         $this->nota = $nota;
-
-        return $this;
-    }
-
-    public function getCreado(): ?DateTimeInterface
-    {
-        return $this->creado;
-    }
-
-    public function setCreado(?DateTimeInterface $creado): self
-    {
-        $this->creado = $creado;
-
-        return $this;
-    }
-
-    public function getModificado(): ?DateTimeInterface
-    {
-        return $this->modificado;
-    }
-
-    public function setModificado(?DateTimeInterface $modificado): self
-    {
-        $this->modificado = $modificado;
 
         return $this;
     }

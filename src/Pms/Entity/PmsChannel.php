@@ -2,94 +2,142 @@
 
 namespace App\Pms\Entity;
 
+use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 
+/**
+ * Entidad PmsChannel.
+ * Primary Key: id (ID Natural: airbnb, booking, directo, etc).
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_channel')]
+#[ORM\HasLifecycleCallbacks]
 class PmsChannel
 {
+    use TimestampTrait;
 
     public const CODIGO_DIRECTO  = 'directo';
     public const CODIGO_AIRBNB   = 'airbnb';
-    public const CODIGO_BOOKING = 'booking';
+    public const CODIGO_BOOKING  = 'booking';
 
+    /**
+     * El ID es el código string.
+     * Importante: Al ser ID natural, NO lleva GeneratedValue.
+     */
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
-
-    #[ORM\Column(type: 'string', length: 50, unique: true)]
-    private ?string $codigo = null;
+    #[ORM\Column(type: 'string', length: 50)]
+    private ?string $id = null;
 
     #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombre = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => 0])]
-    private ?bool $esExterno = null;
+    private bool $esExterno = false;
 
     #[ORM\Column(type: 'boolean', options: ['default' => 0])]
-    private ?bool $esDirecto = null;
+    private bool $esDirecto = false;
 
     #[ORM\Column(type: 'string', length: 7, nullable: true)]
     private ?string $color = null;
 
+    /**
+     * ID que usa Beds24 para identificar este canal en su API v2.
+     */
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $beds24ChannelId = null;
 
-    #[ORM\Column(type: 'datetime')]
-    #[Gedmo\Timestampable(on: 'create')]
-    private ?\DateTimeInterface $created = null;
+    public function __construct(?string $id = null)
+    {
+        if ($id) {
+            $this->id = $id;
+        }
+    }
 
-    #[ORM\Column(type: 'datetime')]
-    #[Gedmo\Timestampable(on: 'update')]
-    private ?\DateTimeInterface $updated = null;
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS
+     * -------------------------------------------------------------------------
+     */
 
-    public function getId(): ?int { return $this->id; }
-    public function getCodigo(): ?string { return $this->codigo; }
-    public function setCodigo(?string $codigo): self { $this->codigo = $codigo; return $this; }
-    public function getNombre(): ?string { return $this->nombre; }
-    public function setNombre(?string $nombre): self { $this->nombre = $nombre; return $this; }
-    public function getEsExterno(): ?bool { return $this->esExterno; }
-    public function setEsExterno(?bool $v): self { $this->esExterno = $v; return $this; }
-    public function getEsDirecto(): ?bool { return $this->esDirecto; }
-    public function setEsDirecto(?bool $v): self { $this->esDirecto = $v; return $this; }
-    public function getColor(): ?string { return $this->color; }
-    public function setColor(?string $c): self { $this->color = $c; return $this; }
-    public function getCreated(): ?\DateTimeInterface { return $this->created; }
-    public function getUpdated(): ?\DateTimeInterface { return $this->updated; }
+    public function getId(): ?string
+    {
+        return $this->id;
+    }
+
+    public function setId(string $id): self
+    {
+        $this->id = $id;
+        return $this;
+    }
+
+    public function getNombre(): ?string
+    {
+        return $this->nombre;
+    }
+
+    public function setNombre(?string $nombre): self
+    {
+        $this->nombre = $nombre;
+        return $this;
+    }
+
+    public function getEsExterno(): bool
+    {
+        return $this->esExterno;
+    }
+
+    public function setEsExterno(bool $esExterno): self
+    {
+        $this->esExterno = $esExterno;
+        return $this;
+    }
+
+    public function getEsDirecto(): bool
+    {
+        return $this->esDirecto;
+    }
+
+    public function setEsDirecto(bool $esDirecto): self
+    {
+        $this->esDirecto = $esDirecto;
+        return $this;
+    }
+
+    public function getColor(): ?string
+    {
+        return $this->color;
+    }
+
+    public function setColor(?string $color): self
+    {
+        $this->color = $color;
+        return $this;
+    }
 
     public function getBeds24ChannelId(): ?string
     {
         return $this->beds24ChannelId;
     }
 
-    public function setBeds24ChannelId(?string $v): self
+    public function setBeds24ChannelId(?string $beds24ChannelId): self
     {
-        $this->beds24ChannelId = $v;
+        $this->beds24ChannelId = $beds24ChannelId;
         return $this;
     }
 
-    public function __toString(): string {
-        return $this->nombre ?? $this->codigo ?? (string) $this->id;
-    }
-
-    // ------------------------------------------------------------------
-    // Helpers semánticos
-    // ------------------------------------------------------------------
-
-    public function isDirecto(): bool
+    public function __toString(): string
     {
-        return (bool) $this->esDirecto;
+        return $this->nombre ?? (string) $this->id;
     }
 
-    public function isExterno(): bool
-    {
-        return (bool) $this->esExterno;
-    }
+    /*
+     * -------------------------------------------------------------------------
+     * HELPERS
+     * -------------------------------------------------------------------------
+     */
 
     public function isBeds24(): bool
     {
-        return $this->beds24ChannelId !== null && $this->beds24ChannelId !== '';
+        return !empty($this->beds24ChannelId);
     }
 }

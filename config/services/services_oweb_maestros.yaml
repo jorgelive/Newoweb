@@ -8,7 +8,7 @@ services:
         class: App\Oweb\Admin\MaestroSexoAdmin
         tags:
         -   name: sonata.admin
-            model_class: App\Entity\MaestroSexo
+            model_class: App\Oweb\Entity\MaestroSexo
             manager_type: orm
             group: Maestros
             label: Sexo
@@ -18,7 +18,7 @@ services:
         class: App\Oweb\Admin\MaestroTipodocumentoAdmin
         tags:
         -   name: sonata.admin
-            model_class: App\Entity\MaestroTipodocumento
+            model_class: App\Oweb\Entity\MaestroTipodocumento
             manager_type: orm
             group: Maestros
             label: Tipo de documento de identidad
@@ -28,7 +28,7 @@ services:
         class: App\Oweb\Admin\MaestroMonedaAdmin
         tags:
         -   name: sonata.admin
-            model_class: App\Entity\MaestroMoneda
+            model_class: App\Oweb\Entity\MaestroMoneda
             manager_type: orm
             group: Maestros
             label: Monedas
@@ -38,7 +38,7 @@ services:
         class: App\Oweb\Admin\MaestroTipocambioAdmin
         tags:
         -   name: sonata.admin
-            model_class: App\Entity\MaestroTipocambio
+            model_class: App\Oweb\Entity\MaestroTipocambio
             manager_type: orm
             group: Maestros
             label: Tipo de cambio
@@ -68,7 +68,7 @@ services:
         class: App\Oweb\Admin\MaestroPaisAdmin
         tags:
         -   name: sonata.admin
-            model_class: App\Entity\MaestroPais
+            model_class: App\Entity\Oweb\MaestroPais
             manager_type: orm
             group: Maestros
             label: Pais
@@ -78,7 +78,7 @@ services:
         class: App\Oweb\Admin\MaestroIdiomaAdmin
         tags:
         -   name: sonata.admin
-            model_class: App\Entity\MaestroIdioma
+            model_class: App\Oweb\Entity\MaestroIdioma
             manager_type: orm
             group: Maestros
             label: Idioma

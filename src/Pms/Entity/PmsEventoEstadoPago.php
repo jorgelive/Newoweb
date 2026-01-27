@@ -1,139 +1,110 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pms\Entity;
 
+use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
-use DateTimeInterface;
 
+/**
+ * Entidad PmsEventoEstadoPago.
+ * Define los niveles de cumplimiento de pago de un evento.
+ * IDs Naturales con guion-central (ej: pago-parcial).
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_evento_estado_pago')]
 #[ORM\HasLifecycleCallbacks]
 class PmsEventoEstadoPago
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    /** Gestión de auditoría temporal (createdAt, updatedAt) */
+    use TimestampTrait;
+
+    /* ======================================================
+     * CONSTANTES DE ID (Identificadores naturales con guion)
+     * ====================================================== */
+    public const ID_SIN_PAGO     = 'no-pagado';
+    public const ID_PAGO_PARCIAL = 'pago-parcial';
+    public const ID_PAGO_TOTAL   = 'pago-completo';
 
     /**
-     * Código interno del estado de pago
-     * (ej: sin_pago, pago_parcial, pago_total)
+     * Clave primaria basada en código natural.
+     * Sin GeneratedValue ya que descartamos el patrón autoincremental.
      */
-    #[ORM\Column(type: 'string', length: 50, unique: true)]
-    private ?string $codigo = null;
+    #[ORM\Id]
+    #[ORM\Column(type: 'string', length: 50)]
+    private ?string $id = null;
 
     /**
-     * Nombre visible para el usuario
+     * Nombre visible para el usuario (ej: "Pago Parcial").
      */
     #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombre = null;
 
     /**
-     * Color visual (listas, calendario, badges)
+     * Color visual asociado (HEX: #00FF00).
      */
     #[ORM\Column(type: 'string', length: 7, nullable: true)]
     private ?string $color = null;
 
     /**
-     * Orden de aparición en UI
+     * Orden de prioridad/aparición en la interfaz.
      */
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $orden = null;
 
-    #[ORM\Column(type: 'datetime')]
-    #[Gedmo\Timestampable(on: 'create')]
-    private ?DateTimeInterface $created = null;
+    public function __construct(?string $id = null)
+    {
+        if ($id) {
+            $this->id = $id;
+        }
+    }
 
-    #[ORM\Column(type: 'datetime')]
-    #[Gedmo\Timestampable(on: 'update')]
-    private ?DateTimeInterface $updated = null;
+    /* ======================================================
+     * LÓGICA DE NORMALIZACIÓN DE COLOR
+     * ====================================================== */
 
     #[ORM\PrePersist]
     #[ORM\PreUpdate]
-    private function normalizeColor(): void
+    public function normalizeColor(): void
     {
-        if ($this->color === null) {
-            return;
-        }
-        $color = trim($this->color);
-        if ($color === '') {
+        if (empty($this->color)) {
             $this->color = null;
             return;
         }
-        if (preg_match('/^[0-9a-fA-F]{6}$/', $color)) {
-            $color = '#' . $color;
+
+        $c = trim($this->color);
+
+        // Si viene como "RRGGBB" sin #, lo agregamos
+        if (!str_starts_with($c, '#') && preg_match('/^[0-9a-fA-F]{6}$/', $c)) {
+            $c = '#' . $c;
         }
-        $color = strtoupper($color);
-        $color = substr($color, 0, 7);
-        if (!preg_match('/^#[0-9A-F]{6}$/', $color)) {
+
+        if (str_starts_with($c, '#') && preg_match('/^#[0-9a-fA-F]{6}$/', $c)) {
+            $this->color = strtoupper($c);
+        } else {
             $this->color = null;
-            return;
         }
-        $this->color = $color;
     }
 
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
+    /* ======================================================
+     * GETTERS Y SETTERS
+     * ====================================================== */
 
-    public function getCodigo(): ?string
-    {
-        return $this->codigo;
-    }
+    public function getId(): ?string { return $this->id; }
+    public function setId(string $id): self { $this->id = $id; return $this; }
 
-    public function setCodigo(?string $codigo): self
-    {
-        $this->codigo = $codigo;
-        return $this;
-    }
+    public function getNombre(): ?string { return $this->nombre; }
+    public function setNombre(?string $nombre): self { $this->nombre = $nombre; return $this; }
 
-    public function getNombre(): ?string
-    {
-        return $this->nombre;
-    }
+    public function getColor(): ?string { return $this->color; }
+    public function setColor(?string $color): self { $this->color = $color; return $this; }
 
-    public function setNombre(?string $nombre): self
-    {
-        $this->nombre = $nombre;
-        return $this;
-    }
-
-    public function getColor(): ?string
-    {
-        return $this->color;
-    }
-
-    public function setColor(?string $color): self
-    {
-        $this->color = $color;
-        return $this;
-    }
-
-    public function getOrden(): ?int
-    {
-        return $this->orden;
-    }
-
-    public function setOrden(?int $orden): self
-    {
-        $this->orden = $orden;
-        return $this;
-    }
-
-    public function getCreated(): ?DateTimeInterface
-    {
-        return $this->created;
-    }
-
-    public function getUpdated(): ?DateTimeInterface
-    {
-        return $this->updated;
-    }
+    public function getOrden(): ?int { return $this->orden; }
+    public function setOrden(?int $orden): self { $this->orden = $orden; return $this; }
 
     public function __toString(): string
     {
-        return $this->nombre ?? $this->codigo ?? (string) $this->id;
+        return $this->nombre ?? (string) $this->id;
     }
 }
