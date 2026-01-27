@@ -7,8 +7,6 @@ export default class extends Controller {
         defaultView: String,
         allDaySlot: Boolean,
         views: { type: Object, default: {} },
-
-        // ✅ Nuevo: ancho por defecto del resource area (para TODOS los timelines)
         resourceAreaWidth: { type: Number, default: 120 }
     };
 
@@ -20,6 +18,7 @@ export default class extends Controller {
         this.oneClickTimer = null;
         this.calendar = null;
         this.currentCalendarIndex = 0;
+        this.isRestoring = false; // Bloqueo para evitar sobrescribir el scroll durante restore
 
         this.storageKey = `fc_state_${window.location.pathname}`;
 
@@ -39,16 +38,11 @@ export default class extends Controller {
         }
     }
 
-    // =========================
-    // Catálogo interno de vistas
-    // =========================
     getViewCatalog() {
-        const w = this.getTimelineResourceAreaWidth(); // 👈 aplica a todos los timelines
-
+        const w = this.getTimelineResourceAreaWidth();
         return {
             dayGridMonth: { type: 'dayGridMonth', buttonText: 'Calendario' },
             listMonth: { type: 'listMonth', buttonText: 'Lista' },
-
             resourceTimelineOneDay: {
                 type: 'resourceTimeline',
                 duration: { days: 1 },
@@ -74,47 +68,26 @@ export default class extends Controller {
     }
 
     getTimelineResourceAreaWidth() {
-        // ✅ Acepta número (px) o string tipo "15%" si algún día lo quieres pasar así
         const v = this.resourceAreaWidthValue;
-
-        if (typeof v === 'number' && isFinite(v) && v > 0) {
-            return `${Math.round(v)}px`;
-        }
-
-        // fallback ultra seguro
-        return '120px';
+        return (typeof v === 'number' && isFinite(v) && v > 0) ? `${Math.round(v)}px` : '120px';
     }
 
-    /**
-     * viewsValue whitelist (ordenada).
-     * Soporta:
-     *  - objeto {1:'dayGridMonth',2:'listMonth',3:'resourceTimelineOneMonth'}
-     *  - array ['dayGridMonth','listMonth',...]
-     */
     getAllowedViews() {
         const catalog = this.getViewCatalog();
         const v = this.viewsValue;
-
         let requested = [];
 
         if (Array.isArray(v)) {
             requested = v;
         } else if (v && typeof v === 'object') {
-            requested = Object.keys(v)
-                .sort((a, b) => Number(a) - Number(b))
-                .map((k) => v[k]);
+            requested = Object.keys(v).sort((a, b) => Number(a) - Number(b)).map((k) => v[k]);
         }
 
         requested = requested
             .map((x) => (x == null ? '' : String(x)).trim())
-            .filter((x) => x.length > 0)
-            .filter((x) => !!catalog[x]);
+            .filter((x) => x.length > 0 && !!catalog[x]);
 
-        if (requested.length === 0) {
-            requested = ['dayGridMonth', 'listMonth', 'resourceTimelineOneMonth'];
-        }
-
-        return requested;
+        return requested.length > 0 ? requested : ['dayGridMonth', 'listMonth', 'resourceTimelineOneMonth'];
     }
 
     renderSelector() {
@@ -146,17 +119,11 @@ export default class extends Controller {
 
         const savedDate = localStorage.getItem(`${this.storageKey}_date`);
         const savedView = localStorage.getItem(`${this.storageKey}_view`);
-        const savedScroll = localStorage.getItem(`${this.storageKey}_scroll`);
 
         const allowedViews = this.getAllowedViews();
         const catalog = this.getViewCatalog();
-
         const initialDate = savedDate || new Date().toISOString().slice(0, 10);
-
-        const defaultView = (this.defaultViewValue && catalog[this.defaultViewValue])
-            ? this.defaultViewValue
-            : allowedViews[0];
-
+        const defaultView = (this.defaultViewValue && catalog[this.defaultViewValue]) ? this.defaultViewValue : allowedViews[0];
         const initialView = (savedView && allowedViews.includes(savedView)) ? savedView : defaultView;
 
         const viewsConfig = {};
@@ -166,20 +133,16 @@ export default class extends Controller {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             locale: 'es',
             timeZone: 'local',
-
             initialDate,
             initialView,
             allDaySlot: this.allDaySlotValue,
-
             nowIndicator: true,
             contentHeight: 'auto',
             editable: false,
-
             resourceAreaHeaderContent: this.getCurrentConfig().nombre,
             refetchResourcesOnNavigate: true,
             eventOrder: '-prioridadImportante,duration,start',
 
-            // ✅ Placeholder de 5px en el chunk central (sin CSS global)
             headerToolbar: {
                 left: 'hoyButton prev,next',
                 center: 'spacer10',
@@ -194,24 +157,22 @@ export default class extends Controller {
                         setTimeout(() => this.scrollToToday(), 150);
                     }
                 },
-                // ✅ botón vacío usado como separador
-                spacer10: {
-                    text: '',
-                    click: () => {}
-                }
+                spacer10: { text: '', click: () => {} }
             },
 
             views: viewsConfig,
 
             datesSet: (info) => {
-                const d = this.calendar.getDate();
-                localStorage.setItem(`${this.storageKey}_date`, d.toISOString().slice(0, 10));
+                localStorage.setItem(`${this.storageKey}_date`, this.calendar.getDate().toISOString().slice(0, 10));
                 localStorage.setItem(`${this.storageKey}_view`, info.view.type);
 
                 if (this.calendarTitle) {
                     const title = String(info.view.title || '');
                     this.calendarTitle.innerText = title ? (title.charAt(0).toUpperCase() + title.slice(1)) : '';
                 }
+
+                const saved = localStorage.getItem(`${this.storageKey}_scroll`);
+                if (saved) this.applyScroll(saved);
             },
 
             resources: (fetchInfo, success, failure) => {
@@ -228,8 +189,12 @@ export default class extends Controller {
                     .then((data) => {
                         success(Array.isArray(data) ? data : (data?.data || data?.resources || []));
 
-                        if (savedScroll && parseFloat(savedScroll) > 0) this.applyScroll(savedScroll);
-                        else this.scrollToToday();
+                        const saved = localStorage.getItem(`${this.storageKey}_scroll`);
+                        if (saved && parseFloat(saved) > 0) {
+                            this.applyScroll(saved);
+                        } else {
+                            this.scrollToToday();
+                        }
                     })
                     .catch(failure);
             },
@@ -237,7 +202,6 @@ export default class extends Controller {
             events: (fetchInfo, success, failure) => {
                 const config = this.getCurrentConfig();
                 const url = new URL(config.eventUrl, window.location.origin);
-
                 url.searchParams.append('start', fetchInfo.startStr);
                 url.searchParams.append('end', fetchInfo.endStr);
                 url.searchParams.append('current_page', btoa(window.location.href));
@@ -285,67 +249,82 @@ export default class extends Controller {
                 else if (tooltipContent) finalContent = tooltipContent;
 
                 if (info.el._tippy) info.el._tippy.destroy();
-
-                tippy(info.el, {
-                    content: finalContent,
-                    allowHTML: true,
-                    appendTo: document.body,
-                    placement: 'top'
-                });
-
-                if (info.event.extendedProps.urlshow || info.event.extendedProps.urledit) {
-                    info.el.style.cursor = 'pointer';
-                }
+                tippy(info.el, { content: finalContent, allowHTML: true, appendTo: document.body, placement: 'top' });
+                if (info.event.extendedProps.urlshow || info.event.extendedProps.urledit) info.el.style.cursor = 'pointer';
             }
         });
 
         this.calendar.render();
 
-        // ✅ aplica estilo inline al placeholder (sin CSS global)
         setTimeout(() => {
             const spacer = this.element.querySelector('.fc-spacer10-button');
-            if (!spacer) return;
-
-            spacer.style.width = '10x';
-            spacer.style.minWidth = '10px';
-            spacer.style.padding = '0';
-            spacer.style.margin = '0';
-            spacer.style.border = '0';
-            spacer.style.background = 'transparent';
-            spacer.style.boxShadow = 'none';
-            spacer.style.cursor = 'default';
+            if (spacer) {
+                Object.assign(spacer.style, {
+                    width: '10px', minWidth: '10px', padding: '0', margin: '0',
+                    border: '0', background: 'transparent', boxShadow: 'none', cursor: 'default'
+                });
+            }
         }, 0);
 
         this.setupScrollListener();
 
-        if (savedScroll && parseFloat(savedScroll) > 0) {
-            this.applyScroll(savedScroll);
+        // ✅ Restauración inicial forzada (por si los recursos ya estaban en caché o tardan)
+        const currentScroll = localStorage.getItem(`${this.storageKey}_scroll`);
+        if (currentScroll) {
+            this.applyScroll(currentScroll);
         }
     }
 
     setupScrollListener() {
+        const key = `${this.storageKey}_scroll`;
+
         this.element.addEventListener('scroll', (e) => {
-            const target = e.target;
-            if (target && target.classList && target.classList.contains('fc-scroller')) {
-                const left = target.scrollLeft;
-                if (left > 0) localStorage.setItem(`${this.storageKey}_scroll`, String(left));
+            // Si estamos en proceso de restauración, ignoramos los eventos de scroll
+            // generados por el propio código para no guardar basura.
+            if (this.isRestoring) return;
+
+            const t = e.target;
+            if (t && t.classList && (t.classList.contains('fc-scroller-h') || t.classList.contains('fc-scroller'))) {
+                const left = t.scrollLeft || 0;
+                localStorage.setItem(key, String(left));
             }
         }, true);
     }
 
-    applyScroll(value) {
-        const numericValue = parseFloat(value) || 0;
+    getMainScroller() {
+        // Buscamos el scroller que tiene overflow horizontal (el área de las reservas)
+        const candidates = Array.from(this.element.querySelectorAll('.fc-scroller-h, .fc-scroller'));
+        const best = candidates.find(s => s.scrollWidth > s.clientWidth + 5);
+        return best || candidates[0] || null;
+    }
 
-        const attemptScroll = (count) => {
-            const scroller = this.element.querySelector('.fc-scroller-h, .fc-scroller');
+    applyScroll(value) {
+        const numericValue = parseFloat(value);
+        if (isNaN(numericValue) || numericValue < 0) return;
+
+        this.isRestoring = true;
+
+        const attempt = (count) => {
+            const scroller = this.getMainScroller();
+            // Verificamos que el scroller esté listo y tenga contenido para scrollear
             if (scroller && scroller.scrollWidth > scroller.clientWidth) {
                 scroller.scrollLeft = numericValue;
-            } else if (count < 10) {
-                setTimeout(() => attemptScroll(count + 1), 150);
+
+                // Liberamos el bloqueo después de un pequeño margen para que
+                // FullCalendar termine de estabilizar el DOM
+                setTimeout(() => { this.isRestoring = false; }, 250);
+                return;
+            }
+
+            // Si no está listo, reintentamos (Beds24 API v2 a veces tarda en inyectar filas)
+            if (count < 25) {
+                setTimeout(() => attempt(count + 1), 100);
+            } else {
+                this.isRestoring = false;
             }
         };
 
-        attemptScroll(0);
+        attempt(0);
     }
 
     scrollToToday() {
@@ -353,16 +332,19 @@ export default class extends Controller {
 
         setTimeout(() => {
             const todayEl = this.element.querySelector('.fc-day-today');
-            const scrollers = this.element.querySelectorAll('.fc-scroller');
+            const scroller = this.getMainScroller();
 
-            let mainScroller = null;
-            scrollers.forEach((s) => {
-                if (s.scrollWidth > s.clientWidth) mainScroller = s;
-            });
-
-            if (todayEl && mainScroller) {
+            if (todayEl && scroller) {
                 const targetLeft = todayEl.offsetLeft;
-                mainScroller.scrollTo({ left: targetLeft - 80, behavior: 'smooth' });
+
+                this.isRestoring = true;
+                scroller.scrollTo({ left: targetLeft - 80, behavior: 'smooth' });
+
+                // Al terminar la animación smooth, guardamos la nueva posición
+                setTimeout(() => {
+                    localStorage.setItem(`${this.storageKey}_scroll`, String(scroller.scrollLeft || 0));
+                    this.isRestoring = false;
+                }, 600);
             }
         }, 400);
     }
