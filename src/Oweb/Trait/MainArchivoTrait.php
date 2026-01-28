@@ -21,7 +21,7 @@ trait MainArchivoTrait
      * Se recomienda inyectarlo con %kernel.project_dir%/public usando setInternalPublicDir().
      * Mantiene fallback relativo por si aún no se inyecta.
      */
-    private string $internalPublicDir = __DIR__ . '/../../public';
+    private string $internalPublicDir = __DIR__ . '/../../../public';
 
     /** Permite inyectar %kernel.project_dir%/public desde un subscriber */
     public function setInternalPublicDir(string $dir): void
