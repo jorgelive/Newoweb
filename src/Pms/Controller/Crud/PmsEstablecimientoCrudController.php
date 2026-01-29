@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsEstablecimiento;
+use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -11,12 +14,16 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * PmsEstablecimientoCrudController.
+ * Gestión de propiedades o casas principales del sistema.
+ * Hereda de BaseCrudController y utiliza UUID v7.
+ */
 final class PmsEstablecimientoCrudController extends BaseCrudController
 {
     public function __construct(
@@ -40,13 +47,21 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
             ->showEntityActionsInlined();
     }
 
+    /**
+     * ✅ Configuración de acciones y seguridad mediante Roles.
+     */
     public function configureActions(Actions $actions): Actions
     {
         $actions
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)   // botón "Ver" en el listado
-            ->add(Crud::PAGE_EDIT, Action::DETAIL);   // opcional: link a "Ver" desde edit
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_EDIT, Action::DETAIL);
 
-        return parent::configureActions($actions);
+        return parent::configureActions($actions)
+            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -60,13 +75,18 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        $id = IdField::new('id')->onlyOnDetail();
+        // ✅ Manejo de UUID para visualización técnica
+        $id = TextField::new('id', 'UUID')
+            ->onlyOnDetail()
+            ->formatValue(fn($value) => (string) $value);
 
         $nombre = TextField::new('nombreComercial', 'Nombre comercial');
         $direccion = TextField::new('direccionLinea1', 'Dirección');
         $ciudad = TextField::new('ciudad', 'Ciudad');
 
-        $pais = AssociationField::new('pais', 'País');
+        // Relación con MaestroPais (ID Natural String 2)
+        $pais = AssociationField::new('pais', 'País')
+            ->setRequired(true);
 
         $telefono = TextField::new('telefonoPrincipal', 'Teléfono');
         $email = TextField::new('emailContacto', 'Email de contacto');
@@ -74,19 +94,17 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
         $horaCheckIn = TimeField::new('horaCheckIn', 'Hora Check-in');
         $horaCheckOut = TimeField::new('horaCheckOut', 'Hora Check-out');
 
-        $timezone = TextField::new('timezone', 'Timezone')
+        $timezone = TextField::new('timezone', 'Zona Horaria')
             ->setHelp('Ejemplo: America/Lima');
 
-        $created = DateTimeField::new('created', 'Creado')
-            ->setFormat('yyyy/MM/dd HH:mm')
-            ->setFormTypeOption('disabled', true)
-            ->onlyWhenUpdating();
+        // ✅ Auditoría mediante TimestampTrait
+        $createdAt = DateTimeField::new('createdAt', 'Registrado')
+            ->setFormat('yyyy/MM/dd HH:mm');
 
-        $updated = DateTimeField::new('updated', 'Actualizado')
-            ->setFormat('yyyy/MM/dd HH:mm')
-            ->setFormTypeOption('disabled', true)
-            ->onlyWhenUpdating();
+        $updatedAt = DateTimeField::new('updatedAt', 'Última Modificación')
+            ->setFormat('yyyy/MM/dd HH:mm');
 
+        // VISTA INDEX
         if (Crud::PAGE_INDEX === $pageName) {
             return [
                 $nombre,
@@ -95,13 +113,15 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
                 $horaCheckIn,
                 $horaCheckOut,
                 $timezone,
-                DateTimeField::new('created', 'Creado')->setFormat('yyyy/MM/dd HH:mm'),
-                DateTimeField::new('updated', 'Actualizado')->setFormat('yyyy/MM/dd HH:mm'),
+                $createdAt->setLabel('Creado'),
+                $updatedAt->setLabel('Actualizado'),
             ];
         }
 
+        // VISTA DETALLE
         if (Crud::PAGE_DETAIL === $pageName) {
             return [
+                FormField::addPanel('Detalles de la Propiedad')->setIcon('fa fa-building'),
                 $id,
                 $nombre,
                 $direccion,
@@ -109,13 +129,19 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
                 $pais,
                 $telefono,
                 $email,
+
+                FormField::addPanel('Configuración Operativa')->setIcon('fa fa-clock'),
                 $horaCheckIn,
                 $horaCheckOut,
                 $timezone,
+
+                FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed(),
+                $createdAt,
+                $updatedAt,
             ];
         }
 
-        // FORM (new / edit)
+        // VISTAS FORMULARIO (NEW / EDIT)
         return [
             FormField::addPanel('Información general')->setIcon('fa fa-building'),
             $nombre,
@@ -133,8 +159,8 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
             $timezone,
 
             FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-            $created,
-            $updated,
+            $createdAt->onlyOnForms()->setFormTypeOption('disabled', true),
+            $updatedAt->onlyOnForms()->setFormTypeOption('disabled', true),
         ];
     }
 }

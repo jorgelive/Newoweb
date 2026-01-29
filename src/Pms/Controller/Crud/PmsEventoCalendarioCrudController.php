@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
@@ -8,6 +9,7 @@ use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Factory\PmsEventoCalendarioFactory;
+use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -16,7 +18,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -24,6 +25,11 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
+/**
+ * PmsEventoCalendarioCrudController.
+ * Gestión de eventos de alojamiento, bloqueos y sincronización con Beds24.
+ * Hereda de BaseCrudController y utiliza UUID v7.
+ */
 class PmsEventoCalendarioCrudController extends BaseCrudController
 {
     public function __construct(
@@ -40,35 +46,41 @@ class PmsEventoCalendarioCrudController extends BaseCrudController
         return PmsEventoCalendario::class;
     }
 
+    /**
+     * ✅ Crea la entidad usando la Factory y gestiona estados iniciales.
+     */
     public function createEntity(string $entityFqcn): PmsEventoCalendario
     {
         $entity = $this->eventoFactory->crearInstanciaPorDefecto();
         $esBloqueo = $this->requestStack->getCurrentRequest()?->query->get('es_bloqueo');
 
         if ($esBloqueo) {
-            $estadoBloqueo = $this->entityManager->getRepository(PmsEventoEstado::class)->findOneBy(['codigo' => PmsEventoEstado::CODIGO_BLOQUEO]);
-            if ($estadoBloqueo) $entity->setEstado($estadoBloqueo);
+            $estadoBloqueo = $this->entityManager->getRepository(PmsEventoEstado::class)
+                ->findOneBy(['id' => PmsEventoEstado::CODIGO_BLOQUEO]);
+            if ($estadoBloqueo) {
+                $entity->setEstado($estadoBloqueo);
+            }
 
-            $estadoNoPagado = $this->entityManager->getRepository(PmsEventoEstadoPago::class)->findOneBy(['codigo' => 'no-pagado']);
-            if ($estadoNoPagado) $entity->setEstadoPago($estadoNoPagado);
+            $estadoNoPagado = $this->entityManager->getRepository(PmsEventoEstadoPago::class)
+                ->findOneBy(['id' => 'no-pagado']);
+            if ($estadoNoPagado) {
+                $entity->setEstadoPago($estadoNoPagado);
+            }
         }
         return $entity;
     }
 
+    /**
+     * ✅ Configuración de acciones y permisos.
+     * Los permisos de Roles se aplican DESPUÉS del parent para prioridad absoluta.
+     */
     public function configureActions(Actions $actions): Actions
     {
-        // 1. Deshabilitar borrado masivo por seguridad
         $actions->disable(Action::BATCH_DELETE);
-
         $actions->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DETAIL);
 
-        // 2. Lógica de visualización del botón BORRAR
-        // Delegamos el 100% de la decisión a la entidad.
-        // - Si es Local (Confirmada o no) -> TRUE (Permite corregir errores).
-        // - Si es Beds24 Activa -> FALSE (Obliga a cancelar primero).
-        // - Si es Beds24 Cancelada + Sync -> TRUE (Permite limpiar).
-        // - Si es OTA -> FALSE.
+        // Lógica de borrado seguro delegada a la entidad
         $checkBorrado = function (Action $action) {
             return $action->displayIf(static function (PmsEventoCalendario $evento) {
                 return $evento->isSafeToDelete();
@@ -78,7 +90,14 @@ class PmsEventoCalendarioCrudController extends BaseCrudController
         $actions->update(Crud::PAGE_INDEX, Action::DELETE, $checkBorrado);
         $actions->update(Crud::PAGE_DETAIL, Action::DELETE, $checkBorrado);
 
-        return parent::configureActions($actions);
+        $actions = parent::configureActions($actions);
+
+        return $actions
+            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
     }
 
     public function configureFields(string $pageName): iterable
@@ -86,17 +105,20 @@ class PmsEventoCalendarioCrudController extends BaseCrudController
         [$isNewOrEdit, $isBloqueo, $isOta] = $this->resolveContext($pageName);
         $f = $this->buildFields();
 
-        // Aplicar reglas de negocio según contexto
         if ($isNewOrEdit && $isBloqueo) $this->applyBloqueoRules($f);
         if ($isOta) $this->applyOtaRules($f);
 
-        // --- Renderizado de Campos ---
+        // --- Renderizado ---
 
-        yield IdField::new('id')->hideOnForm();
-        yield $this->buildSyncStatusBadgeField()->hideOnForm(); // Badge visual de sync
+        // ✅ UUID para visualización técnica
+        yield TextField::new('id', 'UUID')
+            ->onlyOnDetail()
+            ->formatValue(static fn($value) => (string) $value);
+
+        yield $this->buildSyncStatusBadgeField()->hideOnForm();
         yield $f['descripcion'];
 
-        yield FormField::addPanel('Datos del evento')->setIcon('fa fa-pen');
+        yield FormField::addPanel('Detalles del Evento')->setIcon('fa fa-calendar-check');
         yield $f['reserva'];
         yield $f['pmsUnidad'];
         yield $f['estado'];
@@ -111,13 +133,18 @@ class PmsEventoCalendarioCrudController extends BaseCrudController
         yield $f['monto']->setCurrency('USD')->setStoredAsCents(false)->setColumns(6);
         yield $f['comision']->setCurrency('USD')->setStoredAsCents(false)->setColumns(6);
 
-        yield FormField::addPanel('Proceso (Beds24)')->setIcon('fa fa-info-circle')->renderCollapsed();
+        yield FormField::addPanel('Integración Beds24')->setIcon('fa fa-sync')->renderCollapsed();
         yield $f['isOta']->setDisabled(true);
-        yield TextField::new('estadoBeds24', 'Beds24 Status')->setDisabled(true);
-        yield AssociationField::new('beds24Links', 'Beds24 Links')->setDisabled(true);
+        yield TextField::new('estadoBeds24', 'Estado en Beds24')->setDisabled(true);
+        yield AssociationField::new('beds24Links', 'Vínculos de Sincronización')->setDisabled(true);
+
+        // ✅ Auditoría mediante TimestampTrait (createdAt / updatedAt)
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-history')->onlyOnDetail();
+        yield DateTimeField::new('createdAt', 'Registrado en')->onlyOnDetail();
+        yield DateTimeField::new('updatedAt', 'Última actualización')->onlyOnDetail();
     }
 
-    // --- Helpers Privados ---
+    // --- Helpers de Configuración ---
 
     private function resolveContext(string $pageName): array
     {
@@ -126,10 +153,9 @@ class PmsEventoCalendarioCrudController extends BaseCrudController
 
         $isNewOrEdit = \in_array($pageName, [Crud::PAGE_NEW, Crud::PAGE_EDIT], true);
 
-        // Detectamos si es un bloqueo por query param O por el estado de la entidad
         $isBloqueo = (bool)$request?->query->get('es_bloqueo') ||
             ($entityInstance instanceof PmsEventoCalendario &&
-                $entityInstance->getEstado()?->getCodigo() === PmsEventoEstado::CODIGO_BLOQUEO &&
+                $entityInstance->getEstado()?->getId() === PmsEventoEstado::CODIGO_BLOQUEO &&
                 !$entityInstance->getReserva());
 
         $isOta = $entityInstance instanceof PmsEventoCalendario && $entityInstance->isOta();
@@ -139,43 +165,35 @@ class PmsEventoCalendarioCrudController extends BaseCrudController
 
     private function buildFields(): array
     {
-        // Configuración para TomSelect: Evita opción vacía y oculta la "X" de borrado
         $tomSelectNoClear = [
-            'placeholder' => false, // Symfony Form option (Nivel raíz)
-            'attr' => [
-                'required' => 'required', // HTML attribute para JS de TomSelect
-            ],
+            'placeholder' => false,
+            'attr' => ['required' => 'required'],
         ];
 
         return [
             'descripcion' => TextField::new('descripcion', 'Descripción'),
-
             'pmsUnidad'   => AssociationField::new('pmsUnidad', 'Unidad')
                 ->setRequired(true)
                 ->setFormTypeOptions($tomSelectNoClear),
-
             'estado'      => AssociationField::new('estado', 'Estado')
                 ->setRequired(true)
                 ->setFormTypeOptions($tomSelectNoClear),
-
-            'estadoPago'  => AssociationField::new('estadoPago', 'Estado de pago')
+            'estadoPago'  => AssociationField::new('estadoPago', 'Estado de Pago')
                 ->setRequired(true)
                 ->setFormTypeOptions($tomSelectNoClear),
-
-            'reserva'     => AssociationField::new('reserva', 'Reserva Padre')->setDisabled(true),
-            'inicio'      => DateTimeField::new('inicio', 'Fecha Inicio'),
-            'fin'         => DateTimeField::new('fin', 'Fecha Fin'),
-            'adultos'     => IntegerField::new('cantidadAdultos', 'Adultos'),
-            'ninos'       => IntegerField::new('cantidadNinos', 'Niños'),
-            'monto'       => MoneyField::new('monto', 'Monto (unidad)'),
-            'comision'    => MoneyField::new('comision', 'Comisión'),
-            'isOta'       => BooleanField::new('isOta', 'Es Reserva OTA'),
+            'reserva'     => AssociationField::new('reserva', 'Reserva Vincular')->setDisabled(true),
+            'inicio'      => DateTimeField::new('inicio', 'Llegada (Check-in)'),
+            'fin'         => DateTimeField::new('fin', 'Salida (Check-out)'),
+            'adultos'     => IntegerField::new('cantidadAdultos', 'Nº Adultos'),
+            'ninos'       => IntegerField::new('cantidadNinos', 'Nº Niños'),
+            'monto'       => MoneyField::new('monto', 'Precio Total'),
+            'comision'    => MoneyField::new('comision', 'Comisión Canal'),
+            'isOta'       => BooleanField::new('isOta', 'Origen OTA'),
         ];
     }
 
     private function applyBloqueoRules(array $f): void
     {
-        // Un bloqueo debe tener motivo obligatorio y oculta campos financieros/estados
         $f['descripcion']->setLabel('Motivo del Bloqueo')->setRequired(true)
             ->setFormTypeOption('constraints', [new NotBlank(['message' => 'El motivo es obligatorio.'])]);
 
@@ -186,7 +204,6 @@ class PmsEventoCalendarioCrudController extends BaseCrudController
 
     private function applyOtaRules(array $f): void
     {
-        // Una OTA no permite editar datos core
         foreach ([$f['pmsUnidad'], $f['reserva'], $f['inicio'], $f['fin'], $f['adultos'], $f['ninos'], $f['monto'], $f['comision'], $f['estado'], $f['estadoPago']] as $field) {
             $field->setDisabled(true);
         }
@@ -218,13 +235,13 @@ class PmsEventoCalendarioCrudController extends BaseCrudController
 
     private function buildSyncStatusBadgeField(): TextField
     {
-        return TextField::new('syncStatus', 'Beds24 Sync')
+        return TextField::new('syncStatus', 'Estado Sincro')
             ->setVirtual(true)
             ->formatValue(function ($statusValue) {
                 return match ($statusValue) {
-                    'synced'  => '<span class="badge badge-success"><i class="fa fa-check"></i> OK</span>',
+                    'synced'  => '<span class="badge badge-success"><i class="fa fa-check"></i> Sincronizado</span>',
                     'error'   => '<span class="badge badge-danger"><i class="fa fa-exclamation-triangle"></i> Error</span>',
-                    'pending' => '<span class="badge badge-warning"><i class="fa fa-sync fa-spin"></i> Wait</span>',
+                    'pending' => '<span class="badge badge-warning"><i class="fa fa-sync fa-spin"></i> Pendiente</span>',
                     default   => '<span class="badge badge-secondary"><i class="fa fa-home"></i> Local</span>',
                 };
             })

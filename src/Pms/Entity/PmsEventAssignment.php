@@ -11,46 +11,42 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Entidad PmsEventAssignment.
- * Gestiona la asignación de usuarios a eventos utilizando identificadores UUID.
+ * Une Eventos con Usuarios y Actividades.
+ * Corregido para manejar mezcla de UUID v7 e IDs Naturales.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_event_assignment')]
 #[ORM\HasLifecycleCallbacks]
 class PmsEventAssignment
 {
-    /**
-     * Gestión de Identificador UUID (BINARY 16).
-     */
     use IdTrait;
-
-    /**
-     * Gestión de auditoría temporal (DateTimeImmutable).
-     */
     use TimestampTrait;
 
     /**
-     * El campo $id ahora es heredado del IdTrait como UUID.
-     * Se elimina la definición manual de integer.
+     * Relación con el Evento (UUID v7).
      */
-
     #[ORM\ManyToOne(targetEntity: PmsEventoCalendario::class, inversedBy: 'assignments')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(name: 'evento_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
     private ?PmsEventoCalendario $evento = null;
 
+    /**
+     * ✅ CORRECCIÓN CLAVE:
+     * Activity usa ID Natural (String), por lo tanto NO debe llevar BINARY(16).
+     * Esto resuelve el error SQL 3780 de incompatibilidad.
+     */
     #[ORM\ManyToOne(targetEntity: PmsEventAssignmentActivity::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(name: 'activity_id', referencedColumnName: 'id', nullable: false)]
     private ?PmsEventAssignmentActivity $activity = null;
 
     /**
-     * Relación con el usuario central.
-     * Mapeado explícitamente a BINARY(16) y respetando el nombre usuario_id.
+     * Relación con el Usuario (UUID v7).
      */
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(
         name: 'usuario_id',
         referencedColumnName: 'id',
         nullable: true,
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+        columnDefinition: 'BINARY(16)'
     )]
     private ?User $usuario = null;
 
@@ -71,7 +67,6 @@ class PmsEventAssignment
     public function setEvento(?PmsEventoCalendario $evento): self
     {
         $this->evento = $evento;
-
         return $this;
     }
 
@@ -83,7 +78,6 @@ class PmsEventAssignment
     public function setActivity(?PmsEventAssignmentActivity $activity): self
     {
         $this->activity = $activity;
-
         return $this;
     }
 
@@ -95,7 +89,6 @@ class PmsEventAssignment
     public function setUsuario(?User $usuario): self
     {
         $this->usuario = $usuario;
-
         return $this;
     }
 
@@ -107,7 +100,14 @@ class PmsEventAssignment
     public function setNota(?string $nota): self
     {
         $this->nota = $nota;
-
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return sprintf('%s - %s',
+            $this->activity?->getNombre() ?? 'Sin Actividad',
+            $this->usuario?->getNombre() ?? 'Sin Usuario'
+        );
     }
 }

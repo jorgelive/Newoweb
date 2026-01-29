@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
-use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Entidad PmsEventAssignmentActivity.
- * Define el catálogo maestro de actividades (Limpieza, Mantenimiento, Inspección, etc.)
- * que pueden ser asignadas a eventos del calendario.
+ * Catálogo maestro de actividades (Limpieza, Mantenimiento, etc.).
+ * Uso de ID Natural (Código) y campo de ordenación secuencial.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_event_assignment_activity')]
@@ -19,91 +18,92 @@ use Doctrine\ORM\Mapping as ORM;
 class PmsEventAssignmentActivity
 {
     /**
-     * Gestión de Identificador UUID en formato BINARY(16).
-     */
-    use IdTrait;
-
-    /**
-     * Gestión de auditoría temporal (createdAt, updatedAt) con DateTimeImmutable.
+     * Gestión de auditoría temporal (createdAt, updatedAt).
      */
     use TimestampTrait;
 
     /**
-     * Nombre descriptivo de la actividad (ej: 'Limpieza de Salida').
-     * @var string|null
+     * Identificador Natural (PK).
+     * Ejemplo: 'CLEAN_OUT', 'MAINTENANCE', 'INSPECTION'.
+     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'string', length: 60)]
+    #[ORM\GeneratedValue(strategy: 'NONE')]
+    private ?string $id = null;
+
+    /**
+     * Nombre descriptivo de la actividad.
      */
     #[ORM\Column(type: 'string', length: 120)]
     private ?string $nombre = null;
 
     /**
-     * Código único para lógica de negocio o integraciones (ej: 'CLEAN_OUT').
-     * @var string|null
+     * Orden de visualización en selectores y listas.
      */
-    #[ORM\Column(type: 'string', length: 60, unique: true)]
-    private ?string $codigo = null;
+    #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    private int $orden = 0;
 
     /**
-     * Rol de seguridad necesario para que un usuario pueda realizar esta actividad.
-     * Ejemplo: ROLE_MAINTENANCE, ROLE_CLEANING.
-     * @var string|null
+     * Rol de seguridad necesario para realizar esta actividad.
+     * Ejemplo: 'ROLE_MAINTENANCE', 'ROLE_CLEANING'.
      */
     #[ORM\Column(type: 'string', length: 80, nullable: true)]
     private ?string $rol = null;
 
+    /**
+     * Constructor.
+     */
+    public function __construct(?string $id = null)
+    {
+        if ($id) {
+            $this->id = strtoupper($id);
+        }
+    }
+
     /*
      * -------------------------------------------------------------------------
-     * GETTERS Y SETTERS EXPLÍCITOS
+     * GETTERS Y SETTERS EXPLÍCITOS (Regla 2026-01-14)
      * -------------------------------------------------------------------------
      */
 
-    /**
-     * @return string|null
-     */
+    public function getId(): ?string
+    {
+        return $this->id;
+    }
+
+    public function setId(string $id): self
+    {
+        $this->id = strtoupper($id);
+        return $this;
+    }
+
     public function getNombre(): ?string
     {
         return $this->nombre;
     }
 
-    /**
-     * @param string|null $nombre
-     * @return self
-     */
     public function setNombre(?string $nombre): self
     {
         $this->nombre = $nombre;
         return $this;
     }
 
-    /**
-     * @return string|null
-     */
-    public function getCodigo(): ?string
+    public function getOrden(): int
     {
-        return $this->codigo;
+        return $this->orden;
     }
 
-    /**
-     * @param string|null $codigo
-     * @return self
-     */
-    public function setCodigo(?string $codigo): self
+    public function setOrden(int $orden): self
     {
-        $this->codigo = $codigo;
+        $this->orden = $orden;
         return $this;
     }
 
-    /**
-     * @return string|null
-     */
     public function getRol(): ?string
     {
         return $this->rol;
     }
 
-    /**
-     * @param string|null $rol
-     * @return self
-     */
     public function setRol(?string $rol): self
     {
         $this->rol = $rol;
@@ -111,11 +111,10 @@ class PmsEventAssignmentActivity
     }
 
     /**
-     * Representación textual de la actividad para selectores y logs.
-     * @return string
+     * Representación textual.
      */
     public function __toString(): string
     {
-        return (string) ($this->nombre ?? $this->codigo ?? 'Actividad UUID ' . $this->getId());
+        return (string) ($this->nombre ?? $this->id ?? 'Nueva Actividad');
     }
 }

@@ -21,6 +21,9 @@ class MaestroIdioma
     #[ORM\Column(type: 'string', length: 50)]
     private ?string $nombre = null;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $prioritario = false;
+
     public function __construct(string $id, string $nombre)
     {
         $this->id = strtolower($id);
@@ -31,6 +34,17 @@ class MaestroIdioma
 
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(string $nombre): self { $this->nombre = $nombre; return $this; }
+
+    public function isPrioritario(): bool
+    {
+        return $this->prioritario;
+    }
+
+    public function setPrioritario(bool $prioritario): self
+    {
+        $this->prioritario = $prioritario;
+        return $this;
+    }
 
     public function __toString(): string { return (string) $this->nombre; }
 }

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
-use App\Panel\Field\LiipImageField; // <--- Tu nuevo campo personalizado
+use App\Panel\Field\LiipImageField;
 use App\Pms\Entity\PmsReservaHuesped;
+use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -22,9 +23,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Vich\UploaderBundle\Form\Type\VichImageType;
 
+/**
+ * PmsReservaHuespedCrudController.
+ * Gestión de pasajeros y documentación digital (DNI, TAM, Firmas).
+ * Implementa UUID v7 y herencia de BaseCrudController con permisos prioritarios.
+ */
 class PmsReservaHuespedCrudController extends BaseCrudController
 {
-    // Constructor limpio: Ya no necesitamos CacheManager aquí
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack
@@ -43,8 +48,29 @@ class PmsReservaHuespedCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Huésped')
             ->setEntityLabelInPlural('Namelist / Huéspedes')
             ->setSearchFields(['nombre', 'apellido', 'documentoNumero'])
-            ->setDefaultSort(['creado' => 'DESC'])
-            ->setFormOptions(['attr' => ['enctype' => 'multipart/form-data']]);
+            ->setDefaultSort(['createdAt' => 'DESC'])
+            ->setFormOptions(['attr' => ['enctype' => 'multipart/form-data']])
+            ->showEntityActionsInlined();
+    }
+
+    /**
+     * ✅ Configuración de acciones y permisos.
+     * Prioridad absoluta a Roles sobre la configuración base del panel.
+     */
+    public function configureActions(Actions $actions): Actions
+    {
+        $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_EDIT, Action::DETAIL);
+
+        $actions = parent::configureActions($actions);
+
+        return $actions
+            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -56,15 +82,6 @@ class PmsReservaHuespedCrudController extends BaseCrudController
             ->add('fechaNacimiento');
     }
 
-    public function configureActions(Actions $actions): Actions
-    {
-        $actions
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->add(Crud::PAGE_EDIT, Action::DETAIL);
-
-        return parent::configureActions($actions);
-    }
-
     public function configureFields(string $pageName): iterable
     {
         // ---------------------------------------------------------------------
@@ -72,8 +89,13 @@ class PmsReservaHuespedCrudController extends BaseCrudController
         // ---------------------------------------------------------------------
         yield FormField::addPanel('Vínculo de Reserva')->setIcon('fa fa-link');
 
+        // ✅ UUID para visualización técnica
+        yield TextField::new('id', 'UUID')
+            ->onlyOnDetail()
+            ->formatValue(fn($value) => (string) $value);
+
         yield AssociationField::new('reserva', 'Reserva Padre')
-            ->setQueryBuilder(fn($queryBuilder) => $queryBuilder->orderBy('entity.created', 'DESC'))
+            ->setQueryBuilder(fn($queryBuilder) => $queryBuilder->orderBy('entity.createdAt', 'DESC'))
             ->setColumns(6);
 
         yield BooleanField::new('esPrincipal', 'Titular de Reserva')->setColumns(6);
@@ -96,20 +118,16 @@ class PmsReservaHuespedCrudController extends BaseCrudController
         yield FormField::addPanel('Documentos Digitalizados')->setIcon('fa fa-camera');
 
         // --- A. DOCUMENTO DE IDENTIDAD ---
-        // 1. FORMULARIO: Subida con Vich
         yield TextField::new('documentoFile', 'Subir DNI/Pasaporte')
             ->setFormType(VichImageType::class)
             ->setFormTypeOptions(['allow_delete' => true, 'download_uri' => false])
             ->onlyOnForms()
             ->setColumns(6);
 
-        // 2. INDEX: Miniatura Liip + Lightbox (Usando tu nuevo campo)
         yield LiipImageField::new('documentoUrl', 'DNI / Pasaporte')
-            ->onlyOnIndex() // Solo en el listado
-            ->setSortable(false)
-            ->setColumns(6);
+            ->onlyOnIndex()
+            ->setSortable(false);
 
-        // 3. DETAIL: Imagen grande estándar
         yield ImageField::new('documentoUrl', 'DNI / Pasaporte')
             ->setBasePath('')
             ->onlyOnDetail()
@@ -124,8 +142,7 @@ class PmsReservaHuespedCrudController extends BaseCrudController
 
         yield LiipImageField::new('tamUrl', 'TAM (Migraciones)')
             ->onlyOnIndex()
-            ->setSortable(false)
-            ->setColumns(6);
+            ->setSortable(false);
 
         yield ImageField::new('tamUrl', 'TAM (Migraciones)')
             ->setBasePath('')
@@ -144,8 +161,7 @@ class PmsReservaHuespedCrudController extends BaseCrudController
 
         yield LiipImageField::new('firmaUrl', 'Firma Huésped')
             ->onlyOnIndex()
-            ->setSortable(false)
-            ->setColumns(6);
+            ->setSortable(false);
 
         yield ImageField::new('firmaUrl', 'Firma Huésped')
             ->setBasePath('')
@@ -156,11 +172,11 @@ class PmsReservaHuespedCrudController extends BaseCrudController
             ->onlyOnDetail();
 
         // ---------------------------------------------------------------------
-        // 5. AUDITORÍA
+        // 5. AUDITORÍA (TimestampTrait)
         // ---------------------------------------------------------------------
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-clock')->renderCollapsed();
 
-        yield DateTimeField::new('creado')->hideOnForm();
-        yield DateTimeField::new('modificado')->hideOnForm();
+        yield DateTimeField::new('createdAt', 'Creado')->onlyOnDetail();
+        yield DateTimeField::new('updatedAt', 'Modificado')->onlyOnDetail();
     }
 }

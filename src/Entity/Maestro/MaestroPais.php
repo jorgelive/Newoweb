@@ -40,6 +40,9 @@ class MaestroPais
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $codigoPeruRail = null;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $prioritario = false;
+
     /** @var Collection<int, PmsEstablecimiento> */
     #[ORM\OneToMany(mappedBy: 'pais', targetEntity: PmsEstablecimiento::class)]
     private Collection $establecimientos;
@@ -89,6 +92,17 @@ class MaestroPais
 
     /** @return Collection<int, PmsReservaHuesped> */
     public function getHuespedes(): Collection { return $this->huespedes; }
+
+    public function isPrioritario(): bool
+    {
+        return $this->prioritario;
+    }
+
+    public function setPrioritario(bool $prioritario): self
+    {
+        $this->prioritario = $prioritario;
+        return $this;
+    }
 
     public function __toString(): string { return (string) $this->nombre; }
 }

@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsBeds24WebhookAudit;
+use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -12,14 +15,16 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
-// Importación añadida
-
+/**
+ * PmsBeds24WebhookAuditCrudController.
+ * Registro histórico de notificaciones entrantes desde Beds24.
+ * Controlador de solo lectura heredando de BaseCrudController.
+ */
 final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
 {
     public function __construct(
@@ -37,20 +42,27 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Webhook Audit')
-            ->setEntityLabelInPlural('Webhooks Audit')
+            ->setEntityLabelInSingular('Auditoría Webhook')
+            ->setEntityLabelInPlural('Auditoría Webhooks')
             ->setDefaultSort(['receivedAt' => 'DESC'])
             ->showEntityActionsInlined()
             ->setPaginatorPageSize(50);
     }
 
+    /**
+     * Configuración de acciones y permisos.
+     * ✅ Se deshabilita la edición y creación para garantizar la inmutabilidad de los logs.
+     * ✅ Se integra la seguridad por Roles.
+     */
     public function configureActions(Actions $actions): Actions
     {
         $actions
             ->disable(Action::NEW, Action::EDIT, Action::DELETE)
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->add(Crud::PAGE_EDIT, Action::DETAIL);
-        return parent::configureActions($actions);
+            ->add(Crud::PAGE_INDEX, Action::DETAIL);
+
+        return parent::configureActions($actions)
+            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW);
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -64,7 +76,10 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        $id = IdField::new('id');
+        // ✅ Manejo de UUID
+        $id = TextField::new('id', 'UUID')
+            ->onlyOnDetail()
+            ->formatValue(fn($value) => (string) $value);
 
         $status = ChoiceField::new('status', 'Estado')
             ->setChoices([
@@ -79,15 +94,17 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
             ]);
 
         $eventType = TextField::new('eventType', 'Evento');
-        $remoteIp = TextField::new('remoteIp', 'IP');
-        $receivedAt = DateTimeField::new('receivedAt', 'Recibido')->setFormat('yyyy/MM/dd HH:mm');
+        $remoteIp = TextField::new('remoteIp', 'IP Origen');
+        $receivedAt = DateTimeField::new('receivedAt', 'Recibido')
+            ->setFormat('yyyy/MM/dd HH:mm:ss');
 
-        $created = DateTimeField::new('created', 'Creado')->setFormat('yyyy/MM/dd HH:mm');
-        $updated = DateTimeField::new('updated', 'Actualizado')->setFormat('yyyy/MM/dd HH:mm');
+        // ✅ Auditoría mediante TimestampTrait
+        $createdAt = DateTimeField::new('createdAt', 'Creado')->setFormat('yyyy/MM/dd HH:mm');
+        $updatedAt = DateTimeField::new('updatedAt', 'Actualizado')->setFormat('yyyy/MM/dd HH:mm');
 
         if (Crud::PAGE_INDEX === $pageName) {
             return [
-                $id,
+                TextField::new('id', 'ID Corto')->formatValue(fn($v) => substr((string)$v, 0, 8) . '...'),
                 $status,
                 $eventType,
                 $remoteIp,
@@ -96,70 +113,44 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
         }
 
         return [
-            FormField::addPanel('Resumen')->setIcon('fa fa-info-circle'),
+            FormField::addPanel('Resumen de Recepción')->setIcon('fa fa-info-circle'),
             $id,
             $status,
             $eventType,
             $remoteIp,
             $receivedAt,
 
-            FormField::addPanel('Payload')->setIcon('fa fa-code'),
+            FormField::addPanel('Datos del Request (Payload)')->setIcon('fa fa-code'),
 
-            // --- HEADERS (CodeEditor) ---
-            CodeEditorField::new('headersPretty', 'Headers')
+            // --- HEADERS (Usando el método virtual de la entidad) ---
+            CodeEditorField::new('headersPretty', 'Cabeceras HTTP')
                 ->setLanguage('js')
-                ->setFormTypeOption('disabled', true)
-                ->onlyOnDetail()
-                ->formatValue(function ($value) {
-                    if (empty($value)) return '';
-                    if (is_string($value)) return $value; // Si ya es string, lo devolvemos tal cual
-                    return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                }),
-
-            // --- PAYLOAD RAW (CodeEditor) ---
-            CodeEditorField::new('payloadRaw', 'Payload crudo')
-                ->setLanguage('js')
-                ->setFormTypeOption('disabled', true)
-                ->onlyOnDetail()
-                ->formatValue(function ($value) {
-                    if (empty($value)) return '';
-                    if (is_string($value)) return $value;
-                    return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                }),
-
-            // --- PAYLOAD PRETTY (CodeEditor) ---
-            CodeEditorField::new('payloadPretty', 'Payload (JSON)')
-                ->setLanguage('js')
-                ->setFormTypeOption('disabled', true)
-                ->onlyOnDetail()
-                ->formatValue(function ($value) {
-                    if (empty($value)) return '';
-                    if (is_string($value)) return $value;
-                    return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                }),
-
-            FormField::addPanel('Proceso')->setIcon('fa fa-cogs'),
-
-            // --- PROCESSING META (CodeEditor) ---
-            CodeEditorField::new('processingMetaPretty', 'Processing meta')
-                ->setLanguage('js')
-                ->setFormTypeOption('disabled', true)
-                ->onlyOnDetail()
-                ->formatValue(function ($value) {
-                    if (empty($value)) return '';
-                    if (is_string($value)) return $value;
-                    return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                }),
-
-            // El error suele ser texto plano (stack trace), mejor dejarlo como Textarea
-            TextareaField::new('errorMessage', 'Error')
-                ->setFormTypeOption('disabled', true)
-                ->renderAsHtml(false)
                 ->onlyOnDetail(),
 
-            FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-            $created->onlyOnDetail(),
-            $updated->onlyOnDetail(),
+            // --- PAYLOAD RAW ---
+            CodeEditorField::new('payloadRaw', 'Cuerpo Crudo (Raw)')
+                ->setLanguage('js')
+                ->onlyOnDetail(),
+
+            // --- PAYLOAD JSON ---
+            CodeEditorField::new('payloadPretty', 'Cuerpo Decodificado (JSON)')
+                ->setLanguage('js')
+                ->onlyOnDetail(),
+
+            FormField::addPanel('Procesamiento Interno')->setIcon('fa fa-cogs'),
+
+            // --- PROCESSING META ---
+            CodeEditorField::new('processingMetaPretty', 'Metadatos de Proceso')
+                ->setLanguage('js')
+                ->onlyOnDetail(),
+
+            TextareaField::new('errorMessage', 'Traza de Error')
+                ->setFormTypeOption('disabled', true)
+                ->onlyOnDetail(),
+
+            FormField::addPanel('Auditoría Técnica')->setIcon('fa fa-shield-alt')->renderCollapsed(),
+            $createdAt->onlyOnDetail(),
+            $updatedAt->onlyOnDetail(),
         ];
     }
 }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller;
 
-use App\Entity\MaestroIdioma;
 use App\Entity\User;
-use App\Oweb\Entity\MaestroPais;
+use App\Entity\Maestro\MaestroIdioma;
+use App\Entity\Maestro\MaestroPais;
 use App\Pms\Entity\Beds24Config;
 use App\Pms\Entity\PmsBeds24Endpoint;
 use App\Pms\Entity\PmsBeds24WebhookAudit;

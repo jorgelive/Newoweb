@@ -6,6 +6,7 @@ namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsUnidadBeds24Map;
+use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -14,12 +15,16 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * PmsUnidadBeds24MapCrudController.
+ * Mapeo técnico entre Unidades del PMS y recursos de Beds24 (Property, Room, Unit).
+ * Hereda de BaseCrudController y utiliza UUID v7 con prioridad de Roles.
+ */
 final class PmsUnidadBeds24MapCrudController extends BaseCrudController
 {
     public function __construct(
@@ -37,19 +42,32 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Map Beds24')
-            ->setEntityLabelInPlural('Maps Beds24')
+            ->setEntityLabelInSingular('Mapeo Beds24')
+            ->setEntityLabelInPlural('Mapeos Beds24')
             ->setDefaultSort(['pmsUnidad' => 'ASC'])
             ->showEntityActionsInlined()
             ->setPaginatorPageSize(50);
     }
 
+    /**
+     * ✅ Configuración de acciones y permisos.
+     * Los permisos se aplican DESPUÉS del parent para garantizar prioridad absoluta.
+     */
     public function configureActions(Actions $actions): Actions
     {
         $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DETAIL);
-        return parent::configureActions($actions);
+
+        // Obtenemos configuración global del panel base
+        $actions = parent::configureActions($actions);
+
+        return $actions
+            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -63,52 +81,61 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
             ->add('channelPropId')
             ->add('activo')
             ->add('esPrincipal')
-            ->add('created')
-            ->add('updated');
+            ->add('createdAt')
+            ->add('updatedAt');
     }
 
     public function configureFields(string $pageName): iterable
     {
         $isNew = (Crud::PAGE_NEW === $pageName);
 
-        // ----------------
-        // Campos principales
-        // ----------------
-        $id = IdField::new('id')->onlyOnIndex();
+        // ✅ Manejo de UUID (IdTrait)
+        $id = TextField::new('id', 'UUID')
+            ->onlyOnIndex()
+            ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
 
-        $beds24Config = AssociationField::new('beds24Config', 'Beds24 Config');
-        $pmsUnidad = AssociationField::new('pmsUnidad', 'Unidad PMS');
+        $idFull = TextField::new('id', 'UUID Completo')
+            ->onlyOnDetail()
+            ->formatValue(fn($value) => (string) $value);
+
+        $beds24Config = AssociationField::new('beds24Config', 'Configuración Beds24')
+            ->setRequired(true);
+
+        $pmsUnidad = AssociationField::new('pmsUnidad', 'Unidad PMS')
+            ->setRequired(true);
 
         $beds24PropertyId = IntegerField::new('beds24PropertyId', 'Beds24 Property ID')
             ->setRequired(false)
-            ->setHelp('PropertyId real de Beds24 asociado a este room/unit.');
+            ->setHelp('PropertyId real de Beds24 asociado a este mapeo.');
 
-        $beds24RoomId = IntegerField::new('beds24RoomId', 'Beds24 Room ID');
+        $beds24RoomId = IntegerField::new('beds24RoomId', 'Beds24 Room ID')
+            ->setRequired(true);
 
         $beds24UnitId = IntegerField::new('beds24UnitId', 'Beds24 Unit ID (opcional)')
             ->setRequired(false)
-            ->setHelp('Solo si Beds24 usa Units físicas. En modo Room-based, dejar vacío.');
+            ->setHelp('Solo si Beds24 usa unidades físicas específicas.');
 
         $channelPropId = TextField::new('channelPropId', 'Channel Prop ID')
             ->setRequired(false)
-            ->setHelp('ID de propiedad en canal externo (Booking Hotel ID, Airbnb Listing ID).');
+            ->setHelp('ID externo (Booking Hotel ID, Airbnb Listing ID).');
 
-        $nota = TextField::new('nota', 'Nota')->setRequired(false);
+        $nota = TextField::new('nota', 'Observaciones Técnicas')->setRequired(false);
 
-        $activo = BooleanField::new('activo', 'Activo');
-        $esPrincipal = BooleanField::new('esPrincipal', 'Principal')
-            ->setHelp('Solo puede existir una asignación PRINCIPAL por unidad.');
+        $activo = BooleanField::new('activo', 'Mapeo Activo')
+            ->renderAsSwitch(true);
 
-        // ----------------
-        // Auditoría (colapsada + solo lectura)
-        // ----------------
-        $created = DateTimeField::new('created', 'Creado')
+        $esPrincipal = BooleanField::new('esPrincipal', 'Mapeo Principal')
+            ->setHelp('Solo debe existir una asignación PRINCIPAL por cada unidad.')
+            ->renderAsSwitch(true);
+
+        // ✅ Auditoría mediante TimestampTrait (createdAt / updatedAt)
+        $createdAt = DateTimeField::new('createdAt', 'Creado')
             ->setFormat('yyyy/MM/dd HH:mm')
-            ->setDisabled(true);
+            ->setFormTypeOption('disabled', true);
 
-        $updated = DateTimeField::new('updated', 'Actualizado')
+        $updatedAt = DateTimeField::new('updatedAt', 'Actualizado')
             ->setFormat('yyyy/MM/dd HH:mm')
-            ->setDisabled(true);
+            ->setFormTypeOption('disabled', true);
 
         // ===================== INDEX =====================
         if (Crud::PAGE_INDEX === $pageName) {
@@ -120,39 +147,14 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
                 $beds24PropertyId,
                 $beds24RoomId,
                 $beds24UnitId,
-                $channelPropId,
                 $activo,
-                $nota,
             ];
         }
 
-        // ===================== DETAIL =====================
-        if (Crud::PAGE_DETAIL === $pageName) {
-            return [
-                FormField::addPanel('Relación')->setIcon('fa fa-link'),
-                $beds24Config,
-                $pmsUnidad,
-                $beds24PropertyId,
-                $beds24RoomId,
-                $beds24UnitId,
-                $channelPropId,
-                $nota,
-
-                FormField::addPanel('Flags')->setIcon('fa fa-flag'),
-                $activo,
-                $esPrincipal,
-
-                FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-                $created,
-                $updated,
-            ];
-        }
-
-        // ===================== NEW / EDIT =====================
-        // Nota: En EDIT la sección Proceso suele ser inútil/vacía (y además es read-only),
-        // así que aquí no la mostramos.
+        // ===================== DETAIL / FORMS =====================
         return [
-            FormField::addPanel('Relación')->setIcon('fa fa-link'),
+            FormField::addPanel('Relación Técnica')->setIcon('fa fa-link'),
+            $idFull->onlyOnDetail(),
             $beds24Config,
             $pmsUnidad,
             $beds24PropertyId,
@@ -161,14 +163,13 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
             $channelPropId,
             $nota,
 
-            FormField::addPanel('Flags')->setIcon('fa fa-flag'),
+            FormField::addPanel('Configuración de Sincronización')->setIcon('fa fa-flag'),
             $activo,
             $esPrincipal,
 
-            FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-            // En NEW no existen timestamps todavía
-            $isNew ? FormField::addPanel('')->onlyOnForms() : $created,
-            $isNew ? FormField::addPanel('')->onlyOnForms() : $updated,
+            FormField::addPanel('Auditoría de Registro')->setIcon('fa fa-shield-alt')->renderCollapsed(),
+            $createdAt->hideWhenCreating(),
+            $updatedAt->hideWhenCreating(),
         ];
     }
 }

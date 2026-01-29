@@ -258,7 +258,7 @@ class PmsReserva
     /** @return Collection<int, PmsEventoCalendario> */
     public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
 
-    public function addEventoCalendario(PmsEventoCalendario $evento): self {
+    public function addEventosCalendario(PmsEventoCalendario $evento): self {
         if (!$this->eventosCalendario->contains($evento)) {
             $this->eventosCalendario->add($evento);
             $evento->setReserva($this);
@@ -266,7 +266,7 @@ class PmsReserva
         return $this;
     }
 
-    public function removeEventoCalendario(PmsEventoCalendario $evento): self {
+    public function removeEventosCalendario(PmsEventoCalendario $evento): self {
         if ($this->eventosCalendario->removeElement($evento)) {
             if ($evento->getReserva() === $this) $evento->setReserva(null);
         }

@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Panel\Controller\Crud;
 
+use App\Panel\Controller\Crud\BaseCrudController;
 use App\Entity\User;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -9,14 +12,12 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
@@ -28,23 +29,41 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * Controlador CRUD para la gestión de usuarios.
- * Integra el hashing de contraseñas mediante eventos de formulario para soportar campos no mapeados.
+ * UserCrudController.
+ * Gestión de usuarios con soporte UUID y seguridad basada en Roles.
+ * Hereda de BaseCrudController para preservar la lógica transversal del panel.
  */
-class UserCrudController extends AbstractCrudController
+class UserCrudController extends BaseCrudController
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack,
         private UserPasswordHasherInterface $userPasswordHasher
     ) {
-        // El constructor padre de AbstractCrudController no requiere argumentos,
-        // pero mantenemos las dependencias inyectadas para uso interno.
+        parent::__construct($adminUrlGenerator, $requestStack);
     }
 
     public static function getEntityFqcn(): string
     {
         return User::class;
+    }
+
+    /**
+     * Configuración de permisos y acciones.
+     * ✅ Se integran las constantes de la clase Roles para restringir el acceso.
+     */
+    public function configureActions(Actions $actions): Actions
+    {
+        $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
+
+        // Aplicamos permisos de tu clase Roles sobre las acciones del padre
+        return parent::configureActions($actions)
+            ->setPermission(Action::INDEX, Roles::MAESTROS_SHOW)
+            ->setPermission(Action::DETAIL, Roles::MAESTROS_SHOW)
+            ->setPermission(Action::NEW, Roles::MAESTROS_WRITE)
+            ->setPermission(Action::EDIT, Roles::MAESTROS_WRITE)
+            ->setPermission(Action::DELETE, Roles::MAESTROS_DELETE)
+            ->setPermission(Action::BATCH_DELETE, Roles::MAESTROS_DELETE);
     }
 
     public function configureCrud(Crud $crud): Crud
@@ -56,17 +75,12 @@ class UserCrudController extends AbstractCrudController
             ->setDefaultSort(['id' => 'DESC']);
     }
 
-    public function configureActions(Actions $actions): Actions
-    {
-        $actions
-            ->add(Crud::PAGE_INDEX, Action::DETAIL);
-
-        return parent::configureActions($actions);
-    }
-
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->onlyOnIndex();
+        // UUID para visualización técnica en detalle
+        yield TextField::new('id', 'UUID')
+            ->onlyOnDetail()
+            ->formatValue(fn($value) => (string) $value);
 
         // --- CREDENCIALES ---
         yield FormField::addPanel('Credenciales de Acceso')->setIcon('fa fa-key');
@@ -77,10 +91,9 @@ class UserCrudController extends AbstractCrudController
         yield EmailField::new('email', 'Email')
             ->setColumns(6);
 
-        /*
-         * Campo de Contraseña.
-         * Configurado como 'mapped' => false para evitar que Symfony intente escribir
-         * el texto plano en la entidad User. La lógica de hashing se maneja en el Listener.
+        /**
+         * Lógica de Password (mapped => false).
+         * Mantenida íntegramente para soportar el hashing vía POST_SUBMIT.
          */
         yield TextField::new('plainPassword', 'Contraseña')
             ->setFormType(RepeatedType::class)
@@ -94,20 +107,14 @@ class UserCrudController extends AbstractCrudController
             ->onlyOnForms()
             ->setColumns(12);
 
-        /*
-         * Selector de Roles.
-         * allowMultipleChoices() garantiza que el valor devuelto sea un array,
-         * cumpliendo con el tipado estricto de User::setRoles(array $roles).
-         * Nota: Requiere que la clase App\Security\Roles exista y tenga el método getChoices().
-         */
-        yield ChoiceField::new('roles', 'Permisos')
+        yield ChoiceField::new('roles', 'Permisos de Sistema')
             ->setChoices(Roles::getChoices())
             ->allowMultipleChoices()
             ->renderAsBadges()
-            ->setHelp('Selecciona los roles asignados al usuario.')
             ->setColumns(12);
 
-        yield BooleanField::new('enabled', 'Activo');
+        yield BooleanField::new('enabled', 'Cuenta Activa')
+            ->renderAsSwitch(true);
 
         // --- DATOS PERSONALES ---
         yield FormField::addPanel('Información Personal')->setIcon('fa fa-user');
@@ -125,34 +132,24 @@ class UserCrudController extends AbstractCrudController
             ->setColumns(6);
     }
 
-    /**
-     * Override para inyectar lógica de Hashing en la CREACIÓN.
-     * Se intercepta el constructor del formulario para añadir el Listener.
+    /*
+     * -------------------------------------------------------------------------
+     * LÓGICA DE HASHING (EVENT LISTENERS)
+     * -------------------------------------------------------------------------
      */
+
     public function createNewFormBuilder(EntityDto $entityDto, KeyValueStore $formOptions, AdminContext $context): FormBuilderInterface
     {
         $formBuilder = parent::createNewFormBuilder($entityDto, $formOptions, $context);
         return $this->addPasswordEventListener($formBuilder);
     }
 
-    /**
-     * Override para inyectar lógica de Hashing en la EDICIÓN.
-     */
     public function createEditFormBuilder(EntityDto $entityDto, KeyValueStore $formOptions, AdminContext $context): FormBuilderInterface
     {
         $formBuilder = parent::createEditFormBuilder($entityDto, $formOptions, $context);
         return $this->addPasswordEventListener($formBuilder);
     }
 
-    /**
-     * Agrega un Event Listener al formulario para procesar la contraseña plana.
-     *
-     * Usamos FormEvents::POST_SUBMIT porque necesitamos acceder al campo 'plainPassword'
-     * (que no está mapeado en la entidad) y hashearlo antes de que Doctrine persista los cambios.
-     *
-     * @param FormBuilderInterface $formBuilder
-     * @return FormBuilderInterface
-     */
     private function addPasswordEventListener(FormBuilderInterface $formBuilder): FormBuilderInterface
     {
         return $formBuilder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) {
@@ -160,10 +157,8 @@ class UserCrudController extends AbstractCrudController
             /** @var User $user */
             $user = $form->getData();
 
-            // Obtenemos la contraseña plana del campo "mapped: false"
             $plainPassword = $form->get('plainPassword')->getData();
 
-            // Solo actualizamos la contraseña si el usuario escribió algo en el campo
             if (!empty($plainPassword)) {
                 $hashedPassword = $this->userPasswordHasher->hashPassword($user, $plainPassword);
                 $user->setPassword($hashedPassword);

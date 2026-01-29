@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -8,6 +10,7 @@ use App\Pms\Entity\PmsReserva;
 use App\Pms\Factory\PmsEventoCalendarioFactory;
 use App\Pms\Form\Type\PmsEventoCalendarioEmbeddedType;
 use App\Pms\Form\Type\PmsReservaHuespedType;
+use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -19,16 +22,20 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * PmsReservaCrudController.
+ * Gestión central de reservas, huéspedes y eventos vinculados.
+ * Hereda de BaseCrudController y utiliza UUID v7 con seguridad prioritaria.
+ */
 class PmsReservaCrudController extends BaseCrudController
 {
     public function __construct(
-        private PmsEventoCalendarioFactory $eventoCalendarioFactory,
+        private readonly PmsEventoCalendarioFactory $eventoCalendarioFactory,
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack
     ) {
@@ -40,14 +47,17 @@ class PmsReservaCrudController extends BaseCrudController
         return PmsReserva::class;
     }
 
+    /**
+     * ✅ Configuración de acciones y seguridad.
+     * Los permisos de Roles se aplican DESPUÉS del parent para prioridad absoluta.
+     */
     public function configureActions(Actions $actions): Actions
     {
-        // 1. OBTENCIÓN DIRECTA: El Listener ya inyectó el valor correcto (Index o Referer)
         $returnTo = $this->requestStack->getCurrentRequest()?->query->get('returnTo');
 
         $actions->disable(Action::BATCH_DELETE);
 
-        // 2. CONFIGURACIÓN DEL BOTÓN CON EL TOKEN YA EXISTENTE
+        // Botón Global: Crear Bloqueo
         $crearBloqueo = Action::new('crearBloqueo', 'Crear Bloqueo')
             ->createAsGlobalAction()
             ->setCssClass('btn btn-danger')
@@ -66,7 +76,7 @@ class PmsReservaCrudController extends BaseCrudController
             ->add(Crud::PAGE_EDIT, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::INDEX);
 
-        // 3. LÓGICA DE BORRADO BLINDADA
+        // Lógica de borrado blindada (Solo locales cancelados o sincronizaciones limpias)
         $checkBorrado = function (Action $action) {
             return $action->displayIf(static function (PmsReserva $reserva) {
                 foreach ($reserva->getEventosCalendario() as $evento) {
@@ -74,7 +84,7 @@ class PmsReservaCrudController extends BaseCrudController
                     if (!$evento->isSynced()) return false;
 
                     $estado = $evento->getEstado();
-                    if (!$estado || $estado->getCodigo() !== PmsEventoEstado::CODIGO_CANCELADA) {
+                    if (!$estado || $estado->getId() !== PmsEventoEstado::CODIGO_CANCELADA) {
                         return false;
                     }
                 }
@@ -85,7 +95,16 @@ class PmsReservaCrudController extends BaseCrudController
         $actions->update(Crud::PAGE_INDEX, Action::DELETE, $checkBorrado);
         $actions->update(Crud::PAGE_DETAIL, Action::DELETE, $checkBorrado);
 
-        return parent::configureActions($actions);
+        // Aplicamos lógica base y luego sobreescribimos con Roles
+        $actions = parent::configureActions($actions);
+
+        return $actions
+            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE)
+            ->setPermission('crearBloqueo', Roles::RESERVAS_WRITE);
     }
 
     public function configureCrud(Crud $crud): Crud
@@ -115,35 +134,42 @@ class PmsReservaCrudController extends BaseCrudController
             $entity = $context?->getEntity()->getInstance();
         }
 
-        yield IdField::new('id')->hideOnForm();
+        // ✅ UUID para visualización técnica
+        yield TextField::new('id', 'UUID')
+            ->onlyOnDetail()
+            ->formatValue(static fn($value) => (string) $value);
 
         // --- ESTADO SYNC ---
-        yield TextField::new('syncStatusAggregate', 'Estado Sync')
+        yield TextField::new('syncStatusAggregate', 'Estado Sincro')
             ->setVirtual(true)
             ->formatValue(function ($statusValue) {
                 return match ($statusValue) {
-                    'synced' => '<span class="badge badge-success"><i class="fa fa-check"></i> OK</span>',
-                    'error' => '<span class="badge badge-danger"><i class="fa fa-exclamation-triangle"></i> Error</span>',
+                    'synced'  => '<span class="badge badge-success"><i class="fa fa-check"></i> OK</span>',
+                    'error'   => '<span class="badge badge-danger"><i class="fa fa-exclamation-triangle"></i> Error</span>',
                     'pending' => '<span class="badge badge-warning"><i class="fa fa-sync fa-spin"></i> Wait</span>',
-                    default => '',
+                    default   => '',
                 };
             })
             ->renderAsHtml()
             ->hideOnForm();
 
         yield FormField::addPanel('Datos del Titular')->setIcon('fa fa-user');
-        yield AssociationField::new('channel', 'Canal')->setFormTypeOption('disabled', true);
+        yield AssociationField::new('channel', 'Canal de Venta')
+            ->setFormTypeOption('disabled', true);
+
         yield TextField::new('nombreCliente', 'Nombre')->setColumns(6);
         yield TextField::new('apellidoCliente', 'Apellido')->setColumns(6);
 
         yield TextField::new('telefono', 'Teléfono')->setColumns(6);
         yield EmailField::new('emailCliente', 'Email')->setColumns(6);
-        yield AssociationField::new('pais', 'País')->setColumns(6);
-        yield AssociationField::new('idioma', 'Idioma')->setColumns(6);
-        yield BooleanField::new('datosLocked', 'Datos bloqueados')->setHelp('Evita sobrescritura de datos personales.');
+        yield AssociationField::new('pais', 'País (Maestro)')->setColumns(6);
+        yield AssociationField::new('idioma', 'Idioma (Maestro)')->setColumns(6);
 
-        yield FormField::addPanel('Eventos de Calendario')->setIcon('fa fa-calendar');
-        yield CollectionField::new('eventosCalendario', 'Eventos')
+        yield BooleanField::new('datosLocked', 'Bloquear Datos')
+            ->setHelp('Evita que la sincronización automática sobrescriba cambios manuales.');
+
+        yield FormField::addPanel('Eventos de Calendario (Estancias)')->setIcon('fa fa-calendar');
+        yield CollectionField::new('eventosCalendario', 'Gestión de Eventos')
             ->setEntryIsComplex(true)
             ->setFormTypeOption('entry_type', PmsEventoCalendarioEmbeddedType::class)
             ->setFormTypeOption('by_reference', false)
@@ -157,8 +183,8 @@ class PmsReservaCrudController extends BaseCrudController
             ->onlyOnDetail();
 
         // --- NAMELIST / PRE CHECK-IN ---
-        yield FormField::addPanel('Namelist / Pre Check-in')->setIcon('fa fa-users-viewfinder');
-        yield CollectionField::new('huespedes', 'Lista de Pasajeros')
+        yield FormField::addPanel('Huéspedes / Pasajeros')->setIcon('fa fa-users');
+        yield CollectionField::new('huespedes', 'Lista Namelist')
             ->setEntryType(PmsReservaHuespedType::class)
             ->setFormTypeOption('by_reference', false)
             ->allowAdd()
@@ -166,20 +192,34 @@ class PmsReservaCrudController extends BaseCrudController
             ->setEntryIsComplex(true)
             ->hideOnIndex();
 
-        yield FormField::addPanel('Fechas y ocupación')->setIcon('fa fa-clock')->renderCollapsed();
-        yield DateField::new('fechaLlegada', 'Llegada')->setFormTypeOption('disabled', true)->setColumns(6);
-        yield DateField::new('fechaSalida', 'Salida')->setFormTypeOption('disabled', true)->setColumns(6);
-        yield MoneyField::new('montoTotal', 'Monto total (USD)')
-            ->setCurrency('USD')->setStoredAsCents(false)->setFormTypeOption('disabled', true)->setColumns(6);
+        yield FormField::addPanel('Resumen de Ocupación')->setIcon('fa fa-calculator')->renderCollapsed();
+        yield DateField::new('fechaLlegada', 'Fecha Check-in')
+            ->setFormTypeOption('disabled', true)->setColumns(6);
+        yield DateField::new('fechaSalida', 'Fecha Check-out')
+            ->setFormTypeOption('disabled', true)->setColumns(6);
 
-        yield FormField::addPanel('Identificadores Externos')->setIcon('fa fa-fingerprint')->renderCollapsed();
+        yield MoneyField::new('montoTotal', 'Importe Total (USD)')
+            ->setCurrency('USD')
+            ->setStoredAsCents(false)
+            ->setFormTypeOption('disabled', true)
+            ->setColumns(6);
+
+        yield FormField::addPanel('Identificadores de Integración')->setIcon('fa fa-fingerprint')->renderCollapsed();
         $refCanal = $entity?->getReferenciaCanal();
         if ($pageName === Crud::PAGE_EDIT || $pageName === Crud::PAGE_NEW || !empty($refCanal)) {
-            yield TextField::new('referenciaCanal', 'Referencia canal')->setFormTypeOption('disabled', true);
+            yield TextField::new('referenciaCanal', 'Ref. Canal / OTA')
+                ->setFormTypeOption('disabled', true);
         }
 
-        yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
-        yield DateTimeField::new('created', 'Creado')->setFormat('yyyy/MM/dd HH:mm')->setFormTypeOption('disabled', true)->hideOnIndex();
-        yield DateTimeField::new('updated', 'Actualizado')->setFormat('yyyy/MM/dd HH:mm')->setFormTypeOption('disabled', true)->hideOnIndex();
+        // ✅ Auditoría mediante TimestampTrait (createdAt / updatedAt)
+        yield FormField::addPanel('Auditoría Técnica')->setIcon('fa fa-shield-alt')->renderCollapsed();
+
+        yield DateTimeField::new('createdAt', 'Creado el')
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->onlyOnDetail();
+
+        yield DateTimeField::new('updatedAt', 'Actualizado el')
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->onlyOnDetail();
     }
 }

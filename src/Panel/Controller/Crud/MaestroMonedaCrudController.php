@@ -4,19 +4,29 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller\Crud;
 
-use App\Entity\Maestro\MaestroIdioma;
+// ✅ Restauramos la herencia de tu BaseCrudController
+use App\Panel\Controller\Crud\BaseCrudController;
+use App\Entity\Maestro\MaestroMoneda;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
-class MaestroIdiomaCrudController extends BaseCrudController
+/**
+ * MaestroMonedaCrudController.
+ * Gestión de Monedas Globales (PEN, USD, EUR).
+ * Basado en códigos ISO 4217 como identificadores naturales.
+ */
+class MaestroMonedaCrudController extends BaseCrudController
 {
+    /**
+     * Mantenemos el constructor inyectando dependencias base.
+     */
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack
@@ -26,7 +36,7 @@ class MaestroIdiomaCrudController extends BaseCrudController
 
     public static function getEntityFqcn(): string
     {
-        return MaestroIdioma::class;
+        return MaestroMoneda::class;
     }
 
     /**
@@ -49,43 +59,48 @@ class MaestroIdiomaCrudController extends BaseCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Idioma Global')
-            ->setEntityLabelInPlural('Idiomas Globales')
-            ->setDefaultSort(['prioritario' => 'DESC', 'nombre' => 'ASC']);
+            ->setEntityLabelInSingular('Moneda')
+            ->setEntityLabelInPlural('Monedas')
+            ->setSearchFields(['id', 'nombre'])
+            ->setDefaultSort(['id' => 'ASC']);
     }
 
     /**
      * Definición de campos.
-     * El ID es el ISO2 (es, en, pt), fundamental para el motor de traducción.
+     * El ID es el código ISO (PEN, USD). Se ingresa manualmente al crear.
      */
     public function configureFields(string $pageName): iterable
     {
-        // El ID es el ISO2. Se ingresa manualmente al crear (strategy: NONE).
-        $id = TextField::new('id', 'ISO (ID)')
-            ->setHelp('Código de 2 caracteres (Ej: es, en, pt)')
+        yield FormField::addPanel('Información de Moneda')->setIcon('fa fa-money-bill-wave');
+
+        // El ID es el ISO Natural (USD, PEN).
+        $id = TextField::new('id', 'Código ISO (ID)')
+            ->setHelp('Código de 3 letras en mayúsculas (ISO 4217).')
             ->setFormTypeOption('attr', [
-                'maxlength' => 2,
-                'placeholder' => 'es',
-                'style' => 'text-transform:lowercase'
+                'maxlength' => 3,
+                'placeholder' => 'USD',
+                'style' => 'text-transform:uppercase'
             ]);
 
-        // Bloqueamos edición del ID natural para proteger la integridad referencial.
+        // Protegemos el ID en edición para no romper la integridad de las tarifas.
         if (Crud::PAGE_EDIT === $pageName) {
             $id->setFormTypeOption('disabled', true);
         }
 
         yield $id;
-        yield TextField::new('nombre', 'Nombre');
+        yield TextField::new('nombre', 'Nombre de la Moneda')
+            ->setHelp('Ejemplo: Dólar Estadounidense');
 
-        yield BooleanField::new('prioritario', '¿Traducir Automáticamente?')
-            ->setHelp('Si se activa, el motor de traducción procesará contenidos para este idioma.')
-            ->renderAsSwitch(true);
+        yield TextField::new('simbolo', 'Símbolo')
+            ->setHelp('Ejemplo: $ o S/');
 
-        // Auditoría mediante TimestampTrait (createdAt, updatedAt)
+        // ✅ Auditoría mediante TimestampTrait (createdAt, updatedAt)
+        yield FormField::addPanel('Tiempos de Registro')->setIcon('fa fa-clock')->onlyOnDetail();
+
         yield DateTimeField::new('createdAt', 'Registrado')
             ->onlyOnDetail();
 
-        yield DateTimeField::new('updatedAt', 'Actualizado')
+        yield DateTimeField::new('updatedAt', 'Última Modificación')
             ->onlyOnDetail();
     }
 }

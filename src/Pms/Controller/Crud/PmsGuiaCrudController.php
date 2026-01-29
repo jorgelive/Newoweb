@@ -4,25 +4,35 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsGuia;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Controlador CRUD para la gestión de Guías de Unidades.
- * Integra el control global de traducciones y la seguridad por roles del sistema.
+ * PmsGuiaCrudController.
+ * Gestión de Guías de Unidades con soporte para traducción automática y UUID.
+ * Hereda de BaseCrudController para estandarizar el comportamiento del panel.
  */
-class PmsGuiaCrudController extends AbstractCrudController
+class PmsGuiaCrudController extends BaseCrudController
 {
+    public function __construct(
+        protected AdminUrlGenerator $adminUrlGenerator,
+        protected RequestStack $requestStack
+    ) {
+        parent::__construct($adminUrlGenerator, $requestStack);
+    }
+
     public static function getEntityFqcn(): string
     {
         return PmsGuia::class;
@@ -30,21 +40,21 @@ class PmsGuiaCrudController extends AbstractCrudController
 
     /**
      * Configuración de la seguridad granular.
-     * Implementa las restricciones de visualización, edición y borrado solicitadas.
+     * ✅ Se aplica la herencia y LUEGO se imponen los permisos de Roles para prioridad absoluta.
      */
     public function configureActions(Actions $actions): Actions
     {
-        return $actions
-            // Configuración de visualización (LECTURA)
-            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+        $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
 
-            // Configuración de gestión (ESCRITURA) [cite: 2026-01-14]
+        // Primero obtenemos las acciones configuradas en el padre (BaseCrudController)
+        $actions = parent::configureActions($actions);
+
+        // Aplicamos los permisos después para que prevalezcan sobre la configuración base
+        return $actions
+            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
             ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
             ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
-
-            // Configuración de eliminación (BORRADO) [cite: 2026-01-14]
             ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE)
             ->setPermission(Action::BATCH_DELETE, Roles::RESERVAS_DELETE);
     }
@@ -55,15 +65,18 @@ class PmsGuiaCrudController extends AbstractCrudController
             ->setEntityLabelInSingular('Guía')
             ->setEntityLabelInPlural('Guías')
             ->setSearchFields(['id', 'titulo', 'unidad.nombre'])
-            ->setDefaultSort(['id' => 'DESC']);
+            ->setDefaultSort(['createdAt' => 'DESC']);
     }
 
     public function configureFields(string $pageName): iterable
     {
         // --- SECCIÓN DE CONFIGURACIÓN ---
-        yield FormField::addPanel('Configuración General');
+        yield FormField::addPanel('Configuración General')->setIcon('fa fa-cog');
 
-        yield IdField::new('id')->hideOnForm();
+        // ✅ Manejo de UUID (IdTrait) para visualización técnica
+        yield TextField::new('id', 'UUID')
+            ->onlyOnDetail()
+            ->formatValue(static fn($value) => (string) $value);
 
         yield AssociationField::new('unidad', 'Unidad / Departamento')
             ->setRequired(true)
@@ -73,35 +86,33 @@ class PmsGuiaCrudController extends AbstractCrudController
             ->renderAsSwitch(true);
 
         // --- SECCIÓN DE TRADUCCIÓN (Trait Global) ---
-        yield FormField::addPanel('Contenido y Traducción');
+        yield FormField::addPanel('Contenido y Traducción')->setIcon('fa fa-language');
 
-        yield BooleanField::new('ejecutarTraduccion', '¿Traducir campos automáticamente?')
-            ->setHelp('Si se marca, al guardar se enviará el texto en español a Google Translate.')
+        yield BooleanField::new('ejecutarTraduccion', '¿Traducir automáticamente?')
+            ->setHelp('Si se marca, se utilizará el servicio de traducción para completar los idiomas faltantes.')
             ->onlyOnForms()
             ->hideOnIndex()
-            // Solo quienes pueden escribir pueden disparar la traducción [cite: 2026-01-14]
             ->setPermission(Roles::RESERVAS_WRITE);
 
-        yield CollectionField::new('titulo', 'Títulos por Idioma')
-            ->setHelp('Use el código de idioma como llave (ej: es, en, pt).')
+        yield CollectionField::new('titulo', 'Títulos (JSON/Array)')
+            ->setHelp('Mapeo de idiomas (ej: es, en, pt).')
             ->allowAdd()
             ->allowDelete();
 
-        // --- SECCIÓN DE SECCIONES (Relación intermedia) ---
-        yield FormField::addPanel('Estructura de la Guía');
+        // --- SECCIÓN DE ESTRUCTURA ---
+        yield FormField::addPanel('Estructura de la Guía')->setIcon('fa fa-sitemap');
 
-        //
         yield CollectionField::new('guiaHasSecciones', 'Secciones Vinculadas')
-            ->useEntryCrudForm() // Requisito para gestionar el 'orden' y 'activo' de la relación intermedia
+            ->useEntryCrudForm()
             ->setHelp('Gestione las secciones y su orden específico para esta guía.');
 
-        // --- SECCIÓN DE AUDITORÍA ---
-        yield FormField::addPanel('Auditoría')->onlyOnDetail();
+        // --- SECCIÓN DE AUDITORÍA (TimestampTrait) ---
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-history')->onlyOnDetail();
 
-        yield DateTimeField::new('creado', 'Fecha de Creación')
+        yield DateTimeField::new('createdAt', 'Fecha de Creación')
             ->onlyOnDetail();
 
-        yield DateTimeField::new('modificado', 'Última Modificación')
+        yield DateTimeField::new('updatedAt', 'Última Modificación')
             ->onlyOnDetail();
     }
 }

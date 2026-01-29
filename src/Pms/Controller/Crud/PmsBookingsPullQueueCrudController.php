@@ -1,11 +1,14 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+// ✅ Jerarquía de herencia restaurada
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Factory\PmsBookingsPullQueueFactory;
+use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -15,12 +18,16 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * PmsBookingsPullQueueCrudController.
+ * Gestión de la cola de procesos para la obtención (Pull) de reservas.
+ * Implementa UUID v7 y auditoría mediante TimestampTrait.
+ */
 final class PmsBookingsPullQueueCrudController extends BaseCrudController
 {
     public function __construct(
@@ -31,8 +38,14 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
         parent::__construct($adminUrlGenerator, $requestStack);
     }
 
-    public static function getEntityFqcn(): string { return PmsBookingsPullQueue::class; }
+    public static function getEntityFqcn(): string
+    {
+        return PmsBookingsPullQueue::class;
+    }
 
+    /**
+     * ✅ Se mantiene el uso de la Factory para la creación de la entidad.
+     */
     public function createEntity(string $entityFqcn): PmsBookingsPullQueue
     {
         return $this->pullQueueFactory->create();
@@ -41,34 +54,50 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Pull Job')
-            ->setEntityLabelInPlural('Pull Queue (Bookings)')
+            ->setEntityLabelInSingular('Tarea de Pull')
+            ->setEntityLabelInPlural('Cola de Pull (Reservas)')
             ->setDefaultSort(['runAt' => 'DESC'])
             ->setSearchFields(['id', 'status', 'failedReason', 'lockedBy']);
     }
 
+    /**
+     * ✅ Configuración de acciones integrando seguridad por Roles.
+     */
     public function configureActions(Actions $actions): Actions
     {
-        $actions
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->setPermission(Action::DELETE, 'ROLE_ADMIN');
+        $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
 
-        return parent::configureActions($actions);
+        return parent::configureActions($actions)
+            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
+            ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
     }
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->onlyOnIndex();
+        // ✅ Manejo de UUID para visualización
+        yield TextField::new('id', 'UUID')
+            ->onlyOnIndex()
+            ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
+
+        yield TextField::new('id', 'UUID Completo')
+            ->onlyOnDetail()
+            ->formatValue(fn($value) => (string)$value);
 
         // --- PANEL DE CONFIGURACIÓN ---
         yield FormField::addPanel('Configuración del Job')->setIcon('fa fa-download');
-        yield AssociationField::new('beds24Config', 'Configuración Beds24')->setRequired(true);
+
+        yield AssociationField::new('beds24Config', 'Configuración Beds24')
+            ->setRequired(true);
 
         yield AssociationField::new('endpoint', 'Endpoint (Acción)')
             ->setFormTypeOption('disabled', true)
             ->onlyOnDetail();
 
-        yield AssociationField::new('unidades', 'Unidades Filtradas');
+        yield AssociationField::new('unidades', 'Unidades Filtradas')
+            ->setHelp('Si se deja vacío, se asumen todas las unidades configuradas.');
 
         yield DateField::new('arrivalFrom', 'Llegadas Desde')->setColumns(6);
         yield DateField::new('arrivalTo', 'Llegadas Hasta')->setColumns(6);
@@ -99,9 +128,10 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
         yield IntegerField::new('maxAttempts', 'Máximo de Intentos')
             ->setColumns(6);
 
-        yield TextField::new('failedReason', 'Razón del Fallo')->onlyOnDetail();
+        yield TextField::new('failedReason', 'Razón del Fallo')
+            ->onlyOnDetail();
 
-        // --- PANEL DE AUDITORÍA HTTP (ACTUALIZADO A RAW) ---
+        // --- PANEL DE AUDITORÍA HTTP (RAW) ---
         yield FormField::addPanel('Logs de Intercambio (Raw)')->setIcon('fa fa-database')->onlyOnDetail();
 
         yield CodeEditorField::new('lastRequestRaw', 'HTTP Request Body')
@@ -114,8 +144,9 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
 
         yield IntegerField::new('lastHttpCode', 'Código HTTP')->onlyOnDetail();
 
-        // --- PANEL DE RESULTADO PROCESADO (NUEVO) ---
+        // --- PANEL DE RESULTADO PROCESADO ---
         yield FormField::addPanel('Resultado de Negocio')->setIcon('fa fa-check-circle')->onlyOnDetail();
+
         yield CodeEditorField::new('executionResult', 'Execution Summary (JSON)')
             ->setLanguage('js')
             ->formatValue(function ($value) {
@@ -125,7 +156,17 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
 
         // --- PANEL DE CONTROL DE WORKER ---
         yield FormField::addPanel('Información del Worker')->setIcon('fa fa-microchip')->renderCollapsed();
+
         yield TextField::new('lockedBy', 'Worker ID');
         yield DateTimeField::new('lockedAt', 'Bloqueado en');
+
+        // --- AUDITORÍA DE SISTEMA ---
+        yield FormField::addPanel('Tiempos de Registro')->setIcon('fa fa-history')->onlyOnDetail();
+
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->onlyOnDetail();
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->onlyOnDetail();
     }
 }

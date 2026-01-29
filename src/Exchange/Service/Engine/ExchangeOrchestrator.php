@@ -73,11 +73,6 @@ final class ExchangeOrchestrator
                         // ÉXITO: Delegamos al Handler específico de la tarea
                         $summary = $task->getHandler()->handleSuccess($result->extraData, $item);
 
-                        // Si el Strategy ya nos dio info extra (ej: remoteId), la integramos
-                        if ($result->remoteId && method_exists($item, 'setBeds24BookIdOriginal')) {
-                            // Lógica custom si fuera necesaria, o dejar que handleSuccess lo haga
-                        }
-
                         // Actualizamos el execution_result con lo que devolvió el handler
                         $item->setExecutionResult($summary);
 

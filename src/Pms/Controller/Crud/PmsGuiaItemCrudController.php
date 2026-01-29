@@ -4,45 +4,58 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsGuiaItem;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Controlador para la gestión detallada de ítems de la guía.
- * Soporta múltiples tipos de contenido y traducción automática controlada.
+ * PmsGuiaItemCrudController.
+ * Gestión detallada de ítems de contenido para las guías del sistema.
+ * Hereda de BaseCrudController y aplica seguridad por Roles prioritarios.
  */
-class PmsGuiaItemCrudController extends AbstractCrudController
+class PmsGuiaItemCrudController extends BaseCrudController
 {
+    public function __construct(
+        protected AdminUrlGenerator $adminUrlGenerator,
+        protected RequestStack $requestStack
+    ) {
+        parent::__construct($adminUrlGenerator, $requestStack);
+    }
+
     public static function getEntityFqcn(): string
     {
         return PmsGuiaItem::class;
     }
 
     /**
-     * Configuración de permisos según la fuente única de verdad (Roles).
+     * Configuración de acciones y permisos.
+     * ✅ Se aplica la herencia y LUEGO se imponen los permisos de Roles para prioridad absoluta.
      */
     public function configureActions(Actions $actions): Actions
     {
-        return $actions
-            // Visualización: Lectura para reservas [cite: 2026-01-14]
-            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+        $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
 
-            // Gestión: Escritura y borrado según roles específicos [cite: 2026-01-14]
+        // Primero obtenemos la configuración global del panel
+        $actions = parent::configureActions($actions);
+
+        // Aplicamos los permisos después para que la clase Roles sea la "Fuente de Verdad"
+        return $actions
+            ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
             ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
             ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
             ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
@@ -58,10 +71,13 @@ class PmsGuiaItemCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        // ✅ Manejo de UUID (IdTrait) para visualización técnica
+        yield TextField::new('id', 'UUID')
+            ->onlyOnDetail()
+            ->formatValue(static fn($value) => (string) $value);
 
-        // --- BLOQUE 1: IDENTIFICACIÓN Y TIPO ---
-        yield FormField::addPanel('Clasificación');
+        // --- BLOQUE 1: CLASIFICACIÓN ---
+        yield FormField::addPanel('Clasificación')->setIcon('fa fa-tags');
 
         yield ChoiceField::new('tipo', 'Tipo de Contenido')
             ->setChoices([
@@ -76,39 +92,37 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->renderAsBadges();
 
         yield NumberField::new('orden', 'Orden de Aparición')
-            ->setHelp('Define la posición dentro de la sección.');
+            ->setHelp('Posición relativa dentro de su sección.');
 
-        // --- BLOQUE 2: CONTROL DE TRADUCCIÓN ---
-        yield FormField::addPanel('Traducción Global');
+        // --- BLOQUE 2: TRADUCCIÓN ---
+        yield FormField::addPanel('Traducción Automática')->setIcon('fa fa-language');
 
-        yield BooleanField::new('ejecutarTraduccion', 'Disparar Google Translate')
-            ->setHelp('Traducirá título, descripción y labels si se marca al guardar.')
+        yield BooleanField::new('ejecutarTraduccion', 'Disparar Traducción')
+            ->setHelp('Sincronizará con Google Translate al guardar.')
             ->onlyOnForms()
             ->setPermission(Roles::RESERVAS_WRITE);
 
         // --- BLOQUE 3: TEXTOS MULTIIDIOMA ---
-        yield FormField::addPanel('Textos (JSON)');
+        yield FormField::addPanel('Contenidos Multilingües')->setIcon('fa fa-file-alt');
 
-        yield CollectionField::new('titulo', 'Título (es, en, pt...)')
-            ->setHelp('Obligatorio: Llave "es" para traducir automáticamente.');
+        yield CollectionField::new('titulo', 'Títulos (es, en, pt...)')
+            ->setHelp('Se requiere la llave "es" para el motor de traducción.');
 
         yield CollectionField::new('descripcion', 'Descripción (HTML)')
-            ->setHelp('Soporta etiquetas HTML. Google respetará el formato.')
             ->hideOnIndex();
 
         yield CollectionField::new('labelBoton', 'Etiqueta del Botón')
-            ->setHelp('Texto para el botón de acción (opcional).')
             ->hideOnIndex();
 
-        // --- BLOQUE 4: INTEGRACIONES Y MEDIA ---
-        yield FormField::addPanel('Datos Complementarios');
+        // --- BLOQUE 4: INTEGRACIONES ---
+        yield FormField::addPanel('Datos Complementarios')->setIcon('fa fa-plus-circle');
 
         yield AssociationField::new('maestroContacto', 'Contacto Vinculado')
-            ->setHelp('Asocie un contacto del sistema para tipos "Contacto".')
             ->setRequired(false);
 
+        // ✅ Se mantiene el uso de moneda.id ya que MaestroMoneda usa el código (PEN, USD) como ID
         yield MoneyField::new('precio', 'Precio del Servicio')
-            ->setCurrencyPropertyPath('moneda.codigo') // Asumiendo que MaestroMoneda tiene getCodigo()
+            ->setCurrencyPropertyPath('moneda.id')
             ->setRequired(false)
             ->hideOnIndex();
 
@@ -116,10 +130,19 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->setRequired(false)
             ->hideOnIndex();
 
-        yield FormField::addPanel('Galería de Imágenes');
+        yield FormField::addPanel('Galería de Imágenes')->setIcon('fa fa-images');
 
         yield CollectionField::new('galeria', 'Imágenes / Fotos')
-            ->useEntryCrudForm() // Requiere PmsGuiaItemGaleriaCrudController
+            ->useEntryCrudForm()
             ->setHelp('Añada fotos para ítems de tipo Álbum.');
+
+        // --- BLOQUE 5: AUDITORÍA (TimestampTrait) ---
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-clock')->onlyOnDetail();
+
+        yield DateTimeField::new('createdAt', 'Registrado')
+            ->onlyOnDetail();
+
+        yield DateTimeField::new('updatedAt', 'Última actualización')
+            ->onlyOnDetail();
     }
 }
