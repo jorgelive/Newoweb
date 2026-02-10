@@ -8,6 +8,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad PmsBeds24WebhookAudit.
@@ -69,6 +70,11 @@ class PmsBeds24WebhookAudit
 
     #[ORM\Column(name: 'processing_meta', type: 'json', nullable: true)]
     private ?array $processingMeta = null;
+
+    public function __construct()
+    {
+        $this->id = Uuid::v7();
+    }
 
     /*
      * -------------------------------------------------------------------------

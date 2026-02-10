@@ -32,7 +32,7 @@ security:
         ROLE_GUIA:               [ROLE_USER]
 
         # Admin: Control total de los módulos de negocio
-        # Al heredar los _DELETE, automáticamente hereda _WRITE y _SHOW de todo.
+        # Al heredar los _DELETE, automáticamente hereda _WRITE y _SHOW de todos.
         ROLE_ADMIN:
             - ROLE_USER
             - ROLE_MAESTROS_DELETE
@@ -64,6 +64,14 @@ security:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+
+        api:
+            pattern: ^/api
+            stateless: true
+            # Si usas algún autenticador, añádelo aquí.
+            # Si es pública por ahora, déjala sin seguridad o con 'security: false'
+            security: false
+            #host: '%app.host.api%'
 
         main:
             lazy: true
@@ -111,7 +119,7 @@ security:
 
         - { path: '^/locale', roles: PUBLIC_ACCESS }
 
-        # PANEL: todo requiere login (por host)
+        # PANEL: todos requiere login (por host)
         - { host: '%app.host.panel%', path: '^/', roles: ROLE_USER }
 
         # OWEB legacy (si quieres, también por host)

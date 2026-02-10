@@ -2,7 +2,7 @@
 
 namespace App\Oweb\Entity;
 
-use App\Oweb\Trait\MainArchivoTrait;
+use App\Oweb\Entity\Trait\MainArchivoTrait;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\EventListener;
@@ -14,11 +15,15 @@ use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\UnitOfWork;
 
+/**
+ * Listener Beds24RatesPushQueueListener.
+ * Detecta cambios en tarifas y rangos para sincronizar precios con Beds24.
+ * Calcula intervalos inteligentes (unión de fechas) para cubrir expansiones o reducciones de rango.
+ */
 #[AsDoctrineListener(event: Events::onFlush, priority: 200)]
 final class Beds24RatesPushQueueListener
 {
     public function __construct(
-        // Inyectamos tu nuevo servicio
         private readonly Beds24RatesPushQueueCreator $queueCreator
     ) {
     }
@@ -35,14 +40,14 @@ final class Beds24RatesPushQueueListener
         // 1. INSERTIONS
         foreach ($uow->getScheduledEntityInsertions() as $entity) {
             if ($entity instanceof PmsTarifaRango && $this->isValid($entity)) {
-                $this->processTarifaRango($uow, $entity, true);
+                $this->processTarifaRango($uow, $entity);
             }
         }
 
         // 2. UPDATES
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
             if ($entity instanceof PmsTarifaRango && $this->isValid($entity)) {
-                $this->processTarifaRango($uow, $entity, false);
+                $this->processTarifaRango($uow, $entity);
             }
         }
 
@@ -61,53 +66,58 @@ final class Beds24RatesPushQueueListener
             && $rango->getFechaFin() !== null;
     }
 
-    private function processTarifaRango(UnitOfWork $uow, PmsTarifaRango $rango, bool $isInsert): void
+    private function processTarifaRango(UnitOfWork $uow, PmsTarifaRango $rango): void
     {
         $changeSet = $uow->getEntityChangeSet($rango);
 
+        // Valores Actuales
         $newUnidad = $rango->getUnidad();
         $newInicio = $rango->getFechaInicio();
         $newFin    = $rango->getFechaFin();
 
-        // Detectar valores viejos para recálculo correcto en UPDATE
+        // Valores Antiguos (ChangeSet)
         $oldUnidad = $this->getOldValue($changeSet, 'unidad');
         $oldInicio = $this->getOldValue($changeSet, 'fechaInicio');
         $oldFin    = $this->getOldValue($changeSet, 'fechaFin');
 
+        // Normalización de Tipos
         $oldUnidadObj = $oldUnidad instanceof PmsUnidad ? $oldUnidad : null;
         $oldInicioObj = $oldInicio instanceof DateTimeInterface ? $oldInicio : null;
         $oldFinObj    = $oldFin instanceof DateTimeInterface ? $oldFin : null;
 
-        // A. Soft Delete (activo true -> false)
+        // CASO A: Soft Delete (Activo pasó de true a false)
         $oldActivo = $this->getOldValue($changeSet, 'activo');
-        $newActivo = (bool) ($rango->isActivo() ?? false);
+        $newActivo = $rango->isActivo();
 
-        if (($oldActivo === true) && ($newActivo === false)) {
+        // Nota: isActivo() retorna bool, la comparación estricta es segura
+        if ($oldActivo === true && $newActivo === false) {
             $this->queueCreator->enqueueForInterval(
                 $oldUnidadObj ?? $newUnidad,
                 $oldInicioObj ?? $newInicio,
                 $oldFinObj ?? $newFin,
                 $rango,
-                true, // isDelete
-                $uow  // ✅ IMPORTANTE: Pasamos UoW
+                true, // isDelete logic
+                $uow
             );
             return;
         }
 
-        // B. Cambio de Unidad (Move)
+        // CASO B: Cambio de Unidad (Movimiento)
+        // Se debe limpiar la unidad vieja y actualizar la nueva
         if ($oldUnidadObj instanceof PmsUnidad && $oldUnidadObj !== $newUnidad) {
-            // Recalcular hueco en unidad vieja
             $this->queueCreator->enqueueForInterval(
                 $oldUnidadObj,
                 $oldInicioObj ?? $newInicio,
                 $oldFinObj ?? $newFin,
                 $rango,
-                true,
+                true, // Limpiar unidad vieja
                 $uow
             );
         }
 
-        // C. Standard (Insert/Update en unidad actual)
+        // CASO C: Standard (Insert / Update de precios o fechas)
+        // Calculamos la envoltura de fechas (MinStart -> MaxEnd) para asegurar que
+        // si el rango se encogió, los días sobrantes se actualicen también.
         $from = $this->minDate($oldInicioObj, $newInicio);
         $to   = $this->maxDate($oldFinObj, $newFin);
 
@@ -116,8 +126,8 @@ final class Beds24RatesPushQueueListener
             $from,
             $to,
             $rango,
-            false,
-            $uow // ✅ Pasamos UoW
+            false, // isUpdate/Insert logic
+            $uow
         );
     }
 
@@ -125,11 +135,12 @@ final class Beds24RatesPushQueueListener
     {
         $changeSet = $uow->getEntityChangeSet($rango);
 
+        // En borrado, intentamos rescatar los valores del ChangeSet, si no, usamos los de la entidad
         $unidad = $this->getOldValue($changeSet, 'unidad') ?? $rango->getUnidad();
         $inicio = $this->getOldValue($changeSet, 'fechaInicio') ?? $rango->getFechaInicio();
         $fin    = $this->getOldValue($changeSet, 'fechaFin') ?? $rango->getFechaFin();
 
-        if ($unidad instanceof PmsUnidad && $inicio && $fin) {
+        if ($unidad instanceof PmsUnidad && $inicio instanceof DateTimeInterface && $fin instanceof DateTimeInterface) {
             $this->queueCreator->enqueueForInterval(
                 $unidad,
                 $inicio,
@@ -141,18 +152,42 @@ final class Beds24RatesPushQueueListener
         }
     }
 
-    // ... Helpers (getOldValue, minDate, maxDate, toDay) ...
-    private function getOldValue(array $cs, string $f) { return $cs[$f][0] ?? null; }
-    private function minDate($a, $b) {
-        if (!$a) return DateTimeImmutable::createFromInterface($b)->setTime(0,0,0);
-        $aa = DateTimeImmutable::createFromInterface($a)->setTime(0,0,0);
-        $bb = DateTimeImmutable::createFromInterface($b)->setTime(0,0,0);
+    /* ======================================================
+     * HELPERS (Tipado Estricto)
+     * ====================================================== */
+
+    /**
+     * @return mixed|null Retorna el valor antiguo del changeset o null si no existe.
+     */
+    private function getOldValue(array $changeSet, string $field): mixed
+    {
+        return $changeSet[$field][0] ?? null;
+    }
+
+    private function minDate(?DateTimeInterface $a, ?DateTimeInterface $b): DateTimeInterface
+    {
+        // Si no hay fecha antigua ($a), usamos la nueva ($b).
+        if (!$a && $b) return DateTimeImmutable::createFromInterface($b)->setTime(0, 0, 0);
+        // Si no hay fecha nueva ($b), usamos la antigua ($a).
+        if ($a && !$b) return DateTimeImmutable::createFromInterface($a)->setTime(0, 0, 0);
+        // Si ambas son nulas (caso raro), retornamos hoy por seguridad.
+        if (!$a && !$b) return new DateTimeImmutable('today');
+
+        $aa = DateTimeImmutable::createFromInterface($a)->setTime(0, 0, 0);
+        $bb = DateTimeImmutable::createFromInterface($b)->setTime(0, 0, 0);
+
         return $aa < $bb ? $aa : $bb;
     }
-    private function maxDate($a, $b) {
-        if (!$a) return DateTimeImmutable::createFromInterface($b)->setTime(0,0,0);
-        $aa = DateTimeImmutable::createFromInterface($a)->setTime(0,0,0);
-        $bb = DateTimeImmutable::createFromInterface($b)->setTime(0,0,0);
+
+    private function maxDate(?DateTimeInterface $a, ?DateTimeInterface $b): DateTimeInterface
+    {
+        if (!$a && $b) return DateTimeImmutable::createFromInterface($b)->setTime(0, 0, 0);
+        if ($a && !$b) return DateTimeImmutable::createFromInterface($a)->setTime(0, 0, 0);
+        if (!$a && !$b) return new DateTimeImmutable('today');
+
+        $aa = DateTimeImmutable::createFromInterface($a)->setTime(0, 0, 0);
+        $bb = DateTimeImmutable::createFromInterface($b)->setTime(0, 0, 0);
+
         return $aa > $bb ? $aa : $bb;
     }
 }

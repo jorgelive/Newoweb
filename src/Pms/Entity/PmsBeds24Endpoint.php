@@ -10,6 +10,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use App\Exchange\Service\Contract\EndpointInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad PmsBeds24Endpoint.
@@ -70,6 +71,8 @@ class PmsBeds24Endpoint implements EndpointInterface
         $this->ratesQueues = new ArrayCollection();
         $this->bookingsPushQueues = new ArrayCollection();
         $this->pullQueueJobs = new ArrayCollection();
+
+        $this->id = Uuid::v7();
     }
 
     public function __toString(): string

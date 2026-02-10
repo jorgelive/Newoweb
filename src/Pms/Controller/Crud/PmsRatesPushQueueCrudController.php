@@ -125,12 +125,16 @@ final class PmsRatesPushQueueCrudController extends BaseCrudController
                 'Procesando'  => PmsRatesPushQueue::STATUS_PROCESSING,
                 'Enviado OK'  => PmsRatesPushQueue::STATUS_SUCCESS,
                 'Fallido'     => PmsRatesPushQueue::STATUS_FAILED,
+                'Cancelado'   => PmsRatesPushQueue::STATUS_CANCELED,
+
             ])
             ->renderAsBadges([
                 PmsRatesPushQueue::STATUS_PENDING    => 'secondary',
                 PmsRatesPushQueue::STATUS_PROCESSING => 'info',
                 PmsRatesPushQueue::STATUS_SUCCESS    => 'success',
                 PmsRatesPushQueue::STATUS_FAILED     => 'danger',
+                PmsRatesPushQueue::STATUS_CANCELED  => 'warning',
+
             ]);
 
         yield DateTimeField::new('runAt', 'Programado');

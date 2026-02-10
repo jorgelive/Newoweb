@@ -11,6 +11,7 @@ use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad Beds24Config.
@@ -79,6 +80,8 @@ class Beds24Config implements ChannelConfigInterface
         $this->unidadMaps = new ArrayCollection();
         $this->pullQueueJobs = new ArrayCollection();
         $this->ratesQueues = new ArrayCollection();
+
+        $this->id = Uuid::v7();
     }
 
     /*

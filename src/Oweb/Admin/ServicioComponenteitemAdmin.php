@@ -7,7 +7,6 @@ use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
-use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
@@ -34,7 +33,7 @@ class ServicioComponenteitemAdmin extends AbstractSecureAdmin
             ->add('componente', null, [
                 'label' => 'Componente'
             ])
-            ->add('titulo', TranslationFieldFilter::class, [
+            ->add('titulo', null, [
                 'label' => 'Título'
             ])
             ->add('nomostrartarifa', null, [

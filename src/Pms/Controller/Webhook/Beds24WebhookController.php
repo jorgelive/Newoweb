@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Webhook;
 
 use App\Pms\Entity\PmsBeds24WebhookAudit;
-use App\Pms\Service\Beds24\Webhook\Beds24WebhookFastTrackService;
+use App\Pms\Service\Beds24\Webhook\Beds24WebhookBookingFastTrackService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,109 +17,170 @@ final class Beds24WebhookController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly Beds24WebhookFastTrackService $fastTrackService,
+        private readonly Beds24WebhookBookingFastTrackService $bookingService,
+        // En el futuro: private readonly Beds24WebhookMessageService $messageService,
     ) {}
 
-    #[Route('/bookings', name: 'bookings_v2', methods: ['POST'])]
+    #[Route('/endpoint', name: 'main_endpoint', methods: ['POST'])]
     public function __invoke(Request $request): JsonResponse
     {
-        // 1. Auditoría Inicial (Siempre guardamos lo que llega)
+        // 1. Auditoría Inicial
         $audit = new PmsBeds24WebhookAudit();
         $audit->setReceivedAt(new DateTimeImmutable());
         $audit->setRemoteIp($request->getClientIp());
         $audit->setHeaders($request->headers->all());
+        $audit->setPayloadRaw((string) $request->getContent());
 
-        $content = (string) $request->getContent();
-        $audit->setPayloadRaw($content);
-
-        // Extracción de Token (Header o Query)
-        $token = $request->headers->get('X-Beds24-Webhook-Token')
-            ?? $request->query->get('token');
+        $token = $request->headers->get('X-Beds24-Webhook-Token') ?? $request->query->get('token');
 
         if (empty($token)) {
-            $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
-            $audit->setErrorMessage('missing_token');
-            $this->persistAudit($audit);
-
-            // Usamos el helper para respuesta legible
+            $this->terminateWithError($audit, 'missing_token', 403);
             return $this->prettyJson(['ok' => false, 'error' => 'missing_token'], 403);
         }
 
         try {
-            $payload = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+            $payload = json_decode((string) $request->getContent(), true, 512, JSON_THROW_ON_ERROR);
             $audit->setPayload($payload);
 
-            // Extracción de EventType para índice
             if (is_array($payload)) {
-                $eventType = $payload['type'] ?? $payload['eventType'] ?? null;
-                $audit->setEventType(is_string($eventType) ? $eventType : null);
+                $audit->setEventType($payload['type'] ?? $payload['eventType'] ?? 'unknown');
             }
-
-            // Persistimos el "Recibido" antes de procesar para tener traza si el proceso muere
             $this->persistAudit($audit);
 
-            // ==========================================
-            // Lógica FAST TRACK v2
-            // ==========================================
+            // =================================================================
+            // ENRUTAMIENTO (ROUTING)
+            // =================================================================
 
-            // Validamos estructura mínima (booking es obligatorio)
-            if (!isset($payload['booking']) || !is_array($payload['booking'])) {
-                throw new \RuntimeException('Webhook Beds24 inválido: falta objeto "booking".');
+            $responseDetails = [];
+            $globalErrors = [];
+            $processedAny = false;
+
+            // 1. BOOKINGS (Estricto: debe venir dentro de 'booking')
+            if (isset($payload['booking'])) {
+                $bookingResult = $this->handleBookings($payload['booking'], (string)$token);
+                $responseDetails['bookings'] = $bookingResult['processed'];
+                if (!empty($bookingResult['errors'])) {
+                    $globalErrors = array_merge($globalErrors, $bookingResult['errors']);
+                }
+                $processedAny = true;
             }
 
-            // Delegamos al servicio FastTrack
-            // Este servicio actualiza el estado de $audit a 'processed' o 'error'
-            $result = $this->fastTrackService->process((string)$token, $payload['booking'], $audit);
+            // 2. MESSAGES (Futuro)
+            if (isset($payload['messages'])) {
+                // $this->messageService->processBatch(...)
+                $responseDetails['messages'] = 'pending_implementation';
+                $processedAny = true;
+            }
 
-            // Actualizamos la auditoría final
+            // 3. INVOICE ITEMS (Futuro)
+            if (isset($payload['invoiceItems'])) {
+                $responseDetails['invoices'] = 'pending_implementation';
+                $processedAny = true;
+            }
+
+            // =================================================================
+            // CIERRE DE AUDITORÍA
+            // =================================================================
+
+            if (!$processedAny) {
+                // El payload es JSON válido pero no trae claves conocidas
+                throw new \RuntimeException('Payload sin datos reconocibles (booking, messages, invoiceItems).');
+            }
+
+            // Determinamos estado global basado en los acumuladores
+            $finalStatus = empty($globalErrors) ? PmsBeds24WebhookAudit::STATUS_PROCESSED : 'partial_error';
+
+            // Si hubo errores y no se procesó nada con éxito, es ERROR total
+            if (!empty($globalErrors) && empty($responseDetails['bookings'])) {
+                $finalStatus = PmsBeds24WebhookAudit::STATUS_ERROR;
+            }
+
+            $audit->setStatus($finalStatus);
+            $audit->setProcessingMeta([
+                'mode' => 'controller_router',
+                'details' => $responseDetails,
+                'errors' => $globalErrors
+            ]);
+
+            if (!empty($globalErrors)) {
+                $audit->setErrorMessage('Errores: ' . json_encode($globalErrors));
+            }
+
             $this->persistAudit($audit);
 
-            return $this->prettyJson(array_merge(['ok' => true], $result));
+            return $this->prettyJson([
+                'ok' => empty($globalErrors),
+                'details' => $responseDetails,
+                'errors' => $globalErrors
+            ], 200);
 
         } catch (\JsonException $e) {
-            $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
-            $audit->setErrorMessage("JSON Inválido: " . $e->getMessage());
-            $this->persistAudit($audit);
-
+            $this->terminateWithError($audit, "JSON Inválido: " . $e->getMessage(), 400);
             return $this->prettyJson(['ok' => false, 'error' => 'invalid_json'], 400);
-
         } catch (\Throwable $e) {
-            // El servicio FastTrack ya debería haber marcado el audit como error,
-            // pero por si la excepción vino de otro lado, aseguramos.
-            $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
-            $audit->setErrorMessage(mb_substr($e->getMessage(), 0, 2000));
-
-            $this->persistAudit($audit);
-
-            // Retornamos 200 OK para que Beds24 no reintente infinitamente si es un error lógico nuestro.
-            // Solo retornamos 500 si queremos que reintente.
+            $this->terminateWithError($audit, $e->getMessage(), 200);
             return $this->prettyJson(['ok' => false, 'error' => $e->getMessage()], 200);
         }
     }
 
     /**
-     * Helper para devolver JSON limpio, sin escapar caracteres Unicode ni Slashes.
+     * Normaliza y procesa el bloque 'booking'.
      */
+    private function handleBookings(mixed $bookingData, string $token): array
+    {
+        $bookingsToProcess = [];
+
+        // Normalización Estricta:
+        // Beds24 envía { "booking": {...} } o { "booking": [{...}, {...}] }
+        if (is_array($bookingData)) {
+            if (array_is_list($bookingData)) {
+                $bookingsToProcess = $bookingData; // Lista
+            } else {
+                $bookingsToProcess = [$bookingData]; // Objeto único
+            }
+        }
+
+        $processedIds = [];
+        $errors = [];
+
+        foreach ($bookingsToProcess as $index => $data) {
+            if (!is_array($data) || !isset($data['id'])) {
+                $errors[] = ['index' => $index, 'error' => 'Estructura inválida'];
+                continue;
+            }
+
+            try {
+                // Llamamos al servicio. NOTA: Ya no pasamos $audit para evitar efectos colaterales.
+                $res = $this->bookingService->process($token, $data);
+                $processedIds[] = $res['id'];
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'id' => $data['id'] ?? 'unknown',
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        return ['processed' => $processedIds, 'errors' => $errors];
+    }
+
+    private function terminateWithError(PmsBeds24WebhookAudit $audit, string $msg, int $httpCode): void
+    {
+        $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
+        $audit->setErrorMessage(mb_substr($msg, 0, 2000));
+        $this->persistAudit($audit);
+    }
+
     private function prettyJson(array $data, int $status = 200): JsonResponse
     {
         return (new JsonResponse($data, $status))
-            ->setEncodingOptions(
-                JsonResponse::DEFAULT_ENCODING_OPTIONS |
-                JSON_UNESCAPED_UNICODE | // Tildes y Ñ legibles
-                JSON_UNESCAPED_SLASHES | // URLs limpias
-                JSON_PRETTY_PRINT        // Formato visual agradable
-            );
+            ->setEncodingOptions(JsonResponse::DEFAULT_ENCODING_OPTIONS | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 
     private function persistAudit(PmsBeds24WebhookAudit $audit): void
     {
-        if (!$this->em->isOpen()) {
-            return;
-        }
-
-        if (!$this->em->contains($audit)) {
-            $this->em->persist($audit);
-        }
+        if (!$this->em->isOpen()) return;
+        if (!$this->em->contains($audit)) $this->em->persist($audit);
         $this->em->flush();
     }
 }

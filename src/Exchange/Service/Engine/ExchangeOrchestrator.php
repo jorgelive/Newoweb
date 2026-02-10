@@ -64,7 +64,7 @@ final class ExchangeOrchestrator
 
                 // 4. PROCESAMIENTO DE RESULTADOS (I/O Base de Datos)
                 foreach ($batch->getItems() as $item) {
-                    $itemId = $item->getId();
+                    $itemId = (string) $item->getId();
 
                     // Buscamos el resultado específico para este ítem
                     $result = $results[$itemId] ?? null;
@@ -97,10 +97,7 @@ final class ExchangeOrchestrator
 
                 $this->handleCatastrophicBatchFailure($batch, $e);
             } finally {
-                // Limpieza de caché estática (importante para el BookingPersister)
-                if (class_exists(Beds24BookingPersister::class)) {
-                    Beds24BookingPersister::resetCache();
-                }
+
             }
 
             // Limpiamos memoria de Doctrine para evitar fugas en procesos largos

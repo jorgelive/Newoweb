@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\EventListener;
@@ -33,10 +34,11 @@ final class PmsReservaDeleteListener
 
             if (!$evento->isSafeToDelete()) {
                 throw new AccessDeniedHttpException(sprintf(
-                    'NO SE PUEDE ELIMINAR LA RESERVA #%d. El evento #%d bloquea la operación. ' .
+                    'NO SE PUEDE ELIMINAR LA RESERVA #%s. El evento #%s bloquea la operación. ' .
                     'POSIBLES CAUSAS: Es una reserva de OTA (Booking/Airbnb), ya existe en Beds24 (debe cancelarla primero) o se está sincronizando en este momento.',
-                    $reserva->getId(),
-                    $evento->getId()
+                    // ✅ CORRECCIÓN: %s para UUIDs y cast explícito a string
+                    (string) $reserva->getId(),
+                    (string) $evento->getId()
                 ));
             }
 

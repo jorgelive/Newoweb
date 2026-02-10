@@ -1,8 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
 
-// Ubicación: assets/controllers/panel/dependent-select_controller.js
-// Identificador Stimulus: panel--dependent-select
-
+/**
+ * Controller: panel--dependent-select
+ * Gestiona la lógica de filtrado entre selects dependientes.
+ * Compatible con: IDs Naturales (String), UUIDs y IDs clásicos (Int).
+ */
 export default class extends Controller {
     static values = {
         childSelector: String,
@@ -13,6 +15,7 @@ export default class extends Controller {
     }
 
     connect() {
+        // Ejecutamos al conectar para aplicar filtros si ya hay valores seleccionados
         this.onChange();
     }
 
@@ -22,7 +25,8 @@ export default class extends Controller {
 
         if (!childSelect) return;
 
-        if (!parentValue) {
+        // Si el padre no tiene selección, reseteamos el hijo
+        if (!parentValue || parentValue === "") {
             this._resetChild(childSelect);
             return;
         }
@@ -30,6 +34,7 @@ export default class extends Controller {
         let hasValidSelection = false;
 
         Array.from(childSelect.options).forEach(option => {
+            // La opción vacía (placeholder) siempre debe ser visible
             if (option.value === '') {
                 option.hidden = false;
                 return;
@@ -40,17 +45,23 @@ export default class extends Controller {
 
             option.hidden = !isVisible;
 
+            // Verificamos si la opción que estaba seleccionada sigue siendo válida
             if (isVisible && option.selected) {
                 hasValidSelection = true;
             }
         });
 
+        // Si la selección previa ya no es válida tras el filtro, reseteamos el valor del hijo
         if (!hasValidSelection) {
             childSelect.value = '';
+            // Disparamos el evento para encadenar múltiples niveles de dependencia
             childSelect.dispatchEvent(new Event('change'));
         }
     }
 
+    /**
+     * Obtiene el valor del elemento padre según la configuración.
+     */
     _getParentValue() {
         if (this.filterByValue === 'value') {
             return this.element.value;
@@ -59,32 +70,47 @@ export default class extends Controller {
         return selectedOption ? selectedOption.getAttribute(this.filterByValue) : null;
     }
 
+    /**
+     * Localiza el elemento hijo dentro del ámbito (scope) definido.
+     */
     _getChildSelect() {
         const scope = this.element.closest(this.scopeSelectorValue);
         return scope ? scope.querySelector(this.childSelectorValue) : null;
     }
 
+    /**
+     * Lógica de comparación de valores.
+     * Soporta strings directos, coincidencia parcial y búsqueda en arreglos JSON.
+     */
     _compare(parentValue, childValue) {
-        if (!childValue) return false;
+        if (childValue === null || childValue === undefined) return false;
 
         switch (this.operatorValue) {
             case 'json_contains':
                 try {
+                    // Útil para roles: parentValue = 'ROLE_CLEANING', childValue = '["ROLE_USER", "ROLE_CLEANING"]'
                     const array = JSON.parse(childValue);
                     return Array.isArray(array) && array.includes(parentValue);
                 } catch (e) {
+                    console.warn(`[DependentSelect] Error parsing JSON for value: ${childValue}`);
                     return false;
                 }
             case 'like':
-                return childValue.includes(parentValue);
+                return String(childValue).includes(String(parentValue));
             case 'strict':
             default:
-                return childValue == parentValue;
+                // Usamos comparación estricta de strings ahora que los IDs son consistentes
+                return String(childValue) === String(parentValue);
         }
     }
 
+    /**
+     * Limpia el select hijo ocultando todas las opciones excepto el placeholder.
+     */
     _resetChild(select) {
-        Array.from(select.options).forEach(option => option.hidden = option.value !== '');
+        Array.from(select.options).forEach(option => {
+            option.hidden = (option.value !== '');
+        });
         select.value = '';
         select.dispatchEvent(new Event('change'));
     }

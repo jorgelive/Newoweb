@@ -1,0 +1,18 @@
+# config/services/services_pax.yaml
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # =========================
+    # controllers del módulo Pms
+    # (fuera de src/Controller/)
+    # =========================
+    App\Pax\Controller\:
+        resource: '../../src/Pax/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+            - 'controller.service_arguments'
+

@@ -13,6 +13,7 @@ use Doctrine\Persistence\ObjectRepository;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Provider RAW con cálculo de prioridad visual (Z-Index lógico).
@@ -87,6 +88,11 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
             if (!empty($fields['id'])) {
                 $id = $this->resolvePath($entity, (string) $fields['id']);
             }
+
+            // ✅ FIX: Soporte para UUIDs en el ID del evento
+            if ($id instanceof Uuid) {
+                $id = (string) $id;
+            }
             $id = (is_scalar($id) && $id !== '') ? $id : spl_object_id($entity);
 
             $resourceId = null;
@@ -94,11 +100,22 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
             if (!empty($fields['resourceRoot'])) {
                 $resourceRoot = $this->resolvePath($entity, (string) $fields['resourceRoot']);
             }
+
             if (!empty($fields['resourceId'])) {
                 $rid = $this->resolvePath($entity, (string) $fields['resourceId']);
+
+                // ✅ FIX: Soporte para UUIDs en resourceId (unidad.id)
+                if ($rid instanceof Uuid) {
+                    $rid = (string) $rid;
+                }
+
                 $resourceId = (is_scalar($rid) && $rid !== '') ? $rid : null;
             } elseif (is_object($resourceRoot) && method_exists($resourceRoot, 'getId')) {
                 $resourceId = $resourceRoot->getId();
+                // ✅ FIX: Soporte para UUIDs si viene del objeto raíz
+                if ($resourceId instanceof Uuid) {
+                    $resourceId = (string) $resourceId;
+                }
             }
 
             // 4. Precio y MinStay
@@ -250,6 +267,10 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
                 $id = $this->resolvePath($entity, $resourceIdPath);
             } elseif (method_exists($resourceRoot, 'getId')) {
                 $id = $resourceRoot->getId();
+            }
+
+            if ($id instanceof Uuid) {
+                $id = (string) $id;
             }
 
             if (!is_scalar($id) || $id === '') {

@@ -4,6 +4,7 @@ namespace App\Pms\Entity;
 
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Entidad PmsChannel.
@@ -16,9 +17,11 @@ class PmsChannel
 {
     use TimestampTrait;
 
-    public const CODIGO_DIRECTO  = 'directo';
-    public const CODIGO_AIRBNB   = 'airbnb';
-    public const CODIGO_BOOKING  = 'booking';
+    public const CODIGO_DIRECTO     = 'directo';
+    public const CODIGO_AIRBNB      = 'airbnb';
+    public const CODIGO_VRBO        = 'vrbo';
+    public const CODIGO_BOOKING     = 'booking';
+    public const CANAL_PAGO_TOTAL   = [self::CODIGO_BOOKING, self::CODIGO_VRBO];
 
     /**
      * El ID es el código string.
@@ -46,6 +49,12 @@ class PmsChannel
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $beds24ChannelId = null;
 
+    /**
+     * Prioridad de visualización (menor número sale primero).
+     */
+    #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    private int $orden = 0;
+
     public function __construct(?string $id = null)
     {
         if ($id) {
@@ -59,6 +68,7 @@ class PmsChannel
      * -------------------------------------------------------------------------
      */
 
+    #[Groups(['pax:read'])]
     public function getId(): ?string
     {
         return $this->id;
@@ -70,6 +80,7 @@ class PmsChannel
         return $this;
     }
 
+    #[Groups(['pax:read'])]
     public function getNombre(): ?string
     {
         return $this->nombre;
@@ -125,19 +136,20 @@ class PmsChannel
         return $this;
     }
 
+    public function getOrden(): int
+    {
+        return $this->orden;
+    }
+
+    public function setOrden(int $orden): self
+    {
+        $this->orden = $orden;
+        return $this;
+    }
+
     public function __toString(): string
     {
         return $this->nombre ?? (string) $this->id;
     }
 
-    /*
-     * -------------------------------------------------------------------------
-     * HELPERS
-     * -------------------------------------------------------------------------
-     */
-
-    public function isBeds24(): bool
-    {
-        return !empty($this->beds24ChannelId);
-    }
 }

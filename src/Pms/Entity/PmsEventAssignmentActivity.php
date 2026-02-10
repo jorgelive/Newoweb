@@ -56,7 +56,7 @@ class PmsEventAssignmentActivity
     public function __construct(?string $id = null)
     {
         if ($id) {
-            $this->id = strtoupper($id);
+            $this->id = $id;
         }
     }
 
@@ -73,7 +73,7 @@ class PmsEventAssignmentActivity
 
     public function setId(string $id): self
     {
-        $this->id = strtoupper($id);
+        $this->id = $id;
         return $this;
     }
 

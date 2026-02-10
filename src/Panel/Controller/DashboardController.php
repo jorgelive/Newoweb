@@ -5,8 +5,16 @@ declare(strict_types=1);
 namespace App\Panel\Controller;
 
 use App\Entity\User;
+
+// Maestros
+use App\Entity\Maestro\MaestroDocumentoTipo;
 use App\Entity\Maestro\MaestroIdioma;
+use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Maestro\MaestroPais;
+use App\Entity\Maestro\MaestroTipocambio;
+
+// PMS Entities
+use App\Pax\Entity\UiI18n;
 use App\Pms\Entity\Beds24Config;
 use App\Pms\Entity\PmsBeds24Endpoint;
 use App\Pms\Entity\PmsBeds24WebhookAudit;
@@ -29,7 +37,12 @@ use App\Pms\Entity\PmsReservaHuesped;
 use App\Pms\Entity\PmsTarifaRango;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Entity\PmsUnidadBeds24Map;
+use App\Pms\Entity\PmsEstablecimientoVirtual;
 use App\Security\Roles;
+
+
+// EasyAdmin Imports
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
@@ -49,10 +62,44 @@ class DashboardController extends AbstractDashboardController
         return $this->render('panel/dashboard.html.twig');
     }
 
+    /**
+     * ✅ GESTIÓN CENTRALIZADA DE ASSETS (JS/CSS)
+     * Carga TinyMCE, FullCalendar y Tippy en todo el panel.
+     */
+    public function configureAssets(): Assets
+    {
+        return Assets::new()
+            // --- 1. ESTILOS (Tippy.js) ---
+            ->addCssFile('https://unpkg.com/tippy.js@6/dist/tippy.css')
+            ->addCssFile('https://unpkg.com/tippy.js@6/animations/scale.css')
+
+            // --- 2. JAVASCRIPT: EDITOR DE TEXTO (TinyMCE) ---
+            // Nota: Si tienes API Key, ponla en lugar de 'no-api-key' para quitar advertencias
+            ->addJsFile('https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js')
+            // --- 3. JAVASCRIPT: CALENDARIO (FullCalendar v6) ---
+            // Core & Plugins Básicos
+            ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/index.global.min.js')
+            ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.10/index.global.min.js')
+            ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.10/index.global.min.js')
+            ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.10/index.global.min.js')
+            ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.10/index.global.min.js')
+
+            // Scheduler / Premium Plugins
+            ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/premium-common@6.1.10/index.global.min.js')
+            ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/scrollgrid@6.1.10/index.global.min.js')
+            ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/timeline@6.1.10/index.global.min.js')
+            ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/resource@6.1.10/index.global.min.js')
+            ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.10/index.global.min.js')
+            ;
+    }
+
     public function configureCrud(): Crud
     {
+
         return parent::configureCrud()
-            ->overrideTemplate('layout', 'panel/layout.html.twig');
+            ->overrideTemplate('layout', 'panel/layout.html.twig')
+            ->addFormTheme('panel/form/translation_entry.html.twig')
+            ->addFormTheme('panel/field/gallery_helper.html.twig');
     }
 
     public function configureDashboard(): Dashboard
@@ -101,6 +148,10 @@ class DashboardController extends AbstractDashboardController
             ->setSubItems([
                 MenuItem::linkToCrud('Idiomas', 'fa fa-language', MaestroIdioma::class),
                 MenuItem::linkToCrud('Países', 'fa fa-flag', MaestroPais::class),
+                MenuItem::linkToCrud('Tipos Documento', 'fa fa-id-card', MaestroDocumentoTipo::class),
+                MenuItem::linkToCrud('Monedas', 'fa fa-coins', MaestroMoneda::class),
+                MenuItem::linkToCrud('Tipos de Cambio', 'fa fa-chart-line', MaestroTipocambio::class),
+                MenuItem::linkToCrud('Traducciones UI', 'fa fa-language', UiI18n::class)
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 
@@ -108,6 +159,7 @@ class DashboardController extends AbstractDashboardController
             ->setSubItems([
                 MenuItem::linkToCrud('Establecimientos', 'fa fa-building', PmsEstablecimiento::class),
                 MenuItem::linkToCrud('Unidades', 'fa fa-door-open', PmsUnidad::class),
+                MenuItem::linkToCrud('Establecimientos Virtuales', 'fa fa-tags', PmsEstablecimientoVirtual::class),
                 MenuItem::linkToCrud('Canales', 'fa fa-exchange-alt', PmsChannel::class),
                 MenuItem::linkToCrud('Actividades (Tareas)', 'fa fa-clipboard-list', PmsEventAssignmentActivity::class),
                 MenuItem::linkToCrud('Estados de Evento', 'fa fa-tag', PmsEventoEstado::class),

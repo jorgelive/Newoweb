@@ -73,7 +73,7 @@ class TestTipocambioCommand extends Command
                 ['ID (BD)', $tc->getId() ?? 'N/A'],
                 ['Fecha Solicitada', $fecha->format('Y-m-d')],
                 ['Fecha del Dato', $tc->getFecha()->format('Y-m-d')], // Para ver si hizo fallback
-                ['Moneda', $tc->getMoneda()->getCodigo() ?? 'USD'], // Asumiendo que tu entidad tiene getCodigo
+                ['Moneda', $tc->getMoneda()->getId() ?? 'USD'], // Asumiendo que tu entidad tiene getCodigo
                 ['Compra', $tc->getCompra()],
                 ['Venta', $tc->getVenta()],
                 ['Tiempo de respuesta', $duration . ' ms'],

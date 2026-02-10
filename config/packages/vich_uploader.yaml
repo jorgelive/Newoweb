@@ -1,20 +1,45 @@
 vich_uploader:
     db_driver: orm
     mappings:
+        # ----------------------------------------------------------------------
+        # 1. HUÉSPEDES (Usa el HuespedNamer específico)
+        # ----------------------------------------------------------------------
         huesped_docs:
-            # URL Web: /carga/pms/...
-            uri_prefix: '/%pms.path.huesped_docs%'
+            # URL pública (ej: /carga/huespedes/docs)
+            uri_prefix: '%pms.path.huesped_docs%'
+            # Ruta física en disco
+            upload_destination: '%app.public_dir%%pms.path.huesped_docs%'
 
-            upload_destination: '%app.public_dir%/%pms.path.huesped_docs%'
+            namer: App\Pms\Naming\HuespedNamer # ✅ Específico (nombres legibles)
 
-            namer: App\Pms\Naming\HuespedNamer
+            # Vital: false porque tus AssetListeners ya inyectan la URL
+            inject_on_load: false
+
             delete_on_update: true
             delete_on_remove: true
 
         huesped_firmas:
-            uri_prefix: '/%pms.path.huesped_firmas%'
-            upload_destination: '%app.public_dir%/%pms.path.huesped_firmas%'
+            uri_prefix: '%pms.path.huesped_firmas%'
+            upload_destination: '%app.public_dir%%pms.path.huesped_firmas%'
 
-            namer: App\Pms\Naming\HuespedNamer
+            namer: App\Pms\Naming\HuespedNamer # ✅ Específico
+
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
+
+        # ----------------------------------------------------------------------
+        # 2. GALERÍA (Usa el MediaTokenNamer universal)
+        # ----------------------------------------------------------------------
+        guia_images:
+            uri_prefix: '%pms.path.galeria_images%'
+
+            # 🔴 CORREGIDO: Tenías un error de tipeo "...dir%/p%pms..." (la 'p' extra)
+            upload_destination: '%app.public_dir%%pms.path.galeria_images%'
+
+            # ✅ UNIVERSAL: Usa el token del MediaTrait (TOKEN_nombre.webp)
+            namer: App\Panel\Naming\MediaTokenNamer
+
+            inject_on_load: false
             delete_on_update: true
             delete_on_remove: true

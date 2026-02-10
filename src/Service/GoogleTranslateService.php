@@ -5,6 +5,7 @@ namespace App\Service;
 use Google\Cloud\Translate\V3\Client\TranslationServiceClient;
 use Google\Cloud\Translate\V3\TranslateTextRequest; // Necesario para la compatibilidad
 use Google\ApiCore\ApiException;
+use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 
 /**
  * Servicio de Traducción Google V3.
@@ -30,6 +31,10 @@ class GoogleTranslateService
     ) {
         // Inicialización crítica: Extraemos el project_id necesario para el path de la API
         $this->projectId = $this->googleTranslateCredentials['project_id'] ?? '';
+
+        if ($this->projectId === '') {
+            throw new RuntimeException('Google Translate project_id no configurado');
+        }
     }
 
     /**
@@ -40,7 +45,7 @@ class GoogleTranslateService
      * * @return array Array con los strings traducidos.
      * @throws ApiException Si ocurre un error en la comunicación con Google Cloud.
      */
-    public function translate(string|array $text, string $targetLanguage, ?string $sourceLanguage = null): array
+    public function translate(string|array $text, string $targetLanguage, ?string $sourceLanguage = null, string $mimeType = 'text/plain'): array
     {
         $contents = is_array($text) ? $text : [$text];
 
@@ -53,7 +58,7 @@ class GoogleTranslateService
             ->setContents($contents)
             ->setTargetLanguageCode($targetLanguage)
             ->setParent($parent)
-            ->setMimeType('text/plain');
+            ->setMimeType($mimeType);
 
         if ($sourceLanguage) {
             $request->setSourceLanguageCode($sourceLanguage);

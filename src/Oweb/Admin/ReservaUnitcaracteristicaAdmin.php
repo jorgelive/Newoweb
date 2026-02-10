@@ -9,7 +9,6 @@ use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\DoctrineORMAdminBundle\Filter\ModelFilter;
 use Sonata\Form\Type\CollectionType;
-use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 
 class ReservaUnitcaracteristicaAdmin extends AbstractSecureAdmin
@@ -30,7 +29,7 @@ class ReservaUnitcaracteristicaAdmin extends AbstractSecureAdmin
             ->add('id')
             ->add('nombre', null, ['label' => 'Nombre interno'])
             ->add('unittipocaracteristica', null, ['label' => 'Tipo'])
-            ->add('contenido', TranslationFieldFilter::class, [])
+            ->add('contenido', null, [])
             // 🔎 Filtro por UNIDAD vinculada (autocomplete)
             ->add('links.unit', ModelFilter::class, [
                 'label' => 'Unidad vinculada',

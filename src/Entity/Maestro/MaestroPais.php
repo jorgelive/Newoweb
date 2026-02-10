@@ -11,6 +11,7 @@ use App\Pms\Entity\PmsReservaHuesped;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Entidad MaestroPais.
@@ -21,6 +22,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class MaestroPais
 {
+    public const ISO_PERU = 'PE';
+    public const DEFAULT_PAIS = self::ISO_PERU;
+
     use TimestampTrait;
 
     #[ORM\Id]
@@ -70,8 +74,10 @@ class MaestroPais
      * -------------------------------------------------------------------------
      */
 
+    #[Groups(['pax:read'])]
     public function getId(): ?string { return $this->id; }
 
+    #[Groups(['pax:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(string $nombre): self { $this->nombre = $nombre; return $this; }
 

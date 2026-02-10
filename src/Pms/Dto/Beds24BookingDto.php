@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Dto;
@@ -10,9 +11,11 @@ final class Beds24BookingDto
 {
     public function __construct(
         public readonly ?int $id,
-        public readonly ?int $masterId,
+        public readonly ?int $masterId,    // El ID calculado (Padre)
         public readonly ?int $propertyId,
         public readonly ?int $roomId,
+        // ✅ Estructura cruda del grupo para acceso a 'ids' o validaciones futuras
+        public readonly array $bookingGroup,
         public readonly ?string $status,
         public readonly ?string $subStatus,
         public readonly ?string $arrival,
@@ -40,14 +43,25 @@ final class Beds24BookingDto
 
     public static function fromArray(array $booking): self
     {
+        // 1. Capturamos el grupo entero (si viene)
+        $bookingGroup = isset($booking['bookingGroup']) && is_array($booking['bookingGroup'])
+            ? $booking['bookingGroup']
+            : [];
+
+        // 2. Lógica "Cascada" para el Master ID
+        // Prioridad A: El 'master' dentro del grupo (API v2 estándar)
+        // Prioridad B: El 'masterId' en la raíz (API v1 / Legacy)
+        $rawMasterId = $bookingGroup['master'] ?? $booking['masterId'] ?? null;
+
         $numAdult = isset($booking['numAdult']) ? (int) $booking['numAdult'] : 0;
         $numChild = isset($booking['numChild']) ? (int) $booking['numChild'] : 0;
 
         return new self(
             id: self::toIntOrNull($booking['id'] ?? null),
-            masterId: self::toIntOrNull($booking['masterId'] ?? null),
+            masterId: self::toIntOrNull($rawMasterId), // ✅ Aquí va el ID limpio para el Persister
             propertyId: self::toIntOrNull($booking['propertyId'] ?? null),
             roomId: self::toIntOrNull($booking['roomId'] ?? null),
+            bookingGroup: $bookingGroup,
             status: self::toStringOrNull($booking['status'] ?? null),
             subStatus: self::toStringOrNull($booking['subStatus'] ?? null),
             arrival: self::toStringOrNull($booking['arrival'] ?? null),

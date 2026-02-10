@@ -1,0 +1,73 @@
+{# templates/panel/field/gallery_helper.html.twig #}
+
+{% block gallery_helper_widget %}
+
+    <div class="gallery-helper-wrapper mb-4 w-100">
+        <label class="form-label text-muted small fw-bold text-uppercase d-block mb-2">
+            <i class="fa fa-images me-1 text-primary"></i>
+            Galería del Ítem (Clic para copiar URL)
+        </label>
+
+        <div class="d-flex flex-wrap gap-3 p-3 border rounded shadow-sm bg-white">
+
+            {% set item = form.parent.vars.data|default(null) %}
+
+            {% if item and item.galeria is defined and item.galeria|length > 0 %}
+
+                {% for foto in item.galeria %}
+
+                    {#
+                    ✅ USAMOS TU PROPIEDAD VIRTUAL
+                    Intentamos obtener la URL completa inyectada por el Listener.
+                    #}
+                    {% set url = foto.imageUrl %}
+
+                    {# 🛡️ PLAN B: Si por alguna razón el listener no se ejecutó (ej: objeto nuevo en memoria),
+                       intentamos construir la ruta manualmente con imageName #}
+                    {% if url is empty and foto.imageName is not empty %}
+                        {% set url = asset('uploads/guia/' ~ foto.imageName) %}
+                    {% endif %}
+
+                    {# Solo mostramos si logramos conseguir una URL #}
+                    {% if url is not empty %}
+                        <div class="position-relative"
+                             style="width: 100px; height: 100px; cursor: pointer; transition: transform 0.2s;"
+                             onclick="copyToClipboard('{{ url }}', this)"
+                             title="{{ foto.imageName|default('Imagen') }}"
+                             onmouseenter="this.style.transform='scale(1.05)'"
+                             onmouseleave="this.style.transform='scale(1)'">
+
+                            <img src="{{ url }}"
+                                 alt="Foto"
+                                 class="w-100 h-100 rounded border shadow-sm"
+                                 style="object-fit: cover;">
+
+                            <div class="copy-overlay d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center rounded"
+                                 style="background: rgba(40, 167, 69, 0.9);">
+                                <i class="fa fa-check text-white fa-2x"></i>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                {% endfor %}
+
+            {% else %}
+                <div class="text-center w-100 py-3 text-muted fst-italic">
+                    <i class="fa fa-info-circle me-1"></i>
+                    Sube imágenes en la pestaña "Multimedia", guarda cambios y aparecerán aquí.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(text, element) {
+            navigator.clipboard.writeText(text).then(() => {
+                const overlay = element.querySelector('.copy-overlay');
+                overlay.classList.remove('d-none');
+                setTimeout(() => overlay.classList.add('d-none'), 800);
+            });
+        }
+    </script>
+
+{% endblock %}

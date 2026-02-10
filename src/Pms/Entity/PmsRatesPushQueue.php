@@ -12,6 +12,7 @@ use App\Pms\Repository\PmsRatesPushQueueRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad PmsRatesPushQueue.
@@ -42,10 +43,12 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
     public const STATUS_PROCESSING = 'processing';
     public const STATUS_SUCCESS    = 'success';
     public const STATUS_FAILED     = 'failed';
+    public const STATUS_CANCELED   = 'canceled';
 
     /* ======================================================
      * CONTEXTO DE NEGOCIO (UUIDs - BINARY 16)
      * ====================================================== */
+
 
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class, inversedBy: 'tarifaQueues')]
     #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
@@ -184,6 +187,11 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
     /* ======================================================
      * GETTERS & SETTERS EXPLÍCITOS
      * ====================================================== */
+
+    public function __construct()
+    {
+        $this->id = Uuid::v7();
+    }
 
     public function getUnidad(): ?PmsUnidad { return $this->unidad; }
     public function setUnidad(?PmsUnidad $u): self { $this->unidad = $u; return $this; }

@@ -11,11 +11,14 @@ use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad PmsEventoBeds24Link.
  * Vincula técnicamente un evento del sistema con una sub-reserva de Beds24.
- * Soporta lógica de espejos (mirrors) para reservas multi-unidad mediante relaciones UUID.
+ * * CAMBIO ARQUITECTURA:
+ * Se elimina la jerarquía recursiva (Parent/Child).
+ * Ahora es una estructura plana donde un link se marca como 'esPrincipal'.
  */
 #[ORM\Entity]
 #[ORM\Table(
@@ -23,7 +26,7 @@ use Doctrine\ORM\Mapping as ORM;
     indexes: [
         new ORM\Index(columns: ['evento_id'], name: 'idx_pms_evento_beds24_evento'),
         new ORM\Index(columns: ['unidad_beds24_map_id'], name: 'idx_pms_evento_beds24_map'),
-        new ORM\Index(columns: ['origin_link_id'], name: 'idx_pms_evento_beds24_origin'),
+        // Eliminado índice de origin_link
     ],
     uniqueConstraints: [
         new ORM\UniqueConstraint(name: 'uniq_pms_evento_beds24_bookid', columns: ['beds24BookId']),
@@ -49,23 +52,16 @@ class PmsEventoBeds24Link
     public const STATUS_PENDING_MOVE = 'pending_move';
     public const STATUS_SYNCED_DELETED = 'synced_deleted';
 
-    /**
-     * Relación con el evento del calendario.
-     * Se debe asegurar que PmsEventoCalendario también use IdTrait.
-     */
     #[ORM\ManyToOne(targetEntity: PmsEventoCalendario::class, inversedBy: 'beds24Links')]
     #[ORM\JoinColumn(
         name: 'evento_id',
         referencedColumnName: 'id',
-        nullable: false,
+        nullable: true,
         onDelete: 'CASCADE',
         columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
     )]
     private ?PmsEventoCalendario $evento = null;
 
-    /**
-     * Relación con el mapeo de unidad de Beds24.
-     */
     #[ORM\ManyToOne(targetEntity: PmsUnidadBeds24Map::class)]
     #[ORM\JoinColumn(
         name: 'unidad_beds24_map_id',
@@ -76,25 +72,15 @@ class PmsEventoBeds24Link
     )]
     private ?PmsUnidadBeds24Map $unidadBeds24Map = null;
 
-    /**
-     * ID único de la sub-reserva en Beds24 (bookId).
-     */
     #[ORM\Column(type: 'bigint', unique: true, nullable: true)]
     private ?string $beds24BookId = null;
 
     /**
-     * Referencia al link principal si este es un espejo (mirror).
-     * Relación reflexiva vinculada mediante UUID.
+     * ✅ NUEVO: Flag plano para identificar el link maestro.
+     * Reemplaza a la relación originLink.
      */
-    #[ORM\ManyToOne(targetEntity: self::class)]
-    #[ORM\JoinColumn(
-        name: 'origin_link_id',
-        referencedColumnName: 'id',
-        nullable: true,
-        onDelete: 'SET NULL',
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
-    )]
-    private ?self $originLink = null;
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $esPrincipal = false;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTimeInterface $lastSeenAt = null;
@@ -114,11 +100,13 @@ class PmsEventoBeds24Link
     public function __construct()
     {
         $this->queues = new ArrayCollection();
+        // ✅ UUID Generado en constructor para evitar problemas en onFlush
+        $this->id = Uuid::v7();
     }
 
     /*
      * -------------------------------------------------------------------------
-     * GETTERS Y SETTERS EXPLÍCITOS
+     * GETTERS Y SETTERS
      * -------------------------------------------------------------------------
      */
 
@@ -129,9 +117,7 @@ class PmsEventoBeds24Link
 
     public function setEvento(?PmsEventoCalendario $evento): self
     {
-        if ($evento !== null) {
-            $this->evento = $evento;
-        }
+        $this->evento = $evento;
         return $this;
     }
 
@@ -142,9 +128,7 @@ class PmsEventoBeds24Link
 
     public function setUnidadBeds24Map(?PmsUnidadBeds24Map $unidadBeds24Map): self
     {
-        if ($unidadBeds24Map !== null) {
-            $this->unidadBeds24Map = $unidadBeds24Map;
-        }
+        $this->unidadBeds24Map = $unidadBeds24Map;
         return $this;
     }
 
@@ -159,26 +143,31 @@ class PmsEventoBeds24Link
         return $this;
     }
 
-    public function getOriginLink(): ?self
+    // ✅ Gestión de Principalidad
+
+    public function isEsPrincipal(): bool
     {
-        return $this->originLink;
+        return $this->esPrincipal;
     }
 
-    public function setOriginLink(?self $originLink): self
+    public function setEsPrincipal(bool $esPrincipal): self
     {
-        $this->originLink = $originLink;
+        $this->esPrincipal = $esPrincipal;
         return $this;
     }
 
-    public function isDerived(): bool
+    public function hacerPrincipal(): self
     {
-        return $this->originLink !== null;
+        $this->esPrincipal = true;
+        return $this;
     }
 
     public function isMirror(): bool
     {
-        return $this->originLink !== null;
+        return !$this->esPrincipal;
     }
+
+    // --- Estados ---
 
     public function getStatus(): ?string
     {
@@ -290,9 +279,9 @@ class PmsEventoBeds24Link
     {
         $id = $this->getId() ?? 'NEW';
         $bookId = $this->beds24BookId ?? '-';
-        $kind = $this->originLink ? 'mirror' : 'root';
+        $kind = $this->esPrincipal ? 'ROOT' : 'MIRROR';
         $status = $this->status ?? self::STATUS_ACTIVE;
 
-        return sprintf('Link #%s • %s • %s • bookId %s', (string)$id, $kind, $status, $bookId);
+        return sprintf('Link #%s [%s] • %s • bookId %s', (string)$id, $kind, $status, $bookId);
     }
 }

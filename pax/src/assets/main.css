@@ -1,0 +1,45 @@
+/*
+src/assets/main.css
+*/
+@import "tailwindcss";
+
+/* opcional */
+
+
+@layer base {
+    /* =========================================
+       RESTAURACIÓN GLOBAL DE LISTAS (HTML)
+       Tailwind elimina esto por defecto ("Preflight"),
+       así que lo restauramos manualmente.
+       ========================================= */
+
+    ul {
+        list-style-type: disc; /* Vuelven los puntitos */
+        padding-left: 1rem;  /* Sangría para que no quede pegado a la izquierda */
+        margin-bottom: 0.5rem;   /* Espacio al final de la lista completa */
+    }
+
+    ol {
+        list-style-type: decimal; /* Vuelven los números (1., 2., 3.) */
+        padding-left: 1rem;     /* Sangría alineada */
+        margin-bottom: 0.5rem;
+    }
+
+    /* Espaciador solicitado entre cada paso/item */
+    li {
+        padding-bottom: 0.75rem; /* Ajuste visual para separar los pasos */
+        padding-left: 0.25rem;   /* Un pequeño aire entre la viñeta y el texto */
+    }
+
+    /* Corrección extra por si tus textos vienen dentro de etiquetas <p> dentro de los <li> */
+    li > p {
+        margin-bottom: 0 !important;
+        display: inline-block;
+    }
+}
+
+/* Opcional: Estilos globales del body */
+body {
+    margin: 0;
+    background-color: #f8fafc; /* Color de fondo suave global */
+}

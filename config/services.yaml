@@ -1,3 +1,4 @@
+# config/services.yaml
 imports:
 
     - { resource: 'services/services_parameters.yaml' }
@@ -13,6 +14,8 @@ imports:
     - { resource: 'services/services_api.yaml' }
 
     - { resource: 'services/services_front.yaml' }
+
+    - { resource: 'services/services_pax.yaml' }
 
     - { resource: 'services/services_oweb.yaml' }
     - { resource: 'services/services_oweb_comprobante.yaml' }

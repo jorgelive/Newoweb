@@ -12,6 +12,7 @@ use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad PmsTarifaRango.
@@ -70,7 +71,7 @@ class PmsTarifaRango
     private bool $importante = false;
 
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
-    private int $peso = 0;
+    private int $prioridad = 0;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $activo = true;
@@ -86,6 +87,8 @@ class PmsTarifaRango
     public function __construct()
     {
         $this->queues = new ArrayCollection();
+
+        $this->id = Uuid::v7();
     }
 
     /* ======================================================
@@ -113,8 +116,8 @@ class PmsTarifaRango
     public function isImportante(): bool { return $this->importante; }
     public function setImportante(bool $importante): self { $this->importante = $importante; return $this; }
 
-    public function getPeso(): int { return $this->peso; }
-    public function setPeso(int $peso): self { $this->peso = $peso; return $this; }
+    public function getPrioridad(): int { return $this->prioridad; }
+    public function setPrioridad(int $prioridad): self { $this->prioridad = $prioridad; return $this; }
 
     public function isActivo(): bool { return $this->activo; }
     public function setActivo(bool $activo): self { $this->activo = $activo; return $this; }

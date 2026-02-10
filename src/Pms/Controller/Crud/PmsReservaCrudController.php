@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Entity\Maestro\MaestroIdioma;
 use App\Panel\Controller\Crud\BaseCrudController;
+use App\Pms\Entity\PmsChannel;
+use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Factory\PmsEventoCalendarioFactory;
 use App\Pms\Form\Type\PmsEventoCalendarioEmbeddedType;
 use App\Pms\Form\Type\PmsReservaHuespedType;
 use App\Security\Roles;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\UnitOfWork;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -29,13 +34,13 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * PmsReservaCrudController.
- * Gestión central de reservas, huéspedes y eventos vinculados.
- * Hereda de BaseCrudController y utiliza UUID v7 con seguridad prioritaria.
+ * Gestión central de reservas. Integra Factory para integridad de Links Beds24.
  */
-class PmsReservaCrudController extends BaseCrudController
+final class PmsReservaCrudController extends BaseCrudController
 {
     public function __construct(
-        private readonly PmsEventoCalendarioFactory $eventoCalendarioFactory,
+        private readonly PmsEventoCalendarioFactory $eventoFactory,
+        private readonly EntityManagerInterface $entityManager,
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack
     ) {
@@ -47,17 +52,86 @@ class PmsReservaCrudController extends BaseCrudController
         return PmsReserva::class;
     }
 
-    /**
-     * ✅ Configuración de acciones y seguridad.
-     * Los permisos de Roles se aplican DESPUÉS del parent para prioridad absoluta.
-     */
+    public function createEntity(string $entityFqcn): PmsReserva
+    {
+        $reserva = new PmsReserva();
+
+        // Referencias ligeras para defaults
+        $canalDirecto = $this->entityManager->getReference(PmsChannel::class, PmsChannel::CODIGO_DIRECTO);
+        if ($canalDirecto) {
+            $reserva->setChannel($canalDirecto);
+        }
+
+        $idiomaDefault = $this->entityManager->getReference(MaestroIdioma::class, MaestroIdioma::DEFAULT_IDIOMA);
+        if ($idiomaDefault) {
+            $reserva->setIdioma($idiomaDefault);
+        }
+
+        return $reserva;
+    }
+
+    public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        if ($entityInstance instanceof PmsReserva) {
+            foreach ($entityInstance->getEventosCalendario() as $evento) {
+                if (!$evento instanceof PmsEventoCalendario) continue;
+
+                if ($evento->getReserva() === null) {
+                    $evento->setReserva($entityInstance);
+                }
+
+                if ($evento->isOta()) continue;
+
+                // ✅ Factory: Generar estructura inicial
+                $this->eventoFactory->hydrateLinksForUi($evento);
+            }
+        }
+
+        parent::persistEntity($entityManager, $entityInstance);
+    }
+
+    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        if ($entityInstance instanceof PmsReserva) {
+            $uow = $entityManager->getUnitOfWork();
+            $metaEvento = $entityManager->getClassMetadata(PmsEventoCalendario::class);
+
+            foreach ($entityInstance->getEventosCalendario() as $evento) {
+                if (!$evento instanceof PmsEventoCalendario) continue;
+                if ($evento->isOta()) continue;
+
+                if ($evento->getReserva() === null) {
+                    $evento->setReserva($entityInstance);
+                }
+
+                // A) DETECTAR SI ES NUEVO
+                $isNew = $evento->getId() === null || $uow->getEntityState($evento) === UnitOfWork::STATE_NEW;
+
+                if ($isNew) {
+                    $this->eventoFactory->hydrateLinksForUi($evento);
+                    continue;
+                }
+
+                // B) DETECTAR CAMBIO DE UNIDAD (Computando cambios reales)
+                $uow->computeChangeSet($metaEvento, $evento);
+                $changes = $uow->getEntityChangeSet($evento);
+
+                if (array_key_exists('pmsUnidad', $changes)) {
+                    // Si cambia unidad, regenerar links (borra IDs viejos, crea nuevos)
+                    $this->eventoFactory->hydrateLinksForUi($evento);
+                }
+            }
+        }
+
+        parent::updateEntity($entityManager, $entityInstance);
+    }
+
     public function configureActions(Actions $actions): Actions
     {
         $returnTo = $this->requestStack->getCurrentRequest()?->query->get('returnTo');
 
         $actions->disable(Action::BATCH_DELETE);
 
-        // Botón Global: Crear Bloqueo
         $crearBloqueo = Action::new('crearBloqueo', 'Crear Bloqueo')
             ->createAsGlobalAction()
             ->setCssClass('btn btn-danger')
@@ -76,16 +150,14 @@ class PmsReservaCrudController extends BaseCrudController
             ->add(Crud::PAGE_EDIT, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::INDEX);
 
-        // Lógica de borrado blindada (Solo locales cancelados o sincronizaciones limpias)
         $checkBorrado = function (Action $action) {
             return $action->displayIf(static function (PmsReserva $reserva) {
                 foreach ($reserva->getEventosCalendario() as $evento) {
-                    if ($evento->isOta()) return false;
-                    if (!$evento->isSynced()) return false;
-
-                    $estado = $evento->getEstado();
-                    if (!$estado || $estado->getId() !== PmsEventoEstado::CODIGO_CANCELADA) {
-                        return false;
+                    if ($evento->isOta()) {
+                        $estado = $evento->getEstado();
+                        if (!$estado || $estado->getId() !== PmsEventoEstado::CODIGO_CANCELADA) {
+                            return false;
+                        }
                     }
                 }
                 return true;
@@ -95,7 +167,6 @@ class PmsReservaCrudController extends BaseCrudController
         $actions->update(Crud::PAGE_INDEX, Action::DELETE, $checkBorrado);
         $actions->update(Crud::PAGE_DETAIL, Action::DELETE, $checkBorrado);
 
-        // Aplicamos lógica base y luego sobreescribimos con Roles
         $actions = parent::configureActions($actions);
 
         return $actions
@@ -134,46 +205,63 @@ class PmsReservaCrudController extends BaseCrudController
             $entity = $context?->getEntity()->getInstance();
         }
 
-        // ✅ UUID para visualización técnica
-        yield TextField::new('id', 'UUID')
-            ->onlyOnDetail()
-            ->formatValue(static fn($value) => (string) $value);
+        // UUID
+        yield TextField::new('id', 'UUID')->onlyOnDetail();
 
-        // --- ESTADO SYNC ---
+        yield TextField::new('localizador', 'Localizador')
+            ->setFormTypeOption('disabled', true)
+            ->setColumns(6)
+            ->formatValue(fn($v) => $v ? sprintf('<span class="badge badge-secondary">%s</span>', $v) : '')
+            ->setHelp('Referencia interna.');
+
+        // Estado Sync (Virtual)
         yield TextField::new('syncStatusAggregate', 'Estado Sincro')
             ->setVirtual(true)
             ->formatValue(function ($statusValue) {
                 return match ($statusValue) {
-                    'synced'  => '<span class="badge badge-success"><i class="fa fa-check"></i> OK</span>',
-                    'error'   => '<span class="badge badge-danger"><i class="fa fa-exclamation-triangle"></i> Error</span>',
-                    'pending' => '<span class="badge badge-warning"><i class="fa fa-sync fa-spin"></i> Wait</span>',
+                    'synced'  => '<span class="badge badge-success"><i class="fa fa-check"></i> Sync</span>',
+                    'error'   => '<span class="badge badge-danger"><i class="fa fa-exclamation"></i> Error</span>',
+                    'pending' => '<span class="badge badge-warning"><i class="fa fa-sync fa-spin"></i> Pend.</span>',
                     default   => '',
                 };
             })
             ->renderAsHtml()
             ->hideOnForm();
 
+        // Datos Titular
         yield FormField::addPanel('Datos del Titular')->setIcon('fa fa-user');
-        yield AssociationField::new('channel', 'Canal de Venta')
-            ->setFormTypeOption('disabled', true);
+
+        yield AssociationField::new('channel', 'Canal')
+            ->setColumns(6)
+            ->setFormTypeOption('disabled', true)
+            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.orden', 'ASC'));
 
         yield TextField::new('nombreCliente', 'Nombre')->setColumns(6);
         yield TextField::new('apellidoCliente', 'Apellido')->setColumns(6);
-
         yield TextField::new('telefono', 'Teléfono')->setColumns(6);
         yield EmailField::new('emailCliente', 'Email')->setColumns(6);
-        yield AssociationField::new('pais', 'País (Maestro)')->setColumns(6);
-        yield AssociationField::new('idioma', 'Idioma (Maestro)')->setColumns(6);
+
+        yield AssociationField::new('pais', 'País')
+            ->setColumns(6)
+            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.prioritario', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
+
+        yield AssociationField::new('idioma', 'Idioma')
+            ->setColumns(6)
+            ->setRequired(true)
+            ->setFormTypeOption('attr', ['required' => true])
+            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.prioritario', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
 
         yield BooleanField::new('datosLocked', 'Bloquear Datos')
-            ->setHelp('Evita que la sincronización automática sobrescriba cambios manuales.');
+            ->setHelp('Protege los datos contra sobrescritura por sincronización.');
 
-        yield FormField::addPanel('Eventos de Calendario (Estancias)')->setIcon('fa fa-calendar');
+        // Eventos (Prototype Data actualizado)
+        yield FormField::addPanel('Estancias')->setIcon('fa fa-calendar');
         yield CollectionField::new('eventosCalendario', 'Gestión de Eventos')
             ->setEntryIsComplex(true)
             ->setFormTypeOption('entry_type', PmsEventoCalendarioEmbeddedType::class)
             ->setFormTypeOption('by_reference', false)
-            ->setFormTypeOption('prototype_data', $this->eventoCalendarioFactory->crearInstanciaPorDefecto())
+            // ✅ AQUÍ ESTÁ EL CAMBIO FINAL: Usamos createForUi() del factory unificado
+            ->setFormTypeOption('prototype_data', $this->eventoFactory->createForUi())
             ->allowAdd()
             ->allowDelete()
             ->onlyOnForms();
@@ -182,44 +270,30 @@ class PmsReservaCrudController extends BaseCrudController
             ->setTemplatePath('panel/pms/pms_reserva/fields/detail_eventos.html.twig')
             ->onlyOnDetail();
 
-        // --- NAMELIST / PRE CHECK-IN ---
-        yield FormField::addPanel('Huéspedes / Pasajeros')->setIcon('fa fa-users');
+        // Namelist
+        yield FormField::addPanel('Huéspedes')->setIcon('fa fa-users');
         yield CollectionField::new('huespedes', 'Lista Namelist')
             ->setEntryType(PmsReservaHuespedType::class)
             ->setFormTypeOption('by_reference', false)
             ->allowAdd()
             ->allowDelete()
-            ->setEntryIsComplex(true)
             ->hideOnIndex();
 
-        yield FormField::addPanel('Resumen de Ocupación')->setIcon('fa fa-calculator')->renderCollapsed();
-        yield DateField::new('fechaLlegada', 'Fecha Check-in')
-            ->setFormTypeOption('disabled', true)->setColumns(6);
-        yield DateField::new('fechaSalida', 'Fecha Check-out')
-            ->setFormTypeOption('disabled', true)->setColumns(6);
+        // Resumen
+        yield FormField::addPanel('Resumen')->setIcon('fa fa-calculator')->renderCollapsed();
+        yield DateField::new('fechaLlegada', 'Check-in')->setFormTypeOption('disabled', true)->setColumns(6);
+        yield DateField::new('fechaSalida', 'Check-out')->setFormTypeOption('disabled', true)->setColumns(6);
+        yield MoneyField::new('montoTotal', 'Total')->setCurrency('USD')->setStoredAsCents(false)->setFormTypeOption('disabled', true)->setColumns(6);
 
-        yield MoneyField::new('montoTotal', 'Importe Total (USD)')
-            ->setCurrency('USD')
-            ->setStoredAsCents(false)
-            ->setFormTypeOption('disabled', true)
-            ->setColumns(6);
-
-        yield FormField::addPanel('Identificadores de Integración')->setIcon('fa fa-fingerprint')->renderCollapsed();
+        // Técnico
+        yield FormField::addPanel('Técnico')->setIcon('fa fa-fingerprint')->renderCollapsed();
         $refCanal = $entity?->getReferenciaCanal();
         if ($pageName === Crud::PAGE_EDIT || $pageName === Crud::PAGE_NEW || !empty($refCanal)) {
-            yield TextField::new('referenciaCanal', 'Ref. Canal / OTA')
-                ->setFormTypeOption('disabled', true);
+            yield TextField::new('referenciaCanal', 'Ref. OTA')->setFormTypeOption('disabled', true);
         }
 
-        // ✅ Auditoría mediante TimestampTrait (createdAt / updatedAt)
-        yield FormField::addPanel('Auditoría Técnica')->setIcon('fa fa-shield-alt')->renderCollapsed();
-
-        yield DateTimeField::new('createdAt', 'Creado el')
-            ->setFormat('yyyy/MM/dd HH:mm')
-            ->onlyOnDetail();
-
-        yield DateTimeField::new('updatedAt', 'Actualizado el')
-            ->setFormat('yyyy/MM/dd HH:mm')
-            ->onlyOnDetail();
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
+        yield DateTimeField::new('createdAt', 'Creado')->onlyOnDetail();
+        yield DateTimeField::new('updatedAt', 'Actualizado')->onlyOnDetail();
     }
 }

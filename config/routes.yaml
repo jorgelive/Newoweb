@@ -1,3 +1,4 @@
+# config/routes.yaml
 #controllers:
 #    resource: ../src/Controller/
 #    type: annotation
@@ -11,6 +12,12 @@ front_controllers:
     resource: ../src/Front/Controller/
     type: attribute
     host: '%app.host.front%'
+
+# PAX
+pax_controllers:
+    resource: ../src/Pax/Controller/
+    type: attribute
+    host: '%app.host.pax%'
 
 # API (ajax, ical, calendar, etc.)
 api_controllers:
@@ -46,7 +53,4 @@ kernel:
     resource: ../src/Kernel.php
     type: attribute
 
-sonata_translation:
-    resource: '@SonataTranslationBundle/Resources/config/routes.yaml'
-    host: '%app.host.oweb%'
 

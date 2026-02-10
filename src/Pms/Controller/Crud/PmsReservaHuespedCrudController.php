@@ -94,6 +94,16 @@ class PmsReservaHuespedCrudController extends BaseCrudController
             ->onlyOnDetail()
             ->formatValue(fn($value) => (string) $value);
 
+        yield TextField::new('localizador', 'Localizador')
+            ->setFormTypeOption('disabled', true) // ✅ IMPRESCINDIBLE: Solo lectura
+            ->setColumns(6)
+            // En el listado (Index) lo mostramos como una "etiqueta" negrita
+            ->formatValue(function ($value) {
+                return $value ? sprintf('<span class="badge badge-secondary" style="font-size: 1.1em; letter-spacing: 1px;">%s</span>', $value) : '';
+            })
+            // En el formulario mostramos ayuda
+            ->setHelp('Código único autogenerado (Referencia Interna).');
+
         yield AssociationField::new('reserva', 'Reserva Padre')
             ->setQueryBuilder(fn($queryBuilder) => $queryBuilder->orderBy('entity.createdAt', 'DESC'))
             ->setColumns(6);

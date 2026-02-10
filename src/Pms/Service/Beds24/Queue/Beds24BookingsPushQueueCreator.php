@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Service\Beds24\Queue;
@@ -12,9 +13,21 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\PersistentCollection;
 use Doctrine\ORM\UnitOfWork;
 
+/**
+ * Servicio Beds24BookingsPushQueueCreator.
+ * * Gestiona el encolado de sincronizaciones hacia Beds24 con lógica de deduplicación
+ * e integridad para movimientos de habitación y limpieza de bloqueos (mirrors).
+ */
 final class Beds24BookingsPushQueueCreator
 {
     private const ENDPOINT_POST_BOOKINGS = 'POST_BOOKINGS';
+    private const ENDPOINT_DELETE_BOOKINGS = 'DELETE_BOOKINGS'; // Agregada constante para claridad
+
+    /**
+     * Cache en memoria para evitar duplicados en el mismo ciclo de flush.
+     * @var array<string, PmsBookingsPushQueue>
+     */
+    private array $runtimeDedupe = [];
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -26,140 +39,104 @@ final class Beds24BookingsPushQueueCreator
         PmsBeds24Endpoint $endpoint,
         ?UnitOfWork $uow = null
     ): void {
-
-        // Si el contexto es 'push_beds24', significa que el Worker está
-        // guardando el resultado de un éxito. NO debemos crear otra cola.
+        // 0. Si el worker PUSH ya está procesando, evitamos bucles infinitos.
         if ($this->syncContext->isPush()) {
             return;
         }
 
-        // [PROTECCIÓN DELETE] Detectamos si el link se está borrando en este Flush
-        $isDelete = ($uow !== null && $uow->isScheduledForDelete($link));
+        // Detectar si el link está marcado para borrado físico.
+        $isDelete = ($uow !== null && $uow->isScheduledForDelete(entity: $link));
 
-        // [ESCUDO ANTI-FANTASMAS] 🛡️
-        // Si no estamos borrando, verificamos que el Evento sea real.
-        // Si el Evento es NUEVO (sin ID) y Doctrine NO planea guardarlo (isScheduledForInsert=false),
-        // entonces es un "Fantasma" (creado y borrado en el mismo request). ABORTAMOS.
-        $evento = $link->getEvento();
-        if (!$isDelete && $evento && $uow) {
-            $evtState = $uow->getEntityState($evento);
-            if ($evtState === UnitOfWork::STATE_NEW && !$uow->isScheduledForInsert($evento)) {
-                return; // 🛑 Stop: Evita el error "A new entity was found..."
-            }
-        }
-
-        // 1. POLÍTICA GLOBAL PARA PULL
+        // -----------------------------------------------------------
+        // 1. 🛡️ ESCUDO DE SEGURIDAD PARA PULL (Webhooks)
+        // -----------------------------------------------------------
         if ($this->syncContext->isPull()) {
-            if ($endpoint->getAccion() !== self::ENDPOINT_POST_BOOKINGS) {
+            if ($link->isEsPrincipal()) {
                 return;
             }
-            if ($link->getBeds24BookId() !== null && $link->getBeds24BookId() !== '') {
-                if (!$link->isMirror()) {
-                    return; // ❌ ROOT nunca se actualiza en PULL
-                }
-            }
         }
 
-        // 2. Guards
-        // Si se está borrando, permitimos que 'evento' sea null para intentar salvar el ID del Link
-        if (!$evento && !$isDelete) return;
-
-        $map = $link->getUnidadBeds24Map();
-        if ($map === null) return;
-
-        // 3. Resolución Dedupe Key
-        $isNewLink = ($link->getId() === null);
-        $originLink = $link->getOriginLink();
-        $originBookId = $originLink ? trim((string) $originLink->getBeds24BookId()) : null;
-
-        if ($isNewLink && $this->syncContext->isPull() && !$originBookId) {
+        // 2. Validaciones de integridad básica.
+        $evento = $link->getEvento();
+        if (!$evento && !$isDelete) {
             return;
         }
 
-        if ($isNewLink) {
-            if ($this->syncContext->isPull()) {
-                $mapKey = $map->getId() ?? ('obj_' . spl_object_id($map));
-                $dedupeKey = sprintf('mirror:originBookId:%s:map:%s:endpoint:%s', $originBookId ?? 'null', $mapKey, $endpoint->getAccion());
-            } else {
-                // Si evento es null (en borrado extremo), usamos un random seguro
-                $eventKey = $evento ? ($evento->getId() ?? ('new_evt_' . spl_object_id($evento))) : 'del_' . uniqid();
-                $mapKey   = $map->getId() ?? ('new_map_' . spl_object_id($map));
-                $dedupeKey = sprintf('ui:event:%s:map:%s:endpoint:%s', $eventKey, $mapKey, $endpoint->getAccion());
-            }
-        } else {
-            $dedupeKey = sprintf('link:%d:endpoint:%s', $link->getId(), $endpoint->getAccion());
+        $map = $link->getUnidadBeds24Map();
+        if ($map === null) {
+            return;
         }
 
-        // 4. Payload Snapshot & Hash
+        // 3. Clave de deduplicación basada en UUID v7 (estable antes del flush).
+        $linkId = (string) $link->getId();
+        $dedupeKey = sprintf('link:%s:endpoint:%s', $linkId, $endpoint->getAccion());
+
+        // 4. Snapshot de datos
         $payload = [
-            'linkId'       => $link->getId() ?? ('tmp_' . spl_object_id($link)),
-            'isMirror'     => $link->isMirror(),
-            'eventoId'     => $evento?->getId() ?? 0,
+            'linkId'       => $linkId,
+            'isMirror'     => !$link->isEsPrincipal(),
+            'eventoId'     => $evento?->getId() ? (string) $evento->getId() : null,
             'inicio'       => $evento?->getInicio()?->format('c'),
             'fin'          => $evento?->getFin()?->format('c'),
-            'estado'       => $evento?->getEstado()?->getCodigo(),
+            'estado'       => $evento?->getEstado()?->getId(),
             'beds24RoomId' => $map->getBeds24RoomId(),
-            'configId'     => $map->getBeds24Config()?->getId(),
+            'configId'     => $map->getBeds24Config()?->getId() ? (string) $map->getBeds24Config()->getId() : null,
         ];
 
-        $reserva = $evento?->getReserva();
-        if ($reserva !== null) {
-            $datosLocked = (bool) ($reserva->isDatosLocked() ?? false);
-            $payload['datosLocked'] = $datosLocked;
-            $payload['cliente'] = ['canal' => $reserva->getChannel()?->getCodigo()];
-
-            if (!$datosLocked) {
-                $payload['cliente'] = array_merge($payload['cliente'], [
-                    'nombre'    => $reserva->getNombreCliente(),
-                    'apellido'  => $reserva->getApellidoCliente(),
-                    'telefono'  => $reserva->getTelefono(),
-                    'email'     => $reserva->getEmailCliente(),
-                    'nota'      => $reserva->getNota(),
-                ]);
-            }
-        }
-
-        $json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $json = json_encode(value: $payload, flags: JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $payloadHash = sha1((string) $json);
 
-        // 5. Dedupe & Actualización (Idempotencia)
-        // [PROTECCIÓN] Si se está borrando, NO iteramos la colección para no tocar proxies muertos
+        // 5. Gestión de tareas existentes (Idempotencia).
         if (!$isDelete) {
-            foreach ($link->getQueues() as $queue) {
-                if ($queue->getDedupeKey() !== $dedupeKey) continue;
+            $existingQueue = $this->findExistingQueue(link: $link, dedupeKey: $dedupeKey, uow: $uow);
 
-                if ($queue->getPayloadHash() === $payloadHash && $queue->getStatus() === PmsBookingsPushQueue::STATUS_PENDING) {
-                    return; // Ya está pendiente con el mismo contenido
+            if ($existingQueue instanceof PmsBookingsPushQueue) {
+                if ($existingQueue->getPayloadHash() === $payloadHash
+                    && $existingQueue->getStatus() === PmsBookingsPushQueue::STATUS_PENDING
+                ) {
+                    return;
                 }
 
-                // Reactivar o actualizar cola existente
-                $queue
+                $existingQueue
                     ->setBeds24Config($map->getBeds24Config())
+                    ->setEndpoint($endpoint)
                     ->setPayloadHash($payloadHash)
                     ->setStatus(PmsBookingsPushQueue::STATUS_PENDING)
-                    ->setRunAt(new DateTimeImmutable()) // Programar para ejecución inmediata
-                    ->setFailedReason(null)
+                    ->setRunAt(new DateTimeImmutable())
                     ->setRetryCount(0)
-                    ->setLockedAt(null)
-                    ->setLockedBy(null)
                     ->setBeds24BookIdOriginal($link->getBeds24BookId());
 
                 if ($uow !== null) {
                     $uow->recomputeSingleEntityChangeSet(
-                        $this->em->getClassMetadata(PmsBookingsPushQueue::class),
-                        $queue
+                        class: $this->em->getClassMetadata(PmsBookingsPushQueue::class),
+                        entity: $existingQueue
                     );
                 }
+
+                $this->runtimeDedupe[$dedupeKey] = $existingQueue;
                 return;
             }
         }
 
-        // 6. Crear Nueva Fila (INSERT)
+        // 6. Creación de una nueva tarea en la cola.
         $queue = new PmsBookingsPushQueue();
 
-        // [CRÍTICO] setLink activa la captura de los IDs originales (tu setter defensivo).
-        // Aunque el link se borre, la cola se queda con los datos.
-        $queue->setLink($link);
+        // ✅ FIX CRÍTICO: Determinar si debemos enlazar el objeto Link o solo sus datos
+        $isDeleteAction = $isDelete
+            || $endpoint->getAccion() === self::ENDPOINT_DELETE_BOOKINGS
+            || $link->getStatus() === PmsEventoBeds24Link::STATUS_PENDING_DELETE;
+
+        if ($isDeleteAction) {
+            // 🛑 ROMPEMOS LA RELACIÓN para evitar que cascade:['persist'] resucite el link borrado
+            $queue->setLink(null);
+
+            // Aseguramos que los datos históricos estén presentes (Snapshot)
+            $queue->setBeds24BookIdOriginal($link->getBeds24BookId());
+            $queue->setLinkIdOriginal((string) $link->getId());
+        } else {
+            // Flujo normal: Enlazamos para integridad referencial
+            $queue->setLink($link);
+        }
 
         $queue
             ->setBeds24Config($map->getBeds24Config())
@@ -167,12 +144,10 @@ final class Beds24BookingsPushQueueCreator
             ->setDedupeKey($dedupeKey)
             ->setPayloadHash($payloadHash)
             ->setStatus(PmsBookingsPushQueue::STATUS_PENDING)
-            ->setRunAt(new DateTimeImmutable());
-        // setBeds24BookIdOriginal ya fue seteado por setLink() internamente
+            ->setRunAt(new DateTimeImmutable())
+            // Siempre seteamos el original por si acaso
+            ->setBeds24BookIdOriginal($link->getBeds24BookId());
 
-        // [PROTECCIÓN DOCTRINE]
-        // Si el link se está borrando, NO lo añadimos a la colección inversa.
-        // Esto evita el error "New entity found" al modificar una entidad ScheduledForDelete.
         if (!$isDelete) {
             $link->addQueue($queue);
         }
@@ -181,34 +156,55 @@ final class Beds24BookingsPushQueueCreator
 
         if ($uow !== null) {
             $uow->computeChangeSet(
-                $this->em->getClassMetadata(PmsBookingsPushQueue::class),
-                $queue
+                class: $this->em->getClassMetadata(PmsBookingsPushQueue::class),
+                entity: $queue
             );
         }
+
+        $this->runtimeDedupe[$dedupeKey] = $queue;
     }
 
-    /**
-     * Cancela ("Borra lógicamente") las colas pendientes de tipo POST.
-     * MEJORADO: Busca activamente en DB si la colección no está inicializada.
-     */
-    public function cancelPendingPostForLink(
-        PmsEventoBeds24Link $link,
-        ?string $reason = null,
-        ?UnitOfWork $uow = null
-    ): bool {
-        $changed = false;
+    private function findExistingQueue(PmsEventoBeds24Link $link, string $dedupeKey, ?UnitOfWork $uow): ?PmsBookingsPushQueue
+    {
+        if (isset($this->runtimeDedupe[$dedupeKey])) {
+            return $this->runtimeDedupe[$dedupeKey];
+        }
 
-        // 1. Determinar qué colas revisar
+        $queues = $link->getQueues();
+        if ($queues instanceof PersistentCollection && $queues->isInitialized()) {
+            foreach ($queues as $q) {
+                if ($q instanceof PmsBookingsPushQueue && $q->getDedupeKey() === $dedupeKey) {
+                    return $q;
+                }
+            }
+        }
+
+        $isNewLink = ($uow !== null) && ($uow->isScheduledForInsert(entity: $link) || $uow->getEntityState(entity: $link) === UnitOfWork::STATE_NEW);
+        if ($isNewLink) {
+            return null;
+        }
+
+        $q = $this->em->getRepository(PmsBookingsPushQueue::class)->findOneBy([
+            'dedupeKey' => $dedupeKey,
+            'link'      => $link,
+        ]);
+
+        if ($q instanceof PmsBookingsPushQueue) {
+            $this->runtimeDedupe[$dedupeKey] = $q;
+        }
+
+        return $q;
+    }
+
+    public function cancelPendingPostForLink(PmsEventoBeds24Link $link, ?string $reason = null, ?UnitOfWork $uow = null): bool
+    {
+        $changed = false;
         $queuesToCheck = [];
         $collection = $link->getQueues();
 
-        // Si la colección ya está cargada en memoria, la usamos (es lo más rápido y seguro para Doctrine)
         if ($collection instanceof PersistentCollection && $collection->isInitialized()) {
             $queuesToCheck = $collection->toArray();
-        }
-        // Si NO está cargada y estamos borrando, NO invocamos $link->getQueues() ciegamente.
-        // Hacemos una búsqueda dirigida en DB para atrapar las pendientes.
-        elseif ($link->getId() !== null) {
+        } elseif ($link->getId() !== null) {
             $queuesToCheck = $this->em->getRepository(PmsBookingsPushQueue::class)->findBy([
                 'link'   => $link,
                 'status' => PmsBookingsPushQueue::STATUS_PENDING
@@ -217,30 +213,17 @@ final class Beds24BookingsPushQueueCreator
 
         foreach ($queuesToCheck as $queue) {
             if (!$queue instanceof PmsBookingsPushQueue) continue;
-
-            // Si la cola misma se está borrando por cascada, la ignoramos
-            if ($uow !== null && $uow->isScheduledForDelete($queue)) continue;
-
+            if ($uow !== null && $uow->isScheduledForDelete(entity: $queue)) continue;
             if ($queue->getEndpoint()?->getAccion() !== self::ENDPOINT_POST_BOOKINGS) continue;
-
-            // Validación redundante por si acaso trajimos algo que no era pending
-            if (in_array($queue->getStatus(), [PmsBookingsPushQueue::STATUS_SUCCESS, PmsBookingsPushQueue::STATUS_CANCELLED], true)) {
-                continue;
-            }
 
             $queue->setStatus(PmsBookingsPushQueue::STATUS_CANCELLED)
                 ->setFailedReason(sprintf('Cancelled: %s', $reason ?: 'manual cancel'))
-                ->setRunAt(null)
-                ->setLockedAt(null)
-                ->setLockedBy(null);
+                ->setRunAt(null);
 
             if ($uow !== null) {
-                // Al traerlas con findBy o de la colección, Doctrine las conoce.
-                // Usamos recomputeSingleEntityChangeSet porque estamos modificando
-                // una entidad gestionada.
                 $uow->recomputeSingleEntityChangeSet(
-                    $this->em->getClassMetadata(PmsBookingsPushQueue::class),
-                    $queue
+                    class: $this->em->getClassMetadata(PmsBookingsPushQueue::class),
+                    entity: $queue
                 );
             }
             $changed = true;

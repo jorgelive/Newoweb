@@ -1,82 +1,85 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Pms\Service\Reserva;
 
-use DateTimeImmutable;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 
 final class PmsReservaRecalculoService
 {
     /**
-     * Recalcula datos de la reserva a partir de TODOS sus eventos persistidos:
-     * - fechaLlegada  = MIN(inicio) (DATE)
-     * - fechaSalida   = MAX(fin)    (DATE)
-     * - montoTotal    = SUM(monto)
-     * - comisionTotal = SUM(comision)
-     * - cantidadAdultos = SUM(cantidadAdultos)
-     * - cantidadNinos   = SUM(cantidadNinos)
+     * Recalcula datos de la reserva a partir de TODOS sus eventos persistidos.
      *
-     * Lee SIEMPRE desde BD (no desde UoW) y actualiza por DQL UPDATE.
+     * Estrategia "blindada":
+     * - Convertimos UUIDs a BINARY(16)
+     * - Ejecutamos un UPDATE masivo con LEFT JOIN a una subquery agregada
+     * - Sin N updates, sin IDENTITY(), sin hydration raro
      *
-     * @param int[] $reservaIds
+     * @param string[] $reservaIds UUIDs RFC4122 (string)
      */
     public function recalcularDesdeEventos(array $reservaIds, EntityManagerInterface $em): void
     {
+        // Limpieza y validación de IDs
+        $reservaIds = array_values(array_unique(array_filter($reservaIds, static fn ($v) => is_string($v) && $v !== '')));
         if ($reservaIds === []) {
             return;
         }
 
-        $rows = $em->createQuery(<<<'DQL'
-            SELECT
-                r.id AS reservaId,
-                MIN(DATE(e.inicio)) AS fechaMin,
-                MAX(DATE(e.fin))    AS fechaMax,
-                COALESCE(SUM(COALESCE(e.monto, 0)), 0)           AS totalMonto,
-                COALESCE(SUM(COALESCE(e.comision, 0)), 0)        AS totalComision,
-                COALESCE(SUM(COALESCE(e.cantidadAdultos, 0)), 0) AS totalAdultos,
-                COALESCE(SUM(COALESCE(e.cantidadNinos, 0)), 0)   AS totalNinos
-            FROM App\Pms\Entity\PmsEventoCalendario e
-            JOIN e.reserva r
-            WHERE r.id IN (:ids)
-            GROUP BY r.id
-        DQL)
-            ->setParameter('ids', $reservaIds)
-            ->getArrayResult();
+        $conn = $em->getConnection();
 
-        if ($rows === []) {
-            return;
-        }
+        // Loteo por seguridad (evita queries gigantes y límites de placeholders)
+        foreach (array_chunk($reservaIds, 400) as $chunk) {
+            $binaryIds = [];
+            foreach ($chunk as $idStr) {
+                // Si viene un UUID inválido, mejor explotar aquí que dejar data corrupta
+                $binaryIds[] = Uuid::fromString($idStr)->toBinary();
+            }
 
-        foreach ($rows as $row) {
-            $fechaLlegada = ($row['fechaMin'] ?? null)
-                ? new DateTimeImmutable((string) $row['fechaMin'])
-                : null;
+            // Placeholders para IN (...)
+            $in = implode(',', array_fill(0, count($binaryIds), '?'));
 
-            $fechaSalida = ($row['fechaMax'] ?? null)
-                ? new DateTimeImmutable((string) $row['fechaMax'])
-                : null;
+            /**
+             * AJUSTA ESTOS NOMBRES SI DIFIEREN EN TU DB:
+             * - pms_reserva (tabla reservas)
+             * - pms_evento_calendario (tabla eventos)
+             * - e.reserva_id (FK binaria a reserva)
+             * - columnas: inicio, fin, monto, comision, cantidad_adultos, cantidad_ninos
+             * - columnas en reserva: fecha_llegada, fecha_salida, monto_total, comision_total, cantidad_adultos, cantidad_ninos
+             */
+            $sql = <<<SQL
+UPDATE pms_reserva r
+LEFT JOIN (
+    SELECT
+        e.reserva_id AS reserva_id,
+        MIN(DATE(e.inicio)) AS fechaMin,
+        MAX(DATE(e.fin))    AS fechaMax,
+        COALESCE(SUM(COALESCE(e.monto, 0)), 0)           AS totalMonto,
+        COALESCE(SUM(COALESCE(e.comision, 0)), 0)        AS totalComision,
+        COALESCE(SUM(COALESCE(e.cantidad_adultos, 0)), 0) AS totalAdultos,
+        COALESCE(SUM(COALESCE(e.cantidad_ninos, 0)), 0)   AS totalNinos
+    FROM pms_evento_calendario e
+    WHERE e.reserva_id IN ($in)
+    GROUP BY e.reserva_id
+) s ON s.reserva_id = r.id
+SET
+    r.fecha_llegada    = s.fechaMin,
+    r.fecha_salida     = s.fechaMax,
+    r.monto_total      = COALESCE(s.totalMonto, 0),
+    r.comision_total   = COALESCE(s.totalComision, 0),
+    r.cantidad_adultos = COALESCE(s.totalAdultos, 0),
+    r.cantidad_ninos   = COALESCE(s.totalNinos, 0)
+WHERE r.id IN ($in)
+SQL;
 
-            $em->createQuery(<<<'DQL'
-                UPDATE App\Pms\Entity\PmsReserva r
-                SET
-                    r.fechaLlegada    = :fechaLlegada,
-                    r.fechaSalida     = :fechaSalida,
-                    r.montoTotal      = :montoTotal,
-                    r.comisionTotal   = :comisionTotal,
-                    r.cantidadAdultos = :cantidadAdultos,
-                    r.cantidadNinos   = :cantidadNinos
-                WHERE r.id = :id
-            DQL)
-                ->setParameter('fechaLlegada', $fechaLlegada)
-                ->setParameter('fechaSalida', $fechaSalida)
-                ->setParameter('montoTotal', (string) ($row['totalMonto'] ?? '0'))
-                ->setParameter('comisionTotal', (string) ($row['totalComision'] ?? '0'))
-                ->setParameter('cantidadAdultos', (int) ($row['totalAdultos'] ?? 0))
-                ->setParameter('cantidadNinos', (int) ($row['totalNinos'] ?? 0))
-                ->setParameter('id', (int) $row['reservaId'])
-                ->execute();
+            // Pasamos los IDs dos veces (subquery IN + WHERE IN)
+            $params = array_merge($binaryIds, $binaryIds);
+
+            // Tipamos todo como BINARY para que MySQL compare 16 bytes reales
+            $types = array_fill(0, count($params), ParameterType::BINARY);
+
+            $conn->executeStatement($sql, $params, $types);
         }
     }
 }

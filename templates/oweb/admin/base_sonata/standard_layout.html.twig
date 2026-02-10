@@ -123,17 +123,39 @@
                                 <div class="container-fluid">
                                     <div class="row">
                                         <ul class="dropdown-menu">
-                                            <li role="presentation" class="dropdown-header">
-                                                <i class="fa fa-language"></i>
-                                                {{ 'languages'|trans({}, 'SonataTranslationBundle') }}
-                                            </li>
-                                            {% for locale in sonata_translation_locales %}
-                                                <li role="presentation" class="{{ app.request.locale == locale ? 'active' : '' }}">
-                                                    <a role="menuitem" tabindex="-1" href="{{ path('sonata.translation.locale', {'locale': locale}) }}">
-                                                        {{ locale|sonata_language_name(locale)|capitalize }}
+                                            {% set locales = {'es': 'Español', 'en': 'English'} %}
+                                            {% set route = app.request.attributes.get('_route') %}
+                                            {% set params = app.request.attributes.get('_route_params')|default({}) %}
+                                            {% set query = app.request.query.all %}
+
+                                            {% if route %}
+                                                <li class="nav-item dropdown">
+                                                    <a class="nav-link dropdown-toggle d-flex align-items-center gap-2"
+                                                       href="#"
+                                                       id="localeDropdown"
+                                                       role="button"
+                                                       data-bs-toggle="dropdown"
+                                                       aria-expanded="false">
+                                                        <span class="badge bg-secondary text-uppercase">{{ app.request.locale }}</span>
+                                                        <span class="d-none d-md-inline">{{ locales[app.request.locale]|default('Idioma') }}</span>
                                                     </a>
+
+                                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="localeDropdown">
+                                                        {% for code, label in locales %}
+                                                            {% set url = path(route, params|merge(query)|merge({'lang': code})) %}
+                                                            <li>
+                                                                <a class="dropdown-item d-flex align-items-center justify-content-between {{ app.request.locale == code ? 'active fw-semibold' : '' }}"
+                                                                   href="{{ url }}">
+                                                                    <span>{{ label }}</span>
+                                                                    {% if app.request.locale == code %}
+                                                                        <span class="ms-3 opacity-75">✓</span>
+                                                                    {% endif %}
+                                                                </a>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
                                                 </li>
-                                            {% endfor %}
+                                            {% endif %}
                                         </ul>
                                     </div>
                                 </div>

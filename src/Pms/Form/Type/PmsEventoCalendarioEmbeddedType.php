@@ -6,6 +6,7 @@ use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsUnidad;
+use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
@@ -22,6 +23,15 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 final class PmsEventoCalendarioEmbeddedType extends AbstractType
 {
+    /**
+     * Estados que NO quieres permitir seleccionar manualmente en eventos OTA.
+     */
+    private const OTA_ESTADOS_BLOQUEADOS = [
+        PmsEventoEstado::CODIGO_CANCELADA,
+        PmsEventoEstado::CODIGO_CONSULTA,
+        PmsEventoEstado::CODIGO_BLOQUEO,
+    ];
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -58,11 +68,21 @@ final class PmsEventoCalendarioEmbeddedType extends AbstractType
                 'class' => PmsEventoEstado::class,
                 'choice_label' => 'nombre',
                 'label' => 'Estado',
+                'query_builder' => function (EntityRepository $er) {
+                    return $er->createQueryBuilder('a')
+                        ->orderBy('a.orden', 'ASC')
+                        ->addOrderBy('a.nombre', 'ASC');
+                },
             ])
             ->add('estadoPago', EntityType::class, [
                 'class' => PmsEventoEstadoPago::class,
                 'choice_label' => 'nombre',
                 'label' => 'Pago',
+                'query_builder' => function (EntityRepository $er) {
+                    return $er->createQueryBuilder('a')
+                        ->orderBy('a.orden', 'ASC')
+                        ->addOrderBy('a.nombre', 'ASC');
+                },
             ])
             ->add('cantidadAdultos', IntegerType::class, [
                 'required' => false,
@@ -90,8 +110,6 @@ final class PmsEventoCalendarioEmbeddedType extends AbstractType
                 'html5' => true,
                 'label' => 'Comisión',
             ])
-
-            // ✅ Colección: limpieza / mantenimiento / etc.
             ->add('assignments', CollectionType::class, [
                 'entry_type' => PmsEventAssignmentEmbeddedType::class,
                 'entry_options' => [],
@@ -106,28 +124,65 @@ final class PmsEventoCalendarioEmbeddedType extends AbstractType
             ])
         ;
 
-        // Bloqueo dinámico de campos para OTAs
+        // Bloqueo dinámico + filtro de estados OTA
         $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
             $evento = $event->getData();
             $form = $event->getForm();
 
-            if ($evento instanceof PmsEventoCalendario && $evento->isOta()) {
-                $camposBloqueados = [
-                    'pmsUnidad', 'inicio', 'fin',
-                    'cantidadAdultos', 'cantidadNinos',
-                    'monto', 'comision',
-                    'assignments',
-                ];
+            if (!$evento instanceof PmsEventoCalendario || !$evento->isOta()) {
+                return;
+            }
 
-                foreach ($camposBloqueados as $nombre) {
-                    if (!$form->has($nombre)) {
-                        continue;
+            // -----------------------------------------------------------------
+            // (1) FILTRAR ESTADOS PARA OTA (cancelada/consulta/bloqueo fuera)
+            //     pero si el evento YA tiene uno de esos, lo mantenemos visible.
+            // -----------------------------------------------------------------
+            $estadoActual = $evento->getEstado();
+            $estadoActualId = $estadoActual?->getId();
+
+            $form->add('estado', EntityType::class, [
+                'class' => PmsEventoEstado::class,
+                'choice_label' => 'nombre',
+                'label' => 'Estado',
+                'query_builder' => function (EntityRepository $er) use ($estadoActualId) {
+                    $qb = $er->createQueryBuilder('a')
+                        ->orderBy('a.orden', 'ASC')
+                        ->addOrderBy('a.nombre', 'ASC');
+
+                    // Excluir los bloqueados...
+                    $qb->andWhere('a.id NOT IN (:blocked)')
+                        ->setParameter('blocked', self::OTA_ESTADOS_BLOQUEADOS);
+
+                    // ...pero si el estado actual es "bloqueado", lo re-incluimos
+                    // para que el formulario no reviente y el usuario lo vea.
+                    if ($estadoActualId && in_array($estadoActualId, self::OTA_ESTADOS_BLOQUEADOS, true)) {
+                        $qb->orWhere('a.id = :currentId')
+                            ->setParameter('currentId', $estadoActualId);
                     }
-                    $config = $form->get($nombre)->getConfig();
-                    $options = $config->getOptions();
-                    $options['disabled'] = true;
-                    $form->add($nombre, \get_class($config->getType()->getInnerType()), $options);
+
+                    return $qb;
+                },
+            ]);
+
+            // -----------------------------------------------------------------
+            // (2) BLOQUEO DE CAMPOS PARA OTAs (tu lógica existente)
+            // -----------------------------------------------------------------
+            $camposBloqueados = [
+                'pmsUnidad', 'inicio', 'fin',
+                'cantidadAdultos', 'cantidadNinos',
+                'monto', 'comision',
+                'assignments',
+            ];
+
+            foreach ($camposBloqueados as $nombre) {
+                if (!$form->has($nombre)) {
+                    continue;
                 }
+                $config = $form->get($nombre)->getConfig();
+                $options = $config->getOptions();
+                $options['disabled'] = true;
+
+                $form->add($nombre, \get_class($config->getType()->getInnerType()), $options);
             }
         });
     }

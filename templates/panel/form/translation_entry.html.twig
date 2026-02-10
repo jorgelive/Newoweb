@@ -1,0 +1,106 @@
+{# BLOQUE 1: ROW (Sin cambios) #}
+{% block pms_translation_entry_row %}
+    <div class="pms-item-row mb-2">
+        {{ form_widget(form) }}
+        {{ form_errors(form) }}
+    </div>
+{% endblock %}
+
+{# BLOQUE 2: WIDGET #}
+{% block pms_translation_entry_widget %}
+    {% set val_lang = value.language|default(form.vars.value.language|default('')) %}
+    {% set val_content = value.content|default(form.vars.value.content|default('')) %}
+    {% set db_config = form.vars.idiomas_config|default({}) %}
+    {% set info = db_config[val_lang] ?? { 'flag': '✨', 'name': val_lang ? val_lang|upper : 'Nuevo' } %}
+
+    <style>
+        .pms-delete-translation-btn {
+            background-color: #fcfcfc;
+            width: 36px;
+            padding: 0;
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+            border-top-right-radius: calc(0.25rem - 1px);
+            border-bottom-right-radius: calc(0.25rem - 1px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            border-left: 1px solid #dee2e6;
+        }
+        .pms-delete-translation-btn i {
+            font-size: 0.85rem;
+            color: #dc3545;
+        }
+        .pms-delete-translation-btn:hover {
+            background-color: #fee2e2 !important;
+        }
+        .pms-delete-translation-btn:hover i {
+            color: #b02a37;
+        }
+    </style>
+
+    <div class="accordion-item border shadow-sm">
+        <h2 class="accordion-header d-flex align-items-stretch m-0 p-0" id="heading-{{ id }}">
+
+            {# BOTÓN IZQUIERDO (Acordeón) #}
+            {#
+            ✅ CAMBIO 1:
+            - Se eliminó la clase 'collapsed'.
+            - Se agregó aria-expanded="true".
+            Esto hace que la flecha apunte hacia arriba indicando "abierto".
+            #}
+            <button class="accordion-button py-2 flex-grow-1"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapse-{{ id }}"
+                    aria-expanded="true"
+                    style="background-color: #fcfcfc; border-top-right-radius: 0; border-bottom-right-radius: 0;">
+
+                <span class="me-2 fs-5">{{ info.flag }}</span>
+                <span class="fw-bold me-2 text-dark">{{ info.name }}</span>
+
+                {% if val_content %}
+                    <span class="text-muted small border-start ps-2 text-truncate fst-italic d-none d-sm-inline-block" style="max-width: 300px;">
+                        {{ val_content|striptags }}
+                    </span>
+                {% else %}
+                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7em">Vacío</span>
+                {% endif %}
+            </button>
+
+            {# BOTÓN DERECHO (Eliminar) #}
+            <button type="button"
+                    class="pms-delete-translation-btn"
+                    onclick="this.closest('.pms-item-row').remove();"
+                    title="Eliminar">
+                <i class="fa fa-trash-can"></i>
+            </button>
+        </h2>
+
+        {# CUERPO DEL ACORDEÓN #}
+        {#
+        ✅ CAMBIO 2:
+        - Se agregó la clase 'show' fijamente.
+        Esto hace que el contenido sea visible inmediatamente.
+        #}
+        <div id="collapse-{{ id }}"
+             class="accordion-collapse collapse show"
+             data-bs-parent="#{{ id|split('_')[0] }}_accordion">
+
+            <div class="accordion-body bg-white p-3 border-top">
+                <div class="row g-2">
+                    {% if form.language is defined and (form.content.vars.block_prefixes[1] ?? '') == 'text' %}
+                        <div class="col-md-3">{{ form_widget(form.language) }}</div>
+                        <div class="col-md-9">{{ form_widget(form.content) }}{{ form_errors(form.content) }}</div>
+                    {% else %}
+                        {% if form.language is defined %}<div class="col-12">{{ form_widget(form.language) }}</div>{% endif %}
+                        <div class="col-12">{{ form_widget(form.content) }}{{ form_errors(form.content) }}</div>
+                    {% endif %}
+                </div>
+                {{ form_rest(form) }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

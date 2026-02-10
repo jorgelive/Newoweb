@@ -1,32 +1,27 @@
 {# templates/panel/layout.html.twig #}
 
-{# 1. ESTO ES VITAL: Heredar del diseño base de EasyAdmin #}
+{# Heredar del diseño base de EasyAdmin #}
 {% extends '@EasyAdmin/layout.html.twig' %}
 
 {% block head_javascript %}
     {{ parent() }}
 
-    <!-- Core -->
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.10/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.10/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.10/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.10/index.global.min.js"></script>
+    {#
+    El resto de librerías (TinyMCE, FullCalendar) se cargan
+    automáticamente desde DashboardController::configureAssets()
 
-    {# 2. Scheduler (Orden Estricto) #}
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/premium-common@6.1.10/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/scrollgrid@6.1.10/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timeline@6.1.10/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource@6.1.10/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.10/index.global.min.js"></script>
-
+    Mantenemos tu script de punto de entrada 'panel':
+    #}
     <script type="module">import 'panel';</script>
 {% endblock %}
 
-{% block head_stylesheets %}
-    {{ parent() }}
-
-    {# Estilos de Tippy #}
-    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css">
-    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css">
+{% block content %}
+    <div data-controller="panel--form-errors">
+        {{ parent() }}
+    </div>
 {% endblock %}
+
+{#
+Ya no necesitamos el bloque head_stylesheets manual.
+Tippy CSS también se carga desde el Controller.
+#}

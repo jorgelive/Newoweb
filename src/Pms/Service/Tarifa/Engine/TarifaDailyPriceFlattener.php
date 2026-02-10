@@ -96,27 +96,45 @@ final class TarifaDailyPriceFlattener
         }
 
         if ($priorityComparator === null) {
-            // Default: important desc, weight desc, id desc.
+            // Default mejorado:
+            // important desc, weight desc, duración asc (más corto gana), id desc.
             $priorityComparator = static function (array $a, array $b): int {
+                // 1) important: true gana
                 $ai = !empty($a['data']['important']) ? 1 : 0;
                 $bi = !empty($b['data']['important']) ? 1 : 0;
                 if ($ai !== $bi) {
-                    return $bi <=> $ai;
+                    return $bi <=> $ai; // (a mejor si es más importante)
                 }
 
+                // 2) weight: más grande gana
                 $ap = (int) ($a['data']['weight'] ?? 0);
                 $bp = (int) ($b['data']['weight'] ?? 0);
                 if ($ap !== $bp) {
-                    return $bp <=> $ap;
+                    return $bp <=> $ap; // (a mejor si tiene más prioridad)
                 }
 
+                // 3) duración: más corto gana (end - start en días)
+                // Nota: aquí a/b ya vienen normalizados a start/end día en $cand['start']/$cand['end'],
+                // pero por simplicidad lo leemos de ahí:
+                $aDays = (int) (($a['end']->getTimestamp() - $a['start']->getTimestamp()) / 86400);
+                $bDays = (int) (($b['end']->getTimestamp() - $b['start']->getTimestamp()) / 86400);
+
+                // Si por alguna razón da 0 o negativo, lo empujamos al fondo.
+                if ($aDays <= 0) $aDays = PHP_INT_MAX;
+                if ($bDays <= 0) $bDays = PHP_INT_MAX;
+
+                if ($aDays !== $bDays) {
+                    return $aDays <=> $bDays; // (a mejor si es más corto)
+                }
+
+                // 4) id desc (si existe)
                 $aidRaw = $a['data']['id'] ?? 0;
                 $bidRaw = $b['data']['id'] ?? 0;
 
                 $aid = is_numeric($aidRaw) ? (int) $aidRaw : 0;
                 $bid = is_numeric($bidRaw) ? (int) $bidRaw : 0;
 
-                return $bid <=> $aid;
+                return $bid <=> $aid; // (a mejor si tiene id mayor)
             };
         }
 

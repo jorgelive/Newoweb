@@ -9,7 +9,6 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\Form\Type\CollectionType;
 use Sonata\AdminBundle\Show\ShowMapper;
-use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
 
 class ServicioNotaitinerariodiaAdmin extends AbstractSecureAdmin
@@ -32,7 +31,7 @@ class ServicioNotaitinerariodiaAdmin extends AbstractSecureAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
-            ->add('contenido', TranslationFieldFilter::class)
+            ->add('contenido')
             ->add('itinerariodias', null, [
                 'label' =>'Dias de itinerarios'
             ])

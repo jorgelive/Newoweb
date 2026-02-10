@@ -14,7 +14,6 @@ use Sonata\AdminBundle\Form\Type\ModelAutocompleteType;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\Form\Type\DatePickerType;
-use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
@@ -49,7 +48,7 @@ class ServicioTarifaAdmin extends AbstractSecureAdmin
             ->add('nombre')
             ->add('moneda')
             ->add('monto')
-            ->add('titulo', TranslationFieldFilter::class, [
+            ->add('titulo', null, [
                 'label' => 'Título'
             ])
             ->add('nombremostrar',  null, [

@@ -10,7 +10,6 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\AdminBundle\Route\RouteCollection;
-use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 
 class MaestroMedioAdmin extends AbstractSecureAdmin
@@ -48,7 +47,7 @@ class MaestroMedioAdmin extends AbstractSecureAdmin
                 ]
             )
             ->add('nombre')
-            ->add('titulo', TranslationFieldFilter::class, [
+            ->add('titulo', null, [
                 'label' => 'Título'
             ])
             ->add('enlace')

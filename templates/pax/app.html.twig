@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pax Experience</title>
+
+    {% if not is_dev and css_files is defined %}
+        {% for css in css_files %}
+            <link rel="stylesheet" href="/app_pax/{{ css }}">
+        {% endfor %}
+    {% endif %}
+
+    {# ... Scripts de config ... #}
+</head>
+<body>
+<div id="app"></div>
+
+{% if is_dev %}
+    <script type="module" src="https://pax.openperu.test:5173/app_pax/@vite/client"></script>
+    <script type="module" src="https://pax.openperu.test:5173/app_pax/{{ vite_entry }}"></script>
+{% else %}
+    <script type="module" src="/app_pax/{{ js_file }}"></script>
+{% endif %}
+</body>
+</html>

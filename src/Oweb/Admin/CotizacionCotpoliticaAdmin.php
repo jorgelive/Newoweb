@@ -8,7 +8,6 @@ use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
-use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
 class CotizacionCotpoliticaAdmin extends AbstractSecureAdmin
 {
@@ -25,7 +24,7 @@ class CotizacionCotpoliticaAdmin extends AbstractSecureAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
-            ->add('contenido', TranslationFieldFilter::class)
+            ->add('contenido')
         ;
     }
 

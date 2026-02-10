@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad PmsEventAssignment.
@@ -20,6 +21,7 @@ use Doctrine\ORM\Mapping as ORM;
 class PmsEventAssignment
 {
     use IdTrait;
+
     use TimestampTrait;
 
     /**
@@ -58,6 +60,11 @@ class PmsEventAssignment
      * GETTERS Y SETTERS EXPLÍCITOS
      * -------------------------------------------------------------------------
      */
+
+    public function __construct()
+    {
+        $this->id = Uuid::v7();
+    }
 
     public function getEvento(): ?PmsEventoCalendario
     {

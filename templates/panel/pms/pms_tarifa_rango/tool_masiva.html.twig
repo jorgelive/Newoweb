@@ -1,0 +1,97 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}Generador Masivo de Tarifas{% endblock %}
+
+{% block main %}
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-8">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+
+                    <p class="text-muted mb-4">
+                        <i class="fa fa-info-circle me-1"></i>
+                        Esta herramienta creará rangos de tarifas para <strong>todas las unidades activas</strong>.
+                    </p>
+
+                    {# 🔥 INICIO DEL CONTROLADOR STIMULUS #}
+                    {# El nombre se deriva de la ruta: panel/pms_tarifa_rango/masiva_controller #}
+                    {{ form_start(form, {
+                        'attr': {
+                            'data-controller': 'panel--pms-tarifa-rango--masiva',
+                            'data-panel--pms-tarifa-rango--masiva-target': 'form'
+                        }
+                    }) }}
+
+                    {# ✅ 1. ERRORES GLOBALES: Aquí aparecerá "El token CSRF no es válido" #}
+                    {% if form.vars.errors|length > 0 %}
+                        <div class="alert alert-danger shadow-sm">
+                            <ul class="mb-0">
+                                {% for error in form.vars.errors %}
+                                    <li><i class="fa fa-exclamation-triangle me-2"></i> {{ error.message }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            {# Target: startDate | Action: change -> updateEndDate #}
+                            {{ form_row(form.fechaInicio, {
+                                'attr': {
+                                    'data-panel--pms-tarifa-rango--masiva-target': 'startDate',
+                                    'data-action': 'change->panel--pms-tarifa-rango--masiva#updateEndDate'
+                                }
+                            }) }}
+                        </div>
+                        <div class="col-md-6">
+                            {# Target: endDate #}
+                            {{ form_row(form.fechaFin, {
+                                'attr': {
+                                    'data-panel--pms-tarifa-rango--masiva-target': 'endDate'
+                                }
+                            }) }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            {{ form_row(form.porcentaje) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.minStay) }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4 align-items-center">
+                        <div class="col-md-6">
+                            {{ form_row(form.prioridad) }}
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch pt-4">
+                                {{ form_widget(form.importante) }}
+                                {{ form_label(form.importante) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ ea_url().setController('App\\Pms\\Controller\\Crud\\PmsTarifaRangoCrudController').setAction('index') }}" class="btn btn-light me-md-2">
+                            Cancelar
+                        </a>
+
+                        {# Action: click -> confirm #}
+                        <button type="button"
+                                data-action="click->panel--pms-tarifa-rango--masiva#confirm"
+                                class="btn btn-primary px-4">
+                            <i class="fa fa-magic me-2"></i> Ejecutar Generación
+                        </button>
+                    </div>
+                    {{ form_widget(form._token) }}
+                    {{ form_end(form, {'render_rest': false}) }}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

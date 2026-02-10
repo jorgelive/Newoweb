@@ -35,5 +35,8 @@ return [
     ],
     '@popperjs/core' => [
         'version' => '2.10.2',
-    ]
+    ],
+    'sweetalert2' => [
+        'version' => '11.26.18',
+    ],
 ];

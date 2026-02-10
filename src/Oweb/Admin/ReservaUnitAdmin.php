@@ -9,7 +9,6 @@ use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
 use Sonata\Form\Type\CollectionType;
-use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Contracts\Service\Attribute\Required;
 
@@ -71,8 +70,8 @@ class ReservaUnitAdmin extends AbstractSecureAdmin
             ->add('id')
             ->add('establecimiento')
             ->add('nombre')
-            ->add('descripcion', TranslationFieldFilter::class, ['label' => 'Descripción'])
-            ->add('referencia', TranslationFieldFilter::class, ['label' => 'Referencia de ubicación'])
+            ->add('descripcion', null, ['label' => 'Descripción'])
+            ->add('referencia', null, ['label' => 'Referencia de ubicación'])
         ;
     }
 

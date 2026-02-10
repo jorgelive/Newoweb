@@ -38,23 +38,31 @@ final class PmsRatesPushQueueRepository extends AbstractExchangeRepository
             ->getResult();
     }
 
+
+
     /**
-     * Usado por el Creator para encontrar duplicados/updates.
-     * Busca coincidencias de unidad y fechas en estado PENDING.
+     * Busca colas pendientes para una unidad en un rango de fechas.
+     *
+     * @param string $unidadId  UUID de la unidad (String)
+     * @param \DateTimeInterface $start
+     * @param \DateTimeInterface $end
+     * @return PmsRatesPushQueue[]
      */
-    public function findPendingForUnit(int $unidadId, \DateTimeInterface $from, \DateTimeInterface $to): array
+    public function findPendingForUnit(string $unidadId, \DateTimeInterface $start, \DateTimeInterface $end): array
     {
         return $this->createQueryBuilder('q')
-            ->where('q.unidad = :uid')
-            ->andWhere('q.status = :st')
-            ->andWhere('q.fechaInicio < :to AND q.fechaFin > :from')
-            ->setParameters([
-                'uid' => $unidadId,
-                'st'   => PmsRatesPushQueue::STATUS_PENDING,
-                'from' => $from,
-                'to'   => $to
-            ])
+            ->join('q.unidad', 'u')
+            ->where('u.id = :unidadId')
+            ->andWhere('q.status = :status')
+            // Solapamiento de fechas: (StartA <= EndB) and (EndA >= StartB)
+            ->andWhere('q.fechaInicio <= :end')
+            ->andWhere('q.fechaFin >= :start')
+            ->setParameter('unidadId', $unidadId, 'uuid') // 'uuid' ayuda a Doctrine si usas Binary(16)
+            ->setParameter('status', \App\Pms\Entity\PmsRatesPushQueue::STATUS_PENDING)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
             ->getQuery()
             ->getResult();
     }
+
 }

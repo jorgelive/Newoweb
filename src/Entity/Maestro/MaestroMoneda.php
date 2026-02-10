@@ -4,13 +4,18 @@ declare(strict_types=1);
 namespace App\Entity\Maestro;
 
 use App\Entity\Trait\TimestampTrait;
+use App\Repository\Maestro\MaestroMonedaRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: MaestroMonedaRepository::class)]
 #[ORM\Table(name: 'maestro_moneda')]
 #[ORM\HasLifecycleCallbacks]
 class MaestroMoneda
 {
+    public const DB_ID_SOL = 'PEN';
+
+    public const DB_ID_USD = 'USD';
+
     use TimestampTrait;
 
     #[ORM\Id]

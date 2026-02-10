@@ -41,3 +41,11 @@ cookies.txt
 /debug/
 ###< varios ###
 
+###> Vite ###
+/public/app_pax/
+/pax/.env.development
+/pax/.env.production
+/pax/certs/
+/pax/node_modules/
+###< Vite ###
+

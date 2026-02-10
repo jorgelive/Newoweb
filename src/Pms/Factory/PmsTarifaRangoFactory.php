@@ -2,8 +2,8 @@
 
 namespace App\Pms\Factory;
 
-use App\Oweb\Entity\MaestroMoneda;
-use App\Oweb\Repository\MaestroMonedaRepository;
+use App\Entity\Maestro\MaestroMoneda;
+use App\Repository\Maestro\MaestroMonedaRepository;
 use App\Pms\Entity\PmsTarifaRango;
 
 /**
@@ -61,11 +61,6 @@ class PmsTarifaRangoFactory
             $entity->setMoneda($usd);
         }
 
-        // Posibles defaults futuros de dominio:
-        // $entity->setActivo(true);
-        // $entity->setPeso(0);
-        // $entity->setImportante(false);
-
         return $entity;
     }
 
@@ -80,8 +75,7 @@ class PmsTarifaRangoFactory
     private function getUsdMoneda(): ?MaestroMoneda
     {
         if ($this->monedaUsd === null) {
-            $this->monedaUsd = $this->maestroMonedaRepository
-                ->findOneBy(['codigo' => 'USD']);
+            $this->monedaUsd = $this->maestroMonedaRepository->findUsd();
         }
 
         return $this->monedaUsd;

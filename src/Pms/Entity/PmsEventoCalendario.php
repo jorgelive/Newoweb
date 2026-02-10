@@ -5,48 +5,62 @@ declare(strict_types=1);
 namespace App\Pms\Entity;
 
 use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Entidad PmsEventoCalendario.
- * Representa un bloqueo o reserva en el tiempo para una unidad específica.
- * IDs: UUID para negocio, Strings para Maestros.
+ * Gestiona bloqueos y reservas.
+ * ✅ Restaurados todos los campos de Beds24 y lógica de sincronización.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_evento_calendario')]
 #[ORM\HasLifecycleCallbacks]
 class PmsEventoCalendario
 {
-    /** Gestión de Identificador UUID (BINARY 16) */
     use IdTrait;
-
-    /** Gestión de auditoría temporal (DateTimeImmutable) */
+    use LocatorTrait;
     use TimestampTrait;
 
     /* ======================================================
      * CONSTANTES DE LÓGICA
      * ====================================================== */
-    private const ESTADOS_BORRABLES_CON_ID = [
+    public const ESTADOS_BORRABLES_CON_ID = [
         PmsEventoEstado::CODIGO_CANCELADA,
         PmsEventoEstado::CODIGO_BLOQUEO,
     ];
 
+    /**
+     * ✅ Blindaje: estados que un evento OTA NO debe poder seleccionar manualmente.
+     * (Si el OTA llega en esos estados por import/legacy, igual lo verás,
+     *  pero aquí evitamos “cambiar a” esos estados mediante formularios).
+     */
+    public const OTA_ESTADOS_NO_SELECCIONABLES = [
+        PmsEventoEstado::CODIGO_CANCELADA,
+        PmsEventoEstado::CODIGO_CONSULTA,
+        PmsEventoEstado::CODIGO_BLOQUEO,
+    ];
+
     /* ======================================================
-     * RELACIONES DE NEGOCIO (UUID - BINARY 16)
+     * RELACIONES DE NEGOCIO (UUID v7)
      * ====================================================== */
 
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class)]
-    #[ORM\JoinColumn(name: 'pms_unidad_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'pms_unidad_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
     #[Assert\NotNull(message: "La unidad es obligatoria.")]
+    #[Groups(['pax:read'])]
     private ?PmsUnidad $pmsUnidad = null;
 
     #[ORM\ManyToOne(targetEntity: PmsReserva::class, inversedBy: 'eventosCalendario')]
-    #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: true, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: true, columnDefinition: 'BINARY(16)')]
     private ?PmsReserva $reserva = null;
 
     /* ======================================================
@@ -97,7 +111,7 @@ class PmsEventoCalendario
     private ?string $tituloCache = null;
 
     /* ======================================================
-     * CAMPOS DE DOMINIO (BEDS24 / EXTERNOS)
+     * CAMPOS DE DOMINIO BEDS24 (⚠️ NO ELIMINAR)
      * ====================================================== */
 
     #[ORM\Column(name: 'rate_description', type: 'text', nullable: true)]
@@ -110,7 +124,7 @@ class PmsEventoCalendario
     private ?string $subestadoBeds24 = null;
 
     /* ======================================================
-     * RELACIONES TÉCNICAS BEDS24 Y ASIGNACIONES
+     * COLECCIONES
      * ====================================================== */
 
     /** @var Collection<int, PmsEventoBeds24Link> */
@@ -125,27 +139,116 @@ class PmsEventoCalendario
     {
         $this->beds24Links = new ArrayCollection();
         $this->assignments = new ArrayCollection();
+
+        $this->id = Uuid::v7();
+        $this->initializeLocator();
     }
 
     /* ======================================================
-     * GETTERS Y SETTERS
+     * ✅ BLINDAJE TOTAL (SERVER-SIDE)
      * ====================================================== */
 
+    #[Assert\Callback]
+    public function validateOtaEstado(ExecutionContextInterface $context): void
+    {
+        // Solo aplica a OTAs
+        if (!$this->isOta) {
+            return;
+        }
+
+        $estadoId = $this->estado?->getId();
+        if (!$estadoId) {
+            return;
+        }
+
+        // No permitir seleccionar esos estados en OTA
+        if (in_array($estadoId, self::OTA_ESTADOS_NO_SELECCIONABLES, true)) {
+            $context->buildViolation('En reservas OTA no se permite seleccionar este estado.')
+                ->atPath('estado')
+                ->addViolation();
+        }
+    }
+
+    /* ======================================================
+     * LÓGICA DE NEGOCIO Y SINCRONIZACIÓN
+     * ====================================================== */
+
+    public function isSynced(): bool
+    {
+        if ($this->beds24Links->isEmpty()) return true;
+
+        foreach ($this->beds24Links as $link) {
+            foreach ($link->getQueues() as $queue) {
+                if (!in_array($queue->getStatus(), ['success', 'canceled'], true)) return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function getSyncStatus(): string
+    {
+        if ($this->beds24Links->isEmpty()) return 'local';
+
+        $isPending = false;
+
+        foreach ($this->beds24Links as $link) {
+            foreach ($link->getQueues() as $queue) {
+                if ($queue->getStatus() === 'failed') return 'error';
+                if (in_array($queue->getStatus(), ['pending', 'processing'], true)) $isPending = true;
+            }
+        }
+
+        return $isPending ? 'pending' : 'synced';
+    }
+
+    public function isSafeToDelete(): bool
+    {
+        if ($this->isOta()) return false;
+
+        foreach ($this->beds24Links as $link) {
+            if (null !== $link->getBeds24BookId()) {
+                if (!in_array($this->getEstado()?->getId(), self::ESTADOS_BORRABLES_CON_ID, true)) return false;
+            }
+
+            foreach ($link->getQueues() as $queue) {
+                if ($queue->getStatus() === 'processing' || $queue->getLockedAt() !== null) return false;
+            }
+        }
+
+        return true;
+    }
+
+    /* ======================================================
+     * GETTERS Y SETTERS EXPLÍCITOS
+     * ====================================================== */
+
+    #[Groups(['pax:read'])]
+    public function getId(): ?Uuid
+    {
+        return $this->id;
+    }
+
+    #[Groups(['pax:read'])]
     public function getPmsUnidad(): ?PmsUnidad { return $this->pmsUnidad; }
     public function setPmsUnidad(?PmsUnidad $pmsUnidad): self { $this->pmsUnidad = $pmsUnidad; return $this; }
 
+    #[Groups(['pax:read'])]
     public function getReserva(): ?PmsReserva { return $this->reserva; }
     public function setReserva(?PmsReserva $reserva): self { $this->reserva = $reserva; return $this; }
 
+    #[Groups(['pax:read'])]
     public function getEstado(): ?PmsEventoEstado { return $this->estado; }
     public function setEstado(?PmsEventoEstado $estado): self { $this->estado = $estado; return $this; }
 
     public function getEstadoPago(): ?PmsEventoEstadoPago { return $this->estadoPago; }
     public function setEstadoPago(?PmsEventoEstadoPago $estadoPago): self { $this->estadoPago = $estadoPago; return $this; }
 
+    #[Groups(['pax:read'])]
     public function getInicio(): ?DateTimeInterface { return $this->inicio; }
     public function setInicio(?DateTimeInterface $inicio): self { $this->inicio = $inicio; return $this; }
 
+    #[Groups(['pax:read'])]
     public function getFin(): ?DateTimeInterface { return $this->fin; }
     public function setFin(?DateTimeInterface $fin): self { $this->fin = $fin; return $this; }
 
@@ -158,9 +261,11 @@ class PmsEventoCalendario
     public function getComision(): ?string { return $this->comision; }
     public function setComision(?string $comision): self { $this->comision = $comision; return $this; }
 
+    #[Groups(['pax:read'])]
     public function getCantidadAdultos(): int { return $this->cantidadAdultos; }
     public function setCantidadAdultos(int $cantidadAdultos): self { $this->cantidadAdultos = $cantidadAdultos; return $this; }
 
+    #[Groups(['pax:read'])]
     public function getCantidadNinos(): int { return $this->cantidadNinos; }
     public function setCantidadNinos(int $cantidadNinos): self { $this->cantidadNinos = $cantidadNinos; return $this; }
 
@@ -170,7 +275,6 @@ class PmsEventoCalendario
     public function getTituloCache(): ?string { return $this->tituloCache; }
     public function setTituloCache(?string $tituloCache): self { $this->tituloCache = $tituloCache; return $this; }
 
-    // Getters y Setters de Dominios Beds24
     public function getRateDescription(): ?string { return $this->rateDescription; }
     public function setRateDescription(?string $val): self { $this->rateDescription = $val; return $this; }
 
@@ -220,60 +324,9 @@ class PmsEventoCalendario
         return $this;
     }
 
-    /* ======================================================
-     * LÓGICA DE NEGOCIO BEDS24 / SINCRONIZACIÓN
-     * ====================================================== */
-
-    public function isSynced(): bool
-    {
-        if ($this->beds24Links->isEmpty()) return true;
-
-        foreach ($this->beds24Links as $link) {
-            foreach ($link->getQueues() as $queue) {
-                if (!in_array($queue->getStatus(), ['success', 'canceled'], true)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    public function getSyncStatus(): string
-    {
-        if ($this->beds24Links->isEmpty()) return 'local';
-
-        $isPending = false;
-        foreach ($this->beds24Links as $link) {
-            foreach ($link->getQueues() as $queue) {
-                if ($queue->getStatus() === 'failed') return 'error';
-                if (in_array($queue->getStatus(), ['pending', 'processing'], true)) $isPending = true;
-            }
-        }
-        return $isPending ? 'pending' : 'synced';
-    }
-
-    public function isSafeToDelete(): bool
-    {
-        if ($this->isOta()) return false;
-
-        foreach ($this->beds24Links as $link) {
-            $hasBookingId = (null !== $link->getBeds24BookId());
-            if ($hasBookingId) {
-                if (!in_array($this->getEstado()?->getId(), self::ESTADOS_BORRABLES_CON_ID, true)) {
-                    return false;
-                }
-            }
-            foreach ($link->getQueues() as $queue) {
-                if ($queue->getStatus() === 'processing' || $queue->getLockedAt() !== null) return false;
-            }
-        }
-        return true;
-    }
-
     public function __toString(): string
     {
         if ($this->tituloCache) return $this->tituloCache;
-
         $unidad = $this->pmsUnidad ? $this->pmsUnidad->getNombre() : 'Sin Unidad';
         $inicio = $this->inicio ? $this->inicio->format('d/m') : '?';
         return sprintf('%s | %s - %s', $unidad, $inicio, $this->descripcion ?: 'Reserva');

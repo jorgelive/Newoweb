@@ -3,7 +3,8 @@
 
 {% block main %}
 
-    <div class="accordion" id="accordionReserva">
+    {# 1. Agregamos el controlador al contenedor raíz del acordeón #}
+    <div class="accordion" id="accordionReserva" {{ stimulus_controller('panel--accordion-toggle') }}>
 
         {# --- ÍTEM 1: CALENDARIO --- #}
         <div class="accordion-item">
@@ -12,7 +13,12 @@
                     <i class="fa fa-calendar me-2"></i> Vista de Calendario
                 </button>
             </h2>
-            <div id="collapseCalendar" class="accordion-collapse collapse show" aria-labelledby="headingCalendar" data-bs-parent="#accordionReserva">
+            {# 2. Añadimos el target 'item' #}
+            <div id="collapseCalendar"
+                 class="accordion-collapse collapse show"
+                 aria-labelledby="headingCalendar"
+                 data-bs-parent="#accordionReserva"
+                    {{ stimulus_target('panel--accordion-toggle', 'item') }}>
                 <div class="accordion-body">
                     {{ fullcalendar_stimulus('pms_reserva', {
                         'No canceladas': 'pms_eventos_no_cancelados',
@@ -34,12 +40,12 @@
                 </button>
             </h2>
 
-            {# 🔥 CONEXIÓN STIMULUS CORREGIDA 🔥 #}
-            {# 'panel' es la carpeta, 'accordion_filters' es el archivo #}
+            {# 3. Añadimos el target 'item' y mantenemos tu controlador de filtros #}
             <div id="collapseList"
                  class="accordion-collapse collapse"
                  aria-labelledby="headingList"
                  data-bs-parent="#accordionReserva"
+                    {{ stimulus_target('panel--accordion-toggle', 'item') }}
                     {{ stimulus_controller('panel--accordion_filters') }}
             >
                 <div class="accordion-body p-0">

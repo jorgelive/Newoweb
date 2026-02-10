@@ -6,6 +6,7 @@ namespace App\Pms\Entity;
 
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Entidad PmsEventoEstado.
@@ -109,6 +110,7 @@ class PmsEventoEstado
     public function getId(): ?string { return $this->id; }
     public function setId(string $id): self { $this->id = $id; return $this; }
 
+    #[Groups(['pax:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $nombre): self { $this->nombre = $nombre; return $this; }
 

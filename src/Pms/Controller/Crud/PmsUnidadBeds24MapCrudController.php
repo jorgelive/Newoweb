@@ -22,8 +22,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * PmsUnidadBeds24MapCrudController.
- * Mapeo técnico entre Unidades del PMS y recursos de Beds24 (Property, Room, Unit).
- * Hereda de BaseCrudController y utiliza UUID v7 con prioridad de Roles.
  */
 final class PmsUnidadBeds24MapCrudController extends BaseCrudController
 {
@@ -49,17 +47,12 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
             ->setPaginatorPageSize(50);
     }
 
-    /**
-     * ✅ Configuración de acciones y permisos.
-     * Los permisos se aplican DESPUÉS del parent para garantizar prioridad absoluta.
-     */
     public function configureActions(Actions $actions): Actions
     {
         $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DETAIL);
 
-        // Obtenemos configuración global del panel base
         $actions = parent::configureActions($actions);
 
         return $actions
@@ -76,20 +69,16 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
             ->add('beds24Config')
             ->add('beds24PropertyId')
             ->add('pmsUnidad')
+            ->add('virtualEstablecimiento')
             ->add('beds24RoomId')
             ->add('beds24UnitId')
-            ->add('channelPropId')
             ->add('activo')
-            ->add('esPrincipal')
             ->add('createdAt')
             ->add('updatedAt');
     }
 
     public function configureFields(string $pageName): iterable
     {
-        $isNew = (Crud::PAGE_NEW === $pageName);
-
-        // ✅ Manejo de UUID (IdTrait)
         $id = TextField::new('id', 'UUID')
             ->onlyOnIndex()
             ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
@@ -104,6 +93,11 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
         $pmsUnidad = AssociationField::new('pmsUnidad', 'Unidad PMS')
             ->setRequired(true);
 
+        // ✅ Aquí seleccionas "Saphy" o "Inti" (que ahora son globales)
+        $virtualEstablecimiento = AssociationField::new('virtualEstablecimiento', 'Establecimiento Virtual (Agrupación)')
+            ->setHelp('Define la identidad comercial (Ej: Saphy, Inti) y si es principal.')
+            ->setRequired(false);
+
         $beds24PropertyId = IntegerField::new('beds24PropertyId', 'Beds24 Property ID')
             ->setRequired(false)
             ->setHelp('PropertyId real de Beds24 asociado a este mapeo.');
@@ -115,20 +109,25 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
             ->setRequired(false)
             ->setHelp('Solo si Beds24 usa unidades físicas específicas.');
 
-        $channelPropId = TextField::new('channelPropId', 'Channel Prop ID')
+        $channelPropId = TextField::new('channelPropId', 'Channel Prop ID (Virtual)')
             ->setRequired(false)
-            ->setHelp('ID externo (Booking Hotel ID, Airbnb Listing ID).');
+            ->setFormTypeOption('mapped', false)
+            ->setFormTypeOption('disabled', true)
+            ->setHelp('Heredado del Establecimiento Virtual.')
+            ->hideOnForm();
 
         $nota = TextField::new('nota', 'Observaciones Técnicas')->setRequired(false);
 
         $activo = BooleanField::new('activo', 'Mapeo Activo')
             ->renderAsSwitch(true);
 
-        $esPrincipal = BooleanField::new('esPrincipal', 'Mapeo Principal')
-            ->setHelp('Solo debe existir una asignación PRINCIPAL por cada unidad.')
-            ->renderAsSwitch(true);
+        $esPrincipal = BooleanField::new('esPrincipal', 'Es Principal (Virtual)')
+            ->setHelp('Determinado por el Establecimiento Virtual asignado.')
+            ->renderAsSwitch(false)
+            ->setFormTypeOption('mapped', false)
+            ->setFormTypeOption('disabled', true)
+            ->hideOnForm();
 
-        // ✅ Auditoría mediante TimestampTrait (createdAt / updatedAt)
         $createdAt = DateTimeField::new('createdAt', 'Creado')
             ->setFormat('yyyy/MM/dd HH:mm')
             ->setFormTypeOption('disabled', true);
@@ -137,11 +136,11 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
             ->setFormat('yyyy/MM/dd HH:mm')
             ->setFormTypeOption('disabled', true);
 
-        // ===================== INDEX =====================
         if (Crud::PAGE_INDEX === $pageName) {
             return [
                 $id,
                 $pmsUnidad,
+                $virtualEstablecimiento,
                 $beds24Config,
                 $esPrincipal,
                 $beds24PropertyId,
@@ -151,21 +150,22 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
             ];
         }
 
-        // ===================== DETAIL / FORMS =====================
         return [
             FormField::addPanel('Relación Técnica')->setIcon('fa fa-link'),
             $idFull->onlyOnDetail(),
             $beds24Config,
             $pmsUnidad,
+            $virtualEstablecimiento,
             $beds24PropertyId,
             $beds24RoomId,
             $beds24UnitId,
-            $channelPropId,
+
+            $channelPropId->onlyOnDetail(),
             $nota,
 
             FormField::addPanel('Configuración de Sincronización')->setIcon('fa fa-flag'),
             $activo,
-            $esPrincipal,
+            $esPrincipal->onlyOnDetail(),
 
             FormField::addPanel('Auditoría de Registro')->setIcon('fa fa-shield-alt')->renderCollapsed(),
             $createdAt->hideWhenCreating(),

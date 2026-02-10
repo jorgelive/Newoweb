@@ -5,6 +5,8 @@ namespace App\Pms\Repository;
 
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\ParameterType; // ✅ Importante
+use Doctrine\DBAL\ArrayParameterType; // ✅ Importante
 
 /**
  * @template T of ExchangeQueueItemInterface
@@ -16,7 +18,6 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
 
     /**
      * Reclama un lote de ítems HOMOGÉNEOS para procesar.
-     * Garantiza a nivel SQL que todos comparten beds24_config_id y endpoint_id.
      */
     public function claimRunnable(int $limit, string $workerId, \DateTimeImmutable $now, int $ttl = 90): array
     {
@@ -24,7 +25,7 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
         $table = $this->getTableName();
         $nowSql = $now->format('Y-m-d H:i:s');
 
-        // 1. WATCHDOG (Limpieza de locks expirados)
+        // 1. WATCHDOG
         $expiredSql = $now->modify("-{$ttl} seconds")->format('Y-m-d H:i:s');
         $conn->executeStatement(
             "UPDATE {$table} SET status = 'failed', failed_reason = 'watchdog_timeout', locked_at = NULL, locked_by = NULL 
@@ -32,7 +33,8 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
             ['expired' => $expiredSql]
         );
 
-        // 2. PROBE (Sondeo): Encontrar un contexto candidato
+        // 2. PROBE
+        // Recuperamos los IDs binarios crudos. PHP los maneja bien como strings binarios.
         $sqlProbe = "SELECT beds24_config_id, endpoint_id 
                      FROM {$table} 
                      WHERE status IN ('pending', 'failed')
@@ -44,10 +46,10 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
         $context = $conn->fetchAssociative($sqlProbe, ['now' => $nowSql]);
 
         if (!$context) {
-            return []; // Nada pendiente
+            return [];
         }
 
-        // 3. FETCH HOMOGÉNEO: Traer hermanos idénticos
+        // 3. FETCH HOMOGÉNEO (AQUÍ ESTABA EL ERROR)
         $sqlFetch = "SELECT id FROM {$table} 
                      WHERE status IN ('pending', 'failed')
                      AND retry_count < max_attempts
@@ -59,23 +61,37 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
                      LIMIT :limit 
                      FOR UPDATE SKIP LOCKED";
 
-        $ids = $conn->fetchFirstColumn($sqlFetch, [
-            'now'   => $nowSql,
-            'limit' => $limit,
-            'cfgId' => $context['beds24_config_id'],
-            'epId'  => $context['endpoint_id']
-        ], [
-            'limit' => \Doctrine\DBAL\ParameterType::INTEGER
-        ]);
+        // ✅ CORRECCIÓN: Definir explícitamente el tipo BINARY para los UUIDs
+        $ids = $conn->fetchFirstColumn(
+            $sqlFetch,
+            [
+                'now'   => $nowSql,
+                'limit' => $limit,
+                'cfgId' => $context['beds24_config_id'], // Valor binario crudo
+                'epId'  => $context['endpoint_id']       // Valor binario crudo
+            ],
+            [
+                'limit' => ParameterType::INTEGER,
+                'cfgId' => ParameterType::BINARY, // ¡VITAL! Evita el error "Truncated incorrect DOUBLE"
+                'epId'  => ParameterType::BINARY  // ¡VITAL!
+            ]
+        );
 
         if (empty($ids)) return [];
 
         // 4. LOCK
+        // ✅ CORRECCIÓN AQUÍ: Usamos ArrayParameterType::STRING para UUIDs binarios
         $conn->executeStatement(
             "UPDATE {$table} SET status = 'processing', locked_at = :now, locked_by = :worker, retry_count = retry_count + 1 
              WHERE id IN (:ids)",
-            ['now' => $nowSql, 'worker' => $workerId, 'ids' => $ids],
-            ['ids' => \Doctrine\DBAL\ArrayParameterType::INTEGER]
+            [
+                'now'    => $nowSql,
+                'worker' => $workerId,
+                'ids'    => $ids
+            ],
+            [
+                'ids' => ArrayParameterType::STRING // <--- CAMBIO CRÍTICO (Antes era INTEGER)
+            ]
         );
 
         return $this->hydrateItems($ids);

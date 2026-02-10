@@ -1,22 +1,23 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\EventListener;
 
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsReserva;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
-use Doctrine\ORM\Event\LifecycleEventArgs; // O PrePersistEventArgs en Doctrine > 2.13 recomendado
+use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Events;
 
 /**
  * Normaliza los campos de caché (titulo) antes de insertar en BD.
- * * Se ejecuta con prioridad ALTA (400) para asegurar que los datos estén listos
- * antes que otros listeners de validación o workflow.
+ * Se ejecuta con prioridad ALTA (400) para asegurar que los datos estén listos.
  */
 #[AsDoctrineListener(event: Events::prePersist, priority: 400)]
 final class PmsEventoCalendarioCacheNormalizerListener
 {
-    public function prePersist(LifecycleEventArgs $args): void
+    public function prePersist(PrePersistEventArgs $args): void
     {
         $entity = $args->getObject();
 
@@ -36,23 +37,28 @@ final class PmsEventoCalendarioCacheNormalizerListener
         }
 
         $reserva = $evento->getReserva();
-        if ($reserva === null) {
+        // Si no hay reserva asociada (es un bloqueo manual sin reserva), no hacemos nada.
+        if (!$reserva instanceof PmsReserva) {
             return;
         }
 
         // 2. Construir Nombre + Apellido
-        $nombreCompleto = trim(
-            ($reserva->getNombreCliente() ?? '') . ' ' . ($reserva->getApellidoCliente() ?? '')
-        );
+        $nombre = $reserva->getNombreCliente() ?? '';
+        $apellido = $reserva->getApellidoCliente() ?? '';
 
-        // 3. Fallback final: Si no hay nombre, usar el ID de reserva o un texto genérico
+        $nombreCompleto = trim($nombre . ' ' . $apellido);
+
+        // 3. Fallback: Si no hay nombre, usar el ID de reserva o texto genérico
         if ($nombreCompleto === '') {
-            // Opcional: Usar ID si ya existe (en prePersist el ID de reserva suele existir si es relación)
-            // Si $reserva->getId() es null (ambos nuevos), ponemos un texto genérico.
-            $nombreCompleto = $reserva->getId() ? "Reserva #{$reserva->getId()}" : 'Sin Nombre';
+            // ✅ CORRECCIÓN UUID: Cast explícito a string para evitar errores de objeto
+            $id = $reserva->getId();
+            $nombreCompleto = $id ? sprintf('Reserva #%s', (string) $id) : 'Sin Nombre';
         }
 
-        $evento->setTituloCache($nombreCompleto);
-    }
+        // 4. Truncado de Seguridad (asumiendo VARCHAR(180) o 255)
+        // Evita que un nombre excesivamente largo rompa el INSERT.
+        $tituloFinal = mb_substr($nombreCompleto, 0, 180);
 
+        $evento->setTituloCache($tituloFinal);
+    }
 }

@@ -11,10 +11,13 @@
         "ext-curl": "*",
         "ext-exif": "*",
         "ext-fileinfo": "*",
+        "ext-gd": "*",
         "ext-iconv": "*",
         "ext-imagick": "*",
         "ext-pdo": "*",
         "ext-zip": "*",
+        "api-platform/doctrine-orm": "^4.2",
+        "api-platform/symfony": "^4.2",
         "beberlei/doctrineextensions": "^1.3",
         "behat/transliterator": "^1.5",
         "doctrine/annotations": "^1.0",
@@ -26,7 +29,7 @@
         "jeroendesloovere/vcard": "^1.7",
         "johngrogg/ics-parser": "^3.1",
         "jsvrcek/ics": "^0.8.4",
-        "knplabs/doctrine-behaviors": "^2.6",
+        "knplabs/doctrine-behaviors": "^3.0",
         "knplabs/knp-paginator-bundle": "^6.0",
         "liip/imagine-bundle": "^2.17",
         "nelmio/cors-bundle": "*",
@@ -36,7 +39,6 @@
         "sonata-project/admin-bundle": "^4.11",
         "sonata-project/doctrine-orm-admin-bundle": "^4.2",
         "sonata-project/form-extensions": "^1.15",
-        "sonata-project/translation-bundle": "^3.0",
         "stof/doctrine-extensions-bundle": "^1.15",
         "symfony/amazon-mailer": "6.4.*",
         "symfony/asset": "6.4.*",
@@ -71,8 +73,7 @@
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/intl-extra": "^3.21",
         "twig/twig": "^2.12|^3.0",
-        "vich/uploader-bundle": "^2.9",
-        "ext-gd": "*"
+        "vich/uploader-bundle": "^2.9"
     },
     "config": {
         "allow-plugins": {

@@ -4,40 +4,34 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
+use App\Attribute\AutoTranslate;
+use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroMoneda;
+use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad PmsUnidad.
  * Representa un apartamento o habitación específica.
- * IDs: UUID (Propio), UUID (Establecimiento), String (Moneda).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_unidad')]
 #[ORM\HasLifecycleCallbacks]
 class PmsUnidad
 {
-    /** Gestión de Identificador UUID (BINARY 16) */
     use IdTrait;
-
-    /** Gestión de auditoría temporal (DateTimeImmutable) */
     use TimestampTrait;
-
-    /* ======================================================
-     * RELACIONES DE NEGOCIO (UUID - BINARY 16)
-     * ====================================================== */
+    use AutoTranslateControlTrait; // 👈 Agrega control de traducción y sobreescritura
 
     #[ORM\ManyToOne(targetEntity: PmsEstablecimiento::class, inversedBy: 'unidades')]
     #[ORM\JoinColumn(name: 'establecimiento_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
     private ?PmsEstablecimiento $establecimiento = null;
-
-    /* ======================================================
-     * PROPIEDADES BÁSICAS
-     * ====================================================== */
 
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombre = null;
@@ -51,9 +45,37 @@ class PmsUnidad
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $activo = true;
 
-    /* ======================================================
-     * TARIFA BASE (fallback cuando no hay rangos ganadores)
-     * ====================================================== */
+    // ============================================================
+    // 🔐 SEGURIDAD Y CONECTIVIDAD
+    // ============================================================
+
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $codigoPuerta = null;
+
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $codigoCaja = null;
+
+    /**
+     * Almacena múltiples redes WiFi.
+     * Estructura JSON:
+     * [
+     * {
+     * "ssid": "Wifi_A",
+     * "password": "123",
+     * "ubicacion": [
+     * {"language": "es", "content": "Salón"},
+     * {"language": "en", "content": "Living Room"}
+     * ]
+     * }
+     * ]
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['ubicacion'])] // 👈 Traducción anidada configurada
+    private ?array $wifiNetworks = [];
+
+    // ============================================================
+    // 💰 TARIFA BASE
+    // ============================================================
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: false, options: ['default' => '0.00'])]
     private string $tarifaBasePrecio = '0.00';
@@ -61,9 +83,6 @@ class PmsUnidad
     #[ORM\Column(type: 'smallint', options: ['default' => 2], nullable: false)]
     private int $tarifaBaseMinStay = 2;
 
-    /**
-     * Moneda base: Mapeada a ID Natural String(3)
-     */
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'tarifa_base_moneda_id', referencedColumnName: 'id', nullable: false)]
     private ?MaestroMoneda $tarifaBaseMoneda = null;
@@ -71,9 +90,9 @@ class PmsUnidad
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $tarifaBaseActiva = true;
 
-    /* ======================================================
-     * COLECCIONES Y RELACIONES (BEDS24 & QUEUES)
-     * ====================================================== */
+    // ============================================================
+    // 🔗 RELACIONES
+    // ============================================================
 
     /** @var Collection<int, PmsUnidadBeds24Map> */
     #[ORM\OneToMany(mappedBy: 'pmsUnidad', targetEntity: PmsUnidadBeds24Map::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -87,20 +106,27 @@ class PmsUnidad
     #[ORM\ManyToMany(targetEntity: PmsBookingsPullQueue::class, mappedBy: 'unidades')]
     private Collection $pullQueueJobs;
 
+    #[ORM\OneToOne(mappedBy: 'unidad', targetEntity: PmsGuia::class)]
+    private ?PmsGuia $guia = null;
+
+
     public function __construct()
     {
         $this->beds24Maps = new ArrayCollection();
         $this->tarifaQueues = new ArrayCollection();
         $this->pullQueueJobs = new ArrayCollection();
+        $this->wifiNetworks = []; // Inicializamos array vacío
+        $this->id = Uuid::v7();
     }
 
-    /* ======================================================
-     * GETTERS Y SETTERS EXPLÍCITOS
-     * ====================================================== */
+    // ============================================================
+    // GETTERS Y SETTERS BÁSICOS
+    // ============================================================
 
     public function getEstablecimiento(): ?PmsEstablecimiento { return $this->establecimiento; }
     public function setEstablecimiento(?PmsEstablecimiento $val): self { $this->establecimiento = $val; return $this; }
 
+    #[Groups(['pax:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $val): self { $this->nombre = $val; return $this; }
 
@@ -113,6 +139,75 @@ class PmsUnidad
     public function isActivo(): bool { return $this->activo; }
     public function setActivo(bool $val): self { $this->activo = $val; return $this; }
 
+    // ============================================================
+    // 🔐 GETTERS Y SETTERS DE SEGURIDAD
+    // ============================================================
+
+    public function getCodigoPuerta(): ?string
+    {
+        return $this->codigoPuerta;
+    }
+
+    public function setCodigoPuerta(?string $codigoPuerta): self
+    {
+        $this->codigoPuerta = $codigoPuerta;
+        return $this;
+    }
+
+    public function getCodigoCaja(): ?string
+    {
+        return $this->codigoCaja;
+    }
+
+    public function setCodigoCaja(?string $codigoCaja): self
+    {
+        $this->codigoCaja = $codigoCaja;
+        return $this;
+    }
+
+    public function getWifiNetworks(): array
+    {
+        $networks = $this->wifiNetworks ?? [];
+
+        // Recorremos cada red para ordenar su "ubicacion"
+        foreach ($networks as &$network) {
+            if (isset($network['ubicacion']) && is_array($network['ubicacion'])) {
+                $network['ubicacion'] = MaestroIdioma::ordenarParaFormulario($network['ubicacion']);
+            }
+        }
+
+        return $networks;
+    }
+
+    public function setWifiNetworks(?array $wifiNetworks): self
+    {
+        // Importante: array_values asegura que se guarde como lista JSON [{},{}]
+        // y no como objeto {"0":{}, "2":{}} si se borraron elementos intermedios.
+        $this->wifiNetworks = $wifiNetworks ? array_values($wifiNetworks) : [];
+        return $this;
+    }
+
+    /**
+     * Helper: Obtiene el SSID de la primera red (Principal).
+     * Útil para fallback si solo se muestra una red.
+     */
+    public function getMainWifiSsid(): string
+    {
+        return $this->wifiNetworks[0]['ssid'] ?? '';
+    }
+
+    /**
+     * Helper: Obtiene el Password de la primera red (Principal).
+     */
+    public function getMainWifiPass(): string
+    {
+        return $this->wifiNetworks[0]['password'] ?? '';
+    }
+
+    // ============================================================
+    // 💰 TARIFA BASE
+    // ============================================================
+
     public function getTarifaBasePrecio(): string { return $this->tarifaBasePrecio; }
     public function setTarifaBasePrecio(string $val): self { $this->tarifaBasePrecio = $val; return $this; }
 
@@ -120,16 +215,23 @@ class PmsUnidad
     public function setTarifaBaseMinStay(int $val): self { $this->tarifaBaseMinStay = $val; return $this; }
 
     public function getTarifaBaseMoneda(): ?MaestroMoneda { return $this->tarifaBaseMoneda; }
+
+    public function getTarifaBaseMonedaOrFail(): MaestroMoneda
+    {
+        if ($this->tarifaBaseMoneda === null) {
+            throw new \LogicException('Tarifa base activa sin moneda definida en la unidad #' . ($this->id ?? 'new'));
+        }
+        return $this->tarifaBaseMoneda;
+    }
     public function setTarifaBaseMoneda(?MaestroMoneda $val): self { $this->tarifaBaseMoneda = $val; return $this; }
 
     public function isTarifaBaseActiva(): bool { return $this->tarifaBaseActiva; }
     public function setTarifaBaseActiva(bool $val): self { $this->tarifaBaseActiva = $val; return $this; }
 
-    /* ======================================================
-     * GESTIÓN DE COLECCIONES (BEDS24 MAPS)
-     * ====================================================== */
+    // ============================================================
+    // GESTIÓN DE RELACIONES (Maps, Queues, Guia)
+    // ============================================================
 
-    /** @return Collection<int, PmsUnidadBeds24Map> */
     public function getBeds24Maps(): Collection { return $this->beds24Maps; }
 
     public function addBeds24Map(PmsUnidadBeds24Map $map): self
@@ -151,11 +253,6 @@ class PmsUnidad
         return $this;
     }
 
-    /* ======================================================
-     * GESTIÓN DE COLECCIONES (RATES PUSH QUEUE)
-     * ====================================================== */
-
-    /** @return Collection<int, PmsRatesPushQueue> */
     public function getTarifaQueues(): Collection { return $this->tarifaQueues; }
 
     public function addTarifaQueue(PmsRatesPushQueue $queue): self
@@ -177,18 +274,13 @@ class PmsUnidad
         return $this;
     }
 
-    /* ======================================================
-     * GESTIÓN DE COLECCIONES (BOOKINGS PULL QUEUE)
-     * ====================================================== */
-
-    /** @return Collection<int, PmsBookingsPullQueue> */
     public function getPullQueueJobs(): Collection { return $this->pullQueueJobs; }
 
     public function addPullQueueJob(PmsBookingsPullQueue $job): self
     {
         if (!$this->pullQueueJobs->contains($job)) {
             $this->pullQueueJobs->add($job);
-            $job->addUnidad($this); // Relación ManyToMany
+            $job->addUnidad($this);
         }
         return $this;
     }
@@ -201,18 +293,11 @@ class PmsUnidad
         return $this;
     }
 
-    /* ======================================================
-     * UTILIDADES
-     * ====================================================== */
-
     public function __toString(): string
     {
         return $this->nombre ?? ('Unidad UUID ' . ($this->getId() ? $this->getId()->toBase32() : 'Nueva'));
     }
 
-    /**
-     * Helper para obtener el mapeo principal de Beds24
-     */
     public function getBeds24MapPrincipal(): ?PmsUnidadBeds24Map
     {
         foreach ($this->beds24Maps as $map) {
@@ -221,5 +306,27 @@ class PmsUnidad
             }
         }
         return $this->beds24Maps->first() ?: null;
+    }
+
+    public function getGuia(): ?PmsGuia
+    {
+        return $this->guia;
+    }
+
+    public function setGuia(?PmsGuia $guia): self
+    {
+        $this->guia = $guia;
+
+        if ($guia && $guia->getUnidad() !== $this) {
+            $guia->setUnidad($this);
+        }
+
+        return $this;
+    }
+
+    #[Groups(['pax:read'])]
+    public function getId(): ?Uuid
+    {
+        return $this->id;
     }
 }

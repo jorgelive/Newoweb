@@ -4,55 +4,48 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
-use App\Panel\Controller\Crud\BaseCrudController;
+use App\Panel\Form\Type\VideoItemType;
+use App\Panel\Form\Type\TranslationHtmlType;
+use App\Panel\Form\Type\TranslationTextType;
 use App\Pms\Entity\PmsGuiaItem;
+use App\Pms\Entity\PmsGuiaItemGaleria;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
-use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
-use Symfony\Component\HttpFoundation\RequestStack;
 
-/**
- * PmsGuiaItemCrudController.
- * Gestión detallada de ítems de contenido para las guías del sistema.
- * Hereda de BaseCrudController y aplica seguridad por Roles prioritarios.
- */
-class PmsGuiaItemCrudController extends BaseCrudController
+class PmsGuiaItemCrudController extends AbstractCrudController
 {
-    public function __construct(
-        protected AdminUrlGenerator $adminUrlGenerator,
-        protected RequestStack $requestStack
-    ) {
-        parent::__construct($adminUrlGenerator, $requestStack);
-    }
-
     public static function getEntityFqcn(): string
     {
         return PmsGuiaItem::class;
     }
 
-    /**
-     * Configuración de acciones y permisos.
-     * ✅ Se aplica la herencia y LUEGO se imponen los permisos de Roles para prioridad absoluta.
-     */
+    public function configureCrud(Crud $crud): Crud
+    {
+        return $crud
+            ->showEntityActionsInlined()
+            ->setEntityLabelInSingular('Ítem de Contenido')
+            ->setEntityLabelInPlural('Biblioteca de Ítems')
+            ->setSearchFields(['id', 'nombreInterno', 'titulo', 'tipo'])
+            ->setDefaultSort(['updatedAt' => 'DESC']);
+    }
+
     public function configureActions(Actions $actions): Actions
     {
-        $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
+        $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_EDIT, Action::DETAIL);
 
-        // Primero obtenemos la configuración global del panel
         $actions = parent::configureActions($actions);
 
-        // Aplicamos los permisos después para que la clase Roles sea la "Fuente de Verdad"
         return $actions
             ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
             ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
@@ -61,88 +54,139 @@ class PmsGuiaItemCrudController extends BaseCrudController
             ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
     }
 
-    public function configureCrud(Crud $crud): Crud
-    {
-        return $crud
-            ->setEntityLabelInSingular('Ítem de Contenido')
-            ->setEntityLabelInPlural('Ítems de Contenido')
-            ->setDefaultSort(['orden' => 'ASC']);
-    }
-
     public function configureFields(string $pageName): iterable
     {
-        // ✅ Manejo de UUID (IdTrait) para visualización técnica
-        yield TextField::new('id', 'UUID')
-            ->onlyOnDetail()
-            ->formatValue(static fn($value) => (string) $value);
+        yield IdField::new('id')->hideOnForm();
 
-        // --- BLOQUE 1: CLASIFICACIÓN ---
-        yield FormField::addPanel('Clasificación')->setIcon('fa fa-tags');
+        // ============================================================
+        // 1. CONFIGURACIÓN GENERAL
+        // ============================================================
+        yield FormField::addPanel('Configuración')->setIcon('fa fa-cog');
 
-        yield ChoiceField::new('tipo', 'Tipo de Contenido')
+        yield TextField::new('nombreInterno', 'Nombre Interno (Admin)')
+            ->setHelp('Identificador para ti. Ej: "Wifi Lobby" o "Manual Cafetera"')
+            ->setColumns(8);
+
+        yield ChoiceField::new('tipo', 'Formato Visual')
             ->setChoices([
-                'Tarjeta Informativa' => PmsGuiaItem::TIPO_TARJETA,
-                'WiFi (Claves)'       => PmsGuiaItem::TIPO_WIFI,
-                'Galería / Álbum'    => PmsGuiaItem::TIPO_ALBUM,
-                'Video Tutorial'     => PmsGuiaItem::TIPO_VIDEO,
-                'Ubicación / Mapa'    => PmsGuiaItem::TIPO_MAPA,
-                'Contacto Directo'    => PmsGuiaItem::TIPO_CONTACTO,
-                'Servicio de Pago'    => PmsGuiaItem::TIPO_SERVICIO,
+                '📄 Tarjeta (Texto + Video + Fotos)' => PmsGuiaItem::TIPO_TARJETA,
+                '📸 Álbum (Solo Fotos)'              => PmsGuiaItem::TIPO_ALBUM,
+                '📍 Ubicación (GPS)'                 => PmsGuiaItem::TIPO_LOCATION,
+                '📶 WiFi (Visual)'                   => PmsGuiaItem::TIPO_WIFI,
+                '📞 Contacto'                        => PmsGuiaItem::TIPO_CONTACTO,
             ])
-            ->renderAsBadges();
+            ->setRequired(true)
+            ->setColumns(4);
 
-        yield NumberField::new('orden', 'Orden de Aparición')
-            ->setHelp('Posición relativa dentro de su sección.');
+        // ============================================================
+        // 2. CAMPOS ESPECÍFICOS (METADATA)
+        // ============================================================
 
-        // --- BLOQUE 2: TRADUCCIÓN ---
-        yield FormField::addPanel('Traducción Automática')->setIcon('fa fa-language');
+        // --- 📍 UBICACIÓN (LOCATION) ---
+        yield FormField::addPanel('Datos de Ubicación')
+            ->setIcon('fa fa-map-marked-alt')
+            ->renderCollapsed()
+            ->setHelp('Llenar solo si el tipo es "Ubicación".');
 
-        yield BooleanField::new('ejecutarTraduccion', 'Disparar Traducción')
-            ->setHelp('Sincronizará con Google Translate al guardar.')
-            ->onlyOnForms()
-            ->setPermission(Roles::RESERVAS_WRITE);
+        yield TextField::new('locationAddress', 'Dirección Visual')
+            ->setColumns(12)
+            ->setHelp('La dirección escrita que leerá el huésped. Ej: "Calle San Agustín 307".');
 
-        // --- BLOQUE 3: TEXTOS MULTIIDIOMA ---
-        yield FormField::addPanel('Contenidos Multilingües')->setIcon('fa fa-file-alt');
+        yield FormField::addRow();
 
-        yield CollectionField::new('titulo', 'Títulos (es, en, pt...)')
-            ->setHelp('Se requiere la llave "es" para el motor de traducción.');
+        yield TextField::new('locationLat', 'Latitud')
+            ->setColumns(3)->setHelp('Ej: -13.51686');
+        yield TextField::new('locationLng', 'Longitud')
+            ->setColumns(3)->setHelp('Ej: -71.97935');
+        yield TextField::new('locationLink', 'Link Externo (Opcional)')
+            ->setColumns(6)->setHelp('Deja vacío para auto-generar Waze/Maps.');
 
-        yield CollectionField::new('descripcion', 'Descripción (HTML)')
-            ->hideOnIndex();
+        // --- [SECCIÓN WIFI ELIMINADA] ---
+        // Los datos de WiFi se inyectan dinámicamente vía variables {{ wifi_pass }}
 
-        yield CollectionField::new('labelBoton', 'Etiqueta del Botón')
-            ->hideOnIndex();
+        // --- 📞 CONTACTO ---
+        yield FormField::addPanel('Datos de Contacto')
+            ->setIcon('fa fa-address-card')
+            ->setHelp('Llenar solo si el tipo es "Contacto".')
+            ->renderCollapsed();
 
-        // --- BLOQUE 4: INTEGRACIONES ---
-        yield FormField::addPanel('Datos Complementarios')->setIcon('fa fa-plus-circle');
+        yield TextField::new('contactoWhatsapp', 'WhatsApp')
+            ->setHelp('Ej: 51984000000')
+            ->setColumns(6);
+        yield TextField::new('contactoEmail', 'Email')
+            ->setColumns(6);
 
-        yield AssociationField::new('maestroContacto', 'Contacto Vinculado')
-            ->setRequired(false);
+        // ============================================================
+        // 3. VIDEOS PARA MANUALES (Embeds)
+        // ============================================================
+        yield FormField::addPanel('Videos para Manuales')
+            ->setIcon('fa fa-play-circle')
+            ->renderCollapsed()
+            ->setHelp('Sube videos aquí y úsalos en el texto con <b>{{ video1 }}</b>, <b>{{ video2 }}</b>.');
 
-        // ✅ Se mantiene el uso de moneda.id ya que MaestroMoneda usa el código (PEN, USD) como ID
-        yield MoneyField::new('precio', 'Precio del Servicio')
-            ->setCurrencyPropertyPath('moneda.id')
-            ->setRequired(false)
-            ->hideOnIndex();
+        yield CollectionField::new('videos', 'Lista de Videos')
+            ->setEntryType(VideoItemType::class)
+            ->allowAdd()
+            ->allowDelete()
+            ->setEntryIsComplex(true)
+            ->renderExpanded()
+            ->setColumns(12);
 
-        yield AssociationField::new('moneda', 'Moneda')
-            ->setRequired(false)
-            ->hideOnIndex();
+        // ============================================================
+        // 4. CONTENIDO TEXTUAL (Con Ayuda de Variables)
+        // ============================================================
+        yield FormField::addPanel('Contenido')->setIcon('fa fa-align-left');
 
-        yield FormField::addPanel('Galería de Imágenes')->setIcon('fa fa-images');
+        yield BooleanField::new('ejecutarTraduccion', 'Traducir Auto')->onlyOnForms()->setColumns(6);
+        yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir')->onlyOnForms()->setColumns(6);
 
-        yield CollectionField::new('galeria', 'Imágenes / Fotos')
-            ->useEntryCrudForm()
-            ->setHelp('Añada fotos para ítems de tipo Álbum.');
+        yield CollectionField::new('titulo', 'Título')
+            ->setEntryType(TranslationTextType::class)
+            ->setColumns(12);
 
-        // --- BLOQUE 5: AUDITORÍA (TimestampTrait) ---
-        yield FormField::addPanel('Auditoría')->setIcon('fa fa-clock')->onlyOnDetail();
+        yield CollectionField::new('descripcion', 'Cuerpo')
+            ->setEntryType(TranslationHtmlType::class)
+            ->setColumns(12)
+            ->setHelp('
+                <div class="small text-muted mt-2" style="background:#f8f9fa; padding:10px; border-radius:5px; border:1px solid #dee2e6;">
+                    <strong class="text-indigo-600"><i class="fas fa-shield-alt"></i> Variables Protegidas (Inglés Técnico):</strong>
+                    <p class="mb-1" style="font-size: 0.85em;">Usa <b>doble llave</b> para evitar errores de traducción automática.</p>
+                    <ul class="mb-0 ps-3" style="column-count: 2; font-family: monospace; font-size: 1.1em;">
+                        <li><code>{{ door_code }}</code> : Puerta Principal</li>
+                        <li><code>{{ safe_code }}</code> : Caja Fuerte</li>
+                        <li><code>{{ keybox_main }}</code> : Caja Llaves (Principal)</li>
+                        <li><code>{{ keybox_sec }}</code> : Caja Llaves (Sec)</li>
+                        
+                        <li><code>{{ wifi_pass }}</code> : Password Wifi</li>
+                        <li><code>{{ wifi_ssid }}</code> : Nombre Wifi</li>
+                        
+                        <li><code>{{ guest_name }}</code> : Nombre Huésped</li>
+                        <li><code>{{ booking_ref }}</code> : Localizador</li>
+                        <li><code>{{ check_in }}</code> / <code>{{ check_out }}</code></li>
 
-        yield DateTimeField::new('createdAt', 'Registrado')
-            ->onlyOnDetail();
+                        <li><code>{{ video1 }}</code> : Insertar Video 1</li>
+                    </ul>
+                </div>
+            ');
 
-        yield DateTimeField::new('updatedAt', 'Última actualización')
-            ->onlyOnDetail();
+        yield CollectionField::new('labelBoton', 'Texto Botón')
+            ->setEntryType(TranslationTextType::class)
+            ->setColumns(12);
+
+        // ============================================================
+        // 5. GALERÍA DE FOTOS (Visual)
+        // ============================================================
+        yield FormField::addPanel('Galería de Fotos')
+            ->setIcon('fa fa-images')
+            ->setHelp('Fotos decorativas para carrusel o grilla.');
+
+        yield CollectionField::new('galeria', 'Fotos')
+            ->useEntryCrudForm(PmsGuiaItemGaleriaCrudController::class)
+            ->setFormTypeOption('prototype_data', new PmsGuiaItemGaleria())
+            ->setFormTypeOption('by_reference', false)
+            ->allowAdd()
+            ->allowDelete()
+            ->renderExpanded()
+            ->setColumns(12);
     }
 }

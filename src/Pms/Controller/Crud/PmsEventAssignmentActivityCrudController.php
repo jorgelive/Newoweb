@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * PmsEventAssignmentActivityCrudController.
- * Gestiona el catálogo de actividades usando IDs naturales (Códigos).
+ * Gestiona el catálogo de actividades usando IDs naturales forzados a MINÚSCULAS.
  */
 class PmsEventAssignmentActivityCrudController extends BaseCrudController
 {
@@ -42,7 +42,6 @@ class PmsEventAssignmentActivityCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Actividad de Asignación')
             ->setEntityLabelInPlural('Catálogo de Actividades')
             ->setSearchFields(['id', 'nombre', 'rol'])
-            // ✅ Priorizamos el nuevo campo 'orden' para la visualización
             ->setDefaultSort(['orden' => 'ASC', 'nombre' => 'ASC'])
             ->setEntityPermission(Roles::MAESTROS_SHOW);
     }
@@ -62,45 +61,30 @@ class PmsEventAssignmentActivityCrudController extends BaseCrudController
         yield FormField::addPanel('Definición de Actividad')->setIcon('fa fa-tasks');
 
         /**
-         * ✅ ID NATURAL (Código)
-         * Al ser Natural Key (strategy: NONE), el ID debe ser ingresado manualmente en NEW
-         * pero bloqueado en EDIT para no romper la integridad referencial.
+         * ✅ ID NATURAL (Código) - FORZADO A MINÚSCULAS
          */
         yield TextField::new('id', 'Código Técnico (ID)')
-            ->setHelp('Ej: CLEAN_OUT, MAINTENANCE. No se puede cambiar después de creado.')
+            ->setHelp('Ej: limpieza, mantenimiento, briefing. Se guardará siempre en minúsculas.')
             ->setColumns(6)
-            ->setFormTypeOption('disabled', $pageName === Crud::PAGE_EDIT)
-            // En index lo mostramos como un badge técnico
-            ->formatValue(fn($value) => sprintf('<code class="text-primary">%s</code>', $value));
+            ->setFormTypeOption('disabled', $pageName === Crud::PAGE_EDIT);
 
         yield TextField::new('nombre', 'Nombre de la Actividad')
             ->setHelp('Ej: Limpieza de Salida, Inspección de Seguridad.')
             ->setColumns(6);
 
-        /**
-         * ✅ NUEVO: Campo de Orden
-         */
         yield IntegerField::new('orden', 'Prioridad/Orden')
-            ->setHelp('Define la posición en las listas (Menor número = primero).')
+            ->setHelp('Posición en listas (Menor = primero).')
             ->setColumns(3);
 
-        /**
-         * ✅ Asignación de Rol
-         */
         yield ChoiceField::new('rol', 'Rol Responsable')
             ->setChoices(Roles::getChoices('CAMPO'))
             ->renderAsBadges()
             ->setRequired(true)
-            ->setHelp('¿Qué perfil de usuario realiza esta tarea?')
             ->setColumns(9);
 
-        // ✅ Auditoría (CreatedAt / UpdatedAt del TimestampTrait)
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-clock')->onlyOnDetail();
 
-        yield DateTimeField::new('createdAt', 'Registrado')
-            ->onlyOnDetail();
-
-        yield DateTimeField::new('updatedAt', 'Última actualización')
-            ->onlyOnDetail();
+        yield DateTimeField::new('createdAt', 'Registrado')->onlyOnDetail();
+        yield DateTimeField::new('updatedAt', 'Actualizado')->onlyOnDetail();
     }
 }

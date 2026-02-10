@@ -6,6 +6,10 @@ namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsTarifaRango;
+use App\Pms\Factory\PmsTarifaRangoFactory;
+use App\Pms\Form\Type\GeneradorTarifaMasivaType;
+use App\Pms\Service\Tarifa\Dto\GeneradorTarifaMasivaDto;
+use App\Pms\Service\Tarifa\Generator\GeneradorTarifaMasivaService;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -20,7 +24,10 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Routing\Annotation\Route;
 
 /**
  * PmsTarifaRangoCrudController.
@@ -31,7 +38,10 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
-        protected RequestStack $requestStack
+        protected RequestStack $requestStack,
+        private readonly PmsTarifaRangoFactory $tarifaRangoFactory,
+        // ✅ INYECCIÓN DEL SERVICIO DE GENERACIÓN MASIVA
+        private readonly GeneradorTarifaMasivaService $masivaService,
     ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
@@ -39,6 +49,14 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
     public static function getEntityFqcn(): string
     {
         return PmsTarifaRango::class;
+    }
+
+    /**
+     * ✅ Se mantiene el uso de la Factory para la creación de la entidad.
+     */
+    public function createEntity(string $entityFqcn): PmsTarifaRango
+    {
+        return $this->tarifaRangoFactory->create();
     }
 
     public function configureCrud(Crud $crud): Crud
@@ -58,6 +76,14 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
      */
     public function configureActions(Actions $actions): Actions
     {
+        // 1. Definimos la acción personalizada
+        $generarMasivo = Action::new('generarMasivo', 'Generar Masivo')
+            ->linkToCrudAction('generarMasivo')
+            ->createAsGlobalAction()
+            ->setCssClass('btn btn-primary')
+            ->setIcon('fa fa-magic');
+
+        // 2. Acciones estándar
         $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DETAIL);
@@ -66,11 +92,45 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
         $actions = parent::configureActions($actions);
 
         return $actions
+            // Agregamos el botón custom
+            ->add(Crud::PAGE_INDEX, $generarMasivo)
+
+            // Permisos
             ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
             ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
             ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
             ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
-            ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
+            ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE)
+
+            // Permiso para la nueva acción (asumimos que requiere permisos de escritura)
+            ->setPermission('generarMasivo', Roles::RESERVAS_WRITE);
+    }
+
+    public function generarMasivo(Request $request): Response
+    {
+        $dto = new GeneradorTarifaMasivaDto();
+
+        // Creamos el form sin 'action' para que haga submit a esta misma URL
+        $form = $this->createForm(GeneradorTarifaMasivaType::class, $dto);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Delegamos la lógica al servicio inyectado
+            $count = $this->masivaService->procesar($dto);
+
+            $this->addFlash('success', sprintf('Proceso finalizado con éxito: %d tarifas generadas.', $count));
+
+            // Redirección limpia al índice del CRUD
+            return $this->redirect($this->adminUrlGenerator
+                ->setController(self::class)
+                ->setAction(Action::INDEX)
+                ->generateUrl());
+        }
+
+        // Renderizamos la plantilla que extiende de @EasyAdmin/page/content.html.twig
+        return $this->render('panel/pms/pms_tarifa_rango/tool_masiva.html.twig', [
+            'form' => $form->createView()
+        ]);
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -83,7 +143,7 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
             ->add('minStay')
             ->add('importante')
             ->add('activo')
-            ->add('peso')
+            ->add('prioridad')
             ->add('queues');
     }
 
@@ -122,8 +182,8 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
         $importante = BooleanField::new('importante', 'Tarifa Prioritaria')
             ->renderAsSwitch(true);
 
-        $peso = IntegerField::new('peso', 'Peso/Prioridad')
-            ->setHelp('A mayor peso, más prioridad sobre otros rangos solapados.')
+        $prioridad = IntegerField::new('prioridad', 'Prioridad')
+            ->setHelp('Mayor prioridad sobre otros rangos solapados.')
             ->setRequired(false);
 
         $activo = BooleanField::new('activo', 'Activo')
@@ -152,7 +212,7 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
                 $minStay,
                 $precio,
                 $importante,
-                $peso,
+                $prioridad,
                 $activo,
             ];
         }
@@ -171,7 +231,7 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
             $precio,
             $minStay,
             $importante,
-            $peso,
+            $prioridad,
             $activo,
 
             FormField::addPanel('Cola de Sincronización')->setIcon('fa fa-cogs')->onlyOnDetail(),

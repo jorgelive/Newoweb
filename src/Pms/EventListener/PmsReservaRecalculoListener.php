@@ -6,6 +6,7 @@ namespace App\Pms\EventListener;
 
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Entity\PmsReservaHuesped;
 use App\Pms\Service\Reserva\PmsReservaRecalculoService;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
@@ -13,149 +14,135 @@ use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Event\PostFlushEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\UnitOfWork;
-use SplObjectStorage;
 
+/**
+ * Listener PmsReservaRecalculoListener.
+ * Automatiza el recálculo de los totales de la reserva cuando cambian sus componentes.
+ * Adaptado para UUID v7 y tipado estricto (Sin lógica mágica).
+ */
 #[AsDoctrineListener(event: Events::onFlush, priority: -1000)]
 #[AsDoctrineListener(event: Events::postFlush, priority: -1000)]
 final class PmsReservaRecalculoListener
 {
-    /** @var array<int, true> */
+    /** * Almacenamos los UUIDs afectados como strings para garantizar unicidad y compatibilidad.
+     * @var array<string, true>
+     */
     private array $reservaIds = [];
 
-    /** @var SplObjectStorage<PmsReserva, null> */
-    private SplObjectStorage $reservasSinId;
-
-    private bool $secondFlushRunning = false;
+    /**
+     * Bandera para evitar bucles infinitos durante el flush.
+     */
+    private bool $isFlushing = false;
 
     public function __construct(
         private readonly PmsReservaRecalculoService $service,
-    ) {
-        $this->reservasSinId = new SplObjectStorage();
-    }
+    ) {}
 
+    /**
+     * Fase 1: Detección.
+     * Escaneamos todos los cambios pendientes para identificar qué reservas necesitan recálculo.
+     */
     public function onFlush(OnFlushEventArgs $args): void
     {
-        if ($this->secondFlushRunning) {
+        if ($this->isFlushing) {
             return;
         }
 
-        $em  = $args->getObjectManager();
-        $uow = $em->getUnitOfWork();
+        $uow = $args->getObjectManager()->getUnitOfWork();
 
+        // 1. Inserciones (UUID v7 ya tiene ID aquí, no necesitamos esperar)
         foreach ($uow->getScheduledEntityInsertions() as $entity) {
-            $this->collectReservaId($entity, $uow);
+            $this->collectReservaId($entity);
         }
 
+        // 2. Actualizaciones
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
-            $this->collectReservaId($entity, $uow);
+            $this->collectReservaId($entity);
         }
 
+        // 3. Eliminaciones
+        foreach ($uow->getScheduledEntityDeletions() as $entity) {
+            $this->collectReservaId($entity);
+        }
+
+        // 4. Cambios en Colecciones (Ej: borrar un evento de la lista de la reserva)
         foreach ($uow->getScheduledCollectionUpdates() as $collection) {
-            $owner = $collection->getOwner();
-            if (is_object($owner)) {
-                $this->collectReservaId($owner, $uow);
-            }
+            $this->processCollectionOwner($collection->getOwner());
         }
 
         foreach ($uow->getScheduledCollectionDeletions() as $collection) {
-            $owner = $collection->getOwner();
-            if (is_object($owner)) {
-                $this->collectReservaId($owner, $uow);
-            }
+            $this->processCollectionOwner($collection->getOwner());
         }
     }
 
+    /**
+     * Fase 2: Ejecución.
+     * Llamamos al servicio de recálculo solo para los IDs recolectados.
+     */
     public function postFlush(PostFlushEventArgs $args): void
     {
-        if ($this->secondFlushRunning) {
+        if ($this->isFlushing || $this->reservaIds === []) {
             return;
         }
 
-        if ($this->reservaIds === [] && $this->reservasSinId->count() === 0) {
-            return;
-        }
-
-        /** @var EntityManagerInterface $em */
-        $em = $args->getObjectManager();
-
+        // Extraemos los IDs únicos
         $ids = array_keys($this->reservaIds);
 
-        foreach ($this->reservasSinId as $reserva) {
-            $id = $reserva->getId();
-            if ($id !== null) {
-                $ids[] = $id;
-            }
-        }
-
-        $ids = array_values(array_unique($ids));
-        if ($ids === []) {
-            return;
-        }
-
-        // limpiar antes del recalculo
+        // Limpiamos la memoria INMEDIATAMENTE para evitar efectos secundarios
         $this->reservaIds = [];
-        $this->reservasSinId = new SplObjectStorage();
 
-        $this->secondFlushRunning = true;
+        $this->isFlushing = true;
         try {
-            // Ejecuta UPDATEs directos (DQL/DBAL) contra la BD.
-            // Importante: NO llamamos a flush() aquí para evitar doble flush/loops.
+            /** @var EntityManagerInterface $em */
+            $em = $args->getObjectManager();
+
+            // Ejecutamos el servicio de recálculo (UPDATE pms_reserva SET monto = SUM(...))
             $this->service->recalcularDesdeEventos($ids, $em);
         } finally {
-            $this->secondFlushRunning = false;
+            $this->isFlushing = false;
         }
     }
 
-    private function collectReservaId(object $entity, UnitOfWork $uow): void
+    /**
+     * Identifica estrictamente si la entidad afecta el total de una reserva.
+     */
+    private function collectReservaId(object $entity): void
     {
-        // 1) Si es la reserva directamente
+        // CASO 1: La Reserva misma (Cambio de datos directos)
         if ($entity instanceof PmsReserva) {
-            if ($uow->isScheduledForDelete($entity)) {
-                return;
-            }
-
-            $id = $entity->getId();
-            if ($id !== null) {
-                $this->reservaIds[$id] = true;
-            } else {
-                $this->reservasSinId->attach($entity);
-            }
+            $this->reservaIds[(string) $entity->getId()] = true;
             return;
         }
 
-        // 2) Si es un evento -> marcar su reserva padre
+        // CASO 2: Eventos del Calendario (Cambio de precios, fechas o unidad)
         if ($entity instanceof PmsEventoCalendario) {
             $reserva = $entity->getReserva();
-            if ($reserva instanceof PmsReserva) {
-                if ($uow->isScheduledForDelete($reserva)) {
-                    return;
-                }
-
-                $id = $reserva->getId();
-                if ($id !== null) {
-                    $this->reservaIds[$id] = true;
-                } else {
-                    $this->reservasSinId->attach($reserva);
-                }
+            if ($reserva) {
+                $this->reservaIds[(string) $reserva->getId()] = true;
             }
             return;
         }
 
-        // 3) Fallback por si el owner expone getReserva()
-        if (method_exists($entity, 'getReserva')) {
+        // CASO 3: Huéspedes (Puede afectar impuestos o conteo de pax)
+        if ($entity instanceof PmsReservaHuesped) {
             $reserva = $entity->getReserva();
-            if ($reserva instanceof PmsReserva) {
-                if ($uow->isScheduledForDelete($reserva)) {
-                    return;
-                }
-
-                $id = $reserva->getId();
-                if ($id !== null) {
-                    $this->reservaIds[$id] = true;
-                } else {
-                    $this->reservasSinId->attach($reserva);
-                }
+            if ($reserva) {
+                $this->reservaIds[(string) $reserva->getId()] = true;
             }
+            return;
+        }
+
+        // NOTA: Se eliminaron los fallbacks genéricos con method_exists.
+        // Si se añaden Pagos o Extras en el futuro, agregarlos explícitamente aquí.
+    }
+
+    /**
+     * Helper para procesar el dueño de una colección modificada.
+     */
+    private function processCollectionOwner(object|null $owner): void
+    {
+        if ($owner) {
+            $this->collectReservaId($owner);
         }
     }
 }

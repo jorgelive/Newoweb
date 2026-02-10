@@ -9,8 +9,8 @@ use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField; // ✅ Cambiado a Integer
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -29,10 +29,6 @@ class MaestroIdiomaCrudController extends BaseCrudController
         return MaestroIdioma::class;
     }
 
-    /**
-     * Configuración de permisos y acciones.
-     * Mantiene la acción de detalle y aplica restricciones según la clase Roles.
-     */
     public function configureActions(Actions $actions): Actions
     {
         $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
@@ -51,16 +47,12 @@ class MaestroIdiomaCrudController extends BaseCrudController
         return $crud
             ->setEntityLabelInSingular('Idioma Global')
             ->setEntityLabelInPlural('Idiomas Globales')
-            ->setDefaultSort(['prioritario' => 'DESC', 'nombre' => 'ASC']);
+            // ✅ Ahora el orden principal es la prioridad numérica
+            ->setDefaultSort(['prioridad' => 'DESC', 'nombre' => 'ASC']);
     }
 
-    /**
-     * Definición de campos.
-     * El ID es el ISO2 (es, en, pt), fundamental para el motor de traducción.
-     */
     public function configureFields(string $pageName): iterable
     {
-        // El ID es el ISO2. Se ingresa manualmente al crear (strategy: NONE).
         $id = TextField::new('id', 'ISO (ID)')
             ->setHelp('Código de 2 caracteres (Ej: es, en, pt)')
             ->setFormTypeOption('attr', [
@@ -69,23 +61,25 @@ class MaestroIdiomaCrudController extends BaseCrudController
                 'style' => 'text-transform:lowercase'
             ]);
 
-        // Bloqueamos edición del ID natural para proteger la integridad referencial.
         if (Crud::PAGE_EDIT === $pageName) {
             $id->setFormTypeOption('disabled', true);
         }
 
         yield $id;
+
+        // Bandera (Emoji) - Útil para el selector que configuramos antes
+        yield TextField::new('bandera', 'Bandera')
+            ->setHelp('Emoji de la bandera (Win: Win+. / Mac: Ctrl+Cmd+Space)')
+            ->setFormTypeOption('attr', ['placeholder' => '🇪🇸']);
+
         yield TextField::new('nombre', 'Nombre');
 
-        yield BooleanField::new('prioritario', '¿Traducir Automáticamente?')
-            ->setHelp('Si se activa, el motor de traducción procesará contenidos para este idioma.')
-            ->renderAsSwitch(true);
+        // ✅ REEMPLAZO: De prioritario (bool) a prioridad (int)
+        yield IntegerField::new('prioridad', 'Prioridad / Peso')
+            ->setHelp('Define el orden en los formularios y si el idioma está activo para traducción (Prioridad > 0).')
+            ->setColumns(4);
 
-        // Auditoría mediante TimestampTrait (createdAt, updatedAt)
-        yield DateTimeField::new('createdAt', 'Registrado')
-            ->onlyOnDetail();
-
-        yield DateTimeField::new('updatedAt', 'Actualizado')
-            ->onlyOnDetail();
+        yield DateTimeField::new('createdAt', 'Registrado')->onlyOnDetail();
+        yield DateTimeField::new('updatedAt', 'Actualizado')->onlyOnDetail();
     }
 }

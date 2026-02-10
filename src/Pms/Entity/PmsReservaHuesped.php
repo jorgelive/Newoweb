@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
-use App\Entity\Maestro\MaestroPais;
 use App\Entity\Maestro\MaestroDocumentoTipo;
+use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
-use App\Panel\Trait\MediaTrait;
+use App\Panel\Entity\Trait\MediaTrait;
 use App\Pms\Repository\PmsReservaHuespedRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\Uid\Uuid;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 /**
@@ -30,6 +32,8 @@ class PmsReservaHuesped
 {
     /** Gestión de Identificador UUID (BINARY 16) */
     use IdTrait;
+
+    use LocatorTrait;
 
     /** Gestión de auditoría temporal (DateTimeImmutable) */
     use TimestampTrait;
@@ -123,6 +127,15 @@ class PmsReservaHuesped
     private ?string $documentoUrl = null;
     private ?string $tamUrl = null;
     private ?string $firmaUrl = null;
+
+    public function __construct()
+    {
+
+        $this->initializeLocator();
+
+        $this->id = Uuid::v7();
+
+    }
 
     #[ORM\PrePersist]
     public function onPrePersist(): void

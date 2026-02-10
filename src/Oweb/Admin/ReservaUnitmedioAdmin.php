@@ -10,7 +10,6 @@ use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Route\RouteCollectionInterface;
 use Sonata\AdminBundle\Show\ShowMapper;
-use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\FormEvent;
@@ -75,7 +74,7 @@ class ReservaUnitmedioAdmin extends AbstractSecureAdmin
                 'label' => 'Tipo',
             ])
             ->add('nombre')
-            ->add('titulo', TranslationFieldFilter::class, [
+            ->add('titulo', null, [
                 'label' => 'Título',
             ])
             ->add('enlace')

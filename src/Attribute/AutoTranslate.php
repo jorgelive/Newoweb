@@ -6,27 +6,19 @@ namespace App\Attribute;
 
 use Attribute;
 
-/**
- * Atributo para marcar campos JSON que deben ser traducidos automáticamente.
- */
 #[Attribute(Attribute::TARGET_PROPERTY)]
-class AutoTranslate
+final class AutoTranslate
 {
     /**
-     * @param string $sourceLanguage Idioma origen. [cite: 2026-01-14]
+     * @param string $sourceLanguage Idioma origen (ej: 'es').
+     * @param array<string> $nestedFields Lista de claves a buscar si es un objeto complejo (ej: ['ubicacion', 'titulo']). Si está vacío, se asume estructura plana de idiomas.
      * @param string $format 'text' o 'html'.
-     * @param bool $overwrite Forzar traducción sobre valores existentes.
      */
     public function __construct(
         public string $sourceLanguage = 'es',
-        public string $format = 'text',
-        public bool $overwrite = false
+        public array $nestedFields = [],
+        private string $format = 'text'
     ) {}
-
-    public function getSourceLanguage(): string
-    {
-        return $this->sourceLanguage;
-    }
 
     public function getFormat(): string
     {

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Calendar\Dto;
@@ -7,21 +8,12 @@ use JsonSerializable;
 
 /**
  * DTO de Resource para FullCalendar Scheduler.
- *
- * FullCalendar espera mínimo:
- * - id
- * - title
- *
- * Todo lo extra lo puedes enviar en `extendedProps` y en JS cae como:
- * resource.extendedProps.*
+ * Permite IDs de tipo objeto para compatibilidad nativa con UUIDs.
  */
 final class CalendarResourceDto implements JsonSerializable
 {
-    /**
-     * @param array<string,mixed>|null $extendedProps
-     */
     public function __construct(
-        public readonly string|int $id,
+        public readonly string|int|object $id,
         public readonly string $title,
         public readonly ?array $extendedProps = null,
     ) {}
@@ -34,7 +26,7 @@ final class CalendarResourceDto implements JsonSerializable
     public function jsonSerialize(): array
     {
         $out = [
-            'id' => $this->id,
+            'id' => (string) $this->id,
             'title' => $this->title,
         ];
 

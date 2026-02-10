@@ -8,6 +8,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad MaestroTipocambio.
@@ -49,9 +50,7 @@ class MaestroTipocambio
     public function __construct()
     {
         // Forzamos la generación del UUID en el constructor si el Trait lo permite
-        if (method_exists($this, 'initializeId')) {
-            $this->initializeId();
-        }
+        $this->id = Uuid::v7();
     }
 
     /* ======================================================

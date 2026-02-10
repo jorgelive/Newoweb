@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\EventListener;
@@ -13,20 +14,25 @@ use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
-use Doctrine\ORM\PersistentCollection;
 use Doctrine\ORM\UnitOfWork;
 use SplObjectStorage;
 
+/**
+ * Listener Beds24BookingsPushQueueListener.
+ * Monitorea el UnitOfWork de Doctrine para detectar cambios en Reservas/Eventos/Links.
+ *
+ * ✅ FIX: Gestión explícita de links redundantes (Cancelación de zombies al mover unidades).
+ */
 #[AsDoctrineListener(event: Events::onFlush, priority: 200)]
 final class Beds24BookingsPushQueueListener
 {
     private const ENDPOINT_POST_BOOKINGS   = 'POST_BOOKINGS';
     private const ENDPOINT_DELETE_BOOKINGS = 'DELETE_BOOKINGS';
 
+    // Campos que no disparan sincronización si la reserva está bloqueada (OTA)
     private const IGNORED_FIELDS_ON_LOCKED_OTA = [
         'nombreCliente', 'apellidoCliente', 'emailCliente', 'telefono', 'telefono2',
         'nota', 'comentariosHuesped', 'horaLlegadaCanal', 'pais', 'idioma',
-        'documento', 'tipoDocumento', 'direccion', 'ciudad', 'codPostal'
     ];
 
     private SplObjectStorage $eventosTouched;
@@ -47,17 +53,25 @@ final class Beds24BookingsPushQueueListener
 
     public function onFlush(OnFlushEventArgs $args): void
     {
+        // Si ya estamos en modo PUSH (enviando a Beds24), ignoramos para evitar bucles.
         if ($this->syncContext->isPush()) {
             return;
         }
 
-        $em  = $args->getObjectManager();
+        $em = $args->getObjectManager();
+        if (!$em instanceof EntityManagerInterface) {
+            return;
+        }
+
         $uow = $em->getUnitOfWork();
 
-        // 1. Recolectar cambios
-        foreach ($uow->getScheduledEntityInsertions() as $e) $this->collect($e);
+        // 1) RASTREO DE ENTIDADES DIRECTAS
+        foreach ($uow->getScheduledEntityInsertions() as $e) {
+            $this->collect($e);
+        }
 
         foreach ($uow->getScheduledEntityUpdates() as $e) {
+            // Si es una reserva OTA y los cambios son solo cosméticos, ignoramos.
             if ($e instanceof PmsReserva && $this->shouldIgnoreReservaUpdate($e, $uow)) {
                 continue;
             }
@@ -69,59 +83,61 @@ final class Beds24BookingsPushQueueListener
             $this->collect($e);
         }
 
+        // 2) RASTREO DE COLECCIONES (crucial para el Factory)
         foreach ($uow->getScheduledCollectionUpdates() as $c) {
-            if (is_object($c->getOwner())) $this->collect($c->getOwner());
+            if (is_object($c->getOwner())) {
+                $this->collect($c->getOwner());
+            }
         }
         foreach ($uow->getScheduledCollectionDeletions() as $c) {
-            if (is_object($c->getOwner())) $this->collect($c->getOwner());
+            if (is_object($c->getOwner())) {
+                $this->collect($c->getOwner());
+            }
         }
 
         if ($this->isClean()) {
+            $this->reset();
             return;
         }
 
-        $links = $this->resolveLinks();
-        if ($links === []) {
+        // 3) RESOLUCIÓN DE TAREAS (PUSH, DELETE o CANCEL)
+        $tasks = $this->resolveTasks($uow);
+        if ($tasks === []) {
             $this->reset();
             return;
         }
 
         $this->loadEndpoints($em);
-        if ($this->cachedPostEndpoint === null && $this->cachedDeleteEndpoint === null) {
-            $this->reset();
-            return;
-        }
 
-        // 2. Procesar Links Recolectados
-        foreach ($links as $link) {
-            if ($link->getUnidadBeds24Map() === null) continue;
+        foreach ($tasks as $task) {
+            /** @var PmsEventoBeds24Link $link */
+            $link = $task['link'];
+            $action = $task['action'];
 
-            // [VALIDACIÓN EXTRA] Ignorar links asociados a eventos 'fantasmas' (detached/new sin insert)
-            // Esto complementa el escudo del Creator, evitando procesar basura en memoria.
-            if (!$this->isLinkBeingDeleted($link)) {
-                $evento = $link->getEvento();
-                if ($evento) {
-                    $state = $uow->getEntityState($evento);
-                    // Si es NEW y no está programado para insertarse (p.ej. se borró), SKIP.
-                    if (($state === UnitOfWork::STATE_NEW && !$uow->isScheduledForInsert($evento)) ||
-                        $state === UnitOfWork::STATE_DETACHED) {
-                        continue;
-                    }
-                }
+            // A) Cancelación de redundantes / huérfanos (zombies)
+            if ($action === 'CANCEL') {
+                $this->queueCreator->cancelPendingPostForLink($link, 'Redundant/Orphan link (Smart Move)', $uow);
+                continue;
             }
 
-            $endpoint = $this->resolveEndpointForLink($link);
-
-            // Cancelación local
+            // B) Sincronización (PUSH o DELETE)
+            $endpoint = ($action === 'DELETE') ? $this->cachedDeleteEndpoint : $this->cachedPostEndpoint;
             if ($endpoint === null) {
-                if ($this->shouldCancelPostWithoutRemoteDelete($link)) {
-                    $this->queueCreator->cancelPendingPostForLink(
-                        $link,
-                        'Link eliminado o pending_delete sin beds24BookId',
-                        $uow
-                    );
-                }
                 continue;
+            }
+
+            if ($action === 'DELETE') {
+                $this->ensureBookIdForDelete($link, $em, $uow);
+
+                // ✅ FIX CRÍTICO: Cancelar siempre cualquier POST pendiente asociado a este link.
+                // Si el link se va a borrar, su cola POST pendiente queda huérfana (link_id=null)
+                // y con datos obsoletos, provocando errores en el worker.
+                $this->queueCreator->cancelPendingPostForLink($link, 'Link deleted (replaced by DELETE)', $uow);
+
+                // Si tras intentar recuperar no hay ID, no podemos borrar nada en Beds24.
+                if (!$link->getBeds24BookId()) {
+                    continue;
+                }
             }
 
             $this->queueCreator->enqueueForLink($link, $endpoint, $uow);
@@ -130,122 +146,218 @@ final class Beds24BookingsPushQueueListener
         $this->reset();
     }
 
-    // ... (Métodos privados auxiliares) ...
-
     private function isLinkBeingDeleted(PmsEventoBeds24Link $link): bool
     {
-        return ($this->linksDeleted->contains($link) || $link->getStatus() === PmsEventoBeds24Link::STATUS_PENDING_DELETE);
+        return $this->linksDeleted->contains($link) || $link->getStatus() === PmsEventoBeds24Link::STATUS_PENDING_DELETE;
     }
 
-    private function resolveEndpointForLink(PmsEventoBeds24Link $link): ?PmsBeds24Endpoint
+    private function ensureBookIdForDelete(PmsEventoBeds24Link $link, EntityManagerInterface $em, UnitOfWork $uow): void
     {
-        $isDelete = $this->isLinkBeingDeleted($link);
+        if ($link->getBeds24BookId()) {
+            return;
+        }
 
-        if ($isDelete) {
-            $bookId = $link->getBeds24BookId();
+        $recovered = $this->recoverBookIdFromQueues($link);
+        if (!$recovered) {
+            return;
+        }
 
-            // [RESCATE] Buscamos en el historial si perdimos el ID
-            if (!$bookId) {
-                $bookId = $this->getHistoricalBookId($link);
-                // Inyección temporal para que el Creator lo vea
-                if ($bookId) {
-                    $link->setBeds24BookId($bookId);
+        $link->setBeds24BookId($recovered);
+
+        // ✅ Importante en onFlush: avisar al UoW que cambió el link
+        $uow->recomputeSingleEntityChangeSet(
+            class: $em->getClassMetadata(PmsEventoBeds24Link::class),
+            entity: $link
+        );
+    }
+
+    private function recoverBookIdFromQueues(PmsEventoBeds24Link $link): ?string
+    {
+        foreach ($link->getQueues() as $q) {
+            if ($q->getBeds24BookIdOriginal()) {
+                return (string) $q->getBeds24BookIdOriginal();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Analiza todos los links afectados y determina qué hacer con cada uno.
+     * @return array<int, array{link: PmsEventoBeds24Link, action: string}>
+     */
+    private function resolveTasks(UnitOfWork $uow): array
+    {
+        $resolved = new SplObjectStorage();
+
+        // Recolectar links directamente involucrados
+        foreach ($this->linksTouched as $l) {
+            $resolved->attach($l);
+        }
+        foreach ($this->linksDeleted as $l) {
+            $resolved->attach($l);
+        }
+
+        // Links alcanzados por eventos tocados
+        foreach ($this->eventosTouched as $e) {
+            /** @var PmsEventoCalendario $e */
+            foreach ($e->getBeds24Links() as $l) {
+                $resolved->attach($l);
+            }
+
+            // Detectar links huérfanos en memoria (programados para delete)
+            foreach ($uow->getScheduledEntityDeletions() as $ent) {
+                if ($ent instanceof PmsEventoBeds24Link && $ent->getEvento() === $e) {
+                    $resolved->attach($ent);
                 }
             }
-
-            return $bookId ? $this->cachedDeleteEndpoint : null;
         }
 
-        if ($link->getStatus() === PmsEventoBeds24Link::STATUS_ACTIVE || $link->getStatus() === PmsEventoBeds24Link::STATUS_PENDING_MOVE) {
-            return $this->cachedPostEndpoint;
-        }
-        return null;
-    }
-
-    private function getHistoricalBookId(PmsEventoBeds24Link $link): ?string
-    {
-        $queues = $link->getQueues();
-        if ($queues instanceof PersistentCollection && !$queues->isInitialized()) {
-            return null;
-        }
-        foreach ($queues as $q) {
-            if ($q->getBeds24BookIdOriginal()) {
-                return $q->getBeds24BookIdOriginal();
+        // Links alcanzados por reservas tocadas
+        foreach ($this->reservasTouched as $r) {
+            /** @var PmsReserva $r */
+            foreach ($r->getEventosCalendario() as $e) {
+                foreach ($e->getBeds24Links() as $l) {
+                    $resolved->attach($l);
+                }
             }
         }
-        return null;
+
+        $tasks = [];
+        $activeLinksByMap = [];
+
+        // FASE 1: Clasificación inicial
+        foreach ($resolved as $link) {
+            /** @var PmsEventoBeds24Link $link */
+
+            // 1) Prioridad absoluta: borrados
+            if ($this->isLinkBeingDeleted($link)) {
+                $tasks[] = ['link' => $link, 'action' => 'DELETE'];
+                continue;
+            }
+
+            // 2) Activos: agrupar para deduplicación
+            $evento = $link->getEvento();
+            $map = $link->getUnidadBeds24Map();
+
+            if (!$evento || !$map) {
+                // Activo pero huérfano -> cancelar pendientes (zombie)
+                $tasks[] = ['link' => $link, 'action' => 'CANCEL'];
+                continue;
+            }
+
+            // Clave: Evento + Mapa
+            $key = spl_object_id($evento) . '|' . spl_object_id($map);
+            $activeLinksByMap[$key][] = $link;
+        }
+
+        // FASE 2: Torneo de links por (evento,map)
+        foreach ($activeLinksByMap as $group) {
+            $winner = $group[0];
+            foreach ($group as $l) {
+                $winner = $this->pickBestLink($winner, $l);
+            }
+
+            foreach ($group as $l) {
+                if ($l === $winner) {
+                    $tasks[] = ['link' => $l, 'action' => 'PUSH'];
+                } else {
+                    // ✅ Fix: perdedores -> cancelar POST pendiente para matar zombies
+                    $tasks[] = ['link' => $l, 'action' => 'CANCEL'];
+                }
+            }
+        }
+
+        return $tasks;
     }
 
-    private function shouldCancelPostWithoutRemoteDelete(PmsEventoBeds24Link $link): bool
+    private function pickBestLink(PmsEventoBeds24Link $a, PmsEventoBeds24Link $b): PmsEventoBeds24Link
     {
-        return $this->isLinkBeingDeleted($link);
+        if ($a->isEsPrincipal() !== $b->isEsPrincipal()) {
+            return $a->isEsPrincipal() ? $a : $b;
+        }
+
+        if ((bool) $a->getBeds24BookId() !== (bool) $b->getBeds24BookId()) {
+            return $a->getBeds24BookId() ? $a : $b;
+        }
+
+        return $a;
     }
 
     private function shouldIgnoreReservaUpdate(PmsReserva $reserva, UnitOfWork $uow): bool
     {
-        if (!$reserva->isDatosLocked()) return false;
-        $channel = $reserva->getChannel();
-        $isOta = $channel !== null && !empty($channel->getBeds24ChannelId());
-        if (!$isOta) return false;
+        if (!$reserva->isDatosLocked()) {
+            return false;
+        }
+
         $changeSet = $uow->getEntityChangeSet($reserva);
-        $changedFields = array_keys($changeSet);
-        $relevantChanges = array_diff($changedFields, self::IGNORED_FIELDS_ON_LOCKED_OTA);
+        $relevantChanges = array_diff(array_keys($changeSet), self::IGNORED_FIELDS_ON_LOCKED_OTA);
+
         return count($relevantChanges) === 0;
     }
 
     private function loadEndpoints(EntityManagerInterface $em): void
     {
-        if ($this->endpointsLoaded) return;
+        if ($this->endpointsLoaded) {
+            return;
+        }
+
         $repo = $em->getRepository(PmsBeds24Endpoint::class);
-        $this->cachedPostEndpoint = $repo->findOneBy(['accion' => self::ENDPOINT_POST_BOOKINGS, 'activo' => true]);
-        $this->cachedDeleteEndpoint = $repo->findOneBy(['accion' => self::ENDPOINT_DELETE_BOOKINGS, 'activo' => true]);
+
+        $this->cachedPostEndpoint = $repo->findOneBy([
+            'accion' => self::ENDPOINT_POST_BOOKINGS,
+            'activo' => true,
+        ]);
+
+        $this->cachedDeleteEndpoint = $repo->findOneBy([
+            'accion' => self::ENDPOINT_DELETE_BOOKINGS,
+            'activo' => true,
+        ]);
+
         $this->endpointsLoaded = true;
     }
 
     private function collect(object $e): void
     {
-        if ($e instanceof PmsEventoCalendario) $this->eventosTouched->attach($e);
-        elseif ($e instanceof PmsReserva) $this->reservasTouched->attach($e);
-        elseif ($e instanceof PmsEventoBeds24Link) $this->linksTouched->attach($e);
+        if ($e instanceof PmsEventoCalendario) {
+            $this->eventosTouched->attach($e);
+            return;
+        }
+
+        if ($e instanceof PmsReserva) {
+            $this->reservasTouched->attach($e);
+            return;
+        }
+
+        if ($e instanceof PmsEventoBeds24Link) {
+            $this->linksTouched->attach($e);
+        }
     }
 
     private function collectDeleted(object $e): void
     {
-        if ($e instanceof PmsEventoBeds24Link) $this->linksDeleted->attach($e);
-    }
-
-    private function resolveLinks(): array
-    {
-        $resolved = new SplObjectStorage();
-        foreach ($this->linksTouched as $l) $resolved->attach($l);
-        foreach ($this->linksDeleted as $l) $resolved->attach($l);
-        foreach ($this->eventosTouched as $e) foreach ($e->getBeds24Links() as $l) $resolved->attach($l);
-        foreach ($this->reservasTouched as $r) foreach ($r->getEventosCalendario() as $e) foreach ($e->getBeds24Links() as $l) $resolved->attach($l);
-
-        $out = [];
-        foreach ($resolved as $link) {
-            $evento = $link->getEvento();
-            if (!$evento || !$evento->getInicio() || !$evento->getFin()) continue;
-            if ($link->getStatus() === PmsEventoBeds24Link::STATUS_SYNCED_DELETED) continue;
-            $key = $link->getId() ?? spl_object_id($link);
-            $out[$key] = $link;
+        if ($e instanceof PmsEventoBeds24Link) {
+            $this->linksDeleted->attach($e);
         }
-        return array_values($out);
     }
 
     private function isClean(): bool
     {
-        return $this->eventosTouched->count() === 0 &&
-            $this->reservasTouched->count() === 0 &&
-            $this->linksTouched->count() === 0 &&
-            $this->linksDeleted->count() === 0;
+        return $this->eventosTouched->count() === 0
+            && $this->reservasTouched->count() === 0
+            && $this->linksTouched->count() === 0
+            && $this->linksDeleted->count() === 0;
     }
 
     private function reset(): void
     {
-        $this->eventosTouched  = new SplObjectStorage();
+        $this->eventosTouched = new SplObjectStorage();
         $this->reservasTouched = new SplObjectStorage();
-        $this->linksTouched    = new SplObjectStorage();
-        $this->linksDeleted    = new SplObjectStorage();
+        $this->linksTouched = new SplObjectStorage();
+        $this->linksDeleted = new SplObjectStorage();
+
+        // ✅ En workers es mejor no cachear para siempre
+        $this->cachedPostEndpoint = null;
+        $this->cachedDeleteEndpoint = null;
+        $this->endpointsLoaded = false;
     }
 }

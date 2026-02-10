@@ -11,68 +11,91 @@ use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Entidad PmsEstablecimiento.
- * Representa la unidad de negocio principal.
+ * Representa la unidad de negocio principal (Hotel/Edificio).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_establecimiento')]
 #[ORM\HasLifecycleCallbacks]
 class PmsEstablecimiento
 {
-    /** Gestión de Identificador UUID (BINARY 16) */
     use IdTrait;
-
-    /** Gestión de auditoría temporal (DateTimeImmutable) */
     use TimestampTrait;
 
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
+    #[Assert\NotBlank(message: 'El nombre comercial es obligatorio.')]
+    #[Assert\Length(max: 180)]
     private ?string $nombreComercial = null;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[Assert\NotBlank(message: 'La dirección es obligatoria.')]
+    #[Assert\Length(max: 255)]
     private ?string $direccionLinea1 = null;
 
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
+    #[Assert\NotBlank(message: 'La ciudad es obligatoria.')]
+    #[Assert\Length(max: 100)]
     private ?string $ciudad = null;
 
-    /**
-     * Relación con MaestroPais.
-     * Apunta al ID Natural de 2 caracteres.
-     */
     #[ORM\ManyToOne(targetEntity: MaestroPais::class, inversedBy: 'establecimientos')]
     #[ORM\JoinColumn(name: 'pais_id', referencedColumnName: 'id', nullable: true)]
+    #[Assert\NotNull(message: 'Debes seleccionar un país.')]
     private ?MaestroPais $pais = null;
 
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
+    #[Assert\Length(max: 30)]
     private ?string $telefonoPrincipal = null;
 
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    #[Assert\NotBlank(message: 'El email de contacto es obligatorio.')]
+    #[Assert\Email]
+    #[Assert\Length(max: 150)]
     private ?string $emailContacto = null;
 
     #[ORM\Column(type: 'time', nullable: true)]
+    #[Assert\NotNull]
     private ?DateTimeInterface $horaCheckIn = null;
 
     #[ORM\Column(type: 'time', nullable: true)]
+    #[Assert\NotNull]
     private ?DateTimeInterface $horaCheckOut = null;
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    #[Assert\Timezone]
     private ?string $timezone = null;
 
-    /** @var Collection<int, PmsUnidad> */
+    // ============================================================
+    // 🔐 SEGURIDAD / ACCESO (NUEVO)
+    // ============================================================
+
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $codigoCajaPrincipal = null;
+
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $codigoCajaSecundaria = null;
+
+    // ============================================================
+    // RELACIONES
+    // ============================================================
+
     #[ORM\OneToMany(mappedBy: 'establecimiento', targetEntity: PmsUnidad::class, cascade: ['persist', 'remove'])]
     private Collection $unidades;
+
+    #[ORM\OneToMany(mappedBy: 'establecimiento', targetEntity: PmsEstablecimientoVirtual::class, cascade: ['persist', 'remove'])]
+    private Collection $virtualEstablecimientos;
 
     public function __construct()
     {
         $this->unidades = new ArrayCollection();
+        $this->virtualEstablecimientos = new ArrayCollection();
+        $this->id = Uuid::v7();
     }
 
-    /*
-     * -------------------------------------------------------------------------
-     * GETTERS Y SETTERS EXPLÍCITOS
-     * -------------------------------------------------------------------------
-     */
+    // ... Getters y Setters existentes ...
 
     public function getNombreComercial(): ?string { return $this->nombreComercial; }
     public function setNombreComercial(?string $nombreComercial): self { $this->nombreComercial = $nombreComercial; return $this; }
@@ -101,7 +124,36 @@ class PmsEstablecimiento
     public function getTimezone(): ?string { return $this->timezone; }
     public function setTimezone(?string $timezone): self { $this->timezone = $timezone; return $this; }
 
-    /** @return Collection<int, PmsUnidad> */
+    // ============================================================
+    // GETTERS Y SETTERS DE SEGURIDAD
+    // ============================================================
+
+    public function getCodigoCajaPrincipal(): ?string
+    {
+        return $this->codigoCajaPrincipal;
+    }
+
+    public function setCodigoCajaPrincipal(?string $codigoCajaPrincipal): self
+    {
+        $this->codigoCajaPrincipal = $codigoCajaPrincipal;
+        return $this;
+    }
+
+    public function getCodigoCajaSecundaria(): ?string
+    {
+        return $this->codigoCajaSecundaria;
+    }
+
+    public function setCodigoCajaSecundaria(?string $codigoCajaSecundaria): self
+    {
+        $this->codigoCajaSecundaria = $codigoCajaSecundaria;
+        return $this;
+    }
+
+    // ============================================================
+    // COLECCIONES
+    // ============================================================
+
     public function getUnidades(): Collection { return $this->unidades; }
 
     public function addUnidad(PmsUnidad $unidad): self
@@ -118,6 +170,27 @@ class PmsEstablecimiento
         if ($this->unidades->removeElement($unidad)) {
             if ($unidad->getEstablecimiento() === $this) {
                 $unidad->setEstablecimiento(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getVirtualEstablecimientos(): Collection { return $this->virtualEstablecimientos; }
+
+    public function addVirtualEstablecimiento(PmsEstablecimientoVirtual $virtualEstablecimiento): self
+    {
+        if (!$this->virtualEstablecimientos->contains($virtualEstablecimiento)) {
+            $this->virtualEstablecimientos->add($virtualEstablecimiento);
+            $virtualEstablecimiento->setEstablecimiento($this);
+        }
+        return $this;
+    }
+
+    public function removeVirtualEstablecimiento(PmsEstablecimientoVirtual $virtualEstablecimiento): self
+    {
+        if ($this->virtualEstablecimientos->removeElement($virtualEstablecimiento)) {
+            if ($virtualEstablecimiento->getEstablecimiento() === $this) {
+                $virtualEstablecimiento->setEstablecimiento(null);
             }
         }
         return $this;

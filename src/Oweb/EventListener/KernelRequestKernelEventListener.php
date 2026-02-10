@@ -1,25 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Oweb\EventListener;
 
 use Gedmo\Translatable\TranslatableListener;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\KernelEvents;
 
-/**
- * Gestiona el locale y sincroniza con Gedmo sin anular el idioma por defecto.
- */
-#[AsEventListener(
-    event: 'kernel.request',
-    method: 'onKernelRequest',
-    priority: 101
-)]
-class KernelRequestKernelEventListener
+#[AsEventListener(event: KernelEvents::REQUEST, priority: 101)]
+final class KernelRequestKernelEventListener
 {
     public function __construct(
-        private TranslatableListener $translatableListener,
-        private string $owebHost,
-        private string $defaultAppLocale = 'es' // Inyectado desde framework.default_locale
+        private readonly TranslatableListener $translatableListener,
+        private readonly string $owebHost,
+        private readonly string $defaultAppLocale = 'es',
     ) {}
 
     public function onKernelRequest(RequestEvent $event): void
@@ -30,45 +26,50 @@ class KernelRequestKernelEventListener
 
         $request = $event->getRequest();
 
+        // ✅ Solo Oweb
         if ($request->getHost() !== $this->owebHost) {
             return;
         }
 
+        // ✅ Solo HTML (no API, no assets)
+        if ($request->getRequestFormat() !== 'html') {
+            return;
+        }
+
         $session = $request->hasSession() ? $request->getSession() : null;
-        $fromSwitcher = false;
 
-        $locale = $request->attributes->get('_locale') ?? $request->query->get('_locale');
+        $locale = null;
 
-        if ($locale) {
-            $fromSwitcher = true;
+        // 1️⃣ Switch explícito ?lang=
+        $lang = (string) $request->query->get('lang', '');
+        if ($lang === 'es' || $lang === 'en') {
+            $locale = $lang;
+
+            if ($session) {
+                $session->set('_locale', $locale);
+            }
         }
 
+        // 2️⃣ Sesión
         if (!$locale && $session && $session->has('_locale')) {
-            $locale = $session->get('_locale');
-            $fromSwitcher = true;
+            $stored = (string) $session->get('_locale');
+            if ($stored === 'es' || $stored === 'en') {
+                $locale = $stored;
+            }
         }
 
+        // 3️⃣ Navegador
         if (!$locale) {
-            $preferred = $request->getPreferredLanguage(['es', 'en']) ?: $this->defaultAppLocale;
-            $locale = str_starts_with($preferred, 'es') ? 'es' : 'en';
+            $preferred = $request->getPreferredLanguage(['es', 'en']);
+            $locale = str_starts_with((string) $preferred, 'en') ? 'en' : 'es';
         }
 
-        // 1. Aplicar Locale a la Request de Symfony
+        // 4️⃣ Aplicar locale a Symfony
         $request->setLocale($locale);
 
-        // 2. 🔥 CONFIGURACIÓN CORRECTA DE GEDMO
-        // Establece el idioma que queremos VER
+        // 5️⃣ Gedmo (lectura correcta de traducciones)
         $this->translatableListener->setTranslatableLocale($locale);
-
-        // Mantenemos el 'es' como base para que el Fallback funcione
         $this->translatableListener->setDefaultLocale($this->defaultAppLocale);
-
-        // Si el idioma actual es el default, Gedmo NO debe buscar en la tabla de traducciones,
-        // debe leer directamente de la entidad principal.
         $this->translatableListener->setTranslationFallback(true);
-
-        if ($fromSwitcher && $session) {
-            $session->set('_locale', $locale);
-        }
     }
 }

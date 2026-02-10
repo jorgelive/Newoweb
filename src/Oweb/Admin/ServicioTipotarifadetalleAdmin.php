@@ -7,7 +7,6 @@ use Sonata\AdminBundle\Datagrid\DatagridMapper;
 use Sonata\AdminBundle\Datagrid\ListMapper;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Show\ShowMapper;
-use Sonata\TranslationBundle\Filter\TranslationFieldFilter;
 
 class ServicioTipotarifadetalleAdmin extends AbstractSecureAdmin
 {
@@ -24,7 +23,7 @@ class ServicioTipotarifadetalleAdmin extends AbstractSecureAdmin
         $datagridMapper
             ->add('id')
             ->add('nombre')
-            ->add('titulo', TranslationFieldFilter::class, [
+            ->add('titulo', null, [
                 'label' => 'Título'
             ])
             ->add('interno')

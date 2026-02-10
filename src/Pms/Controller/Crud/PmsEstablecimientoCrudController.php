@@ -14,6 +14,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IdField; // Usar IdField para UUID es mejor que TextField
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
@@ -22,7 +23,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * PmsEstablecimientoCrudController.
  * Gestión de propiedades o casas principales del sistema.
- * Hereda de BaseCrudController y utiliza UUID v7.
  */
 final class PmsEstablecimientoCrudController extends BaseCrudController
 {
@@ -47,9 +47,6 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
             ->showEntityActionsInlined();
     }
 
-    /**
-     * ✅ Configuración de acciones y seguridad mediante Roles.
-     */
     public function configureActions(Actions $actions): Actions
     {
         $actions
@@ -75,92 +72,91 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        // ✅ Manejo de UUID para visualización técnica
-        $id = TextField::new('id', 'UUID')
-            ->onlyOnDetail()
-            ->formatValue(fn($value) => (string) $value);
+        // 1. ID (Solo visible en detalle e índice si es necesario)
+        yield IdField::new('id', 'UUID')
+            ->onlyOnDetail();
 
-        $nombre = TextField::new('nombreComercial', 'Nombre comercial');
-        $direccion = TextField::new('direccionLinea1', 'Dirección');
-        $ciudad = TextField::new('ciudad', 'Ciudad');
+        // ============================================================
+        // 🏨 INFORMACIÓN GENERAL
+        // ============================================================
+        yield FormField::addPanel('Información General')->setIcon('fa fa-building');
 
-        // Relación con MaestroPais (ID Natural String 2)
-        $pais = AssociationField::new('pais', 'País')
-            ->setRequired(true);
+        yield TextField::new('nombreComercial', 'Nombre Comercial')
+            ->setColumns(8);
 
-        $telefono = TextField::new('telefonoPrincipal', 'Teléfono');
-        $email = TextField::new('emailContacto', 'Email de contacto');
+        yield AssociationField::new('pais', 'País')
+            ->setRequired(true)
+            ->setColumns(4);
 
-        $horaCheckIn = TimeField::new('horaCheckIn', 'Hora Check-in');
-        $horaCheckOut = TimeField::new('horaCheckOut', 'Hora Check-out');
+        yield TextField::new('direccionLinea1', 'Dirección')
+            ->hideOnIndex()
+            ->setColumns(8);
 
-        $timezone = TextField::new('timezone', 'Zona Horaria')
-            ->setHelp('Ejemplo: America/Lima');
+        yield TextField::new('ciudad', 'Ciudad')
+            ->setColumns(4);
 
-        // ✅ Auditoría mediante TimestampTrait
-        $createdAt = DateTimeField::new('createdAt', 'Registrado')
-            ->setFormat('yyyy/MM/dd HH:mm');
+        // ============================================================
+        // 🔐 CÓDIGOS DE ACCESO (NUEVO PANEL)
+        // ============================================================
+        yield FormField::addPanel('Seguridad y Accesos (Edificio)')
+            ->setIcon('fa fa-key')
+            ->setHelp('Códigos generales para entrar al establecimiento (Portón, Recepción, Almacén de Llaves).');
 
-        $updatedAt = DateTimeField::new('updatedAt', 'Última Modificación')
-            ->setFormat('yyyy/MM/dd HH:mm');
+        yield TextField::new('codigoCajaPrincipal', 'Caja Fuerte / Portón (Principal)')
+            ->setColumns(6)
+            ->hideOnIndex()
+            ->setHelp('Variable para guías: <b>{caja_principal}</b>');
 
-        // VISTA INDEX
-        if (Crud::PAGE_INDEX === $pageName) {
-            return [
-                $nombre,
-                $ciudad,
-                $pais,
-                $horaCheckIn,
-                $horaCheckOut,
-                $timezone,
-                $createdAt->setLabel('Creado'),
-                $updatedAt->setLabel('Actualizado'),
-            ];
-        }
+        yield TextField::new('codigoCajaSecundaria', 'Caja Secundaria / Almacén')
+            ->setColumns(6)
+            ->hideOnIndex()
+            ->setHelp('Variable para guías: <b>{caja_secundaria}</b>');
 
-        // VISTA DETALLE
-        if (Crud::PAGE_DETAIL === $pageName) {
-            return [
-                FormField::addPanel('Detalles de la Propiedad')->setIcon('fa fa-building'),
-                $id,
-                $nombre,
-                $direccion,
-                $ciudad,
-                $pais,
-                $telefono,
-                $email,
+        // ============================================================
+        // 📞 CONTACTO
+        // ============================================================
+        yield FormField::addPanel('Contacto')
+            ->setIcon('fa fa-phone')
+            ->renderCollapsed();
 
-                FormField::addPanel('Configuración Operativa')->setIcon('fa fa-clock'),
-                $horaCheckIn,
-                $horaCheckOut,
-                $timezone,
+        yield TextField::new('telefonoPrincipal', 'Teléfono')
+            ->hideOnIndex()
+            ->setColumns(6);
 
-                FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-                $createdAt,
-                $updatedAt,
-            ];
-        }
+        yield TextField::new('emailContacto', 'Email')
+            ->hideOnIndex()
+            ->setColumns(6);
 
-        // VISTAS FORMULARIO (NEW / EDIT)
-        return [
-            FormField::addPanel('Información general')->setIcon('fa fa-building'),
-            $nombre,
-            $direccion,
-            $ciudad,
-            $pais,
+        // ============================================================
+        // 🕒 OPERACIÓN
+        // ============================================================
+        yield FormField::addPanel('Configuración Operativa')
+            ->setIcon('fa fa-clock')
+            ->renderCollapsed();
 
-            FormField::addPanel('Contacto')->setIcon('fa fa-phone'),
-            $telefono,
-            $email,
+        yield TimeField::new('horaCheckIn', 'Check-in')
+            ->setColumns(4);
 
-            FormField::addPanel('Operación')->setIcon('fa fa-clock'),
-            $horaCheckIn,
-            $horaCheckOut,
-            $timezone,
+        yield TimeField::new('horaCheckOut', 'Check-out')
+            ->setColumns(4);
 
-            FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-            $createdAt->onlyOnForms()->setFormTypeOption('disabled', true),
-            $updatedAt->onlyOnForms()->setFormTypeOption('disabled', true),
-        ];
+        yield TextField::new('timezone', 'Zona Horaria')
+            ->setHelp('Ej: America/Lima')
+            ->setColumns(4);
+
+        // ============================================================
+        // 🛡️ AUDITORÍA
+        // ============================================================
+        yield FormField::addPanel('Auditoría')
+            ->setIcon('fa fa-shield-alt')
+            ->renderCollapsed();
+
+        yield DateTimeField::new('createdAt', 'Registrado')
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->hideOnForm(); // No editable
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->hideOnForm(); // No editable
     }
 }

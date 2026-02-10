@@ -1,4 +1,4 @@
-# config/services/pms_admin.yaml
+# config/services/services_pms.yaml
 parameters:
     # Las claves de calendatio deben empezar por calendar
     # y ser distintas para que no se sobrescribab
@@ -9,8 +9,8 @@ parameters:
                 establecimientoId: null
                 unidadIds: [ ]
                 estado:
-                    in: [ ]        # ej: [confirmada, bloqueado]
-                    not_in: [cancelado]    # ej: [cancelada]
+                    in: [ ]        # ej: [confirmada, bloqueo]
+                    not_in: [cancelada]    # ej: [cancelada]
                 estadoPago:
                     in: [ ]        # ej: [no-pagado, pago-parcial]
                     not_in: [ ]    # ej: [pago-total]
@@ -162,8 +162,9 @@ services:
     App\Pms\:
         resource: '../../src/Pms/'
         exclude:
-            - '../src/Pms/Dto/'
-            - '../src/Pms/Entity/'
+            - '../../src/Pms/Dto/'
+            - '../../src/Pms/Entity/'
+            - '../../src/Pms/Tarifa/Dto/'
 
     # =========================
     # controllers del módulo Pms

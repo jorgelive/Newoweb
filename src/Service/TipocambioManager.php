@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Dto\ExchangeRateDto;
-use App\Oweb\Entity\MaestroMoneda;
-use App\Oweb\Entity\MaestroTipocambio;
+use App\Entity\Maestro\MaestroMoneda;
+use App\Entity\Maestro\MaestroTipocambio;
 use DateTime;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,6 +15,8 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class TipocambioManager
 {
+    private const MONEDA_TARGET = MaestroMoneda::DB_ID_USD;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly HttpClientInterface $client,
@@ -22,128 +24,116 @@ class TipocambioManager
         private readonly string $sunatApiToken
     ) {}
 
-    public function getTipodecambio(DateTime $fecha): ?MaestroTipocambio
+    public function getTipodecambio(DateTime $fechaInput): ?MaestroTipocambio
     {
-        $repo = $this->em->getRepository(MaestroTipocambio::class);
+        // ✅ CORRECCIÓN 1: Normalizamos a medianoche para "match exacto"
+        // Clonamos para no modificar la fecha original que pasó el controlador
+        $fechaBuscada = (clone $fechaInput)->setTime(0, 0, 0);
 
-        // 1) Caché Local (BD): día exacto
+        $repo = $this->em->getRepository(MaestroTipocambio::class);
+        $usdRef = $this->getUsdRef(); // Obtenemos el Proxy una sola vez
+
+        // ✅ CORRECCIÓN 2: Pasamos la Referencia (Objeto), no el string ID
+        // 1) Caché Local (BD)
         $enDB = $repo->findOneBy([
-            'moneda' => MaestroMoneda::DB_VALOR_DOLAR,
-            'fecha' => $fecha
+            'moneda' => $usdRef,
+            'fecha'  => $fechaBuscada
         ]);
 
         if ($enDB instanceof MaestroTipocambio) {
             return $enDB;
         }
 
-        // 2) Consultar API (mes o día)
-        $dtos = $this->fetchExternalData($fecha);
+        // 2) Consultar API (usamos la fecha original para el request, da igual la hora)
+        $dtos = $this->fetchExternalData($fechaBuscada);
 
-        // 3) Si API no responde / vacío => fallback a última fecha disponible en BD
+        // 3) Fallback si API falla
         if (empty($dtos)) {
-            return $this->findLastAvailableInDb($fecha);
+            return $this->findLastAvailableInDb($fechaBuscada);
         }
 
         // 4) Guardado Masivo
-        $this->persistMonthData($dtos, $fecha);
+        $this->persistMonthData($dtos, $fechaBuscada);
 
-        // 5) Retorno: buscamos el día exacto o el último hábil anterior (de la data de API)
-        $bestDto = $this->findBestMatch($dtos, $fecha);
+        // 5) Retorno: Buscar match en la data fresca
+        $bestDto = $this->findBestMatch($dtos, $fechaBuscada);
 
         if (!$bestDto instanceof ExchangeRateDto) {
-            // Por seguridad: si vino data pero no match, igual caemos a BD
-            return $this->findLastAvailableInDb($fecha);
+            return $this->findLastAvailableInDb($fechaBuscada);
         }
 
-        // Buscamos la entidad recién creada para retornarla (o la existente)
-        $entity = $repo->findOneBy([
-            'moneda' => MaestroMoneda::DB_VALOR_DOLAR,
-            'fecha' => DateTime::createFromImmutable($bestDto->date)
-        ]);
+        // Buscamos de nuevo en BD (IdentityMap lo hará instantáneo)
+        // Asegurándonos de usar la fecha del DTO normalizada
+        $fechaDto = DateTime::createFromImmutable($bestDto->date)->setTime(0, 0, 0);
 
-        // Si por alguna razón no quedó en BD, fallback final
-        return $entity instanceof MaestroTipocambio ? $entity : $this->findLastAvailableInDb($fecha);
+        return $repo->findOneBy([
+            'moneda' => $usdRef,
+            'fecha'  => $fechaDto
+        ]);
     }
 
     private function fetchExternalData(DateTime $fecha): array
     {
-        $headersNavegador = [
-            'Authorization' => 'Bearer ' . $this->sunatApiToken,
-            'Referer'       => 'https://apis.net.pe/tipo-de-cambio-sunat-api',
-            'User-Agent'    => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept'        => 'application/json',
-        ];
+        // Intento A: Mes completo
+        $data = $this->callApi([
+            'month' => $fecha->format('m'),
+            'year'  => $fecha->format('Y'),
+        ]);
 
-        // --- INTENTO A: Traer todo el MES (v1) ---
+        if (!empty($data)) {
+            return $this->parseResponse($data);
+        }
+
+        $this->logger->warning('Consulta mensual SUNAT vacía. Intentando diaria.');
+
+        // Intento B: Día exacto
+        $data = $this->callApi([
+            'fecha' => $fecha->format('Y-m-d')
+        ]);
+
+        return $this->parseResponse($data);
+    }
+
+    private function callApi(array $queryParams): array
+    {
         try {
             $response = $this->client->request('GET', 'https://api.apis.net.pe/v1/tipo-cambio-sunat', [
-                'query' => [
-                    'month' => $fecha->format('m'),
-                    'year'  => $fecha->format('Y'),
+                'query' => $queryParams,
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->sunatApiToken,
+                    'Referer'       => 'https://apis.net.pe/tipo-de-cambio-sunat-api',
+                    'Accept'        => 'application/json',
                 ],
-                'headers' => $headersNavegador,
                 'timeout' => 8,
             ]);
 
             if ($response->getStatusCode() === 200) {
-                return $this->parseResponse($response->toArray());
+                $raw = $response->toArray();
+                return isset($raw['fecha']) ? [$raw] : $raw;
             }
-
-            $this->logger->warning(sprintf('Consulta mensual v1 falló con código %d. Intentando diaria.', $response->getStatusCode()));
-
         } catch (Exception $e) {
-            $this->logger->warning('Error conexión mensual v1: ' . $e->getMessage());
+            $this->logger->error('Error API SUNAT: ' . $e->getMessage());
         }
 
-        // --- INTENTO B: Fallback al DÍA EXACTO (v1) ---
-        try {
-            $response = $this->client->request('GET', 'https://api.apis.net.pe/v1/tipo-cambio-sunat', [
-                'query' => [
-                    'fecha' => $fecha->format('Y-m-d')
-                ],
-                'headers' => $headersNavegador,
-                'timeout' => 10,
-            ]);
-
-            if ($response->getStatusCode() === 200) {
-                return $this->parseResponse($response->toArray());
-            }
-
-            return [];
-
-        } catch (Exception $e) {
-            $this->logger->critical('Error fatal API SUNAT: ' . $e->getMessage());
-            return [];
-        }
+        return [];
     }
 
-    private function parseResponse(array $data): array
+    private function parseResponse(array $lista): array
     {
-        $listaProcesar = [];
-
-        if (isset($data['fecha'])) {
-            $listaProcesar = [$data];
-        } else {
-            $listaProcesar = $data;
-        }
-
         $dtos = [];
-        foreach ($listaProcesar as $item) {
+        foreach ($lista as $item) {
             if (!isset($item['fecha'], $item['compra'], $item['venta'])) {
                 continue;
             }
-
             $fechaStr = substr((string)$item['fecha'], 0, 10);
 
-            // 🔥 CORRECCIÓN AQUÍ: Casting explícito a (string)
             $dtos[$fechaStr] = new ExchangeRateDto(
-                new DateTimeImmutable($fechaStr),
-                (string) $item['compra'], // Force String
-                (string) $item['venta'],  // Force String
-                (string) ($item['moneda'] ?? MaestroMoneda::DB_CODIGO_DOLAR)
+                new DateTimeImmutable($fechaStr), // El time vendrá 00:00:00 por defecto en immutable desde Y-m-d
+                (string) $item['compra'],
+                (string) $item['venta'],
+                (string) ($item['moneda'] ?? self::MONEDA_TARGET)
             );
         }
-
         return $dtos;
     }
 
@@ -152,53 +142,53 @@ class TipocambioManager
         $inicio = (clone $fechaReferencia)->modify('first day of this month')->setTime(0,0,0);
         $fin    = (clone $fechaReferencia)->modify('last day of this month')->setTime(23,59,59);
 
-        $existingRows = $this->em->getRepository(MaestroTipocambio::class)
-            ->createQueryBuilder('tc')
+        // Obtenemos solo las fechas existentes
+        $existingRows = $this->em->createQueryBuilder()
             ->select('tc.fecha')
+            ->from(MaestroTipocambio::class, 'tc')
             ->where('tc.moneda = :moneda')
-            ->andWhere('tc.fecha >= :inicio AND tc.fecha <= :fin')
-            ->setParameter('moneda', MaestroMoneda::DB_VALOR_DOLAR)
+            ->andWhere('tc.fecha BETWEEN :inicio AND :fin')
+            ->setParameter('moneda', $this->getUsdRef()) // Usamos referencia aquí también
             ->setParameter('inicio', $inicio)
             ->setParameter('fin', $fin)
             ->getQuery()
-            ->getResult();
+            ->getScalarResult();
 
         $existingMap = [];
         foreach ($existingRows as $row) {
-            $f = $row['fecha'] instanceof \DateTimeInterface ? $row['fecha'] : new DateTime((string)$row['fecha']);
-            $existingMap[$f->format('Y-m-d')] = true;
+            $fechaDb = is_string($row['fecha']) ? substr($row['fecha'], 0, 10) : $row['fecha']->format('Y-m-d');
+            $existingMap[$fechaDb] = true;
         }
 
-        $monedaRef = $this->em->getReference(MaestroMoneda::class, MaestroMoneda::DB_VALOR_DOLAR);
+        $monedaRef = $this->getUsdRef();
         $batchSize = 20;
         $i = 0;
 
-        foreach ($dtos as $dto) {
-            if ($dto->currencyCode !== 'USD' && $dto->currencyCode !== MaestroMoneda::DB_CODIGO_DOLAR) {
+        foreach ($dtos as $dateKey => $dto) {
+            if ($dto->currencyCode !== 'USD' && $dto->currencyCode !== self::MONEDA_TARGET) {
                 continue;
             }
-
-            $key = $dto->date->format('Y-m-d');
-
-            if (isset($existingMap[$key])) {
+            if (isset($existingMap[$dateKey])) {
                 continue;
             }
 
             $entity = new MaestroTipocambio();
-            $entity->setFecha(DateTime::createFromImmutable($dto->date));
-            // Ahora $dto->buy y $dto->sell son strings, así que esto funcionará perfecto
+            // Aseguramos medianoche al persistir
+            $entity->setFecha(DateTime::createFromImmutable($dto->date)->setTime(0, 0, 0));
             $entity->setCompra($dto->buy);
             $entity->setVenta($dto->sell);
             $entity->setMoneda($monedaRef);
 
             $this->em->persist($entity);
-            $existingMap[$key] = true;
 
-            if (($i++ % $batchSize) === 0) {
+            if ((++$i % $batchSize) === 0) {
                 $this->em->flush();
             }
         }
-        $this->em->flush();
+
+        if ($i > 0) {
+            $this->em->flush();
+        }
     }
 
     private function findBestMatch(array $dtos, DateTime $targetDate): ?ExchangeRateDto
@@ -216,31 +206,28 @@ class TipocambioManager
 
     private function findLastAvailableInDb(DateTime $fecha): ?MaestroTipocambio
     {
-        // Preferencia: último <= fecha solicitada (lo más correcto para contabilidad)
-        $qb = $this->em->getRepository(MaestroTipocambio::class)->createQueryBuilder('tc');
+        $repo = $this->em->getRepository(MaestroTipocambio::class);
+        $usdRef = $this->getUsdRef();
 
-        $result = $qb
+        // Buscamos <= fecha (medianoche inclusive)
+        return $repo->createQueryBuilder('tc')
             ->where('tc.moneda = :moneda')
             ->andWhere('tc.fecha <= :fecha')
-            ->setParameter('moneda', MaestroMoneda::DB_VALOR_DOLAR)
+            ->setParameter('moneda', $usdRef)
             ->setParameter('fecha', $fecha)
             ->orderBy('tc.fecha', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
-            ->getOneOrNullResult();
+            ->getOneOrNullResult()
+            ?? $repo->findOneBy(['moneda' => $usdRef], ['fecha' => 'DESC']);
+    }
 
-        if ($result instanceof MaestroTipocambio) {
-            return $result;
-        }
-
-        // Si no existe nada <= fecha (BD vacía o solo fechas futuras), devolvemos el último global
-        $qb2 = $this->em->getRepository(MaestroTipocambio::class)->createQueryBuilder('tc');
-        return $qb2
-            ->where('tc.moneda = :moneda')
-            ->setParameter('moneda', MaestroMoneda::DB_VALOR_DOLAR)
-            ->orderBy('tc.fecha', 'DESC')
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
+    /**
+     * Devuelve el Proxy (Referencia) de la moneda.
+     * Doctrine no hace SELECT, solo crea el objeto envoltorio con el ID.
+     */
+    private function getUsdRef(): MaestroMoneda
+    {
+        return $this->em->getReference(MaestroMoneda::class, self::MONEDA_TARGET);
     }
 }

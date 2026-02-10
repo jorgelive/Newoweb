@@ -1,4 +1,4 @@
-# config/services/services_panel.yaml
+# config/services/services_front.yaml
 services:
 
     _defaults:

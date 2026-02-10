@@ -2,7 +2,7 @@
 
 namespace App\Oweb\Entity;
 
-use App\Oweb\Trait\MainArchivoTrait;
+use App\Oweb\Entity\Trait\MainArchivoTrait;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Service\Exchange\Tasks\RatesPush;
@@ -7,22 +8,20 @@ use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
-use App\Oweb\Entity\MaestroMoneda;
+use App\Entity\Maestro\MaestroMoneda;
 use App\Pms\Entity\PmsRatesPushQueue;
 use App\Service\TipocambioManager;
 
-// ✅ Servicio de Tipo de Cambio
-
 /**
  * Estrategia de mapeo para el envío de tarifas (Rates) a Beds24.
- * * Esta estrategia agrupa los ítems de la cola en un formato JSON anidado (Batch)
- * y realiza la conversión automática de moneda de Soles (PEN) a Dólares (USD)
- * utilizando el tipo de cambio promedio del día.
+ * * Realiza conversión automática PEN -> USD mediante BCMath.
+ * * Agrupa ítems para optimización de API Batch.
+ * * Mantiene trazabilidad posicional para la respuesta.
  */
 final readonly class RatesNestedMappingStrategy implements MappingStrategyInterface
 {
     /**
-     * @param TipocambioManager $tipocambioManager Servicio para obtener el TC y completar meses en BD.
+     * @param TipocambioManager $tipocambioManager Servicio para obtener el TC oficial.
      */
     public function __construct(
         private TipocambioManager $tipocambioManager
@@ -50,27 +49,27 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
             }
 
             $roomId = (int) $map->getBeds24RoomId();
-            $precioOriginal = (string) $item->getPrecio(); // Obtenemos como string para BCMath
+            $precioOriginal = (string) $item->getPrecio();
             $monedaItem = $item->getMoneda();
 
-            // --- LÓGICA DE CONVERSIÓN MONETARIA ---
-            // Beds24 solo acepta USD. Si la moneda es Soles (1), dividimos por el TC Promedio.
+            // --- LÓGICA DE CONVERSIÓN MONETARIA (PEN -> USD) ---
+            // Beds24 solo acepta USD. Si la moneda es Soles, dividimos por el TC Promedio.
             $precioFinal = (float) $precioOriginal;
 
-            if ($monedaItem && $monedaItem->getId() === MaestroMoneda::DB_VALOR_SOL) {
+            // Usamos la Clave Natural (ID) para MaestroMoneda
+            if ($monedaItem && $monedaItem->getId() === MaestroMoneda::DB_ID_SOL) {
                 $fechaTarifa = $item->getFechaInicio() ?? new \DateTime();
                 $tc = $this->tipocambioManager->getTipodecambio($fechaTarifa);
 
                 if ($tc) {
-                    /**
-                     * Obtenemos el promedio exacto calculado con BCMath en la entidad.
-                     * @example $precioOriginal = "100.00", $promedioStr = "3.358" -> "29.77"
-                     */
-                    $promedioStr = $tc->getPromedio();
+                    $promedioStr = (string)$tc->getPromedio();
 
-                    // bcdiv realiza la división de strings con precisión arbitraria (2 decimales para el precio)
-                    $precioConvertido = bcdiv($precioOriginal, $promedioStr, 2);
-                    $precioFinal = (float) $precioConvertido;
+                    // Verificación de seguridad para evitar división por cero
+                    if ($promedioStr !== '0' && $promedioStr !== '0.000') {
+                        // bcdiv garantiza que no perdamos céntimos en la conversión
+                        $precioConvertido = bcdiv($precioOriginal, $promedioStr, 2);
+                        $precioFinal = (float) $precioConvertido;
+                    }
                 }
             }
 
@@ -86,7 +85,7 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
             ];
 
             // Correlación para identificar qué ID de cola corresponde a qué respuesta de la API
-            $correlationMap[$currentIndex] = $item->getId();
+            $correlationMap[$currentIndex] = (string) $item->getId();
             $currentIndex++;
         }
 
@@ -106,7 +105,7 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
     {
         $results = [];
 
-        // 1. Manejo de Error Global (Rechazo de todo el lote por token o formato)
+        // 1. Manejo de Error Global
         if (isset($apiResponse['success']) && $apiResponse['success'] === false && !isset($apiResponse[0])) {
             $msg = $apiResponse['message'] ?? 'Error global en Batch Rates';
             foreach ($mapping->correlationMap as $queueId) {
@@ -116,7 +115,6 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
         }
 
         // 2. Correlación Posicional Estricta
-        // Beds24 devuelve un array donde el orden coincide con el payload enviado.
         foreach ($apiResponse as $index => $respItem) {
             if (!isset($mapping->correlationMap[$index])) {
                 continue;
@@ -133,14 +131,14 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
                 }
             }
 
-            // 'modified' contiene el detalle de los cambios realizados por Beds24
+            // 'modified' contiene el detalle de lo que realmente se cambió en Beds24
             $extra = $respItem['modified'] ?? $respItem;
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
                 message: $errorMsg,
-                remoteId: null,
+                remoteId: null, // Rates no suelen tener un "ID de tasa" único de retorno
                 extraData: (array)$extra
             );
         }

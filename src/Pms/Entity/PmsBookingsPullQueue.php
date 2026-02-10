@@ -13,6 +13,7 @@ use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad PmsBookingsPullQueue.
@@ -42,12 +43,13 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
     #[ORM\Column(type: 'string', length: 50)]
     private string $type = 'beds24_bookings_arrival_range';
 
+    // ✅ CORRECCIÓN: Usamos PmsBeds24Config para consistencia con el resto del módulo
     #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'pullQueueJobs')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE', columnDefinition: 'BINARY(16)')]
     private ?Beds24Config $beds24Config = null;
 
     #[ORM\ManyToOne(targetEntity: PmsBeds24Endpoint::class, inversedBy: 'pullQueueJobs')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, columnDefinition: 'BINARY(16)')]
     private ?PmsBeds24Endpoint $endpoint = null;
 
     /** * @var Collection<int, PmsUnidad>
@@ -99,6 +101,8 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
 
     public function __construct() {
         $this->unidades = new ArrayCollection();
+
+        $this->id = Uuid::v7();
     }
 
     /**
@@ -112,7 +116,7 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
     }
 
     // =========================================================================
-    // IMPLEMENTACIÓN ExchangeQueueItemInterface
+    // IMPLEMENTACIÓN ExchangeQueueItemInterface (ESTRICTA)
     // =========================================================================
 
     public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
@@ -146,14 +150,24 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
         $this->lockedAt = $now;
     }
 
+    /**
+     * @param DateTimeImmutable $now Requerido por la interfaz
+     */
     public function markSuccess(DateTimeImmutable $now): void {
         $this->status = self::STATUS_SUCCESS;
         $this->lockedBy = null;
         $this->lockedAt = null;
         $this->failedReason = null;
         $this->retryCount = 0;
+
+        // La interfaz pide void, no retornamos $this
     }
 
+    /**
+     * @param string $reason
+     * @param int|null $httpCode
+     * @param DateTimeImmutable $nextRetry
+     */
     public function markFailure(string $reason, ?int $httpCode, DateTimeImmutable $nextRetry): void {
         $this->status = self::STATUS_FAILED;
         $this->failedReason = mb_substr($reason, 0, 255);
@@ -161,6 +175,8 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
         $this->runAt = $nextRetry;
         $this->lockedAt = null;
         $this->lockedBy = null;
+
+        // La interfaz pide void, no retornamos $this
     }
 
     // =========================================================================

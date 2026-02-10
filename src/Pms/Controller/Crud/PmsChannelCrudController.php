@@ -14,6 +14,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField; // ✅ Importante
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -39,7 +40,6 @@ final class PmsChannelCrudController extends BaseCrudController
 
     /**
      * Configuración de Acciones y Permisos.
-     * ✅ Se integran permisos basados en la clase Roles.
      */
     public function configureActions(Actions $actions): Actions
     {
@@ -60,7 +60,8 @@ final class PmsChannelCrudController extends BaseCrudController
         return $crud
             ->setEntityLabelInSingular('Canal')
             ->setEntityLabelInPlural('Canales')
-            ->setDefaultSort(['id' => 'ASC']) // 'id' es el código natural
+            // ✅ ORDENAMIENTO POR DEFECTO: Prioridad > Nombre
+            ->setDefaultSort(['orden' => 'ASC', 'nombre' => 'ASC'])
             ->showEntityActionsInlined();
     }
 
@@ -80,7 +81,6 @@ final class PmsChannelCrudController extends BaseCrudController
             ->setHelp('Slug interno (ej: booking, airbnb, directo).')
             ->setFormTypeOption('attr', ['placeholder' => 'airbnb']);
 
-
         // Lógica de visualización del ID:
         if (Crud::PAGE_NEW === $pageName) {
             $id->setRequired(true);
@@ -89,7 +89,12 @@ final class PmsChannelCrudController extends BaseCrudController
             $id->setFormTypeOption('disabled', true);
         }
 
-        $nombre = TextField::new('nombre', 'Nombre Comercial');
+        $nombre = TextField::new('nombre', 'Nombre Comercial')->setColumns(6);
+
+        // ✅ NUEVO CAMPO ORDEN
+        $orden = IntegerField::new('orden', 'Prioridad Visual')
+            ->setHelp('0 sale primero, números altos salen al final.')
+            ->setColumns(6);
 
         $beds24ChannelId = TextField::new('beds24ChannelId', 'Beds24 Channel ID')
             ->setHelp('ID técnico del canal en la API v2 de Beds24.')
@@ -114,9 +119,9 @@ final class PmsChannelCrudController extends BaseCrudController
 
         if (Crud::PAGE_INDEX === $pageName) {
             return [
+                $orden, // Ver el orden en la lista ayuda mucho
                 $id,
                 $nombre,
-                $beds24ChannelId,
                 $esExterno,
                 $esDirecto,
                 $color,
@@ -128,6 +133,7 @@ final class PmsChannelCrudController extends BaseCrudController
                 FormField::addPanel('Detalle del Canal')->setIcon('fa fa-plug'),
                 $id,
                 $nombre,
+                $orden,
                 $beds24ChannelId,
                 $esExterno,
                 $esDirecto,
@@ -144,6 +150,7 @@ final class PmsChannelCrudController extends BaseCrudController
             FormField::addPanel('Configuración Básica')->setIcon('fa fa-plug'),
             $id,
             $nombre,
+            $orden,
 
             FormField::addPanel('Integración con Beds24')->setIcon('fa fa-cloud'),
             $beds24ChannelId,
