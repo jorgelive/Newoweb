@@ -42,52 +42,60 @@ class GuiaHelperController
         $mask = '********';
 
         // ---------------------------------------------------------
-        // A. REPLACEMENTS: Variables simples o traducibles {{ key }}
+        // A. TEXT FIXED: Variables que NUNCA se traducen (Strings simples)
         // ---------------------------------------------------------
-        $replacements = [
+        $textFixed = [
             'guest_name'     => $reserva ? $reserva->getNombreCliente() : 'Huésped',
             'unit_name'      => $unidad->getNombre(),
             'hotel_name'     => $est?->getNombreComercial() ?? 'Hotel',
             'booking_ref'    => $reserva?->getLocalizador() ?? 'DEMO',
+
             'check_in'       => ($evento ? $evento->getInicio() : $est?->getHoraCheckIn())?->format('H:i'),
             'check_out'      => ($evento ? $evento->getFin() : $est?->getHoraCheckOut())?->format('H:i'),
+            'start_date'     => $evento?->getInicio()->format('d/m/Y'),
+            'end_date'       => $evento?->getFin()->format('d/m/Y'),
 
-            // Códigos Enmascarados
+            // Códigos de acceso
             'door_code'      => $esAutorizado ? $unidad->getCodigoPuerta() : $mask,
             'safe_code'      => $esAutorizado ? $unidad->getCodigoCaja() : $mask,
             'keybox_main'    => $esAutorizado ? $est?->getCodigoCajaPrincipal() : $mask,
             'keybox_sec'     => $esAutorizado ? $est?->getCodigoCajaSecundaria() : $mask,
 
-            // WiFi Texto (Solo SSID y Pass, para uso inline)
+            // WiFi Texto (Para uso rápido en párrafos)
             'wifi_ssid'      => $unidad->getWifiNetworks()[0]['ssid'] ?? 'N/A',
             'wifi_pass'      => $esAutorizado ? ($unidad->getWifiNetworks()[0]['password'] ?? 'N/A') : $mask,
-
-            // Estado Traducible (Array de idiomas)
-            'status_msg'     => $this->traducirEstado($acceso['status']),
         ];
 
         // ---------------------------------------------------------
-        // B. WIDGETS: Datos complejos (Arrays)
+        // B. TEXT TRANSLATABLE: Variables que SIEMPRE son Arrays de idiomas
+        // ---------------------------------------------------------
+        $textTranslatable = [
+            'status_msg' => $this->traducirEstado($acceso['status']),
+        ];
+
+        // ---------------------------------------------------------
+        // C. WIDGETS: Datos complejos
         // ---------------------------------------------------------
         $widgets = [
             'wifi_data' => $this->prepararWifi($unidad->getWifiNetworks(), $esAutorizado)
         ];
 
         // ---------------------------------------------------------
-        // C. CONFIG: Flags lógicos
+        // D. CONFIG: Lógica interna
         // ---------------------------------------------------------
         $config = [
             'mode'           => $evento ? 'guest' : 'demo',
             'access_status'  => $acceso['status'],
             'is_locked'      => !$esAutorizado,
-            'unit_uuid'      => $unidad->getId()->toRfc4122(),
+            'unit_uuid'      => $unidad->getId()->toRfc4122(), // ID crítico
         ];
 
         return new JsonResponse([
             'data' => [
-                'replacements' => $replacements,
-                'widgets'      => $widgets,
-                'config'       => $config
+                'text_fixed'        => $textFixed,
+                'text_translatable' => $textTranslatable,
+                'widgets'           => $widgets,
+                'config'            => $config
             ]
         ]);
     }
@@ -109,17 +117,12 @@ class GuiaHelperController
     private function prepararWifi(?array $networks, bool $autorizado): array
     {
         if (empty($networks)) return [];
-
-        // Si está autorizado, pasa todo tal cual (incluyendo multi-idioma)
         if ($autorizado) return $networks;
 
-        // Si NO está autorizado, ocultamos la clave pero mantenemos la ubicación intacta
         return array_map(function($net) {
             return [
                 'ssid' => $net['ssid'],
                 'password' => '********',
-                // 🔥 Importante: Mantenemos la estructura original de ubicación
-                // para que el frontend pueda traducirla si es un array.
                 'ubicacion' => $net['ubicacion'] ?? 'General',
                 'is_locked' => true
             ];
@@ -131,15 +134,30 @@ class GuiaHelperController
         return match($status) {
             'pending' => [
                 ['language' => 'es', 'content' => 'Disponible pronto'],
-                ['language' => 'en', 'content' => 'Available soon']
+                ['language' => 'en', 'content' => 'Available soon'],
+                ['language' => 'pt', 'content' => 'Disponível em breve'],
+                ['language' => 'fr', 'content' => 'Bientôt disponible'],
+                ['language' => 'de', 'content' => 'Bald verfügbar'],
+                ['language' => 'it', 'content' => 'Disponibile a breve'],
+                ['language' => 'nl', 'content' => 'Binnenkort beschikbaar'],
             ],
             'expired' => [
                 ['language' => 'es', 'content' => 'Reserva finalizada'],
-                ['language' => 'en', 'content' => 'Booking ended']
+                ['language' => 'en', 'content' => 'Booking ended'],
+                ['language' => 'pt', 'content' => 'Reserva finalizada'],
+                ['language' => 'fr', 'content' => 'Réservation terminée'],
+                ['language' => 'de', 'content' => 'Buchung beendet'],
+                ['language' => 'it', 'content' => 'Prenotazione terminata'],
+                ['language' => 'nl', 'content' => 'Boeking beëindigd'],
             ],
-            default => [
+            default => [ // Demo o Protegido
                 ['language' => 'es', 'content' => 'Info Protegida'],
-                ['language' => 'en', 'content' => 'Protected Info']
+                ['language' => 'en', 'content' => 'Protected Info'],
+                ['language' => 'pt', 'content' => 'Info Protegida'],
+                ['language' => 'fr', 'content' => 'Info Protégée'],
+                ['language' => 'de', 'content' => 'Geschützte Info'],
+                ['language' => 'it', 'content' => 'Info Protetta'],
+                ['language' => 'nl', 'content' => 'Beschermde Info'],
             ]
         };
     }

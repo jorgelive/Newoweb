@@ -1,3 +1,4 @@
+// src/core/RichContentEngine.ts
 import { defineAsyncComponent } from 'vue';
 
 export type BlockType = 'text' | 'component';
@@ -11,12 +12,9 @@ export interface RenderBlock {
 }
 
 const COMPONENT_REGISTRY: Record<string, any> = {
-    // Multimedia (Basado en URL)
     'video': defineAsyncComponent(() => import('@/components/RichText/VideoBlock.vue')),
     'img':   defineAsyncComponent(() => import('@/components/RichText/ImageBlock.vue')),
     'map':   defineAsyncComponent(() => import('@/components/RichText/MapBlock.vue')),
-
-    // Widgets Lógicos (Basado en Contexto)
     'widget': defineAsyncComponent(() => import('@/components/GuiaUnidad/WifiCardWidget.vue')),
 };
 
@@ -29,35 +27,49 @@ export class RichContentEngine {
         this.translator = translatorFn;
     }
 
-    // REEMPLAZO DE VARIABLES {{ key }}
+    // 🔥 INTERPOLACIÓN ROBUSTA (Busca en Fixed -> Translatable)
     private interpolateString(text: string): string {
-        const replacements = this.context?.data?.replacements || {};
+        const fixed = this.context?.data?.text_fixed || {};
+        const translatable = this.context?.data?.text_translatable || {};
 
+        // Regex tolerante a espacios: {{ key }}
         return text.replace(/{{\s*([a-z0-9_]+)\s*}}/gi, (_, key) => {
-            const val = replacements[key.toLowerCase()];
+            const lowerKey = key.toLowerCase();
 
-            // A. Array -> Traducción
-            if (Array.isArray(val)) return `<span class="font-bold text-gray-900">${this.translator(val)}</span>`;
+            // 1. Prioridad: Texto Fijo (Strings directos)
+            if (fixed[lowerKey] !== undefined) {
+                return `<span class="font-bold text-indigo-600">${fixed[lowerKey]}</span>`;
+            }
 
-            // B. String -> Texto
-            if (val !== undefined) return `<span class="font-bold text-indigo-600">${val}</span>`;
+            // 2. Prioridad: Texto Traducible (Arrays)
+            if (translatable[lowerKey] !== undefined) {
+                const val = translatable[lowerKey];
+                if (Array.isArray(val)) {
+                    return `<span class="font-bold text-gray-900">${this.translator(val)}</span>`;
+                }
+            }
 
+            // 3. Fallback: No encontrado
             return `{{${key}}}`;
         });
     }
 
-    // PARSER {{ tipo : valor }}
     public parse(rawText: string): RenderBlock[] {
         if (!rawText) return [];
 
+        // Normalizar WiFi viejo
+        const textToProcess = rawText.replace(/{{\s*wifi_data\s*}}/gi, '{{ widget: wifi }}');
+
+        // Regex Componentes: {{ tipo : valor }}
         const regex = /{{\s*([a-z]+)\s*:\s*(.+?)\s*}}/gi;
+
         const blocks: RenderBlock[] = [];
         let lastIndex = 0;
         let match;
 
-        while ((match = regex.exec(rawText)) !== null) {
-            // Texto Previo
-            const textBefore = rawText.slice(lastIndex, match.index);
+        while ((match = regex.exec(textToProcess)) !== null) {
+
+            const textBefore = textToProcess.slice(lastIndex, match.index);
             if (textBefore.trim()) {
                 blocks.push({
                     id: `txt-${match.index}`,
@@ -66,7 +78,6 @@ export class RichContentEngine {
                 });
             }
 
-            // Componente
             const type = match[1].toLowerCase();
             const value = match[2].trim();
             const blockId = `cmp-${match.index}`;
@@ -77,9 +88,9 @@ export class RichContentEngine {
                     type: 'component',
                     component: COMPONENT_REGISTRY[type],
                     props: {
-                        src: value,       // URL cruda
-                        value: value,     // Alias
-                        context: this.context // Data completa
+                        src: value,
+                        value: value,
+                        context: this.context
                     }
                 });
             } else {
@@ -89,12 +100,11 @@ export class RichContentEngine {
             lastIndex = regex.lastIndex;
         }
 
-        // Texto Final
-        if (lastIndex < rawText.length) {
+        if (lastIndex < textToProcess.length) {
             blocks.push({
                 id: `txt-end`,
                 type: 'text',
-                content: this.interpolateString(rawText.slice(lastIndex))
+                content: this.interpolateString(textToProcess.slice(lastIndex))
             });
         }
 

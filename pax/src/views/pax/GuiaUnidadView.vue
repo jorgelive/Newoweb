@@ -16,30 +16,15 @@ const seccionActiva = ref<PmsGuiaSeccion | null>(null);
 const expandedItems = ref<Set<string>>(new Set());
 const scrollContainer = ref<HTMLElement | null>(null);
 
-// 🔥 CORRECCIÓN: Type Guard para 'guest_name'
+// 🔥 CORRECCIÓN 1: Buscar en 'text_fixed' (Strings seguros)
 const getFirstName = computed(() => {
-  const rawVal = store.helperContext?.data?.replacements?.guest_name;
-
-  let nombreString = 'Viajero';
-
-  if (typeof rawVal === 'string') {
-    nombreString = rawVal;
-  } else if (Array.isArray(rawVal)) {
-    // Si por alguna razón el backend manda un array traducible en el nombre
-    nombreString = maestroStore.traducir(rawVal);
-  }
-
-  return nombreString.split(' ')[0];
+  const nombre = store.helperContext?.data?.text_fixed?.guest_name || 'Viajero';
+  return nombre.split(' ')[0];
 });
 
-// 🔥 CORRECCIÓN: Type Guard para 'unit_name'
+// 🔥 CORRECCIÓN 2: Buscar en 'text_fixed'
 const getUnitName = computed(() => {
-  const rawVal = store.helperContext?.data?.replacements?.unit_name;
-
-  if (typeof rawVal === 'string') return rawVal;
-  if (Array.isArray(rawVal)) return maestroStore.traducir(rawVal);
-
-  return 'Unidad';
+  return store.helperContext?.data?.text_fixed?.unit_name || 'Unidad';
 });
 
 const itemsNormalizados = computed(() => {
@@ -49,7 +34,6 @@ const itemsNormalizados = computed(() => {
 
 const esItemUnico = computed(() => itemsNormalizados.value.length === 1);
 
-// --- HELPERS SCROLL ---
 const scrollToTop = async () => {
   await nextTick(); await nextTick();
   if (scrollContainer.value) scrollContainer.value.scrollTop = 0;
@@ -90,13 +74,14 @@ const cerrarSeccion = () => {
   else router.replace({ name: 'guia_unidad', params: { uuid: route.params.uuid } });
 };
 
-// 🔥 CORRECCIÓN: Booking Ref seguro
+// 🔥 CORRECCIÓN 3: Buscar en 'text_fixed'
 const irAReserva = () => {
-  const rawRef = store.helperContext?.data?.replacements?.booking_ref;
-  const loc = (typeof rawRef === 'string' ? rawRef : '') || (route.query.localizador as string | undefined);
-
-  if (loc && loc !== 'DEMO') router.push({ name: 'pms_reserva', params: { localizador: loc } });
-  else router.back();
+  const loc = store.helperContext?.data?.text_fixed?.booking_ref || (route.query.localizador as string | undefined);
+  if (loc && loc !== 'DEMO') {
+    router.push({ name: 'pms_reserva', params: { localizador: loc } });
+  } else {
+    router.back();
+  }
 };
 
 watch(() => route.query.section, async (newId) => {
@@ -132,7 +117,7 @@ onMounted(() => { const uuid = route.params.uuid as string; if (uuid) cargarTodo
     <div v-else-if="store.guia" class="relative w-full max-w-[480px] mx-auto min-h-screen bg-white shadow-2xl overflow-hidden md:my-8 md:min-h-[850px] md:h-[90vh] md:rounded-[3rem] md:border-[8px] md:border-gray-900">
       <header class="absolute top-0 left-0 right-0 z-20 px-8 pt-14 pb-6 bg-gradient-to-b from-white via-white/95 to-transparent backdrop-blur-[2px]">
         <div class="flex justify-between items-start gap-3">
-          <div v-if="(store.helperContext?.data?.replacements?.booking_ref && store.helperContext?.data?.replacements?.booking_ref !== 'DEMO') || route.query.localizador" class="shrink-0 pt-1 mr-2">
+          <div v-if="(store.helperContext?.data?.text_fixed?.booking_ref && store.helperContext?.data?.text_fixed?.booking_ref !== 'DEMO') || route.query.localizador" class="shrink-0 pt-1 mr-2">
             <button @click="irAReserva" class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-90"><i class="fas fa-arrow-left text-sm"></i></button>
           </div>
           <div class="flex flex-col flex-1 min-w-0">

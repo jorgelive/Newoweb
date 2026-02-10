@@ -13,18 +13,21 @@ export interface MaestroPais {
     id: string;
     nombre: string;
 }
+
 export interface MaestroIdioma {
     "@type"?: string;
     "@id"?: string;
     id: string;
     nombre: string;
 }
+
 export interface PmsChannel {
     "@type"?: string;
     "@id"?: string;
     id: string;
     nombre: string;
 }
+
 export interface PmsEventoEstado {
     "@type"?: string;
     "@id"?: string;
@@ -38,6 +41,7 @@ export interface PmsUnidad {
     nombre: string;
     id: string;
 }
+
 export interface PmsEventoCalendario {
     "@type"?: string;
     "@id": string;
@@ -50,6 +54,7 @@ export interface PmsEventoCalendario {
     cantidadAdultos: number;
     cantidadNinos: number;
 }
+
 export interface PmsReserva {
     "@context"?: string;
     "@id": string;
@@ -82,6 +87,7 @@ export interface PmsGuiaItemGaleria {
     descripcion: PmsContenidoTraducible[];
     imageUrl: string;
 }
+
 export interface PmsGuiaItem {
     "@type"?: string;
     "@id": string;
@@ -92,6 +98,7 @@ export interface PmsGuiaItem {
     urlBoton?: string;
     galeria: PmsGuiaItemGaleria[];
 }
+
 export interface PmsGuiaSeccion {
     "@type"?: string;
     "@id": string;
@@ -100,6 +107,7 @@ export interface PmsGuiaSeccion {
     titulo: PmsContenidoTraducible[];
     items: PmsGuiaItem[];
 }
+
 export interface PmsGuia {
     "@context"?: string;
     "@id": string;
@@ -110,14 +118,24 @@ export interface PmsGuia {
     secciones: PmsGuiaSeccion[];
 }
 
-// --- HELPER CONTEXT (FLEXIBLE) ---
+// --- HELPER CONTEXT (ESTRUCTURA SEGURA) ---
 export interface GuiaHelperContext {
     data: {
-        // Strings o Traducciones arbitrarias
-        replacements: {
-            [key: string]: string | PmsContenidoTraducible[] | undefined;
+        // 1. SOLO TEXTO (No se intenta traducir)
+        text_fixed: {
+            guest_name?: string;
+            unit_name?: string;
+            booking_ref?: string;
+            [key: string]: string | undefined; // Flexible
         };
-        // Widgets complejos
+
+        // 2. SOLO TRADUCCIONES (Siempre pasa por el motor de idiomas)
+        text_translatable: {
+            status_msg?: PmsContenidoTraducible[];
+            [key: string]: PmsContenidoTraducible[] | undefined; // Flexible
+        };
+
+        // 3. WIDGETS
         widgets: {
             wifi_data?: Array<{
                 ssid: string;
@@ -127,12 +145,13 @@ export interface GuiaHelperContext {
             }>;
             [key: string]: any;
         };
-        // Lógica
+
+        // 4. CONFIG
         config: {
             mode: 'guest' | 'demo';
-            access_status: 'active' | 'pending' | 'expired' | 'demo';
+            access_status: string;
             is_locked: boolean;
-            unit_uuid: string;
+            unit_uuid: string; // 🔥 Obligatorio
             [key: string]: any;
         };
     }

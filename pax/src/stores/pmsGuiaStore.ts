@@ -1,5 +1,4 @@
 // src/stores/pmsGuiaStore.ts
-
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { paxService } from '@/services/paxService';
@@ -10,43 +9,38 @@ export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
 
     const maestroStore = useMaestroStore();
 
-    // --- STATE ---
     const guia = ref<PmsGuia | null>(null);
     const helperContext = ref<GuiaHelperContext | null>(null);
     const loading = ref(false);
     const error = ref<string | null>(null);
 
-    // --- ACTION PRINCIPAL ---
     const cargarDatosCompletos = async (uuid: string) => {
         loading.value = true;
         error.value = null;
 
         try {
-            // 1. Carga de idiomas si hace falta
             if (maestroStore.idiomas.length === 0) {
                 await maestroStore.cargarConfiguracion();
             }
 
-            // 2. Obtener Contexto del Huésped (Aquí llega el JSON con replacements/config/widgets)
+            // 1. Obtener Helper Context
             const contextData = await paxService.getGuiaContext(uuid);
             helperContext.value = contextData;
 
-            // 🔥 CORRECCIÓN CRÍTICA AQUÍ:
-            // Antes buscábamos en contextData?.data?.unit_uuid (ruta vieja)
-            // Ahora buscamos en contextData?.data?.config?.unit_uuid (ruta nueva)
+            // 🔥 VALIDACIÓN CRÍTICA DEL UUID en 'config'
             const unidadRealId = contextData?.data?.config?.unit_uuid;
 
-            if (!unidadRealId) {
-                console.error("Contexto recibido:", contextData); // Para depuración
-                throw new Error('No se pudo identificar la unidad en la respuesta del servidor.');
+            if (!unidadRealId || typeof unidadRealId !== 'string' || unidadRealId.trim() === '') {
+                console.error("Payload inválido recibido:", contextData);
+                throw new Error('Error de integridad: La unidad no tiene un ID válido (unit_uuid).');
             }
 
-            // 3. Con el ID correcto, pedimos el contenido CMS (PmsGuia)
+            // 2. Cargar CMS con el ID validado
             const guiaData = await paxService.getPmsGuia(unidadRealId);
             guia.value = guiaData;
 
         } catch (err: any) {
-            console.error('Error cargando guía:', err);
+            console.error('Error Store:', err);
             error.value = err.message || 'Error de conexión.';
             guia.value = null;
         } finally {
@@ -54,7 +48,6 @@ export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
         }
     };
 
-    // --- HELPER DE TRADUCCIÓN ---
     const traducir = (contenido: PmsContenidoTraducible[] | undefined): string => {
         if (!contenido || !Array.isArray(contenido) || contenido.length === 0) return '';
         const idioma = maestroStore.idiomaActual;
