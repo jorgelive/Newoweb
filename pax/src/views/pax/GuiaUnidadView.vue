@@ -14,27 +14,26 @@ const maestroStore = useMaestroStore();
 
 const seccionActiva = ref<PmsGuiaSeccion | null>(null);
 const expandedItems = ref<Set<string>>(new Set());
-const scrollContainer = ref<HTMLElement | null>(null);
+
+// Referencias a los contenedores de scroll
+const scrollContainer = ref<HTMLElement | null>(null); // Panel lateral
+const homeScroll = ref<HTMLElement | null>(null);      // Listado principal
 
 // --- COMPUTED PROPERTIES ---
 
-// 1. Obtener nombre del huésped
 const getFirstName = computed(() => {
   const nombre = store.helperContext?.data?.text_fixed?.guest_name || 'Viajero';
   return nombre.split(' ')[0];
 });
 
-// 2. Obtener nombre de la unidad
 const getUnitName = computed(() => {
   return store.helperContext?.data?.text_fixed?.unit_name || 'Unidad';
 });
 
-// 3. Obtener la imagen de portada (NUEVO)
 const heroImage = computed(() => {
   return store.guia?.unidad?.imageUrl || null;
 });
 
-// 4. Normalizar ítems de la sección activa
 const itemsNormalizados = computed(() => {
   if (!seccionActiva.value || !seccionActiva.value.items) return [];
   return Array.isArray(seccionActiva.value.items) ? seccionActiva.value.items : [seccionActiva.value.items];
@@ -42,20 +41,43 @@ const itemsNormalizados = computed(() => {
 
 const esItemUnico = computed(() => itemsNormalizados.value.length === 1);
 
-// --- MÉTODOS ---
+// --- GESTIÓN DE SCROLL (Fix Definitivo) ---
 
-const scrollToTop = async () => {
-  await nextTick(); await nextTick();
-  if (scrollContainer.value) scrollContainer.value.scrollTop = 0;
-  const el = document.getElementById('seccion-scroll-container');
-  if (el) el.scrollTop = 0;
+/**
+ * Resetea suavemente todos los contenedores de scroll relevantes.
+ * No discrimina: se asegura que tanto el home como el panel estén en 0.
+ */
+const smoothResetScroll = async () => {
+  await nextTick(); // Esperar renderizado de Vue
+
+  const options: ScrollToOptions = { top: 0, behavior: 'smooth' };
+
+  // 1. Resetear el panel lateral (si existe)
+  if (scrollContainer.value) {
+    scrollContainer.value.scrollTo(options);
+  }
+  // Alternativa por ID si la ref falla en transiciones rápidas
+  const panelEl = document.getElementById('seccion-scroll-container');
+  if (panelEl) panelEl.scrollTo(options);
+
+  // 2. Resetear el listado principal (Home)
+  // Esto es CRÍTICO: Si no subes el home, el panel absolute se ve cortado.
+  if (homeScroll.value) {
+    homeScroll.value.scrollTo(options);
+  }
+
+  // 3. Resetear ventana principal (Fix para móviles address bar)
+  window.scrollTo(options);
 };
 
 const onPanelAfterEnter = () => {
-  if (scrollContainer.value) scrollContainer.value.scrollTop = 0;
+  // Al terminar la transición de entrada, forzamos un reset instantáneo
+  // para asegurar alineación perfecta sin "baile" visual.
   const el = document.getElementById('seccion-scroll-container');
   if (el) el.scrollTop = 0;
 };
+
+// --- MÉTODOS ---
 
 const toggleItem = (id: string) => {
   if (expandedItems.value.has(id)) expandedItems.value.delete(id);
@@ -69,19 +91,29 @@ const cargarTodo = async (id: string) => {
   if (route.query.section && store.guia) {
     const s = store.guia.secciones.find(sec => sec.id === route.query.section);
     seccionActiva.value = s || null;
-    if (seccionActiva.value) { expandedItems.value.clear(); await scrollToTop(); }
+    if (seccionActiva.value) {
+      expandedItems.value.clear();
+      // Esperamos un poco más en carga inicial para asegurar DOM
+      setTimeout(smoothResetScroll, 100);
+    }
   }
 };
 
 const recargar = () => { const uuid = route.params.uuid as string; if (uuid) cargarTodo(uuid); };
 
 const abrirSeccion = (seccion: PmsGuiaSeccion) => {
-  router.push({ name: 'guia_unidad', params: { uuid: route.params.uuid }, query: { section: seccion.id } });
+  router.push({
+    name: 'guia_unidad',
+    params: { uuid: route.params.uuid },
+    query: { section: seccion.id }
+  });
+  // El watcher se encargará del scroll
 };
 
 const cerrarSeccion = () => {
   if (window.history.state?.back) router.back();
   else router.replace({ name: 'guia_unidad', params: { uuid: route.params.uuid } });
+  // El watcher se encargará del scroll
 };
 
 const irAReserva = () => {
@@ -93,14 +125,24 @@ const irAReserva = () => {
   }
 };
 
-// --- WATCHERS & HOOKS ---
+// --- WATCHERS ---
 
 watch(() => route.query.section, async (newId) => {
   if (newId && store.guia) {
     const s = store.guia.secciones.find(sec => sec.id === newId);
     seccionActiva.value = s || null;
-    if (seccionActiva.value) { expandedItems.value.clear(); await scrollToTop(); }
-  } else { seccionActiva.value = null; expandedItems.value.clear(); }
+
+    if (seccionActiva.value) {
+      expandedItems.value.clear();
+      // 🔥 Resetear scroll al ABRIR
+      await smoothResetScroll();
+    }
+  } else {
+    seccionActiva.value = null;
+    expandedItems.value.clear();
+    // 🔥 Resetear scroll al CERRAR (volver al menú arriba)
+    await smoothResetScroll();
+  }
 });
 
 onMounted(() => { const uuid = route.params.uuid as string; if (uuid) cargarTodo(uuid); });
@@ -133,12 +175,10 @@ onMounted(() => { const uuid = route.params.uuid as string; if (uuid) cargarTodo
           <div v-if="(store.helperContext?.data?.text_fixed?.booking_ref && store.helperContext?.data?.text_fixed?.booking_ref !== 'DEMO') || route.query.localizador" class="shrink-0 pt-1 mr-2">
             <button @click="irAReserva" class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-90"><i class="fas fa-arrow-left text-sm"></i></button>
           </div>
-
           <div class="flex flex-col flex-1 min-w-0">
             <span class="text-[10px] font-black tracking-[0.2em] text-indigo-500 uppercase mb-1">{{ maestroStore.t('gui_header_tag') || 'Guía Digital' }}</span>
             <h1 class="text-2xl font-black text-gray-900 leading-[1.1] truncate">{{ store.traducir(store.guia.titulo) }}</h1>
           </div>
-
           <div class="relative shrink-0">
             <select :value="maestroStore.idiomaActual" @change="maestroStore.setIdioma(($event.target as HTMLSelectElement).value)" class="appearance-none bg-gray-100 font-bold text-[10px] uppercase tracking-wide rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer text-gray-600 border-0 hover:bg-gray-200 transition-colors">
               <option v-for="lang in maestroStore.idiomas" :key="lang.id" :value="lang.id">{{ lang.bandera }} {{ lang.id.toUpperCase() }}</option>
@@ -148,30 +188,17 @@ onMounted(() => { const uuid = route.params.uuid as string; if (uuid) cargarTodo
         </div>
       </header>
 
-      <div class="pt-36 pb-24 px-6 h-full overflow-y-auto scrollbar-hide bg-white">
+      <div ref="homeScroll" class="pt-36 pb-24 px-6 h-full overflow-y-auto scrollbar-hide scroll-smooth bg-white">
 
         <div class="mb-8 relative rounded-[2.5rem] shadow-xl shadow-indigo-900/20 overflow-hidden group h-64 md:h-72">
-
-          <div
-              v-if="heroImage"
-              class="absolute inset-0 bg-cover bg-center transition-transform duration-[2s] group-hover:scale-110"
-              :style="{ backgroundImage: `url(${heroImage})` }"
-          ></div>
-
+          <div v-if="heroImage" class="absolute inset-0 bg-cover bg-center transition-transform duration-[2s] group-hover:scale-110" :style="{ backgroundImage: `url(${heroImage})` }"></div>
           <div v-else class="absolute inset-0 bg-[#1E1B4B]">
             <div class="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500 rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-1000"></div>
           </div>
-
           <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-
           <div class="absolute bottom-0 left-0 right-0 p-8 z-10 text-white">
-            <h2 class="text-2xl font-black mb-2 tracking-tight drop-shadow-md">
-              {{ maestroStore.t('gui_hola') || '¡Hola' }}, {{ getFirstName }}!
-            </h2>
-            <p class="text-indigo-100 text-sm leading-relaxed font-medium drop-shadow-sm">
-              {{ maestroStore.t('gui_bienvenido_a') || 'Bienvenido a' }}
-              <span class="text-white font-bold">{{ getUnitName }}</span>.
-            </p>
+            <h2 class="text-2xl font-black mb-2 tracking-tight drop-shadow-md">{{ maestroStore.t('gui_hola') || '¡Hola' }}, {{ getFirstName }}!</h2>
+            <p class="text-indigo-100 text-sm leading-relaxed font-medium drop-shadow-sm">{{ maestroStore.t('gui_bienvenido_a') || 'Bienvenido a' }} <span class="text-white font-bold">{{ getUnitName }}</span>.</p>
           </div>
         </div>
 
@@ -191,7 +218,8 @@ onMounted(() => { const uuid = route.params.uuid as string; if (uuid) cargarTodo
             <button @click="cerrarSeccion" class="w-10 h-10 rounded-xl bg-gray-50 text-gray-600 flex items-center justify-center hover:bg-gray-100 active:scale-90 transition-all"><i class="fas fa-arrow-left text-sm"></i></button>
             <h2 class="text-lg font-black text-gray-900 truncate flex-1 tracking-tight">{{ store.traducir(seccionActiva.titulo) }}</h2>
           </div>
-          <div ref="scrollContainer" id="seccion-scroll-container" class="flex-1 overflow-y-auto p-5 pb-24 scrollbar-hide">
+
+          <div ref="scrollContainer" id="seccion-scroll-container" class="flex-1 overflow-y-auto p-5 pb-24 scrollbar-hide scroll-smooth">
             <div v-if="esItemUnico" class="bg-white rounded-[1.5rem] shadow-sm border border-gray-100 overflow-hidden p-6 animate-fadeIn">
               <GuiaUnidadItemDispatcher :item="itemsNormalizados[0]" :context="store.helperContext" :store="store" :maestro="maestroStore" />
             </div>
@@ -221,6 +249,8 @@ onMounted(() => { const uuid = route.params.uuid as string; if (uuid) cargarTodo
 <style scoped>
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+/* Asegurar comportamiento suave via CSS */
+.scroll-smooth { scroll-behavior: smooth; }
 .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 </style>

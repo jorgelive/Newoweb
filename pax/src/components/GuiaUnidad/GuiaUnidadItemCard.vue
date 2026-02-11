@@ -32,23 +32,21 @@ const mostrarBoton = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden p-6">
-
-    <h3 v-if="item.titulo" class="text-xl font-black text-gray-900 mb-4">
-      {{ store.traducir(item.titulo) }}
-    </h3>
+  <div class="bg-slate-50 rounded-[1.5rem] p-6 text-slate-600">
 
     <RichTextRenderer
         :content="descripcionRaw"
         :context="context"
     />
 
-    <div v-if="mostrarBoton" class="mt-8">
+    <div v-if="mostrarBoton" class="mt-6">
       <a :href="urlBoton"
          target="_blank"
          rel="noopener noreferrer"
-         class="block w-full py-4 bg-indigo-600 text-white font-bold text-center rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
-        {{ textoBoton }} <i class="fas fa-arrow-right ml-2 text-xs"></i>
+         class="group relative flex items-center justify-center w-full py-4 bg-white text-indigo-600 font-bold text-center rounded-xl border border-indigo-100 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100 transition-all duration-300">
+
+        <span class="mr-2">{{ textoBoton }}</span>
+        <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
       </a>
     </div>
 
