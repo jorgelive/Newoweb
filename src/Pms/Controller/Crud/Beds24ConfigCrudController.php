@@ -120,14 +120,16 @@ class Beds24ConfigCrudController extends BaseCrudController
             ->onlyOnDetail();
 
         // ✅ Paneles de Auditoría utilizando TimestampTrait (createdAt / updatedAt)
-        yield FormField::addPanel('Tiempos')->setIcon('fa fa-clock')->onlyOnDetail();
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
 
         yield DateTimeField::new('createdAt', 'Creado')
-            ->setFormTypeOption('disabled', true)
-            ->onlyOnDetail();
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
 
         yield DateTimeField::new('updatedAt', 'Actualizado')
-            ->setFormTypeOption('disabled', true)
-            ->onlyOnDetail();
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

@@ -20,8 +20,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * PmsEventoEstadoPagoCrudController.
- * Maestro para la gestión de estados de pago (Pendiente, Parcial, Pagado).
- * Hereda de BaseCrudController y utiliza UUID v7 con prioridad de Roles.
+ * Maestro para la gestión de estados de pago.
  */
 class PmsEventoEstadoPagoCrudController extends BaseCrudController
 {
@@ -37,10 +36,6 @@ class PmsEventoEstadoPagoCrudController extends BaseCrudController
         return PmsEventoEstadoPago::class;
     }
 
-    /**
-     * ✅ Configuración de acciones y permisos.
-     * Prioridad absoluta a la clase Roles sobre la configuración base.
-     */
     public function configureActions(Actions $actions): Actions
     {
         $actions
@@ -78,26 +73,29 @@ class PmsEventoEstadoPagoCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        // ✅ Manejo de UUID para visualización
-        $id = TextField::new('id', 'Código (ID)')
-            ->setHelp('ID único del sistema (Natural Key). Ej: pagado, pago-parcial, no-pagado')
-            ->setFormTypeOption('attr', [
-                'placeholder' => 'Ej: confirmada',
-                'maxlength' => 50
-            ]);
+        // ============================================================
+        // 1. DEFINICIÓN
+        // ============================================================
+        yield FormField::addPanel('Definición')->setIcon('fa fa-tag');
 
-        // Lógica de visualización del ID:
-        if (Crud::PAGE_NEW === $pageName) {
-            // En creación es OBLIGATORIO escribirlo
-            $id->setRequired(true);
-        } elseif (Crud::PAGE_EDIT === $pageName) {
-            // En edición se BLOQUEA (no se debe cambiar la PK)
-            $id->setFormTypeOption('disabled', true);
-        }
+        // ID: Solo editable al crear, deshabilitado al editar
+        yield TextField::new('id', 'Código (ID)')
+            ->setHelp('ID único del sistema (Natural Key). Ej: pagado, pago-parcial')
+            ->setFormTypeOption('attr', ['placeholder' => 'Ej: confirmada', 'maxlength' => 50])
+            ->setFormTypeOption('disabled', Crud::PAGE_EDIT === $pageName) // Deshabilitado en Edición
+            ->setRequired(Crud::PAGE_NEW === $pageName) // Requerido en Creación
+            ->hideOnIndex(); // Generalmente los IDs técnicos no se muestran en el listado si hay nombre
 
-        $nombre = TextField::new('nombre', 'Nombre');
+        yield TextField::new('nombre', 'Nombre');
 
-        $color = TextField::new('color', 'Color (HEX)')
+        yield IntegerField::new('orden', 'Orden');
+
+        // ============================================================
+        // 2. VISUALIZACIÓN
+        // ============================================================
+        yield FormField::addPanel('Visualización')->setIcon('fa fa-palette');
+
+        yield TextField::new('color', 'Color (HEX)')
             ->setHelp('Formato: #RRGGBB. Se usa si el Estado de Evento no fuerza su propio color.')
             ->setFormTypeOption('attr', [
                 'maxlength' => 7,
@@ -105,51 +103,21 @@ class PmsEventoEstadoPagoCrudController extends BaseCrudController
                 'placeholder' => '#1A2B3C',
             ]);
 
-        $orden = IntegerField::new('orden', 'Orden');
+        // ============================================================
+        // 3. AUDITORÍA (ESTÁNDAR)
+        // ============================================================
+        yield FormField::addPanel('Auditoría')
+            ->setIcon('fa fa-shield-alt')
+            ->renderCollapsed();
 
-        // ✅ Auditoría mediante TimestampTrait (createdAt / updatedAt)
-        $createdAt = DateTimeField::new('createdAt', 'Registrado')
-            ->setFormat('yyyy/MM/dd HH:mm');
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
 
-        $updatedAt = DateTimeField::new('updatedAt', 'Última Modificación')
-            ->setFormat('yyyy/MM/dd HH:mm');
-
-        // --- INDEX ---
-        if (Crud::PAGE_INDEX === $pageName) {
-            return [
-                $nombre,
-                $color,
-                $orden,
-            ];
-        }
-
-        // --- DETAIL ---
-        if (Crud::PAGE_DETAIL === $pageName) {
-            return [
-                FormField::addPanel('Definición')->setIcon('fa fa-tag'),
-                $id,
-                $nombre,
-                $orden,
-                $color,
-
-                FormField::addPanel('Auditoría')->setIcon('fa fa-history')->renderCollapsed(),
-                $createdAt,
-                $updatedAt,
-            ];
-        }
-
-        // --- NEW / EDIT ---
-        return [
-            FormField::addPanel('Definición')->setIcon('fa fa-tag'),
-            $nombre,
-            $orden,
-
-            FormField::addPanel('Visualización')->setIcon('fa fa-palette'),
-            $color,
-
-            FormField::addPanel('Tiempos de Sistema')->setIcon('fa fa-clock')->renderCollapsed(),
-            $createdAt->onlyOnForms()->setFormTypeOption('disabled', true),
-            $updatedAt->onlyOnForms()->setFormTypeOption('disabled', true),
-        ];
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

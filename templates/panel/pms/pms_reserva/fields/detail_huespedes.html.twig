@@ -1,0 +1,325 @@
+{# templates/panel/pms/pms_reserva/fields/detail_huespedes.html.twig #}
+
+{% if field.value is empty %}
+    <div class="alert alert-light border text-center text-muted">
+        <i class="fas fa-info-circle"></i> Sin huéspedes registrados
+    </div>
+{% else %}
+
+    {# Helpers: meses ES + fecha “premium” (mismo estilo que eventos) #}
+    {% set mesesEs = {
+        '01':'Ene','02':'Feb','03':'Mar','04':'Abr','05':'May','06':'Jun',
+        '07':'Jul','08':'Ago','09':'Sep','10':'Oct','11':'Nov','12':'Dic'
+    } %}
+    {% set nowYear = "now"|date("Y") %}
+
+    {% macro month_es(dt, mesesEs) %}
+        {% set m = dt|date('m') %}
+        {{ attribute(mesesEs, m) }}
+    {% endmacro %}
+
+    {% macro date_premium(dt, nowYear, mesesEs) %}
+        {# “12 Ene” / “12 Ene 2026” #}
+        {% set y = dt|date('Y') %}
+        {% set d = dt|date('d') %}
+        {% if y == nowYear %}
+            {{ d }} {{ _self.month_es(dt, mesesEs) }}
+        {% else %}
+            {{ d }} {{ _self.month_es(dt, mesesEs) }} {{ y }}
+        {% endif %}
+    {% endmacro %}
+
+    {% macro safe(v, fallback) %}
+        {{ (v is not empty) ? v : fallback }}
+    {% endmacro %}
+
+    {# Detectar si hay archivos para mostrar columnas/botones #}
+    {% set hasDocs = false %}
+    {% set hasTam = false %}
+    {% set hasFirma = false %}
+    {% for h in field.value %}
+        {% if h.documentoName is defined and h.documentoName %}{% set hasDocs = true %}{% endif %}
+        {% if h.tamName is defined and h.tamName %}{% set hasTam = true %}{% endif %}
+        {% if h.firmaName is defined and h.firmaName %}{% set hasFirma = true %}{% endif %}
+    {% endfor %}
+
+    {# ========================================================= #}
+    {#  VISTA MÓVIL (Cards)                                      #}
+    {# ========================================================= #}
+    <div class="d-block d-md-none">
+        {% for h in field.value %}
+            {% set fullName = (h.nombre|default('') ~ ' ' ~ h.apellido|default(''))|trim %}
+            {% set isPrincipal = (h.esPrincipal is defined and h.esPrincipal) or (h.isEsPrincipal is defined and h.isEsPrincipal) %}
+            {% set pais = h.pais is defined and h.pais ? h.pais : null %}
+            {% set tipoDoc = h.tipoDocumento is defined and h.tipoDocumento ? h.tipoDocumento : null %}
+            {% set docNum = h.documentoNumero|default(null) %}
+            {% set edad = h.edadAlCheckOut is defined ? h.edadAlCheckOut : null %}
+            {% set firmadoEn = h.firmadoEn|default(null) %}
+
+            <div class="card mb-3 shadow-sm border border-light-subtle rounded-4 overflow-hidden">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="me-2">
+                            <div class="text-uppercase text-muted fw-semibold" style="font-size:.70rem; letter-spacing:.08em;">
+                                Huésped
+                            </div>
+                            <div class="fw-bold text-dark" style="font-size:1.02rem; line-height:1.1;">
+                                {{ fullName ?: 'Nuevo Huésped' }}
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                {% if isPrincipal %}
+                                    <span class="px-2 py-1 rounded-pill border border-primary text-primary bg-white fw-semibold"
+                                          style="font-size:.72rem;">
+                                        Principal
+                                    </span>
+                                {% endif %}
+
+                                {% if edad is not null %}
+                                    {% set minor = edad < 18 %}
+                                    <span class="px-2 py-1 rounded-pill border border-{{ minor ? 'warning' : 'secondary' }} text-{{ minor ? 'warning' : 'secondary' }} bg-white fw-semibold"
+                                          style="font-size:.72rem;">
+                                        {{ edad }} años
+                                    </span>
+                                {% endif %}
+
+                                {% if h.firmaName is defined and h.firmaName %}
+                                    <span class="px-2 py-1 rounded-pill border border-success text-success bg-white fw-semibold"
+                                          style="font-size:.72rem;">
+                                        Firmado
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 pt-2 border-top border-light-subtle">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="text-muted fw-semibold" style="font-size:.82rem;">
+                                <i class="fas fa-globe-americas text-muted me-1"></i>
+                                {{ pais ? (pais.nombre|default(pais)) : 'País: -' }}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted fw-semibold" style="font-size:.82rem;">
+                                <i class="fas fa-id-card text-muted me-1"></i>
+                                {% if tipoDoc %}
+                                    {{ tipoDoc.nombre|default(tipoDoc) }}
+                                {% else %}
+                                    Documento: -
+                                {% endif %}
+                                {% if docNum %}
+                                    <span class="text-muted">·</span> <span class="text-dark fw-bold">{{ docNum }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if h.fechaNacimiento is defined and h.fechaNacimiento %}
+                            <div class="mt-1 text-muted fw-semibold" style="font-size:.82rem;">
+                                <i class="fas fa-birthday-cake text-muted me-1"></i>
+                                Nac.: {{ _self.date_premium(h.fechaNacimiento, nowYear, mesesEs) }}
+                            </div>
+                        {% endif %}
+
+                        {% if firmadoEn %}
+                            <div class="mt-1 text-muted fw-semibold" style="font-size:.82rem;">
+                                <i class="fas fa-pen-nib text-muted me-1"></i>
+                                Firmado: {{ firmadoEn|date('d/m/Y H:i') }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {# Archivos (botonera compacta) #}
+                    <div class="d-flex flex-wrap gap-2 mt-3 pt-2 border-top border-light-subtle">
+                        {% if h.documentoUrl is defined and h.documentoUrl %}
+                            <a class="btn btn-sm btn-outline-dark rounded-pill" href="{{ h.documentoUrl }}" target="_blank" rel="noopener">
+                                <i class="fas fa-file-alt me-1"></i> Documento
+                            </a>
+                        {% elseif h.documentoName is defined and h.documentoName %}
+                            <span class="px-2 py-1 rounded-pill border text-muted bg-light fw-semibold" style="font-size:.75rem;">
+                                <i class="fas fa-file-alt me-1"></i> Doc cargado
+                            </span>
+                        {% endif %}
+
+                        {% if h.tamUrl is defined and h.tamUrl %}
+                            <a class="btn btn-sm btn-outline-dark rounded-pill" href="{{ h.tamUrl }}" target="_blank" rel="noopener">
+                                <i class="fas fa-file-medical me-1"></i> TAM
+                            </a>
+                        {% elseif h.tamName is defined and h.tamName %}
+                            <span class="px-2 py-1 rounded-pill border text-muted bg-light fw-semibold" style="font-size:.75rem;">
+                                <i class="fas fa-file-medical me-1"></i> TAM cargado
+                            </span>
+                        {% endif %}
+
+                        {% if h.firmaUrl is defined and h.firmaUrl %}
+                            <a class="btn btn-sm btn-outline-success rounded-pill" href="{{ h.firmaUrl }}" target="_blank" rel="noopener">
+                                <i class="fas fa-signature me-1"></i> Firma
+                            </a>
+                        {% elseif h.firmaName is defined and h.firmaName %}
+                            <span class="px-2 py-1 rounded-pill border border-success text-success bg-white fw-semibold" style="font-size:.75rem;">
+                                <i class="fas fa-signature me-1"></i> Firma cargada
+                            </span>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {# ========================================================= #}
+    {#  VISTA ESCRITORIO (Tabla “premium”)                       #}
+    {# ========================================================= #}
+    <div class="d-none d-md-block table-responsive-custom">
+        <table class="table bg-white mb-0 align-middle">
+            <thead class="table-light text-secondary text-uppercase small">
+            <tr>
+                <th class="fw-bold">Huésped</th>
+                <th class="fw-bold">Documento</th>
+                <th class="fw-bold">País</th>
+                <th class="fw-bold">Nacimiento</th>
+                <th class="fw-bold text-center">Edad</th>
+                {% if hasFirma %}<th class="fw-bold">Firma</th>{% endif %}
+                {% if hasDocs or hasTam %}<th class="fw-bold text-end">Archivos</th>{% endif %}
+            </tr>
+            </thead>
+
+            <tbody>
+            {% for h in field.value %}
+                {% set fullName = (h.nombre|default('') ~ ' ' ~ h.apellido|default(''))|trim %}
+                {% set isPrincipal = (h.esPrincipal is defined and h.esPrincipal) or (h.isEsPrincipal is defined and h.isEsPrincipal) %}
+                {% set pais = h.pais is defined and h.pais ? h.pais : null %}
+                {% set tipoDoc = h.tipoDocumento is defined and h.tipoDocumento ? h.tipoDocumento : null %}
+                {% set docNum = h.documentoNumero|default(null) %}
+                {% set edad = h.edadAlCheckOut is defined ? h.edadAlCheckOut : null %}
+                {% set firmadoEn = h.firmadoEn|default(null) %}
+                {% set minor = (edad is not null) and (edad < 18) %}
+
+                <tr class="border-top border-light-subtle">
+                    {# Huésped #}
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="fw-bold text-dark">{{ fullName ?: 'Nuevo Huésped' }}</div>
+
+                            {% if isPrincipal %}
+                                <span class="px-2 py-1 rounded-pill border border-primary text-primary bg-white fw-semibold"
+                                      style="font-size:.75rem;">
+                                    Principal
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        {% if h.tamNumero is defined and h.tamNumero %}
+                            <div class="text-muted" style="font-size:.82rem;">
+                                <i class="fas fa-receipt me-1"></i> TAM: <span class="fw-semibold">{{ h.tamNumero }}</span>
+                            </div>
+                        {% endif %}
+                    </td>
+
+                    {# Documento #}
+                    <td>
+                        <div class="text-dark fw-semibold">
+                            {{ tipoDoc ? (tipoDoc.nombre|default(tipoDoc)) : '—' }}
+                        </div>
+                        <div class="text-muted" style="font-size:.82rem;">
+                            {{ docNum ?: '—' }}
+                        </div>
+                    </td>
+
+                    {# País #}
+                    <td class="text-dark">
+                        {{ pais ? (pais.nombre|default(pais)) : '—' }}
+                    </td>
+
+                    {# Nacimiento #}
+                    <td class="text-muted fw-semibold">
+                        {% if h.fechaNacimiento is defined and h.fechaNacimiento %}
+                            {{ _self.date_premium(h.fechaNacimiento, nowYear, mesesEs) }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+
+                    {# Edad #}
+                    <td class="text-center">
+                        {% if edad is not null %}
+                            <span class="px-2 py-1 rounded-pill border border-{{ minor ? 'warning' : 'secondary' }} text-{{ minor ? 'warning' : 'secondary' }} bg-white fw-semibold"
+                                  style="font-size:.80rem;">
+                                {{ edad }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+
+                    {# Firma #}
+                    {% if hasFirma %}
+                        <td>
+                            {% if h.firmaName is defined and h.firmaName %}
+                                <span class="px-2 py-1 rounded-pill border border-success text-success bg-white fw-semibold"
+                                      style="font-size:.78rem;">
+                                    <i class="fas fa-check me-1"></i> Firmado
+                                </span>
+                                {% if firmadoEn %}
+                                    <div class="text-muted" style="font-size:.80rem;">
+                                        {{ firmadoEn|date('d/m/Y H:i') }}
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <span class="px-2 py-1 rounded-pill border text-muted bg-light fw-semibold"
+                                      style="font-size:.78rem;">
+                                    Pendiente
+                                </span>
+                            {% endif %}
+                        </td>
+                    {% endif %}
+
+                    {# Archivos #}
+                    {% if hasDocs or hasTam %}
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-2 flex-wrap justify-content-end">
+                                {% if h.documentoUrl is defined and h.documentoUrl %}
+                                    <a class="btn btn-sm btn-outline-dark rounded-pill"
+                                       href="{{ h.documentoUrl }}" target="_blank" rel="noopener">
+                                        <i class="fas fa-file-alt me-1"></i> Doc
+                                    </a>
+                                {% elseif h.documentoName is defined and h.documentoName %}
+                                    <span class="px-2 py-1 rounded-pill border text-muted bg-light fw-semibold" style="font-size:.78rem;">
+                                        Doc ✓
+                                    </span>
+                                {% endif %}
+
+                                {% if h.tamUrl is defined and h.tamUrl %}
+                                    <a class="btn btn-sm btn-outline-dark rounded-pill"
+                                       href="{{ h.tamUrl }}" target="_blank" rel="noopener">
+                                        <i class="fas fa-file-medical me-1"></i> TAM
+                                    </a>
+                                {% elseif h.tamName is defined and h.tamName %}
+                                    <span class="px-2 py-1 rounded-pill border text-muted bg-light fw-semibold" style="font-size:.78rem;">
+                                        TAM ✓
+                                    </span>
+                                {% endif %}
+
+                                {% if h.firmaUrl is defined and h.firmaUrl %}
+                                    <a class="btn btn-sm btn-outline-success rounded-pill"
+                                       href="{{ h.firmaUrl }}" target="_blank" rel="noopener">
+                                        <i class="fas fa-signature me-1"></i> Firma
+                                    </a>
+                                {% elseif h.firmaName is defined and h.firmaName %}
+                                    <span class="px-2 py-1 rounded-pill border border-success text-success bg-white fw-semibold" style="font-size:.78rem;">
+                                        Firma ✓
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% endif %}

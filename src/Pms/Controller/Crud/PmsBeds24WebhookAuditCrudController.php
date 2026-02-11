@@ -50,9 +50,8 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
     }
 
     /**
-     * Configuración de acciones y permisos.
-     * ✅ Se deshabilita la edición y creación para garantizar la inmutabilidad de los logs.
-     * ✅ Se integra la seguridad por Roles.
+     * Configuración de acciones.
+     * Al ser un LOG, deshabilitamos la modificación de datos.
      */
     public function configureActions(Actions $actions): Actions
     {
@@ -76,12 +75,22 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        // ✅ Manejo de UUID
-        $id = TextField::new('id', 'UUID')
+        // ============================================================
+        // 1. RESUMEN DE RECEPCIÓN
+        // ============================================================
+        yield FormField::addPanel('Resumen de Recepción')->setIcon('fa fa-info-circle');
+
+        // ID Corto (Index)
+        yield TextField::new('id', 'UUID')
+            ->onlyOnIndex()
+            ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
+
+        // ID Completo (Detalle)
+        yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
             ->formatValue(fn($value) => (string) $value);
 
-        $status = ChoiceField::new('status', 'Estado')
+        yield ChoiceField::new('status', 'Estado')
             ->setChoices([
                 'Received' => PmsBeds24WebhookAudit::STATUS_RECEIVED,
                 'Processed' => PmsBeds24WebhookAudit::STATUS_PROCESSED,
@@ -93,64 +102,66 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
                 PmsBeds24WebhookAudit::STATUS_ERROR => 'danger',
             ]);
 
-        $eventType = TextField::new('eventType', 'Evento');
-        $remoteIp = TextField::new('remoteIp', 'IP Origen');
-        $receivedAt = DateTimeField::new('receivedAt', 'Recibido')
+        yield TextField::new('eventType', 'Evento detectado');
+
+        yield TextField::new('remoteIp', 'IP Origen');
+
+        yield DateTimeField::new('receivedAt', 'Recibido')
             ->setFormat('yyyy/MM/dd HH:mm:ss');
 
-        // ✅ Auditoría mediante TimestampTrait
-        $createdAt = DateTimeField::new('createdAt', 'Creado')->setFormat('yyyy/MM/dd HH:mm');
-        $updatedAt = DateTimeField::new('updatedAt', 'Actualizado')->setFormat('yyyy/MM/dd HH:mm');
+        // ============================================================
+        // 2. DATOS TÉCNICOS (Solo Detalle)
+        // ============================================================
+        yield FormField::addPanel('Datos del Request (Payload)')
+            ->setIcon('fa fa-code')
+            ->onlyOnDetail();
 
-        if (Crud::PAGE_INDEX === $pageName) {
-            return [
-                TextField::new('id', 'ID Corto')->formatValue(fn($v) => substr((string)$v, 0, 8) . '...'),
-                $status,
-                $eventType,
-                $remoteIp,
-                $receivedAt,
-            ];
-        }
+        // Cabeceras (Virtual Property)
+        yield CodeEditorField::new('headersPretty', 'Cabeceras HTTP')
+            ->setLanguage('js')
+            ->onlyOnDetail();
 
-        return [
-            FormField::addPanel('Resumen de Recepción')->setIcon('fa fa-info-circle'),
-            $id,
-            $status,
-            $eventType,
-            $remoteIp,
-            $receivedAt,
+        // Payload Original
+        yield CodeEditorField::new('payloadRaw', 'Cuerpo Crudo (Raw)')
+            ->setLanguage('js') // Raw suele ser texto plano o json minificado
+            ->onlyOnDetail();
 
-            FormField::addPanel('Datos del Request (Payload)')->setIcon('fa fa-code'),
+        // Payload JSON Formateado
+        yield CodeEditorField::new('payloadPretty', 'Cuerpo Decodificado (JSON)')
+            ->setLanguage('js')
+            ->onlyOnDetail();
 
-            // --- HEADERS (Usando el método virtual de la entidad) ---
-            CodeEditorField::new('headersPretty', 'Cabeceras HTTP')
-                ->setLanguage('js')
-                ->onlyOnDetail(),
+        // ============================================================
+        // 3. PROCESAMIENTO
+        // ============================================================
+        yield FormField::addPanel('Procesamiento Interno')
+            ->setIcon('fa fa-cogs')
+            ->onlyOnDetail();
 
-            // --- PAYLOAD RAW ---
-            CodeEditorField::new('payloadRaw', 'Cuerpo Crudo (Raw)')
-                ->setLanguage('js')
-                ->onlyOnDetail(),
+        yield CodeEditorField::new('processingMetaPretty', 'Metadatos de Proceso')
+            ->setLanguage('js')
+            ->onlyOnDetail();
 
-            // --- PAYLOAD JSON ---
-            CodeEditorField::new('payloadPretty', 'Cuerpo Decodificado (JSON)')
-                ->setLanguage('js')
-                ->onlyOnDetail(),
+        yield TextareaField::new('errorMessage', 'Traza de Error')
+            ->setFormTypeOption('disabled', true) // Readonly visual
+            ->renderAsHtml(false)
+            ->onlyOnDetail();
 
-            FormField::addPanel('Procesamiento Interno')->setIcon('fa fa-cogs'),
+        // ============================================================
+        // 4. AUDITORÍA (ESTÁNDAR)
+        // ============================================================
+        yield FormField::addPanel('Auditoría')
+            ->setIcon('fa fa-shield-alt')
+            ->renderCollapsed();
 
-            // --- PROCESSING META ---
-            CodeEditorField::new('processingMetaPretty', 'Metadatos de Proceso')
-                ->setLanguage('js')
-                ->onlyOnDetail(),
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
 
-            TextareaField::new('errorMessage', 'Traza de Error')
-                ->setFormTypeOption('disabled', true)
-                ->onlyOnDetail(),
-
-            FormField::addPanel('Auditoría Técnica')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-            $createdAt->onlyOnDetail(),
-            $updatedAt->onlyOnDetail(),
-        ];
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

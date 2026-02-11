@@ -144,4 +144,14 @@ abstract class BaseCrudController extends AbstractCrudController
 
         return null;
     }
+
+    protected function isEmbedded(): bool
+    {
+        $ctx = $this->getContext();
+        if (!$ctx) {
+            return false;
+        }
+
+        return $ctx->getCrud()?->getControllerFqcn() !== static::class;
+    }
 }

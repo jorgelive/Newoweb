@@ -26,13 +26,10 @@ class PmsGuiaItem
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
+    // Tipos actualizados según tu controlador
     public const TIPO_TARJETA = 'card';
     public const TIPO_ALBUM = 'album';
-    public const TIPO_VIDEO = 'video';
-    public const TIPO_LOCATION = 'location';
-    public const TIPO_WIFI = 'wifi';
-    public const TIPO_CONTACTO = 'contact';
-    public const TIPO_SERVICIO = 'service';
+    public const TIPO_AVISO = 'alert';
 
     #[ORM\OneToMany(mappedBy: 'item', targetEntity: PmsGuiaSeccionHasItem::class, cascade: ['persist', 'remove'])]
     private Collection $itemHasSecciones;
@@ -43,8 +40,8 @@ class PmsGuiaItem
 
     #[ORM\Column(type: 'string', length: 20)]
     #[Assert\NotBlank]
-    // ✅ Corregido: Quitamos TIPO_MAPA y agregamos TIPO_LOCATION
-    #[Assert\Choice(choices: [self::TIPO_TARJETA, self::TIPO_ALBUM, self::TIPO_VIDEO, self::TIPO_LOCATION, self::TIPO_WIFI, self::TIPO_CONTACTO, self::TIPO_SERVICIO])]
+    #[Assert\Choice(choices: [self::TIPO_TARJETA, self::TIPO_ALBUM, self::TIPO_AVISO])]
+    #[Groups(['pax_evento:read'])]
     private ?string $tipo = self::TIPO_TARJETA;
 
     #[ORM\Column(type: 'json')]
@@ -58,15 +55,17 @@ class PmsGuiaItem
     private ?array $descripcion = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
-    private ?array $metadata = [];
-
-    #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $labelBoton = [];
+
+    // Aquí se guardará la URL del botón y cualquier configuración futura
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $metadata = [];
 
     #[ORM\OneToMany(mappedBy: 'item', targetEntity: PmsGuiaItemGaleria::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['orden' => 'ASC'])]
     #[Assert\Valid]
+    #[Groups(['pax_evento:read'])]
     private Collection $galeria;
 
     public function __construct()
@@ -74,216 +73,113 @@ class PmsGuiaItem
         $this->galeria = new ArrayCollection();
         $this->itemHasSecciones = new ArrayCollection();
         $this->id = Uuid::v7();
-        $this->titulo = $this->descripcion = $this->labelBoton = [];
+        $this->titulo = [];
+        $this->descripcion = [];
+        $this->labelBoton = [];
         $this->tipo = self::TIPO_TARJETA;
         $this->nombreInterno = '';
-        $this->metadata = []; // Inicializamos vacío
+        $this->metadata = [];
     }
-
-    // --- API GROUPS EN GETTERS ---
-
-    #[Groups(['guia:read'])]
-    public function getTipo(): string { return $this->tipo ?? self::TIPO_TARJETA; }
-
-    #[Groups(['guia:read'])]
-    public function getTitulo(): array { return MaestroIdioma::ordenarParaFormulario($this->titulo); }
-
-    #[Groups(['guia:read'])]
-    public function getDescripcion(): ?array { return MaestroIdioma::ordenarParaFormulario($this->descripcion ?? []); }
-
-    #[Groups(['guia:read'])]
-    public function getLabelBoton(): ?array { return MaestroIdioma::ordenarParaFormulario($this->labelBoton ?? []); }
-
-    #[Groups(['guia:read'])]
-    public function getGaleria(): Collection { return $this->galeria; }
 
     // =========================================================================
-    // 🎥 PROPIEDADES VIRTUALES (Mapeadas a Metadata)
+    // 🔗 PROPIEDAD VIRTUAL: URL BOTÓN
     // =========================================================================
 
-    #[Groups(['guia:read'])]
-    public function getMetadata(): array
+    /**
+     * Esta propiedad NO existe en la BD, se lee del JSON metadata.
+     * Al tener el grupo 'pax_evento:read', la API la enviará limpia al Vue.
+     */
+    #[Groups(['pax_evento:read'])]
+    public function getUrlBoton(): ?string
     {
-        return $this->metadata ?? [];
+        return $this->metadata['urlBoton'] ?? null;
     }
 
-    public function setMetadata(?array $metadata): self
+    public function setUrlBoton(?string $val): self
     {
-        $this->metadata = $metadata;
-        return $this;
-    }
+        if ($this->metadata === null) {
+            $this->metadata = [];
+        }
 
-    // --- 📍 UBICACIÓN (LOCATION - NUEVO) ---
-    // Estos métodos son OBLIGATORIOS para que el CRUD funcione
+        // Si viene vacío, lo limpiamos para no ensuciar el JSON
+        if (empty($val)) {
+            unset($this->metadata['urlBoton']);
+        } else {
+            $this->metadata['urlBoton'] = $val;
+        }
 
-    public function getLocationAddress(): ?string
-    {
-        return $this->getMetadata()['locationAddress'] ?? null;
-    }
-
-    public function setLocationAddress(?string $val): self
-    {
-        if ($this->metadata === null) { $this->metadata = []; }
-        $this->metadata['locationAddress'] = $val;
-        return $this;
-    }
-
-    public function getLocationLat(): ?string
-    {
-        return $this->getMetadata()['locationLat'] ?? null;
-    }
-
-    public function setLocationLat(?string $val): self
-    {
-        if ($this->metadata === null) { $this->metadata = []; }
-        $this->metadata['locationLat'] = $val;
-        return $this;
-    }
-
-    public function getLocationLng(): ?string
-    {
-        return $this->getMetadata()['locationLng'] ?? null;
-    }
-
-    public function setLocationLng(?string $val): self
-    {
-        if ($this->metadata === null) { $this->metadata = []; }
-        $this->metadata['locationLng'] = $val;
-        return $this;
-    }
-
-    public function getLocationLink(): ?string
-    {
-        return $this->getMetadata()['locationLink'] ?? null;
-    }
-
-    public function setLocationLink(?string $val): self
-    {
-        if ($this->metadata === null) { $this->metadata = []; }
-        $this->metadata['locationLink'] = $val;
         return $this;
     }
 
     // =========================================================================
-    // 🎥 VIDEOS (MULTIPLES)
+    // 📥 GETTERS Y SETTERS
     // =========================================================================
-
-    public function getVideos(): array
-    {
-        // Devuelve el array de videos o un array vacío si no existe
-        return $this->getMetadata()['videos'] ?? [];
-    }
-
-    public function setVideos(?array $val): self
-    {
-        // Limpiamos índices numéricos feos y reindexamos el array
-        // Esto evita que el JSON se guarde como objetos {"0":..., "1":...}
-        $val = $val ? array_values($val) : [];
-
-        if ($this->metadata === null) { $this->metadata = []; }
-
-        $this->metadata['videos'] = $val;
-
-        return $this;
-    }
-
-    // --- 📶 WIFI ---
-
-    public function getWifiSsid(): ?string
-    {
-        return $this->getMetadata()['wifiSsid'] ?? null;
-    }
-
-    public function setWifiSsid(?string $val): self
-    {
-        if ($this->metadata === null) { $this->metadata = []; }
-        $this->metadata['wifiSsid'] = $val;
-        return $this;
-    }
-
-    public function getWifiPass(): ?string
-    {
-        return $this->getMetadata()['wifiPass'] ?? null;
-    }
-
-    public function setWifiPass(?string $val): self
-    {
-        if ($this->metadata === null) { $this->metadata = []; }
-        $this->metadata['wifiPass'] = $val;
-        return $this;
-    }
-
-    // --- 📞 CONTACTO ---
-
-    public function getContactoWhatsapp(): ?string
-    {
-        return $this->getMetadata()['whatsapp'] ?? null;
-    }
-
-    public function setContactoWhatsapp(?string $val): self
-    {
-        if ($this->metadata === null) { $this->metadata = []; }
-        $this->metadata['whatsapp'] = $val;
-        return $this;
-    }
-
-    public function getContactoEmail(): ?string
-    {
-        return $this->getMetadata()['email'] ?? null;
-    }
-
-    public function setContactoEmail(?string $val): self
-    {
-        if ($this->metadata === null) { $this->metadata = []; }
-        $this->metadata['email'] = $val;
-        return $this;
-    }
-
-    // --- SETTERS ESTÁNDAR ---
 
     public function getNombreInterno(): ?string { return $this->nombreInterno; }
     public function setNombreInterno(string $nombreInterno): self { $this->nombreInterno = $nombreInterno; return $this; }
 
-    public function getItemHasSecciones(): Collection { return $this->itemHasSecciones; }
-
+    public function getTipo(): string { return $this->tipo ?? self::TIPO_TARJETA; }
     public function setTipo(?string $tipo): self { $this->tipo = $tipo; return $this; }
 
+    #[Groups(['pax_evento:read'])]
+    public function getTitulo(): array { return MaestroIdioma::ordenarParaFormulario($this->titulo); }
     public function setTitulo(array $titulo): self { $this->titulo = MaestroIdioma::normalizarParaDB($titulo); return $this; }
+
+    #[Groups(['pax_evento:read'])]
+    public function getDescripcion(): ?array { return MaestroIdioma::ordenarParaFormulario($this->descripcion ?? []); }
     public function setDescripcion(?array $descripcion): self { $this->descripcion = MaestroIdioma::normalizarParaDB($descripcion ?? []); return $this; }
+
+    #[Groups(['pax_evento:read'])]
+    public function getLabelBoton(): ?array { return MaestroIdioma::ordenarParaFormulario($this->labelBoton ?? []); }
     public function setLabelBoton(?array $labelBoton): self { $this->labelBoton = MaestroIdioma::normalizarParaDB($labelBoton ?? []); return $this; }
 
+    public function getMetadata(): array { return $this->metadata ?? []; }
+    public function setMetadata(?array $metadata): self { $this->metadata = $metadata; return $this; }
+
+    public function getGaleria(): Collection { return $this->galeria; }
     public function addGaleria(PmsGuiaItemGaleria $galeria): self { if (!$this->galeria->contains($galeria)) { $this->galeria->add($galeria); $galeria->setItem($this); } return $this; }
     public function removeGaleria(PmsGuiaItemGaleria $galeria): self { if ($this->galeria->removeElement($galeria)) { if ($galeria->getItem() === $this) { $galeria->setItem(null); } } return $this; }
 
+    public function getItemHasSecciones(): Collection { return $this->itemHasSecciones; }
+
     public function __toString(): string { return $this->nombreInterno ?: ($this->titulo['es'] ?? 'Ítem sin nombre'); }
 
-    // --- VALIDACIONES ---
+    // =========================================================================
+    // ✅ VALIDACIONES
+    // =========================================================================
 
     #[Assert\Callback]
     public function validate(ExecutionContextInterface $context): void
     {
+        // 1. Título Español Obligatorio
         $espanolEncontrado = false;
-
-        // Verificamos que no esté vacío el campo principal
-        if (!empty($this->titulo) && is_iterable($this->titulo)) {
-
+        if (!empty($this->titulo)) {
             foreach ($this->titulo as $item) {
-                // 1. Accedemos como Array Asociativo: $item['language']
-                // Usamos operador null coalescing (??) por seguridad
-                $lang = $item['language'] ?? null;
-                $content = $item['content'] ?? null;
-
-                // 2. Validamos si es español y tiene contenido real
-                if ($lang === 'es' && !empty(trim($content))) {
+                if (($item['language'] ?? '') === 'es' && !empty(trim($item['content'] ?? ''))) {
                     $espanolEncontrado = true;
                     break;
                 }
             }
         }
-
         if (!$espanolEncontrado) {
-            $context->buildViolation('El título en español (es) es obligatorio.')
-                ->atPath('titulo')
+            $context->buildViolation('El título en español es obligatorio.')->atPath('titulo')->addViolation();
+        }
+
+        // 2. Coherencia del Botón: Si hay URL, debe haber Texto
+        $hasUrl = !empty($this->getUrlBoton());
+        $hasLabel = false;
+        if (!empty($this->labelBoton)) {
+            foreach ($this->labelBoton as $item) {
+                if (!empty(trim($item['content'] ?? ''))) {
+                    $hasLabel = true;
+                    break;
+                }
+            }
+        }
+
+        if ($hasUrl && !$hasLabel) {
+            $context->buildViolation('Si pones una URL, el botón debe tener texto.')
+                ->atPath('labelBoton')
                 ->addViolation();
         }
     }

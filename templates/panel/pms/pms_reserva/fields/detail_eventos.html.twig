@@ -6,16 +6,60 @@
     </div>
 {% else %}
 
-    {# LÓGICA PREVIA #}
+    {# ============================
+       Helpers (meses ES + fechas “premium”)
+       ============================ #}
+    {% set mesesEs = {
+        '01':'Ene','02':'Feb','03':'Mar','04':'Abr','05':'May','06':'Jun',
+        '07':'Jul','08':'Ago','09':'Sep','10':'Oct','11':'Nov','12':'Dic'
+    } %}
+    {% set nowYear = "now"|date("Y") %}
+
+    {% macro month_es(dt, mesesEs) %}
+        {% set m = dt|date('m') %}
+        {{ attribute(mesesEs, m) }}
+    {% endmacro %}
+
+    {% macro dt_premium(dt, nowYear, mesesEs) %}
+        {# “12 Ene 15:00” / “12 Ene 2026 15:00” #}
+        {% set y = dt|date('Y') %}
+        {% set d = dt|date('d') %}
+        {% set h = dt|date('H:i') %}
+        {% if y == nowYear %}
+            {{ d }} {{ _self.month_es(dt, mesesEs) }} <span class="text-muted">·</span> {{ h }}
+        {% else %}
+            {{ d }} {{ _self.month_es(dt, mesesEs) }} {{ y }} <span class="text-muted">·</span> {{ h }}
+        {% endif %}
+    {% endmacro %}
+
+    {% macro range_premium(inicio, fin, nowYear, mesesEs) %}
+        {% set sameDay = inicio|date('Ymd') == fin|date('Ymd') %}
+        {% if sameDay %}
+            {{ _self.dt_premium(inicio, nowYear, mesesEs) }}
+            <span class="text-muted">→</span>
+            {{ fin|date('H:i') }}
+        {% else %}
+            {{ _self.dt_premium(inicio, nowYear, mesesEs) }}
+            <span class="text-muted">→</span>
+            {{ _self.dt_premium(fin, nowYear, mesesEs) }}
+        {% endif %}
+    {% endmacro %}
+
+    {% macro noches(inicio, fin) %}
+        {% set n = (fin|date('U') - inicio|date('U')) // 86400 %}
+        {{ n }}
+    {% endmacro %}
+
+    {# LÓGICA PREVIA (columnas condicionales) #}
     {% set hasComision = false %}
     {% set hasMonto = false %}
     {% for evento in field.value %}
-        {% if evento.comision is defined and evento.comision != 0 %} {% set hasComision = true %} {% endif %}
-        {% if evento.monto is defined and evento.monto != 0 %} {% set hasMonto = true %} {% endif %}
+        {% if evento.comision is defined and evento.comision != 0 %}{% set hasComision = true %}{% endif %}
+        {% if evento.monto is defined and evento.monto != 0 %}{% set hasMonto = true %}{% endif %}
     {% endfor %}
 
     {# ========================================================= #}
-    {#  VISTA MÓVIL (Cards)                                      #}
+    {#  VISTA MÓVIL (Cards “más premium”)                        #}
     {# ========================================================= #}
     <div class="d-block d-md-none">
         {% for evento in field.value %}
@@ -24,85 +68,99 @@
             {% set colorBase = 'cancel' in st ? 'danger' : ('confirm' in st ? 'success' : 'secondary') %}
             {% set pg = evento.estadoPago ? evento.estadoPago.nombre|lower : '' %}
             {% set pagoColor = 'no' in pg ? 'danger' : ('parcial' in pg ? 'warning' : 'success') %}
+            {% set noches = (evento.fin|date('U') - evento.inicio|date('U')) // 86400 %}
 
-            <div class="card mb-3 shadow-sm border border-light-subtle rounded-3 overflow-hidden">
-                <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Unidad</small>
-                        <span class="fw-bold text-primary">
-                            {{ evento.pmsUnidad|default('Sin Asignar') }}
-                        </span>
-                    </div>
-                </div>
+            <div class="card mb-3 shadow-sm border border-light-subtle rounded-4 overflow-hidden">
+                <div class="card-body p-3">
+                    {# Header #}
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="me-2">
+                            <div class="text-uppercase text-muted fw-semibold" style="font-size:.70rem; letter-spacing:.08em;">
+                                Unidad
+                            </div>
+                            <div class="fw-bold text-dark" style="font-size:1.02rem; line-height:1.1;">
+                                {{ evento.pmsUnidad|default('Sin Asignar') }}
+                            </div>
+                        </div>
 
-                <div class="card-body pt-2">
-                    {# FECHAS #}
-                    <div class="d-flex justify-content-between align-items-center mb-2 py-2 border-top border-bottom border-light-subtle">
-                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Fechas</small>
-                        <div class="text-end" style="font-size: 0.9rem;">
-                            <div class="text-dark"><i class="fas fa-arrow-right text-success me-1 small"></i> {{ evento.inicio|date('d/m H:i') }}</div>
-                            <div class="text-dark"><i class="fas fa-arrow-left text-danger me-1 small"></i> {{ evento.fin|date('d/m H:i') }}</div>
+                        <div class="text-end">
+                            <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                <span class="px-2 py-1 rounded-pill border border-{{ colorBase }} text-{{ colorBase }} bg-white fw-semibold"
+                                      style="font-size:.72rem;">
+                                    {{ evento.estado|default('-') }}
+                                </span>
+
+                                {% if evento.estadoPago %}
+                                    <span class="px-2 py-1 rounded-pill border border-{{ pagoColor }} text-{{ pagoColor }} bg-white fw-semibold"
+                                          style="font-size:.72rem;">
+                                        {{ evento.estadoPago }}
+                                    </span>
+                                {% endif %}
+
+                                {% if noches > 0 %}
+                                    <span class="px-2 py-1 rounded-pill border text-dark bg-light fw-semibold"
+                                          style="font-size:.72rem;">
+                                        {{ noches }} noche{{ noches > 1 ? 's' : '' }}
+                                    </span>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
 
-                    {# ESTADO #}
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Estado</small>
-                        <span class="badge rounded-pill border border-{{ colorBase }} text-{{ colorBase }} bg-white fw-medium px-2 py-1">
-                            {{ evento.estado|default('-') }}
-                        </span>
+                    {# Fechas (más naturales) #}
+                    <div class="mt-2 pt-2 border-top border-light-subtle">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted fw-semibold" style="font-size:.80rem;">
+                                <i class="fas fa-arrow-right text-success me-1"></i>
+                                {{ _self.dt_premium(evento.inicio, nowYear, mesesEs) }}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div class="text-muted fw-semibold" style="font-size:.80rem;">
+                                <i class="fas fa-arrow-left text-danger me-1"></i>
+                                {{ _self.dt_premium(evento.fin, nowYear, mesesEs) }}
+                            </div>
+                        </div>
                     </div>
 
-                    {# PAGO #}
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Pago</small>
-                        {% if evento.estadoPago %}
-                            <span class="badge rounded-pill border border-{{ pagoColor }} text-{{ pagoColor }} bg-white fw-medium px-2 py-1">
-                                {{ evento.estadoPago }}
-                            </span>
-                        {% else %}
-                            <span class="text-muted small">-</span>
-                        {% endif %}
-                    </div>
-
-                    {# PAX #}
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <small class="text-uppercase text-muted fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Pax</small>
-                        <div class="text-dark fw-bold small">
-                            {{ evento.cantidadAdultos }}
+                    {# Pax + montos (compacto) #}
+                    <div class="d-flex justify-content-between align-items-end mt-3 pt-2 border-top border-light-subtle">
+                        <div class="text-muted" style="font-size:.85rem;">
+                            <i class="fas fa-user me-1"></i>
+                            <span class="fw-bold text-dark">{{ evento.cantidadAdultos }}</span>
                             {% if evento.cantidadNinos > 0 %}
                                 <span class="text-muted">+{{ evento.cantidadNinos }}</span>
                             {% endif %}
-                            <i class="fas fa-user text-muted ms-1" style="font-size: 0.7rem;"></i>
+                        </div>
+
+                        <div class="text-end">
+                            {% if hasComision and evento.comision != 0 %}
+                                <div class="text-muted" style="font-size:.78rem;">
+                                    Comisión: <span class="fw-semibold">{{ evento.comision }}</span>
+                                </div>
+                            {% endif %}
+                            {% if hasMonto and evento.monto != 0 %}
+                                <div class="fw-bold font-monospace text-dark" style="font-size:1.05rem;">
+                                    {{ evento.monto }}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
-
-                    {# MONTOS #}
-                    {% if hasMonto or hasComision %}
-                        <div class="mt-2 pt-2 border-top border-light-subtle d-flex justify-content-end align-items-center gap-3">
-                            {% if hasComision and evento.comision != 0 %}
-                                <small class="text-muted" style="font-size: 0.8rem;">Com: {{ evento.comision }}</small>
-                            {% endif %}
-
-                            {% if hasMonto and evento.monto != 0 %}
-                                <span class="fw-bold text-dark font-monospace" style="font-size: 1rem;">{{ evento.monto }}</span>
-                            {% endif %}
-                        </div>
-                    {% endif %}
                 </div>
             </div>
         {% endfor %}
     </div>
 
     {# ========================================================= #}
-    {#  VISTA ESCRITORIO (Tabla con Badges Estilizados)          #}
+    {#  VISTA ESCRITORIO (Tabla “más premium”)                   #}
     {# ========================================================= #}
     <div class="d-none d-md-block table-responsive-custom">
-        <table class="table table-hover bg-white mb-0 align-middle">
+        <table class="table bg-white mb-0 align-middle">
             <thead class="table-light text-secondary text-uppercase small">
             <tr>
                 <th class="fw-bold">Unidad</th>
-                <th class="fw-bold">Fechas (In/Out)</th>
+                <th class="fw-bold">Estancia</th>
                 <th class="fw-bold">Estado</th>
                 <th class="fw-bold">Pago</th>
                 <th class="fw-bold text-center">Pax</th>
@@ -112,35 +170,50 @@
             </thead>
             <tbody>
             {% for evento in field.value %}
-                {# Variables Locales #}
                 {% set st = evento.estado ? evento.estado.nombre|lower : '' %}
                 {% set estadoBadge = 'cancel' in st ? 'danger' : ('confirm' in st ? 'success' : 'secondary') %}
                 {% set pg = evento.estadoPago ? evento.estadoPago.nombre|lower : '' %}
                 {% set pagoClass = 'no' in pg ? 'danger' : ('parcial' in pg ? 'warning' : 'success') %}
+                {% set noches = (evento.fin|date('U') - evento.inicio|date('U')) // 86400 %}
 
-                <tr>
-                    {# UNIDAD #}
-                    <td class="fw-bold text-primary">{{ evento.pmsUnidad|default('Sin Asignar') }}</td>
-
-                    {# FECHAS #}
+                <tr class="border-top border-light-subtle">
+                    {# Unidad #}
                     <td>
-                        <div class="d-flex flex-column small" style="line-height: 1.4;">
-                            <span><i class="fas fa-sign-in-alt text-success me-1"></i> {{ evento.inicio|date('d/m H:i') }}</span>
-                            <span><i class="fas fa-sign-out-alt text-danger me-1"></i> {{ evento.fin|date('d/m H:i') }}</span>
+                        <div class="fw-bold text-dark">{{ evento.pmsUnidad|default('Sin Asignar') }}</div>
+                        <div class="text-muted" style="font-size:.82rem;">
+                            {{ evento.descripcion|default('') }}
                         </div>
                     </td>
 
-                    {# ESTADO (Badge Outline) #}
+                    {# Estancia #}
                     <td>
-                        <span class="badge rounded-pill border border-{{ estadoBadge }} text-{{ estadoBadge }} bg-white fw-medium px-2 py-1">
+                        <div class="d-flex flex-column" style="line-height: 1.35;">
+                            <div class="text-dark fw-semibold">
+                                <i class="fas fa-calendar-alt text-muted me-1"></i>
+                                {{ _self.range_premium(evento.inicio, evento.fin, nowYear, mesesEs) }}
+                            </div>
+
+                            {% if noches > 0 %}
+                                <div class="text-muted" style="font-size:.82rem;">
+                                    {{ noches }} noche{{ noches > 1 ? 's' : '' }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    {# Estado #}
+                    <td>
+                        <span class="px-2 py-1 rounded-pill border border-{{ estadoBadge }} text-{{ estadoBadge }} bg-white fw-semibold"
+                              style="font-size:.78rem;">
                             {{ evento.estado|default('-') }}
                         </span>
                     </td>
 
-                    {# PAGO (Badge Outline) #}
+                    {# Pago #}
                     <td>
                         {% if evento.estadoPago %}
-                            <span class="badge rounded-pill border border-{{ pagoClass }} text-{{ pagoClass }} bg-white fw-medium px-2 py-1">
+                            <span class="px-2 py-1 rounded-pill border border-{{ pagoClass }} text-{{ pagoClass }} bg-white fw-semibold"
+                                  style="font-size:.78rem;">
                                 {{ evento.estadoPago }}
                             </span>
                         {% else %}
@@ -148,25 +221,33 @@
                         {% endif %}
                     </td>
 
-                    {# PAX #}
+                    {# Pax #}
                     <td class="text-center">
-                        <strong>{{ evento.cantidadAdultos }}</strong>
+                        <span class="fw-bold text-dark">{{ evento.cantidadAdultos }}</span>
                         {% if evento.cantidadNinos > 0 %}
-                            <span class="text-muted small">+{{ evento.cantidadNinos }}</span>
+                            <span class="text-muted">+{{ evento.cantidadNinos }}</span>
                         {% endif %}
                     </td>
 
-                    {# COMISIÓN #}
+                    {# Comisión #}
                     {% if hasComision %}
-                        <td class="text-end text-muted small">
-                            {% if evento.comision != 0 %}{{ evento.comision }}{% endif %}
+                        <td class="text-end">
+                            {% if evento.comision != 0 %}
+                                <span class="text-muted fw-semibold" style="font-size:.86rem;">
+                                    {{ evento.comision }}
+                                </span>
+                            {% endif %}
                         </td>
                     {% endif %}
 
-                    {# MONTO #}
+                    {# Monto #}
                     {% if hasMonto %}
-                        <td class="text-end fw-bold font-monospace text-dark">
-                            {% if evento.monto != 0 %}{{ evento.monto }}{% endif %}
+                        <td class="text-end">
+                            {% if evento.monto != 0 %}
+                                <span class="fw-bold font-monospace text-dark" style="font-size:1rem;">
+                                    {{ evento.monto }}
+                                </span>
+                            {% endif %}
                         </td>
                     {% endif %}
                 </tr>

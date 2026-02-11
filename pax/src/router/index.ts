@@ -6,7 +6,7 @@ const router = createRouter({
     history: createWebHistory('/'),
     routes: [
         {
-            path: '/pax/reserva/:localizador',
+            path: '/huesped/reserva/:localizador',
             // Patrón existente: snake_case
             name: 'pms_reserva',
             component: () => import('../views/pax/PmsReservaView.vue'),
@@ -14,7 +14,7 @@ const router = createRouter({
         },
         {
             // URL semántica: /guia/unidad/{uuid}
-            path: '/pax/guia/unidad/:uuid',
+            path: '/huesped/guia/unidad/:uuid',
             // Nombre corregido para mantener consistencia con 'pms_reserva'
             name: 'guia_unidad',
             component: () => import('../views/pax/GuiaUnidadView.vue'),

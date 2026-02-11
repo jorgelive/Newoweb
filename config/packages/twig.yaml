@@ -1,6 +1,9 @@
 twig:
     default_path: '%kernel.project_dir%/templates'
     globals:
+
+        pax_host_url: '%pax_host_url%'
+
         numero_default: "%numero_default%"
         facturacion_igv_porcentaje: "%facturacion_igv_porcentaje%"
         colores:

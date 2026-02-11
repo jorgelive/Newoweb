@@ -41,10 +41,10 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
                     identifiers: ['id']      // propiedad en PmsGuia (OneToOne/ManyToOne)
                 ),
             ],
-            normalizationContext: ['groups' => ['guia:read']],
+            normalizationContext: ['groups' => ['pax_evento:read']],
         ),
         new GetCollection(
-            normalizationContext: ['groups' => ['guia:read']]
+            normalizationContext: ['groups' => ['pax_evento:read']]
         ),
     ],
     order: ['createdAt' => 'DESC']
@@ -80,7 +80,7 @@ class PmsGuia
 
     // --- MÉTODOS PARA API (Grupos en Getters) ---
 
-    #[Groups(['guia:read'])]
+    #[Groups(['pax_evento:read'])]
     #[SerializedName('secciones')]
     public function getSeccionesApi(): array
     {
@@ -95,13 +95,13 @@ class PmsGuia
         return $secciones;
     }
 
-    #[Groups(['guia:read'])]
+    #[Groups(['pax_evento:read'])]
     public function getUnidad(): ?PmsUnidad { return $this->unidad; }
 
-    #[Groups(['guia:read'])]
+    #[Groups(['pax_evento:read'])]
     public function isActivo(): bool { return $this->activo; }
 
-    #[Groups(['guia:read'])]
+    #[Groups(['pax_evento:read'])]
     public function getTitulo(): array
     {
         return MaestroIdioma::ordenarParaFormulario($this->titulo);

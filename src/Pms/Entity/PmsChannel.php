@@ -68,7 +68,7 @@ class PmsChannel
      * -------------------------------------------------------------------------
      */
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getId(): ?string
     {
         return $this->id;
@@ -80,7 +80,7 @@ class PmsChannel
         return $this;
     }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getNombre(): ?string
     {
         return $this->nombre;

@@ -155,7 +155,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         [$isNewOrEdit, $isBloqueo, $isOta] = $this->resolveContext($pageName);
 
         // Construcción de campos base
-        $f = $this->buildFields();
+        $f = $this->buildFields($isBloqueo);
 
         // Aplicación de reglas de negocio visuales
         if ($isNewOrEdit && $isBloqueo) {
@@ -169,10 +169,13 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
         // 1. Identificadores
         yield TextField::new('id', 'UUID')->onlyOnDetail();
-        yield TextField::new('localizador', 'Localizador')
-            ->setFormTypeOption('disabled', true)
-            ->setColumns(6)
-            ->formatValue(fn($v) => $v ? sprintf('<span class="badge badge-secondary">%s</span>', $v) : '');
+        if(!$this->isEmbedded()){
+            yield TextField::new('localizador', 'Localizador')
+                ->setFormTypeOption('disabled', true)
+                ->setColumns(6)
+                ->formatValue(fn($v) => $v ? sprintf('<span class="badge badge-secondary">%s</span>', $v) : '');
+        }
+
 
         // 2. Estado Sincronización (Badge visual)
         yield $this->buildSyncStatusBadgeField()->hideOnForm();
@@ -181,7 +184,9 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         yield $f['descripcion'];
 
         yield FormField::addPanel('Detalles del Evento')->setIcon('fa fa-calendar-check');
-        yield $f['reserva'];
+        if(!$this->isEmbedded()) {
+            yield $f['reserva'];
+        }
         yield $f['pmsUnidad'];
         yield $f['estado'];
         yield $f['estadoPago'];
@@ -203,9 +208,17 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         yield AssociationField::new('beds24Links', 'Vínculos Técnicos')->setDisabled(true);
 
         // 6. Auditoría
-        yield FormField::addPanel('Auditoría')->setIcon('fa fa-history')->onlyOnDetail();
-        yield DateTimeField::new('createdAt', 'Registrado')->onlyOnDetail();
-        yield DateTimeField::new('updatedAt', 'Actualizado')->onlyOnDetail();
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
+
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 
     // =========================================================================
@@ -230,29 +243,62 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         return [$isNewOrEdit, $isBloqueo, $isOta];
     }
 
-    private function buildFields(): array
+    private function buildFields(bool $isBloqueo = false): array
     {
         $tomSelectNoClear = ['placeholder' => false, 'attr' => ['required' => 'required']];
+        $descripcionText = $isBloqueo ? 'Motivo' : 'Descripción';
 
         return [
-            'descripcion' => TextField::new('descripcion', 'Descripción/Motivo'),
-            'pmsUnidad'   => AssociationField::new('pmsUnidad', 'Unidad')
+            'descripcion' => TextField::new('descripcion', $descripcionText),
+
+            'pmsUnidad' => AssociationField::new('pmsUnidad', 'Unidad')
                 ->setRequired(true)
                 ->setFormTypeOptions($tomSelectNoClear),
-            'estado'      => AssociationField::new('estado', 'Estado')
+
+            'estado' => AssociationField::new('estado', 'Estado')
+                ->setRequired(true)
+                ->setFormTypeOptions(array_merge(
+                    $tomSelectNoClear,
+                    [
+                        'query_builder' => function ($repo) use ($isBloqueo) {
+                            $qb = $repo->createQueryBuilder('e');
+
+                            if ($isBloqueo) {
+                                // 🔒 SOLO bloqueo + cancelada
+                                $qb->andWhere('e.id IN (:estados)')
+                                    ->setParameter('estados', [
+                                        PmsEventoEstado::CODIGO_BLOQUEO,
+                                        PmsEventoEstado::CODIGO_CANCELADA,
+                                    ]);
+                            } else {
+                                // 🚫 EXCLUIR bloqueo
+                                $qb->andWhere('e.id != :bloqueo')
+                                    ->setParameter('bloqueo', PmsEventoEstado::CODIGO_BLOQUEO);
+                            }
+
+                            return $qb
+                                ->orderBy('e.orden', 'ASC')
+                                ->addOrderBy('e.nombre', 'ASC');
+                        },
+                    ]
+                )),
+
+            'estadoPago' => AssociationField::new('estadoPago', 'Estado de Pago')
                 ->setRequired(true)
                 ->setFormTypeOptions($tomSelectNoClear),
-            'estadoPago'  => AssociationField::new('estadoPago', 'Estado de Pago')
-                ->setRequired(true)
-                ->setFormTypeOptions($tomSelectNoClear),
-            'reserva'     => AssociationField::new('reserva', 'Reserva Padre')->setDisabled(true),
-            'inicio'      => DateTimeField::new('inicio', 'Llegada (Check-in)'),
-            'fin'         => DateTimeField::new('fin', 'Salida (Check-out)'),
-            'adultos'     => IntegerField::new('cantidadAdultos', 'Nº Adultos'),
-            'ninos'       => IntegerField::new('cantidadNinos', 'Nº Niños'),
-            'monto'       => MoneyField::new('monto', 'Precio Total'),
-            'comision'    => MoneyField::new('comision', 'Comisión Canal'),
-            'isOta'       => BooleanField::new('isOta', 'Origen OTA'),
+
+            'reserva' => AssociationField::new('reserva', 'Reserva Padre')->setDisabled(true),
+
+            'inicio' => DateTimeField::new('inicio', 'Llegada (Check-in)'),
+            'fin' => DateTimeField::new('fin', 'Salida (Check-out)'),
+
+            'adultos' => IntegerField::new('cantidadAdultos', 'Nº Adultos'),
+            'ninos' => IntegerField::new('cantidadNinos', 'Nº Niños'),
+
+            'monto' => MoneyField::new('monto', 'Precio Total'),
+            'comision' => MoneyField::new('comision', 'Comisión Canal'),
+
+            'isOta' => BooleanField::new('isOta', 'Origen OTA'),
         ];
     }
 

@@ -2,23 +2,42 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pax Experience</title>
 
+    {# 1. FAVICON INTELIGENTE #}
+    {# En Dev lo pedimos a Vite (puerto 5173), en Prod/Build a la carpeta pública #}
+    {% if is_dev %}
+        <link rel="icon" type="image/svg+xml" href="https://pax.openperu.test:5173/app_pax/favicon.svg" />
+    {% else %}
+        <link rel="icon" type="image/svg+xml" href="/app_pax/favicon.svg" />
+    {% endif %}
+
+    {# 2. ESTILOS CSS (Solo existen en modo Build) #}
     {% if not is_dev and css_files is defined %}
         {% for css in css_files %}
             <link rel="stylesheet" href="/app_pax/{{ css }}">
         {% endfor %}
     {% endif %}
 
-    {# ... Scripts de config ... #}
+    {# 🔥 3. CONFIGURACIÓN GLOBAL (LO QUE FALTABA) #}
+    {# Esto inyecta la URL correcta ANTES de que Vue arranque #}
+    <script>
+        window.OPENPERU_CONFIG = {
+            apiUrl: "{{ app.environment == 'dev' ? 'https://newapi.openperu.test:8890' : 'https://api.openperu.pe' }}"
+        };
+    </script>
 </head>
-<body>
+<body class="bg-slate-50">
 <div id="app"></div>
 
+{# 4. SCRIPTS DE ARRANQUE #}
 {% if is_dev %}
+    {# Modo HMR (Hot Module Replacement) #}
     <script type="module" src="https://pax.openperu.test:5173/app_pax/@vite/client"></script>
     <script type="module" src="https://pax.openperu.test:5173/app_pax/{{ vite_entry }}"></script>
 {% else %}
+    {# Modo Producción / Build #}
     <script type="module" src="/app_pax/{{ js_file }}"></script>
 {% endif %}
 </body>

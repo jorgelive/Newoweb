@@ -1,0 +1,11 @@
+{# templates/panel/pms_reserva/detail.html.twig #}
+{% extends '@EasyAdmin/crud/detail.html.twig' %}
+
+{% block content_title %}
+    <h1 class="title">
+        Reserva
+        <small class="text-muted">
+            {{ entity.instance.localizador }}
+        </small>
+    </h1>
+{% endblock %}

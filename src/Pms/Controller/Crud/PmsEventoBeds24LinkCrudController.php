@@ -11,7 +11,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField; // ✅ Nuevo Import
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
@@ -64,52 +64,24 @@ class PmsEventoBeds24LinkCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        // 1. UUID
-        $id = TextField::new('id', 'UUID')
+        // ============================================================
+        // 1. IDENTIDAD DEL VÍNCULO
+        // ============================================================
+        yield FormField::addPanel('Identidad del Vínculo')->setIcon('fa fa-link');
+
+        // UUID: Corto en Index, Completo en Detalle
+        yield TextField::new('id', 'UUID')
+            ->onlyOnIndex()
+            ->formatValue(static fn($value) => substr((string)$value, 0, 8) . '...');
+
+        yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
             ->formatValue(static fn($value) => (string) $value);
 
-        // 2. FLAG PRINCIPAL (Reemplaza a originLink)
-        $esPrincipal = BooleanField::new('esPrincipal', 'Es Root?')
-            ->setHelp('Si está activo, este link es el propietario del ID en Beds24. Si no, es un espejo (Mirror).')
-            ->renderAsSwitch(false); // Solo lectura en index por seguridad, switch en form
-
-        // 3. EVENTO
-        $evento = AssociationField::new('evento', 'Evento')
-            ->setRequired(true)
-            ->setFormTypeOption('disabled', $pageName !== Crud::PAGE_NEW);
-
-        // 4. DATOS CALCULADOS (Reserva/Cliente)
-        $reservaTxt = TextField::new('evento.reserva', 'Reserva')
-            ->setSortable(false)
-            ->formatValue(static function ($value) {
-                if ($value === null) return null;
-                $rid = method_exists($value, 'getId') ? $value->getId() : null;
-                $master = method_exists($value, 'getBeds24MasterId') ? $value->getBeds24MasterId() : null;
-                $ridTxt = $rid !== null ? (string) $rid : '?';
-                $masterTxt = ($master !== null && $master !== '') ? (string) $master : '-';
-                return sprintf('ID: %s | Master: %s', $ridTxt, $masterTxt);
-            });
-
-        $clienteTxt = TextField::new('evento.reserva', 'Cliente')
-            ->setSortable(false)
-            ->formatValue(static function ($value) {
-                if ($value === null) return null;
-                $nombreApellido = method_exists($value, 'getNombreApellido') ? $value->getNombreApellido() : '';
-                return $nombreApellido !== '' ? $nombreApellido : 'Sin nombre';
-            });
-
-        // 5. MAPA
-        $unidadBeds24Map = AssociationField::new('unidadBeds24Map', 'Mapeo Beds24')
-            ->setRequired(true)
-            ->setFormTypeOption('disabled', $pageName !== Crud::PAGE_NEW);
-
-        // 6. BOOK ID
-        $beds24BookId = TextField::new('beds24BookId', 'Beds24 bookId')
+        yield TextField::new('beds24BookId', 'Beds24 Book ID')
             ->setHelp('Identificador técnico en la API de Beds24.');
 
-        // 7. STATUS
-        $status = ChoiceField::new('status', 'Estado')
+        yield ChoiceField::new('status', 'Estado')
             ->setChoices([
                 'Active' => PmsEventoBeds24Link::STATUS_ACTIVE,
                 'Detached' => PmsEventoBeds24Link::STATUS_DETACHED,
@@ -125,62 +97,70 @@ class PmsEventoBeds24LinkCrudController extends BaseCrudController
                 PmsEventoBeds24Link::STATUS_SYNCED_DELETED => 'danger',
             ]);
 
-        // 8. TIMESTAMPS
-        $lastSeenAt = DateTimeField::new('lastSeenAt', 'Visto');
-        $deactivatedAt = DateTimeField::new('deactivatedAt', 'Desactivado');
-        $createdAt = DateTimeField::new('createdAt', 'Creado');
-        $updatedAt = DateTimeField::new('updatedAt', 'Editado');
+        // ============================================================
+        // 2. RELACIÓN (EVENTO Y MAPA)
+        // ============================================================
+        yield FormField::addPanel('Configuración de Enlace')->setIcon('fa fa-cogs');
 
-        // --- LÓGICA POR VISTA ---
+        yield AssociationField::new('evento', 'Evento')
+            ->setRequired(true)
+            // Solo editable al crear, luego se bloquea para integridad
+            ->setDisabled($pageName !== Crud::PAGE_NEW);
 
-        if (Crud::PAGE_INDEX === $pageName) {
-            return [
-                TextField::new('id', 'UUID')->formatValue(fn($v) => substr((string)$v, 0, 8) . '...'),
-                $esPrincipal,
-                $evento,
-                $unidadBeds24Map,
-                $beds24BookId,
-                $status,
-                $lastSeenAt,
-            ];
-        }
+        // Campos informativos (Solo Detalle) calculados desde el Evento
+        yield TextField::new('evento.reserva', 'Info Reserva')
+            ->onlyOnDetail()
+            ->formatValue(static function ($value) {
+                if ($value === null) return null;
+                $rid = method_exists($value, 'getId') ? $value->getId() : '?';
+                $master = method_exists($value, 'getBeds24MasterId') ? $value->getBeds24MasterId() : '-';
+                return sprintf('ID: %s | Master: %s', $rid, $master);
+            });
 
-        if (Crud::PAGE_DETAIL === $pageName) {
-            return [
-                FormField::addPanel('Identidad del Vínculo')->setIcon('fa fa-link'),
-                $id,
-                $esPrincipal, // ✅ Detalle
-                $evento,
-                $reservaTxt,
-                $clienteTxt,
-                $unidadBeds24Map,
-                $beds24BookId,
-                // eliminado originLink
-                $status,
+        yield TextField::new('evento.reserva', 'Info Cliente')
+            ->onlyOnDetail()
+            ->formatValue(static function ($value) {
+                if ($value === null) return null;
+                $nombre = method_exists($value, 'getNombreApellido') ? $value->getNombreApellido() : '';
+                return $nombre ?: 'Sin nombre';
+            });
 
-                FormField::addPanel('Trazabilidad')->setIcon('fa fa-sync'),
-                $lastSeenAt,
-                $deactivatedAt,
+        yield AssociationField::new('unidadBeds24Map', 'Mapeo Beds24')
+            ->setRequired(true)
+            ->setDisabled($pageName !== Crud::PAGE_NEW);
 
-                FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-                $createdAt,
-                $updatedAt,
-            ];
-        }
+        yield BooleanField::new('esPrincipal', 'Es Root?')
+            ->setHelp('Si activo: Propietario del ID en Beds24. Si inactivo: Espejo (Mirror).')
+            ->renderAsSwitch(false); // Switch en form, check en index
 
-        return [
-            FormField::addPanel('Configuración')->setIcon('fa fa-cogs'),
-            $evento,
-            $unidadBeds24Map,
+        // ============================================================
+        // 3. TRAZABILIDAD
+        // ============================================================
+        yield FormField::addPanel('Trazabilidad')
+            ->setIcon('fa fa-clock')
+            ->renderCollapsed();
 
-            FormField::addPanel('Estado Beds24')->setIcon('fa fa-cloud'),
-            $esPrincipal, // ✅ Editable en formularios (útil para fixes manuales)
-            $beds24BookId,
-            $status,
+        yield DateTimeField::new('lastSeenAt', 'Visto')
+            ->setDisabled(true);
 
-            FormField::addPanel('Control Temporal')->setIcon('fa fa-clock')->renderCollapsed(),
-            $lastSeenAt->setFormTypeOption('disabled', true),
-            $deactivatedAt->setFormTypeOption('disabled', true),
-        ];
+        yield DateTimeField::new('deactivatedAt', 'Desactivado')
+            ->setDisabled(true);
+
+        // ============================================================
+        // 4. AUDITORÍA (ESTÁNDAR)
+        // ============================================================
+        yield FormField::addPanel('Auditoría')
+            ->setIcon('fa fa-shield-alt')
+            ->renderCollapsed();
+
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

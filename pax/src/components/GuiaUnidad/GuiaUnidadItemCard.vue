@@ -8,21 +8,24 @@ const props = defineProps<{
   store: any;
 }>();
 
-// Texto raw (traducido del CMS)
+// Texto traducido
 const descripcionRaw = computed(() => {
   return props.store.traducir(props.item.descripcion);
 });
 
+// Texto del botón traducido
 const textoBoton = computed(() => {
   if (!props.item.labelBoton) return '';
   const txt = props.store.traducir(props.item.labelBoton);
   return txt ? txt.trim() : '';
 });
 
+// URL del botón (Directa desde la propiedad virtual de la API)
 const urlBoton = computed(() => {
   return props.item.urlBoton ? props.item.urlBoton.trim() : '';
 });
 
+// Mostrar solo si hay Texto Y URL
 const mostrarBoton = computed(() => {
   return textoBoton.value !== '' && urlBoton.value !== '' && urlBoton.value !== '#';
 });

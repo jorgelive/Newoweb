@@ -41,7 +41,7 @@ use Symfony\Component\Validator\Constraints as Assert;
                     identifiers: ['localizador']
                 ),
             ],
-            normalizationContext: ['groups' => ['pax:read']],
+            normalizationContext: ['groups' => ['pax_reserva:read']],
             name: 'pax_get_reserva',
         ),
     ]
@@ -189,25 +189,25 @@ class PmsReserva
      * Esto permite que el localizador (token público) sea visible en el JSON
      * sin necesidad de modificar el código compartido en el Trait.
      */
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getLocalizador(): ?string
     {
         return $this->localizador;
     }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getNombreCompleto(): ?string
     {
         return $this->getNombreApellido();
     }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getNumeroNoches(): int
     {
         return $this->getNoches();
     }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getPaxTotal(): int
     {
         return ($this->cantidadAdultos ?? 0) + ($this->cantidadNinos ?? 0);
@@ -216,7 +216,7 @@ class PmsReserva
     /**
      * Obtiene el nombre del establecimiento navegando por la relación de eventos.
      */
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getNombreHotel(): string
     {
         $evento = $this->eventosCalendario->first();
@@ -230,7 +230,7 @@ class PmsReserva
      * Obtiene el nombre de la unidad (habitación/apartamento).
      */
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getNombreHabitacion(): string
     {
         if ($this->eventosCalendario->isEmpty()) {
@@ -300,7 +300,7 @@ class PmsReserva
      * GETTERS Y SETTERS EXPLÍCITOS
      * ====================================================== */
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -312,51 +312,51 @@ class PmsReserva
     public function getBeds24BookIdPrincipal(): ?string { return $this->beds24BookIdPrincipal; }
     public function setBeds24BookIdPrincipal(?string $val): self { $this->beds24BookIdPrincipal = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getReferenciaCanal(): ?string { return $this->referenciaCanal; }
     public function setReferenciaCanal(?string $val): self { $this->referenciaCanal = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getNombreCliente(): ?string { return $this->nombreCliente; }
 
     public function setNombreCliente(?string $val): self { $this->nombreCliente = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getApellidoCliente(): ?string { return $this->apellidoCliente; }
     public function setApellidoCliente(?string $val): self { $this->apellidoCliente = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getTelefono(): ?string { return $this->telefono; }
     public function setTelefono(?string $val): self { $this->telefono = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getTelefono2(): ?string { return $this->telefono2; }
     public function setTelefono2(?string $val): self { $this->telefono2 = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getEmailCliente(): ?string { return $this->emailCliente; }
     public function setEmailCliente(?string $val): self { $this->emailCliente = $val; return $this; }
 
     public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
     public function setMoneda(?MaestroMoneda $val): self { $this->moneda = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $val): self { $this->pais = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getIdioma(): ?MaestroIdioma { return $this->idioma; }
     public function setIdioma(?MaestroIdioma $val): self { $this->idioma = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getChannel(): ?PmsChannel { return $this->channel; }
     public function setChannel(?PmsChannel $val): self { $this->channel = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getCantidadAdultos(): ?int { return $this->cantidadAdultos; }
     public function setCantidadAdultos(?int $val): self { $this->cantidadAdultos = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getCantidadNinos(): ?int { return $this->cantidadNinos; }
     public function setCantidadNinos(?int $val): self { $this->cantidadNinos = $val; return $this; }
 
@@ -366,11 +366,11 @@ class PmsReserva
     public function getComisionTotal(): ?string { return $this->comisionTotal; }
     public function setComisionTotal(?string $val): self { $this->comisionTotal = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getFechaLlegada(): ?DateTimeInterface { return $this->fechaLlegada; }
     public function setFechaLlegada(?DateTimeInterface $val): self { $this->fechaLlegada = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getFechaSalida(): ?DateTimeInterface { return $this->fechaSalida; }
     public function setFechaSalida(?DateTimeInterface $val): self { $this->fechaSalida = $val; return $this; }
 
@@ -392,7 +392,7 @@ class PmsReserva
     public function getComentariosHuesped(): ?string { return $this->comentariosHuesped; }
     public function setComentariosHuesped(?string $val): self { $this->comentariosHuesped = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
 
     public function addEventosCalendario(PmsEventoCalendario $evento): self {

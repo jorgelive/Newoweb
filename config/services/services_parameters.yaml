@@ -22,8 +22,12 @@ parameters:
     app.host.front: '%env(FRONT_HOST)%'
     app.host.pax: '%env(PAX_HOST)%'
 
+    pax_host_url: '%env(PAX_HOST_URL)%'
+
 
     pms.path.huesped_docs: '/carga/pms/pms_reserva_huesped/documento'
     pms.path.huesped_firmas: '/carga/pms/pms_reserva_huesped/firmas'
 
     pms.path.galeria_images: '/carga/pms/pms_guia_item_galeria/images'
+
+    pms.path.unidad_images: '/carga/pms/pms_unidad/images'

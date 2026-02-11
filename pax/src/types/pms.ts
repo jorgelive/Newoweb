@@ -40,6 +40,7 @@ export interface PmsUnidad {
     "@id"?: string;
     nombre: string;
     id: string;
+    imageUrl: string;
 }
 
 export interface PmsEventoCalendario {
@@ -84,18 +85,22 @@ export interface PmsReserva {
 export interface PmsGuiaItemGaleria {
     "@type"?: string;
     "@id"?: string;
-    descripcion: PmsContenidoTraducible[];
-    imageUrl: string;
+    descripcion?: PmsContenidoTraducible[];
+    imageUrl: string; // Asegúrate de que tu API devuelva este campo exacto
 }
 
 export interface PmsGuiaItem {
     "@type"?: string;
     "@id": string;
-    tipo: string;
+    tipo: 'card' | 'album' | 'alert' | string;
+
     titulo: PmsContenidoTraducible[];
-    descripcion: PmsContenidoTraducible[];
-    labelBoton: PmsContenidoTraducible[];
+
+    descripcion?: PmsContenidoTraducible[];
+    labelBoton?: PmsContenidoTraducible[];
+
     urlBoton?: string;
+
     galeria: PmsGuiaItemGaleria[];
 }
 
@@ -112,7 +117,7 @@ export interface PmsGuia {
     "@context"?: string;
     "@id": string;
     "@type": string;
-    unidad: PmsUnidad | any[];
+    unidad: PmsUnidad;
     activo: boolean;
     titulo: PmsContenidoTraducible[];
     secciones: PmsGuiaSeccion[];

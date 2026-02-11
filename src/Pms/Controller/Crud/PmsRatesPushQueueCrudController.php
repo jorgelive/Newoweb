@@ -176,9 +176,17 @@ final class PmsRatesPushQueueCrudController extends BaseCrudController
             ->onlyOnDetail();
 
         // --- PANEL 5: AUDITORÍA DE SISTEMA ---
-        yield FormField::addPanel('Auditoría')->setIcon('fa fa-clock')->onlyOnDetail();
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
 
-        yield DateTimeField::new('createdAt', 'Fecha de Registro')->onlyOnDetail();
-        yield DateTimeField::new('updatedAt', 'Última Modificación')->onlyOnDetail();
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
+
     }
 }

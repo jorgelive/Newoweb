@@ -14,7 +14,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField; // ✅ Importante
+use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -38,9 +38,6 @@ final class PmsChannelCrudController extends BaseCrudController
         return PmsChannel::class;
     }
 
-    /**
-     * Configuración de Acciones y Permisos.
-     */
     public function configureActions(Actions $actions): Actions
     {
         $actions
@@ -60,7 +57,6 @@ final class PmsChannelCrudController extends BaseCrudController
         return $crud
             ->setEntityLabelInSingular('Canal')
             ->setEntityLabelInPlural('Canales')
-            // ✅ ORDENAMIENTO POR DEFECTO: Prioridad > Nombre
             ->setDefaultSort(['orden' => 'ASC', 'nombre' => 'ASC'])
             ->showEntityActionsInlined();
     }
@@ -76,93 +72,63 @@ final class PmsChannelCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        // ✅ El ID es natural (Slug). Se permite entrada manual solo al crear.
-        $id = TextField::new('id', 'Código (ID)')
-            ->setHelp('Slug interno (ej: booking, airbnb, directo).')
-            ->setFormTypeOption('attr', ['placeholder' => 'airbnb']);
+        // ============================================================
+        // 1. IDENTIDAD DEL CANAL
+        // ============================================================
+        yield FormField::addPanel('Identidad del Canal')->setIcon('fa fa-hashtag');
 
-        // Lógica de visualización del ID:
-        if (Crud::PAGE_NEW === $pageName) {
-            $id->setRequired(true);
-        } elseif (Crud::PAGE_EDIT === $pageName) {
-            // En edición se BLOQUEA (no se debe cambiar la PK)
-            $id->setFormTypeOption('disabled', true);
-        }
+        // ID Natural: Requerido al crear, Bloqueado al editar
+        yield TextField::new('id', 'Código (ID)')
+            ->setHelp('Slug interno único (ej: booking, airbnb, directo).')
+            ->setFormTypeOption('attr', ['placeholder' => 'airbnb', 'maxlength' => 50])
+            ->setRequired(Crud::PAGE_NEW === $pageName)
+            ->setDisabled(Crud::PAGE_EDIT === $pageName);
 
-        $nombre = TextField::new('nombre', 'Nombre Comercial')->setColumns(6);
+        yield TextField::new('nombre', 'Nombre Comercial')
+            ->setColumns(6);
 
-        // ✅ NUEVO CAMPO ORDEN
-        $orden = IntegerField::new('orden', 'Prioridad Visual')
+        yield IntegerField::new('orden', 'Prioridad Visual')
             ->setHelp('0 sale primero, números altos salen al final.')
             ->setColumns(6);
 
-        $beds24ChannelId = TextField::new('beds24ChannelId', 'Beds24 Channel ID')
+        // ============================================================
+        // 2. CONFIGURACIÓN TÉCNICA
+        // ============================================================
+        yield FormField::addPanel('Integración y Configuración')->setIcon('fa fa-cogs');
+
+        yield TextField::new('beds24ChannelId', 'Beds24 Channel ID')
             ->setHelp('ID técnico del canal en la API v2 de Beds24.')
-            ->setRequired(false);
+            ->setRequired(false)
+            ->hideOnIndex();
 
-        $esExterno = BooleanField::new('esExterno', 'Es Externo (OTA)')
+        yield BooleanField::new('esExterno', 'Es Externo (OTA)')
+            ->setHelp('Define si es un canal de terceros (Booking, Expedia).')
             ->renderAsSwitch(true);
 
-        $esDirecto = BooleanField::new('esDirecto', 'Es Venta Directa')
+        yield BooleanField::new('esDirecto', 'Es Venta Directa')
+            ->setHelp('Define si es motor de reservas propio o recepción.')
             ->renderAsSwitch(true);
 
-        $color = TextField::new('color', 'Color Identificador')
+        yield TextField::new('color', 'Color Identificador')
             ->setHelp('Formato HEX: #RRGGBB')
+            ->setFormTypeOption('attr', ['placeholder' => '#FF0000'])
             ->setRequired(false);
 
-        // ✅ Auditoría mediante TimestampTrait (createdAt / updatedAt)
-        $createdAt = DateTimeField::new('createdAt', 'Registrado')
-            ->setFormat('yyyy/MM/dd HH:mm');
+        // ============================================================
+        // 3. AUDITORÍA (ESTÁNDAR)
+        // ============================================================
+        yield FormField::addPanel('Auditoría')
+            ->setIcon('fa fa-shield-alt')
+            ->renderCollapsed();
 
-        $updatedAt = DateTimeField::new('updatedAt', 'Última Modificación')
-            ->setFormat('yyyy/MM/dd HH:mm');
+        yield DateTimeField::new('createdAt', 'Registrado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
 
-        if (Crud::PAGE_INDEX === $pageName) {
-            return [
-                $orden, // Ver el orden en la lista ayuda mucho
-                $id,
-                $nombre,
-                $esExterno,
-                $esDirecto,
-                $color,
-            ];
-        }
-
-        if (Crud::PAGE_DETAIL === $pageName) {
-            return [
-                FormField::addPanel('Detalle del Canal')->setIcon('fa fa-plug'),
-                $id,
-                $nombre,
-                $orden,
-                $beds24ChannelId,
-                $esExterno,
-                $esDirecto,
-                $color,
-
-                FormField::addPanel('Auditoría Técnica')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-                $createdAt->onlyOnDetail(),
-                $updatedAt->onlyOnDetail(),
-            ];
-        }
-
-        // NEW / EDIT
-        return [
-            FormField::addPanel('Configuración Básica')->setIcon('fa fa-plug'),
-            $id,
-            $nombre,
-            $orden,
-
-            FormField::addPanel('Integración con Beds24')->setIcon('fa fa-cloud'),
-            $beds24ChannelId,
-            $esExterno,
-            $esDirecto,
-
-            FormField::addPanel('Interfaz de Usuario (UI)')->setIcon('fa fa-palette'),
-            $color,
-
-            FormField::addPanel('Tiempos')->setIcon('fa fa-clock')->renderCollapsed(),
-            $createdAt->onlyOnForms()->setFormTypeOption('disabled', true),
-            $updatedAt->onlyOnForms()->setFormTypeOption('disabled', true),
-        ];
+        yield DateTimeField::new('updatedAt', 'Última Modificación')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

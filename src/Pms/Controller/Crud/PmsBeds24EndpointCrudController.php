@@ -24,7 +24,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * PmsBeds24EndpointCrudController.
  * Gestión de los puntos de acceso técnicos para la API de Beds24.
- * Restaurados nombres técnicos 'endpoint' y 'metodo' para compatibilidad con la lógica de sincronización.
  */
 class PmsBeds24EndpointCrudController extends BaseCrudController
 {
@@ -40,10 +39,6 @@ class PmsBeds24EndpointCrudController extends BaseCrudController
         return PmsBeds24Endpoint::class;
     }
 
-    /**
-     * Configuración de Acciones y Permisos.
-     * Los permisos de Roles se aplican DESPUÉS del parent para prioridad absoluta.
-     */
     public function configureActions(Actions $actions): Actions
     {
         $actions
@@ -80,70 +75,83 @@ class PmsBeds24EndpointCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        // ✅ Manejo de UUID para visualización técnica
-        $id = TextField::new('id', 'UUID')
+        // ============================================================
+        // 1. DEFINICIÓN TÉCNICA
+        // ============================================================
+        yield FormField::addPanel('Definición Técnica')->setIcon('fa fa-code');
+
+        yield TextField::new('id', 'UUID')
             ->onlyOnDetail()
             ->formatValue(fn($value) => (string) $value);
 
-        $nombre = TextField::new('nombre', 'Nombre descriptivo');
+        yield TextField::new('accion', 'Acción Lógica (Slug)')
+            ->setHelp('Código único usado por los Processors. Ej: GET_BOOKINGS')
+            ->setRequired(true);
 
-        $accion = TextField::new('accion', 'Acción lógica (Slug)')
-            ->setHelp('Código único usado por los Processors. Ej: GET_BOOKINGS');
+        yield TextField::new('nombre', 'Nombre Descriptivo');
 
-        // ✅ Propiedad restaurada a 'endpoint'
-        $endpoint = TextField::new('endpoint', 'Endpoint / Path')
-            ->setHelp('Ruta de la API. Ej: /bookings o /v2/bookings');
+        yield TextField::new('endpoint', 'Endpoint / Path')
+            ->setHelp('Ruta de la API. Ej: /bookings o /v2/bookings')
+            ->setRequired(true);
 
-        // ✅ Propiedad restaurada a 'metodo'
-        $metodo = ChoiceField::new('metodo', 'Método HTTP')->setChoices([
-            'POST' => 'POST',
-            'GET' => 'GET',
-            'PUT' => 'PUT',
-            'DELETE' => 'DELETE',
-        ]);
+        yield ChoiceField::new('metodo', 'Método HTTP')
+            ->setChoices([
+                'POST' => 'POST',
+                'GET' => 'GET',
+                'PUT' => 'PUT',
+                'DELETE' => 'DELETE',
+            ])
+            ->setRequired(true);
 
-        $version = ChoiceField::new('version', 'Versión API')->setChoices([
-            'v1' => 'v1',
-            'v2' => 'v2',
-        ]);
+        yield ChoiceField::new('version', 'Versión API')
+            ->setChoices([
+                'v1' => 'v1',
+                'v2' => 'v2',
+            ])
+            ->setRequired(true);
 
-        $descripcion = TextareaField::new('descripcion', 'Descripción técnica');
-        $activo = BooleanField::new('activo', 'Activo')->renderAsSwitch(true);
+        yield TextareaField::new('descripcion', 'Descripción Técnica')
+            ->hideOnIndex();
 
-        // Relaciones inversas (Colecciones de colas de proceso)
-        $ratesQueues = CollectionField::new('ratesQueues', 'Colas de Tarifas')->onlyOnDetail();
-        $bookingsPushQueues = CollectionField::new('bookingsPushQueues', 'Colas de Reservas (Push)')->onlyOnDetail();
-        $pullQueueJobs = CollectionField::new('pullQueueJobs', 'Jobs de Pull')->onlyOnDetail();
+        // ============================================================
+        // 2. ESTADO OPERATIVO
+        // ============================================================
+        yield FormField::addPanel('Estado Operativo')->setIcon('fa fa-toggle-on');
 
-        // Auditoría mediante TimestampTrait
-        $createdAt = DateTimeField::new('createdAt', 'Creado')->onlyOnDetail();
-        $updatedAt = DateTimeField::new('updatedAt', 'Actualizado')->onlyOnDetail();
+        yield BooleanField::new('activo', 'Activo')
+            ->renderAsSwitch(true);
 
-        if (Crud::PAGE_INDEX === $pageName) {
-            return [$accion, $nombre, $endpoint, $metodo, $activo];
-        }
+        // ============================================================
+        // 3. RELACIONES (Solo Detalle)
+        // ============================================================
+        yield FormField::addPanel('Relaciones de Sincronización')
+            ->setIcon('fa fa-sitemap')
+            ->onlyOnDetail();
 
-        return [
-            FormField::addPanel('Definición Técnica')->setIcon('fa fa-code'),
-            $id,
-            $nombre,
-            $accion,
-            $endpoint,
-            $metodo,
-            $version,
-            $descripcion,
+        yield CollectionField::new('ratesQueues', 'Colas de Tarifas')
+            ->onlyOnDetail();
 
-            FormField::addPanel('Estado Operativo')->setIcon('fa fa-toggle-on'),
-            $activo,
+        yield CollectionField::new('bookingsPushQueues', 'Colas de Reservas (Push)')
+            ->onlyOnDetail();
 
-            FormField::addPanel('Relaciones de Sincronización')->setIcon('fa fa-sitemap')->onlyOnDetail(),
-            $ratesQueues,
-            $bookingsPushQueues,
-            $pullQueueJobs,
+        yield CollectionField::new('pullQueueJobs', 'Jobs de Pull')
+            ->onlyOnDetail();
 
-            FormField::addPanel('Auditoría')->setIcon('fa fa-clock')->renderCollapsed(),
-            $createdAt,
-            $updatedAt,
-        ];
+        // ============================================================
+        // 4. AUDITORÍA (ESTÁNDAR)
+        // ============================================================
+        yield FormField::addPanel('Auditoría')
+            ->setIcon('fa fa-shield-alt')
+            ->renderCollapsed();
+
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

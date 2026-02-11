@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
+use App\Panel\Field\LiipImageField;
 use App\Panel\Form\Type\WifiNetworkType;
+use App\Pms\Entity\PmsGuiaItemGaleria;
 use App\Pms\Entity\PmsUnidad;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -21,8 +23,10 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Vich\UploaderBundle\Form\Type\VichImageType;
 
 final class PmsUnidadCrudController extends BaseCrudController
 {
@@ -30,7 +34,8 @@ final class PmsUnidadCrudController extends BaseCrudController
     // Solo pego aquí el constructor para contexto, asumo que tienes el resto arriba.
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
-        protected RequestStack $requestStack
+        protected RequestStack $requestStack,
+        private ParameterBagInterface $params
     ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
@@ -93,6 +98,30 @@ final class PmsUnidadCrudController extends BaseCrudController
             ->setRequired(true);
 
         yield TextField::new('nombre', 'Nombre');
+
+        // 1. Resolver rutas para el ImageField nativo
+        $pathRelativo = $this->params->get('pms.path.unidad_images');
+        $basePath = '/' . ltrim($pathRelativo, '/');
+        $uploadDir = $this->params->get('app.public_dir') . '/' . ltrim($pathRelativo, '/');
+
+        // --- COLUMNA 1: VISTA PREVIA (Index) ---
+        yield LiipImageField::new('imageUrl', 'Vista Previa')
+            ->onlyOnIndex()
+            ->setSortable(false)
+            ->formatValue(function ($value, $entity) {
+                if ($entity instanceof PmsUnidad && method_exists($entity, 'isImage') && !$entity->isImage($entity->getImageName())) {
+                    return $entity->getIconPathFor($entity->getImageName());
+                }
+                return $value;
+            });
+
+        // --- COLUMNA 2: SUBIDA DE ARCHIVO ---
+        yield TextField::new('imageFile', 'Archivo / Imagen')
+            ->setFormType(VichImageType::class)
+            ->setFormTypeOptions(['allow_delete' => true, 'download_uri' => false])
+            ->onlyOnForms()
+            ->setHelp('Soporta imágenes (JPG, PNG, WEBP). Máx 5MB.')
+            ->setColumns(12);
 
         yield TextField::new('codigoInterno', 'Código interno')
             ->setRequired(false);

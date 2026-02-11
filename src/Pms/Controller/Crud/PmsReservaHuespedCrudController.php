@@ -184,9 +184,17 @@ class PmsReservaHuespedCrudController extends BaseCrudController
         // ---------------------------------------------------------------------
         // 5. AUDITORÍA (TimestampTrait)
         // ---------------------------------------------------------------------
-        yield FormField::addPanel('Auditoría')->setIcon('fa fa-clock')->renderCollapsed();
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
 
-        yield DateTimeField::new('createdAt', 'Creado')->onlyOnDetail();
-        yield DateTimeField::new('updatedAt', 'Modificado')->onlyOnDetail();
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
+
     }
 }

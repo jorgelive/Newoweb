@@ -21,8 +21,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * PmsEventoEstadoCrudController.
- * Gestión de los estados lógicos de una reserva/evento (Confirmado, Bloqueo, etc.).
- * Hereda de BaseCrudController y utiliza UUID v7.
+ * Gestión de los estados lógicos de una reserva/evento.
  */
 class PmsEventoEstadoCrudController extends BaseCrudController
 {
@@ -47,9 +46,6 @@ class PmsEventoEstadoCrudController extends BaseCrudController
             ->showEntityActionsInlined();
     }
 
-    /**
-     * ✅ Configuración de acciones y permisos prioritarios.
-     */
     public function configureActions(Actions $actions): Actions
     {
         $actions
@@ -58,7 +54,6 @@ class PmsEventoEstadoCrudController extends BaseCrudController
 
         $actions = parent::configureActions($actions);
 
-        // Los permisos se aplican después para que la clase Roles mande sobre la base
         return $actions
             ->setPermission(Action::INDEX, Roles::MAESTROS_SHOW)
             ->setPermission(Action::DETAIL, Roles::MAESTROS_SHOW)
@@ -78,30 +73,40 @@ class PmsEventoEstadoCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        // ✅ Manejo de UUID para visualización
-        $id = TextField::new('id', 'Código (ID)')
-            ->setHelp('ID único del sistema (Natural Key). Ej: confirmada, bloqueo, new.')
-            ->setFormTypeOption('attr', [
-                'placeholder' => 'Ej: confirmada',
-                'maxlength' => 50
-            ]);
+        // ============================================================
+        // 1. DEFINICIÓN
+        // ============================================================
+        yield FormField::addPanel('Definición')->setIcon('fa fa-tag');
 
-        // Lógica de visualización del ID:
-        if (Crud::PAGE_NEW === $pageName) {
-            // En creación es OBLIGATORIO escribirlo
-            $id->setRequired(true);
-        } elseif (Crud::PAGE_EDIT === $pageName) {
-            // En edición se BLOQUEA (no se debe cambiar la PK)
-            $id->setFormTypeOption('disabled', true);
-        }
+        // ID Visual (Index) - Truncado
+        yield TextField::new('id', 'ID')
+            ->onlyOnIndex()
+            ->formatValue(fn($v) => substr((string)$v, 0, 8) . '...');
 
-        $nombre = TextField::new('nombre', 'Nombre visible');
+        // ID Técnico (Forms/Detail)
+        yield TextField::new('id', 'Código (ID)')
+            ->hideOnIndex()
+            ->setHelp('ID único del sistema (Natural Key). Ej: confirmada, bloqueo.')
+            ->setFormTypeOption('attr', ['placeholder' => 'Ej: confirmada', 'maxlength' => 50])
+            ->setFormTypeOption('disabled', Crud::PAGE_EDIT === $pageName) // Bloqueado en Edición
+            ->setRequired(Crud::PAGE_NEW === $pageName); // Requerido en Creación
 
-        $codigoBeds24 = TextField::new('codigoBeds24', 'Código Beds24')
+        yield TextField::new('nombre', 'Nombre Visible');
+
+        yield TextField::new('codigoBeds24', 'Código Beds24')
             ->setHelp('Mapeo técnico para la API de Beds24.')
             ->setRequired(false);
 
-        $color = TextField::new('color', 'Color (HEX)')
+        yield IntegerField::new('orden', 'Orden Visual')
+            ->setHelp('Posicionamiento en listas y selectores.')
+            ->setRequired(false);
+
+        // ============================================================
+        // 2. CONFIGURACIÓN VISUAL
+        // ============================================================
+        yield FormField::addPanel('Configuración Visual')->setIcon('fa fa-palette');
+
+        yield TextField::new('color', 'Color (HEX)')
             ->setHelp('Ejemplo: #FFB300. Se usa para el renderizado del calendario.')
             ->setFormTypeOption('attr', [
                 'maxlength' => 7,
@@ -110,64 +115,25 @@ class PmsEventoEstadoCrudController extends BaseCrudController
             ])
             ->setRequired(false);
 
-        $colorOverride = BooleanField::new('colorOverride', 'Prioridad de Color')
+        yield BooleanField::new('colorOverride', 'Prioridad de Color')
             ->setHelp('Si se activa, este color prevalece sobre el color del estado de pago.')
             ->renderAsSwitch(true);
 
-        $orden = IntegerField::new('orden', 'Orden Visual')
-            ->setHelp('Posicionamiento en listas y selectores.')
-            ->setRequired(false);
+        // ============================================================
+        // 3. AUDITORÍA (ESTÁNDAR)
+        // ============================================================
+        yield FormField::addPanel('Auditoría')
+            ->setIcon('fa fa-shield-alt')
+            ->renderCollapsed();
 
-        // ✅ Auditoría mediante TimestampTrait (createdAt / updatedAt)
-        $createdAt = DateTimeField::new('createdAt', 'Registrado')
-            ->setFormat('yyyy/MM/dd HH:mm');
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
 
-        $updatedAt = DateTimeField::new('updatedAt', 'Última Modificación')
-            ->setFormat('yyyy/MM/dd HH:mm');
-
-        if (Crud::PAGE_INDEX === $pageName) {
-            return [
-                TextField::new('id', 'ID')->formatValue(fn($v) => substr((string)$v, 0, 8) . '...'),
-                $nombre,
-                $codigoBeds24,
-                $color,
-                $colorOverride,
-                $orden,
-            ];
-        }
-
-        if (Crud::PAGE_DETAIL === $pageName) {
-            return [
-                FormField::addPanel('Identidad del Estado')->setIcon('fa fa-tag'),
-                $id,
-                $nombre,
-                $codigoBeds24,
-
-                FormField::addPanel('Configuración Visual')->setIcon('fa fa-palette'),
-                $color,
-                $colorOverride,
-                $orden,
-
-                FormField::addPanel('Auditoría')->setIcon('fa fa-clock')->renderCollapsed(),
-                $createdAt,
-                $updatedAt,
-            ];
-        }
-
-        // NEW / EDIT
-        return [
-            FormField::addPanel('Definición')->setIcon('fa fa-tag'),
-            $nombre,
-            $codigoBeds24,
-
-            FormField::addPanel('Visualización')->setIcon('fa fa-palette'),
-            $color,
-            $colorOverride,
-            $orden,
-
-            FormField::addPanel('Tiempos')->setIcon('fa fa-history')->renderCollapsed(),
-            $createdAt->onlyOnForms()->setFormTypeOption('disabled', true),
-            $updatedAt->onlyOnForms()->setFormTypeOption('disabled', true),
-        ];
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

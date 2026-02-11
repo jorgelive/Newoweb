@@ -10,11 +10,17 @@ use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Panel\Entity\Trait\MediaTrait;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
+use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 /**
  * Entidad PmsUnidad.
@@ -23,11 +29,14 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_unidad')]
 #[ORM\HasLifecycleCallbacks]
+#[Vich\Uploadable]
 class PmsUnidad
 {
     use IdTrait;
     use TimestampTrait;
     use AutoTranslateControlTrait; // 👈 Agrega control de traducción y sobreescritura
+
+    use MediaTrait;
 
     #[ORM\ManyToOne(targetEntity: PmsEstablecimiento::class, inversedBy: 'unidades')]
     #[ORM\JoinColumn(name: 'establecimiento_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
@@ -35,6 +44,27 @@ class PmsUnidad
 
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $nombre = null;
+
+    #[Vich\UploadableField(mapping: 'unidad_images', fileNameProperty: 'imageName')]
+    #[Assert\File(
+        maxSize: "5M",
+        mimeTypes: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
+        mimeTypesMessage: "Formato no válido. Use JPG, PNG, WEBP o PDF."
+    )]
+    private ?File $imageFile = null;
+
+    #[ORM\Column(type: 'string', nullable: true)]
+    private ?string $imageName = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTimeInterface $imageUpdatedAt = null;
+
+    /**
+     * PROPIEDAD VIRTUAL (No es columna de DB).
+     * El AssetListener inyectará aquí la URL pública completa.
+     * Usado por LiipImageField en EasyAdmin.
+     */
+    private ?string $imageUrl = null;
 
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $codigoInterno = null;
@@ -126,9 +156,25 @@ class PmsUnidad
     public function getEstablecimiento(): ?PmsEstablecimiento { return $this->establecimiento; }
     public function setEstablecimiento(?PmsEstablecimiento $val): self { $this->establecimiento = $val; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $val): self { $this->nombre = $val; return $this; }
+
+    #[Groups(['pax_reserva:read', 'pax_evento:read'])]
+    public function getImageUrl(): ?string { return $this->imageUrl; }
+    public function setImageUrl(?string $url): self { $this->imageUrl = $url; return $this; }
+
+    public function setImageFile(?File $imageFile = null): void
+    {
+        $this->imageFile = $imageFile;
+        if (null !== $imageFile) {
+            $this->imageUpdatedAt = new DateTimeImmutable();
+        }
+    }
+    public function getImageFile(): ?File { return $this->imageFile; }
+
+    public function getImageName(): ?string { return $this->imageName; }
+    public function setImageName(?string $imageName): void { $this->imageName = $imageName; }
 
     public function getCodigoInterno(): ?string { return $this->codigoInterno; }
     public function setCodigoInterno(?string $val): self { $this->codigoInterno = $val; return $this; }
@@ -324,7 +370,7 @@ class PmsUnidad
         return $this;
     }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;

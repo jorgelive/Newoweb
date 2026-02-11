@@ -161,12 +161,16 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
         yield DateTimeField::new('lockedAt', 'Bloqueado en');
 
         // --- AUDITORÍA DE SISTEMA ---
-        yield FormField::addPanel('Tiempos de Registro')->setIcon('fa fa-history')->onlyOnDetail();
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
 
         yield DateTimeField::new('createdAt', 'Creado')
-            ->onlyOnDetail();
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
 
         yield DateTimeField::new('updatedAt', 'Actualizado')
-            ->onlyOnDetail();
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

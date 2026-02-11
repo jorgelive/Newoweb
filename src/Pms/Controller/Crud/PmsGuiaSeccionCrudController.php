@@ -130,15 +130,19 @@ class PmsGuiaSeccionCrudController extends BaseCrudController
                     return new PmsGuiaSeccionHasItem();
                 },
             ]);
-
-        // --- BLOQUE 4: AUDITORÍA ---
-        yield FormField::addPanel('Auditoría del Sistema')
-            ->setIcon('fa fa-history')
-            ->onlyOnDetail()
-            ->collapsible();
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
 
         yield TextField::new('id', 'UUID')->onlyOnDetail();
-        yield DateTimeField::new('createdAt', 'Registrado en')->onlyOnDetail();
-        yield DateTimeField::new('updatedAt', 'Última modificación')->onlyOnDetail();
+
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
+
     }
 }

@@ -30,6 +30,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -42,7 +43,7 @@ final class PmsReservaCrudController extends BaseCrudController
         private readonly PmsEventoCalendarioFactory $eventoFactory,
         private readonly EntityManagerInterface $entityManager,
         protected AdminUrlGenerator $adminUrlGenerator,
-        protected RequestStack $requestStack
+        protected RequestStack $requestStack,
     ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
@@ -185,7 +186,8 @@ final class PmsReservaCrudController extends BaseCrudController
             ->setEntityLabelInPlural('Reservas')
             ->setDefaultSort(['fechaLlegada' => 'DESC'])
             ->showEntityActionsInlined()
-            ->overrideTemplate('crud/index', 'panel/pms/pms_reserva/index.html.twig');
+            ->overrideTemplate('crud/index', 'panel/pms/pms_reserva/index.html.twig')
+            ->overrideTemplate('crud/detail', 'panel/pms/pms_reserva/detail.html.twig');
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -205,14 +207,11 @@ final class PmsReservaCrudController extends BaseCrudController
             $entity = $context?->getEntity()->getInstance();
         }
 
-        // UUID
-        yield TextField::new('id', 'UUID')->onlyOnDetail();
-
         yield TextField::new('localizador', 'Localizador')
+            ->setTemplatePath('panel/pms/pms_reserva/fields/localizador.html.twig')
             ->setFormTypeOption('disabled', true)
             ->setColumns(6)
-            ->formatValue(fn($v) => $v ? sprintf('<span class="badge badge-secondary">%s</span>', $v) : '')
-            ->setHelp('Referencia interna.');
+            ->setHelp('Copia el enlace público para el huésped.');
 
         // Estado Sync (Virtual)
         yield TextField::new('syncStatusAggregate', 'Estado Sincro')
@@ -249,7 +248,7 @@ final class PmsReservaCrudController extends BaseCrudController
             ->setColumns(6)
             ->setRequired(true)
             ->setFormTypeOption('attr', ['required' => true])
-            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.prioritario', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
+            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
 
         yield BooleanField::new('datosLocked', 'Bloquear Datos')
             ->setHelp('Protege los datos contra sobrescritura por sincronización.');
@@ -257,14 +256,18 @@ final class PmsReservaCrudController extends BaseCrudController
         // Eventos (Prototype Data actualizado)
         yield FormField::addPanel('Estancias')->setIcon('fa fa-calendar');
         yield CollectionField::new('eventosCalendario', 'Gestión de Eventos')
-            ->setEntryIsComplex(true)
-            ->setFormTypeOption('entry_type', PmsEventoCalendarioEmbeddedType::class)
-            ->setFormTypeOption('by_reference', false)
-            // ✅ AQUÍ ESTÁ EL CAMBIO FINAL: Usamos createForUi() del factory unificado
+            ->useEntryCrudForm(PmsEventoCalendarioCrudController::class)
             ->setFormTypeOption('prototype_data', $this->eventoFactory->createForUi())
+            ->setColumns(12)
+            ->addCssClass('field-full-width')
+
+            // Configuración estándar para OneToMany
+            ->setFormTypeOption('by_reference', false)
             ->allowAdd()
             ->allowDelete()
-            ->onlyOnForms();
+            ->renderExpanded() // Opcional: Muestra los campos abiertos en lugar de colapsados
+            ->onlyOnForms()
+        ;
 
         yield CollectionField::new('eventosCalendario', 'Detalle de Estancias')
             ->setTemplatePath('panel/pms/pms_reserva/fields/detail_eventos.html.twig')
@@ -277,7 +280,11 @@ final class PmsReservaCrudController extends BaseCrudController
             ->setFormTypeOption('by_reference', false)
             ->allowAdd()
             ->allowDelete()
-            ->hideOnIndex();
+            ->onlyOnForms();
+
+        yield CollectionField::new('huespedes', 'Lista Namelist')
+            ->setTemplatePath('panel/pms/pms_reserva/fields/detail_huespedes.html.twig')
+            ->onlyOnDetail();
 
         // Resumen
         yield FormField::addPanel('Resumen')->setIcon('fa fa-calculator')->renderCollapsed();
@@ -286,14 +293,23 @@ final class PmsReservaCrudController extends BaseCrudController
         yield MoneyField::new('montoTotal', 'Total')->setCurrency('USD')->setStoredAsCents(false)->setFormTypeOption('disabled', true)->setColumns(6);
 
         // Técnico
-        yield FormField::addPanel('Técnico')->setIcon('fa fa-fingerprint')->renderCollapsed();
-        $refCanal = $entity?->getReferenciaCanal();
         if ($pageName === Crud::PAGE_EDIT || $pageName === Crud::PAGE_NEW || !empty($refCanal)) {
+            $refCanal = $entity?->getReferenciaCanal();
             yield TextField::new('referenciaCanal', 'Ref. OTA')->setFormTypeOption('disabled', true);
         }
 
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
-        yield DateTimeField::new('createdAt', 'Creado')->onlyOnDetail();
-        yield DateTimeField::new('updatedAt', 'Actualizado')->onlyOnDetail();
+
+        yield TextField::new('id', 'UUID')->onlyOnDetail();
+
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

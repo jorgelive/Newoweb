@@ -125,14 +125,17 @@ class PmsGuiaCrudController extends BaseCrudController
             ->setColumns(12)
             ->addCssClass('field-full-width');
 
-        // --- PANEL 4: AUDITORÍA (Solo Detalle) ---
-        yield FormField::addPanel('Información de Auditoría')
-            ->setIcon('fa fa-history')
-            ->onlyOnDetail()
-            ->collapsible();
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
 
         yield TextField::new('id', 'UUID Técnico')->onlyOnDetail();
-        yield DateTimeField::new('createdAt', 'Creado el')->onlyOnDetail();
-        yield DateTimeField::new('updatedAt', 'Actualizado el')->onlyOnDetail();
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

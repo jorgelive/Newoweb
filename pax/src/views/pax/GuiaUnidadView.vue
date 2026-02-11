@@ -16,23 +16,33 @@ const seccionActiva = ref<PmsGuiaSeccion | null>(null);
 const expandedItems = ref<Set<string>>(new Set());
 const scrollContainer = ref<HTMLElement | null>(null);
 
-// 🔥 CORRECCIÓN 1: Buscar en 'text_fixed' (Strings seguros)
+// --- COMPUTED PROPERTIES ---
+
+// 1. Obtener nombre del huésped
 const getFirstName = computed(() => {
   const nombre = store.helperContext?.data?.text_fixed?.guest_name || 'Viajero';
   return nombre.split(' ')[0];
 });
 
-// 🔥 CORRECCIÓN 2: Buscar en 'text_fixed'
+// 2. Obtener nombre de la unidad
 const getUnitName = computed(() => {
   return store.helperContext?.data?.text_fixed?.unit_name || 'Unidad';
 });
 
+// 3. Obtener la imagen de portada (NUEVO)
+const heroImage = computed(() => {
+  return store.guia?.unidad?.imageUrl || null;
+});
+
+// 4. Normalizar ítems de la sección activa
 const itemsNormalizados = computed(() => {
   if (!seccionActiva.value || !seccionActiva.value.items) return [];
   return Array.isArray(seccionActiva.value.items) ? seccionActiva.value.items : [seccionActiva.value.items];
 });
 
 const esItemUnico = computed(() => itemsNormalizados.value.length === 1);
+
+// --- MÉTODOS ---
 
 const scrollToTop = async () => {
   await nextTick(); await nextTick();
@@ -74,7 +84,6 @@ const cerrarSeccion = () => {
   else router.replace({ name: 'guia_unidad', params: { uuid: route.params.uuid } });
 };
 
-// 🔥 CORRECCIÓN 3: Buscar en 'text_fixed'
 const irAReserva = () => {
   const loc = store.helperContext?.data?.text_fixed?.booking_ref || (route.query.localizador as string | undefined);
   if (loc && loc !== 'DEMO') {
@@ -83,6 +92,8 @@ const irAReserva = () => {
     router.back();
   }
 };
+
+// --- WATCHERS & HOOKS ---
 
 watch(() => route.query.section, async (newId) => {
   if (newId && store.guia) {
@@ -97,6 +108,7 @@ onMounted(() => { const uuid = route.params.uuid as string; if (uuid) cargarTodo
 
 <template>
   <div class="min-h-screen bg-[#F8FAFC] font-sans selection:bg-indigo-100 selection:text-indigo-800">
+
     <div v-if="store.loading || maestroStore.loading" class="fixed inset-0 z-50 flex flex-col justify-center items-center bg-white/90 backdrop-blur-md">
       <div class="relative w-16 h-16">
         <div class="absolute inset-0 rounded-full border-4 border-gray-100"></div>
@@ -115,15 +127,18 @@ onMounted(() => { const uuid = route.params.uuid as string; if (uuid) cargarTodo
     </div>
 
     <div v-else-if="store.guia" class="relative w-full max-w-[480px] mx-auto min-h-screen bg-white shadow-2xl overflow-hidden md:my-8 md:min-h-[850px] md:h-[90vh] md:rounded-[3rem] md:border-[8px] md:border-gray-900">
+
       <header class="absolute top-0 left-0 right-0 z-20 px-8 pt-14 pb-6 bg-gradient-to-b from-white via-white/95 to-transparent backdrop-blur-[2px]">
         <div class="flex justify-between items-start gap-3">
           <div v-if="(store.helperContext?.data?.text_fixed?.booking_ref && store.helperContext?.data?.text_fixed?.booking_ref !== 'DEMO') || route.query.localizador" class="shrink-0 pt-1 mr-2">
             <button @click="irAReserva" class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-90"><i class="fas fa-arrow-left text-sm"></i></button>
           </div>
+
           <div class="flex flex-col flex-1 min-w-0">
             <span class="text-[10px] font-black tracking-[0.2em] text-indigo-500 uppercase mb-1">{{ maestroStore.t('gui_header_tag') || 'Guía Digital' }}</span>
             <h1 class="text-2xl font-black text-gray-900 leading-[1.1] truncate">{{ store.traducir(store.guia.titulo) }}</h1>
           </div>
+
           <div class="relative shrink-0">
             <select :value="maestroStore.idiomaActual" @change="maestroStore.setIdioma(($event.target as HTMLSelectElement).value)" class="appearance-none bg-gray-100 font-bold text-[10px] uppercase tracking-wide rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer text-gray-600 border-0 hover:bg-gray-200 transition-colors">
               <option v-for="lang in maestroStore.idiomas" :key="lang.id" :value="lang.id">{{ lang.bandera }} {{ lang.id.toUpperCase() }}</option>
@@ -134,11 +149,29 @@ onMounted(() => { const uuid = route.params.uuid as string; if (uuid) cargarTodo
       </header>
 
       <div class="pt-36 pb-24 px-6 h-full overflow-y-auto scrollbar-hide bg-white">
-        <div class="mb-8 p-8 bg-[#1E1B4B] rounded-[2.5rem] text-white shadow-xl shadow-indigo-900/20 relative overflow-hidden group">
-          <div class="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500 rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-1000"></div>
-          <div class="relative z-10">
-            <h2 class="text-xl font-black mb-2 tracking-tight">{{ maestroStore.t('gui_hola') || '¡Hola' }}, {{ getFirstName }}!</h2>
-            <p class="text-indigo-200 text-sm leading-relaxed font-medium">{{ maestroStore.t('gui_bienvenido_a') || 'Bienvenido a' }} <span class="text-white font-bold">{{ getUnitName }}</span>.</p>
+
+        <div class="mb-8 relative rounded-[2.5rem] shadow-xl shadow-indigo-900/20 overflow-hidden group h-64 md:h-72">
+
+          <div
+              v-if="heroImage"
+              class="absolute inset-0 bg-cover bg-center transition-transform duration-[2s] group-hover:scale-110"
+              :style="{ backgroundImage: `url(${heroImage})` }"
+          ></div>
+
+          <div v-else class="absolute inset-0 bg-[#1E1B4B]">
+            <div class="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500 rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-1000"></div>
+          </div>
+
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+          <div class="absolute bottom-0 left-0 right-0 p-8 z-10 text-white">
+            <h2 class="text-2xl font-black mb-2 tracking-tight drop-shadow-md">
+              {{ maestroStore.t('gui_hola') || '¡Hola' }}, {{ getFirstName }}!
+            </h2>
+            <p class="text-indigo-100 text-sm leading-relaxed font-medium drop-shadow-sm">
+              {{ maestroStore.t('gui_bienvenido_a') || 'Bienvenido a' }}
+              <span class="text-white font-bold">{{ getUnitName }}</span>.
+            </p>
           </div>
         </div>
 
@@ -148,6 +181,7 @@ onMounted(() => { const uuid = route.params.uuid as string; if (uuid) cargarTodo
             <span class="text-[11px] font-black text-gray-600 text-center uppercase tracking-wider leading-tight group-hover:text-indigo-900 transition-colors">{{ store.traducir(seccion.titulo) }}</span>
           </button>
         </div>
+
         <div class="mt-12 text-center pb-4"><p class="text-[9px] text-gray-300 uppercase tracking-[0.3em] font-black">{{ maestroStore.t('com_powered_by') || 'Powered by OpenPeru' }}</p></div>
       </div>
 

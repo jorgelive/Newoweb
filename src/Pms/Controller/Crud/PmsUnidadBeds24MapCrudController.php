@@ -79,97 +79,81 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        $id = TextField::new('id', 'UUID')
+        // ============================================================
+        // 1. RELACIÓN TÉCNICA
+        // ============================================================
+        yield FormField::addPanel('Relación Técnica')->setIcon('fa fa-link');
+
+        // ID Corto para el Index
+        yield TextField::new('id', 'UUID')
             ->onlyOnIndex()
             ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
 
-        $idFull = TextField::new('id', 'UUID Completo')
+        // ID Completo para el Detalle
+        yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
             ->formatValue(fn($value) => (string) $value);
 
-        $beds24Config = AssociationField::new('beds24Config', 'Configuración Beds24')
+        yield AssociationField::new('beds24Config', 'Configuración Beds24')
             ->setRequired(true);
 
-        $pmsUnidad = AssociationField::new('pmsUnidad', 'Unidad PMS')
+        yield AssociationField::new('pmsUnidad', 'Unidad PMS')
             ->setRequired(true);
 
-        // ✅ Aquí seleccionas "Saphy" o "Inti" (que ahora son globales)
-        $virtualEstablecimiento = AssociationField::new('virtualEstablecimiento', 'Establecimiento Virtual (Agrupación)')
+        yield AssociationField::new('virtualEstablecimiento', 'Establecimiento Virtual')
             ->setHelp('Define la identidad comercial (Ej: Saphy, Inti) y si es principal.')
             ->setRequired(false);
 
-        $beds24PropertyId = IntegerField::new('beds24PropertyId', 'Beds24 Property ID')
+        // ============================================================
+        // 2. IDENTIFICADORES BEDS24
+        // ============================================================
+        yield IntegerField::new('beds24PropertyId', 'Beds24 Property ID')
             ->setRequired(false)
             ->setHelp('PropertyId real de Beds24 asociado a este mapeo.');
 
-        $beds24RoomId = IntegerField::new('beds24RoomId', 'Beds24 Room ID')
+        yield IntegerField::new('beds24RoomId', 'Beds24 Room ID')
             ->setRequired(true);
 
-        $beds24UnitId = IntegerField::new('beds24UnitId', 'Beds24 Unit ID (opcional)')
+        yield IntegerField::new('beds24UnitId', 'Beds24 Unit ID (Opcional)')
             ->setRequired(false)
             ->setHelp('Solo si Beds24 usa unidades físicas específicas.');
 
-        $channelPropId = TextField::new('channelPropId', 'Channel Prop ID (Virtual)')
-            ->setRequired(false)
+        yield TextField::new('channelPropId', 'Channel Prop ID (Virtual)')
+            ->onlyOnDetail() // Solo ver en detalle
             ->setFormTypeOption('mapped', false)
-            ->setFormTypeOption('disabled', true)
-            ->setHelp('Heredado del Establecimiento Virtual.')
-            ->hideOnForm();
+            ->setHelp('Heredado del Establecimiento Virtual.');
 
-        $nota = TextField::new('nota', 'Observaciones Técnicas')->setRequired(false);
+        yield TextField::new('nota', 'Observaciones Técnicas')
+            ->setRequired(false)
+            ->hideOnIndex(); // Ocultar en la tabla para no saturar
 
-        $activo = BooleanField::new('activo', 'Mapeo Activo')
+        // ============================================================
+        // 3. CONFIGURACIÓN Y ESTADO
+        // ============================================================
+        yield FormField::addPanel('Configuración de Sincronización')->setIcon('fa fa-flag');
+
+        yield BooleanField::new('activo', 'Mapeo Activo')
             ->renderAsSwitch(true);
 
-        $esPrincipal = BooleanField::new('esPrincipal', 'Es Principal (Virtual)')
+        yield BooleanField::new('esPrincipal', 'Es Principal (Virtual)')
+            ->hideOnForm() // No editable manualmente, viene de lógica interna
             ->setHelp('Determinado por el Establecimiento Virtual asignado.')
             ->renderAsSwitch(false)
-            ->setFormTypeOption('mapped', false)
-            ->setFormTypeOption('disabled', true)
-            ->hideOnForm();
+            ->setFormTypeOption('mapped', false);
 
-        $createdAt = DateTimeField::new('createdAt', 'Creado')
+        // ---------------------------------------------------------------------
+        // PANEL: AUDITORÍA
+        // ---------------------------------------------------------------------
+        yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
+
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
             ->setFormat('yyyy/MM/dd HH:mm')
             ->setFormTypeOption('disabled', true);
-
-        $updatedAt = DateTimeField::new('updatedAt', 'Actualizado')
-            ->setFormat('yyyy/MM/dd HH:mm')
-            ->setFormTypeOption('disabled', true);
-
-        if (Crud::PAGE_INDEX === $pageName) {
-            return [
-                $id,
-                $pmsUnidad,
-                $virtualEstablecimiento,
-                $beds24Config,
-                $esPrincipal,
-                $beds24PropertyId,
-                $beds24RoomId,
-                $beds24UnitId,
-                $activo,
-            ];
-        }
-
-        return [
-            FormField::addPanel('Relación Técnica')->setIcon('fa fa-link'),
-            $idFull->onlyOnDetail(),
-            $beds24Config,
-            $pmsUnidad,
-            $virtualEstablecimiento,
-            $beds24PropertyId,
-            $beds24RoomId,
-            $beds24UnitId,
-
-            $channelPropId->onlyOnDetail(),
-            $nota,
-
-            FormField::addPanel('Configuración de Sincronización')->setIcon('fa fa-flag'),
-            $activo,
-            $esPrincipal->onlyOnDetail(),
-
-            FormField::addPanel('Auditoría de Registro')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-            $createdAt->hideWhenCreating(),
-            $updatedAt->hideWhenCreating(),
-        ];
     }
 }

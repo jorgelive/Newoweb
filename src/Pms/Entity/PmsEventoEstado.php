@@ -110,7 +110,7 @@ class PmsEventoEstado
     public function getId(): ?string { return $this->id; }
     public function setId(string $id): self { $this->id = $id; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(?string $nombre): self { $this->nombre = $nombre; return $this; }
 

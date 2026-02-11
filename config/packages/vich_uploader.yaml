@@ -43,3 +43,19 @@ vich_uploader:
             inject_on_load: false
             delete_on_update: true
             delete_on_remove: true
+
+        # ----------------------------------------------------------------------
+        # 2. GALERÍA (Usa el MediaTokenNamer universal)
+        # ----------------------------------------------------------------------
+        unidad_images:
+            uri_prefix: '%pms.path.unidad_images%'
+
+            # 🔴 CORREGIDO: Tenías un error de tipeo "...dir%/p%pms..." (la 'p' extra)
+            upload_destination: '%app.public_dir%%pms.path.unidad_images%'
+
+            # ✅ UNIVERSAL: Usa el token del MediaTrait (TOKEN_nombre.webp)
+            namer: App\Panel\Naming\MediaTokenNamer
+
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true

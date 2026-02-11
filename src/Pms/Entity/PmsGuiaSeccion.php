@@ -74,7 +74,7 @@ class PmsGuiaSeccion
      * 🔴 IMPORTANTE: Sobrescribimos getId del Trait para añadirle el Grupo.
      * Si no hacemos esto, la API no devuelve el ID de la sección.
      */
-    #[Groups(['guia:read'])]
+    #[Groups(['pax_evento:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -84,7 +84,7 @@ class PmsGuiaSeccion
      * 🔥 "Virtual Property": Devuelve los items limpios y ordenados,
      * ocultando la complejidad de la tabla intermedia 'seccionHasItems'.
      */
-    #[Groups(['guia:read'])]
+    #[Groups(['pax_evento:read'])]
     #[SerializedName('items')]
     public function getItemsApi(): array
     {
@@ -104,13 +104,13 @@ class PmsGuiaSeccion
         return $items;
     }
 
-    #[Groups(['guia:read'])]
+    #[Groups(['pax_evento:read'])]
     public function getTitulo(): array
     {
         return MaestroIdioma::ordenarParaFormulario($this->titulo);
     }
 
-    #[Groups(['guia:read'])]
+    #[Groups(['pax_evento:read'])]
     public function getIcono(): ?string
     {
         return $this->icono;

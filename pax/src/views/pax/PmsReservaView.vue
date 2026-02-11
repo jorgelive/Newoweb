@@ -124,14 +124,22 @@ const verGuiaEvento = (eventoId: string | number) => {
           {{ maestroStore.t('res_tus_unidades') || 'Tus Unidades Reservadas' }}
         </h2>
 
-        <div v-for="evento in pmsStore.reserva.eventosCalendario" :key="evento.id" class="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 mb-8">
+        <div v-for="evento in pmsStore.reserva.eventosCalendario" :key="evento.id" class="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 mb-8 group">
 
-          <div class="h-48 bg-slate-200 flex items-center justify-center relative">
-            <span class="text-slate-400 font-black text-xs uppercase tracking-widest">
-                {{ maestroStore.t('res_foto_unidad') || 'Foto Unidad' }}
-            </span>
+          <div class="h-48 bg-slate-200 relative overflow-hidden">
+            <template v-if="evento.pmsUnidad?.imageUrl">
+              <img
+                  :src="evento.pmsUnidad.imageUrl"
+                  :alt="evento.pmsUnidad.nombre"
+                  class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              >
+            </template>
+            <div v-else class="w-full h-full flex items-center justify-center">
+              <span class="text-slate-400 font-black text-xs uppercase tracking-widest">
+                  {{ maestroStore.t('res_foto_unidad') || 'Foto Unidad' }}
+              </span>
+            </div>
           </div>
-
           <div class="p-6 md:p-10">
             <div class="flex justify-between items-start mb-6">
               <div>

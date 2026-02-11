@@ -1,0 +1,26 @@
+{# templates/panel/pms/pms_reserva/fields/localizador.html.twig #}
+{% set localizador = field.value %}
+{% set reserva = entity.instance %}
+
+{% if localizador and reserva %}
+    {% set base_url = pax_host_url|trim('/') %}
+    {% set url = base_url ~ '/huesped/reserva/' ~ localizador %}
+
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-secondary font-monospace" style="padding: 0.5em 0.7em;">
+            {{ localizador }}
+        </span>
+
+        <button type="button"
+                class="btn btn-sm btn-outline-primary rounded-pill d-inline-flex align-items-center justify-content-center"
+                style="padding-left: 12px !important; padding-right: 12px !important; height: 30px;"
+                data-controller="panel--clipboard"
+                data-panel--clipboard-text-value="{{ url }}"
+                data-action="click->panel--clipboard#copy">
+            <i class="fas fa-link me-2" style="font-size: 0.85rem;"></i>
+            <span style="line-height: 1;">Copiar enlace</span>
+        </button>
+    </div>
+{% else %}
+    <span class="text-muted small">Sin localizador</span>
+{% endif %}

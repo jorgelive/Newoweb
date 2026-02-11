@@ -56,7 +56,7 @@ class PmsEventoCalendario
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class)]
     #[ORM\JoinColumn(name: 'pms_unidad_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
     #[Assert\NotNull(message: "La unidad es obligatoria.")]
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     private ?PmsUnidad $pmsUnidad = null;
 
     #[ORM\ManyToOne(targetEntity: PmsReserva::class, inversedBy: 'eventosCalendario')]
@@ -223,32 +223,32 @@ class PmsEventoCalendario
      * GETTERS Y SETTERS EXPLÍCITOS
      * ====================================================== */
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getId(): ?Uuid
     {
         return $this->id;
     }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getPmsUnidad(): ?PmsUnidad { return $this->pmsUnidad; }
     public function setPmsUnidad(?PmsUnidad $pmsUnidad): self { $this->pmsUnidad = $pmsUnidad; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getReserva(): ?PmsReserva { return $this->reserva; }
     public function setReserva(?PmsReserva $reserva): self { $this->reserva = $reserva; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getEstado(): ?PmsEventoEstado { return $this->estado; }
     public function setEstado(?PmsEventoEstado $estado): self { $this->estado = $estado; return $this; }
 
     public function getEstadoPago(): ?PmsEventoEstadoPago { return $this->estadoPago; }
     public function setEstadoPago(?PmsEventoEstadoPago $estadoPago): self { $this->estadoPago = $estadoPago; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getInicio(): ?DateTimeInterface { return $this->inicio; }
     public function setInicio(?DateTimeInterface $inicio): self { $this->inicio = $inicio; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getFin(): ?DateTimeInterface { return $this->fin; }
     public function setFin(?DateTimeInterface $fin): self { $this->fin = $fin; return $this; }
 
@@ -261,11 +261,11 @@ class PmsEventoCalendario
     public function getComision(): ?string { return $this->comision; }
     public function setComision(?string $comision): self { $this->comision = $comision; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getCantidadAdultos(): int { return $this->cantidadAdultos; }
     public function setCantidadAdultos(int $cantidadAdultos): self { $this->cantidadAdultos = $cantidadAdultos; return $this; }
 
-    #[Groups(['pax:read'])]
+    #[Groups(['pax_reserva:read'])]
     public function getCantidadNinos(): int { return $this->cantidadNinos; }
     public function setCantidadNinos(int $cantidadNinos): self { $this->cantidadNinos = $cantidadNinos; return $this; }
 
@@ -326,9 +326,26 @@ class PmsEventoCalendario
 
     public function __toString(): string
     {
-        if ($this->tituloCache) return $this->tituloCache;
-        $unidad = $this->pmsUnidad ? $this->pmsUnidad->getNombre() : 'Sin Unidad';
-        $inicio = $this->inicio ? $this->inicio->format('d/m') : '?';
-        return sprintf('%s | %s - %s', $unidad, $inicio, $this->descripcion ?: 'Reserva');
+        $unidad = $this->pmsUnidad?->getNombre();
+        $inicio = $this->inicio?->format('d/m');
+        $descripcion = $this->descripcion;
+
+        // 1. Título dinámico completo
+        if ($unidad && $inicio) {
+            return sprintf(
+                '%s | %s - %s',
+                $unidad,
+                $inicio,
+                $descripcion ?: 'Reserva'
+            );
+        }
+
+        // 2. Fallback cacheado
+        if ($this->tituloCache) {
+            return $this->tituloCache;
+        }
+
+        // 3. Último recurso absoluto
+        return 'Reserva';
     }
 }

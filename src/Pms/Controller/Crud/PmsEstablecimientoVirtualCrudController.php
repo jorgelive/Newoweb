@@ -67,7 +67,7 @@ final class PmsEstablecimientoVirtualCrudController extends BaseCrudController
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            ->add('establecimiento') // ✅ Filtro por Hotel
+            ->add('establecimiento')
             ->add('nombre')
             ->add('codigo')
             ->add('codigoExterno')
@@ -77,73 +77,70 @@ final class PmsEstablecimientoVirtualCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        $id = TextField::new('id', 'UUID')
+        // ============================================================
+        // 1. IDENTIDAD COMERCIAL
+        // ============================================================
+        yield FormField::addPanel('Identidad Comercial')->setIcon('fa fa-tag');
+
+        // UUID: Corto en Index, Completo en Detalle
+        yield TextField::new('id', 'UUID')
             ->onlyOnIndex()
             ->formatValue(fn($value) => substr((string)$value, 0, 8) . '...');
 
-        $idFull = TextField::new('id', 'UUID Completo')
+        yield TextField::new('id', 'UUID Completo')
             ->onlyOnDetail()
             ->formatValue(fn($value) => (string) $value);
 
-        // ✅ Ahora se vincula al Hotel, no a la Unidad
-        $establecimiento = AssociationField::new('establecimiento', 'Establecimiento (Hotel)')
+        // Vinculación al Hotel Físico
+        yield AssociationField::new('establecimiento', 'Establecimiento (Hotel)')
             ->setRequired(true)
             ->setHelp('El hotel o edificio físico al que pertenece este listing.');
 
-        $nombre = TextField::new('nombre', 'Nombre Comercial')
+        yield TextField::new('nombre', 'Nombre Comercial')
             ->setHelp('Ej: Saphy, Inti, Booking Lujo.');
 
-        $codigo = TextField::new('codigo', 'Código de Agrupación')
+        yield TextField::new('codigo', 'Código de Agrupación')
             ->setHelp('CRÍTICO: Identificador único del listing (Ej: "SAPHY").')
             ->setRequired(true);
 
-        $codigoExterno = TextField::new('codigoExterno', 'Channel Prop ID')
+        // ============================================================
+        // 2. CONFIGURACIÓN DE CANAL
+        // ============================================================
+        yield FormField::addPanel('Configuración de Canal')->setIcon('fa fa-globe');
+
+        yield TextField::new('codigoExterno', 'Channel Prop ID')
             ->setHelp('ID de la propiedad en el canal (Ej: Hotel ID de Booking).')
             ->setRequired(false);
 
-        $esPrincipal = BooleanField::new('esPrincipal', 'Es Principal')
+        yield BooleanField::new('esPrincipal', 'Es Principal')
             ->setHelp('Si se activa, las reservas manuales usarán este listing por defecto.')
             ->renderAsSwitch(true);
 
-        $beds24Maps = AssociationField::new('beds24Maps', 'Mapas Técnicos')
+        // ============================================================
+        // 3. VINCULACIÓN TÉCNICA
+        // ============================================================
+        yield FormField::addPanel('Vinculación Técnica')
+            ->setIcon('fa fa-link')
             ->onlyOnDetail();
 
-        $createdAt = DateTimeField::new('createdAt', 'Creado')
+        yield AssociationField::new('beds24Maps', 'Mapas Técnicos')
+            ->onlyOnDetail();
+
+        // ============================================================
+        // 4. AUDITORÍA (ESTÁNDAR)
+        // ============================================================
+        yield FormField::addPanel('Auditoría')
+            ->setIcon('fa fa-shield-alt')
+            ->renderCollapsed();
+
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
             ->setFormat('yyyy/MM/dd HH:mm')
             ->setFormTypeOption('disabled', true);
 
-        $updatedAt = DateTimeField::new('updatedAt', 'Actualizado')
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->hideOnIndex()
             ->setFormat('yyyy/MM/dd HH:mm')
             ->setFormTypeOption('disabled', true);
-
-        if (Crud::PAGE_INDEX === $pageName) {
-            return [
-                $id,
-                $establecimiento,
-                $nombre,
-                $codigo,
-                $esPrincipal,
-                $codigoExterno,
-            ];
-        }
-
-        return [
-            FormField::addPanel('Identidad Comercial')->setIcon('fa fa-tag'),
-            $idFull->onlyOnDetail(),
-            $establecimiento,
-            $nombre,
-            $codigo,
-
-            FormField::addPanel('Configuración de Canal')->setIcon('fa fa-globe'),
-            $codigoExterno,
-            $esPrincipal,
-
-            FormField::addPanel('Vinculación Técnica')->setIcon('fa fa-link'),
-            $beds24Maps,
-
-            FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed(),
-            $createdAt->hideWhenCreating(),
-            $updatedAt->hideWhenCreating(),
-        ];
     }
 }
