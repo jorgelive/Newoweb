@@ -554,7 +554,7 @@ trait MainArchivoTrait
     {
         // Evita rutas fantasma cuando extension es null o 'initial'
         if ($this->getExtension() === null || $this->getExtension() === 'initial') return '';
-        return $this->getInternalDir() . 'MainArchivoTrait.php/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
+        return $this->getInternalDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
     }
 
     public function getWebPath(): string
@@ -562,7 +562,7 @@ trait MainArchivoTrait
         // Evita rutas fantasma cuando extension es null o 'initial'
         if ($this->getExtension() === null || $this->getExtension() === 'initial') return '';
         if (in_array($this->getExtension(), $this->externalTypes, true)) return $this->getEnlaceurl() ?? '';
-        return $this->getWebDir() . 'MainArchivoTrait.php/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
+        return $this->getWebDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $this->extension;
     }
 
     protected function getWebDir(): string
