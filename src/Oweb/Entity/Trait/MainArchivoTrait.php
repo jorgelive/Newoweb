@@ -583,13 +583,13 @@ trait MainArchivoTrait
         $ext = $this->extension;
         if ($ext === null || $ext === 'initial') return '';
         if (in_array($ext, $this->resizableTypes, true)) {
-            return $this->getInternalThumbDir() . 'MainArchivoTrait.php/' . $this->id . '_' . $this->getToken() . '.' . $ext;
+            return $this->getInternalThumbDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $ext;
         }
         if (in_array($ext, $this->externalTypes, true)) {
             // Externos: no existe thumb local real; devolvemos el dir por compatibilidad de llamadas.
             return $this->getInternalThumbDir() ?? '';
         }
-        return $this->getInternalThumbDir() . 'MainArchivoTrait.php/' . $this->getIcon($ext) . '.png';
+        return $this->getInternalThumbDir() . '/' . $this->getIcon($ext) . '.png';
     }
 
     protected function getInternalThumbDir(): string
@@ -602,12 +602,12 @@ trait MainArchivoTrait
         $ext = $this->extension;
         if ($ext === null || $ext === 'initial') return '';
         if (in_array($ext, $this->resizableTypes, true)) {
-            return $this->getWebThumbDir() . 'MainArchivoTrait.php/' . $this->id . '_' . $this->getToken() . '.' . $ext;
+            return $this->getWebThumbDir() . '/' . $this->id . '_' . $this->getToken() . '.' . $ext;
         }
         if (in_array($ext, $this->externalTypes, true)) {
             return $this->getEnlacethumburl() ?? '';
         }
-        return $this->getWebThumbDir() . 'MainArchivoTrait.php/' . $this->getIcon($ext) . '.png';
+        return $this->getWebThumbDir() . '/' . $this->getIcon($ext) . '.png';
     }
 
     public function getWebThumbDir(): string
