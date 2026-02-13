@@ -10,29 +10,32 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 export default defineConfig(({ command }) => {
+
     const config = {
         plugins: [
             vue(),
             tailwindcss(),
             VitePWA({
-                // ✅ En dev: NO PWA (evita cache/HMR locos)
+
+                // ❌ Nada de PWA en dev
                 devOptions: { enabled: false },
 
-                // Symfony controla el HTML
+                // Symfony controla HTML
                 injectRegister: null,
                 registerType: 'autoUpdate',
 
-                // ✅ ENTERPRISE: SW propio (control total)
+                // 🔥 ENTERPRISE MODE
                 strategies: 'injectManifest',
-                srcDir: 'src',
+
+                // 👇 ESTA ES LA CLAVE (ruta real del sw)
                 injectManifest: {
-                    swSrc: 'sw.ts',
+                    swSrc: 'src/sw.ts',
                 },
 
-                // ✅ SW en raíz (public/service-worker.js)
+                // 👇 Service Worker en raíz public/
                 filename: '../service-worker.js',
 
-                // ✅ Manifest PWA se genera dentro de app_pax y luego lo copiamos a raíz con postbuild
+                // 👇 Manifest PWA generado en app_pax
                 manifestFilename: 'manifest.webmanifest',
 
                 manifest: {
@@ -50,14 +53,14 @@ export default defineConfig(({ command }) => {
                     ],
                 },
 
-                // ✅ Qué se precachea (incluye shell.html)
+                // 🔥 Precache real (incluye shell.html)
                 workbox: {
                     globDirectory: '../public',
                     globPatterns: [
-                        'app_pax/**/*.{js,css,ico,png,svg,webmanifest,html}',
+                        'app_pax/**/*.{js,css,ico,png,svg,webmanifest,html}'
                     ],
                 },
-            }),
+            })
         ],
 
         base: '/app_pax/',
@@ -79,11 +82,12 @@ export default defineConfig(({ command }) => {
     }
 
     if (command === 'serve') {
+
         const certPath = resolve(__dirname, 'certs/pax.openperu.test.crt')
-        const keyPath = resolve(__dirname, 'certs/pax.openperu.test.key')
+        const keyPath  = resolve(__dirname, 'certs/pax.openperu.test.key')
 
         if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
-            console.error('❌ ERROR CRÍTICO: No encuentro los certificados en pax/certs/')
+            console.error('❌ ERROR: No encuentro certificados en pax/certs/')
             process.exit(1)
         }
 
@@ -104,7 +108,7 @@ export default defineConfig(({ command }) => {
                     port: 5173,
                     protocol: 'wss',
                 },
-            },
+            }
         }
     }
 

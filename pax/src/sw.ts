@@ -4,15 +4,14 @@ import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching'
 import { registerRoute, setCatchHandler } from 'workbox-routing'
 import { NetworkFirst, CacheFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
+import type { RouteHandlerCallbackOptions } from 'workbox-core'
 
 declare let self: ServiceWorkerGlobalScope
 
 precacheAndRoute(self.__WB_MANIFEST)
 
-// ✅ App Shell físico
 const shellHandler = createHandlerBoundToURL('/app_pax/shell.html')
 
-// ✅ Navegación: red primero; si falla, Vue Router se monta con el shell
 registerRoute(
     ({ request }) => request.mode === 'navigate',
     new NetworkFirst({
@@ -21,7 +20,6 @@ registerRoute(
     })
 )
 
-// ✅ Imágenes
 registerRoute(
     ({ request }) => request.destination === 'image',
     new CacheFirst({
@@ -35,13 +33,13 @@ registerRoute(
     })
 )
 
-// ✅ Catch handler con tipos correctos
-setCatchHandler(async ({ event }) => {
-    // En Workbox, aquí "event" es FetchEvent
-    if (event.request.mode === 'navigate') {
-        return shellHandler({ event })
+setCatchHandler(async ({ event }: RouteHandlerCallbackOptions) => {
+    const fetchEvent = event as FetchEvent
+
+    if (fetchEvent.request.mode === 'navigate') {
+        // ✅ así se llama, sin “options”
+        return (shellHandler as any)({ event: fetchEvent })
     }
 
-    // Puedes devolver algo mejor para assets si quieres, pero esto está ok:
     return Response.error()
 })
