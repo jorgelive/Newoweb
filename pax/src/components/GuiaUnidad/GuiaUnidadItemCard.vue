@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/* src/components/GuiaUnidad/GuiaUnidadItemCard.vue */
 import { computed } from 'vue';
 import RichTextRenderer from '@/components/RichText/RichTextRenderer.vue';
 
@@ -32,7 +33,7 @@ const mostrarBoton = computed(() => {
 </script>
 
 <template>
-  <div class="bg-slate-50 rounded-[1.5rem] p-6 text-slate-600">
+  <div class="bg-[#376875]/5 rounded-[1.5rem] p-6 text-gray-700 border border-[#376875]/10">
 
     <RichTextRenderer
         :content="descripcionRaw"
@@ -43,7 +44,7 @@ const mostrarBoton = computed(() => {
       <a :href="urlBoton"
          target="_blank"
          rel="noopener noreferrer"
-         class="group relative flex items-center justify-center w-full py-4 bg-white text-indigo-600 font-bold text-center rounded-xl border border-indigo-100 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100 transition-all duration-300">
+         class="group relative flex items-center justify-center w-full py-4 bg-[#E07845] text-white font-bold text-center rounded-xl shadow-lg shadow-orange-200/50 hover:bg-[#D06535] hover:shadow-orange-200 hover:-translate-y-0.5 transition-all duration-300">
 
         <span class="mr-2">{{ textoBoton }}</span>
         <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>

@@ -33,7 +33,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[ApiResource(
     operations: [
         new Get(
-            uriTemplate: '/pax/pms/pms_guia/pms_unidad/{unidad}',
+            uriTemplate: '/public/pax/pms/pms_guia/pms_unidad/{unidad}',
             uriVariables: [
                 'unidad' => new Link(
                     toProperty: 'unidad',
@@ -42,10 +42,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
                 ),
             ],
             normalizationContext: ['groups' => ['pax_evento:read']],
-        ),
-        new GetCollection(
-            normalizationContext: ['groups' => ['pax_evento:read']]
-        ),
+        )
     ],
     order: ['createdAt' => 'DESC']
 )]

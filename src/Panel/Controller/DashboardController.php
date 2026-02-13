@@ -30,6 +30,7 @@ use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsGuia;
 use App\Pms\Entity\PmsGuiaItem;
+use App\Pms\Entity\PmsGuiaItemGaleria;
 use App\Pms\Entity\PmsGuiaSeccion;
 use App\Pms\Entity\PmsRatesPushQueue;
 use App\Pms\Entity\PmsReserva;
@@ -138,6 +139,7 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkToCrud('Guías por Unidad', 'fa fa-book', PmsGuia::class),
                 MenuItem::linkToCrud('Secciones (Bloques)', 'fa fa-puzzle-piece', PmsGuiaSeccion::class),
                 MenuItem::linkToCrud('Ítems de Contenido', 'fa fa-info-circle', PmsGuiaItem::class),
+                MenuItem::linkToCrud('Imagenes de Ítems', 'fa fa-image', PmsGuiaItemGaleria::class),
             ])
             ->setPermission(Roles::RESERVAS_SHOW);
 

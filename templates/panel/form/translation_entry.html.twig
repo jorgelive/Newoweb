@@ -1,4 +1,4 @@
-{# BLOQUE 1: ROW (Sin cambios) #}
+{# BLOQUE 1: ROW (Sobrescribe al nativo para quitar el label "0", "1"...) #}
 {% block pms_translation_entry_row %}
     <div class="pms-item-row mb-2">
         {{ form_widget(form) }}
@@ -6,13 +6,17 @@
     </div>
 {% endblock %}
 
-{# BLOQUE 2: WIDGET #}
+{# BLOQUE 2: WIDGET (Tu diseño del acordeón) #}
 {% block pms_translation_entry_widget %}
+    {# Detectamos si es el primero por el índice '0' #}
+    {% set is_first = form.vars.name == '0' %}
+
     {% set val_lang = value.language|default(form.vars.value.language|default('')) %}
     {% set val_content = value.content|default(form.vars.value.content|default('')) %}
     {% set db_config = form.vars.idiomas_config|default({}) %}
     {% set info = db_config[val_lang] ?? { 'flag': '✨', 'name': val_lang ? val_lang|upper : 'Nuevo' } %}
 
+    {# Estilos inline para no depender de CSS externo #}
     <style>
         .pms-delete-translation-btn {
             background-color: #fcfcfc;
@@ -29,33 +33,25 @@
             border: none;
             border-left: 1px solid #dee2e6;
         }
-        .pms-delete-translation-btn i {
-            font-size: 0.85rem;
-            color: #dc3545;
-        }
-        .pms-delete-translation-btn:hover {
-            background-color: #fee2e2 !important;
-        }
-        .pms-delete-translation-btn:hover i {
-            color: #b02a37;
-        }
+        .pms-delete-translation-btn i { font-size: 0.85rem; color: #dc3545; }
+        .pms-delete-translation-btn:hover { background-color: #fee2e2 !important; }
+        .pms-delete-translation-btn:hover i { color: #b02a37; }
     </style>
 
     <div class="accordion-item border shadow-sm">
         <h2 class="accordion-header d-flex align-items-stretch m-0 p-0" id="heading-{{ id }}">
 
-            {# BOTÓN IZQUIERDO (Acordeón) #}
+            {# BOTÓN DEL ACORDEÓN #}
             {#
-            ✅ CAMBIO 1:
-            - Se eliminó la clase 'collapsed'.
-            - Se agregó aria-expanded="true".
-            Esto hace que la flecha apunte hacia arriba indicando "abierto".
+            LÓGICA APLICADA:
+            1. Si NO es el primero (not is_first), añadimos la clase 'collapsed'.
+            2. aria-expanded es 'true' si es el primero.
             #}
-            <button class="accordion-button py-2 flex-grow-1"
+            <button class="accordion-button py-2 flex-grow-1 {{ not is_first ? 'collapsed' }}"
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#collapse-{{ id }}"
-                    aria-expanded="true"
+                    aria-expanded="{{ is_first ? 'true' : 'false' }}"
                     style="background-color: #fcfcfc; border-top-right-radius: 0; border-bottom-right-radius: 0;">
 
                 <span class="me-2 fs-5">{{ info.flag }}</span>
@@ -70,7 +66,7 @@
                 {% endif %}
             </button>
 
-            {# BOTÓN DERECHO (Eliminar) #}
+            {# BOTÓN ELIMINAR #}
             <button type="button"
                     class="pms-delete-translation-btn"
                     onclick="this.closest('.pms-item-row').remove();"
@@ -81,12 +77,11 @@
 
         {# CUERPO DEL ACORDEÓN #}
         {#
-        ✅ CAMBIO 2:
-        - Se agregó la clase 'show' fijamente.
-        Esto hace que el contenido sea visible inmediatamente.
+        LÓGICA APLICADA:
+        1. Añadimos la clase 'show' SOLO si es el primero.
         #}
         <div id="collapse-{{ id }}"
-             class="accordion-collapse collapse show"
+             class="accordion-collapse collapse {{ is_first ? 'show' }}"
              data-bs-parent="#{{ id|split('_')[0] }}_accordion">
 
             <div class="accordion-body bg-white p-3 border-top">
@@ -99,6 +94,7 @@
                         <div class="col-12">{{ form_widget(form.content) }}{{ form_errors(form.content) }}</div>
                     {% endif %}
                 </div>
+                {# Renderizamos el resto de campos ocultos (token, etc) #}
                 {{ form_rest(form) }}
             </div>
         </div>

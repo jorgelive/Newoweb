@@ -22,10 +22,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
     operations: [
         new Get(
-            uriTemplate: '/pax/ui_i18n/{id}'
+            uriTemplate: '/public/pax/ui_i18n/{id}'
         ),
         new GetCollection(
-            uriTemplate: '/pax/ui_i18n'
+            uriTemplate: '/public/pax/ui_i18n'
         )
     ],
     normalizationContext: ['groups' => ['pax:read']],

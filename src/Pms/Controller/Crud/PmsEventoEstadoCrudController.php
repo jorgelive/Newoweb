@@ -32,6 +32,7 @@ class PmsEventoEstadoCrudController extends BaseCrudController
         parent::__construct($adminUrlGenerator, $requestStack);
     }
 
+
     public static function getEntityFqcn(): string
     {
         return PmsEventoEstado::class;

@@ -25,6 +25,11 @@ services:
             - ../../src/Calendar/
             - ../../src/Exchange/
 
+    Symfony\Component\Serializer\Normalizer\DateTimeNormalizer:
+        arguments:
+            $defaultContext:
+                datetime_format: 'Y-m-d\TH:i:s'
+
     Google\Cloud\Translate\V3\Client\TranslationServiceClient:
         arguments:
             $options:

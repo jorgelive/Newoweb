@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
+use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Field\LiipImageField;
 use App\Panel\Form\Type\TranslationTextType; // ✅ Importamos tu tipo de traducción
 use App\Pms\Entity\PmsGuiaItemGaleria;
@@ -12,19 +13,27 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField; // ✅ Necesario para la colección
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Vich\UploaderBundle\Form\Type\VichImageType;
 
-class PmsGuiaItemGaleriaCrudController extends AbstractCrudController
+class PmsGuiaItemGaleriaCrudController extends BaseCrudController
 {
+
     public function __construct(
+        protected AdminUrlGenerator $adminUrlGenerator,
+        protected RequestStack $requestStack,
         private ParameterBagInterface $params
-    ) {}
+    ) {
+        parent::__construct($adminUrlGenerator, $requestStack);
+    }
 
     public static function getEntityFqcn(): string
     {
@@ -53,6 +62,10 @@ class PmsGuiaItemGaleriaCrudController extends AbstractCrudController
         $pathRelativo = $this->params->get('pms.path.galeria_images');
         $basePath = '/' . ltrim($pathRelativo, '/');
         $uploadDir = $this->params->get('app.public_dir') . '/' . ltrim($pathRelativo, '/');
+
+        if(!$this->isEmbedded()) {
+            yield AssociationField::new('item', 'Item');
+        }
 
         // --- COLUMNA 1: VISTA PREVIA (Index) ---
         yield LiipImageField::new('imageUrl', 'Vista Previa')

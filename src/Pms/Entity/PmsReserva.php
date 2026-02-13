@@ -34,7 +34,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new Get(
-            uriTemplate: '/pax/pms/pms_reserva/{localizador}',
+            uriTemplate: '/client/pax/pms/pms_reserva/{localizador}',
             uriVariables: [
                 'localizador' => new Link(
                     fromClass: PmsReserva::class,
