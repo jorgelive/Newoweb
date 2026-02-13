@@ -1,27 +1,38 @@
+{# templates/pax/app.html.twig #}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {# --- PWA & MOBILE META --- #}
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Pax">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    {# ✅ Manifest en RAÍZ (public/manifest.webmanifest) #}
+    <link rel="manifest" href="/manifest.webmanifest">
+
     <title>Pax Experience</title>
 
     {# 1. FAVICON INTELIGENTE #}
-    {# En Dev lo pedimos a Vite (puerto 5173), en Prod/Build a la carpeta pública #}
     {% if is_dev %}
-        <link rel="icon" type="image/svg+xml" href="https://pax.openperu.test:5173/app_pax/favicon.svg" />
+        <link rel="icon" type="image/svg+xml" href="/app_pax/favicon.svg" />
     {% else %}
         <link rel="icon" type="image/svg+xml" href="/app_pax/favicon.svg" />
+        <link rel="apple-touch-icon" href="/app_pax/pwa-192x192.png">
     {% endif %}
 
-    {# 2. ESTILOS CSS (Solo existen en modo Build) #}
+    {# 2. ESTILOS CSS #}
     {% if not is_dev and css_files is defined %}
         {% for css in css_files %}
             <link rel="stylesheet" href="/app_pax/{{ css }}">
         {% endfor %}
     {% endif %}
 
-    {# 🔥 3. CONFIGURACIÓN GLOBAL (LO QUE FALTABA) #}
-    {# Esto inyecta la URL correcta ANTES de que Vue arranque #}
+    {# 🔥 3. CONFIGURACIÓN GLOBAL #}
     <script>
         window.OPENPERU_CONFIG = {
             apiUrl: "{{ app.environment == 'dev' ? 'https://newapi.openperu.test:8890' : 'https://api.openperu.pe' }}"
@@ -33,12 +44,17 @@
 
 {# 4. SCRIPTS DE ARRANQUE #}
 {% if is_dev %}
-    {# Modo HMR (Hot Module Replacement) #}
     <script type="module" src="https://pax.openperu.test:5173/app_pax/@vite/client"></script>
     <script type="module" src="https://pax.openperu.test:5173/app_pax/{{ vite_entry }}"></script>
 {% else %}
-    {# Modo Producción / Build #}
     <script type="module" src="/app_pax/{{ js_file }}"></script>
+
+    {# ✅ Registrar Service Worker en RAÍZ (public/service-worker.js) #}
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js');
+        }
+    </script>
 {% endif %}
 </body>
 </html>

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/pwa-postbuild.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -26,6 +26,7 @@
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
     "vite": "^6.0.0",
+    "vite-plugin-pwa": "^1.2.0",
     "vue-tsc": "^3.2.4"
   }
 }

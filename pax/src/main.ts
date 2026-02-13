@@ -1,26 +1,31 @@
-//src/main.ts
-
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
-
 import '@fortawesome/fontawesome-free/css/all.min.css'
-
-// TypeScript se quejará de este import si no tienes el archivo de declaración (ver abajo)
 import App from './App.vue'
-import router from './router' // Automáticamente busca index.ts
-
-import '@/assets/main.css'; // Si tienes estilos globales
+import router from './router'
+import '@/assets/main.css'
 
 const app = createApp(App)
 
-// 1. Configurar Pinia + Persistencia (Offline)
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 
-// 2. Instalar plugins
 app.use(pinia)
 app.use(router)
-
-// 3. Montar la App
 app.mount('#app')
+
+// ✅ SOLO PRODUCCIÓN
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    import('virtual:pwa-register').then(({ registerSW }) => {
+        registerSW({
+            immediate: true,
+            onRegisteredSW() {
+                console.log('✅ PWA: Service Worker registrado')
+            },
+            onRegisterError(error) {
+                console.error('❌ PWA: Error de registro:', error)
+            },
+        })
+    })
+}

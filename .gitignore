@@ -42,6 +42,9 @@ cookies.txt
 ###< varios ###
 
 ###> Vite ###
+/public/service-worker.js
+/public/manifest.webmanifest
+/public/workbox-*.js
 /public/app_pax/
 /pax/.env.development
 /pax/.env.production
