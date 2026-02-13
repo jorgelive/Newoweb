@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { resolve, dirname } from 'node:path'
 import fs from 'node:fs'
 import { VitePWA } from 'vite-plugin-pwa'
+const buildTimestamp = Date.now().toString();
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
