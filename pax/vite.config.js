@@ -64,7 +64,7 @@ export default defineConfig(({ command }) => {
 
                     // ✅ Meter el shell manualmente SIN hash (evita checksum mismatch)
                     additionalManifestEntries: [
-                        { url: '/app_pax/shell.html', revision: null },
+                        { url: '/app_pax/shell.html', revision: buildTimestamp },
                     ],
 
                     // ✅ Offline navigation => shell
