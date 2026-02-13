@@ -48,6 +48,8 @@ export default defineConfig(({ command }) => {
                 },
 
                 workbox: {
+                    clientsClaim: true,
+                    skipWaiting: true,
                     // ✅ precache desde /public
                     globDirectory: '../public',
                     globPatterns: ['app_pax/**/*.{js,css,ico,png,svg,webmanifest,html}'],
