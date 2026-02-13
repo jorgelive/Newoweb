@@ -15,4 +15,4 @@ app.use(pinia)
 app.use(router)
 app.mount('#app')
 
-// ✅ NO registrar SW aquí (se registra en Twig)
+// ✅ NO registrar SW aquí (lo registra Twig)

@@ -16,21 +16,20 @@ export default defineConfig(({ command }) => {
             vue(),
             tailwindcss(),
             VitePWA({
+                // ✅ en dev: sin PWA
                 devOptions: { enabled: false },
+
+                // Symfony controla el HTML
                 injectRegister: null,
                 registerType: 'autoUpdate',
 
-                strategies: 'injectManifest',
+                // ✅ UN SOLO SISTEMA: generateSW
+                strategies: 'generateSW',
 
-                injectManifest: {
-                    // ✅ archivo fuente REAL
-                    swSrc: 'src/sw.ts',
+                // ✅ SW en raíz de Symfony
+                filename: '../service-worker.js',
 
-                    // ✅ destino REAL (en /public)
-                    swDest: '../public/service-worker.js',
-                },
-
-                // ✅ Manifest PWA dentro de app_pax (luego lo copias a raíz con tu postbuild)
+                // ✅ manifest PWA dentro de app_pax
                 manifestFilename: 'manifest.webmanifest',
 
                 manifest: {
@@ -49,10 +48,14 @@ export default defineConfig(({ command }) => {
                 },
 
                 workbox: {
+                    // ✅ precache desde /public
                     globDirectory: '../public',
                     globPatterns: ['app_pax/**/*.{js,css,ico,png,svg,webmanifest,html}'],
+
+                    // ✅ navegación offline: SIEMPRE tu shell físico
+                    navigateFallback: '/app_pax/shell.html',
                 },
-            })
+            }),
         ],
 
         base: '/app_pax/',
@@ -74,7 +77,6 @@ export default defineConfig(({ command }) => {
     }
 
     if (command === 'serve') {
-
         const certPath = resolve(__dirname, 'certs/pax.openperu.test.crt')
         const keyPath  = resolve(__dirname, 'certs/pax.openperu.test.key')
 
@@ -100,7 +102,7 @@ export default defineConfig(({ command }) => {
                     port: 5173,
                     protocol: 'wss',
                 },
-            }
+            },
         }
     }
 
