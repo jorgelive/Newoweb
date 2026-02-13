@@ -16,26 +16,21 @@ export default defineConfig(({ command }) => {
             vue(),
             tailwindcss(),
             VitePWA({
-
-                // ❌ Nada de PWA en dev
                 devOptions: { enabled: false },
-
-                // Symfony controla HTML
                 injectRegister: null,
                 registerType: 'autoUpdate',
 
-                // 🔥 ENTERPRISE MODE
                 strategies: 'injectManifest',
 
-                // 👇 ESTA ES LA CLAVE (ruta real del sw)
                 injectManifest: {
+                    // ✅ archivo fuente REAL
                     swSrc: 'src/sw.ts',
+
+                    // ✅ destino REAL (en /public)
+                    swDest: '../public/service-worker.js',
                 },
 
-                // 👇 Service Worker en raíz public/
-                filename: '../service-worker.js',
-
-                // 👇 Manifest PWA generado en app_pax
+                // ✅ Manifest PWA dentro de app_pax (luego lo copias a raíz con tu postbuild)
                 manifestFilename: 'manifest.webmanifest',
 
                 manifest: {
@@ -53,12 +48,9 @@ export default defineConfig(({ command }) => {
                     ],
                 },
 
-                // 🔥 Precache real (incluye shell.html)
                 workbox: {
                     globDirectory: '../public',
-                    globPatterns: [
-                        'app_pax/**/*.{js,css,ico,png,svg,webmanifest,html}'
-                    ],
+                    globPatterns: ['app_pax/**/*.{js,css,ico,png,svg,webmanifest,html}'],
                 },
             })
         ],
