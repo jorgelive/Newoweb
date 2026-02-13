@@ -1,4 +1,3 @@
-// pax/src/main.ts
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
@@ -16,6 +15,4 @@ app.use(pinia)
 app.use(router)
 app.mount('#app')
 
-// ✅ IMPORTANTE:
-// NO registres el Service Worker aquí.
-// Se registra desde Twig (Symfony-first) para evitar doble registro y problemas de scope.
+// ✅ NO registrar SW aquí (se registra en Twig)

@@ -1,4 +1,3 @@
-// pax/vite.config.ts
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -16,18 +15,24 @@ export default defineConfig(({ command }) => {
             vue(),
             tailwindcss(),
             VitePWA({
-                // ✅ Dev limpio: sin SW, sin PWA
+                // ✅ En dev: NO PWA (evita cache/HMR locos)
                 devOptions: { enabled: false },
 
-                // Symfony controla el HTML (Twig)
+                // Symfony controla el HTML
                 injectRegister: null,
                 registerType: 'autoUpdate',
-                strategies: 'generateSW',
 
-                // ✅ SW en /public (raíz)
+                // ✅ ENTERPRISE: SW propio (control total)
+                strategies: 'injectManifest',
+                srcDir: 'src',
+                injectManifest: {
+                    swSrc: 'sw.ts',
+                },
+
+                // ✅ SW en raíz (public/service-worker.js)
                 filename: '../service-worker.js',
 
-                // ✅ Manifest PWA se genera en outDir (app_pax) y luego lo copias a raíz con postbuild
+                // ✅ Manifest PWA se genera dentro de app_pax y luego lo copiamos a raíz con postbuild
                 manifestFilename: 'manifest.webmanifest',
 
                 manifest: {
@@ -45,42 +50,16 @@ export default defineConfig(({ command }) => {
                     ],
                 },
 
+                // ✅ Qué se precachea (incluye shell.html)
                 workbox: {
-                    // 🔥 CLAVE: el precache se arma desde /public
                     globDirectory: '../public',
-
-                    // 🔥 CLAVE: todo lo que precacheamos vive bajo /app_pax (no en raíz)
-                    globPatterns: ['app_pax/**/*.{js,css,ico,png,svg,webmanifest}'],
-
-                    runtimeCaching: [
-                        // ✅ Navegación (rutas virtuales Symfony/Vue)
-                        {
-                            urlPattern: ({ request }) => request.mode === 'navigate',
-                            handler: 'NetworkFirst',
-                            options: {
-                                cacheName: 'pax-html',
-                                networkTimeoutSeconds: 3,
-                            },
-                        },
-
-                        // ✅ Imágenes
-                        {
-                            urlPattern: ({ request }) => request.destination === 'image',
-                            handler: 'CacheFirst',
-                            options: {
-                                cacheName: 'pax-images-cache',
-                                expiration: {
-                                    maxEntries: 50,
-                                    maxAgeSeconds: 60 * 60 * 24 * 30,
-                                },
-                            },
-                        },
+                    globPatterns: [
+                        'app_pax/**/*.{js,css,ico,png,svg,webmanifest,html}',
                     ],
                 },
             }),
         ],
 
-        // Base de los assets compilados
         base: '/app_pax/',
 
         resolve: {
@@ -99,7 +78,6 @@ export default defineConfig(({ command }) => {
         },
     }
 
-    // DEV server (HMR)
     if (command === 'serve') {
         const certPath = resolve(__dirname, 'certs/pax.openperu.test.crt')
         const keyPath = resolve(__dirname, 'certs/pax.openperu.test.key')
