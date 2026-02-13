@@ -1,3 +1,4 @@
+// pax/vite.config.ts
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -9,23 +10,24 @@ import { VitePWA } from 'vite-plugin-pwa'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-export default defineConfig(({ command, mode }) => {
-
+export default defineConfig(({ command }) => {
     const config = {
         plugins: [
             vue(),
             tailwindcss(),
             VitePWA({
-                // ✅ en dev mejor OFF para evitar dev-sw.js y confusiones
+                // ✅ Dev limpio: sin SW, sin PWA
                 devOptions: { enabled: false },
 
+                // Symfony controla el HTML (Twig)
+                injectRegister: null,
                 registerType: 'autoUpdate',
-                injectRegister: null, // Symfony controla el HTML
-
                 strategies: 'generateSW',
 
-                // ✅ sacar ambos a /public (raíz), usando el truco ../
+                // ✅ SW en /public (raíz)
                 filename: '../service-worker.js',
+
+                // ✅ Manifest PWA se genera en outDir (app_pax) y luego lo copias a raíz con postbuild
                 manifestFilename: 'manifest.webmanifest',
 
                 manifest: {
@@ -35,12 +37,8 @@ export default defineConfig(({ command, mode }) => {
                     theme_color: '#ffffff',
                     background_color: '#ffffff',
                     display: 'standalone',
-
-                    // ✅ tu app real vive en /
                     start_url: '/',
                     scope: '/',
-
-                    // ✅ rutas físicas de iconos (viven en /app_pax/)
                     icons: [
                         { src: '/app_pax/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
                         { src: '/app_pax/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
@@ -48,32 +46,49 @@ export default defineConfig(({ command, mode }) => {
                 },
 
                 workbox: {
-                    // ✅ fallback a tu shell Symfony
-                    navigateFallback: '/',
+                    // 🔥 CLAVE: el precache se arma desde /public
+                    globDirectory: '../public',
 
-                    // ✅ precache solo assets (no necesitas html)
-                    globPatterns: ['**/*.{js,css,ico,png,svg,webmanifest}'],
+                    // 🔥 CLAVE: todo lo que precacheamos vive bajo /app_pax (no en raíz)
+                    globPatterns: ['app_pax/**/*.{js,css,ico,png,svg,webmanifest}'],
 
                     runtimeCaching: [
+                        // ✅ Navegación (rutas virtuales Symfony/Vue)
+                        {
+                            urlPattern: ({ request }) => request.mode === 'navigate',
+                            handler: 'NetworkFirst',
+                            options: {
+                                cacheName: 'pax-html',
+                                networkTimeoutSeconds: 3,
+                            },
+                        },
+
+                        // ✅ Imágenes
                         {
                             urlPattern: ({ request }) => request.destination === 'image',
                             handler: 'CacheFirst',
                             options: {
                                 cacheName: 'pax-images-cache',
-                                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                                expiration: {
+                                    maxEntries: 50,
+                                    maxAgeSeconds: 60 * 60 * 24 * 30,
+                                },
                             },
                         },
                     ],
                 },
-            })
+            }),
         ],
-        // Base de los assets de Vite
+
+        // Base de los assets compilados
         base: '/app_pax/',
+
         resolve: {
             alias: {
                 '@': fileURLToPath(new URL('./src', import.meta.url)),
             },
         },
+
         build: {
             manifest: true,
             emptyOutDir: true,
@@ -84,9 +99,10 @@ export default defineConfig(({ command, mode }) => {
         },
     }
 
+    // DEV server (HMR)
     if (command === 'serve') {
         const certPath = resolve(__dirname, 'certs/pax.openperu.test.crt')
-        const keyPath  = resolve(__dirname, 'certs/pax.openperu.test.key')
+        const keyPath = resolve(__dirname, 'certs/pax.openperu.test.key')
 
         if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
             console.error('❌ ERROR CRÍTICO: No encuentro los certificados en pax/certs/')
@@ -110,7 +126,7 @@ export default defineConfig(({ command, mode }) => {
                     port: 5173,
                     protocol: 'wss',
                 },
-            }
+            },
         }
     }
 

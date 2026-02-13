@@ -12,27 +12,27 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-    {# ✅ Manifest en RAÍZ (public/manifest.webmanifest) #}
-    <link rel="manifest" href="/manifest.webmanifest">
+    {# ✅ En dev NO cargamos manifest (evita 404). En prod sí. #}
+    {% if not is_dev %}
+        <link rel="manifest" href="/manifest.webmanifest">
+    {% endif %}
 
     <title>Pax Experience</title>
 
-    {# 1. FAVICON INTELIGENTE #}
-    {% if is_dev %}
-        <link rel="icon" type="image/svg+xml" href="/app_pax/favicon.svg" />
-    {% else %}
-        <link rel="icon" type="image/svg+xml" href="/app_pax/favicon.svg" />
+    {# Favicon + Apple Icon #}
+    <link rel="icon" type="image/svg+xml" href="/app_pax/favicon.svg" />
+    {% if not is_dev %}
         <link rel="apple-touch-icon" href="/app_pax/pwa-192x192.png">
     {% endif %}
 
-    {# 2. ESTILOS CSS #}
+    {# CSS compilado #}
     {% if not is_dev and css_files is defined %}
         {% for css in css_files %}
             <link rel="stylesheet" href="/app_pax/{{ css }}">
         {% endfor %}
     {% endif %}
 
-    {# 🔥 3. CONFIGURACIÓN GLOBAL #}
+    {# Config global #}
     <script>
         window.OPENPERU_CONFIG = {
             apiUrl: "{{ app.environment == 'dev' ? 'https://newapi.openperu.test:8890' : 'https://api.openperu.pe' }}"
@@ -42,14 +42,15 @@
 <body class="bg-slate-50">
 <div id="app"></div>
 
-{# 4. SCRIPTS DE ARRANQUE #}
 {% if is_dev %}
+    {# Vite HMR #}
     <script type="module" src="https://pax.openperu.test:5173/app_pax/@vite/client"></script>
     <script type="module" src="https://pax.openperu.test:5173/app_pax/{{ vite_entry }}"></script>
 {% else %}
+    {# Build #}
     <script type="module" src="/app_pax/{{ js_file }}"></script>
 
-    {# ✅ Registrar Service Worker en RAÍZ (public/service-worker.js) #}
+    {# ✅ Registrar SW en raíz (solo prod/build) #}
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js');

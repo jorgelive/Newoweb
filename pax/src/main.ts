@@ -1,3 +1,4 @@
+// pax/src/main.ts
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
@@ -15,17 +16,6 @@ app.use(pinia)
 app.use(router)
 app.mount('#app')
 
-// ✅ SOLO PRODUCCIÓN
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-    import('virtual:pwa-register').then(({ registerSW }) => {
-        registerSW({
-            immediate: true,
-            onRegisteredSW() {
-                console.log('✅ PWA: Service Worker registrado')
-            },
-            onRegisterError(error) {
-                console.error('❌ PWA: Error de registro:', error)
-            },
-        })
-    })
-}
+// ✅ IMPORTANTE:
+// NO registres el Service Worker aquí.
+// Se registra desde Twig (Symfony-first) para evitar doble registro y problemas de scope.
