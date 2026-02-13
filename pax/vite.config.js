@@ -56,6 +56,8 @@ export default defineConfig(({ command }) => {
 
                     // ✅ navegación offline: SIEMPRE tu shell físico
                     navigateFallback: '/app_pax/shell.html',
+
+                    navigateFallbackAllowlist: [/^\/huesped(\/|$)/],
                 },
             }),
         ],
