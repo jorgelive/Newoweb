@@ -57,7 +57,8 @@ export default defineConfig(({ command }) => {
                     globDirectory: '../public/app_pax',
 
                     // ✅ No incluir HTML automáticamente (evita leer shell viejo)
-                    globPatterns: ['**/*.{js,css,ico,png,svg,webmanifest}'],
+                    globPatterns: ['**/*.{js,css,ico,png,svg,webmanifest,woff2,woff,ttf,eot}'],
+
                     globIgnores: ['**/shell.html', '**/*.map'],
 
                     // ✅ Los archivos encontrados se publican bajo /app_pax/ (sin duplicar)
