@@ -7,8 +7,10 @@ namespace App\Pms\Controller\Crud;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Field\LiipImageField;
 use App\Panel\Form\Type\TranslationTextType; // ✅ Importamos tu tipo de traducción
+use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Entity\PmsGuiaItemGaleria;
 use App\Security\Roles;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -22,6 +24,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
 use Vich\UploaderBundle\Form\Type\VichImageType;
 
 class PmsGuiaItemGaleriaCrudController extends BaseCrudController
@@ -42,9 +45,16 @@ class PmsGuiaItemGaleriaCrudController extends BaseCrudController
 
     public function configureActions(Actions $actions): Actions
     {
+        $uploadAction = Action::new('massUpload', 'Carga Masiva')
+            ->linkToCrudAction('renderMassUpload') // Apunta al método de abajo
+            ->createAsGlobalAction() // Botón arriba a la derecha (no por fila)
+            ->setIcon('fa-solid fa-cloud-arrow-up')
+            ->setCssClass('btn btn-primary action-mass-upload');
+
         $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->add(Crud::PAGE_EDIT, Action::DETAIL);
+            ->add(Crud::PAGE_EDIT, Action::DETAIL)
+            ->add(Crud::PAGE_INDEX, $uploadAction);;
 
         $actions = parent::configureActions($actions);
 
@@ -53,7 +63,21 @@ class PmsGuiaItemGaleriaCrudController extends BaseCrudController
             ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
             ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
             ->setPermission(Action::EDIT, Roles::RESERVAS_WRITE)
-            ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
+            ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE)
+            ->setPermission('massUpload', Roles::RESERVAS_WRITE);
+    }
+
+    public function renderMassUpload(EntityManagerInterface $em): Response
+    {
+        // Obtenemos todos los Items para llenar el <select> del template
+        // Ordenados por nombre interno para facilitar la búsqueda
+        $items = $em->getRepository(PmsGuiaItem::class)->findBy([], ['nombreInterno' => 'ASC']);
+
+        return $this->render('panel/pms/pms_guia_item_galeria/mass_upload.html.twig', [
+            'items' => $items,
+            // Pasamos la configuración del CRUD actual para mantener el menú lateral activo
+            'crud' => $this->configureCrud(Crud::new()),
+        ]);
     }
 
     public function configureFields(string $pageName): iterable

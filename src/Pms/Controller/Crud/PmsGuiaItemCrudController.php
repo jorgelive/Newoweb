@@ -75,11 +75,24 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->setColumns(4);
 
         // 2. CONTENIDO
+
         yield FormField::addPanel('Contenido Dinámico')
             ->setIcon('fa fa-align-left');
 
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Auto')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir')->onlyOnForms()->setColumns(6);
+
+        yield TextField::new('galleryHelperVisual', false) // El primer argumento es un ID interno dummy
+            ->setTemplatePath('panel/field/gallery_helper.html.twig')
+            ->onlyOnForms()
+            ->setFormTypeOption('mapped', false)
+            ->setFormTypeOption('data', null)
+            ->setFormTypeOption('block_prefix', 'gallery_helper')
+            ->setFormTypeOptions([
+                'required' => false,
+                'attr' => ['class' => 'd-none']
+            ])
+            ->addCssClass('field-gallery-helper');
 
         yield CollectionField::new('titulo', 'Título')
             ->setEntryType(TranslationTextType::class)
@@ -154,7 +167,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->allowDelete()
             ->renderExpanded()
             ->setColumns(12);
-        
+
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
 
         yield DateTimeField::new('createdAt', 'Creado')

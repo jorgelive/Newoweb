@@ -25,7 +25,7 @@
                     {# 🛡️ PLAN B: Si por alguna razón el listener no se ejecutó (ej: objeto nuevo en memoria),
                        intentamos construir la ruta manualmente con imageName #}
                     {% if url is empty and foto.imageName is not empty %}
-                        {% set url = asset('uploads/guia/' ~ foto.imageName) %}
+                        {% set url = asset('/carga/pms/pms_guia_item_galeria/images' ~ foto.imageName) %}
                     {% endif %}
 
                     {# Solo mostramos si logramos conseguir una URL #}
