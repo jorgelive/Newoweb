@@ -171,7 +171,6 @@ class PmsGuiaItemGaleriaCrudController extends BaseCrudController
             ->showEntryLabel(false)
             ->renderExpanded(true)
             ->setColumns(12)
-            ->hideOnIndex()
             ->formatValue(function ($value) {
                 if (empty($value) || !is_array($value)) return '';
                 foreach ($value as $item) {
