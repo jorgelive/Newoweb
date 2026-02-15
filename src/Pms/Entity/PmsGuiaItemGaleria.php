@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Pms\Entity;
@@ -10,6 +9,7 @@ use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Panel\Entity\Trait\MediaTrait;
+use App\Pms\Repository\PmsGuiaItemGaleriaRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
@@ -19,9 +19,7 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
-// ✅ Tu trait universal
-
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: PmsGuiaItemGaleriaRepository::class)]
 #[ORM\Table(name: 'pms_guia_item_galeria')]
 #[ORM\HasLifecycleCallbacks]
 #[Vich\Uploadable]
@@ -30,7 +28,6 @@ class PmsGuiaItemGaleria
     use IdTrait;
     use TimestampTrait;
     use MediaTrait;
-
     use AutoTranslateControlTrait;
 
     #[ORM\ManyToOne(targetEntity: PmsGuiaItem::class, inversedBy: 'galeria')]
@@ -44,12 +41,9 @@ class PmsGuiaItemGaleria
     private ?PmsGuiaItem $item = null;
 
     #[ORM\Column(type: 'json', nullable: true)]
-    #[AutoTranslate(sourceLanguage: 'es', format: 'text')] // Usa 'text' para pies de foto simples
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $descripcion = [];
 
-    /**
-     * Campo físico para VICH (No se guarda en DB).
-     */
     #[Vich\UploadableField(mapping: 'guia_images', fileNameProperty: 'imageName')]
     #[Assert\File(
         maxSize: "5M",
@@ -69,9 +63,7 @@ class PmsGuiaItemGaleria
     private int $orden = 0;
 
     /**
-     * PROPIEDAD VIRTUAL (No es columna de DB).
-     * El AssetListener inyectará aquí la URL pública completa.
-     * Usado por LiipImageField en EasyAdmin.
+     * PROPIEDAD VIRTUAL
      */
     private ?string $imageUrl = null;
 
@@ -80,9 +72,6 @@ class PmsGuiaItemGaleria
         $this->id = Uuid::v7();
     }
 
-    /**
-     * Genera el token de seguridad antes de guardar (Requerido por MediaTrait).
-     */
     #[ORM\PrePersist]
     public function setupMediaToken(): void
     {
@@ -128,5 +117,4 @@ class PmsGuiaItemGaleria
     public function setOrden(int $orden): self { $this->orden = $orden; return $this; }
 
     public function __toString(): string { return $this->imageName ?? 'Elemento de Galería'; }
-
 }

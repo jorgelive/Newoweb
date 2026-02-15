@@ -11,6 +11,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Controlador específico para la galería de PmsGuiaItem.
@@ -46,24 +47,30 @@ class PmsGuiaItemGaleriaUploadController extends AbstractController
         try {
             $galeria = new PmsGuiaItemGaleria();
 
+            // ✅ Importante: setear el grupo primero (SortableGroup)
+            $galeria->setItem($item);
+
             // A. Asignar el archivo para que VichUploader lo procese
             $galeria->setImageFile($uploadedFile);
 
-            // B. Vincular con el Padre
-            $galeria->setItem($item);
-
-            // C. Generar una descripción por defecto basada en el nombre del archivo
-            // Como tu entidad usa un array JSON para idiomas, lo formateamos correctamente.
+            // B. Generar una descripción por defecto basada en el nombre del archivo
             $filenameClean = pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME);
-
-            // Estructura compatible con tu trait AutoTranslate / MaestroIdioma
             $galeria->setDescripcion([
                 ['language' => 'es', 'content' => $filenameClean]
             ]);
 
-            // D. (Opcional) Asignar orden
-            // Podrías contar cuántos hay y sumar 1, o dejarlo en 0.
-            $galeria->setOrden(0);
+            // C. Asignar orden al final (max + 1) dentro del mismo item
+            $itemUuid = Uuid::fromString((string) $itemId);
+
+            $maxOrden = (int) $em->createQueryBuilder()
+                ->select('COALESCE(MAX(g.orden), -1)')
+                ->from(PmsGuiaItemGaleria::class, 'g')
+                ->andWhere('IDENTITY(g.item) = :itemId')
+                ->setParameter('itemId', $itemUuid, 'uuid')
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $galeria->setOrden($maxOrden + 1);
 
             $em->persist($galeria);
             $em->flush();
