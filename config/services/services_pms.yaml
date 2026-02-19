@@ -97,7 +97,7 @@ parameters:
 
                 active: activo
 
-                weight: peso          # Mapea a getPeso()
+                weight: prioridad          # Mapea a getPeso()
                 important: importante # Mapea a isImportante()
             filters:
                 activeOnly: false
@@ -133,7 +133,7 @@ parameters:
                 currency: moneda.codigo
 
                 important: importante
-                weight: peso
+                weight: prioridad
                 id: id
 
                 active: activo

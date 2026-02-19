@@ -233,7 +233,8 @@ export default class extends Controller {
             editable: false,
             resourceAreaHeaderContent: this.getCurrentConfig().nombre,
             refetchResourcesOnNavigate: true,
-            eventOrder: '-prioridadImportante,duration,start',
+            eventOrder: '-prioridadImportante,-duration,start',
+            eventOrderStrict: true,
 
             headerToolbar: {
                 left: 'hoyButton prev,next',

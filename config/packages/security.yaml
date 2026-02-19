@@ -91,11 +91,15 @@ security:
                 invalidate_session: true
 
             remember_me:
-                secret: '%env(APP_SECRET)%'
+                # Se utiliza kernel.secret en lugar de env(APP_SECRET) para mayor estabilidad de las firmas de cookies
+                secret: '%kernel.secret%'
                 name: REMEMBERME
                 lifetime: 2629746
                 path: /
                 domain: '%env(FRAMEWORK_SESION_COOKIE_DOMAIN)%'
+                # Vincula de forma estricta el checkbox del form_login con el componente interno
+                remember_me_parameter: _remember_me
+                always_remember_me: false
 
     access_control:
         # Login/logout públicos

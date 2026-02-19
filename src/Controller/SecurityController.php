@@ -9,11 +9,27 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Security\Http\Util\TargetPathTrait; // 👇 Importante
 
+/**
+ * Controlador encargado de gestionar la seguridad de la aplicación.
+ * Maneja el proceso de inicio de sesión y la delegación del cierre de sesión al firewall.
+ */
 class SecurityController extends AbstractController
 {
     // Usamos el Trait para leer la ruta guardada en sesión de forma segura
     use TargetPathTrait;
 
+    /**
+     * Maneja la ruta de inicio de sesión y renderiza el formulario de autenticación.
+     *
+     * Este método comprueba si existe una URL de destino previa para redirigir al usuario
+     * tras un inicio de sesión exitoso. Si el usuario ya está autenticado, lo redirige
+     * directamente para evitar que vea el formulario nuevamente. Se integra con la plantilla
+     * de EasyAdmin proporcionando los parámetros necesarios para habilitar "Recordarme" (Remember Me).
+     *
+     * @param AuthenticationUtils $authenticationUtils Utilidad para acceder a errores de autenticación y al último usuario introducido.
+     * @param Request $request La petición HTTP actual, necesaria para acceder a la sesión y leer el target path.
+     * @return Response Retorna la vista renderizada del formulario de inicio de sesión o una redirección si ya está logueado.
+     */
     #[Route('/login', name: 'app_login')]
     public function login(AuthenticationUtils $authenticationUtils, Request $request): Response
     {
@@ -50,6 +66,15 @@ class SecurityController extends AbstractController
         ]);
     }
 
+    /**
+     * Intercepta la ruta de cierre de sesión.
+     *
+     * Este método nunca debe ser ejecutado directamente. Symfony y el firewall
+     * configurado en security.yaml interceptan esta ruta y manejan la invalidación
+     * de la sesión y la limpieza de cookies (como la de Remember Me) automáticamente.
+     *
+     * @throws \LogicException Lanza excepción si se alcanza, indicando que la intercepción del firewall falló o no está configurada.
+     */
     #[Route('/logout', name: 'app_logout')]
     public function logout(): void
     {
