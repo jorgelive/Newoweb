@@ -235,7 +235,10 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
     }
 
     public function getLockedAt(): ?DateTimeInterface { return $this->lockedAt; }
-    public function setLockedAt(?DateTimeInterface $lockedAt): self { $this->lockedAt = $lockedAt; return $this; }
+    public function setLockedAt(?DateTimeInterface $lockedAt): self {
+        $this->lockedAt = $lockedAt;
+        return $this;
+    }
 
     public function getLockedBy(): ?string { return $this->lockedBy; }
     public function setLockedBy(?string $lockedBy): self { $this->lockedBy = $lockedBy; return $this; }

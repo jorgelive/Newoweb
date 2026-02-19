@@ -14,7 +14,7 @@ use Symfony\Component\Uid\Uuid;
  * @template T of ExchangeQueueItemInterface
  * @extends ServiceEntityRepository<T>
  * * Repositorio Base Abstracto para Colas de Intercambio (Exchange).
- * Maneja la lógica de bajo nivel de bloqueos (Pessimistic Locking),
+ * Maneja la lógica de bajo nivel de bloqueos (Pessimistic Locking) transaccionales,
  * conversión de binarios UUID y limpieza de procesos zombies.
  */
 abstract class AbstractExchangeRepository extends ServiceEntityRepository
@@ -60,12 +60,14 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
 
     /**
      * 🔄 MODO CRON (Worker Pasivo).
-     * Reclama un lote de ítems HOMOGÉNEOS (misma config + endpoint).
+     * Reclama un lote de ítems HOMOGÉNEOS de forma transaccional y atómica.
      * * Estrategia "Probe & Fetch":
-     * 1. Watchdog: Limpia bloqueos viejos globales.
-     * 2. Probe: Busca 1 candidato libre para saber qué agrupar.
-     * 3. Fetch: Busca N ítems que coincidan con ese candidato.
-     * 4. Lock: Bloquea atómicamente.
+     * 1. Watchdog: Limpia bloqueos viejos (Fuera de transacción para evitar bloqueos masivos).
+     * 2. Transaction Start: Asegura que el SELECT FOR UPDATE mantenga el bloqueo.
+     * 3. Probe: Busca 1 candidato libre.
+     * 4. Fetch: Busca N ítems con bloqueo FOR UPDATE.
+     * 5. Lock: Ejecuta el UPDATE atómico.
+     * 6. Transaction Commit.
      */
     public function claimRunnable(int $limit, string $workerId, \DateTimeImmutable $now, int $ttl = 90): array
     {
@@ -74,6 +76,7 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
         $nowSql = $now->format('Y-m-d H:i:s');
 
         // 1. WATCHDOG GENERAL: Liberar locks zombies de cualquier proceso muerto.
+        // Se hace fuera de la transacción principal para no penalizar el rendimiento.
         $expiredSql = $now->modify("-{$ttl} seconds")->format('Y-m-d H:i:s');
         $conn->executeStatement(
             "UPDATE {$table} SET status = 'failed', failed_reason = 'watchdog_timeout', locked_at = NULL, locked_by = NULL 
@@ -81,64 +84,88 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
             ['expired' => $expiredSql]
         );
 
-        // 2. PROBE (Sonda): Buscar un candidato viable.
-        // Solo necesitamos config_id y endpoint_id para establecer el criterio de agrupación.
-        $sqlProbe = "SELECT config_id, endpoint_id 
-                     FROM {$table} 
-                     WHERE status IN ('pending', 'failed')
-                     AND retry_count < max_attempts
-                     AND locked_at IS NULL
-                     AND (run_at IS NULL OR run_at <= :now)
-                     LIMIT 1";
+        // ABRIMOS TRANSACCIÓN PARA ASEGURAR EL 'FOR UPDATE SKIP LOCKED'
+        $conn->beginTransaction();
 
-        $context = $conn->fetchAssociative($sqlProbe, ['now' => $nowSql]);
+        try {
+            // 2. PROBE (Sonda): Buscar un candidato viable.
+            // No necesita FOR UPDATE porque solo estamos leyendo metadatos (config/endpoint).
+            $sqlProbe = "SELECT config_id, endpoint_id 
+                         FROM {$table} 
+                         WHERE status IN ('pending', 'failed')
+                         AND retry_count < max_attempts
+                         AND locked_at IS NULL
+                         AND (run_at IS NULL OR run_at <= :now)
+                         LIMIT 1";
 
-        if (!$context) {
-            return []; // Nada que procesar
+            $context = $conn->fetchAssociative($sqlProbe, ['now' => $nowSql]);
+
+            if (!$context) {
+                $conn->commit();
+                return []; // Nada que procesar
+            }
+
+            // 3. FETCH HOMOGÉNEO: Traer lote que coincida con la sonda.
+            // Al estar dentro de beginTransaction(), el 'FOR UPDATE' bloquea físicamente
+            // estas filas contra otros SELECT FOR UPDATE de otros workers concurrentes.
+            $sqlFetch = "SELECT id FROM {$table} 
+                         WHERE status IN ('pending', 'failed')
+                         AND retry_count < max_attempts
+                         AND locked_at IS NULL
+                         AND (run_at IS NULL OR run_at <= :now)
+                         AND config_id = :cfgId
+                         AND endpoint_id = :epId
+                         ORDER BY run_at ASC, id ASC
+                         LIMIT :limit 
+                         FOR UPDATE SKIP LOCKED";
+
+            $ids = $conn->fetchFirstColumn(
+                $sqlFetch,
+                [
+                    'now'   => $nowSql,
+                    'limit' => $limit,
+                    'cfgId' => $context['config_id'],
+                    'epId'  => $context['endpoint_id']
+                ],
+                [
+                    'limit' => ParameterType::INTEGER,
+                    'cfgId' => ParameterType::BINARY,
+                    'epId'  => ParameterType::BINARY
+                ]
+            );
+
+            if (empty($ids)) {
+                $conn->commit();
+                return [];
+            }
+
+            // 4. LOCK: Marcar como procesando (UPDATE)
+            $this->lockItems($ids, $workerId, $nowSql, $table);
+
+            // 5. COMMIT: Las filas quedan con su status='processing' y se libera el bloqueo del SELECT.
+            $conn->commit();
+
+            // 6. HYDRATE: Devolver objetos Doctrine
+            $items = $this->hydrateItems($ids);
+
+            // 7. 🛠️ EL FIX: SINCRONIZAR DOCTRINE
+            // Como bloqueamos por SQL directo (DBAL), Doctrine no sabe que los registros cambiaron.
+            // Forzamos a que lea la BD para que su memoria coincida con la realidad.
+            foreach ($items as $item) {
+                $this->getEntityManager()->refresh($item);
+            }
+
+            return $items;
+
+        } catch (\Throwable $e) {
+            $conn->rollBack();
+            throw $e;
         }
-
-        // 3. FETCH HOMOGÉNEO: Traer lote que coincida con la sonda.
-        // Usamos ParameterType::BINARY explícitamente.
-        $sqlFetch = "SELECT id FROM {$table} 
-                     WHERE status IN ('pending', 'failed')
-                     AND retry_count < max_attempts
-                     AND locked_at IS NULL
-                     AND (run_at IS NULL OR run_at <= :now)
-                     AND config_id = :cfgId
-                     AND endpoint_id = :epId
-                     ORDER BY run_at ASC, id ASC
-                     LIMIT :limit 
-                     FOR UPDATE SKIP LOCKED"; // 👈 Clave: Salta filas bloqueadas por otros workers
-
-        $ids = $conn->fetchFirstColumn(
-            $sqlFetch,
-            [
-                'now'   => $nowSql,
-                'limit' => $limit,
-                'cfgId' => $context['config_id'],
-                'epId'  => $context['endpoint_id']
-            ],
-            [
-                'limit' => ParameterType::INTEGER,
-                'cfgId' => ParameterType::BINARY,
-                'epId'  => ParameterType::BINARY
-            ]
-        );
-
-        if (empty($ids)) return [];
-
-        // 4. LOCK: Marcar como procesando
-        $this->lockItems($ids, $workerId, $nowSql, $table);
-
-        // 5. HYDRATE: Devolver objetos Doctrine
-        return $this->hydrateItems($ids);
     }
 
     /**
      * ⚡ MODO MANUAL / REAL-TIME.
-     * Reclama IDs específicos solicitados por el usuario o un evento.
-     * * Incluye un WATCHDOG FOCALIZADO crítico: Si intentas reclamar un ID
-     * que quedó bloqueado por un error previo (zombie), lo libera primero.
+     * Reclama IDs específicos solicitados por el usuario o un evento de forma transaccional.
      */
     public function claimSpecificItems(array $ids, string $workerId, \DateTimeImmutable $now, int $ttl = 300): array
     {
@@ -153,11 +180,8 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
         $table = $this->getTableName();
         $nowSql = $now->format('Y-m-d H:i:s');
 
-        // 2. 🐶 WATCHDOG FOCALIZADO (CRÍTICO)
-        // Antes de seleccionar, liberamos forzosamente estos IDs si tienen un lock viejo.
-        // Sin esto, 'SKIP LOCKED' ignoraría el registro si quedó trabado en una prueba anterior.
+        // 2. 🐶 WATCHDOG FOCALIZADO (CRÍTICO) - Fuera de la transacción de bloqueo
         $expiredSql = $now->modify("-{$ttl} seconds")->format('Y-m-d H:i:s');
-
         $conn->executeStatement(
             "UPDATE {$table} 
              SET status = 'pending', locked_at = NULL, locked_by = NULL 
@@ -166,34 +190,55 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
             ['ids' => ArrayParameterType::BINARY]
         );
 
-        // 3. SELECCIÓN ATÓMICA
-        // Busamos los IDs. Gracias al paso 2, si eran zombies, ahora están libres.
-        // Gracias al paso 1 (normalizeToBinary), los bytes coinciden con la DB.
-        $sqlCheck = "SELECT id FROM {$table}
-                     WHERE id IN (:ids)
-                     AND status IN ('pending', 'failed')
-                     AND locked_at IS NULL
-                     FOR UPDATE SKIP LOCKED";
+        // ABRIMOS TRANSACCIÓN PARA ASEGURAR EL 'FOR UPDATE SKIP LOCKED'
+        $conn->beginTransaction();
 
-        $availableBinaryIds = $conn->fetchFirstColumn(
-            $sqlCheck,
-            ['ids' => $binaryIds],
-            ['ids' => ArrayParameterType::BINARY] // 👈 Importante para que PDO no corrompa los bytes
-        );
+        try {
+            // 3. SELECCIÓN ATÓMICA
+            // El 'FOR UPDATE' ahora sí retiene el bloqueo en la BD hasta el commit.
+            $sqlCheck = "SELECT id FROM {$table}
+                         WHERE id IN (:ids)
+                         AND status IN ('pending', 'failed')
+                         AND locked_at IS NULL
+                         FOR UPDATE SKIP LOCKED";
 
-        if (empty($availableBinaryIds)) {
-            return [];
+            $availableBinaryIds = $conn->fetchFirstColumn(
+                $sqlCheck,
+                ['ids' => $binaryIds],
+                ['ids' => ArrayParameterType::BINARY]
+            );
+
+            if (empty($availableBinaryIds)) {
+                $conn->commit();
+                return [];
+            }
+
+            // 4. LOCK & COMMIT
+            $this->lockItems($availableBinaryIds, $workerId, $nowSql, $table);
+            $conn->commit();
+
+            // 5. HYDRATE
+            $items = $this->hydrateItems($availableBinaryIds);
+
+            // 6. 🛠️ EL FIX: SINCRONIZAR DOCTRINE
+            // Como bloqueamos por SQL directo (DBAL), Doctrine no sabe que los registros cambiaron.
+            // Forzamos a que lea la BD para que su memoria coincida con la realidad.
+            foreach ($items as $item) {
+                $this->getEntityManager()->refresh($item);
+            }
+
+            return $items;
+
+        } catch (\Throwable $e) {
+            $conn->rollBack();
+            throw $e;
         }
-
-        // 4. LOCK & HYDRATE
-        $this->lockItems($availableBinaryIds, $workerId, $nowSql, $table);
-
-        return $this->hydrateItems($availableBinaryIds);
     }
 
     /**
      * Helper privado para aplicar el bloqueo (UPDATE) masivo.
      * Incrementa retry_count y asigna el worker.
+     * Nota: Este método asume que se llama DENTRO de una transacción activa.
      */
     private function lockItems(array $binaryIds, string $workerId, string $nowSql, string $table): void
     {
@@ -226,8 +271,6 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
         $table = $this->getTableName();
 
         // 2. Pedir salida en STRING (BIN_TO_UUID)
-        // Usamos BIN_TO_UUID(col, true) si tu MySQL es >8.0 para obtener guiones.
-        // Si no, BIN_TO_UUID estándar.
         $sql = "SELECT 
             BIN_TO_UUID(id) as id, 
             BIN_TO_UUID(config_id) as config_id, 
