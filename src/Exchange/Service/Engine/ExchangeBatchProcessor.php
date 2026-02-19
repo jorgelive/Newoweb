@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Exchange\Service\Engine;
@@ -23,23 +24,22 @@ final class ExchangeBatchProcessor
         $client = $this->clientLocator->get($clientAlias);
         $mapping = $task->getMappingStrategy()->map($batch);
 
-        // 1. Auditoría del REQUEST (Esto ya funcionaba)
+        // 1. Auditoría del REQUEST
         $jsonRequest = json_encode($mapping->payload);
         foreach ($batch->getItems() as $item) {
             $item->setLastRequestRaw($jsonRequest);
         }
 
-        // 2. Envío y Recepción del PAQUETE COMPLETO
+        // 2. Envío y Recepción
         $networkResult = $client->send($mapping);
 
-        // 3. Auditoría del RESPONSE (¡AQUÍ ESTÁ EL ARREGLO!)
-        // Asignamos el Raw y el Status Code a CADA ítem del lote antes de procesar
+        // 3. Auditoría del RESPONSE (RAW antes de Parse)
         foreach ($batch->getItems() as $item) {
             $item->setLastResponseRaw($networkResult->rawBody);
             $item->setLastHttpCode($networkResult->statusCode);
         }
 
-        // 4. Parsing de negocio (usando solo la parte 'decodedData')
+        // 4. Parsing de negocio
         return $task->getMappingStrategy()->parseResponse($networkResult->decodedData, $mapping);
     }
 }

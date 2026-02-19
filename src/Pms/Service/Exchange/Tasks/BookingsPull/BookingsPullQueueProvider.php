@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Service\Exchange\Tasks\BookingsPull;
@@ -8,6 +9,7 @@ use App\Exchange\Service\Contract\ExchangeQueueProviderInterface;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Repository\PmsBookingsPullQueueRepository;
 use DateTimeImmutable;
+use RuntimeException;
 
 final readonly class BookingsPullQueueProvider implements ExchangeQueueProviderInterface
 {
@@ -23,26 +25,48 @@ final readonly class BookingsPullQueueProvider implements ExchangeQueueProviderI
      */
     public function claimBatch(int $limit, string $workerId, DateTimeImmutable $now): ?HomogeneousBatch
     {
-        // 1. Obtener los registros de la base de datos (Garantizados de ser homogéneos por el Repo)
-        $items = $this->repository->claimRunnable(
-            limit: $limit,
-            workerId: $workerId,
-            now: $now,
-            ttl: 300 // 5 minutos de margen para descargas pesadas
-        );
+        $items = $this->repository->claimRunnable($limit, $workerId, $now, 300);
+        return $this->packItems($items);
+    }
 
-        if (empty($items)) {
-            return null;
-        }
+    public function claimSpecificBatch(array $ids, string $workerId, DateTimeImmutable $now): ?HomogeneousBatch
+    {
+        $items = $this->repository->claimSpecificItems($ids, $workerId, $now);
+        return $this->packItems($items, true);
+    }
 
-        /** @var PmsBookingsPullQueue $representative */
+    /** @param PmsBookingsPullQueue[] $items */
+    private function packItems(array $items, bool $strictCheck = false): ?HomogeneousBatch
+    {
+        if (empty($items)) return null;
+
+        // Nota: En PULL, 'config' es crítico, pero 'endpoint' también para saber la URL.
         $representative = $items[0];
 
-        // 2. Empaquetar en el objeto de transporte seguro
+        if ($strictCheck && count($items) > 1) {
+            // Pull suele ser de 1 en 1, pero si mandan varios, deben ser de la misma config.
+            $refId = (string) $representative->getConfig()->getId();
+            foreach ($items as $item) {
+                if ((string)$item->getConfig()->getId() !== $refId) {
+                    throw new RuntimeException("Violación de homogeneidad en PULL manual.");
+                }
+            }
+        }
+
         return new HomogeneousBatch(
-            config:   $representative->getBeds24Config(),
-            endpoint: $representative->getEndpoint(),
-            items:    $items
+            $representative->getConfig(),
+            $representative->getEndpoint(),
+            $items
         );
     }
+
+    /**
+     * ✅ NUEVO: Método Proxy para obtener metadatos sin exponer el Repositorio completo.
+     */
+    public function getGroupingMetadata(array $ids): array
+    {
+        return $this->repository->getGroupingMetadata($ids);
+    }
+
+
 }

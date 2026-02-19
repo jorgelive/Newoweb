@@ -1,0 +1,44 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Message\Repository;
+
+use App\Exchange\Repository\AbstractExchangeRepository;
+use App\Message\Entity\Beds24SendQueue;
+use Doctrine\DBAL\ArrayParameterType; // <--- AGREGAR ESTO
+use Doctrine\Persistence\ManagerRegistry;
+
+/**
+ * Repositorio para la cola de envío de mensajes a Beds24.
+ */
+final class Beds24SendQueueRepository extends AbstractExchangeRepository
+{
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, Beds24SendQueue::class);
+    }
+
+    protected function getTableName(): string
+    {
+        return 'msg_beds24_queue';
+    }
+
+    /**
+     * Hidratación optimizada para el Worker.
+     * @param string[] $ids IDs en formato BINARIO (16 bytes)
+     */
+    protected function hydrateItems(array $ids): array
+    {
+        return $this->createQueryBuilder('q')
+            ->addSelect('msg', 'cfg', 'ep')
+            ->innerJoin('q.message', 'msg')
+            ->innerJoin('q.config', 'cfg')
+            ->innerJoin('q.endpoint', 'ep')
+            ->andWhere('q.id IN (:ids)')
+            // CAMBIO CRÍTICO: Definir tipo explícito para los bytes
+            ->setParameter('ids', $ids, ArrayParameterType::BINARY)
+            ->getQuery()
+            ->getResult();
+    }
+}

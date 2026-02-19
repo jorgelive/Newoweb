@@ -49,14 +49,14 @@ class PmsUnidadBeds24Map
 
     #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'unidadMaps')]
     #[ORM\JoinColumn(
-        name: 'beds24_config_id',
+        name: 'config_id',
         referencedColumnName: 'id',
         nullable: false,
         onDelete: 'CASCADE',
         columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
     )]
     #[Assert\NotNull(message: 'Debes seleccionar una configuración de Beds24.')]
-    private ?Beds24Config $beds24Config = null;
+    private ?Beds24Config $config = null;
 
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class, inversedBy: 'beds24Maps')]
     #[ORM\JoinColumn(
@@ -98,8 +98,8 @@ class PmsUnidadBeds24Map
 
     // ... (Getters y Setters se mantienen igual) ...
 
-    public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
-    public function setBeds24Config(?Beds24Config $beds24Config): self { $this->beds24Config = $beds24Config; return $this; }
+    public function getConfig(): ?Beds24Config { return $this->config; }
+    public function setConfig(?Beds24Config $config): self { $this->config = $config; return $this; }
 
     public function getPmsUnidad(): ?PmsUnidad { return $this->pmsUnidad; }
     public function setPmsUnidad(?PmsUnidad $pmsUnidad): self { $this->pmsUnidad = $pmsUnidad; return $this; }

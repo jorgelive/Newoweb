@@ -79,7 +79,7 @@ final class PmsBookingsPushQueueCrudController extends BaseCrudController
         // --- PANEL DE CONTEXTO ---
         yield FormField::addPanel('Contexto de Sincronización')->setIcon('fa fa-info-circle');
 
-        yield AssociationField::new('beds24Config', 'Cuenta Beds24')
+        yield AssociationField::new('config', 'Cuenta Beds24')
             ->setRequired(true);
 
         yield AssociationField::new('endpoint', 'Acción API (Endpoint)')

@@ -134,7 +134,7 @@ class PmsUnidad
 
     /** @var Collection<int, PmsBookingsPullQueue> */
     #[ORM\ManyToMany(targetEntity: PmsBookingsPullQueue::class, mappedBy: 'unidades')]
-    private Collection $pullQueueJobs;
+    private Collection $bookingsPullQueues;
 
     #[ORM\OneToOne(mappedBy: 'unidad', targetEntity: PmsGuia::class)]
     private ?PmsGuia $guia = null;
@@ -144,7 +144,7 @@ class PmsUnidad
     {
         $this->beds24Maps = new ArrayCollection();
         $this->tarifaQueues = new ArrayCollection();
-        $this->pullQueueJobs = new ArrayCollection();
+        $this->bookingsPullQueues = new ArrayCollection();
         $this->wifiNetworks = []; // Inicializamos array vacío
         $this->id = Uuid::v7();
     }
@@ -320,20 +320,20 @@ class PmsUnidad
         return $this;
     }
 
-    public function getPullQueueJobs(): Collection { return $this->pullQueueJobs; }
+    public function getBookingsPullQueues(): Collection { return $this->bookingsPullQueues; }
 
-    public function addPullQueueJob(PmsBookingsPullQueue $job): self
+    public function addBookingsPullQueue(PmsBookingsPullQueue $job): self
     {
-        if (!$this->pullQueueJobs->contains($job)) {
-            $this->pullQueueJobs->add($job);
+        if (!$this->bookingsPullQueues->contains($job)) {
+            $this->bookingsPullQueues->add($job);
             $job->addUnidad($this);
         }
         return $this;
     }
 
-    public function removePullQueueJob(PmsBookingsPullQueue $job): self
+    public function removeBookingsPullQueue(PmsBookingsPullQueue $job): self
     {
-        if ($this->pullQueueJobs->removeElement($job)) {
+        if ($this->bookingsPullQueues->removeElement($job)) {
             $job->removeUnidad($this);
         }
         return $this;

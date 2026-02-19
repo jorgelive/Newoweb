@@ -32,46 +32,46 @@ final readonly class BookingsPushQueueProvider implements ExchangeQueueProviderI
      */
     public function claimBatch(int $limit, string $workerId, DateTimeImmutable $now): ?HomogeneousBatch
     {
-        // 1. Reclamar ítems usando el patrón de bloqueo optimista/pesimista del repositorio.
-        // TTL de 90 segundos: Si el worker muere, los ítems se liberan automáticamente después de este tiempo.
-        $items = $this->repository->claimRunnable(
-            limit: $limit,
-            workerId: $workerId,
-            now: $now,
-            ttl: 90
-        );
+        $items = $this->repository->claimRunnable($limit, $workerId, $now, 90);
+        return $this->packItems($items);
+    }
 
-        if (empty($items)) {
-            return null;
-        }
+    public function claimSpecificBatch(array $ids, string $workerId, DateTimeImmutable $now): ?HomogeneousBatch
+    {
+        $items = $this->repository->claimSpecificItems($ids, $workerId, $now);
+        return $this->packItems($items, true);
+    }
 
-        /** @var PmsBookingsPushQueue $representative */
+    /** @param PmsBookingsPushQueue[] $items */
+    private function packItems(array $items, bool $strictCheck = false): ?HomogeneousBatch
+    {
+        if (empty($items)) return null;
+
         $representative = $items[0];
-
-        // 2. Extracción y Validación de Contexto
-        // Garantizamos que el lote tenga todos los metadatos necesarios para el Strategy.
-        $config = $representative->getBeds24Config();
+        $config = $representative->getConfig();
         $endpoint = $representative->getEndpoint();
 
-        if (!$config) {
-            throw new RuntimeException(sprintf(
-                "Integridad violada: El ítem de cola PUSH #%d no tiene configuración Beds24.",
-                $representative->getId()
-            ));
+        if (!$config || !$endpoint) {
+            throw new RuntimeException("Integridad violada: Ítem PUSH #{$representative->getId()} incompleto.");
         }
 
-        if (!$endpoint) {
-            throw new RuntimeException(sprintf(
-                "Integridad violada: El ítem de cola PUSH #%d no tiene endpoint asociado.",
-                $representative->getId()
-            ));
+        if ($strictCheck && count($items) > 1) {
+            $refId = (string) $config->getId();
+            foreach ($items as $item) {
+                if ((string)$item->getConfig()->getId() !== $refId) {
+                    throw new RuntimeException("Violación de homogeneidad en PUSH manual.");
+                }
+            }
         }
 
-        // 3. Empaquetado Homogéneo
-        return new HomogeneousBatch(
-            config:   $config,
-            endpoint: $endpoint,
-            items:    $items
-        );
+        return new HomogeneousBatch($config, $endpoint, $items);
+    }
+
+    /**
+     * ✅ NUEVO: Método Proxy para obtener metadatos sin exponer el Repositorio completo.
+     */
+    public function getGroupingMetadata(array $ids): array
+    {
+        return $this->repository->getGroupingMetadata($ids);
     }
 }

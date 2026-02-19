@@ -1,13 +1,16 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Repository;
 
+use App\Exchange\Repository\AbstractExchangeRepository;
 use App\Pms\Entity\PmsRatesPushQueue;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * Repositorio unificado para la cola de tarifas.
+ * @extends AbstractExchangeRepository<PmsRatesPushQueue>
  */
 final class PmsRatesPushQueueRepository extends AbstractExchangeRepository
 {
@@ -22,47 +25,42 @@ final class PmsRatesPushQueueRepository extends AbstractExchangeRepository
     }
 
     /**
-     * Hydrate optimizado para el Worker.
-     * Trae Config, Endpoint y Map en un solo Join para evitar N+1 en el Exchange.
+     * Optimizado para el Worker (SQL Nativo / Binary).
      */
     protected function hydrateItems(array $ids): array
     {
+        if (empty($ids)) return [];
+
         return $this->createQueryBuilder('q')
             ->addSelect('cfg', 'ep', 'm')
-            ->innerJoin('q.beds24Config', 'cfg')
+            ->leftJoin('q.config', 'cfg')
             ->innerJoin('q.endpoint', 'ep')
             ->innerJoin('q.unidadBeds24Map', 'm')
-            ->andWhere('q.id IN (:ids)')
-            ->setParameter('ids', $ids)
+            ->where('q.id IN (:ids)')
+            ->setParameter('ids', $ids, ArrayParameterType::BINARY)
             ->getQuery()
             ->getResult();
     }
 
-
-
     /**
-     * Busca colas pendientes para una unidad en un rango de fechas.
+     * Busca colas pendientes que solapan con el intervalo dado.
+     * Criterio de Solape: (StartA < EndB) AND (EndA > StartB)
      *
-     * @param string $unidadId  UUID de la unidad (String)
-     * @param \DateTimeInterface $start
-     * @param \DateTimeInterface $end
      * @return PmsRatesPushQueue[]
      */
     public function findPendingForUnit(string $unidadId, \DateTimeInterface $start, \DateTimeInterface $end): array
     {
         return $this->createQueryBuilder('q')
-            ->join('q.unidad', 'u')
-            ->where('u.id = :unidadId')
+            ->join('q.unidadBeds24Map', 'm') // Usamos el mapa para llegar a la unidad
+            ->where('m.pmsUnidad = :unidadId')
             ->andWhere('q.status = :status')
-            // Solapamiento de fechas: (StartA <= EndB) and (EndA >= StartB)
-            ->andWhere('q.fechaInicio <= :end')
-            ->andWhere('q.fechaFin >= :start')
-            ->setParameter('unidadId', $unidadId, 'uuid') // 'uuid' ayuda a Doctrine si usas Binary(16)
-            ->setParameter('status', \App\Pms\Entity\PmsRatesPushQueue::STATUS_PENDING)
+            ->andWhere('q.fechaInicio < :end')
+            ->andWhere('q.fechaFin > :start')
+            ->setParameter('unidadId', $unidadId) // UUID String
+            ->setParameter('status', PmsRatesPushQueue::STATUS_PENDING)
             ->setParameter('start', $start)
             ->setParameter('end', $end)
             ->getQuery()
             ->getResult();
     }
-
 }

@@ -51,4 +51,12 @@ interface ExchangeTaskInterface
      * Retorna el manejador encargado de persistir los resultados (éxito/error).
      */
     public function getHandler(): ExchangeHandlerInterface;
+
+    /**
+     * Obtiene metadatos de agrupación para un set de IDs (Proxy al repositorio).
+     * @param string[] $ids UUIDs texto
+     * @return array
+     */
+    public function getGroupingMetadata(array $ids): array;
+
 }

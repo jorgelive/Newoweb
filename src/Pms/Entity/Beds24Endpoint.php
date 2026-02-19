@@ -13,7 +13,7 @@ use App\Exchange\Service\Contract\EndpointInterface;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Entidad PmsBeds24Endpoint.
+ * Entidad Beds24Endpoint.
  * Define los puntos de acceso técnicos para la API de Beds24 (v1 y v2).
  * * CRÍTICO: Se mantienen los nombres 'endpoint' y 'metodo' para compatibilidad
  * con la lógica de los Services de sincronización.
@@ -21,7 +21,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_beds24_endpoint')]
 #[ORM\HasLifecycleCallbacks]
-class PmsBeds24Endpoint implements EndpointInterface
+class Beds24Endpoint implements EndpointInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -56,7 +56,7 @@ class PmsBeds24Endpoint implements EndpointInterface
 
     /** @var Collection<int, PmsRatesPushQueue> */
     #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: PmsRatesPushQueue::class)]
-    private Collection $ratesQueues;
+    private Collection $ratesPushQueues;
 
     /** @var Collection<int, PmsBookingsPushQueue> */
     #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: PmsBookingsPushQueue::class)]
@@ -64,13 +64,14 @@ class PmsBeds24Endpoint implements EndpointInterface
 
     /** @var Collection<int, PmsBookingsPullQueue> */
     #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: PmsBookingsPullQueue::class)]
-    private Collection $pullQueueJobs;
+    private Collection $bookingsPullQueues;
+
 
     public function __construct()
     {
-        $this->ratesQueues = new ArrayCollection();
+        $this->ratesPushQueues = new ArrayCollection();
         $this->bookingsPushQueues = new ArrayCollection();
-        $this->pullQueueJobs = new ArrayCollection();
+        $this->bookingsPullQueues = new ArrayCollection();
 
         $this->id = Uuid::v7();
     }
@@ -164,16 +165,16 @@ class PmsBeds24Endpoint implements EndpointInterface
 
     /** * @return Collection<int, PmsRatesPushQueue>
      */
-    public function getRatesQueues(): Collection
+    public function getRatesPushQueues(): Collection
     {
-        return $this->ratesQueues;
+        return $this->ratesPushQueues;
     }
 
-    public function addRatesQueue(PmsRatesPushQueue $ratesQueue): self
+    public function addRatesPushQueue(PmsRatesPushQueue $ratesPushQueue): self
     {
-        if (!$this->ratesQueues->contains($ratesQueue)) {
-            $this->ratesQueues->add($ratesQueue);
-            $ratesQueue->setEndpoint($this);
+        if (!$this->ratesPushQueues->contains($ratesPushQueue)) {
+            $this->ratesPushQueues->add($ratesPushQueue);
+            $ratesPushQueue->setEndpoint($this);
         }
         return $this;
     }
@@ -196,15 +197,15 @@ class PmsBeds24Endpoint implements EndpointInterface
 
     /** * @return Collection<int, PmsBookingsPullQueue>
      */
-    public function getPullQueueJobs(): Collection
+    public function getBookingsPullQueues(): Collection
     {
-        return $this->pullQueueJobs;
+        return $this->bookingsPullQueues;
     }
 
-    public function addPullQueueJob(PmsBookingsPullQueue $pullJob): self
+    public function addBookingsPullQueue(PmsBookingsPullQueue $pullJob): self
     {
-        if (!$this->pullQueueJobs->contains($pullJob)) {
-            $this->pullQueueJobs->add($pullJob);
+        if (!$this->bookingsPullQueues->contains($pullJob)) {
+            $this->bookingsPullQueues->add($pullJob);
             $pullJob->setEndpoint($this);
         }
         return $this;

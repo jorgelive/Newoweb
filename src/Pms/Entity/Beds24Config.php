@@ -58,28 +58,32 @@ class Beds24Config implements ChannelConfigInterface
      * Relación con mapeos de unidad.
      * @var Collection<int, PmsUnidadBeds24Map>
      */
-    #[ORM\OneToMany(mappedBy: 'beds24Config', targetEntity: PmsUnidadBeds24Map::class, orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsUnidadBeds24Map::class, orphanRemoval: true)]
     private Collection $unidadMaps;
+
+    /** @var Collection<int, PmsBookingsPushQueue> */
+    #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsBookingsPushQueue::class)]
+    private Collection $bookingsPushQueues;
 
     /**
      * Lado inverso para PullQueue.
      * @var Collection<int, PmsBookingsPullQueue>
      */
-    #[ORM\OneToMany(mappedBy: 'beds24Config', targetEntity: PmsBookingsPullQueue::class)]
-    private Collection $pullQueueJobs;
+    #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsBookingsPullQueue::class)]
+    private Collection $bookingsPullQueues;
 
     /**
      * Lado inverso para Rates (Entidad Plana).
      * @var Collection<int, PmsRatesPushQueue>
      */
-    #[ORM\OneToMany(mappedBy: 'beds24Config', targetEntity: PmsRatesPushQueue::class)]
-    private Collection $ratesQueues;
+    #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsRatesPushQueue::class)]
+    private Collection $ratesPushQueues;
 
     public function __construct()
     {
         $this->unidadMaps = new ArrayCollection();
-        $this->pullQueueJobs = new ArrayCollection();
-        $this->ratesQueues = new ArrayCollection();
+        $this->bookingsPullQueues = new ArrayCollection();
+        $this->ratesPushQueues = new ArrayCollection();
 
         $this->id = Uuid::v7();
     }
@@ -193,7 +197,7 @@ class Beds24Config implements ChannelConfigInterface
     {
         if (!$this->unidadMaps->contains($map)) {
             $this->unidadMaps->add($map);
-            $map->setBeds24Config($this);
+            $map->setConfig($this);
         }
         return $this;
     }
@@ -201,53 +205,53 @@ class Beds24Config implements ChannelConfigInterface
     public function removeUnidadMap(PmsUnidadBeds24Map $map): self
     {
         if ($this->unidadMaps->removeElement($map)) {
-            if ($map->getBeds24Config() === $this) { $map->setBeds24Config(null); }
+            if ($map->getConfig() === $this) { $map->setConfig(null); }
         }
         return $this;
     }
 
     /** @return Collection<int, PmsBookingsPullQueue> */
-    public function getPullQueueJobs(): Collection
+    public function getBookingsPullQueues(): Collection
     {
-        return $this->pullQueueJobs;
+        return $this->bookingsPullQueues;
     }
 
-    public function addPullQueueJob(PmsBookingsPullQueue $job): self
+    public function addBookingsPullQueue(PmsBookingsPullQueue $job): self
     {
-        if (!$this->pullQueueJobs->contains($job)) {
-            $this->pullQueueJobs->add($job);
-            $job->setBeds24Config($this);
+        if (!$this->bookingsPullQueues->contains($job)) {
+            $this->bookingsPullQueues->add($job);
+            $job->setConfig($this);
         }
         return $this;
     }
 
-    public function removePullQueueJob(PmsBookingsPullQueue $job): self
+    public function removeBookingsPullQueue(PmsBookingsPullQueue $job): self
     {
-        if ($this->pullQueueJobs->removeElement($job)) {
-            if ($job->getBeds24Config() === $this) { $job->setBeds24Config(null); }
+        if ($this->bookingsPullQueues->removeElement($job)) {
+            if ($job->getConfig() === $this) { $job->setConfig(null); }
         }
         return $this;
     }
 
     /** @return Collection<int, PmsRatesPushQueue> */
-    public function getRatesQueues(): Collection
+    public function getRatesPushQueues(): Collection
     {
-        return $this->ratesQueues;
+        return $this->ratesPushQueues;
     }
 
-    public function addRatesQueue(PmsRatesPushQueue $rq): self
+    public function addRatesPushQueue(PmsRatesPushQueue $rq): self
     {
-        if (!$this->ratesQueues->contains($rq)) {
-            $this->ratesQueues->add($rq);
-            $rq->setBeds24Config($this);
+        if (!$this->ratesPushQueues->contains($rq)) {
+            $this->ratesPushQueues->add($rq);
+            $rq->setConfig($this);
         }
         return $this;
     }
 
-    public function removeRatesQueue(PmsRatesPushQueue $rq): self
+    public function removeRatesPushQueue(PmsRatesPushQueue $rq): self
     {
-        if ($this->ratesQueues->removeElement($rq)) {
-            if ($rq->getBeds24Config() === $this) { $rq->setBeds24Config(null); }
+        if ($this->ratesPushQueues->removeElement($rq)) {
+            if ($rq->getConfig() === $this) { $rq->setConfig(null); }
         }
         return $this;
     }
@@ -258,5 +262,21 @@ class Beds24Config implements ChannelConfigInterface
     public function __toString(): string
     {
         return $this->nombre ?? ('Config (UUID) ' . $this->getId());
+    }
+
+    /** * @return Collection<int, PmsBookingsPushQueue>
+     */
+    public function getBookingsPushQueues(): Collection
+    {
+        return $this->bookingsPushQueues;
+    }
+
+    public function addBookingsPushQueue(PmsBookingsPushQueue $bookingsPushQueue): self
+    {
+        if (!$this->bookingsPushQueues->contains($bookingsPushQueue)) {
+            $this->bookingsPushQueues->add($bookingsPushQueue);
+            $bookingsPushQueue->setConfig($this);
+        }
+        return $this;
     }
 }

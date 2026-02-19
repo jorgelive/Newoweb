@@ -6,6 +6,8 @@ namespace App\Pms\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Exchange\Service\Contract\ChannelConfigInterface;
+use App\Exchange\Service\Contract\EndpointInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Repository\PmsBookingsPullQueueRepository;
 use DateTimeImmutable;
@@ -44,17 +46,17 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
     private string $type = 'beds24_bookings_arrival_range';
 
     // ✅ CORRECCIÓN: Usamos PmsBeds24Config para consistencia con el resto del módulo
-    #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'pullQueueJobs')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE', columnDefinition: 'BINARY(16)')]
-    private ?Beds24Config $beds24Config = null;
+    #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'bookingsPullQueues')]
+    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    private ?Beds24Config $config = null;
 
-    #[ORM\ManyToOne(targetEntity: PmsBeds24Endpoint::class, inversedBy: 'pullQueueJobs')]
+    #[ORM\ManyToOne(targetEntity: Beds24Endpoint::class, inversedBy: 'bookingsPullQueues')]
     #[ORM\JoinColumn(nullable: false, columnDefinition: 'BINARY(16)')]
-    private ?PmsBeds24Endpoint $endpoint = null;
+    private ?Beds24Endpoint $endpoint = null;
 
     /** * @var Collection<int, PmsUnidad>
      */
-    #[ORM\ManyToMany(targetEntity: PmsUnidad::class, inversedBy: 'pullQueueJobs')]
+    #[ORM\ManyToMany(targetEntity: PmsUnidad::class, inversedBy: 'bookingsPullQueues')]
     #[ORM\JoinTable(name: 'pms_pull_queue_job_unidad')]
     #[ORM\JoinColumn(name: 'pull_queue_id', referencedColumnName: 'id', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
     #[ORM\InverseJoinColumn(name: 'unidad_id', referencedColumnName: 'id', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
@@ -119,9 +121,19 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
     // IMPLEMENTACIÓN ExchangeQueueItemInterface (ESTRICTA)
     // =========================================================================
 
-    public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
+    public function getConfig(): ?Beds24Config { return $this->config; }
 
-    public function getEndpoint(): ?PmsBeds24Endpoint { return $this->endpoint; }
+    public function getEndpoint(): ?Beds24Endpoint { return $this->endpoint; }
+
+    public function setConfig(?ChannelConfigInterface $config): self {
+        $this->config = $config;
+        return $this;
+    }
+
+    public function setEndpoint(?EndpointInterface $endpoint): self {
+        $this->endpoint = $endpoint;
+        return $this;
+    }
 
     public function getRunAt(): ?DateTimeInterface { return $this->runAt; }
 
@@ -222,16 +234,6 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
     // GETTERS Y SETTERS PROPIOS
     // =========================================================================
 
-    public function setBeds24Config(?Beds24Config $beds24Config): self {
-        $this->beds24Config = $beds24Config;
-        return $this;
-    }
-
-    public function setEndpoint(?PmsBeds24Endpoint $endpoint): self {
-        $this->endpoint = $endpoint;
-        return $this;
-    }
-
     public function getStatus(): string { return $this->status; }
 
     public function setStatus(string $status): self {
@@ -281,4 +283,5 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
         $this->lockedBy = $by;
         return $this;
     }
+
 }

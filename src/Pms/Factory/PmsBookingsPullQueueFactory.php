@@ -4,12 +4,12 @@ declare(strict_types=1);
 namespace App\Pms\Factory;
 
 use App\Pms\Entity\PmsBookingsPullQueue;
-use App\Pms\Entity\PmsBeds24Endpoint;
+use App\Pms\Entity\Beds24Endpoint;
 use App\Pms\Repository\PmsBeds24EndpointRepository;
 
 class PmsBookingsPullQueueFactory
 {
-    private ?PmsBeds24Endpoint $endpointGetBookings = null;
+    private ?Beds24Endpoint $endpointGetBookings = null;
 
     public function __construct(
         private readonly PmsBeds24EndpointRepository $endpointRepository
@@ -29,7 +29,7 @@ class PmsBookingsPullQueueFactory
         return $job;
     }
 
-    private function getGetBookingsEndpoint(): ?PmsBeds24Endpoint
+    private function getGetBookingsEndpoint(): ?Beds24Endpoint
     {
         if ($this->endpointGetBookings === null) {
             // Usamos el nuevo método del repositorio PMS

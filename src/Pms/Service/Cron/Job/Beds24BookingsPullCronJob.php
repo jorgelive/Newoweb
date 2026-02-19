@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Service\Cron\Job;
 
 use App\Pms\Entity\Beds24Config;
-use App\Pms\Entity\PmsBeds24Endpoint;
+use App\Pms\Entity\Beds24Endpoint;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Service\Cron\CronJobInterface;
 use DateInterval;
@@ -47,7 +47,7 @@ final class Beds24BookingsPullCronJob implements CronJobInterface
     public function execute(DateTimeInterface $from, DateTimeInterface $to, SymfonyStyle $io): void
     {
         // 1. Obtener el Endpoint Maestro para GET (Debe existir en BD)
-        $endpoint = $this->em->getRepository(PmsBeds24Endpoint::class)->findOneBy(['accion' => 'GET_BOOKINGS']);
+        $endpoint = $this->em->getRepository(Beds24Endpoint::class)->findOneBy(['accion' => 'GET_BOOKINGS']);
 
         if (!$endpoint) {
             $io->error("CRÍTICO: No se encontró el endpoint 'GET_BOOKINGS' en la tabla pms_beds24_endpoint.");
@@ -68,7 +68,7 @@ final class Beds24BookingsPullCronJob implements CronJobInterface
             // 3. Crear el Job de Cola (Payload ligero)
             $job = new PmsBookingsPullQueue();
 
-            $job->setBeds24Config($config);
+            $job->setConfig($config);
             $job->setEndpoint($endpoint);
 
             // Convertimos a Immutable para garantizar seguridad en la entidad

@@ -66,7 +66,7 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            ->add('beds24Config')
+            ->add('config')
             ->add('beds24PropertyId')
             ->add('pmsUnidad')
             ->add('virtualEstablecimiento')
@@ -94,7 +94,7 @@ final class PmsUnidadBeds24MapCrudController extends BaseCrudController
             ->onlyOnDetail()
             ->formatValue(fn($value) => (string) $value);
 
-        yield AssociationField::new('beds24Config', 'Configuración Beds24')
+        yield AssociationField::new('config', 'Configuración Beds24')
             ->setRequired(true);
 
         yield AssociationField::new('pmsUnidad', 'Unidad PMS')

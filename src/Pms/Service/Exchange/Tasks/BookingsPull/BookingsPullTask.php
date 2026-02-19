@@ -61,4 +61,13 @@ final readonly class BookingsPullTask implements ExchangeTaskInterface
     {
         return $this->strategy;
     }
+
+    /**
+     * ✅ IMPLEMENTACIÓN DEL PROXY
+     * El Handler llama a esto -> Tarea llama a Provider -> Provider llama a Repository
+     */
+    public function getGroupingMetadata(array $ids): array
+    {
+        return $this->provider->getGroupingMetadata($ids);
+    }
 }

@@ -6,6 +6,8 @@ namespace App\Pms\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Exchange\Service\Contract\ChannelConfigInterface;
+use App\Exchange\Service\Contract\EndpointInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Repository\PmsBookingsPushQueueRepository;
 use DateTimeImmutable;
@@ -41,13 +43,13 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
     #[ORM\JoinColumn(name: 'link_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
     private ?PmsEventoBeds24Link $link = null;
 
-    #[ORM\ManyToOne(targetEntity: PmsBeds24Endpoint::class)]
+    #[ORM\ManyToOne(targetEntity: Beds24Endpoint::class, inversedBy: 'bookingsPushQueues')]
     #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
-    private ?PmsBeds24Endpoint $endpoint = null;
+    private ?Beds24Endpoint $endpoint = null;
 
-    #[ORM\ManyToOne(targetEntity: Beds24Config::class)]
-    #[ORM\JoinColumn(name: 'beds24_config_id', referencedColumnName: 'id', nullable: true, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
-    private ?Beds24Config $beds24Config = null;
+    #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'bookingsPushQueues')]
+    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: true, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    private ?Beds24Config $config = null;
 
     // --- DATOS LÓGICOS ---
 
@@ -171,11 +173,11 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
         return $this;
     }
 
-    public function getEndpoint(): ?PmsBeds24Endpoint { return $this->endpoint; }
-    public function setEndpoint(?PmsBeds24Endpoint $endpoint): self { $this->endpoint = $endpoint; return $this; }
+    public function getEndpoint(): ?Beds24Endpoint { return $this->endpoint; }
+    public function setEndpoint(?EndpointInterface $endpoint): self { $this->endpoint = $endpoint; return $this; }
 
-    public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
-    public function setBeds24Config(?Beds24Config $config): self { $this->beds24Config = $config; return $this; }
+    public function getConfig(): ?Beds24Config { return $this->config; }
+    public function setConfig(?ChannelConfigInterface $config): self { $this->config = $config; return $this; }
 
     public function getDedupeKey(): ?string { return $this->dedupeKey; }
     public function setDedupeKey(?string $key): self { $this->dedupeKey = $key; return $this; }

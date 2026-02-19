@@ -89,7 +89,7 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
         // --- PANEL DE CONFIGURACIÓN ---
         yield FormField::addPanel('Configuración del Job')->setIcon('fa fa-download');
 
-        yield AssociationField::new('beds24Config', 'Configuración Beds24')
+        yield AssociationField::new('config', 'Configuración Beds24')
             ->setRequired(true);
 
         yield AssociationField::new('endpoint', 'Endpoint (Acción)')

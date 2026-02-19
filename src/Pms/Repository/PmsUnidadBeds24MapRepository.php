@@ -59,7 +59,7 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('m')
             ->select('DISTINCT m.beds24RoomId AS roomId')
-            ->andWhere('m.beds24Config = :config')
+            ->andWhere('m.config = :config')
             ->andWhere('m.activo = :activo')
             ->andWhere('m.beds24RoomId IS NOT NULL')
             ->setParameter('config', $config)
@@ -93,7 +93,7 @@ final class PmsUnidadBeds24MapRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('m')
             ->select('DISTINCT m.beds24PropertyId AS propertyId')
-            ->andWhere('m.beds24Config = :config')
+            ->andWhere('m.config = :config')
             ->andWhere('m.activo = :activo')
             ->andWhere('m.beds24PropertyId IS NOT NULL')
             ->setParameter('config', $config)

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Pms\EventListener;
 
+use App\Exchange\Dispatch\RunExchangeTaskDispatch;
 use App\Exchange\Service\Context\SyncContext;
-use App\Pms\Entity\PmsBeds24Endpoint;
+use App\Pms\Entity\Beds24Endpoint;
+use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsReserva;
@@ -13,17 +15,19 @@ use App\Pms\Service\Beds24\Queue\Beds24BookingsPushQueueCreator;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
+use Doctrine\ORM\Event\PostFlushEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\UnitOfWork;
 use SplObjectStorage;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Listener Beds24BookingsPushQueueListener.
- * Monitorea el UnitOfWork de Doctrine para detectar cambios en Reservas/Eventos/Links.
- *
- * ✅ FIX: Gestión explícita de links redundantes (Cancelación de zombies al mover unidades).
+ * Monitorea el UnitOfWork de Doctrine para detectar cambios en Reservas/Eventos/Links
+ * y encolar la sincronización hacia Beds24.
  */
 #[AsDoctrineListener(event: Events::onFlush, priority: 200)]
+#[AsDoctrineListener(event: Events::postFlush, priority: 200)]
 final class Beds24BookingsPushQueueListener
 {
     private const ENDPOINT_POST_BOOKINGS   = 'POST_BOOKINGS';
@@ -40,13 +44,17 @@ final class Beds24BookingsPushQueueListener
     private SplObjectStorage $linksTouched;
     private SplObjectStorage $linksDeleted;
 
-    private ?PmsBeds24Endpoint $cachedPostEndpoint = null;
-    private ?PmsBeds24Endpoint $cachedDeleteEndpoint = null;
+    /** @var string[] IDs recolectados para despacho inmediato */
+    private array $queuedIdsForDispatch = [];
+
+    private ?Beds24Endpoint $cachedPostEndpoint = null;
+    private ?Beds24Endpoint $cachedDeleteEndpoint = null;
     private bool $endpointsLoaded = false;
 
     public function __construct(
         private readonly Beds24BookingsPushQueueCreator $queueCreator,
         private readonly SyncContext $syncContext,
+        private readonly MessageBusInterface $bus
     ) {
         $this->reset();
     }
@@ -65,11 +73,12 @@ final class Beds24BookingsPushQueueListener
 
         $uow = $em->getUnitOfWork();
 
-        // 1) RASTREO DE ENTIDADES DIRECTAS
+        // 1) RASTREO DE ENTIDADES DIRECTAS (Insertadas)
         foreach ($uow->getScheduledEntityInsertions() as $e) {
             $this->collect($e);
         }
 
+        // 2) RASTREO DE ENTIDADES ACTUALIZADAS
         foreach ($uow->getScheduledEntityUpdates() as $e) {
             // Si es una reserva OTA y los cambios son solo cosméticos, ignoramos.
             if ($e instanceof PmsReserva && $this->shouldIgnoreReservaUpdate($e, $uow)) {
@@ -78,12 +87,13 @@ final class Beds24BookingsPushQueueListener
             $this->collect($e);
         }
 
+        // 3) RASTREO DE ENTIDADES BORRADAS
         foreach ($uow->getScheduledEntityDeletions() as $e) {
             $this->collectDeleted($e);
             $this->collect($e);
         }
 
-        // 2) RASTREO DE COLECCIONES (crucial para el Factory)
+        // 4) RASTREO DE COLECCIONES (crucial para el Factory)
         foreach ($uow->getScheduledCollectionUpdates() as $c) {
             if (is_object($c->getOwner())) {
                 $this->collect($c->getOwner());
@@ -100,7 +110,7 @@ final class Beds24BookingsPushQueueListener
             return;
         }
 
-        // 3) RESOLUCIÓN DE TAREAS (PUSH, DELETE o CANCEL)
+        // 5) RESOLUCIÓN DE TAREAS (PUSH, DELETE o CANCEL)
         $tasks = $this->resolveTasks($uow);
         if ($tasks === []) {
             $this->reset();
@@ -129,9 +139,7 @@ final class Beds24BookingsPushQueueListener
             if ($action === 'DELETE') {
                 $this->ensureBookIdForDelete($link, $em, $uow);
 
-                // ✅ FIX CRÍTICO: Cancelar siempre cualquier POST pendiente asociado a este link.
-                // Si el link se va a borrar, su cola POST pendiente queda huérfana (link_id=null)
-                // y con datos obsoletos, provocando errores en el worker.
+                // Cancelar siempre cualquier POST pendiente asociado a este link.
                 $this->queueCreator->cancelPendingPostForLink($link, 'Link deleted (replaced by DELETE)', $uow);
 
                 // Si tras intentar recuperar no hay ID, no podemos borrar nada en Beds24.
@@ -143,42 +151,53 @@ final class Beds24BookingsPushQueueListener
             $this->queueCreator->enqueueForLink($link, $endpoint, $uow);
         }
 
-        $this->reset();
-    }
+        // 6) CAPTURA DE IDs PARA DISPATCH (Pre-Commit)
+        // Antes de cerrar la transacción, miramos qué colas nuevas se van a guardar.
+        // 6) CAPTURA DE IDs PARA DISPATCH (Solo lo ejecutable)
+        // Recolectamos colas que entran o vuelven a estado PENDIENTE.
 
-    private function isLinkBeingDeleted(PmsEventoBeds24Link $link): bool
-    {
-        return $this->linksDeleted->contains($link) || $link->getStatus() === PmsEventoBeds24Link::STATUS_PENDING_DELETE;
-    }
-
-    private function ensureBookIdForDelete(PmsEventoBeds24Link $link, EntityManagerInterface $em, UnitOfWork $uow): void
-    {
-        if ($link->getBeds24BookId()) {
-            return;
-        }
-
-        $recovered = $this->recoverBookIdFromQueues($link);
-        if (!$recovered) {
-            return;
-        }
-
-        $link->setBeds24BookId($recovered);
-
-        // ✅ Importante en onFlush: avisar al UoW que cambió el link
-        $uow->recomputeSingleEntityChangeSet(
-            class: $em->getClassMetadata(PmsEventoBeds24Link::class),
-            entity: $link
-        );
-    }
-
-    private function recoverBookIdFromQueues(PmsEventoBeds24Link $link): ?string
-    {
-        foreach ($link->getQueues() as $q) {
-            if ($q->getBeds24BookIdOriginal()) {
-                return (string) $q->getBeds24BookIdOriginal();
+        // A) Nuevas colas (INSERT)
+        // Siempre nacen como PENDING gracias al Factory.
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
+            if ($entity instanceof PmsBookingsPushQueue) { // O PmsRatesPushQueue
+                $this->queuedIdsForDispatch[] = (string) $entity->getId();
             }
         }
-        return null;
+
+        // B) Colas recicladas o reactivadas (UPDATE)
+        // Solo nos interesa si el estado actual es PENDING.
+        foreach ($uow->getScheduledEntityUpdates() as $entity) {
+            if ($entity instanceof PmsBookingsPushQueue) {
+                if ($entity->getStatus() === PmsBookingsPushQueue::STATUS_PENDING) {
+                    $this->queuedIdsForDispatch[] = (string) $entity->getId();
+                }
+            }
+        }
+
+        // NOTA: Ignoramos Deletions porque un ID borrado no existe para el worker.
+        $this->resetPartial();
+    }
+
+    /**
+     * ✅ Se ejecuta DESPUÉS del commit en base de datos.
+     */
+    public function postFlush(PostFlushEventArgs $args): void
+    {
+        if (empty($this->queuedIdsForDispatch)) {
+            return;
+        }
+
+        // Copiamos y limpiamos duplicados
+        $idsBatch = array_unique($this->queuedIdsForDispatch);
+
+        // Limpiamos la propiedad de clase inmediatamente
+        $this->queuedIdsForDispatch = [];
+
+        // 🔥 Disparo Asíncrono de la orden al Worker
+        $this->bus->dispatch(new RunExchangeTaskDispatch(
+            taskName: 'bookings_push',
+            ids: $idsBatch
+        ));
     }
 
     /**
@@ -227,7 +246,10 @@ final class Beds24BookingsPushQueueListener
 
         // FASE 1: Clasificación inicial
         foreach ($resolved as $link) {
-            /** @var PmsEventoBeds24Link $link */
+            // ✅ FIX: Validación explícita de tipo para calmar al IDE
+            if (!$link instanceof PmsEventoBeds24Link) {
+                continue;
+            }
 
             // 1) Prioridad absoluta: borrados
             if ($this->isLinkBeingDeleted($link)) {
@@ -261,13 +283,69 @@ final class Beds24BookingsPushQueueListener
                 if ($l === $winner) {
                     $tasks[] = ['link' => $l, 'action' => 'PUSH'];
                 } else {
-                    // ✅ Fix: perdedores -> cancelar POST pendiente para matar zombies
                     $tasks[] = ['link' => $l, 'action' => 'CANCEL'];
                 }
             }
         }
 
         return $tasks;
+    }
+
+    private function reset(): void
+    {
+        $this->queuedIdsForDispatch = [];
+        $this->resetPartial();
+    }
+
+    private function resetPartial(): void
+    {
+        $this->eventosTouched = new SplObjectStorage();
+        $this->reservasTouched = new SplObjectStorage();
+        $this->linksTouched = new SplObjectStorage();
+        $this->linksDeleted = new SplObjectStorage();
+
+        // En workers es mejor no cachear endpoints para siempre
+        $this->cachedPostEndpoint = null;
+        $this->cachedDeleteEndpoint = null;
+        $this->endpointsLoaded = false;
+    }
+
+    // =========================================================================
+    // HELPER METHODS
+    // =========================================================================
+
+    private function isLinkBeingDeleted(PmsEventoBeds24Link $link): bool
+    {
+        return $this->linksDeleted->contains($link) || $link->getStatus() === PmsEventoBeds24Link::STATUS_PENDING_DELETE;
+    }
+
+    private function ensureBookIdForDelete(PmsEventoBeds24Link $link, EntityManagerInterface $em, UnitOfWork $uow): void
+    {
+        if ($link->getBeds24BookId()) {
+            return;
+        }
+
+        $recovered = $this->recoverBookIdFromQueues($link);
+        if (!$recovered) {
+            return;
+        }
+
+        $link->setBeds24BookId($recovered);
+
+        $uow->recomputeSingleEntityChangeSet(
+            class: $em->getClassMetadata(PmsEventoBeds24Link::class),
+            entity: $link
+        );
+    }
+
+    private function recoverBookIdFromQueues(PmsEventoBeds24Link $link): ?string
+    {
+        foreach ($link->getQueues() as $q) {
+            if ($q->getBeds24BookIdOriginal()) {
+                return (string) $q->getBeds24BookIdOriginal();
+            }
+        }
+        return null;
     }
 
     private function pickBestLink(PmsEventoBeds24Link $a, PmsEventoBeds24Link $b): PmsEventoBeds24Link
@@ -301,7 +379,7 @@ final class Beds24BookingsPushQueueListener
             return;
         }
 
-        $repo = $em->getRepository(PmsBeds24Endpoint::class);
+        $repo = $em->getRepository(Beds24Endpoint::class);
 
         $this->cachedPostEndpoint = $repo->findOneBy([
             'accion' => self::ENDPOINT_POST_BOOKINGS,
@@ -346,18 +424,5 @@ final class Beds24BookingsPushQueueListener
             && $this->reservasTouched->count() === 0
             && $this->linksTouched->count() === 0
             && $this->linksDeleted->count() === 0;
-    }
-
-    private function reset(): void
-    {
-        $this->eventosTouched = new SplObjectStorage();
-        $this->reservasTouched = new SplObjectStorage();
-        $this->linksTouched = new SplObjectStorage();
-        $this->linksDeleted = new SplObjectStorage();
-
-        // ✅ En workers es mejor no cachear para siempre
-        $this->cachedPostEndpoint = null;
-        $this->cachedDeleteEndpoint = null;
-        $this->endpointsLoaded = false;
     }
 }

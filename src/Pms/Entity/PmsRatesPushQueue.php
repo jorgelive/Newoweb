@@ -7,6 +7,8 @@ namespace App\Pms\Entity;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Exchange\Service\Contract\ChannelConfigInterface;
+use App\Exchange\Service\Contract\EndpointInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Repository\PmsRatesPushQueueRepository;
 use DateTimeImmutable;
@@ -51,25 +53,25 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
 
 
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class, inversedBy: 'tarifaQueues')]
-    #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
+    #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
     private ?PmsUnidad $unidad = null;
 
     #[ORM\ManyToOne(targetEntity: PmsUnidadBeds24Map::class)]
-    #[ORM\JoinColumn(name: 'pms_unidad_beds24_map_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE', columnDefinition: 'BINARY(16)')]
+    #[ORM\JoinColumn(name: 'pms_unidad_beds24_map_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
     private ?PmsUnidadBeds24Map $unidadBeds24Map = null;
 
-    #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'ratesQueues')]
-    #[ORM\JoinColumn(name: 'beds24_config_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16)')]
-    private ?Beds24Config $beds24Config = null;
+    #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'ratesPushQueues')]
+    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    private ?Beds24Config $config = null;
 
-    #[ORM\ManyToOne(targetEntity: PmsBeds24Endpoint::class, inversedBy: 'ratesQueues')]
+    #[ORM\ManyToOne(targetEntity: Beds24Endpoint::class, inversedBy: 'ratesPushQueues')]
     #[ORM\JoinColumn(
         name: 'endpoint_id',
         referencedColumnName: 'id',
         nullable: false,
         columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
     )]
-    private ?PmsBeds24Endpoint $endpoint = null;
+    private ?Beds24Endpoint $endpoint = null;
 
     #[ORM\ManyToOne(targetEntity: PmsTarifaRango::class, inversedBy: 'queues')]
     #[ORM\JoinColumn(name: 'tarifa_rango_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL', columnDefinition: 'BINARY(16)')]
@@ -150,8 +152,10 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
      * IMPLEMENTACIÓN ExchangeQueueItemInterface
      * ====================================================== */
 
-    public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
-    public function getEndpoint(): ?PmsBeds24Endpoint { return $this->endpoint; }
+    public function getConfig(): ?Beds24Config { return $this->config; }
+    public function getEndpoint(): ?Beds24Endpoint { return $this->endpoint; }
+    public function setConfig(?ChannelConfigInterface $config): self { $this->config = $config; return $this; }
+    public function setEndpoint(?EndpointInterface $endpoint): self { $this->endpoint = $endpoint; return $this; }
     public function getRunAt(): ?DateTimeInterface { return $this->runAt; }
     public function setRunAt(?DateTimeInterface $at): self { $this->runAt = $at; return $this; }
     public function getRetryCount(): int { return $this->retryCount; }
@@ -199,13 +203,9 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
     public function getUnidadBeds24Map(): ?PmsUnidadBeds24Map { return $this->unidadBeds24Map; }
     public function setUnidadBeds24Map(?PmsUnidadBeds24Map $m): self {
         $this->unidadBeds24Map = $m;
-        if ($m) { $this->beds24Config = $m->getBeds24Config(); }
+        if ($m) { $this->config = $m->getConfig(); }
         return $this;
     }
-
-    public function setBeds24Config(?Beds24Config $cfg): self { $this->beds24Config = $cfg; return $this; }
-
-    public function setEndpoint(?PmsBeds24Endpoint $endpoint): self { $this->endpoint = $endpoint; return $this; }
 
     public function getFechaInicio(): ?DateTimeInterface { return $this->fechaInicio; }
     public function setFechaInicio(?DateTimeInterface $d): self { $this->fechaInicio = $d; return $this; }
@@ -257,7 +257,7 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
 
     public function __toString(): string {
         return sprintf(
-            'RatesQueue [%s] %s->%s',
+            'RatesPushQueue [%s] %s->%s',
             $this->status,
             $this->fechaInicio?->format('Y-m-d') ?? '?',
             $this->fechaFin?->format('Y-m-d') ?? '?'

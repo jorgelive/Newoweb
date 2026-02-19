@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
-use App\Pms\Entity\PmsBeds24Endpoint;
+use App\Pms\Entity\Beds24Endpoint;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -36,7 +36,7 @@ class PmsBeds24EndpointCrudController extends BaseCrudController
 
     public static function getEntityFqcn(): string
     {
-        return PmsBeds24Endpoint::class;
+        return Beds24Endpoint::class;
     }
 
     public function configureActions(Actions $actions): Actions
@@ -128,13 +128,13 @@ class PmsBeds24EndpointCrudController extends BaseCrudController
             ->setIcon('fa fa-sitemap')
             ->onlyOnDetail();
 
-        yield CollectionField::new('ratesQueues', 'Colas de Tarifas')
+        yield CollectionField::new('ratesPushQueues', 'Colas de Tarifas')
             ->onlyOnDetail();
 
         yield CollectionField::new('bookingsPushQueues', 'Colas de Reservas (Push)')
             ->onlyOnDetail();
 
-        yield CollectionField::new('pullQueueJobs', 'Jobs de Pull')
+        yield CollectionField::new('bookingsPullQueues', 'Jobs de Pull')
             ->onlyOnDetail();
 
         // ============================================================

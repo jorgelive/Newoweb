@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Pms\Service\Exchange\Auth;
 
 use App\Pms\Entity\Beds24Config;
-use App\Pms\Entity\PmsBeds24Endpoint;
+use App\Pms\Entity\Beds24Endpoint;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use RuntimeException;
@@ -31,7 +31,7 @@ final class Beds24AuthService
 
     private function refreshToken(Beds24Config $config): string
     {
-        $endpoint = $this->em->getRepository(PmsBeds24Endpoint::class)->findOneBy(['accion' => 'GET_TOKEN']);
+        $endpoint = $this->em->getRepository(Beds24Endpoint::class)->findOneBy(['accion' => 'GET_TOKEN']);
         if (!$endpoint) throw new RuntimeException('Endpoint GET_TOKEN no definido.');
 
         // Usamos la baseUrl de la configuración

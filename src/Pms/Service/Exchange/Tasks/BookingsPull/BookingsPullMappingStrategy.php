@@ -66,7 +66,7 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
             /** @var PmsUnidad $unidad */
             foreach ($unidad->getBeds24Maps() as $map) {
                 // Validación estricta: El mapa debe pertenecer a la cuenta que estamos consultando
-                if ($map->getBeds24Config()->getId() === $config->getId()) {
+                if ($map->getConfig()->getId() === $config->getId()) {
                     $roomIds[] = (int)$map->getBeds24RoomId();
                 }
             }

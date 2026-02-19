@@ -23,7 +23,7 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
 {
     public function __construct(
         private readonly Beds24BookingPersister $persister,
-        private readonly SerializerInterface $serializer // ✅ Inyección para mapeo automático
+        private readonly SerializerInterface $serializer
     ) {}
 
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
@@ -33,7 +33,7 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
             return ['status' => 'error', 'message' => 'Entidad no compatible (se esperaba PmsBookingsPullQueue)'];
         }
 
-        $config = $item->getBeds24Config();
+        $config = $item->getConfig();
         if (!$config) {
             return ['status' => 'error', 'message' => 'El Job no tiene Configuración Beds24 asignada'];
         }
@@ -49,54 +49,75 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
         $item->setLastHttpCode(200);
 
         // 3. Preparación del Procesamiento
-        // Asumimos que el Strategy ya extrajo el array de reservas en $data
         $bookings = $data;
         $total = count($bookings);
-        $successCount = 0;
-        $errors = [];
 
-        // ✅ Limpieza de caché del Persister (Vital para procesos de larga duración)
+        $stats = [
+            'created' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+            'failed'  => 0
+        ];
+
+        $messages = []; // Log detallado (limitado)
+
+        // ✅ Limpieza de caché del Persister (Obs #7)
         $this->persister->resetCache();
 
         // 4. Procesamiento Masivo (Fila por Fila)
         foreach ($bookings as $index => $bookingData) {
+            $bookId = $bookingData['id'] ?? $bookingData['bookId'] ?? 'unknown';
+
             try {
-                // ✅ Deserialización Automática (Maneja tipos, fechas y nulos mejor que un array manual)
+                // ✅ Deserialización Automática
                 /** @var Beds24BookingDto $dto */
                 $dto = $this->serializer->denormalize($bookingData, Beds24BookingDto::class);
 
-                // Persistencia (Upsert)
-                $this->persister->upsert($config, $dto);
+                // Persistencia (Upsert) - Ahora retorna array con info
+                $result = $this->persister->upsert($config, $dto);
 
-                $successCount++;
+                // Contabilizar según resultado
+                if ($result['status'] === 'skipped') {
+                    $stats['skipped']++;
+                    // Solo guardamos mensaje de skip si es relevante para debug (opcional)
+                    // $messages[] = "SKIP ID $bookId: {$result['message']}";
+                } else {
+                    if ($result['action'] === 'created') $stats['created']++;
+                    else $stats['updated']++;
+                }
 
             } catch (Throwable $e) {
                 // Captura de error individual (Soft Fail)
-                $bookId = $bookingData['id'] ?? $bookingData['bookId'] ?? 'unknown';
+                $stats['failed']++;
 
-                // Guardamos un mensaje corto para no saturar el JSON de log
-                $errors[] = sprintf(
-                    "Fila %d (ID %s): %s",
+                // Guardamos el error para diagnóstico
+                $messages[] = sprintf(
+                    "ERROR Fila %d (ID %s): %s",
                     $index,
                     $bookId,
-                    mb_substr($e->getMessage(), 0, 150)
+                    mb_substr($e->getMessage(), 0, 200) // Truncar mensajes largos
                 );
             }
         }
 
         // 5. Preparar Resultado de Ejecución (Estadísticas)
+        $processedTotal = $stats['created'] + $stats['updated'];
+
+        // Estado lógico del Job:
+        // - 'success' si todo OK (incluso si hubo skips legítimos).
+        // - 'partial_success' si hubo fallos (excepciones).
+        // - 'failed' si falló todo lo que se intentó.
         $statusLog = 'success';
-        if (count($errors) > 0) {
-            $statusLog = ($successCount > 0) ? 'partial_success' : 'failed';
+        if ($stats['failed'] > 0) {
+            $statusLog = ($processedTotal > 0 || $stats['skipped'] > 0) ? 'partial_success' : 'failed';
         }
 
         $resultStats = [
             'status'         => $statusLog,
             'window'         => $item->getArrivalFrom()?->format('Y-m-d'),
             'total_received' => $total,
-            'processed'      => $successCount,
-            'failed_count'   => count($errors),
-            'errors'         => array_slice($errors, 0, 20), // Top 20 errores para diagnóstico rápido
+            'stats'          => $stats, // Desglose: created, updated, skipped, failed
+            'errors'         => array_slice($messages, 0, 50), // Guardar hasta 50 mensajes de error
             'processed_at'   => (new DateTimeImmutable())->format('Y-m-d H:i:s')
         ];
 
@@ -106,7 +127,6 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
         // 6. Transición de Estado
         $item->markSuccess(new DateTimeImmutable());
 
-        // Nota: El Worker se encarga del $em->flush();
         return $resultStats;
     }
 
@@ -116,18 +136,15 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
             return;
         }
 
-        // 1. Obtener datos del error
         $httpCode = (int) $e->getCode();
         $auditCode = ($httpCode === 0) ? 500 : $httpCode;
         $errorMsg = sprintf('[Code %s] %s', $httpCode, $e->getMessage());
 
-        // 2. Auditoría Técnica
         $item->setLastHttpCode($auditCode);
 
-        // 3. Calcular Reintento (15 min para Pull, política estándar)
+        // Política de reintento: 15 minutos
         $nextRetry = new DateTimeImmutable('+15 minutes');
 
-        // 4. Transición de Estado
         $item->markFailure($errorMsg, $auditCode, $nextRetry);
     }
 }

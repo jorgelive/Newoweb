@@ -16,7 +16,7 @@ use App\Entity\Maestro\MaestroTipocambio;
 // PMS Entities
 use App\Pax\Entity\UiI18n;
 use App\Pms\Entity\Beds24Config;
-use App\Pms\Entity\PmsBeds24Endpoint;
+use App\Pms\Entity\Beds24Endpoint;
 use App\Pms\Entity\PmsBeds24WebhookAudit;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Entity\PmsBookingsPushQueue;
@@ -183,7 +183,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::subMenu('Config Beds24', 'fa fa-cogs')
             ->setSubItems([
                 MenuItem::linkToCrud('Maps Beds24', 'fa fa-link', PmsUnidadBeds24Map::class),
-                MenuItem::linkToCrud('Endpoints', 'fa fa-network-wired', PmsBeds24Endpoint::class),
+                MenuItem::linkToCrud('Endpoints', 'fa fa-network-wired', Beds24Endpoint::class),
                 MenuItem::linkToCrud('Configs Beds24', 'fa fa-key', Beds24Config::class),
                 MenuItem::linkToCrud('Estado de Crons', 'fa fa-robot', PmsCronCursor::class),
                 MenuItem::linkToCrud('Webhook Audit', 'fa fa-bug', PmsBeds24WebhookAudit::class),

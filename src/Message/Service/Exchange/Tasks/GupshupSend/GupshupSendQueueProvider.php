@@ -1,0 +1,67 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Message\Service\Exchange\Tasks\GupshupSend;
+
+use App\Exchange\Service\Common\HomogeneousBatch;
+use App\Exchange\Service\Contract\ExchangeQueueProviderInterface;
+use App\Message\Entity\GupshupSendQueue;
+use App\Message\Repository\GupshupSendQueueRepository;
+use DateTimeImmutable;
+use RuntimeException;
+
+final readonly class GupshupSendQueueProvider implements ExchangeQueueProviderInterface
+{
+    public function __construct(
+        private GupshupSendQueueRepository $repository
+    ) {}
+
+    public function claimBatch(int $limit, string $workerId, DateTimeImmutable $now): ?HomogeneousBatch
+    {
+        $items = $this->repository->claimRunnable($limit, $workerId, $now, 60);
+        return $this->packItems($items);
+    }
+
+    public function claimSpecificBatch(array $ids, string $workerId, DateTimeImmutable $now): ?HomogeneousBatch
+    {
+        $items = $this->repository->claimSpecificItems($ids, $workerId, $now);
+        return $this->packItems($items, true);
+    }
+
+    /** @param GupshupSendQueue[] $items */
+    private function packItems(array $items, bool $strictCheck = false): ?HomogeneousBatch
+    {
+        if (empty($items)) return null;
+
+        $rep = $items[0];
+        $config = $rep->getConfig();
+        $endpoint = $rep->getEndpoint();
+
+        if (!$config || !$endpoint) {
+            throw new RuntimeException("Integridad violada: Cola Gupshup #{$rep->getId()} sin config.");
+        }
+
+        if ($strictCheck && count($items) > 1) {
+            $refCfg = (string)$config->getId();
+            $refEp = (string)$endpoint->getId();
+
+            foreach ($items as $item) {
+                if ((string)$item->getConfig()->getId() !== $refCfg ||
+                    (string)$item->getEndpoint()->getId() !== $refEp) {
+                    throw new RuntimeException("Violación de homogeneidad en Gupshup Batch Manual.");
+                }
+            }
+        }
+
+        return new HomogeneousBatch($config, $endpoint, $items);
+    }
+
+    /**
+     * ✅ NUEVO: Método Proxy para obtener metadatos sin exponer el Repositorio completo.
+     */
+    public function getGroupingMetadata(array $ids): array
+    {
+        return $this->repository->getGroupingMetadata($ids);
+    }
+}

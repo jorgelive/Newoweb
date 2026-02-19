@@ -35,48 +35,59 @@ final readonly class RatesPushQueueProvider implements ExchangeQueueProviderInte
      */
     public function claimBatch(int $limit, string $workerId, DateTimeImmutable $now): ?HomogeneousBatch
     {
-        // 1. Reclamo de ítems mediante lógica de Locking en DB (Optimistic/Pessimistic según Repo)
-        // Se define un TTL de 90 segundos para evitar bloqueos infinitos por fallos de proceso.
-        $items = $this->repository->claimRunnable(
-            limit: $limit,
-            workerId: $workerId,
-            now: $now,
-            ttl: 90
-        );
+        $items = $this->repository->claimRunnable($limit, $workerId, $now, 90);
+        return $this->packItems($items);
+    }
 
+    public function claimSpecificBatch(array $ids, string $workerId, DateTimeImmutable $now): ?HomogeneousBatch
+    {
+        $items = $this->repository->claimSpecificItems($ids, $workerId, $now);
+        return $this->packItems($items, true); // true = validación estricta
+    }
+
+    /**
+     * Helper privado para evitar duplicar lógica de empaquetado y validación.
+     * @param PmsRatesPushQueue[] $items
+     */
+    private function packItems(array $items, bool $strictCheck = false): ?HomogeneousBatch
+    {
         if (empty($items)) {
             return null;
         }
 
-        /** @var PmsRatesPushQueue $representative */
         $representative = $items[0];
-
-        // 2. Extracción de contexto de red (Directo desde la entidad)
-        // Al estar aplanado, evitamos navegar por múltiples relaciones (N+1) para obtener la URL.
-        $config = $representative->getBeds24Config();
+        $config = $representative->getConfig();
         $endpoint = $representative->getEndpoint();
 
-        // Validación de Seguridad Técnica
-        if (!$config) {
-            throw new RuntimeException(sprintf(
-                "Inconsistencia: El ítem de cola #%d no tiene configuración Beds24 asignada.",
-                $representative->getId()
-            ));
+        if (!$config || !$endpoint) {
+            throw new RuntimeException("Integridad violada: Ítem #{$representative->getId()} sin config/endpoint.");
         }
 
-        if (!$endpoint) {
-            throw new RuntimeException(sprintf(
-                "Integridad de datos violada: El ítem de cola #%d no tiene un endpoint asociado.",
-                $representative->getId()
-            ));
+        // Validación Defensiva de Homogeneidad (Vital para modo manual)
+        if ($strictCheck && count($items) > 1) {
+            $refConfigId = (string) $config->getId();
+            $refEndpointId = (string) $endpoint->getId();
+
+            foreach ($items as $item) {
+                if ((string)$item->getConfig()->getId() !== $refConfigId ||
+                    (string)$item->getEndpoint()->getId() !== $refEndpointId) {
+                    throw new RuntimeException(
+                        "Error Crítico: Intento de procesar un lote mixto en modo manual. " .
+                        "El Caller debe agrupar los IDs por Config y Endpoint antes de enviar."
+                    );
+                }
+            }
         }
 
-        // 3. Empaquetar en el objeto de transporte HomogeneousBatch
-        // Esto garantiza que todos los ítems del lote comparten el mismo destino y credenciales.
-        return new HomogeneousBatch(
-            config:   $config,
-            endpoint: $endpoint,
-            items:    $items
-        );
+        return new HomogeneousBatch($config, $endpoint, $items);
     }
+
+    /**
+     * ✅ NUEVO: Método Proxy para obtener metadatos sin exponer el Repositorio completo.
+     */
+    public function getGroupingMetadata(array $ids): array
+    {
+        return $this->repository->getGroupingMetadata($ids);
+    }
+
 }

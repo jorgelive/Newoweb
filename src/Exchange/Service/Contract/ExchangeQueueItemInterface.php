@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Exchange\Service\Contract;
 
 use App\Pms\Entity\Beds24Config;
-use App\Pms\Entity\PmsBeds24Endpoint;
+use App\Pms\Entity\Beds24Endpoint;
 use DateTimeImmutable;
 use DateTimeInterface;
 
@@ -28,13 +28,17 @@ interface ExchangeQueueItemInterface
      */
 
     /** Configuración de acceso al canal (API Keys, tokens) */
-    public function getBeds24Config(): ?Beds24Config;
+
+
+    public function getConfig(): ?ChannelConfigInterface;
+
+    public function setConfig(?ChannelConfigInterface $config): self;
 
     /** Definición técnica del destino (path, método) */
-    public function getEndpoint(): ?PmsBeds24Endpoint;
+    public function getEndpoint(): ?EndpointInterface;
 
     /** Asigna el endpoint técnico al ítem de la cola */
-    public function setEndpoint(?PmsBeds24Endpoint $endpoint): self;
+    public function setEndpoint(?EndpointInterface $endpoint): self;
 
     /*
      * -------------------------------------------------------------------------

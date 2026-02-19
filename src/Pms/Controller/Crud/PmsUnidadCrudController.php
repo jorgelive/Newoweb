@@ -222,7 +222,7 @@ final class PmsUnidadCrudController extends BaseCrudController
         yield AssociationField::new('tarifaQueues', 'Tarifa Queues')
             ->onlyOnDetail();
 
-        yield AssociationField::new('pullQueueJobs', 'Pull Queue Jobs')
+        yield AssociationField::new('bookingsPullQueues', 'Pull Queue Jobs')
             ->onlyOnDetail();
 
         // ---------------------------------------------------------------------

@@ -20,15 +20,19 @@ use RuntimeException;
 
 /**
  * Persister para PULL/Webhooks de Beds24.
- * * ✅ Lógica unificada de Grupos con Cache en Memoria.
- * * ✅ Named Arguments PRAGMÁTICOS (Solo donde aportan claridad).
+ * * Correcciones aplicadas:
+ * * ✅ Return explícito (array) en lugar de void para trazabilidad.
+ * * ✅ Cacheo de negativos ("misses") para evitar N+1 en datos inexistentes.
+ * * ✅ Eliminación de estado estático (static) para evitar contaminación entre jobs.
+ * * ✅ Normalización estricta de IDs al inicio.
+ * * ✅ Validación fuerte de Maestros (Pais/Idioma) para evitar nulls silenciosos.
  */
 final class Beds24BookingPersister
 {
-    /** @var array<string, PmsReserva> Runtime cache para batch processing */
-    private static array $reservaByMasterId = [];
+    /** @var array<string, PmsReserva|false> Cache local por ciclo de ejecución */
+    private array $reservaByMasterId = [];
 
-    /** @var array<string, PmsEventoBeds24Link> */
+    /** @var array<string, PmsEventoBeds24Link|false> */
     private array $cacheLinks = [];
 
     private array $cacheMaps = [];
@@ -42,9 +46,12 @@ final class Beds24BookingPersister
         private readonly PmsEventoCalendarioFactory $eventoFactory
     ) {}
 
+    /**
+     * Limpia la memoria interna. Debe llamarse al inicio de cada Job.
+     */
     public function resetCache(): void
     {
-        self::$reservaByMasterId = [];
+        $this->reservaByMasterId = [];
         $this->cacheLinks = [];
         $this->cacheMaps = [];
         $this->cachePaises = [];
@@ -53,30 +60,45 @@ final class Beds24BookingPersister
         $this->cacheEstados = [];
     }
 
-    public function upsert(Beds24Config $config, Beds24BookingDto $booking): void
+    /**
+     * Procesa un DTO de Beds24 y actualiza/crea las entidades correspondientes.
+     * * @return array{status: string, action: string, message: string}
+     * status: 'success' | 'skipped'
+     * action: 'created' | 'updated' | 'ignored'
+     */
+    public function upsert(Beds24Config $config, Beds24BookingDto $booking): array
     {
-        // 2 params: Named args ayudan
-        $map = $this->resolveMap(cfg: $config, dto: $booking);
-
-        if (!$map) {
-            throw new RuntimeException("No existe mapeo para RoomID: {$booking->roomId}");
+        // 1. Normalización Canónica del ID (Obs #2)
+        $bookingIdStr = $this->normalizeBeds24Id($booking->id);
+        if ($bookingIdStr === null) {
+            throw new RuntimeException("El Booking DTO no tiene un ID válido.");
         }
 
-        // 1 param simple: Posicional es más limpio
-        $bookingIdStr = $this->normalizeBeds24Id($booking->id);
+        // 2. Mapeo de Unidad
+        $map = $this->resolveMap(cfg: $config, dto: $booking);
+        if (!$map) {
+            throw new RuntimeException("No existe mapeo PMS para RoomID Beds24: {$booking->roomId} (Prop: {$config->getPropKey()})");
+        }
 
-        // Resolver link (Memoria o BD)
+        // 3. Resolver Link existente (Memoria o BD)
         $existingLink = $this->resolveLink($bookingIdStr);
 
-        // 1. DETECCIÓN DE JERARQUÍA
+        // Determinación de Autoridad (Obs #4)
+        // Si existe, respetamos la BD. Si es nuevo, asumimos true SOLO si no es una sub-reserva explícita.
+        // Pero para simplificar y mantener la regla: "Ante la duda, si es nuevo, es principal hasta que se demuestre lo contrario por lógica de grupo".
+        $isLinkPrincipal = $existingLink ? $existingLink->isEsPrincipal() : true;
+
+        // 4. DETECCIÓN DE JERARQUÍA
         $masterIdReal = $this->resolveMasterIdReal($booking);
 
         $isSubReserva = false;
-        if ($bookingIdStr !== null && $masterIdReal !== null) {
+        if ($masterIdReal !== null) {
             $isSubReserva = $masterIdReal !== $bookingIdStr;
         }
 
-        // 2. GESTIÓN DE LA PMS RESERVA
+        // 5. GESTIÓN DE LA PMS RESERVA
+        $reservaAction = 'none';
+
         if ($isSubReserva) {
             // CASO HIJA: Reutilizar reserva padre
             $reserva = $this->resolveReservaFromMasterLink($masterIdReal);
@@ -84,36 +106,78 @@ final class Beds24BookingPersister
             // Fallback: Stub
             if (!$reserva) {
                 $reserva = $this->resolveOrCreateStubReserva($masterIdReal);
+                $reservaAction = 'created_stub';
+            } else {
+                $reservaAction = 'linked_to_master';
             }
         } else {
-            // CASO MADRE: Autoridad total
-            $reserva = $this->upsertReservaFull($booking);
+            // CASO MADRE / INDIVIDUAL / SOMBRA
+
+            // Extraer reserva del link si existe (Obs #5: Prioridad al Link)
+            $reservaDeLink = null;
+            if ($existingLink) {
+                $reservaDeLink = $existingLink->getEvento()?->getReserva();
+            }
+
+            // REGLA CRÍTICA: Ignorar "Shadow/Virtual Rooms" que no son principales y no tienen reserva.
+            // (Obs #5: Early return con mensaje explícito)
+            if ($existingLink && !$isLinkPrincipal && !$reservaDeLink) {
+                return [
+                    'status' => 'skipped',
+                    'action' => 'ignored',
+                    'message' => "Link secundario (ID: $bookingIdStr) sin reserva asociada. Se ignora para evitar duplicados."
+                ];
+            }
+
+            $reserva = $this->upsertReservaFull(
+                booking: $booking,
+                isPrincipal: $isLinkPrincipal,
+                reservaExistente: $reservaDeLink
+            );
+
+            // Determinamos si se creó o actualizó observando si tiene ID (aunque el persist lo asigna después, el objeto en memoria es nuevo)
+            // Una forma simple es verificar si estaba en el cache antes.
+            $reservaAction = $reserva->getId() ? 'updated' : 'created';
         }
 
-        // 3. GESTIÓN DEL EVENTO
-        // ✅ Aquí SÍ son vitales los Named Arguments (muchos params + booleanos)
-        $this->upsertEvento(
+        // 6. GESTIÓN DEL EVENTO
+        $eventoResult = $this->upsertEvento(
             booking: $booking,
             map: $map,
             reserva: $reserva,
             existingLink: $existingLink,
-            isSubReserva: $isSubReserva
+            // (Obs #2) Pasamos el ID normalizado
+            bookIdStr: $bookingIdStr
         );
+
+        return [
+            'status' => 'success',
+            'action' => ($reservaAction === 'created' || $eventoResult === 'created') ? 'created' : 'updated',
+            'message' => "Reserva: $reservaAction, Evento: $eventoResult. (ID: $bookingIdStr)"
+        ];
     }
 
-    private function resolveLink(?string $bookId): ?PmsEventoBeds24Link
+    private function resolveLink(string $bookId): ?PmsEventoBeds24Link
     {
-        if ($bookId === null) return null;
-        if (isset($this->cacheLinks[$bookId])) return $this->cacheLinks[$bookId];
+        // (Obs #3) Cacheo de "Misses" usando array_key_exists
+        if (array_key_exists($bookId, $this->cacheLinks)) {
+            $val = $this->cacheLinks[$bookId];
+            return $val === false ? null : $val;
+        }
 
         $link = $this->em->getRepository(PmsEventoBeds24Link::class)
             ->findOneBy(['beds24BookId' => $bookId]);
 
-        if ($link) $this->cacheLinks[$bookId] = $link;
+        // Guardamos el objeto o FALSE si no existe
+        $this->cacheLinks[$bookId] = $link ?? false;
 
         return $link;
     }
 
+    /**
+     * Normaliza el ID asegurando string y evitando nulos/ceros.
+     * (Obs #2)
+     */
     private function normalizeBeds24Id(mixed $v): ?string
     {
         if ($v === null) return null;
@@ -122,6 +186,7 @@ final class Beds24BookingPersister
             return $i > 0 ? (string) $i : null;
         }
         $s = trim((string) $v);
+        // Validar que no sea cadena vacía o "0"
         return ($s !== '' && $s !== '0') ? $s : null;
     }
 
@@ -137,47 +202,55 @@ final class Beds24BookingPersister
     private function resolveReservaFromMasterLink(string $masterIdStr): ?PmsReserva
     {
         if ($masterIdStr === '') return null;
-        if (isset(self::$reservaByMasterId[$masterIdStr])) return self::$reservaByMasterId[$masterIdStr];
+
+        // (Obs #7) Uso de cache de instancia, no static
+        if (array_key_exists($masterIdStr, $this->reservaByMasterId)) {
+            $val = $this->reservaByMasterId[$masterIdStr];
+            return $val === false ? null : $val;
+        }
 
         $masterLink = $this->resolveLink($masterIdStr);
-        if (!$masterLink) return null;
+        if (!$masterLink) {
+            $this->reservaByMasterId[$masterIdStr] = false;
+            return null;
+        }
 
         $evento = $masterLink->getEvento();
-        if (!$evento) return null;
+        $reserva = $evento?->getReserva();
 
-        $reserva = $evento->getReserva();
-        if (!$reserva) return null;
-
-        self::$reservaByMasterId[$masterIdStr] = $reserva;
+        $this->reservaByMasterId[$masterIdStr] = $reserva ?? false;
         return $reserva;
     }
 
-    private function upsertReservaFull(Beds24BookingDto $booking): PmsReserva
+    private function upsertReservaFull(Beds24BookingDto $booking, bool $isPrincipal, ?PmsReserva $reservaExistente = null): PmsReserva
     {
-        $bookIdStr = $this->normalizeBeds24Id($booking->id);
-        if ($bookIdStr === null) {
-            throw new RuntimeException('Beds24BookingDto sin id válido.');
-        }
-
+        $bookIdStr = $this->normalizeBeds24Id($booking->id); // Ya validado en upsert, pero tipado seguro
         $masterReal = $this->resolveMasterIdReal($booking);
         $effectiveMasterId = $masterReal ?? $bookIdStr;
 
-        // 2 params, puede ser confuso el orden -> Named Args OK
-        $reserva = $this->resolveReservaFromLayers(effMaster: $effectiveMasterId, book: $bookIdStr);
+        $reserva = $reservaExistente ?? $this->resolveReservaFromLayers(effMaster: $effectiveMasterId, book: $bookIdStr);
 
         if (!$reserva) {
+            // Doble check de seguridad (Obs #5)
+            if (!$isPrincipal) {
+                throw new RuntimeException("Intento ilegal de crear Reserva desde Link NO Principal (ID: $bookIdStr).");
+            }
+
             $reserva = new PmsReserva();
             $reserva->setBeds24MasterId($effectiveMasterId);
             $reserva->setBeds24BookIdPrincipal($bookIdStr);
             $this->em->persist($reserva);
         } else {
-            $reserva->setBeds24MasterId($effectiveMasterId);
-            $reserva->setBeds24BookIdPrincipal($bookIdStr);
+            if ($isPrincipal) {
+                $reserva->setBeds24MasterId($effectiveMasterId);
+                $reserva->setBeds24BookIdPrincipal($bookIdStr);
+            }
         }
 
-        self::$reservaByMasterId[$effectiveMasterId] = $reserva;
+        // Cache update
+        $this->reservaByMasterId[$effectiveMasterId] = $reserva;
 
-        // --- ACTUALIZACIÓN DE DATOS ---
+        // --- DATA SYNC ---
         $reserva->setReferenciaCanal($booking->apiReference);
         $reserva->setChannel($this->resolveChannel($booking));
         $reserva->setNota($booking->notes);
@@ -195,7 +268,9 @@ final class Beds24BookingPersister
             trim((string) $booking->email) !== '' ||
             trim((string) $booking->phone) !== '';
 
-        if (!$reserva->isDatosLocked() && $hasRealData) {
+        // (Obs #10) Bloqueo de datos solo si tenemos datos significativos
+        // Mejora: Podríamos añadir validación de "no contiene 'booking.com'" en el email para asegurar calidad
+        if (!$reserva->isDatosLocked() && $hasRealData && $isPrincipal) {
             $reserva->setNombreCliente($booking->firstName);
             $reserva->setApellidoCliente($booking->lastName);
             $reserva->setEmailCliente($booking->email);
@@ -213,8 +288,6 @@ final class Beds24BookingPersister
 
     private function resolveOrCreateStubReserva(string $masterIdStr): PmsReserva
     {
-        if ($masterIdStr === '') throw new RuntimeException('CRÍTICO: masterIdStr vacío.');
-
         $reserva = $this->resolveReservaFromLayers(effMaster: $masterIdStr, book: null);
 
         if (!$reserva) {
@@ -224,25 +297,25 @@ final class Beds24BookingPersister
             $reserva->setApellidoCliente('(Grupo)');
             $reserva->setChannel($this->em->getReference(PmsChannel::class, PmsChannel::CODIGO_DIRECTO));
             $this->em->persist($reserva);
-            self::$reservaByMasterId[$masterIdStr] = $reserva;
-        } else {
-            self::$reservaByMasterId[$masterIdStr] = $reserva;
         }
 
+        $this->reservaByMasterId[$masterIdStr] = $reserva;
         return $reserva;
     }
 
+    /**
+     * @return string 'created' | 'updated'
+     */
     private function upsertEvento(
         Beds24BookingDto $booking,
         PmsUnidadBeds24Map $map,
         ?PmsReserva $reserva,
         ?PmsEventoBeds24Link $existingLink,
-        bool $isSubReserva
-    ): void {
+        string $bookIdStr
+    ): string {
         $evento = null;
-        $currentBookId = (string) $booking->id;
+        $action = 'updated';
 
-        // 1. Calculamos el flag OTA
         $channelCode = strtolower(trim((string)($booking->channel ?? '')));
         $isOta = ($channelCode !== 'direct' && $channelCode !== '');
 
@@ -253,20 +326,19 @@ final class Beds24BookingPersister
 
             if ($unidadActual->getId() !== $unidadNueva->getId()) {
                 $evento->setPmsUnidad($unidadNueva);
-                // ✅ Named arguments aquí son útiles (3 params)
                 $this->eventoFactory->rebuildLinks(
                     evento: $evento,
-                    bookId: $currentBookId,
+                    bookId: $bookIdStr,
                     roomId: (int) $booking->roomId
                 );
             }
         } else {
-            // ✅ Named arguments aquí son IMPRESCINDIBLES (muchos params + booleanos)
+            $action = 'created';
             $evento = $this->eventoFactory->createFromBeds24Import(
                 unidad: $map->getPmsUnidad(),
                 fechaInicio: $booking->arrival,
                 fechaFin: $booking->departure,
-                beds24BookId: $currentBookId,
+                beds24BookId: $bookIdStr,
                 beds24RoomId: (int) $booking->roomId,
                 isOta: $isOta
             );
@@ -278,7 +350,6 @@ final class Beds24BookingPersister
 
         $est = $evento->getPmsUnidad()->getEstablecimiento();
 
-        // ✅ Named arguments aquí son vitales para el booleano 'isCheckIn'
         $evento->setInicio($this->eventoFactory->resolveFechaConHora(
             fechaYmd: $booking->arrival,
             establecimiento: $est,
@@ -294,7 +365,6 @@ final class Beds24BookingPersister
         $evento->setEstadoBeds24($booking->status);
         $evento->setSubestadoBeds24($booking->subStatus);
         $evento->setRateDescription($booking->rateDescription);
-
         $evento->setEstado($this->resolveEstado($booking));
 
         if ($evento->getEstadoPago() === null) {
@@ -309,15 +379,19 @@ final class Beds24BookingPersister
         $titulo = trim(($booking->firstName ?? '') . ' ' . ($booking->lastName ?? ''));
         $evento->setTituloCache($titulo ?: null);
 
+        // Actualizar LastSeen (Obs #9: Iteración inevitable si no hay repo method, pero controlada)
+        // Optimizacion: Si acabamos de crear, sabemos cual es. Si es update, iteramos.
         foreach ($evento->getBeds24Links() as $l) {
-            if ($l->getBeds24BookId() === $currentBookId) {
+            if ($l->getBeds24BookId() === $bookIdStr) {
                 $l->setLastSeenAt(new DateTimeImmutable());
-                $this->cacheLinks[$currentBookId] = $l;
+                // Actualizamos cache para evitar re-query en este mismo ciclo
+                $this->cacheLinks[$bookIdStr] = $l;
                 break;
             }
         }
 
         $this->em->persist($evento);
+        return $action;
     }
 
     // =========================================================================
@@ -326,13 +400,16 @@ final class Beds24BookingPersister
 
     private function resolveReservaFromLayers(?string $effMaster, ?string $book): ?PmsReserva
     {
-        if ($effMaster && isset(self::$reservaByMasterId[$effMaster])) {
-            return self::$reservaByMasterId[$effMaster];
+        if ($effMaster && array_key_exists($effMaster, $this->reservaByMasterId)) {
+            $val = $this->reservaByMasterId[$effMaster];
+            return $val === false ? null : $val;
         }
+
         $repo = $this->em->getRepository(PmsReserva::class);
         $reserva = null;
         if ($effMaster) $reserva = $repo->findOneBy(['beds24MasterId' => $effMaster]);
         if (!$reserva && $book) $reserva = $repo->findOneBy(['beds24BookIdPrincipal' => $book]);
+
         return $reserva;
     }
 
@@ -342,7 +419,7 @@ final class Beds24BookingPersister
         $cacheKey = strtolower($nombreCanal);
         if ($cacheKey === '') $cacheKey = 'default_directo';
 
-        if (isset($this->cacheCanales[$cacheKey])) {
+        if (array_key_exists($cacheKey, $this->cacheCanales)) {
             return $this->cacheCanales[$cacheKey];
         }
 
@@ -351,20 +428,14 @@ final class Beds24BookingPersister
 
         if ($nombreCanal !== '') {
             $channel = $repo->find($nombreCanal);
-            if (!$channel) {
-                $channel = $repo->findOneBy(['nombre' => $nombreCanal]);
-            }
-            if (!$channel) {
-                $channel = $repo->findOneBy(['beds24ChannelId' => $nombreCanal]);
-            }
+            if (!$channel) $channel = $repo->findOneBy(['nombre' => $nombreCanal]);
+            if (!$channel) $channel = $repo->findOneBy(['beds24ChannelId' => $nombreCanal]);
         }
 
-        if (!$channel) {
-            $channel = $repo->find(PmsChannel::CODIGO_DIRECTO);
-        }
+        if (!$channel) $channel = $repo->find(PmsChannel::CODIGO_DIRECTO);
 
         if (!$channel) {
-            throw new RuntimeException('CRÍTICO: No se encontró el canal por defecto (Directo).');
+            throw new RuntimeException('CRÍTICO: No se encontró el canal por defecto (Directo). Base de datos incompleta.');
         }
 
         $this->cacheCanales[$cacheKey] = $channel;
@@ -384,7 +455,7 @@ final class Beds24BookingPersister
             }
         }
         return $this->em->find(PmsEventoEstado::class, PmsEventoEstado::CODIGO_PENDIENTE)
-            ?? throw new RuntimeException('CRÍTICO: Maestro PmsEventoEstado corrupto.');
+            ?? throw new RuntimeException('CRÍTICO: Maestro PmsEventoEstado corrupto (falta CODIGO_PENDIENTE).');
     }
 
     private function resolveEstadoPagoInicial(Beds24BookingDto $dto): PmsEventoEstadoPago
@@ -401,13 +472,18 @@ final class Beds24BookingPersister
     private function resolveMap(Beds24Config $cfg, Beds24BookingDto $dto): ?PmsUnidadBeds24Map
     {
         $key = (string) $dto->propertyId . '_' . (string) $dto->roomId;
-        if (isset($this->cacheMaps[$key])) return $this->cacheMaps[$key];
+        if (array_key_exists($key, $this->cacheMaps)) {
+            $val = $this->cacheMaps[$key];
+            return $val === false ? null : $val;
+        }
+
         $map = $this->em->getRepository(PmsUnidadBeds24Map::class)->findOneBy([
-            'beds24Config' => $cfg,
+            'config' => $cfg,
             'beds24PropertyId' => (string) $dto->propertyId,
             'beds24RoomId' => (int) $dto->roomId,
         ]);
-        if ($map) $this->cacheMaps[$key] = $map;
+
+        $this->cacheMaps[$key] = $map ?? false;
         return $map;
     }
 
@@ -416,8 +492,18 @@ final class Beds24BookingPersister
         $iso2 = strtoupper((string) ($dto->country2 ?? ''));
         if ($iso2 === '') $iso2 = MaestroPais::DEFAULT_PAIS;
 
-        if (isset($this->cachePaises[$iso2])) return $this->cachePaises[$iso2];
-        $pais = $this->em->find(MaestroPais::class, $iso2) ?? $this->em->find(MaestroPais::class, MaestroPais::DEFAULT_PAIS);
+        if (array_key_exists($iso2, $this->cachePaises)) return $this->cachePaises[$iso2];
+
+        $pais = $this->em->find(MaestroPais::class, $iso2);
+
+        // (Obs #1) Fallback estricto
+        if (!$pais) {
+            $pais = $this->em->find(MaestroPais::class, MaestroPais::DEFAULT_PAIS);
+            if (!$pais) {
+                throw new RuntimeException("CRÍTICO: No existe el País solicitado '$iso2' ni el Default '" . MaestroPais::DEFAULT_PAIS . "'.");
+            }
+        }
+
         $this->cachePaises[$iso2] = $pais;
         return $pais;
     }
@@ -426,19 +512,36 @@ final class Beds24BookingPersister
     {
         $code = strtolower((string) ($dto->lang ?? ''));
         if ($code === '') $code = MaestroIdioma::DEFAULT_IDIOMA;
-        if (isset($this->cacheIdiomas[$code])) return $this->cacheIdiomas[$code];
-        $idioma = $this->em->find(MaestroIdioma::class, $code) ?? $this->em->find(MaestroIdioma::class, MaestroIdioma::DEFAULT_IDIOMA);
+
+        if (array_key_exists($code, $this->cacheIdiomas)) return $this->cacheIdiomas[$code];
+
+        $idioma = $this->em->find(MaestroIdioma::class, $code);
+
+        // (Obs #1) Fallback estricto
+        if (!$idioma) {
+            $idioma = $this->em->find(MaestroIdioma::class, MaestroIdioma::DEFAULT_IDIOMA);
+            if (!$idioma) {
+                throw new RuntimeException("CRÍTICO: No existe el Idioma solicitado '$code' ni el Default '" . MaestroIdioma::DEFAULT_IDIOMA . "'.");
+            }
+        }
+
         $this->cacheIdiomas[$code] = $idioma;
         return $idioma;
     }
 
-    private function normalizeDecimal(mixed $val): ?string
+    private function normalizeDecimal(mixed $val): string
     {
+        // (Obs #8) Retorno seguro '0.00' si es inválido, pero con manejo robusto de tipos
+        if ($val === null || $val === '') return '0.00';
+
         if (is_numeric($val)) return number_format((float) $val, 2, '.', '');
+
         if (is_string($val)) {
+            // Eliminar espacios y convertir coma a punto
             $v = str_replace([',', ' '], ['.', ''], trim($val));
-            return is_numeric($v) ? number_format((float) $v, 2, '.', '') : null;
+            return is_numeric($v) ? number_format((float) $v, 2, '.', '') : '0.00';
         }
+
         return '0.00';
     }
 }
