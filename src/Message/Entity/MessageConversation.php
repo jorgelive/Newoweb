@@ -6,6 +6,7 @@ namespace App\Message\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Message\Contract\MessageContextInterface; // 🔥 IMPORTANTE
 use App\Pms\Entity\PmsReserva;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -21,7 +22,6 @@ class MessageConversation
     use IdTrait;
     use TimestampTrait;
 
-    // Constantes de estado para evitar strings mágicos
     public const string STATUS_OPEN   = 'open';
     public const string STATUS_CLOSED = 'closed';
     public const string STATUS_ARCHIVED = 'archived';
@@ -29,9 +29,10 @@ class MessageConversation
     #[ORM\Column(length: 20, options: ['default' => self::STATUS_OPEN])]
     private string $status = self::STATUS_OPEN;
 
+    // 🔥 Cambio de nombre, pero forzando el column name para no romper producción
     #[ORM\ManyToOne(targetEntity: PmsReserva::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?PmsReserva $booking = null;
+    #[ORM\JoinColumn(name: 'booking_id', nullable: true, onDelete: 'SET NULL')]
+    private ?PmsReserva $pmsBooking = null;
 
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $guestName = null;
@@ -53,7 +54,35 @@ class MessageConversation
 
     public function __toString(): string
     {
-        return sprintf('Conv %s (%s)', $this->guestName ?? 'Unknown', $this->status);
+        return sprintf('Conv %s (%s)', $this->getResolvedName() ?? 'Unknown', $this->status);
+    }
+
+    // =========================================================================
+    // 🔥 MÉTODOS AGNÓSTICOS DEL CRM 🔥
+    // =========================================================================
+
+    /**
+     * Devuelve el contexto actual activo (Reserva, y en el futuro, Tour o Lead).
+     */
+    public function getContext(): ?MessageContextInterface
+    {
+        return $this->pmsBooking; // ?? $this->tourBooking
+    }
+
+    /**
+     * Resuelve dinámicamente el teléfono (Prioridad: forzado manual > contexto)
+     */
+    public function getResolvedPhone(): ?string
+    {
+        return $this->guestPhone ?? $this->getContext()?->getContextPhone();
+    }
+
+    /**
+     * Resuelve dinámicamente el nombre (Prioridad: forzado manual > contexto)
+     */
+    public function getResolvedName(): ?string
+    {
+        return $this->guestName ?? $this->getContext()?->getContextName();
     }
 
     // =========================================================================
@@ -76,14 +105,14 @@ class MessageConversation
         return $this;
     }
 
-    public function getBooking(): ?PmsReserva
+    public function getPmsBooking(): ?PmsReserva
     {
-        return $this->booking;
+        return $this->pmsBooking;
     }
 
-    public function setBooking(?PmsReserva $booking): self
+    public function setPmsBooking(?PmsReserva $pmsBooking): self
     {
-        $this->booking = $booking;
+        $this->pmsBooking = $pmsBooking;
         return $this;
     }
 
@@ -109,10 +138,6 @@ class MessageConversation
         return $this;
     }
 
-    // =========================================================================
-    // GESTIÓN DE COLECCIÓN (OneToMany)
-    // =========================================================================
-
     /**
      * @return Collection<int, Message>
      */
@@ -125,24 +150,20 @@ class MessageConversation
     {
         if (!$this->messages->contains($message)) {
             $this->messages->add($message);
-            // Mantenemos la integridad referencial del lado propietario (Message)
             if ($message->getConversation() !== $this) {
                 $message->setConversation($this);
             }
         }
-
         return $this;
     }
 
     public function removeMessage(Message $message): self
     {
         if ($this->messages->removeElement($message)) {
-            // Si el mensaje apunta a esta conversación, lo desvinculamos
             if ($message->getConversation() === $this) {
                 $message->setConversation(null);
             }
         }
-
         return $this;
     }
 }

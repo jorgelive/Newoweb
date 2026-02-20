@@ -15,6 +15,7 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Message\Contract\MessageContextInterface;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -46,7 +47,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
     ]
 )]
-class PmsReserva
+class PmsReserva implements MessageContextInterface
 {
     use IdTrait;
     use LocatorTrait;
@@ -434,4 +435,89 @@ class PmsReserva
             $this->getLocalizador() ?? 'Sin Loc.'
         );
     }
+
+    public function getContextMetadata(): array
+    {
+        // Priorizamos el Book ID principal, y si no, el Master ID.
+        $beds24Id = $this->beds24BookIdPrincipal ?? $this->beds24MasterId;
+
+        return [
+            // El worker de Beds24 buscará exactamente esta llave:
+            'beds24_book_id' => $beds24Id,
+
+            // MÁQUINA DEL TIEMPO: Mañana podrías agregar:
+            // 'stripe_customer_id' => $this->stripeId,
+            // 'tour_operator_ref' => $this->referenciaOperador,
+        ];
+    }
+
+    public function getContextName(): ?string
+    {
+        return $this->getNombreApellido();
+    }
+
+    public function getContextPhone(): ?string
+    {
+        return $this->telefono ?? $this->telefono2;
+    }
+
+    public function getContextEmail(): ?string
+    {
+        return $this->emailCliente;
+    }
+
+    public function getContextLanguage(): string
+    {
+        // Fallback a inglés ('en') o español ('es') según prefieras
+        return $this->idioma ? strtolower((string)$this->idioma->getId()) : 'es';
+    }
+
+    public function getMilestone(string $milestoneName): ?DateTimeInterface
+    {
+        return match ($milestoneName) {
+            'start'   => $this->fechaLlegada,
+            'end'     => $this->fechaSalida,
+            'created' => $this->createdAt,
+            default   => null,
+        };
+    }
+
+    public function getTemplateVariables(): array
+    {
+        // Extraemos la zona horaria si el país la tiene
+        $clientTimezone = $this->pais ? $this->pais->getTimezone() : null;
+
+        return [
+            // Huésped
+            'guest_name'      => $this->nombreCliente,
+            'guest_last_name' => $this->apellidoCliente,
+            'guest_full_name' => $this->getNombreApellido(),
+            'guest_phone'     => $this->getContextPhone(),
+            'guest_email'     => $this->emailCliente,
+            'guest_country'   => $this->pais ? $this->pais->getNombre() : null,
+            'client_timezone' => $clientTimezone,
+
+            // Reserva
+            'locator'         => $this->getLocalizador(),
+            'checkin_date'    => $this->fechaLlegada ? $this->fechaLlegada->format('d/m/Y') : '',
+            'checkout_date'   => $this->fechaSalida ? $this->fechaSalida->format('d/m/Y') : '',
+            'checkin_time'    => $this->horaLlegadaCanal ?? '15:00',
+            'nights'          => $this->getNoches(),
+
+            // Cantidades
+            'pax_adults'      => $this->cantidadAdultos ?? 0,
+            'pax_children'    => $this->cantidadNinos ?? 0,
+            'pax_total'       => $this->getPaxTotal(),
+
+            // Finanzas
+            'total_amount'    => $this->montoTotal ?? '0.00',
+            'currency'        => $this->moneda ? $this->moneda->getId() : '',
+
+            // Estancia
+            'property_name'   => $this->getNombreHotel(),
+            'room_name'       => $this->getNombreHabitacion(),
+            'channel_name'    => $this->channel ? $this->channel->getNombre() : 'Directo',
+        ];
+    }
+
 }

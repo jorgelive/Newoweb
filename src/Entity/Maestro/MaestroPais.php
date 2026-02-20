@@ -35,6 +35,10 @@ class MaestroPais
     #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombre = null;
 
+    // 🔥 NUEVO: Zona horaria (ej: 'America/Lima', 'Europe/Madrid') - Nullable para no romper producción
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
+    private ?string $timezone = null;
+
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $codigoMc = null;
 
@@ -80,6 +84,9 @@ class MaestroPais
     #[Groups(['pax:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(string $nombre): self { $this->nombre = $nombre; return $this; }
+
+    public function getTimezone(): ?string { return $this->timezone; }
+    public function setTimezone(?string $timezone): self { $this->timezone = $timezone; return $this; }
 
     public function getCodigoMc(): ?int { return $this->codigoMc; }
     public function setCodigoMc(?int $val): self { $this->codigoMc = $val; return $this; }
