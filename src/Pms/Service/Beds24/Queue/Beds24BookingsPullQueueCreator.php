@@ -30,7 +30,7 @@ final class Beds24BookingsPullQueueCreator
         DateTimeInterface $to
     ): ?PmsBookingsPullQueue {
         // 1. Resolución Jerárquica: Le pedimos la config al Establecimiento
-        $config = $establecimiento->getConfig();
+        $config = $establecimiento->getBeds24Config();
 
         // Si el establecimiento no tiene Beds24 configurado (o no está activo), lo ignoramos
         if (!$config || !$config->isActivo()) {

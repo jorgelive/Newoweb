@@ -127,7 +127,7 @@ class Beds24RatesPushQueueCreator
                     unidad: $unidad,
                     endpoint: $endpoint,
                     map: $map,
-                    config: $map->getPmsUnidad()->getEstablecimiento()->getConfig()
+                    config: $map->getPmsUnidad()->getEstablecimiento()->getBeds24Config()
                 );
                 $queue->setFechaInicio($lr->getStart())
                     ->setFechaFin($lr->getEnd())
