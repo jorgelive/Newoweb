@@ -6,6 +6,7 @@ namespace App\Message\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Uid\Uuid;
@@ -57,6 +58,9 @@ class MessageAttachment
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $fileSize = null;
 
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTimeImmutable $fileUpdatedAt = null;
+
     public function __construct()
     {
         $this->id = Uuid::v7();
@@ -73,7 +77,7 @@ class MessageAttachment
         if (null !== $file) {
             // Es OBLIGATORIO modificar una fecha para que Doctrine detecte
             // el cambio en la entidad y lance los eventos que Vich necesita escuchar.
-            $this->updatedAt = new \DateTime();
+            $this->fileUpdatedAt = new DateTimeImmutable();
         }
     }
 
@@ -115,4 +119,15 @@ class MessageAttachment
 
     public function getFileSize(): ?int { return $this->fileSize; }
     public function setFileSize(?int $fileSize): self { $this->fileSize = $fileSize; return $this; }
+
+    public function getFileUpdatedAt(): ?DateTimeImmutable
+    {
+        return $this->fileUpdatedAt;
+    }
+
+    public function setFileUpdatedAt(?DateTimeImmutable $fileUpdatedAt): self
+    {
+        $this->fileUpdatedAt = $fileUpdatedAt;
+        return $this;
+    }
 }

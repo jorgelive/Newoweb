@@ -10,6 +10,7 @@ use App\Entity\Trait\TimestampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'msg_conversation')]
@@ -58,7 +59,8 @@ class MessageConversation
         $this->contextType = $contextType;
         $this->contextId = $contextId;
         $this->messages = new ArrayCollection();
-        // El UuidV7 se genera automáticamente en el IdTrait
+
+        $this->id = Uuid::v7();
     }
 
     // --- GETTERS Y SETTERS ---
