@@ -39,8 +39,20 @@ use App\Pms\Entity\PmsTarifaRango;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Entity\PmsUnidadBeds24Map;
 use App\Pms\Entity\PmsEstablecimientoVirtual;
-use App\Security\Roles;
 
+// 🔥 NUEVAS ENTIDADES DE MENSAJERÍA
+use App\Message\Entity\Message;
+use App\Message\Entity\MessageConversation;
+use App\Message\Entity\MessageChannel;
+use App\Message\Entity\MessageTemplate;
+use App\Message\Entity\MessageRule;
+use App\Message\Entity\MessageAttachment;
+use App\Message\Entity\GupshupConfig;
+use App\Message\Entity\GupshupEndpoint;
+use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\Beds24SendQueue;
+
+use App\Security\Roles;
 
 // EasyAdmin Imports
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
@@ -51,10 +63,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-/**
- * Dashboard Principal del Panel de Gestión.
- * Organizado por capas operativas y de configuración.
- */
 class DashboardController extends AbstractDashboardController
 {
     #[Route('/', name: 'panel_dashboard')]
@@ -63,29 +71,17 @@ class DashboardController extends AbstractDashboardController
         return $this->render('panel/dashboard.html.twig');
     }
 
-    /**
-     * ✅ GESTIÓN CENTRALIZADA DE ASSETS (JS/CSS)
-     * Carga TinyMCE, FullCalendar y Tippy en todo el panel.
-     */
     public function configureAssets(): Assets
     {
         return Assets::new()
-            // --- 1. ESTILOS (Tippy.js) ---
             ->addCssFile('https://unpkg.com/tippy.js@6/dist/tippy.css')
             ->addCssFile('https://unpkg.com/tippy.js@6/animations/scale.css')
-
-            // --- 2. JAVASCRIPT: EDITOR DE TEXTO (TinyMCE) ---
-            // Nota: Si tienes API Key, ponla en lugar de 'no-api-key' para quitar advertencias
             ->addJsFile('https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js')
-            // --- 3. JAVASCRIPT: CALENDARIO (FullCalendar v6) ---
-            // Core & Plugins Básicos
             ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/index.global.min.js')
             ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.10/index.global.min.js')
             ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.10/index.global.min.js')
             ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.10/index.global.min.js')
             ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.10/index.global.min.js')
-
-            // Scheduler / Premium Plugins
             ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/premium-common@6.1.10/index.global.min.js')
             ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/scrollgrid@6.1.10/index.global.min.js')
             ->addJsFile('https://cdn.jsdelivr.net/npm/@fullcalendar/timeline@6.1.10/index.global.min.js')
@@ -96,7 +92,6 @@ class DashboardController extends AbstractDashboardController
 
     public function configureCrud(): Crud
     {
-
         return parent::configureCrud()
             ->overrideTemplate('layout', 'panel/layout.html.twig')
             ->addFormTheme('panel/form/translation_entry.html.twig')
@@ -107,7 +102,8 @@ class DashboardController extends AbstractDashboardController
     {
         return Dashboard::new()
             ->setTitle('Panel de Gestión')
-            ->setFaviconPath('app/images/favicon.png');
+            ->setFaviconPath('app/images/favicon.png')
+            ->renderContentMaximized();
     }
 
     public function configureMenuItems(): iterable
@@ -127,8 +123,14 @@ class DashboardController extends AbstractDashboardController
             ])
             ->setPermission(Roles::RESERVAS_SHOW);
 
+        // 🔥 NUEVA SUBSECCIÓN: MENSAJERÍA OMNICANAL
         yield MenuItem::subMenu('Mensajería', 'fa fa-comments')
-            ->setSubItems([])
+            ->setSubItems([
+                MenuItem::linkToCrud('Conversaciones Chat', 'fa fa-comment-dots', MessageConversation::class),
+                MenuItem::linkToCrud('Historial de Mensajes', 'fa fa-history', Message::class),
+                MenuItem::linkToCrud('Archivos Adjuntos', 'fa fa-paperclip', MessageAttachment::class),
+                MenuItem::linkToCrud('Reglas de Envío', 'fa fa-robot', MessageRule::class),
+            ])
             ->setPermission(Roles::MENSAJES_SHOW);
 
         // --- SECCIÓN 2: CONTENIDOS PARA EL HUÉSPED ---
@@ -169,14 +171,27 @@ class DashboardController extends AbstractDashboardController
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 
+        // 🔥 NUEVA SUBSECCIÓN: MAESTROS DE MENSAJERÍA
+        yield MenuItem::subMenu('Maestros Mensajería', 'fa fa-comment-medical')
+            ->setSubItems([
+                MenuItem::linkToCrud('Canales de Envío', 'fa fa-tower-broadcast', MessageChannel::class),
+                MenuItem::linkToCrud('Plantillas de Mensaje', 'fa fa-file-invoice', MessageTemplate::class),
+                MenuItem::linkToCrud('Configuraciones Gupshup', 'fa fa-key', GupshupConfig::class),
+                MenuItem::linkToCrud('Endpoints Gupshup', 'fa fa-link', GupshupEndpoint::class),
+            ])
+            ->setPermission(Roles::MAESTROS_SHOW);
+
         // --- SECCIÓN 4: INFRAESTRUCTURA Y SISTEMA ---
         yield MenuItem::section('Sistema');
 
+        // 🔥 ACTUALIZADO: SUBMENÚ DE QUEUES INTEGRADO
         yield MenuItem::subMenu('Jobs / Queues', 'fa fa-server')
             ->setSubItems([
                 MenuItem::linkToCrud('Cola Pull Reservas', 'fa fa-tasks', PmsBookingsPullQueue::class),
                 MenuItem::linkToCrud('Cola Push Reservas', 'fa fa-list', PmsBookingsPushQueue::class),
                 MenuItem::linkToCrud('Cola Push Tarifas', 'fa fa-layer-group', PmsRatesPushQueue::class),
+                MenuItem::linkToCrud('Cola Salida WhatsApp', 'fa fa-whatsapp', WhatsappGupshupSendQueue::class),
+                MenuItem::linkToCrud('Cola Salida Beds24', 'fa fa-cloud-upload-alt', Beds24SendQueue::class),
             ])
             ->setPermission(Roles::ADMIN);
 

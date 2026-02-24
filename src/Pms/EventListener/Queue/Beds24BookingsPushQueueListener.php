@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\EventListener;
+namespace App\Pms\EventListener\Queue;
 
 use App\Exchange\Dispatch\RunExchangeTaskDispatch;
 use App\Exchange\Service\Context\SyncContext;

@@ -110,7 +110,7 @@ class PmsUnidad
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2, nullable: false, options: ['default' => '0.00'])]
     private string $tarifaBasePrecio = '0.00';
 
-    #[ORM\Column(type: 'smallint', options: ['default' => 2], nullable: false)]
+    #[ORM\Column(type: 'smallint', nullable: false, options: ['default' => 2])]
     private int $tarifaBaseMinStay = 2;
 
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service\Exchange\Tasks\GupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
 
 use App\Exchange\Service\Context\SyncContext;
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;
@@ -10,17 +10,17 @@ use App\Exchange\Service\Contract\ExchangeQueueProviderInterface;
 use App\Exchange\Service\Contract\ExchangeTaskInterface;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
 
-final readonly class GupshupSendTask implements ExchangeTaskInterface
+final readonly class WhatsappGupshupSendTask implements ExchangeTaskInterface
 {
     public function __construct(
-        private GupshupSendQueueProvider $provider,
-        private GupshupSendHandler $handler,
-        private GupshupSendMappingStrategy $strategy
+        private WhatsappGupshupSendQueueProvider $provider,
+        private WhatsappGupshupSendHandler       $handler,
+        private WhatsappGupshupSendMappingStrategy $strategy
     ) {}
 
     public static function getTaskName(): string
     {
-        return 'gupshup_message_push';
+        return 'whatsapp_gupshup_message_push';
     }
 
     public function getMaxBatchSize(): int
@@ -37,7 +37,7 @@ final readonly class GupshupSendTask implements ExchangeTaskInterface
 
     public function getSyncProvider(): string
     {
-        return 'gupshup';
+        return 'whatsapp_gupshup';
     }
 
     public function getQueueProvider(): ExchangeQueueProviderInterface { return $this->provider; }

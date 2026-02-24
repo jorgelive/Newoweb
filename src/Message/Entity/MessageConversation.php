@@ -4,166 +4,102 @@ declare(strict_types=1);
 
 namespace App\Message\Entity;
 
+use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
-use App\Message\Contract\MessageContextInterface; // 🔥 IMPORTANTE
-use App\Pms\Entity\PmsReserva;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Uid\UuidV7;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'message_conversation')]
+#[ORM\Table(name: 'msg_conversation')]
 #[ORM\HasLifecycleCallbacks]
 class MessageConversation
 {
     use IdTrait;
     use TimestampTrait;
 
-    public const string STATUS_OPEN   = 'open';
-    public const string STATUS_CLOSED = 'closed';
-    public const string STATUS_ARCHIVED = 'archived';
+    public const STATUS_OPEN = 'open';
+    public const STATUS_CLOSED = 'closed';
+    public const STATUS_ARCHIVED = 'archived';
 
-    #[ORM\Column(length: 20, options: ['default' => self::STATUS_OPEN])]
+    #[ORM\Column(type: 'string', length: 20, options: ['default' => self::STATUS_OPEN])]
     private string $status = self::STATUS_OPEN;
 
-    // 🔥 Cambio de nombre, pero forzando el column name para no romper producción
-    #[ORM\ManyToOne(targetEntity: PmsReserva::class)]
-    #[ORM\JoinColumn(name: 'booking_id', nullable: true, onDelete: 'SET NULL')]
-    private ?PmsReserva $pmsBooking = null;
+    // --- EL JOIN LÓGICO ---
+    #[ORM\Column(type: 'string', length: 50)]
+    private string $contextType;
 
-    #[ORM\Column(length: 50, nullable: true)]
+    #[ORM\Column(type: 'string', length: 100)]
+    private string $contextId;
+
+    // --- SNAPSHOT DEL CLIENTE ---
+    #[ORM\Column(type: 'string', length: 180, nullable: true)]
     private ?string $guestName = null;
 
-    #[ORM\Column(length: 50, nullable: true)]
+    #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $guestPhone = null;
 
+    // --- IDIOMA VIVO (RELACIÓN FÍSICA) ---
     /**
-     * @var Collection<int, Message>
+     * Idioma vivo de la conversación.
+     * Nace de la reserva, pero puede evolucionar por IA o manualmente.
      */
+    #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
+    #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: false)]
+    private MaestroIdioma $idioma;
+
     #[ORM\OneToMany(mappedBy: 'conversation', targetEntity: Message::class, cascade: ['persist', 'remove'])]
+    #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $messages;
 
-    public function __construct()
+    public function __construct(string $contextType, string $contextId)
     {
-        $this->id = Uuid::v7();
+        $this->contextType = $contextType;
+        $this->contextId = $contextId;
         $this->messages = new ArrayCollection();
+        // El UuidV7 se genera automáticamente en el IdTrait
     }
 
-    public function __toString(): string
-    {
-        return sprintf('Conv %s (%s)', $this->getResolvedName() ?? 'Unknown', $this->status);
-    }
+    // --- GETTERS Y SETTERS ---
 
-    // =========================================================================
-    // 🔥 MÉTODOS AGNÓSTICOS DEL CRM 🔥
-    // =========================================================================
+    public function getStatus(): string { return $this->status; }
+    public function setStatus(string $status): self { $this->status = $status; return $this; }
 
-    /**
-     * Devuelve el contexto actual activo (Reserva, y en el futuro, Tour o Lead).
-     */
-    public function getContext(): ?MessageContextInterface
-    {
-        return $this->pmsBooking; // ?? $this->tourBooking
-    }
+    public function getContextType(): string { return $this->contextType; }
+    public function getContextId(): string { return $this->contextId; }
 
-    /**
-     * Resuelve dinámicamente el teléfono (Prioridad: forzado manual > contexto)
-     */
-    public function getResolvedPhone(): ?string
-    {
-        return $this->guestPhone ?? $this->getContext()?->getContextPhone();
-    }
+    public function getGuestName(): ?string { return $this->guestName; }
+    public function setGuestName(?string $guestName): self { $this->guestName = $guestName; return $this; }
 
-    /**
-     * Resuelve dinámicamente el nombre (Prioridad: forzado manual > contexto)
-     */
-    public function getResolvedName(): ?string
-    {
-        return $this->guestName ?? $this->getContext()?->getContextName();
-    }
+    public function getGuestPhone(): ?string { return $this->guestPhone; }
+    public function setGuestPhone(?string $guestPhone): self { $this->guestPhone = $guestPhone; return $this; }
 
-    // =========================================================================
-    // GETTERS Y SETTERS EXPLÍCITOS
-    // =========================================================================
+    public function getIdioma(): MaestroIdioma { return $this->idioma; }
+    public function setIdioma(MaestroIdioma $idioma): self { $this->idioma = $idioma; return $this; }
 
-    public function getId(): UuidV7
-    {
-        return $this->id;
-    }
-
-    public function getStatus(): string
-    {
-        return $this->status;
-    }
-
-    public function setStatus(string $status): self
-    {
-        $this->status = $status;
-        return $this;
-    }
-
-    public function getPmsBooking(): ?PmsReserva
-    {
-        return $this->pmsBooking;
-    }
-
-    public function setPmsBooking(?PmsReserva $pmsBooking): self
-    {
-        $this->pmsBooking = $pmsBooking;
-        return $this;
-    }
-
-    public function getGuestName(): ?string
-    {
-        return $this->guestName;
-    }
-
-    public function setGuestName(?string $guestName): self
-    {
-        $this->guestName = $guestName;
-        return $this;
-    }
-
-    public function getGuestPhone(): ?string
-    {
-        return $this->guestPhone;
-    }
-
-    public function setGuestPhone(?string $guestPhone): self
-    {
-        $this->guestPhone = $guestPhone;
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Message>
-     */
-    public function getMessages(): Collection
-    {
-        return $this->messages;
-    }
-
-    public function addMessage(Message $message): self
-    {
+    public function getMessages(): Collection { return $this->messages; }
+    public function addMessage(Message $message): self {
         if (!$this->messages->contains($message)) {
             $this->messages->add($message);
-            if ($message->getConversation() !== $this) {
-                $message->setConversation($this);
-            }
+            $message->setConversation($this);
         }
         return $this;
     }
 
-    public function removeMessage(Message $message): self
-    {
+    public function removeMessage(Message $message): self {
         if ($this->messages->removeElement($message)) {
+            // set the owning side to null (unless already changed)
             if ($message->getConversation() === $this) {
                 $message->setConversation(null);
             }
         }
         return $this;
+    }
+
+    // Método de conveniencia para EasyAdmin / UI
+    public function __toString(): string
+    {
+        return sprintf('%s (%s)', $this->guestName ?? 'Sin Nombre', $this->guestPhone ?? 'Sin Teléfono');
     }
 }

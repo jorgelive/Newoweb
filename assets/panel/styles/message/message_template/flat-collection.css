@@ -1,0 +1,83 @@
+/* ====================================================================
+   CLONACIÓN DEL ESTILO EA-FORM-COLLECTION-ITEMS PARA BOOTSTRAP 5
+   ==================================================================== */
+
+/* 1. El contenedor principal de cada ítem (Borde y fondo general) */
+.pms-flat-collection .field-collection-item {
+    background-color: var(--body-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    box-shadow: var(--bs-box-shadow-sm);
+}
+
+/* Quitamos el borde interno de Bootstrap para no tener borde doble */
+.pms-flat-collection .accordion-item {
+    border: none;
+    background: transparent;
+    width: 100%;
+}
+
+/* 2. El "Header" (La barra gris superior) */
+.pms-flat-collection .accordion-header {
+    display: flex;
+    align-items: center;
+    background-color: var(--gray-50);
+    border-bottom: 1px solid var(--border-color);
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+    padding: 0; /* Quitamos el padding para controlar los botones internos */
+}
+
+/* 3. El texto/botón colapsable (Asesinando el azul de Bootstrap) */
+.pms-flat-collection .accordion-button {
+    background-color: transparent !important;
+    color: var(--text-color) !important;
+    box-shadow: none !important;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    font-size: var(--font-size-base);
+    flex-grow: 1; /* Empuja la papelera hacia la derecha */
+}
+
+/* Mantenerlo gris aunque esté abierto (Bootstrap lo pone azul) */
+.pms-flat-collection .accordion-button:not(.collapsed) {
+    background-color: var(--gray-50) !important;
+    color: var(--text-color) !important;
+}
+
+/* 4. La Papelera (Igual a EasyAdmin: con borde separador y hover rojo) */
+.pms-flat-collection .accordion-header .field-collection-delete-button {
+    position: static !important;
+    margin: 0 !important;
+    padding: 0.5rem 1rem;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border-color); /* Rayita vertical divisoria */
+    border-top-right-radius: var(--border-radius);
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.pms-flat-collection .accordion-header .field-collection-delete-button:hover {
+    color: var(--color-danger);
+    background-color: var(--gray-100);
+}
+
+/* 5. El interior del panel (Los inputs) */
+.pms-flat-collection .accordion-body {
+    padding: 1.5rem;
+    background-color: var(--body-bg);
+    border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+}
+
+/* ====================================================================
+   RESCATE DE ETIQUETAS (Evita que el CSS global oculte el checkbox)
+   ==================================================================== */
+.form-group.field-array .form-widget .form-check-label,
+.pms-flat-collection .form-check-label {
+    display: inline-block !important;
+    margin-left: 0.5rem; /* Un pequeño margen para que no se pegue al cuadrito */
+}

@@ -10,14 +10,14 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'message_channel')]
+#[ORM\Table(name: 'msg_channel')]
 #[UniqueEntity('id')]
 #[ORM\HasLifecycleCallbacks]
 class MessageChannel
 {
     use TimestampTrait;
 
-    // ID NATURAL = PROVEEDOR (ej: 'gupshup', 'beds24', 'email_marketing')
+    // ID NATURAL = PROVEEDOR (ej: 'whatsapp_gupshup', 'beds24', 'email_marketing')
     #[ORM\Id]
     #[ORM\Column(type: 'string', length: 50)]
     #[Assert\NotBlank]
@@ -40,9 +40,9 @@ class MessageChannel
     private bool $isActive = true;
 
     // Constructor para forzar el ID Natural al crear
-    public function __construct(string $id)
+    public function __construct()
     {
-        $this->id = $id;
+
     }
 
     public function __toString(): string
@@ -53,6 +53,13 @@ class MessageChannel
     // =========================================================================
     // GETTERS Y SETTERS EXPLÍCITOS
     // =========================================================================
+
+    // Necesario para que EasyAdmin pueda inyectar el ID desde el formulario
+    public function setId(string $id): self
+    {
+        $this->id = $id;
+        return $this;
+    }
 
     public function getId(): ?string
     {

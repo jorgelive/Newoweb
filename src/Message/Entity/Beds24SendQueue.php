@@ -8,7 +8,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
-use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
+use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Repository\Beds24SendQueueRepository;
 use App\Pms\Entity\Beds24Config;
 use App\Pms\Entity\Beds24Endpoint;
@@ -23,7 +23,7 @@ use Symfony\Component\Uid\UuidV7;
 #[ORM\Table(name: 'msg_beds24_queue')]
 #[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_b24_worker')]
 #[ORM\HasLifecycleCallbacks]
-class Beds24SendQueue implements ExchangeQueueItemInterface
+class Beds24SendQueue implements MessageQueueItemInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -47,11 +47,6 @@ class Beds24SendQueue implements ExchangeQueueItemInterface
     #[ORM\ManyToOne(targetEntity: Beds24Endpoint::class)]
     #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
     private ?Beds24Endpoint $endpoint = null;
-
-    // --- SNAPSHOTS ---
-
-    #[ORM\Column(length: 50)]
-    private ?string $targetBookId = null;
 
     // --- WORKER FIELDS ---
 
@@ -185,18 +180,6 @@ class Beds24SendQueue implements ExchangeQueueItemInterface
             ));
         }
         $this->endpoint = $endpoint;
-        return $this;
-    }
-
-    // --- Target Book ID ---
-    public function getTargetBookId(): ?string
-    {
-        return $this->targetBookId;
-    }
-
-    public function setTargetBookId(string $targetBookId): self
-    {
-        $this->targetBookId = $targetBookId;
         return $this;
     }
 

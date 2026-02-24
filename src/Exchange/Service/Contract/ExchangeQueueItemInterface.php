@@ -57,6 +57,9 @@ interface ExchangeQueueItemInterface
 
     public function getMaxAttempts(): int;
 
+    public function getStatus(): string;
+    public function setStatus(string $status): self;
+
     /*
      * -------------------------------------------------------------------------
      * AUDITORÍA TÉCNICA (RAW HTTP)

@@ -26,6 +26,18 @@ class PmsEstablecimiento
     use IdTrait;
     use TimestampTrait;
 
+    #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'establecimientos')]
+    #[ORM\JoinColumn(
+        name: 'beds24_config_id',
+        referencedColumnName: 'id',
+        nullable: true,
+        onDelete: 'CASCADE',
+        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+    )]
+    #[Assert\NotNull(message: 'Debes seleccionar una configuración de Beds24.')]
+    private ?Beds24Config $beds24Config = null;
+
+
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
     #[Assert\NotBlank(message: 'El nombre comercial es obligatorio.')]
     #[Assert\Length(max: 180)]
@@ -85,17 +97,25 @@ class PmsEstablecimiento
     #[ORM\OneToMany(mappedBy: 'establecimiento', targetEntity: PmsUnidad::class, cascade: ['persist', 'remove'])]
     private Collection $unidades;
 
+    #[ORM\OneToMany(mappedBy: 'establecimiento', targetEntity: PmsReserva::class, cascade: ['persist', 'remove'])]
+    private Collection $reservas;
+
     #[ORM\OneToMany(mappedBy: 'establecimiento', targetEntity: PmsEstablecimientoVirtual::class, cascade: ['persist', 'remove'])]
     private Collection $virtualEstablecimientos;
 
     public function __construct()
     {
         $this->unidades = new ArrayCollection();
+        $this->reservas = new ArrayCollection();
         $this->virtualEstablecimientos = new ArrayCollection();
         $this->id = Uuid::v7();
     }
 
     // ... Getters y Setters existentes ...
+
+
+    public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
+    public function setBeds24Config(?Beds24Config $beds24Config): self { $this->beds24Config = $beds24Config; return $this; }
 
     public function getNombreComercial(): ?string { return $this->nombreComercial; }
     public function setNombreComercial(?string $nombreComercial): self { $this->nombreComercial = $nombreComercial; return $this; }
@@ -170,6 +190,27 @@ class PmsEstablecimiento
         if ($this->unidades->removeElement($unidad)) {
             if ($unidad->getEstablecimiento() === $this) {
                 $unidad->setEstablecimiento(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getReservas(): Collection { return $this->reservas; }
+
+    public function addReserva(PmsReserva $reserva): self
+    {
+        if (!$this->reservas->contains($reserva)) {
+            $this->reservas->add($reserva);
+            $reserva->setEstablecimiento($this);
+        }
+        return $this;
+    }
+
+    public function removeReserva(PmsReserva $reserva): self
+    {
+        if ($this->reservas->removeElement($reserva)) {
+            if ($reserva->getEstablecimiento() === $this) {
+                $reserva->setEstablecimiento(null);
             }
         }
         return $this;

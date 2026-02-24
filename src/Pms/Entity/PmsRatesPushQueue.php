@@ -203,7 +203,6 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
     public function getUnidadBeds24Map(): ?PmsUnidadBeds24Map { return $this->unidadBeds24Map; }
     public function setUnidadBeds24Map(?PmsUnidadBeds24Map $m): self {
         $this->unidadBeds24Map = $m;
-        if ($m) { $this->config = $m->getConfig(); }
         return $this;
     }
 

@@ -12,6 +12,7 @@ services:
             $panelHost: '%app.host.panel%'
             $googleTranslateCredentials: '%google_translate_auth%'
             $sunatApiToken: '%env(SUNAT_API_TOKEN)%'
+            $baseLanguage: '%app.default_language%'
 
 
     App\:
@@ -24,6 +25,7 @@ services:
             - ../../src/Pms/
             - ../../src/Calendar/
             - ../../src/Exchange/
+            - ../../src/Message/
 
     Symfony\Component\Serializer\Normalizer\DateTimeNormalizer:
         arguments:

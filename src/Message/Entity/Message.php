@@ -41,8 +41,9 @@ class Message
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?MessageConversation $conversation = null;
 
+    // 🔥 AHORA ES NULLABLE PARA PERMITIR ENVÍOS MULTI-CANAL (FAN-OUT)
     #[ORM\ManyToOne(targetEntity: MessageChannel::class)]
-    #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: true)]
     private ?MessageChannel $channel = null;
 
     #[ORM\ManyToOne(targetEntity: MessageTemplate::class)]
@@ -54,10 +55,10 @@ class Message
     // =========================================================================
 
     /**
-     * @var Collection<int, GupshupSendQueue>
+     * @var Collection<int, WhatsappGupshupSendQueue>
      */
-    #[ORM\OneToMany(mappedBy: 'message', targetEntity: GupshupSendQueue::class, cascade: ['persist', 'remove'])]
-    private Collection $gupshupQueues;
+    #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
+    private Collection $whatsappGupshupQueues;
 
     /**
      * @var Collection<int, Beds24SendQueue>
@@ -72,32 +73,31 @@ class Message
     private Collection $attachments;
 
     // =========================================================================
-    // CONTENIDO Y SNAPSHOT
+    // CONTENIDO SEMÁNTICO (LOCAL vs EXTERNAL)
     // =========================================================================
 
     #[ORM\Column(length: 10, options: ['default' => 'es'])]
     private string $languageCode = 'es';
 
     #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $contentOriginal = null;
+    private ?string $contentLocal = null;
 
-    /**
-     * Texto traducido al idioma base del CRM (ej: Español) para la vista del panel.
-     */
     #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $contentTranslated = null;
+    private ?string $contentExternal = null;
 
-    /**
-     * El estado exacto de las variables de negocio en el milisegundo en que se encoló.
-     * (El Bolsillo para Humanos)
-     */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $subjectLocal = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $subjectExternal = null;
+
+    // =========================================================================
+    // METADATA Y ESTADO
+    // =========================================================================
+
     #[ORM\Column(type: 'json')]
     private array $templateContext = [];
 
-    /**
-     * Coordenadas de enrutamiento para los Workers (Ej: beds24_book_id).
-     * (El Bolsillo para Máquinas)
-     */
     #[ORM\Column(type: 'json')]
     private array $metadata = [];
 
@@ -110,10 +110,13 @@ class Message
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $externalId = null;
 
+    /** Propiedad transitoria (Memoria) para selección manual de canales */
+    private array $transientChannels = [];
+
     public function __construct()
     {
         $this->id = Uuid::v7();
-        $this->gupshupQueues = new ArrayCollection();
+        $this->whatsappGupshupQueues = new ArrayCollection();
         $this->beds24Queues  = new ArrayCollection();
         $this->attachments   = new ArrayCollection();
     }
@@ -138,14 +141,65 @@ class Message
     public function getTemplate(): ?MessageTemplate { return $this->template; }
     public function setTemplate(?MessageTemplate $template): self { $this->template = $template; return $this; }
 
+    public function getTransientChannels(): array { return $this->transientChannels; }
+    public function setTransientChannels(array $channels): self { $this->transientChannels = $channels; return $this; }
+
     public function getLanguageCode(): string { return $this->languageCode; }
     public function setLanguageCode(string $languageCode): self { $this->languageCode = $languageCode; return $this; }
 
-    public function getContentOriginal(): ?string { return $this->contentOriginal; }
-    public function setContentOriginal(?string $contentOriginal): self { $this->contentOriginal = $contentOriginal; return $this; }
+    public function getContentLocal(): ?string { return $this->contentLocal; }
+    public function setContentLocal(?string $contentLocal): self { $this->contentLocal = $contentLocal; return $this; }
 
-    public function getContentTranslated(): ?string { return $this->contentTranslated; }
-    public function setContentTranslated(?string $contentTranslated): self { $this->contentTranslated = $contentTranslated; return $this; }
+    public function getContentExternal(): ?string { return $this->contentExternal; }
+    public function setContentExternal(?string $contentExternal): self { $this->contentExternal = $contentExternal; return $this; }
+
+    public function getSubjectLocal(): ?string { return $this->subjectLocal; }
+    public function setSubjectLocal(?string $subjectLocal): self { $this->subjectLocal = $subjectLocal; return $this; }
+
+    public function getSubjectExternal(): ?string { return $this->subjectExternal; }
+    public function setSubjectExternal(?string $subjectExternal): self { $this->subjectExternal = $subjectExternal; return $this; }
+
+    // =========================================================================
+    // HELPERS DE CONCATENACIÓN (Ideales para UI y API Payloads)
+    // =========================================================================
+
+    /**
+     * Devuelve Asunto + Contenido en el IDIOMA DEL RECEPCIONISTA (Local).
+     * Ideal para mostrar el historial en EasyAdmin.
+     */
+    public function getFullContentLocal(): string
+    {
+        // Fallback al external por si el recepcionista escribió el override manual
+        $content = $this->contentLocal ?? $this->contentExternal ?? '';
+        $subject = $this->subjectLocal ?? $this->subjectExternal ?? '';
+
+        if (!empty($subject)) {
+            return sprintf("*%s*\n\n%s", trim($subject), trim($content));
+        }
+
+        return $content;
+    }
+
+    /**
+     * Devuelve Asunto + Contenido en el IDIOMA DEL HUÉSPED (External).
+     * Ideal para armar el Payload de WhatsApp / Beds24 / Email.
+     */
+    public function getFullContentExternal(): string
+    {
+        // Fallback de seguridad al local por si el traductor falló
+        $content = $this->contentExternal ?? $this->contentLocal ?? '';
+        $subject = $this->subjectExternal ?? $this->subjectLocal ?? '';
+
+        if (!empty($subject)) {
+            return sprintf("*%s*\n\n%s", trim($subject), trim($content));
+        }
+
+        return $content;
+    }
+
+    // =========================================================================
+    // METADATA Y ESTADO
+    // =========================================================================
 
     public function getTemplateContext(): array { return $this->templateContext; }
     public function setTemplateContext(array $templateContext): self { $this->templateContext = $templateContext; return $this; }
@@ -170,18 +224,18 @@ class Message
     public function setExternalId(?string $externalId): self { $this->externalId = $externalId; return $this; }
 
     // =========================================================================
-    // MÉTODOS DE COLECCIONES (Gupshup)
+    // MÉTODOS DE COLECCIONES (Whatsapp Gupshup)
     // =========================================================================
 
-    public function getGupshupQueues(): Collection
+    public function getWhatsappGupshupQueues(): Collection
     {
-        return $this->gupshupQueues;
+        return $this->whatsappGupshupQueues;
     }
 
-    public function addGupshupQueue(GupshupSendQueue $queue): self
+    public function addWhatsappGupshupQueue(WhatsappGupshupSendQueue $queue): self
     {
-        if (!$this->gupshupQueues->contains($queue)) {
-            $this->gupshupQueues->add($queue);
+        if (!$this->whatsappGupshupQueues->contains($queue)) {
+            $this->whatsappGupshupQueues->add($queue);
             if ($queue->getMessage() !== $this) {
                 $queue->setMessage($this);
             }
@@ -189,9 +243,9 @@ class Message
         return $this;
     }
 
-    public function removeGupshupQueue(GupshupSendQueue $queue): self
+    public function removeWhatsappGupshupQueue(WhatsappGupshupSendQueue $queue): self
     {
-        if ($this->gupshupQueues->removeElement($queue)) {
+        if ($this->whatsappGupshupQueues->removeElement($queue)) {
             if ($queue->getMessage() === $this) {
                 $queue->setMessage(null);
             }

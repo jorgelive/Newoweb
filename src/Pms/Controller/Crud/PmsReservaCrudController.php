@@ -193,6 +193,7 @@ final class PmsReservaCrudController extends BaseCrudController
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
+            ->add('establecimiento')
             ->add('referenciaCanal')
             ->add('beds24MasterId')
             ->add('nombreCliente')
@@ -288,6 +289,8 @@ final class PmsReservaCrudController extends BaseCrudController
 
         // Resumen
         yield FormField::addPanel('Resumen')->setIcon('fa fa-calculator')->renderCollapsed();
+        yield AssociationField::new('establecimiento', 'Establecimiento')
+            ->setRequired(true);
         yield DateField::new('fechaLlegada', 'Check-in')->setFormTypeOption('disabled', true)->setColumns(6);
         yield DateField::new('fechaSalida', 'Check-out')->setFormTypeOption('disabled', true)->setColumns(6);
         yield MoneyField::new('montoTotal', 'Total')->setCurrency('USD')->setStoredAsCents(false)->setFormTypeOption('disabled', true)->setColumns(6);

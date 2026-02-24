@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service\Exchange\Tasks\GupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
 
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
-use App\Message\Entity\GupshupSendQueue;
+use App\Message\Entity\WhatsappGupshupSendQueue;
 
-final readonly class GupshupSendMappingStrategy implements MappingStrategyInterface
+final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrategyInterface
 {
     public function map(HomogeneousBatch $batch): MappingResult
     {
@@ -30,7 +30,7 @@ final readonly class GupshupSendMappingStrategy implements MappingStrategyInterf
         $correlation = [];
 
         foreach ($batch->getItems() as $index => $item) {
-            /** @var GupshupSendQueue $item */
+            /** @var WhatsappGupshupSendQueue $item */
             $msg = $item->getMessage();
 
             // Lógica de contenido:

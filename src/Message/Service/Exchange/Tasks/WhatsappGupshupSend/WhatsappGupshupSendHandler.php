@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service\Exchange\Tasks\GupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
 
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
-use App\Message\Entity\GupshupSendQueue;
+use App\Message\Entity\WhatsappGupshupSendQueue;
 use App\Message\Entity\Message;
 use DateTimeImmutable;
 use Throwable;
 
-final class GupshupSendHandler implements ExchangeHandlerInterface
+final class WhatsappGupshupSendHandler implements ExchangeHandlerInterface
 {
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
     {
-        if (!$item instanceof GupshupSendQueue) {
+        if (!$item instanceof WhatsappGupshupSendQueue) {
             return ['status' => 'error'];
         }
 
@@ -33,7 +33,7 @@ final class GupshupSendHandler implements ExchangeHandlerInterface
         }
 
         // 2. Actualizar Estado de Negocio
-        $item->setDeliveryStatus(GupshupSendQueue::DELIVERY_SUBMITTED);
+        $item->setDeliveryStatus(WhatsappGupshupSendQueue::DELIVERY_SUBMITTED);
 
         // 3. Actualizar Mensaje Padre
         $msg = $item->getMessage();
@@ -48,7 +48,7 @@ final class GupshupSendHandler implements ExchangeHandlerInterface
 
     public function handleFailure(Throwable $e, ExchangeQueueItemInterface $item): void
     {
-        if (!$item instanceof GupshupSendQueue) return;
+        if (!$item instanceof WhatsappGupshupSendQueue) return;
 
         $httpCode = (int)$e->getCode() ?: 500;
         $msgError = sprintf('[Code %s] %s', $httpCode, $e->getMessage());

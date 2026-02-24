@@ -54,10 +54,9 @@ class Beds24Config implements ChannelConfigInterface
     #[ORM\Column(type: 'string', length: 255, nullable: true, options: ['default' => 'https://api.beds24.com/v2'])]
     private ?string $baseUrl = 'https://api.beds24.com/v2';
 
-    /**
-     * Relación con mapeos de unidad.
-     * @var Collection<int, PmsUnidadBeds24Map>
-     */
+    #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsEstablecimiento::class, orphanRemoval: true)]
+    private Collection $establecimientos;
+
     #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsUnidadBeds24Map::class, orphanRemoval: true)]
     private Collection $unidadMaps;
 
@@ -84,6 +83,7 @@ class Beds24Config implements ChannelConfigInterface
         $this->unidadMaps = new ArrayCollection();
         $this->bookingsPullQueues = new ArrayCollection();
         $this->ratesPushQueues = new ArrayCollection();
+        $this->establecimientos = new ArrayCollection();
 
         $this->id = Uuid::v7();
     }
@@ -187,7 +187,6 @@ class Beds24Config implements ChannelConfigInterface
         return $this;
     }
 
-    /** @return Collection<int, PmsUnidadBeds24Map> */
     public function getUnidadMaps(): Collection
     {
         return $this->unidadMaps;
@@ -206,6 +205,29 @@ class Beds24Config implements ChannelConfigInterface
     {
         if ($this->unidadMaps->removeElement($map)) {
             if ($map->getConfig() === $this) { $map->setConfig(null); }
+        }
+        return $this;
+    }
+
+    /** @return Collection<int, PmsEstablecimiento> */
+    public function getEstablecimientos(): Collection
+    {
+        return $this->establecimientos;
+    }
+
+    public function addEstablecimiento(PmsEstablecimiento $establecimiento): self
+    {
+        if (!$this->establecimientos->contains($establecimiento)) {
+            $this->establecimientos->add($establecimiento);
+            $establecimiento->setConfig($this);
+        }
+        return $this;
+    }
+
+    public function removeEstablecimiento(PmsEstablecimiento $establecimiento): self
+    {
+        if ($this->establecimientos->removeElement($establecimiento)) {
+            if ($establecimiento->getConfig() === $this) { $establecimiento->setConfig(null); }
         }
         return $this;
     }

@@ -104,14 +104,29 @@ trait GuiaHelperResponseTrait
             'pending' => [
                 ['language' => 'es', 'content' => 'Disponible pronto'],
                 ['language' => 'en', 'content' => 'Available soon'],
+                ['language' => 'pt', 'content' => 'Disponível em breve'],
+                ['language' => 'fr', 'content' => 'Bientôt disponible'],
+                ['language' => 'it', 'content' => 'Disponibile a breve'],
+                ['language' => 'de', 'content' => 'Bald verfügbar'],
+                ['language' => 'nl', 'content' => 'Binnenkort beschikbaar'],
             ],
             'expired' => [
                 ['language' => 'es', 'content' => 'Reserva finalizada'],
                 ['language' => 'en', 'content' => 'Booking ended'],
+                ['language' => 'pt', 'content' => 'Reserva finalizada'],
+                ['language' => 'fr', 'content' => 'Réservation terminée'],
+                ['language' => 'it', 'content' => 'Prenotazione terminata'],
+                ['language' => 'de', 'content' => 'Buchung beendet'],
+                ['language' => 'nl', 'content' => 'Boeking beëindigd'],
             ],
             default => [
                 ['language' => 'es', 'content' => 'Info Protegida'],
                 ['language' => 'en', 'content' => 'Protected Info'],
+                ['language' => 'pt', 'content' => 'Informação protegida'],
+                ['language' => 'fr', 'content' => 'Info protégée'],
+                ['language' => 'it', 'content' => 'Info protetta'],
+                ['language' => 'de', 'content' => 'Geschützte Info'],
+                ['language' => 'nl', 'content' => 'Beschermde info'],
             ]
         };
     }

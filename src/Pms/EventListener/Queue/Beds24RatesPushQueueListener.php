@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\EventListener;
+namespace App\Pms\EventListener\Queue;
 
 use App\Exchange\Dispatch\RunExchangeTaskDispatch;
-use App\Pms\Entity\PmsRatesPushQueue;
 use App\Pms\Entity\PmsTarifaRango;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Service\Beds24\Queue\Beds24RatesPushQueueCreator;

@@ -4,30 +4,26 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Cron\Job;
 
-use App\Pms\Entity\Beds24Config;
 use App\Pms\Entity\Beds24Endpoint;
-use App\Pms\Entity\PmsBookingsPullQueue;
+use App\Pms\Entity\PmsEstablecimiento;
+use App\Pms\Service\Beds24\Queue\Beds24BookingsPullQueueCreator;
 use App\Pms\Service\Cron\CronJobInterface;
 use DateInterval;
-use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
- * Cron Job: Generador de tareas de Descarga de Reservas (Pull).
- * * ESTRATEGIA: "Ventanas de Tiempo Deslizantes"
- * --------------------------------------------
- * Este job no descarga datos, solo CREA la tarea en la cola PmsBookingsPullQueue.
- * El orquestador le pasa un rango de fechas (ej: 7 días) y este job genera
- * una entrada en la cola para cada cuenta de Beds24 activa.
+ * Cron Job: Orquestador de tareas de Descarga de Reservas (Pull).
+ * Delega la creación física a Beds24BookingsPullQueueCreator.
  */
 #[AutoconfigureTag('app.cron_job')]
 final class Beds24BookingsPullCronJob implements CronJobInterface
 {
     public function __construct(
-        private readonly EntityManagerInterface $em
+        private readonly EntityManagerInterface $em,
+        private readonly Beds24BookingsPullQueueCreator $queueCreator // ✅ Inyectamos el creador
     ) {}
 
     public function getName(): string
@@ -35,10 +31,6 @@ final class Beds24BookingsPullCronJob implements CronJobInterface
         return 'beds24_bookings_pull_arrival';
     }
 
-    /**
-     * Define el tamaño del salto del cursor.
-     * 7 Días es el equilibrio ideal entre tamaño de respuesta API y cantidad de jobs.
-     */
     public function getStepInterval(): DateInterval
     {
         return new DateInterval('P7D');
@@ -46,7 +38,7 @@ final class Beds24BookingsPullCronJob implements CronJobInterface
 
     public function execute(DateTimeInterface $from, DateTimeInterface $to, SymfonyStyle $io): void
     {
-        // 1. Obtener el Endpoint Maestro para GET (Debe existir en BD)
+        // 1. Obtener el Endpoint Maestro
         $endpoint = $this->em->getRepository(Beds24Endpoint::class)->findOneBy(['accion' => 'GET_BOOKINGS']);
 
         if (!$endpoint) {
@@ -54,47 +46,43 @@ final class Beds24BookingsPullCronJob implements CronJobInterface
             return;
         }
 
-        // 2. Obtener todas las cuentas activas para generarles trabajo
-        $configs = $this->em->getRepository(Beds24Config::class)->findBy(['activo' => true]);
+        // 2. Buscar TODOS los establecimientos (La lógica de filtrado la hace el Creator)
+        // Nota: Para optimizar en BD gigantes, podrías hacer una query que solo traiga establecimientos con config_id IS NOT NULL
+        $establecimientos = $this->em->getRepository(PmsEstablecimiento::class)->findAll();
 
-        if (empty($configs)) {
-            $io->warning("No hay configuraciones de Beds24 activas.");
+        if (empty($establecimientos)) {
+            $io->warning("No hay establecimientos registrados en el sistema.");
             return;
         }
 
         $jobsCreated = 0;
 
-        foreach ($configs as $config) {
-            // 3. Crear el Job de Cola (Payload ligero)
-            $job = new PmsBookingsPullQueue();
+        // 3. Iterar por Establecimiento, NO por Configuración
+        foreach ($establecimientos as $establecimiento) {
+            $job = $this->queueCreator->createForEstablecimiento(
+                establecimiento: $establecimiento,
+                endpoint: $endpoint,
+                from: $from,
+                to: $to
+            );
 
-            $job->setConfig($config);
-            $job->setEndpoint($endpoint);
-
-            // Convertimos a Immutable para garantizar seguridad en la entidad
-            $job->setArrivalFrom(DateTimeImmutable::createFromInterface($from));
-            $job->setArrivalTo(DateTimeImmutable::createFromInterface($to));
-
-            // Prioridad: Ejecución inmediata por el Worker
-            $job->setRunAt(new DateTimeImmutable());
-
-            // NOTA DE ARQUITECTURA:
-            // No asociamos 'Unidades' específicas aquí.
-            // Al dejarlo vacío, el Strategy solicitará TODAS las habitaciones de la cuenta.
-            // Esto permite "descubrir" nuevas habitaciones automáticamente.
-
-            $this->em->persist($job);
-            $jobsCreated++;
+            if ($job !== null) {
+                $jobsCreated++;
+            }
         }
 
-        // 4. Commit en bloque (Eficiencia SQL)
+        // 4. Commit en bloque (Eficiencia SQL máxima)
         $this->em->flush();
 
-        $io->success(sprintf(
-            "Se generaron %d jobs de descarga para el periodo %s al %s.",
-            $jobsCreated,
-            $from->format('Y-m-d'),
-            $to->format('Y-m-d')
-        ));
+        if ($jobsCreated > 0) {
+            $io->success(sprintf(
+                "Se generaron %d jobs de descarga para el periodo %s al %s.",
+                $jobsCreated,
+                $from->format('Y-m-d'),
+                $to->format('Y-m-d')
+            ));
+        } else {
+            $io->note("No se generaron jobs. Revisa si los establecimientos tienen configs activas asignadas.");
+        }
     }
 }

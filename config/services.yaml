@@ -17,6 +17,8 @@ imports:
 
     - { resource: 'services/services_pax.yaml' }
 
+    - { resource: 'services/services_message.yaml' }
+
     - { resource: 'services/services_oweb.yaml' }
     - { resource: 'services/services_oweb_comprobante.yaml' }
     - { resource: 'services/services_oweb_cotizacion.yaml' }

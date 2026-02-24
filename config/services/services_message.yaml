@@ -1,0 +1,24 @@
+# config/services/services_message.yaml
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\Message\:
+        resource: '../../src/Message/'
+        exclude:
+            - '../../src/Message/Dto/'
+            - '../../src/Messaage/Entity/'
+
+    # =========================
+    # controllers del módulo Pms
+    # (fuera de src/Controller/)
+    # =========================
+    App\Message\Controller\:
+        resource: '../../src/Message/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+            - 'controller.service_arguments'
+

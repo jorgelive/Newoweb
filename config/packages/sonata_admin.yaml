@@ -154,8 +154,8 @@ sonata_admin:
         user_block: oweb/block/user_block.html.twig
 
     assets:
-        extra_stylesheets:
-            - bundles/sonatatranslation/css/sonata-translation.css
+        extra_stylesheets: []
+            #- bundles/sonatatranslation/css/sonata-translation.css
 
 
 

@@ -6,6 +6,9 @@ namespace App\Message\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Message\Contract\MessageContextInterface;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
@@ -23,6 +26,10 @@ class MessageRule
     #[Assert\NotBlank]
     private ?string $name = null;
 
+    #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+    private string $contextType = 'pms_reserva';
+
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $isActive = true;
 
@@ -30,37 +37,41 @@ class MessageRule
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?MessageTemplate $template = null;
 
-    #[ORM\ManyToOne(targetEntity: MessageChannel::class)]
-    #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: false)]
-    private ?MessageChannel $channel = null;
-
     // =========================================================================
-    // LÓGICA DE PROGRAMACIÓN (SCHEDULER)
+    // 1. EL MEDIO DE SALIDA (Las Tuberías Tecnológicas)
     // =========================================================================
 
-    /**
-     * El nombre del hito que define el contexto (ej: 'start', 'end', 'created')
-     */
+    /** @var Collection<int, MessageChannel> */
+    #[ORM\ManyToMany(targetEntity: MessageChannel::class)]
+    #[ORM\JoinTable(name: 'msg_rule_target_channels')]
+    private Collection $targetCommunicationChannels;
+
+    // =========================================================================
+    // 2. LÓGICA DE PROGRAMACIÓN (SCHEDULER)
+    // =========================================================================
+
     #[ORM\Column(length: 50)]
     #[Assert\NotBlank]
     private string $milestone = 'start';
 
-    /**
-     * Minutos relativos al hito.
-     * Ej: -1440 = 24 horas antes. 0 = En el momento. 120 = 2 horas después.
-     */
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
     private int $offsetMinutes = 0;
 
-    /**
-     * Define a qué tipo de entidad aplica esta regla (ej: 'pms_reserva', 'tour_booking', etc.)
-     */
-    #[ORM\Column(length: 50, options: ['default' => 'pms_reserva'])]
-    private string $contextType = 'pms_reserva';
+    // =========================================================================
+    // 3. LOS FILTROS DE SEGMENTACIÓN (Agnósticos)
+    // =========================================================================
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $allowedSources = [];
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $allowedAgencies = [];
+
 
     public function __construct()
     {
         $this->id = Uuid::v7();
+        $this->targetCommunicationChannels = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -68,11 +79,58 @@ class MessageRule
         return $this->name ?? 'Nueva Regla';
     }
 
-    // Getters y Setters básicos...
+    // =========================================================================
+    // MAGIA PURA: EVALUACIÓN DE REGLAS
+    // =========================================================================
+
+    public function isSatisfiedBy(MessageContextInterface $context): bool
+    {
+        if (!$this->isActive) {
+            return false;
+        }
+
+        $attributes = $context->getSegmentationAttributes();
+
+        // 1. EVALUAR FUENTES (OTAs, Directo, etc.)
+        $allowedSources = $this->getAllowedSources();
+        if (!empty($allowedSources)) {
+            $contextSource = $attributes['source'] ?? null;
+            if (!in_array($contextSource, $allowedSources, true)) {
+                return false;
+            }
+        }
+
+        // 2. EVALUAR AGENCIAS
+        $allowedAgencies = $this->getAllowedAgencies();
+        if (!empty($allowedAgencies)) {
+            $contextAgency = (string) ($attributes['agency_id'] ?? '');
+            if (!in_array($contextAgency, $allowedAgencies, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // =========================================================================
+    // GETTERS Y SETTERS
+    // =========================================================================
+
     public function getId(): UuidV7 { return $this->id; }
 
     public function getName(): ?string { return $this->name; }
     public function setName(string $name): self { $this->name = $name; return $this; }
+
+    public function getContextType(): string
+    {
+        return $this->contextType;
+    }
+
+    public function setContextType(string $contextType): self
+    {
+        $this->contextType = $contextType;
+        return $this;
+    }
 
     public function isActive(): bool { return $this->isActive; }
     public function setIsActive(bool $isActive): self { $this->isActive = $isActive; return $this; }
@@ -80,15 +138,27 @@ class MessageRule
     public function getTemplate(): ?MessageTemplate { return $this->template; }
     public function setTemplate(?MessageTemplate $template): self { $this->template = $template; return $this; }
 
-    public function getChannel(): ?MessageChannel { return $this->channel; }
-    public function setChannel(?MessageChannel $channel): self { $this->channel = $channel; return $this; }
-
     public function getMilestone(): string { return $this->milestone; }
     public function setMilestone(string $milestone): self { $this->milestone = $milestone; return $this; }
 
     public function getOffsetMinutes(): int { return $this->offsetMinutes; }
     public function setOffsetMinutes(int $offsetMinutes): self { $this->offsetMinutes = $offsetMinutes; return $this; }
 
-    public function getContextType(): string { return $this->contextType; }
-    public function setContextType(string $contextType): self { $this->contextType = $contextType; return $this; }
+    public function getTargetCommunicationChannels(): Collection { return $this->targetCommunicationChannels; }
+    public function addTargetCommunicationChannel(MessageChannel $channel): self {
+        if (!$this->targetCommunicationChannels->contains($channel)) {
+            $this->targetCommunicationChannels->add($channel);
+        }
+        return $this;
+    }
+    public function removeTargetCommunicationChannel(MessageChannel $channel): self {
+        $this->targetCommunicationChannels->removeElement($channel);
+        return $this;
+    }
+
+    public function getAllowedSources(): array { return $this->allowedSources ?? []; }
+    public function setAllowedSources(?array $allowedSources): self { $this->allowedSources = $allowedSources; return $this; }
+
+    public function getAllowedAgencies(): array { return $this->allowedAgencies ?? []; }
+    public function setAllowedAgencies(?array $allowedAgencies): self { $this->allowedAgencies = $allowedAgencies; return $this; }
 }

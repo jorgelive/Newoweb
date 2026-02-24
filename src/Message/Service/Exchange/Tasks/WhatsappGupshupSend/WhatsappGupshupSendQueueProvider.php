@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service\Exchange\Tasks\GupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
 
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Contract\ExchangeQueueProviderInterface;
-use App\Message\Entity\GupshupSendQueue;
-use App\Message\Repository\GupshupSendQueueRepository;
+use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Repository\WhatsappGupshupSendQueueRepository;
 use DateTimeImmutable;
 use RuntimeException;
 
-final readonly class GupshupSendQueueProvider implements ExchangeQueueProviderInterface
+final readonly class WhatsappGupshupSendQueueProvider implements ExchangeQueueProviderInterface
 {
     public function __construct(
-        private GupshupSendQueueRepository $repository
+        private WhatsappGupshupSendQueueRepository $repository
     ) {}
 
     public function claimBatch(int $limit, string $workerId, DateTimeImmutable $now): ?HomogeneousBatch
@@ -29,7 +29,7 @@ final readonly class GupshupSendQueueProvider implements ExchangeQueueProviderIn
         return $this->packItems($items, true);
     }
 
-    /** @param GupshupSendQueue[] $items */
+    /** @param WhatsappGupshupSendQueue[] $items */
     private function packItems(array $items, bool $strictCheck = false): ?HomogeneousBatch
     {
         if (empty($items)) return null;

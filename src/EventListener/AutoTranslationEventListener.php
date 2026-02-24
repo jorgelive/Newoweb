@@ -56,73 +56,55 @@ final class AutoTranslationEventListener
 
         foreach ($reflection->getProperties() as $property) {
             $attr = $this->getAutoTranslateAttribute($property);
-            if ($attr === null) {
-                continue;
-            }
+            if ($attr === null) continue;
 
             $propertyName = $property->getName();
             $getter = 'get' . ucfirst($propertyName);
             $setter = 'set' . ucfirst($propertyName);
 
-            if (!method_exists($entity, $getter) || !method_exists($entity, $setter)) {
-                throw new RuntimeException(sprintf(
-                    'La propiedad "%s" tiene AutoTranslate pero faltan getter/setter.',
-                    $propertyName
-                ));
-            }
+            if (!method_exists($entity, $getter) || !method_exists($entity, $setter)) continue;
 
             $originalValue = $entity->$getter();
+
+            // REGLA 1: Si está completamente vacío, lo ignoramos de forma segura.
             if (empty($originalValue)) {
                 continue;
             }
 
             $sourceLang = strtolower($attr->sourceLanguage);
-            $nestedFields = $attr->nestedFields; // ej: ['ubicacion', 'titulo']
+            $nestedFields = $attr->nestedFields;
             $mimeType = $attr->getFormat();
 
-            // =========================
-            // CASO A: ESTRUCTURA COMPLEJA (nestedFields)
-            // =========================
+            // ==========================================================
+            // CASO 1: CON NESTED FIELDS
+            // ==========================================================
             if (!empty($nestedFields)) {
-                if (!is_array($originalValue) || !array_is_list($originalValue)) {
-                    throw new RuntimeException(sprintf(
-                        'El campo "%s" tiene nestedFields, por lo que debe ser una LISTA de objetos (array_is_list=true). Tipo encontrado: %s',
-                        $propertyName,
-                        gettype($originalValue)
-                    ));
+                if (!is_array($originalValue)) {
+                    throw new RuntimeException(sprintf('El campo "%s" tiene nestedFields, por lo que debe ser un array (lista o mapa).', $propertyName));
                 }
 
-                $newValue = $this->processNestedList(
-                    $originalValue,
-                    $nestedFields,
-                    $sourceLang,
-                    $mimeType,
-                    $overwrite,
-                    $propertyName
-                );
+                $newValue = $this->processNestedStructure($originalValue, $nestedFields, $sourceLang, $mimeType, $overwrite, $propertyName);
 
                 if ($newValue !== $originalValue) {
                     $entity->$setter($newValue);
                     $hasEntityChanges = true;
                 }
-
                 continue;
             }
 
-            // =========================
-            // CASO B: ESTRUCTURA PLANA (lista de traducciones)
-            // =========================
+            // ==========================================================
+            // CASO 2: SIN NESTED FIELDS (La base DEBE ser lista válida)
+            // ==========================================================
             if (!is_array($originalValue) || !array_is_list($originalValue)) {
                 throw new RuntimeException(sprintf(
-                    'El campo "%s" sin nestedFields debe ser una LISTA de objetos [{language, content, ...}]. Tipo encontrado: %s',
-                    $propertyName,
-                    gettype($originalValue)
+                    'El campo "%s" sin nestedFields debe ser una lista plana de traducciones [{language, content}]. Tipo encontrado: %s',
+                    $propertyName, gettype($originalValue)
                 ));
             }
 
-            $valuesMap = $this->listToMapRows($originalValue, $propertyName); // lang => rowCompleta
+            // Validamos y procesamos
+            $valuesMap = $this->listToMapRows($originalValue, $propertyName);
             $translatedMap = $this->translateAndCloneRows($valuesMap, $sourceLang, $mimeType, $overwrite);
-
             $finalValue = $this->mapRowsToList($translatedMap);
 
             if ($finalValue !== $originalValue) {
@@ -131,7 +113,6 @@ final class AutoTranslationEventListener
             }
         }
 
-        // Doctrine: en preUpdate hay que recomputar changeset si cambiamos el entity
         if ($hasEntityChanges && $updateArgs !== null) {
             $em = $updateArgs->getObjectManager();
             $meta = $em->getClassMetadata($entity::class);
@@ -139,87 +120,53 @@ final class AutoTranslationEventListener
         }
     }
 
-    /**
-     * Procesa una lista de objetos (ej: wifiNetworks) y traduce las claves definidas en nestedFields.
-     * Ej: nestedFields=['ubicacion'] => $item['ubicacion'] puede ser string o lista [{language,content}]
-     */
-    private function processNestedList(
-        array $list,
-        array $targetKeys,
-        string $sourceLang,
-        string $mimeType,
-        bool $overwrite,
-        string $propName
-    ): array {
-        $hasChanges = false;
-
-        foreach ($list as $index => $item) {
-            if (!is_array($item)) {
-                throw new RuntimeException(sprintf(
-                    'Error en "%s": Se esperaba un objeto (array) en índice %d, se encontró %s.',
-                    $propName,
-                    $index,
-                    gettype($item)
-                ));
-            }
-
-            foreach ($targetKeys as $key) {
-                if (!array_key_exists($key, $item)) {
-                    throw new RuntimeException(sprintf(
-                        'Error crítico en "%s": Se configuró nestedFields para la clave "%s", pero el objeto en índice %d no la tiene. Claves encontradas: %s',
-                        $propName,
-                        $key,
-                        $index,
-                        implode(', ', array_keys($item))
-                    ));
+    private function processNestedStructure(array $data, array $targetKeys, string $sourceLang, string $mimeType, bool $overwrite, string $propName): array
+    {
+        // Si es una lista de elementos (ej: wifiNetworks -> [{ssid: "A"}, {ssid: "B"}])
+        if (array_is_list($data)) {
+            foreach ($data as $index => $item) {
+                if (!is_array($item)) {
+                    throw new RuntimeException(sprintf('El elemento en el índice %d de "%s" debe ser un objeto (array).', $index, $propName));
                 }
 
-                $fieldValue = $item[$key];
-
-                // Normaliza a mapa de rows (lang => rowCompleta)
-                $fieldMap = $this->normalizeNestedFieldToRowMap($fieldValue, $sourceLang, $propName . '.' . $key);
-                $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $overwrite);
-                $finalFieldList = $this->mapRowsToList($translatedMap);
-
-                if ($finalFieldList !== $fieldValue) {
-                    $list[$index][$key] = $finalFieldList;
-                    $hasChanges = true;
+                foreach ($targetKeys as $key) {
+                    if (!empty($item[$key])) {
+                        $fieldMap = $this->normalizeNestedFieldToRowMap($item[$key], $sourceLang, $propName . '.' . $key);
+                        $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $overwrite);
+                        $data[$index][$key] = $this->mapRowsToList($translatedMap);
+                    }
+                }
+            }
+        }
+        // Si es un objeto de configuración único (ej: emailTmpl -> {is_active: true, subject: [...]})
+        else {
+            foreach ($targetKeys as $key) {
+                // Si la llave está vacía o no existe, la ignoramos. ¡Pero si hay algo, lo validamos!
+                if (!empty($data[$key])) {
+                    $fieldMap = $this->normalizeNestedFieldToRowMap($data[$key], $sourceLang, $propName . '.' . $key);
+                    $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $overwrite);
+                    $data[$key] = $this->mapRowsToList($translatedMap);
                 }
             }
         }
 
-        return $hasChanges ? $list : $list;
+        return $data;
     }
 
-    /**
-     * Traduce faltantes y clona desde el objeto origen (preservando llaves extra).
-     * Entrada/salida: lang(lower) => rowCompleta ['language'=>..,'content'=>.., ...]
-     *
-     * - Poda idiomas no prioritarios
-     * - Protege el idioma origen
-     * - Traduce a todos los prioritarios
-     */
     private function translateAndCloneRows(array $valuesMap, string $sourceLang, string $mimeType, bool $overwrite): array
     {
+        // (Lógica de Google Translate intacta...)
         $sourceLangNorm = strtolower($sourceLang);
-
-        // 1) PODA (pero protegemos el origen)
         $cleanMap = [];
+
         foreach ($valuesMap as $lang => $row) {
             $langNorm = strtolower((string) $lang);
-
-            if ($langNorm === $sourceLangNorm) {
-                $cleanMap[$langNorm] = $row;
-                continue;
-            }
-
-            if (in_array($langNorm, $this->validLanguageCodes, true)) {
+            if ($langNorm === $sourceLangNorm || in_array($langNorm, $this->validLanguageCodes, true)) {
                 $cleanMap[$langNorm] = $row;
             }
         }
         $valuesMap = $cleanMap;
 
-        // 2) Origen
         $sourceRow = $valuesMap[$sourceLangNorm] ?? null;
         if (!is_array($sourceRow) || empty($sourceRow['content']) || !is_string($sourceRow['content'])) {
             return $valuesMap;
@@ -228,15 +175,9 @@ final class AutoTranslationEventListener
         $sourceText = $sourceRow['content'];
         $hasChanged = false;
 
-        // 3) Traducción + clonación
         foreach ($this->validLanguageCodes as $targetCode) {
-            if ($targetCode === $sourceLangNorm) {
-                continue;
-            }
-
-            if (!$overwrite && isset($valuesMap[$targetCode])) {
-                continue;
-            }
+            if ($targetCode === $sourceLangNorm) continue;
+            if (!$overwrite && isset($valuesMap[$targetCode])) continue;
 
             try {
                 $res = $this->translator->translate($sourceText, $targetCode, $sourceLangNorm, $mimeType);
@@ -249,7 +190,6 @@ final class AutoTranslationEventListener
                     $hasChanged = true;
                 }
             } catch (\Throwable) {
-                // silencioso: no rompemos persist/update por un fallo puntual del traductor
                 continue;
             }
         }
@@ -258,67 +198,59 @@ final class AutoTranslationEventListener
     }
 
     /**
-     * Convierte lista [{language, content, ...}] a mapa lang(lower) => rowCompleta
+     * REGLA ESTRICTA: Transforma la lista asegurándose de que tenga language y content.
      */
     private function listToMapRows(mixed $values, string $propName): array
     {
         if (!is_array($values)) {
-            return [];
+            throw new RuntimeException(sprintf('El valor de "%s" debe ser un array de traducciones.', $propName));
         }
 
         $out = [];
         foreach ($values as $index => $row) {
             if (!is_array($row) || !isset($row['language'], $row['content'])) {
                 throw new RuntimeException(sprintf(
-                    'Estructura inválida en "%s" índice %d. Se requiere array con "language" y "content".',
-                    $propName,
-                    $index
+                    'Estructura inválida en "%s" (índice %s). Se requiere un objeto con las claves "language" y "content".',
+                    $propName, $index
                 ));
             }
-
-            $lang = strtolower((string) $row['language']);
-            $out[$lang] = $row;
+            $out[strtolower((string) $row['language'])] = $row;
         }
-
         return $out;
     }
 
-    /**
-     * Convierte mapa lang => rowCompleta a lista (para JSON)
-     */
     private function mapRowsToList(array $map): array
     {
         return array_values($map);
     }
 
     /**
-     * Normaliza un campo nested:
-     * - si viene string => lo convierte a mapa con el idioma origen
-     * - si viene lista [{language,content,...}] => la convierte a mapa
+     * REGLA ESTRICTA: Verifica que el contenido anidado tenga sentido.
      */
     private function normalizeNestedFieldToRowMap(mixed $value, string $sourceLang, string $propName): array
     {
         $sourceLangNorm = strtolower($sourceLang);
 
+        // Si mandaron texto plano (ej. por código), lo autoconvertimos
         if (is_string($value)) {
-            return [
-                $sourceLangNorm => [
-                    'language' => $sourceLangNorm,
-                    'content'  => $value,
-                ],
-            ];
+            return [$sourceLangNorm => ['language' => $sourceLangNorm, 'content'  => $value]];
         }
 
+        // Si mandaron lista, delegamos la validación estricta a listToMapRows
         if (is_array($value) && array_is_list($value)) {
             return $this->listToMapRows($value, $propName);
         }
 
-        // Si es null u otro tipo, lo tratamos como “no traducible”
-        return [];
+        // Si llegó hasta aquí, hay datos pero no es ni texto ni una lista válida. EXCEPCIÓN.
+        throw new RuntimeException(sprintf(
+            'El valor en "%s" tiene un formato no válido. Debe ser texto plano o una lista de traducciones [{language, content}].',
+            $propName
+        ));
     }
 
     private function loadValidLanguages(): void
     {
+        // (Carga de idiomas intacta...)
         $idiomas = $this->entityManager->getRepository(MaestroIdioma::class)
             ->createQueryBuilder('i')
             ->where('i.prioridad > 0')
@@ -330,7 +262,6 @@ final class AutoTranslationEventListener
             $this->validLanguageCodes[] = strtolower((string) $idioma->getId());
         }
 
-        // Si por alguna razón DB viene vacía, al menos protegemos 'es'
         $this->validLanguageCodes = array_values(array_unique($this->validLanguageCodes));
         if (!in_array('es', $this->validLanguageCodes, true)) {
             $this->validLanguageCodes[] = 'es';
@@ -340,6 +271,14 @@ final class AutoTranslationEventListener
     private function getAutoTranslateAttribute(ReflectionProperty $property): ?AutoTranslate
     {
         $attributes = $property->getAttributes(AutoTranslate::class);
-        return isset($attributes[0]) ? $attributes[0]->newInstance() : null;
+
+        if (!isset($attributes[0])) {
+            return null;
+        }
+
+        /** @var AutoTranslate $instance */
+        $instance = $attributes[0]->newInstance();
+
+        return $instance;
     }
 }

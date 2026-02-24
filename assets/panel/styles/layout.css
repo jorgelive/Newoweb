@@ -6,3 +6,4 @@
 .ea-side-menu {
     background-color: var(--pms-primary);
 }
+.form-fieldset-body.show {padding-left: 12px;}

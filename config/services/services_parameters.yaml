@@ -1,8 +1,13 @@
 # config/services/services_paramneters.yaml
 parameters:
+
+    #sonata legacy
     locale: es
     router.request_context.host: oweb.openperu.pe
     router.request_context.scheme: https
+
+    #applicationnew
+    app.default_language: '%env(resolve:APP_DEFAULT_LANGUAGE)%'
 
     google_maps_key: '%env(resolve:GOOGLE_MAPS_KEY)%'
     google_translate_key: '%env(resolve:GOOGLE_TRANSLATE_KEY)%'
@@ -23,7 +28,6 @@ parameters:
     app.host.pax: '%env(PAX_HOST)%'
 
     pax_host_url: '%env(PAX_HOST_URL)%'
-
 
     pms.path.huesped_docs: '/carga/pms/pms_reserva_huesped/documento'
     pms.path.huesped_firmas: '/carga/pms/pms_reserva_huesped/firmas'

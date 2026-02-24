@@ -166,6 +166,7 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
     /**
      * ⚡ MODO MANUAL / REAL-TIME.
      * Reclama IDs específicos solicitados por el usuario o un evento de forma transaccional.
+     * AHORA RESPETA EL RUN_AT: No procesará ítems programados para el futuro.
      */
     public function claimSpecificItems(array $ids, string $workerId, \DateTimeImmutable $now, int $ttl = 300): array
     {
@@ -194,23 +195,30 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
         $conn->beginTransaction();
 
         try {
-            // 3. SELECCIÓN ATÓMICA
-            // El 'FOR UPDATE' ahora sí retiene el bloqueo en la BD hasta el commit.
+            // 3. SELECCIÓN ATÓMICA CON RESPETO AL 'RUN_AT'
+            // El 'FOR UPDATE' retiene el bloqueo en la BD hasta el commit.
+            // 🔥 Añadimos la misma condición temporal que tiene el CRON
             $sqlCheck = "SELECT id FROM {$table}
                          WHERE id IN (:ids)
                          AND status IN ('pending', 'failed')
                          AND locked_at IS NULL
+                         AND (run_at IS NULL OR run_at <= :now) 
                          FOR UPDATE SKIP LOCKED";
 
             $availableBinaryIds = $conn->fetchFirstColumn(
                 $sqlCheck,
-                ['ids' => $binaryIds],
-                ['ids' => ArrayParameterType::BINARY]
+                [
+                    'ids' => $binaryIds,
+                    'now' => $nowSql // 🔥 Pasamos el parámetro de tiempo actual
+                ],
+                [
+                    'ids' => ArrayParameterType::BINARY
+                ]
             );
 
             if (empty($availableBinaryIds)) {
                 $conn->commit();
-                return [];
+                return []; // Si el ítem está en el futuro, no devuelve nada y se ignora
             }
 
             // 4. LOCK & COMMIT
@@ -221,8 +229,6 @@ abstract class AbstractExchangeRepository extends ServiceEntityRepository
             $items = $this->hydrateItems($availableBinaryIds);
 
             // 6. 🛠️ EL FIX: SINCRONIZAR DOCTRINE
-            // Como bloqueamos por SQL directo (DBAL), Doctrine no sabe que los registros cambiaron.
-            // Forzamos a que lea la BD para que su memoria coincida con la realidad.
             foreach ($items as $item) {
                 $this->getEntityManager()->refresh($item);
             }

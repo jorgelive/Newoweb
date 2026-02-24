@@ -34,20 +34,20 @@ class GupshupConfig implements ChannelConfigInterface
     private array $credentials = [];
 
     /**
-     * @var Collection<int, GupshupSendQueue>
+     * @var Collection<int, WhatsappGupshupSendQueue>
      */
-    #[ORM\OneToMany(mappedBy: 'config', targetEntity: GupshupSendQueue::class, cascade: ['persist', 'remove'])]
-    private Collection $gupshupSendQueues;
+    #[ORM\OneToMany(mappedBy: 'config', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
+    private Collection $whatsappGupshupSendQueues;
 
     public function __construct()
     {
         $this->id = Uuid::v7();
-        $this->gupshupSendQueues = new ArrayCollection();
+        $this->whatsappGupshupSendQueues = new ArrayCollection();
     }
 
     public function __toString(): string
     {
-        return $this->nombre ?? ('Gupshup Config ' . $this->getId());
+        return $this->nombre ?? ('WhatsappGupshup Config ' . $this->getId());
     }
 
     // =========================================================================
@@ -128,17 +128,17 @@ class GupshupConfig implements ChannelConfigInterface
     // =========================================================================
 
     /**
-     * @return Collection<int, GupshupSendQueue>
+     * @return Collection<int, WhatsappGupshupSendQueue>
      */
-    public function getGupshupSendQueues(): Collection
+    public function getWhatsappGupshupSendQueues(): Collection
     {
-        return $this->gupshupSendQueues;
+        return $this->whatsappGupshupSendQueues;
     }
 
-    public function addGupshupSendQueue(GupshupSendQueue $queue): self
+    public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self
     {
-        if (!$this->gupshupSendQueues->contains($queue)) {
-            $this->gupshupSendQueues->add($queue);
+        if (!$this->whatsappGupshupSendQueues->contains($queue)) {
+            $this->whatsappGupshupSendQueues->add($queue);
             // Lado propietario de la relación (owning side)
             if ($queue->getConfig() !== $this) {
                 $queue->setConfig($this);
@@ -148,9 +148,9 @@ class GupshupConfig implements ChannelConfigInterface
         return $this;
     }
 
-    public function removeGupshupSendQueue(GupshupSendQueue $queue): self
+    public function removeGupshupSendQueue(WhatsappGupshupSendQueue $queue): self
     {
-        if ($this->gupshupSendQueues->removeElement($queue)) {
+        if ($this->whatsappGupshupSendQueues->removeElement($queue)) {
             // Establecer el lado propietario a null (si no cambió ya)
             if ($queue->getConfig() === $this) {
                 $queue->setConfig(null);

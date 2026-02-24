@@ -67,6 +67,7 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
             ->add('nombreComercial')
             ->add('ciudad')
             ->add('pais')
+            ->add('beds24Config')
             ->add('timezone');
     }
 
@@ -133,6 +134,9 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
         yield FormField::addPanel('Configuración Operativa')
             ->setIcon('fa fa-clock')
             ->renderCollapsed();
+
+        yield AssociationField::new('beds24Config', 'Configuración Beds24')
+            ->setRequired(true);
 
         yield TimeField::new('horaCheckIn', 'Check-in')
             ->setColumns(4);

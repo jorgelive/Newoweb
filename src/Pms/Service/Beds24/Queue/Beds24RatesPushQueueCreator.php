@@ -56,13 +56,24 @@ class Beds24RatesPushQueueCreator
         [$recalcFrom, $recalcTo] = $this->expandWindowIteratively($allPending, $fromDay, $toExclusive);
 
         // 2. INVALIDACIÓN
+        /** @var PmsUnidadBeds24Map[] $maps */
         foreach ($maps as $map) {
-            $this->invalidateQueuesInWindow($allPending, $recalcFrom, $recalcTo, $map, $uow);
+            $this->invalidateQueuesInWindow(
+                queues: $allPending,
+                start: $recalcFrom,
+                end: $recalcTo,
+                map: $map,
+                uow: $uow
+            );
         }
 
         // 3. CARGA DE DATOS (Usando el repo corregido)
         // Ahora sí traerá la tarifa de $52 gracias al fix de u.id
-        $rangos = $this->rangoRepo->findOverlappingForUnidadAndInterval($unidad, $recalcFrom, $recalcTo);
+        $rangos = $this->rangoRepo->findOverlappingForUnidadAndInterval(
+            unidad: $unidad,
+            from: $recalcFrom,
+            to: $recalcTo
+        );
 
         // 4. GESTIÓN DE MEMORIA
         if ($dirtyRango !== null) {
@@ -99,6 +110,7 @@ class Beds24RatesPushQueueCreator
         $createdIds = [];
         $now = new DateTimeImmutable();
 
+        /** @var PmsUnidadBeds24Map[] $maps */
         foreach ($maps as $map) {
             if ($uow !== null && $uow->isScheduledForDelete($map)) continue;
 
@@ -111,7 +123,12 @@ class Beds24RatesPushQueueCreator
                     ? $unidad->getTarifaBaseMoneda()
                     : ($winnerRango?->getMoneda() ?? $unidad->getTarifaBaseMoneda());
 
-                $queue = $this->factory->create($unidad, $endpoint, $map);
+                $queue = $this->factory->create(
+                    unidad: $unidad,
+                    endpoint: $endpoint,
+                    map: $map,
+                    config: $map->getPmsUnidad()->getEstablecimiento()->getConfig()
+                );
                 $queue->setFechaInicio($lr->getStart())
                     ->setFechaFin($lr->getEnd())
                     ->setPrecio(number_format($lr->getPrice(), 2, '.', ''))

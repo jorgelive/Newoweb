@@ -15,7 +15,6 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
-use App\Message\Contract\MessageContextInterface;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -27,7 +26,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Entidad PmsReserva.
  * Centraliza la información de una reserva maestra.
- * ✅ Todos los métodos auxiliares y lógica de Beds24 restaurados.
+ * 🧼 LIMPIA: 100% libre de acoplamientos con el módulo de Mensajes.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_reserva')]
@@ -47,7 +46,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
     ]
 )]
-class PmsReserva implements MessageContextInterface
+class PmsReserva
 {
     use IdTrait;
     use LocatorTrait;
@@ -96,6 +95,11 @@ class PmsReserva implements MessageContextInterface
     /* ======================================================
      * RELACIONES MAESTRAS (IDs NATURALES)
      * ====================================================== */
+
+    #[ORM\ManyToOne(targetEntity: PmsEstablecimiento::class, inversedBy: 'reservas')]
+    #[ORM\JoinColumn(name: 'establecimiento_id', referencedColumnName: 'id', nullable: true, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    private ?PmsEstablecimiento $establecimiento = null;
+
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: true)]
     private ?MaestroMoneda $moneda = null;
@@ -185,11 +189,6 @@ class PmsReserva implements MessageContextInterface
      * GETTERS DE SERIALIZACIÓN (API PAX)
      * ====================================================== */
 
-    /**
-     * Sobrescribimos el getter del LocatorTrait para añadir el atributo #[Groups].
-     * Esto permite que el localizador (token público) sea visible en el JSON
-     * sin necesidad de modificar el código compartido en el Trait.
-     */
     #[Groups(['pax_reserva:read'])]
     public function getLocalizador(): ?string
     {
@@ -214,9 +213,6 @@ class PmsReserva implements MessageContextInterface
         return ($this->cantidadAdultos ?? 0) + ($this->cantidadNinos ?? 0);
     }
 
-    /**
-     * Obtiene el nombre del establecimiento navegando por la relación de eventos.
-     */
     #[Groups(['pax_reserva:read'])]
     public function getNombreHotel(): string
     {
@@ -226,10 +222,6 @@ class PmsReserva implements MessageContextInterface
         }
         return 'Pendiente de asignación';
     }
-
-    /**
-     * Obtiene el nombre de la unidad (habitación/apartamento).
-     */
 
     #[Groups(['pax_reserva:read'])]
     public function getNombreHabitacion(): string
@@ -251,7 +243,6 @@ class PmsReserva implements MessageContextInterface
             return 'Habitación estándar';
         }
 
-        // Elimina duplicados por si hay varios eventos de la misma unidad
         $nombres = array_unique($nombres);
 
         return implode(', ', $nombres);
@@ -260,6 +251,10 @@ class PmsReserva implements MessageContextInterface
     /* ======================================================
      * MÉTODOS AUXILIARES Y LÓGICA DE NEGOCIO
      * ====================================================== */
+
+
+    public function getEstablecimiento(): ?PmsEstablecimiento { return $this->establecimiento; }
+    public function setEstablecimiento(?PmsEstablecimiento $val): self { $this->establecimiento = $val; return $this; }
 
     public function getNombreApellido(): ?string {
         $full = trim(($this->nombreCliente ?? '') . ' ' . ($this->apellidoCliente ?? ''));
@@ -319,7 +314,6 @@ class PmsReserva implements MessageContextInterface
 
     #[Groups(['pax_reserva:read'])]
     public function getNombreCliente(): ?string { return $this->nombreCliente; }
-
     public function setNombreCliente(?string $val): self { $this->nombreCliente = $val; return $this; }
 
     #[Groups(['pax_reserva:read'])]
@@ -435,89 +429,4 @@ class PmsReserva implements MessageContextInterface
             $this->getLocalizador() ?? 'Sin Loc.'
         );
     }
-
-    public function getContextMetadata(): array
-    {
-        // Priorizamos el Book ID principal, y si no, el Master ID.
-        $beds24Id = $this->beds24BookIdPrincipal ?? $this->beds24MasterId;
-
-        return [
-            // El worker de Beds24 buscará exactamente esta llave:
-            'beds24_book_id' => $beds24Id,
-
-            // MÁQUINA DEL TIEMPO: Mañana podrías agregar:
-            // 'stripe_customer_id' => $this->stripeId,
-            // 'tour_operator_ref' => $this->referenciaOperador,
-        ];
-    }
-
-    public function getContextName(): ?string
-    {
-        return $this->getNombreApellido();
-    }
-
-    public function getContextPhone(): ?string
-    {
-        return $this->telefono ?? $this->telefono2;
-    }
-
-    public function getContextEmail(): ?string
-    {
-        return $this->emailCliente;
-    }
-
-    public function getContextLanguage(): string
-    {
-        // Fallback a inglés ('en') o español ('es') según prefieras
-        return $this->idioma ? strtolower((string)$this->idioma->getId()) : 'es';
-    }
-
-    public function getMilestone(string $milestoneName): ?DateTimeInterface
-    {
-        return match ($milestoneName) {
-            'start'   => $this->fechaLlegada,
-            'end'     => $this->fechaSalida,
-            'created' => $this->createdAt,
-            default   => null,
-        };
-    }
-
-    public function getTemplateVariables(): array
-    {
-        // Extraemos la zona horaria si el país la tiene
-        $clientTimezone = $this->pais ? $this->pais->getTimezone() : null;
-
-        return [
-            // Huésped
-            'guest_name'      => $this->nombreCliente,
-            'guest_last_name' => $this->apellidoCliente,
-            'guest_full_name' => $this->getNombreApellido(),
-            'guest_phone'     => $this->getContextPhone(),
-            'guest_email'     => $this->emailCliente,
-            'guest_country'   => $this->pais ? $this->pais->getNombre() : null,
-            'client_timezone' => $clientTimezone,
-
-            // Reserva
-            'locator'         => $this->getLocalizador(),
-            'checkin_date'    => $this->fechaLlegada ? $this->fechaLlegada->format('d/m/Y') : '',
-            'checkout_date'   => $this->fechaSalida ? $this->fechaSalida->format('d/m/Y') : '',
-            'checkin_time'    => $this->horaLlegadaCanal ?? '15:00',
-            'nights'          => $this->getNoches(),
-
-            // Cantidades
-            'pax_adults'      => $this->cantidadAdultos ?? 0,
-            'pax_children'    => $this->cantidadNinos ?? 0,
-            'pax_total'       => $this->getPaxTotal(),
-
-            // Finanzas
-            'total_amount'    => $this->montoTotal ?? '0.00',
-            'currency'        => $this->moneda ? $this->moneda->getId() : '',
-
-            // Estancia
-            'property_name'   => $this->getNombreHotel(),
-            'room_name'       => $this->getNombreHabitacion(),
-            'channel_name'    => $this->channel ? $this->channel->getNombre() : 'Directo',
-        ];
-    }
-
 }

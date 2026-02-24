@@ -37,14 +37,14 @@ class GupshupEndpoint implements EndpointInterface
     private bool $activo = true;
 
     /**
-     * @var Collection<int, GupshupSendQueue>
+     * @var Collection<int, WhatsappGupshupSendQueue>
      */
-    #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: GupshupSendQueue::class)]
-    private Collection $gupshupSendQueues;
+    #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: WhatsappGupshupSendQueue::class)]
+    private Collection $whatsappGupshupSendQueues;
 
     public function __construct()
     {
-        $this->gupshupSendQueues = new ArrayCollection();
+        $this->whatsappGupshupSendQueues = new ArrayCollection();
         $this->id = Uuid::v7();
     }
 
@@ -122,21 +122,21 @@ class GupshupEndpoint implements EndpointInterface
     }
 
     // =========================================================================
-    // GESTIÓN DE LA COLECCIÓN (GupshupSendQueue)
+    // GESTIÓN DE LA COLECCIÓN (WhatsappGupshupSendQueue)
     // =========================================================================
 
     /**
-     * @return Collection<int, GupshupSendQueue>
+     * @return Collection<int, WhatsappGupshupSendQueue>
      */
-    public function getGupshupSendQueues(): Collection
+    public function getWhatsappGupshupSendQueues(): Collection
     {
-        return $this->gupshupSendQueues;
+        return $this->whatsappGupshupSendQueues;
     }
 
-    public function addGupshupSendQueue(GupshupSendQueue $queue): self
+    public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self
     {
-        if (!$this->gupshupSendQueues->contains($queue)) {
-            $this->gupshupSendQueues->add($queue);
+        if (!$this->whatsappGupshupSendQueues->contains($queue)) {
+            $this->whatsappGupshupSendQueues->add($queue);
             // Lado propietario de la relación
             if ($queue->getEndpoint() !== $this) {
                 $queue->setEndpoint($this);
@@ -146,9 +146,9 @@ class GupshupEndpoint implements EndpointInterface
         return $this;
     }
 
-    public function removeGupshupSendQueue(GupshupSendQueue $queue): self
+    public function removeWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self
     {
-        if ($this->gupshupSendQueues->removeElement($queue)) {
+        if ($this->whatsappGupshupSendQueues->removeElement($queue)) {
             // Establecer el lado propietario a null si aún apunta a este endpoint
             if ($queue->getEndpoint() === $this) {
                 $queue->setEndpoint(null);

@@ -80,7 +80,7 @@ final class Beds24BookingsPushQueueCreator
             'fin'          => $evento?->getFin()?->format('c'),
             'estado'       => $evento?->getEstado()?->getId(),
             'beds24RoomId' => $map->getBeds24RoomId(),
-            'configId'     => $map->getConfig()?->getId() ? (string) $map->getConfig()->getId() : null,
+            'configId'     => $map->getPmsUnidad()->getEstablecimiento()->getConfig()?->getId() ? (string) $map->getPmsUnidad()->getEstablecimiento()->getConfig()->getId() : null,
         ];
 
         $json = json_encode(value: $payload, flags: JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -100,7 +100,7 @@ final class Beds24BookingsPushQueueCreator
 
                 // Si cambió, reciclamos la tarea existente
                 $existingQueue
-                    ->setConfig($map->getConfig())
+                    ->setConfig($map->getPmsUnidad()->getEstablecimiento()->getConfig())
                     ->setEndpoint($endpoint)
                     ->setPayloadHash($payloadHash)
                     ->setStatus(PmsBookingsPushQueue::STATUS_PENDING)
@@ -126,7 +126,7 @@ final class Beds24BookingsPushQueueCreator
         // 6. CREACIÓN NUEVA (USANDO FACTORY)
         // ✅ Usamos el Factory para obtener una instancia con UUID v7 y defaults seguros
         $queue = $this->factory->create(
-            config: $map->getConfig(),
+            config: $map->getPmsUnidad()->getEstablecimiento()->getConfig(),
             endpoint: $endpoint
         );
 

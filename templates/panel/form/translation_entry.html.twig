@@ -47,12 +47,12 @@
             1. Si NO es el primero (not is_first), añadimos la clase 'collapsed'.
             2. aria-expanded es 'true' si es el primero.
             #}
-            <button class="accordion-button py-2 flex-grow-1 {{ not is_first ? 'collapsed' }}"
+            <button class="accordion-button py-1 flex-grow-1 {{ not is_first ? 'collapsed' }}"
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#collapse-{{ id }}"
                     aria-expanded="{{ is_first ? 'true' : 'false' }}"
-                    style="background-color: #fcfcfc; border-top-right-radius: 0; border-bottom-right-radius: 0;">
+                    style="font-size: 0.8rem; background-color: #fcfcfc; border-top-right-radius: 0; border-bottom-right-radius: 0;">
 
                 <span class="me-2 fs-5">{{ info.flag }}</span>
                 <span class="fw-bold me-2 text-dark">{{ info.name }}</span>

@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace App\Message\Repository;
 
 use App\Exchange\Repository\AbstractExchangeRepository;
-use App\Message\Entity\GupshupSendQueue;
+use App\Message\Entity\WhatsappGupshupSendQueue;
 use Doctrine\DBAL\ArrayParameterType; // <--- AGREGAR ESTO
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * Repositorio para la cola de envío de WhatsApp (Gupshup).
  */
-final class GupshupSendQueueRepository extends AbstractExchangeRepository
+final class WhatsappGupshupSendQueueRepository extends AbstractExchangeRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, GupshupSendQueue::class);
+        parent::__construct($registry, WhatsappGupshupSendQueue::class);
     }
 
     protected function getTableName(): string

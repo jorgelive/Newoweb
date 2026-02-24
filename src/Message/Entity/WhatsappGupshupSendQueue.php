@@ -8,8 +8,8 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
-use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
-use App\Message\Repository\GupshupSendQueueRepository;
+use App\Message\Contract\MessageQueueItemInterface;
+use App\Message\Repository\WhatsappGupshupSendQueueRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
@@ -17,12 +17,12 @@ use InvalidArgumentException;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
-#[ORM\Entity(repositoryClass: GupshupSendQueueRepository::class)]
-#[ORM\Table(name: 'msg_gupshup_queue')]
-#[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_gupshup_worker')]
-#[ORM\Index(columns: ['external_message_id'], name: 'idx_msg_gupshup_ext_id')]
+#[ORM\Entity(repositoryClass: WhatsappGupshupSendQueueRepository::class)]
+#[ORM\Table(name: 'msg_whatsapp_gupshup_queue')]
+#[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_whatsapp_gupshup_worker')]
+#[ORM\Index(columns: ['external_message_id'], name: 'idx_msg_whatsapp_gupshup_ext_id')]
 #[ORM\HasLifecycleCallbacks]
-class GupshupSendQueue implements ExchangeQueueItemInterface
+class WhatsappGupshupSendQueue implements MessageQueueItemInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -44,24 +44,21 @@ class GupshupSendQueue implements ExchangeQueueItemInterface
     // RELACIONES
     // =========================================================================
 
-    #[ORM\ManyToOne(targetEntity: Message::class, inversedBy: 'gupshupQueues')]
+    #[ORM\ManyToOne(targetEntity: Message::class, inversedBy: 'whatsappGupshupQueues')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Message $message = null;
 
-    #[ORM\ManyToOne(targetEntity: GupshupConfig::class, inversedBy: 'gupshupSendQueues')]
+    #[ORM\ManyToOne(targetEntity: GupshupConfig::class, inversedBy: 'whatsappGupshupSendQueues')]
     #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
     private ?GupshupConfig $config = null;
 
-    #[ORM\ManyToOne(targetEntity: GupshupEndpoint::class, inversedBy: 'gupshupSendQueues')]
+    #[ORM\ManyToOne(targetEntity: GupshupEndpoint::class, inversedBy: 'whatsappGupshupSendQueues')]
     #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
     private ?GupshupEndpoint $endpoint = null;
 
     // =========================================================================
     // SNAPSHOTS & DATOS TÉCNICOS
     // =========================================================================
-
-    #[ORM\Column(length: 50)]
-    private ?string $destinationPhone = null;
 
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $externalMessageId = null;
@@ -219,18 +216,6 @@ class GupshupSendQueue implements ExchangeQueueItemInterface
             ));
         }
         $this->endpoint = $endpoint;
-        return $this;
-    }
-
-    // --- Snapshot: Destination Phone ---
-    public function getDestinationPhone(): ?string
-    {
-        return $this->destinationPhone;
-    }
-
-    public function setDestinationPhone(string $destinationPhone): self
-    {
-        $this->destinationPhone = $destinationPhone;
         return $this;
     }
 
