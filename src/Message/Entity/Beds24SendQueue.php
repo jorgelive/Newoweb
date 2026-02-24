@@ -41,7 +41,7 @@ class Beds24SendQueue implements MessageQueueItemInterface
     private ?Message $message = null;
 
     #[ORM\ManyToOne(targetEntity: Beds24Config::class)]
-    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
     private ?Beds24Config $config = null;
 
     #[ORM\ManyToOne(targetEntity: Beds24Endpoint::class)]

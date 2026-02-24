@@ -49,7 +49,7 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     private ?Message $message = null;
 
     #[ORM\ManyToOne(targetEntity: GupshupConfig::class, inversedBy: 'whatsappGupshupSendQueues')]
-    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
     private ?GupshupConfig $config = null;
 
     #[ORM\ManyToOne(targetEntity: GupshupEndpoint::class, inversedBy: 'whatsappGupshupSendQueues')]

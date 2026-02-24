@@ -57,8 +57,7 @@ class PmsEventoBeds24Link
         name: 'evento_id',
         referencedColumnName: 'id',
         nullable: true,
-        onDelete: 'CASCADE',
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+        onDelete: 'CASCADE'
     )]
     private ?PmsEventoCalendario $evento = null;
 
@@ -67,8 +66,7 @@ class PmsEventoBeds24Link
         name: 'unidad_beds24_map_id',
         referencedColumnName: 'id',
         nullable: false,
-        onDelete: 'CASCADE',
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+        onDelete: 'CASCADE'
     )]
     private ?PmsUnidadBeds24Map $unidadBeds24Map = null;
 

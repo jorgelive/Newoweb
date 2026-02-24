@@ -47,7 +47,7 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
 
     // ✅ CORRECCIÓN: Usamos PmsBeds24Config para consistencia con el resto del módulo
     #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'bookingsPullQueues')]
-    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?Beds24Config $config = null;
 
     #[ORM\ManyToOne(targetEntity: Beds24Endpoint::class, inversedBy: 'bookingsPullQueues')]
@@ -58,8 +58,8 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
      */
     #[ORM\ManyToMany(targetEntity: PmsUnidad::class, inversedBy: 'bookingsPullQueues')]
     #[ORM\JoinTable(name: 'pms_pull_queue_job_unidad')]
-    #[ORM\JoinColumn(name: 'pull_queue_id', referencedColumnName: 'id', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
-    #[ORM\InverseJoinColumn(name: 'unidad_id', referencedColumnName: 'id', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'pull_queue_id', referencedColumnName: 'id')]
+    #[ORM\InverseJoinColumn(name: 'unidad_id', referencedColumnName: 'id')]
     private Collection $unidades;
 
     #[ORM\Column(type: 'date', nullable: true)]

@@ -53,23 +53,22 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
 
 
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class, inversedBy: 'tarifaQueues')]
-    #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false)]
     private ?PmsUnidad $unidad = null;
 
     #[ORM\ManyToOne(targetEntity: PmsUnidadBeds24Map::class)]
-    #[ORM\JoinColumn(name: 'pms_unidad_beds24_map_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'pms_unidad_beds24_map_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?PmsUnidadBeds24Map $unidadBeds24Map = null;
 
     #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'ratesPushQueues')]
-    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
     private ?Beds24Config $config = null;
 
     #[ORM\ManyToOne(targetEntity: Beds24Endpoint::class, inversedBy: 'ratesPushQueues')]
     #[ORM\JoinColumn(
         name: 'endpoint_id',
         referencedColumnName: 'id',
-        nullable: false,
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+        nullable: false
     )]
     private ?Beds24Endpoint $endpoint = null;
 

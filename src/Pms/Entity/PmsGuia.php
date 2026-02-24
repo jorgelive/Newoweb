@@ -53,7 +53,7 @@ class PmsGuia
     use AutoTranslateControlTrait;
 
     #[ORM\OneToOne(inversedBy: 'guia', targetEntity: PmsUnidad::class, cascade: ['persist'])]
-    #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'unidad_id', referencedColumnName: 'id', nullable: false)]
     private ?PmsUnidad $unidad = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]

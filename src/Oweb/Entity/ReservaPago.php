@@ -62,8 +62,7 @@ class ReservaPago
     #[ORM\JoinColumn(
         name: 'user_id',
         referencedColumnName: 'id',
-        nullable: true,
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+        nullable: true
     )]
     protected $user;
 

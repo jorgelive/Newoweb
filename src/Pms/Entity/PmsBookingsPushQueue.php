@@ -40,7 +40,7 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
 
     // ✅ CORRECCIÓN: Agregado cascade: ['persist'] para soportar Links nuevos en batch
     #[ORM\ManyToOne(targetEntity: PmsEventoBeds24Link::class, inversedBy: 'queues', cascade: ['persist'])]
-    #[ORM\JoinColumn(name: 'link_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'link_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?PmsEventoBeds24Link $link = null;
 
     #[ORM\ManyToOne(targetEntity: Beds24Endpoint::class, inversedBy: 'bookingsPushQueues')]
@@ -48,7 +48,7 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
     private ?Beds24Endpoint $endpoint = null;
 
     #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'bookingsPushQueues')]
-    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: true, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: true)]
     private ?Beds24Config $config = null;
 
     // --- DATOS LÓGICOS ---

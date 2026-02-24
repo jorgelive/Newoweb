@@ -19,11 +19,11 @@ class PmsGuiaSeccionHasItem
     use TimestampTrait;
 
     #[ORM\ManyToOne(targetEntity: PmsGuiaSeccion::class, inversedBy: 'seccionHasItems')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?PmsGuiaSeccion $seccion = null;
 
     #[ORM\ManyToOne(targetEntity: PmsGuiaItem::class, inversedBy: 'itemHasSecciones')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE', columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?PmsGuiaItem $item = null;
 
     #[ORM\Column(type: 'integer')]

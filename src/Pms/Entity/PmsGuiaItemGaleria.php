@@ -35,8 +35,7 @@ class PmsGuiaItemGaleria
         name: 'item_id',
         referencedColumnName: 'id',
         nullable: false,
-        onDelete: 'CASCADE',
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+        onDelete: 'CASCADE'
     )]
     private ?PmsGuiaItem $item = null;
 

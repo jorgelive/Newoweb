@@ -52,8 +52,7 @@ class PmsUnidadBeds24Map
         name: 'config_id',
         referencedColumnName: 'id',
         nullable: false,
-        onDelete: 'CASCADE',
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+        onDelete: 'CASCADE'
     )]
     #[Assert\NotNull(message: 'Debes seleccionar una configuración de Beds24.')]
     private ?Beds24Config $config = null;
@@ -62,8 +61,7 @@ class PmsUnidadBeds24Map
     #[ORM\JoinColumn(
         name: 'pms_unidad_id',
         referencedColumnName: 'id',
-        nullable: false,
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+        nullable: false
     )]
     #[Assert\NotNull(message: 'Debes seleccionar una unidad del PMS.')]
     private ?PmsUnidad $pmsUnidad = null;

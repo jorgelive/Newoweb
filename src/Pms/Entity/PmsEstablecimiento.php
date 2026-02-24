@@ -30,9 +30,8 @@ class PmsEstablecimiento
     #[ORM\JoinColumn(
         name: 'beds24_config_id',
         referencedColumnName: 'id',
-        nullable: true,
-        onDelete: 'CASCADE',
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+        nullable: false,
+        onDelete: 'CASCADE'
     )]
     #[Assert\NotNull(message: 'Debes seleccionar una configuración de Beds24.')]
     private ?Beds24Config $beds24Config = null;

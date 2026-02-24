@@ -12,14 +12,14 @@ namespace App\Entity\Trait;
 trait AutoTranslateControlTrait
 {
     /**
-     * Flag virtual para activar/desactivar todo el proceso.
+     * Flag virtual para activar/desactivar el proceso.
      */
     private bool $ejecutarTraduccion = true;
 
     /**
      * Flag virtual para controlar la sobreescritura.
      * false (Default) = "Modo Seguro": Solo traduce idiomas que estén vacíos. Respeta lo existente.
-     * true            = "Modo Forzado": Vuelve a traducir todo basándose en el idioma origen.
+     * true            = "Modo Forzado": Vuelve a traducir basándose en el idioma origen.
      */
     private bool $sobreescribirTraduccion = false;
 

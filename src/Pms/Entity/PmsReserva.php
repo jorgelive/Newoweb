@@ -97,7 +97,7 @@ class PmsReserva
      * ====================================================== */
 
     #[ORM\ManyToOne(targetEntity: PmsEstablecimiento::class, inversedBy: 'reservas')]
-    #[ORM\JoinColumn(name: 'establecimiento_id', referencedColumnName: 'id', nullable: true, columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"')]
+    #[ORM\JoinColumn(name: 'establecimiento_id', referencedColumnName: 'id', nullable: false)]
     private ?PmsEstablecimiento $establecimiento = null;
 
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]

@@ -38,8 +38,7 @@ class PmsTarifaRango
     #[ORM\JoinColumn(
         name: 'unidad_id',
         referencedColumnName: 'id',
-        nullable: false,
-        columnDefinition: 'BINARY(16) COMMENT "(DC2Type:uuid)"'
+        nullable: false
     )]
     private ?PmsUnidad $unidad = null;
 
