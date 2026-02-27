@@ -92,3 +92,8 @@ body.dark-mode .fc {
     min-height: 42px;
     border-radius: 12px;
 }
+
+.fc .fc-timeline-event-harness {
+    top: 50% !important;
+    transform: translateY(-50%);
+}
