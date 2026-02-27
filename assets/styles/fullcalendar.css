@@ -87,7 +87,7 @@ body.dark-mode .fc {
 
 .fc .fc-button {
     cursor: pointer;
-    padding: 0.8em 0.6em;
+    padding: 0.8em 0.4em;
     font-size: 0.9rem;
     min-height: 42px;
     border-radius: 12px;

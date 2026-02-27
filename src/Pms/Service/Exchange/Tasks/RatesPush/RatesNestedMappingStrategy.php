@@ -15,6 +15,7 @@ use App\Service\TipocambioManager;
 /**
  * Estrategia de mapeo para el envío de tarifas (Rates) a Beds24.
  * * Realiza conversión automática PEN -> USD mediante BCMath.
+ * * Filtra/ajusta fechas en el pasado (Beds24 rechaza "invalid dates").
  * * Agrupa ítems para optimización de API Batch.
  * * Mantiene trazabilidad posicional para la respuesta.
  */
@@ -40,6 +41,9 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
         $grouped = [];
         $correlationMap = [];
         $currentIndex = 0;
+        $skippedIndex = 0;
+
+        $today = new \DateTimeImmutable('today');
 
         foreach ($batch->getItems() as $item) {
             /** @var PmsRatesPushQueue $item */
@@ -48,43 +52,57 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
                 continue;
             }
 
+            // --- 1. VALIDACIÓN Y AJUSTE DE FECHAS (Escudo anti "invalid dates") ---
+            $fechaInicioOriginal = $item->getFechaInicio();
+
+            $fechaInicio = $fechaInicioOriginal ? \DateTimeImmutable::createFromInterface($fechaInicioOriginal)->setTime(0, 0) : $today;
+            $fechaFin    = $item->getFechaFin() ? \DateTimeImmutable::createFromInterface($item->getFechaFin())->setTime(0, 0) : $fechaInicio;
+
+            // Si empieza antes de hoy, la forzamos a hoy
+            if ($fechaInicio < $today) {
+                $fechaInicio = clone $today;
+            }
+
+            // Si la fecha fin es anterior a hoy, el rango completo caducó.
+            // Lo omitimos del payload de Beds24 pero lo guardamos en el mapa para marcarlo como procesado.
+            if ($fechaFin < $today) {
+                $correlationMap['skipped_' . $skippedIndex++] = (string) $item->getId();
+                continue;
+            }
+
+            // --- 2. LÓGICA DE CONVERSIÓN MONETARIA (PEN -> USD) ---
             $roomId = (int) $map->getBeds24RoomId();
             $precioOriginal = (string) $item->getPrecio();
             $monedaItem = $item->getMoneda();
-
-            // --- LÓGICA DE CONVERSIÓN MONETARIA (PEN -> USD) ---
-            // Beds24 solo acepta USD. Si la moneda es Soles, dividimos por el TC Promedio.
             $precioFinal = (float) $precioOriginal;
 
-            // Usamos la Clave Natural (ID) para MaestroMoneda
             if ($monedaItem && $monedaItem->getId() === MaestroMoneda::DB_ID_SOL) {
-                $fechaTarifa = $item->getFechaInicio() ?? new \DateTime();
+                // Usamos la fecha original para obtener el TC exacto de ese día
+                $fechaTarifa = $fechaInicioOriginal ?? new \DateTime();
                 $tc = $this->tipocambioManager->getTipodecambio($fechaTarifa);
 
                 if ($tc) {
                     $promedioStr = (string)$tc->getPromedio();
 
-                    // Verificación de seguridad para evitar división por cero
                     if ($promedioStr !== '0' && $promedioStr !== '0.000') {
-                        // bcdiv garantiza que no perdamos céntimos en la conversión
                         $precioConvertido = bcdiv($precioOriginal, $promedioStr, 2);
                         $precioFinal = (float) $precioConvertido;
                     }
                 }
             }
 
-            // Estructura Beds24 v2: roomId -> calendar [from, to, price...]
+            // --- 3. ARMADO DEL PAYLOAD BEDS24 ---
             $grouped[] = [
                 'roomId'   => $roomId,
                 'calendar' => [[
-                    'from'    => $item->getFechaInicio()?->format('Y-m-d'),
-                    'to'      => $item->getFechaFin()?->format('Y-m-d'),
+                    'from'    => $fechaInicio->format('Y-m-d'),
+                    'to'      => $fechaFin->format('Y-m-d'),
                     'price'   => $precioFinal,
                     'minStay' => (int) $item->getMinStay(),
                 ]]
             ];
 
-            // Correlación para identificar qué ID de cola corresponde a qué respuesta de la API
+            // Correlación estricta para el índice numérico
             $correlationMap[$currentIndex] = (string) $item->getId();
             $currentIndex++;
         }
@@ -105,7 +123,7 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
     {
         $results = [];
 
-        // 1. Manejo de Error Global
+        // 1. Manejo de Error Global de la API
         if (isset($apiResponse['success']) && $apiResponse['success'] === false && !isset($apiResponse[0])) {
             $msg = $apiResponse['message'] ?? 'Error global en Batch Rates';
             foreach ($mapping->correlationMap as $queueId) {
@@ -114,7 +132,7 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
             return $results;
         }
 
-        // 2. Correlación Posicional Estricta
+        // 2. Correlación Posicional Estricta (Para los que sí viajaron en el payload)
         foreach ($apiResponse as $index => $respItem) {
             if (!isset($mapping->correlationMap[$index])) {
                 continue;
@@ -131,16 +149,29 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
                 }
             }
 
-            // 'modified' contiene el detalle de lo que realmente se cambió en Beds24
             $extra = $respItem['modified'] ?? $respItem;
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
                 message: $errorMsg,
-                remoteId: null, // Rates no suelen tener un "ID de tasa" único de retorno
+                remoteId: null,
                 extraData: (array)$extra
             );
+        }
+
+        // 3. Resolución de ítems omitidos (Fechas en el pasado)
+        // Recorremos el correlationMap buscando nuestras llaves mágicas "skipped_X"
+        foreach ($mapping->correlationMap as $key => $queueId) {
+            if (is_string($key) && str_starts_with($key, 'skipped_')) {
+                $results[$queueId] = new ItemResult(
+                    queueItemId: $queueId,
+                    success: true, // Lo marcamos como exitoso para que Doctrine lo elimine de la cola de pendientes
+                    message: 'Omitido automáticamente: Rango de fechas en el pasado',
+                    remoteId: null,
+                    extraData: ['action' => 'skipped']
+                );
+            }
         }
 
         return $results;
