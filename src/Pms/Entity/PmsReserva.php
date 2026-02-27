@@ -61,10 +61,6 @@ class PmsReserva
     #[ORM\Column(type: 'bigint', nullable: true)]
     private ?string $beds24BookIdPrincipal = null;
 
-    #[ORM\Column(type: 'string', length: 100, nullable: true)]
-    #[Assert\Length(max: 100)]
-    private ?string $referenciaCanal = null;
-
     /* ======================================================
      * DATOS DEL CLIENTE
      * ====================================================== */
@@ -100,6 +96,11 @@ class PmsReserva
     #[ORM\JoinColumn(name: 'establecimiento_id', referencedColumnName: 'id', nullable: false)]
     private ?PmsEstablecimiento $establecimiento = null;
 
+    // ✅ NUEVO: El canal principal/ganador de la reserva
+    #[ORM\ManyToOne(targetEntity: PmsChannel::class)]
+    #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: true)]
+    private ?PmsChannel $channel = null;
+
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: true)]
     private ?MaestroMoneda $moneda = null;
@@ -112,11 +113,6 @@ class PmsReserva
     #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: false)]
     #[Assert\NotNull(message: 'El idioma es obligatorio.')]
     private ?MaestroIdioma $idioma = null;
-
-    #[ORM\ManyToOne(targetEntity: PmsChannel::class)]
-    #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: false)]
-    #[Assert\NotNull(message: 'El canal es obligatorio.')]
-    private ?PmsChannel $channel = null;
 
     /* ======================================================
      * DETALLES DE ESTANCIA Y MONTOS
@@ -146,27 +142,14 @@ class PmsReserva
     #[Assert\GreaterThan(propertyPath: 'fechaLlegada', message: 'La fecha de salida debe ser posterior a la fecha de llegada.')]
     private ?DateTimeInterface $fechaSalida = null;
 
-    #[ORM\Column(type: 'string', length: 20, nullable: true)]
-    #[Assert\Length(max: 20)]
-    private ?string $horaLlegadaCanal = null;
-
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?DateTimeInterface $fechaReservaCanal = null;
-
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?DateTimeInterface $fechaModificacionCanal = null;
-
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $datosLocked = false;
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $nota = null;
 
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $comentariosHuesped = null;
-
     /* ======================================================
-     * COLECCIONES
+     * COLECCIONES Y CAMPOS AGREGADOS (CACHÉ)
      * ====================================================== */
     #[ORM\OneToMany(mappedBy: 'reserva', targetEntity: PmsEventoCalendario::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Assert\Valid]
@@ -175,6 +158,22 @@ class PmsReserva
     #[ORM\OneToMany(mappedBy: 'reserva', targetEntity: PmsReservaHuesped::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Assert\Valid]
     private Collection $huespedes;
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $canalesAggregate = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $referenciaCanalAggregate = null;
+
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
+    private ?string $horaLlegadaCanalAggregate = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTimeInterface $primeraFechaReservaCanal = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTimeInterface $ultimaFechaModificacionCanal = null;
+
 
     public function __construct()
     {
@@ -309,10 +308,6 @@ class PmsReserva
     public function setBeds24BookIdPrincipal(?string $val): self { $this->beds24BookIdPrincipal = $val; return $this; }
 
     #[Groups(['pax_reserva:read'])]
-    public function getReferenciaCanal(): ?string { return $this->referenciaCanal; }
-    public function setReferenciaCanal(?string $val): self { $this->referenciaCanal = $val; return $this; }
-
-    #[Groups(['pax_reserva:read'])]
     public function getNombreCliente(): ?string { return $this->nombreCliente; }
     public function setNombreCliente(?string $val): self { $this->nombreCliente = $val; return $this; }
 
@@ -332,6 +327,11 @@ class PmsReserva
     public function getEmailCliente(): ?string { return $this->emailCliente; }
     public function setEmailCliente(?string $val): self { $this->emailCliente = $val; return $this; }
 
+    // ✅ GETTER / SETTER DEL CANAL / campo propagado por listener, ganador si hay directos
+    #[Groups(['pax_reserva:read'])]
+    public function getChannel(): ?PmsChannel { return $this->channel; }
+    public function setChannel(?PmsChannel $val): self { $this->channel = $val; return $this; }
+
     public function getMoneda(): ?MaestroMoneda { return $this->moneda; }
     public function setMoneda(?MaestroMoneda $val): self { $this->moneda = $val; return $this; }
 
@@ -342,10 +342,6 @@ class PmsReserva
     #[Groups(['pax_reserva:read'])]
     public function getIdioma(): ?MaestroIdioma { return $this->idioma; }
     public function setIdioma(?MaestroIdioma $val): self { $this->idioma = $val; return $this; }
-
-    #[Groups(['pax_reserva:read'])]
-    public function getChannel(): ?PmsChannel { return $this->channel; }
-    public function setChannel(?PmsChannel $val): self { $this->channel = $val; return $this; }
 
     #[Groups(['pax_reserva:read'])]
     public function getCantidadAdultos(): ?int { return $this->cantidadAdultos; }
@@ -369,23 +365,26 @@ class PmsReserva
     public function getFechaSalida(): ?DateTimeInterface { return $this->fechaSalida; }
     public function setFechaSalida(?DateTimeInterface $val): self { $this->fechaSalida = $val; return $this; }
 
-    public function getHoraLlegadaCanal(): ?string { return $this->horaLlegadaCanal; }
-    public function setHoraLlegadaCanal(?string $val): self { $this->horaLlegadaCanal = $val; return $this; }
-
-    public function getFechaReservaCanal(): ?DateTimeInterface { return $this->fechaReservaCanal; }
-    public function setFechaReservaCanal(?DateTimeInterface $val): self { $this->fechaReservaCanal = $val; return $this; }
-
-    public function getFechaModificacionCanal(): ?DateTimeInterface { return $this->fechaModificacionCanal; }
-    public function setFechaModificacionCanal(?DateTimeInterface $val): self { $this->fechaModificacionCanal = $val; return $this; }
-
     public function isDatosLocked(): bool { return $this->datosLocked; }
     public function setDatosLocked(bool $val): self { $this->datosLocked = $val; return $this; }
 
     public function getNota(): ?string { return $this->nota; }
     public function setNota(?string $val): self { $this->nota = $val; return $this; }
 
-    public function getComentariosHuesped(): ?string { return $this->comentariosHuesped; }
-    public function setComentariosHuesped(?string $val): self { $this->comentariosHuesped = $val; return $this; }
+    public function getCanalesAggregate(): ?string { return $this->canalesAggregate; }
+    public function setCanalesAggregate(?string $val): self { $this->canalesAggregate = $val; return $this; }
+
+    public function getReferenciaCanalAggregate(): ?string { return $this->referenciaCanalAggregate; }
+    public function setReferenciaCanalAggregate(?string $val): self { $this->referenciaCanalAggregate = $val; return $this; }
+
+    public function getHoraLlegadaCanalAggregate(): ?string { return $this->horaLlegadaCanalAggregate; }
+    public function setHoraLlegadaCanalAggregate(?string $val): self { $this->horaLlegadaCanalAggregate = $val; return $this; }
+
+    public function getPrimeraFechaReservaCanal(): ?DateTimeInterface { return $this->primeraFechaReservaCanal; }
+    public function setPrimeraFechaReservaCanal(?DateTimeInterface $val): self { $this->primeraFechaReservaCanal = $val; return $this; }
+
+    public function getUltimaFechaModificacionCanal(): ?DateTimeInterface { return $this->ultimaFechaModificacionCanal; }
+    public function setUltimaFechaModificacionCanal(?DateTimeInterface $val): self { $this->ultimaFechaModificacionCanal = $val; return $this; }
 
     #[Groups(['pax_reserva:read'])]
     public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
@@ -425,7 +424,7 @@ class PmsReserva
     public function __toString(): string {
         return sprintf('%s - %s (%s)',
             $this->getNombreApellido() ?? 'Huésped Desconocido',
-            $this->referenciaCanal ?? 'Sin Ref.',
+            $this->referenciaCanalAggregate ?? 'Sin Ref.',
             $this->getLocalizador() ?? 'Sin Loc.'
         );
     }

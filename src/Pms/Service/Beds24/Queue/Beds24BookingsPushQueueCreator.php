@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Beds24\Queue;
 
+use App\Exchange\Entity\ExchangeEndpoint;
+use App\Exchange\Enum\ConnectivityProvider;
 use App\Exchange\Service\Context\SyncContext;
-use App\Pms\Entity\Beds24Endpoint;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Factory\PmsBookingsPushQueueFactory;
@@ -33,12 +34,12 @@ final class Beds24BookingsPushQueueCreator
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly SyncContext $syncContext,
-        private readonly PmsBookingsPushQueueFactory $factory, // ✅ Inyección del Factory
+        private readonly PmsBookingsPushQueueFactory $factory,
     ) {}
 
     public function enqueueForLink(
         PmsEventoBeds24Link $link,
-        Beds24Endpoint      $endpoint,
+        ExchangeEndpoint    $endpoint,
         ?UnitOfWork         $uow = null
     ): void {
         // 0. Protección contra bucles
@@ -68,8 +69,10 @@ final class Beds24BookingsPushQueueCreator
         }
 
         // 3. Deduplicación
+        // ✅ NUEVO: La clave de deduplicación ahora incluye explícitamente el proveedor
         $linkId = (string) $link->getId();
-        $dedupeKey = sprintf('link:%s:endpoint:%s', $linkId, $endpoint->getAccion());
+        $providerVal = $endpoint->getProvider()?->value ?? ConnectivityProvider::BEDS24->value;
+        $dedupeKey = sprintf('link:%s:provider:%s:endpoint:%s', $linkId, $providerVal, $endpoint->getAccion());
 
         // 4. Snapshot de datos (Payload JSON)
         $payload = [
@@ -124,15 +127,14 @@ final class Beds24BookingsPushQueueCreator
         }
 
         // 6. CREACIÓN NUEVA (USANDO FACTORY)
-        // ✅ Usamos el Factory para obtener una instancia con UUID v7 y defaults seguros
         $queue = $this->factory->create(
             config: $map->getPmsUnidad()->getEstablecimiento()->getBeds24Config(),
             endpoint: $endpoint
         );
 
-        // Lógica de integridad referencial para borrados
+        // ✅ NUEVO: Validación de Acción + Proveedor para identificar si es un DELETE de Beds24
         $isDeleteAction = $isDelete
-            || $endpoint->getAccion() === self::ENDPOINT_DELETE_BOOKINGS
+            || ($endpoint->getProvider() === ConnectivityProvider::BEDS24 && $endpoint->getAccion() === self::ENDPOINT_DELETE_BOOKINGS)
             || $link->getStatus() === PmsEventoBeds24Link::STATUS_PENDING_DELETE;
 
         if ($isDeleteAction) {
@@ -238,8 +240,10 @@ final class Beds24BookingsPushQueueCreator
                 continue;
             }
 
-            // Solo cancelamos POSTs, los DELETEs deben seguir su curso
-            if ($queue->getEndpoint()?->getAccion() !== self::ENDPOINT_POST_BOOKINGS) {
+            $ep = $queue->getEndpoint();
+
+            // ✅ NUEVO: Solo cancelamos POSTs que pertenezcan explícitamente a BEDS24
+            if ($ep === null || $ep->getProvider() !== ConnectivityProvider::BEDS24 || $ep->getAccion() !== self::ENDPOINT_POST_BOOKINGS) {
                 continue;
             }
 

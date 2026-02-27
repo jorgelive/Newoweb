@@ -38,6 +38,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Pms/Entity'
                 prefix: 'App\Pms\Entity'
                 alias: pms
+            Exchange:
+                is_bundle: false
+                type: attribute
+                dir: '%kernel.project_dir%/src/Exchange/Entity'
+                prefix: 'App\Exchange\Entity'
+                alias: exchange
             Message:
                 is_bundle: false
                 type: attribute

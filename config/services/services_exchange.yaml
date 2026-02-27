@@ -7,11 +7,19 @@ services:
 
 
 
+
     App\Exchange\:
         resource: '../../src/Exchange/'
         exclude:
             - '../src/Exchange/Dto/'
             - '../src/Exchange/Entity/'
+
+    App\Exchange\Controller\:
+        resource: '../../src/Exchange/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+            - 'controller.service_arguments'
 
     # 1. Repetimos la definicion de los las carpetas donde haya etiquetas
     # Sin este bloque, los servicios existen en el contenedor pero son "invisibles"

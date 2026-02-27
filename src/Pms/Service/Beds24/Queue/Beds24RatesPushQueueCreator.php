@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Beds24\Queue;
 
+use App\Exchange\Entity\ExchangeEndpoint;
+use App\Exchange\Enum\ConnectivityProvider;
 use App\Exchange\Service\Context\SyncContext;
-use App\Pms\Entity\Beds24Endpoint;
 use App\Pms\Entity\PmsRatesPushQueue;
 use App\Pms\Entity\PmsTarifaRango;
 use App\Pms\Entity\PmsUnidad;
@@ -192,7 +193,13 @@ class Beds24RatesPushQueueCreator
     private function getSourceIdForRango(PmsTarifaRango $r): string {
         return $r->getId() ? (string)$r->getId() : ('tmp:' . spl_object_id($r));
     }
-    private function resolveEndpoint(): ?Beds24Endpoint { return $this->em->getRepository(Beds24Endpoint::class)->findOneBy(['accion' => self::ACCION_ENDPOINT, 'activo' => true]); }
+    private function resolveEndpoint(): ?ExchangeEndpoint {
+        return $this->em->getRepository(ExchangeEndpoint::class)->findOneBy([
+            'provider' => ConnectivityProvider::BEDS24,
+            'accion' => self::ACCION_ENDPOINT,
+            'activo' => true
+        ]);
+    }
     private function fetchActiveMaps(PmsUnidad $u): array { return $this->em->getRepository(PmsUnidadBeds24Map::class)->findBy(['pmsUnidad' => $u, 'activo' => true]); }
     private function createRangeAccessor(): callable {
         return fn(PmsTarifaRango $r) => [

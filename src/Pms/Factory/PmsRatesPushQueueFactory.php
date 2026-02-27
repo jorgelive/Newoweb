@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Pms\Factory;
 
-use App\Pms\Entity\Beds24Config;
-use App\Pms\Entity\Beds24Endpoint;
+use App\Exchange\Entity\Beds24Config;
+use App\Exchange\Entity\ExchangeEndpoint;
 use App\Pms\Entity\PmsRatesPushQueue;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Entity\PmsUnidadBeds24Map;
@@ -18,10 +18,10 @@ use DateTimeImmutable;
 final class PmsRatesPushQueueFactory
 {
     public function create(
-        PmsUnidad $unidad,
-        Beds24Endpoint $endpoint,
+        PmsUnidad          $unidad,
+        ExchangeEndpoint   $endpoint,
         PmsUnidadBeds24Map $map,
-        Beds24Config $config,
+        Beds24Config       $config,
     ): PmsRatesPushQueue {
         // 1. Instanciación
         // El constructor de PmsRatesPushQueue genera UUID v7 y runAt = NOW

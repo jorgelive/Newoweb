@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Pms\EventListener\Queue;
 
 use App\Exchange\Dispatch\RunExchangeTaskDispatch;
+use App\Exchange\Entity\ExchangeEndpoint;
+use App\Exchange\Enum\ConnectivityProvider;
 use App\Exchange\Service\Context\SyncContext;
-use App\Pms\Entity\Beds24Endpoint;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
@@ -47,8 +48,8 @@ final class Beds24BookingsPushQueueListener
     /** @var string[] IDs recolectados para despacho inmediato */
     private array $queuedIdsForDispatch = [];
 
-    private ?Beds24Endpoint $cachedPostEndpoint = null;
-    private ?Beds24Endpoint $cachedDeleteEndpoint = null;
+    private ?ExchangeEndpoint $cachedPostEndpoint = null;
+    private ?ExchangeEndpoint $cachedDeleteEndpoint = null;
     private bool $endpointsLoaded = false;
 
     public function __construct(
@@ -379,14 +380,16 @@ final class Beds24BookingsPushQueueListener
             return;
         }
 
-        $repo = $em->getRepository(Beds24Endpoint::class);
+        $repo = $em->getRepository(ExchangeEndpoint::class);
 
         $this->cachedPostEndpoint = $repo->findOneBy([
+            'provider' => ConnectivityProvider::BEDS24,
             'accion' => self::ENDPOINT_POST_BOOKINGS,
             'activo' => true,
         ]);
 
         $this->cachedDeleteEndpoint = $repo->findOneBy([
+            'provider' => ConnectivityProvider::BEDS24,
             'accion' => self::ENDPOINT_DELETE_BOOKINGS,
             'activo' => true,
         ]);

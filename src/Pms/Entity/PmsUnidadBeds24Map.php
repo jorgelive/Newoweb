@@ -6,15 +6,13 @@ namespace App\Pms\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
-use App\Pms\Entity\Beds24Config;
-use App\Pms\Entity\PmsEstablecimientoVirtual;
-use App\Pms\Entity\PmsUnidad;
 use App\Pms\Repository\PmsUnidadBeds24MapRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Uid\Uuid;
-// ✅ Importamos las Constraints
 use Symfony\Component\Validator\Constraints as Assert;
+
+// ✅ Importamos las Constraints
 
 /**
  * Entidad PmsUnidadBeds24Map.
@@ -46,16 +44,6 @@ class PmsUnidadBeds24Map
 {
     use IdTrait;
     use TimestampTrait;
-
-    #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'unidadMaps')]
-    #[ORM\JoinColumn(
-        name: 'config_id',
-        referencedColumnName: 'id',
-        nullable: false,
-        onDelete: 'CASCADE'
-    )]
-    #[Assert\NotNull(message: 'Debes seleccionar una configuración de Beds24.')]
-    private ?Beds24Config $config = null;
 
     #[ORM\ManyToOne(targetEntity: PmsUnidad::class, inversedBy: 'beds24Maps')]
     #[ORM\JoinColumn(
@@ -95,9 +83,6 @@ class PmsUnidadBeds24Map
     }
 
     // ... (Getters y Setters se mantienen igual) ...
-
-    public function getConfig(): ?Beds24Config { return $this->config; }
-    public function setConfig(?Beds24Config $config): self { $this->config = $config; return $this; }
 
     public function getPmsUnidad(): ?PmsUnidad { return $this->pmsUnidad; }
     public function setPmsUnidad(?PmsUnidad $pmsUnidad): self { $this->pmsUnidad = $pmsUnidad; return $this; }

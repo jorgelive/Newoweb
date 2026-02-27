@@ -63,6 +63,29 @@ class PmsEventoCalendario
     #[ORM\JoinColumn(name: 'reserva_id', referencedColumnName: 'id', nullable: true, columnDefinition: 'BINARY(16)')]
     private ?PmsReserva $reserva = null;
 
+    #[ORM\ManyToOne(targetEntity: PmsChannel::class, inversedBy: 'eventosCalendario')]
+    #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: true)]
+    #[Assert\NotNull(message: 'El canal es obligatorio.')]
+    private ?PmsChannel $channel = null;
+
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
+    private ?string $referenciaCanal = null;
+
+    #[ORM\Column(type: 'string', length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
+    private ?string $horaLlegadaCanal = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTimeInterface $fechaReservaCanal = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTimeInterface $fechaModificacionCanal = null;
+
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $comentariosHuesped = null;
+
     /* ======================================================
      * RELACIONES MAESTRAS (IDs NATURALES - Strings)
      * ====================================================== */
@@ -236,6 +259,27 @@ class PmsEventoCalendario
     #[Groups(['pax_reserva:read'])]
     public function getReserva(): ?PmsReserva { return $this->reserva; }
     public function setReserva(?PmsReserva $reserva): self { $this->reserva = $reserva; return $this; }
+
+    #[Groups(['pax_reserva:read'])]
+    public function getChannel(): ?PmsChannel { return $this->channel; }
+    public function setChannel(?PmsChannel $val): self { $this->channel = $val; return $this; }
+
+    #[Groups(['pax_reserva:read'])]
+    public function getReferenciaCanal(): ?string { return $this->referenciaCanal; }
+    public function setReferenciaCanal(?string $val): self { $this->referenciaCanal = $val; return $this; }
+
+    public function getHoraLlegadaCanal(): ?string { return $this->horaLlegadaCanal; }
+    public function setHoraLlegadaCanal(?string $val): self { $this->horaLlegadaCanal = $val; return $this; }
+
+    public function getFechaReservaCanal(): ?DateTimeInterface { return $this->fechaReservaCanal; }
+    public function setFechaReservaCanal(?DateTimeInterface $val): self { $this->fechaReservaCanal = $val; return $this; }
+
+    public function getFechaModificacionCanal(): ?DateTimeInterface { return $this->fechaModificacionCanal; }
+    public function setFechaModificacionCanal(?DateTimeInterface $val): self { $this->fechaModificacionCanal = $val; return $this; }
+
+
+    public function getComentariosHuesped(): ?string { return $this->comentariosHuesped; }
+    public function setComentariosHuesped(?string $val): self { $this->comentariosHuesped = $val; return $this; }
 
     #[Groups(['pax_reserva:read'])]
     public function getEstado(): ?PmsEventoEstado { return $this->estado; }

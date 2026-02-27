@@ -27,6 +27,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
@@ -56,12 +57,6 @@ final class PmsReservaCrudController extends BaseCrudController
     public function createEntity(string $entityFqcn): PmsReserva
     {
         $reserva = new PmsReserva();
-
-        // Referencias ligeras para defaults
-        $canalDirecto = $this->entityManager->getReference(PmsChannel::class, PmsChannel::CODIGO_DIRECTO);
-        if ($canalDirecto) {
-            $reserva->setChannel($canalDirecto);
-        }
 
         $idiomaDefault = $this->entityManager->getReference(MaestroIdioma::class, MaestroIdioma::DEFAULT_IDIOMA);
         if ($idiomaDefault) {
@@ -194,8 +189,9 @@ final class PmsReservaCrudController extends BaseCrudController
     {
         return $filters
             ->add('establecimiento')
-            ->add('referenciaCanal')
             ->add('beds24MasterId')
+            ->add('referenciaCanalAggregate') // ✅ Nuevo filtro por la referencia consolidada
+            ->add('canalesAggregate')         // ✅ Nuevo filtro por canal consolidado
             ->add('nombreCliente')
             ->add('fechaLlegada');
     }
@@ -228,13 +224,18 @@ final class PmsReservaCrudController extends BaseCrudController
             ->renderAsHtml()
             ->hideOnForm();
 
+        // 🌟 NUEVOS CAMPOS AGREGADOS PARA EL GRID / INDEX 🌟
+        // Estos reemplazan al antiguo "referenciaCanal" que vivía en la reserva.
+        yield TextField::new('canalesAggregate', 'Canales')
+            ->hideOnForm() // Solo lectura
+            ->formatValue(fn($v) => $v ? sprintf('<span class="badge badge-info">%s</span>', $v) : '-');
+
+        yield TextField::new('referenciaCanalAggregate', 'Referencias OTA')
+            ->hideOnForm()
+            ->formatValue(fn($v) => $v ?: '-');
+
         // Datos Titular
         yield FormField::addPanel('Datos del Titular')->setIcon('fa fa-user');
-
-        yield AssociationField::new('channel', 'Canal')
-            ->setColumns(6)
-            ->setFormTypeOption('disabled', true)
-            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.orden', 'ASC'));
 
         yield TextField::new('nombreCliente', 'Nombre')->setColumns(6);
         yield TextField::new('apellidoCliente', 'Apellido')->setColumns(6);
@@ -256,17 +257,19 @@ final class PmsReservaCrudController extends BaseCrudController
 
         // Eventos (Prototype Data actualizado)
         yield FormField::addPanel('Estancias')->setIcon('fa fa-calendar');
+        yield AssociationField::new('establecimiento', 'Establecimiento')
+            ->setRequired(true)
+            ->setFormTypeOption('attr', ['required' => true]);
+
         yield CollectionField::new('eventosCalendario', 'Gestión de Eventos')
             ->useEntryCrudForm(PmsEventoCalendarioCrudController::class)
             ->setFormTypeOption('prototype_data', $this->eventoFactory->createForUi())
             ->setColumns(12)
             ->addCssClass('field-full-width')
-
-            // Configuración estándar para OneToMany
             ->setFormTypeOption('by_reference', false)
             ->allowAdd()
             ->allowDelete()
-            ->renderExpanded() // Opcional: Muestra los campos abiertos en lugar de colapsados
+            ->renderExpanded()
             ->onlyOnForms()
         ;
 
@@ -288,19 +291,25 @@ final class PmsReservaCrudController extends BaseCrudController
             ->onlyOnDetail();
 
         // Resumen
-        yield FormField::addPanel('Resumen')->setIcon('fa fa-calculator')->renderCollapsed();
-        yield AssociationField::new('establecimiento', 'Establecimiento')
-            ->setRequired(true);
-        yield DateField::new('fechaLlegada', 'Check-in')->setFormTypeOption('disabled', true)->setColumns(6);
-        yield DateField::new('fechaSalida', 'Check-out')->setFormTypeOption('disabled', true)->setColumns(6);
-        yield MoneyField::new('montoTotal', 'Total')->setCurrency('USD')->setStoredAsCents(false)->setFormTypeOption('disabled', true)->setColumns(6);
+        yield FormField::addPanel('Resumen de Reserva (Autocalculado)')->setIcon('fa fa-calculator')->renderCollapsed();
+
+        yield DateField::new('fechaLlegada', 'Check-in Min')->setFormTypeOption('disabled', true)->setColumns(6);
+        yield DateField::new('fechaSalida', 'Check-out Max')->setFormTypeOption('disabled', true)->setColumns(6);
+
+        // Se añaden los nuevos campos calculados por el Listener
+        yield IntegerField::new('cantidadAdultos', 'Total Adultos')->setFormTypeOption('disabled', true)->setColumns(6)->hideOnIndex();
+        yield IntegerField::new('cantidadNinos', 'Total Niños')->setFormTypeOption('disabled', true)->setColumns(6)->hideOnIndex();
+
+        yield MoneyField::new('montoTotal', 'Total Ingresos')->setCurrency('USD')->setStoredAsCents(false)->setFormTypeOption('disabled', true)->setColumns(6);
+        yield MoneyField::new('comisionTotal', 'Total Comisiones')->setCurrency('USD')->setStoredAsCents(false)->setFormTypeOption('disabled', true)->setColumns(6)->hideOnIndex();
+
+        // Integración Fechas OTA Agregadas (Técnico)
+        yield FormField::addPanel('Tiempos de Canal')->setIcon('fa fa-clock')->renderCollapsed();
+        yield DateTimeField::new('primeraFechaReservaCanal', 'Creación más antigua en OTA')->setFormTypeOption('disabled', true)->hideOnIndex();
+        yield DateTimeField::new('ultimaFechaModificacionCanal', 'Modificación más reciente en OTA')->setFormTypeOption('disabled', true)->hideOnIndex();
+        yield TextField::new('horaLlegadaCanalAggregate', 'Horas de llegada (ETAs)')->setFormTypeOption('disabled', true)->hideOnIndex();
 
         // Técnico
-        if ($pageName === Crud::PAGE_EDIT || $pageName === Crud::PAGE_NEW || !empty($refCanal)) {
-            $refCanal = $entity?->getReferenciaCanal();
-            yield TextField::new('referenciaCanal', 'Ref. OTA')->setFormTypeOption('disabled', true);
-        }
-
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
 
         yield TextField::new('id', 'UUID')->onlyOnDetail();

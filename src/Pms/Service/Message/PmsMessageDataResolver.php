@@ -91,7 +91,6 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'locator'         => $reserva->getLocalizador(),
             'checkin_date'    => $reserva->getFechaLlegada()?->format('d/m/Y') ?? '',
             'checkout_date'   => $reserva->getFechaSalida()?->format('d/m/Y') ?? '',
-            'checkin_time'    => $reserva->getHoraLlegadaCanal() ?? '15:00',
             'nights'          => $reserva->getNoches(),
             'pax_total'       => $reserva->getPaxTotal(),
             'total_amount'    => $reserva->getMontoTotal() ?? '0.00',

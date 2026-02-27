@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Exchange\Service\Contract;
 
-use App\Pms\Entity\Beds24Config;
-use App\Pms\Entity\Beds24Endpoint;
 use DateTimeImmutable;
 use DateTimeInterface;
 

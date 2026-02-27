@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Exchange\Client;
 
+use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Service\Common\ExchangeNetworkResult;
 use App\Exchange\Service\Contract\ExchangeClientInterface;
 use App\Exchange\Service\Mapping\MappingResult;
-use App\Pms\Entity\Beds24Config;
 use App\Pms\Service\Exchange\Auth\Beds24AuthService;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;

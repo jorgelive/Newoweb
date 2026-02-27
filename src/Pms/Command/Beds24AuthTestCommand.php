@@ -2,7 +2,7 @@
 
 namespace App\Pms\Command;
 
-use App\Pms\Entity\Beds24Config;
+use App\Exchange\Entity\Beds24Config;
 use App\Pms\Service\Exchange\Auth\Beds24AuthService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Command\Command;

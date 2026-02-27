@@ -6,6 +6,8 @@ namespace App\Pms\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Exchange\Entity\Beds24Config;
+use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
@@ -50,9 +52,9 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
     #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?Beds24Config $config = null;
 
-    #[ORM\ManyToOne(targetEntity: Beds24Endpoint::class, inversedBy: 'bookingsPullQueues')]
+    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class, inversedBy: 'bookingsPullQueues')]
     #[ORM\JoinColumn(nullable: false, columnDefinition: 'BINARY(16)')]
-    private ?Beds24Endpoint $endpoint = null;
+    private ?ExchangeEndpoint $endpoint = null;
 
     /** * @var Collection<int, PmsUnidad>
      */
@@ -123,7 +125,7 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
 
     public function getConfig(): ?Beds24Config { return $this->config; }
 
-    public function getEndpoint(): ?Beds24Endpoint { return $this->endpoint; }
+    public function getEndpoint(): ?ExchangeEndpoint { return $this->endpoint; }
 
     public function setConfig(?ChannelConfigInterface $config): self {
         $this->config = $config;

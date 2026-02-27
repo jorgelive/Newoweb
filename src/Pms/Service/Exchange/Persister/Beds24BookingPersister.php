@@ -5,9 +5,10 @@ namespace App\Pms\Service\Exchange\Persister;
 
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroPais;
+use App\Exchange\Entity\Beds24Config;
 use App\Pms\Dto\Beds24BookingDto;
-use App\Pms\Entity\Beds24Config;
 use App\Pms\Entity\PmsChannel;
+use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
@@ -26,6 +27,7 @@ use RuntimeException;
  * * ✅ Eliminación de estado estático (static) para evitar contaminación entre jobs.
  * * ✅ Normalización estricta de IDs al inicio.
  * * ✅ Validación fuerte de Maestros (Pais/Idioma) para evitar nulls silenciosos.
+ * * ✅ Inyección obligatoria de PmsEstablecimiento para evitar reservas huérfanas.
  */
 final class Beds24BookingPersister
 {
@@ -75,10 +77,12 @@ final class Beds24BookingPersister
         }
 
         // 2. Mapeo de Unidad
-        $map = $this->resolveMap(cfg: $config, dto: $booking);
+        $map = $this->resolveMap(dto: $booking);
         if (!$map) {
-            throw new RuntimeException("No existe mapeo PMS para RoomID Beds24: {$booking->roomId} (Prop: {$config->getPropKey()})");
+            throw new RuntimeException("No existe mapeo PMS para RoomID Beds24: {$booking->roomId} ");
         }
+
+        $establecimiento = $this->resolveEstablecimiento(config: $config, map: $map);
 
         // 3. Resolver Link existente (Memoria o BD)
         $existingLink = $this->resolveLink($bookingIdStr);
@@ -105,7 +109,8 @@ final class Beds24BookingPersister
 
             // Fallback: Stub
             if (!$reserva) {
-                $reserva = $this->resolveOrCreateStubReserva($masterIdReal);
+                // ✅ CAMBIO APLICADO: Pasamos el establecimiento para evitar Stub huérfano
+                $reserva = $this->resolveOrCreateStubReserva($masterIdReal, $establecimiento);
                 $reservaAction = 'created_stub';
             } else {
                 $reservaAction = 'linked_to_master';
@@ -132,6 +137,7 @@ final class Beds24BookingPersister
             $reserva = $this->upsertReservaFull(
                 booking: $booking,
                 isPrincipal: $isLinkPrincipal,
+                establecimiento: $establecimiento,
                 reservaExistente: $reservaDeLink
             );
 
@@ -155,6 +161,33 @@ final class Beds24BookingPersister
             'action' => ($reservaAction === 'created' || $eventoResult === 'created') ? 'created' : 'updated',
             'message' => "Reserva: $reservaAction, Evento: $eventoResult. (ID: $bookingIdStr)"
         ];
+    }
+
+    /**
+     * ✅ CAMBIO APLICADO: Manejo seguro de nulos y casteo de UUIDs a string para evitar errores de comparación.
+     */
+    private function resolveEstablecimiento(
+        Beds24Config $config,
+        PmsUnidadBeds24Map $map
+    ): PmsEstablecimiento {
+        $establecimiento = $map->getPmsUnidad()->getEstablecimiento();
+
+        if (!$establecimiento) {
+            throw new \RuntimeException('La unidad mapeada no tiene un establecimiento asignado.');
+        }
+
+        $idStr = (string) $establecimiento->getId();
+
+        foreach ($config->getEstablecimientos() as $establecimientoEnConfig) {
+            if ((string) $establecimientoEnConfig->getId() === $idStr) {
+                return $establecimiento;
+            }
+        }
+
+        throw new \RuntimeException(sprintf(
+            'Inconsistencia: El establecimiento "%s" no pertenece a la config Beds24 actual.',
+            $establecimiento->getNombreComercial()
+        ));
     }
 
     private function resolveLink(string $bookId): ?PmsEventoBeds24Link
@@ -222,7 +255,7 @@ final class Beds24BookingPersister
         return $reserva;
     }
 
-    private function upsertReservaFull(Beds24BookingDto $booking, bool $isPrincipal, ?PmsReserva $reservaExistente = null): PmsReserva
+    private function upsertReservaFull(Beds24BookingDto $booking, bool $isPrincipal, PmsEstablecimiento $establecimiento, ?PmsReserva $reservaExistente = null): PmsReserva
     {
         $bookIdStr = $this->normalizeBeds24Id($booking->id); // Ya validado en upsert, pero tipado seguro
         $masterReal = $this->resolveMasterIdReal($booking);
@@ -250,13 +283,12 @@ final class Beds24BookingPersister
         // Cache update
         $this->reservaByMasterId[$effectiveMasterId] = $reserva;
 
+        // Ponemos Establecimiento
+        $reserva->setEstablecimiento($establecimiento);
+
         // --- DATA SYNC ---
-        $reserva->setReferenciaCanal($booking->apiReference);
-        $reserva->setChannel($this->resolveChannel($booking));
+
         $reserva->setNota($booking->notes);
-        $reserva->setHoraLlegadaCanal($booking->arrivalTime);
-        $reserva->setFechaReservaCanal($booking->bookingTime);
-        $reserva->setFechaModificacionCanal($booking->modifiedTime);
 
         if ($booking->commission) {
             $reserva->setComisionTotal($this->normalizeDecimal($booking->commission));
@@ -281,12 +313,15 @@ final class Beds24BookingPersister
             $reserva->setDatosLocked(true);
         }
 
-        $reserva->setComentariosHuesped($booking->comments);
+
 
         return $reserva;
     }
 
-    private function resolveOrCreateStubReserva(string $masterIdStr): PmsReserva
+    /**
+     * ✅ CAMBIO APLICADO: Se inyecta el PmsEstablecimiento para amarrar correctamente la reserva stub.
+     */
+    private function resolveOrCreateStubReserva(string $masterIdStr, PmsEstablecimiento $establecimiento): PmsReserva
     {
         $reserva = $this->resolveReservaFromLayers(effMaster: $masterIdStr, book: null);
 
@@ -295,7 +330,8 @@ final class Beds24BookingPersister
             $reserva->setBeds24MasterId($masterIdStr);
             $reserva->setNombreCliente('Pendiente Sync');
             $reserva->setApellidoCliente('(Grupo)');
-            $reserva->setChannel($this->em->getReference(PmsChannel::class, PmsChannel::CODIGO_DIRECTO));
+            $reserva->setEstablecimiento($establecimiento); // ✅ Amarre del establecimiento al stub
+
             $this->em->persist($reserva);
         }
 
@@ -366,6 +402,15 @@ final class Beds24BookingPersister
         $evento->setSubestadoBeds24($booking->subStatus);
         $evento->setRateDescription($booking->rateDescription);
         $evento->setEstado($this->resolveEstado($booking));
+
+        //ahora el channel el del evento
+        $evento->setReferenciaCanal($booking->apiReference);
+        $evento->setChannel($this->resolveChannel($booking));
+        $evento->setHoraLlegadaCanal($booking->arrivalTime);
+        $evento->setFechaReservaCanal($booking->bookingTime);
+        $evento->setFechaModificacionCanal($booking->modifiedTime);
+        $evento->setComentariosHuesped($booking->comments);
+
 
         if ($evento->getEstadoPago() === null) {
             $evento->setEstadoPago($this->resolveEstadoPagoInicial($booking));
@@ -469,7 +514,7 @@ final class Beds24BookingPersister
             ?? throw new RuntimeException('CRÍTICO: Maestro PmsEventoEstadoPago corrupto.');
     }
 
-    private function resolveMap(Beds24Config $cfg, Beds24BookingDto $dto): ?PmsUnidadBeds24Map
+    private function resolveMap(Beds24BookingDto $dto): ?PmsUnidadBeds24Map
     {
         $key = (string) $dto->propertyId . '_' . (string) $dto->roomId;
         if (array_key_exists($key, $this->cacheMaps)) {
@@ -478,7 +523,6 @@ final class Beds24BookingPersister
         }
 
         $map = $this->em->getRepository(PmsUnidadBeds24Map::class)->findOneBy([
-            'config' => $cfg,
             'beds24PropertyId' => (string) $dto->propertyId,
             'beds24RoomId' => (int) $dto->roomId,
         ]);

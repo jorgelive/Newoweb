@@ -22,11 +22,9 @@ class PmsGuiaSeccionHasItemType extends AbstractType
                 'choice_label' => function (PmsGuiaItem $item) {
                     // 1. Asignamos un icono visual según el tipo
                     $icono = match ($item->getTipo()) {
-                        PmsGuiaItem::TIPO_WIFI     => '📶', // WiFi
-                        PmsGuiaItem::TIPO_VIDEO    => '🎥', // Video
-                        PmsGuiaItem::TIPO_MAPA     => '🗺️', // Mapa
-                        PmsGuiaItem::TIPO_ALBUM    => '📸', // Álbum
-                        PmsGuiaItem::TIPO_CONTACTO => '📞', // Contacto
+                        PmsGuiaItem::TIPO_TARJETA  => '📄', // Tarjeta/Texto
+                        PmsGuiaItem::TIPO_ALBUM    => '📸', // Álbum de fotos
+                        PmsGuiaItem::TIPO_AVISO    => '⚠️', // Aviso/Alerta (También puedes usar '📢' o '🔔')
                         default                    => '📄', // Tarjeta/Texto
                     };
 

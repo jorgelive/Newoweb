@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Beds24\Queue;
 
-use App\Pms\Entity\Beds24Endpoint;
+use App\Exchange\Entity\ExchangeEndpoint;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Entity\PmsEstablecimiento;
 use DateTimeImmutable;
@@ -25,9 +25,9 @@ final class Beds24BookingsPullQueueCreator
      */
     public function createForEstablecimiento(
         PmsEstablecimiento $establecimiento,
-        Beds24Endpoint $endpoint,
-        DateTimeInterface $from,
-        DateTimeInterface $to
+        ExchangeEndpoint   $endpoint,
+        DateTimeInterface  $from,
+        DateTimeInterface  $to
     ): ?PmsBookingsPullQueue {
         // 1. Resolución Jerárquica: Le pedimos la config al Establecimiento
         $config = $establecimiento->getBeds24Config();

@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Beds24\Webhook;
 
+use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Service\Context\SyncContext;
 use App\Pms\Dto\Beds24BookingDto;
-use App\Pms\Entity\Beds24Config;
 use App\Pms\Service\Exchange\Persister\Beds24BookingPersister;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;

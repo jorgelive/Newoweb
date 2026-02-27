@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\Controller\Crud;
+namespace App\Exchange\Controller\Crud;
 
+use App\Exchange\Entity\ExchangeEndpoint;
+use App\Exchange\Enum\ConnectivityProvider;
 use App\Panel\Controller\Crud\BaseCrudController;
-use App\Pms\Entity\Beds24Endpoint;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -22,10 +23,10 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * PmsBeds24EndpointCrudController.
- * Gestión de los puntos de acceso técnicos para la API de Beds24.
+ * ExchangeEndpointCrudController.
+ * Gestión de los puntos de acceso técnicos para las APIs externas (Beds24, Gupshup, etc).
  */
-class PmsBeds24EndpointCrudController extends BaseCrudController
+class ExchangeEndpointCrudController extends BaseCrudController
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
@@ -36,7 +37,7 @@ class PmsBeds24EndpointCrudController extends BaseCrudController
 
     public static function getEntityFqcn(): string
     {
-        return Beds24Endpoint::class;
+        return ExchangeEndpoint::class;
     }
 
     public function configureActions(Actions $actions): Actions
@@ -58,15 +59,18 @@ class PmsBeds24EndpointCrudController extends BaseCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Endpoint Beds24')
-            ->setEntityLabelInPlural('Endpoints Beds24')
-            ->setDefaultSort(['accion' => 'ASC'])
+            // ✅ Textos genéricos porque ya no es solo Beds24
+            ->setEntityLabelInSingular('Endpoint de Integración')
+            ->setEntityLabelInPlural('Endpoints de Integración')
+            // ✅ Ahora ordenamos primero por proveedor y luego por acción
+            ->setDefaultSort(['provider' => 'ASC', 'accion' => 'ASC'])
             ->showEntityActionsInlined();
     }
 
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
+            ->add('provider') // ✅ Filtro por nuevo Enum
             ->add('accion')
             ->add('metodo')
             ->add('version')
@@ -84,21 +88,30 @@ class PmsBeds24EndpointCrudController extends BaseCrudController
             ->onlyOnDetail()
             ->formatValue(fn($value) => (string) $value);
 
+        // ✅ NUEVO: Selector de Proveedor (Mapea el Enum para EasyAdmin)
+        yield ChoiceField::new('provider', 'Proveedor')
+            ->setChoices([
+                'Beds24'           => ConnectivityProvider::BEDS24,
+                'WhatsApp Gupshup' => ConnectivityProvider::GUPSHUP,
+            ])
+            ->setRequired(true)
+            ->setHelp('Selecciona la plataforma a la que pertenece este endpoint.');
+
         yield TextField::new('accion', 'Acción Lógica (Slug)')
-            ->setHelp('Código único usado por los Processors. Ej: GET_BOOKINGS')
+            ->setHelp('Código único para este proveedor. Ej: GET_BOOKINGS, SEND_MESSAGE')
             ->setRequired(true);
 
         yield TextField::new('nombre', 'Nombre Descriptivo');
 
         yield TextField::new('endpoint', 'Endpoint / Path')
-            ->setHelp('Ruta de la API. Ej: /bookings o /v2/bookings')
+            ->setHelp('Ruta de la API. Ej: /bookings o /wa/api/v1/msg')
             ->setRequired(true);
 
         yield ChoiceField::new('metodo', 'Método HTTP')
             ->setChoices([
-                'POST' => 'POST',
-                'GET' => 'GET',
-                'PUT' => 'PUT',
+                'POST'   => 'POST',
+                'GET'    => 'GET',
+                'PUT'    => 'PUT',
                 'DELETE' => 'DELETE',
             ])
             ->setRequired(true);
@@ -128,13 +141,13 @@ class PmsBeds24EndpointCrudController extends BaseCrudController
             ->setIcon('fa fa-sitemap')
             ->onlyOnDetail();
 
-        yield CollectionField::new('ratesPushQueues', 'Colas de Tarifas')
+        yield CollectionField::new('ratesPushQueues', 'Colas de Tarifas (Beds24)')
             ->onlyOnDetail();
 
-        yield CollectionField::new('bookingsPushQueues', 'Colas de Reservas (Push)')
+        yield CollectionField::new('bookingsPushQueues', 'Colas de Reservas Push (Beds24)')
             ->onlyOnDetail();
 
-        yield CollectionField::new('bookingsPullQueues', 'Jobs de Pull')
+        yield CollectionField::new('bookingsPullQueues', 'Jobs de Pull (Beds24)')
             ->onlyOnDetail();
 
         // ============================================================

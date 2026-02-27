@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Cron\Job;
 
-use App\Pms\Entity\Beds24Endpoint;
+use App\Exchange\Entity\ExchangeEndpoint;
+use App\Exchange\Enum\ConnectivityProvider;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Service\Beds24\Queue\Beds24BookingsPullQueueCreator;
 use App\Pms\Service\Cron\CronJobInterface;
@@ -39,7 +40,11 @@ final class Beds24BookingsPullCronJob implements CronJobInterface
     public function execute(DateTimeInterface $from, DateTimeInterface $to, SymfonyStyle $io): void
     {
         // 1. Obtener el Endpoint Maestro
-        $endpoint = $this->em->getRepository(Beds24Endpoint::class)->findOneBy(['accion' => 'GET_BOOKINGS']);
+        $endpoint = $this->em->getRepository(ExchangeEndpoint::class)->findOneBy([
+            'provider' => ConnectivityProvider::BEDS24,
+            'accion' => 'GET_BOOKINGS',
+            'activo' => true
+        ]);
 
         if (!$endpoint) {
             $io->error("CRÍTICO: No se encontró el endpoint 'GET_BOOKINGS' en la tabla pms_beds24_endpoint.");

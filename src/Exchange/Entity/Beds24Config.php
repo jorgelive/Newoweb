@@ -2,11 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\Entity;
+namespace App\Exchange\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
+use App\Pms\Entity\PmsBookingsPullQueue;
+use App\Pms\Entity\PmsBookingsPushQueue;
+use App\Pms\Entity\PmsEstablecimiento;
+use App\Pms\Entity\PmsRatesPushQueue;
+use App\Pms\Entity\PmsUnidadBeds24Map;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -19,7 +24,7 @@ use Symfony\Component\Uid\Uuid;
  * Implementa UUID como identificador primario.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'pms_beds24_config')]
+#[ORM\Table(name: 'exchange_beds24_config')]
 #[ORM\HasLifecycleCallbacks]
 class Beds24Config implements ChannelConfigInterface
 {
@@ -57,9 +62,6 @@ class Beds24Config implements ChannelConfigInterface
     #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsEstablecimiento::class, orphanRemoval: true)]
     private Collection $establecimientos;
 
-    #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsUnidadBeds24Map::class, orphanRemoval: true)]
-    private Collection $unidadMaps;
-
     /** @var Collection<int, PmsBookingsPushQueue> */
     #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsBookingsPushQueue::class)]
     private Collection $bookingsPushQueues;
@@ -80,7 +82,6 @@ class Beds24Config implements ChannelConfigInterface
 
     public function __construct()
     {
-        $this->unidadMaps = new ArrayCollection();
         $this->bookingsPullQueues = new ArrayCollection();
         $this->ratesPushQueues = new ArrayCollection();
         $this->establecimientos = new ArrayCollection();
@@ -187,27 +188,6 @@ class Beds24Config implements ChannelConfigInterface
         return $this;
     }
 
-    public function getUnidadMaps(): Collection
-    {
-        return $this->unidadMaps;
-    }
-
-    public function addUnidadMap(PmsUnidadBeds24Map $map): self
-    {
-        if (!$this->unidadMaps->contains($map)) {
-            $this->unidadMaps->add($map);
-            $map->setConfig($this);
-        }
-        return $this;
-    }
-
-    public function removeUnidadMap(PmsUnidadBeds24Map $map): self
-    {
-        if ($this->unidadMaps->removeElement($map)) {
-            if ($map->getConfig() === $this) { $map->setConfig(null); }
-        }
-        return $this;
-    }
 
     /** @return Collection<int, PmsEstablecimiento> */
     public function getEstablecimientos(): Collection
@@ -219,7 +199,7 @@ class Beds24Config implements ChannelConfigInterface
     {
         if (!$this->establecimientos->contains($establecimiento)) {
             $this->establecimientos->add($establecimiento);
-            $establecimiento->setConfig($this);
+            $establecimiento->setBeds24Config($this);
         }
         return $this;
     }
@@ -227,7 +207,7 @@ class Beds24Config implements ChannelConfigInterface
     public function removeEstablecimiento(PmsEstablecimiento $establecimiento): self
     {
         if ($this->establecimientos->removeElement($establecimiento)) {
-            if ($establecimiento->getConfig() === $this) { $establecimiento->setConfig(null); }
+            if ($establecimiento->getBeds24Config() === $this) { $establecimiento->setBeds24Config(null); }
         }
         return $this;
     }

@@ -7,6 +7,10 @@ namespace App\Pms\Entity;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Exchange\Entity\Beds24Config;
+use App\Exchange\Entity\GupshupConfig;
+use App\Exchange\Service\Contract\ChannelConfigInterface;
+use App\Exchange\Service\Contract\ChannelConfigProviderInterface;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -21,7 +25,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_establecimiento')]
 #[ORM\HasLifecycleCallbacks]
-class PmsEstablecimiento
+class PmsEstablecimiento implements ChannelConfigProviderInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -31,10 +35,20 @@ class PmsEstablecimiento
         name: 'beds24_config_id',
         referencedColumnName: 'id',
         nullable: false,
-        onDelete: 'CASCADE'
+        onDelete: 'cascade'
     )]
     #[Assert\NotNull(message: 'Debes seleccionar una configuración de Beds24.')]
     private ?Beds24Config $beds24Config = null;
+
+    #[ORM\ManyToOne(targetEntity: GupshupConfig::class, inversedBy: 'establecimientos')]
+    #[ORM\JoinColumn(
+        name: 'gupshup_config_id',
+        referencedColumnName: 'id',
+        nullable: true,
+        onDelete: 'SET NULL'
+    )]
+    #[Assert\NotNull(message: 'Debes seleccionar una configuración de Gupshup.')]
+    private ?GupshupConfig $gupshupConfig = null;
 
 
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
@@ -110,11 +124,24 @@ class PmsEstablecimiento
         $this->id = Uuid::v7();
     }
 
+    public function getChannelConfig(string $channelType): ?ChannelConfigInterface
+    {
+        return match ($channelType) {
+            'beds24'  => $this->beds24Config,
+            'gupshup' => $this->gupshupConfig,
+            default   => null,
+        };
+    }
+
     // ... Getters y Setters existentes ...
 
 
     public function getBeds24Config(): ?Beds24Config { return $this->beds24Config; }
     public function setBeds24Config(?Beds24Config $beds24Config): self { $this->beds24Config = $beds24Config; return $this; }
+
+
+    public function getGupshupConfig(): ?GupshupConfig { return $this->gupshupConfig; }
+    public function setGupshupConfig(?GupshupConfig $gupshupConfig): self { $this->gupshupConfig = $gupshupConfig; return $this; }
 
     public function getNombreComercial(): ?string { return $this->nombreComercial; }
     public function setNombreComercial(?string $nombreComercial): self { $this->nombreComercial = $nombreComercial; return $this; }

@@ -45,11 +45,6 @@
         {% endif %}
     {% endmacro %}
 
-    {% macro noches(inicio, fin) %}
-        {% set n = (fin|date('U') - inicio|date('U')) // 86400 %}
-        {{ n }}
-    {% endmacro %}
-
     {# LÓGICA PREVIA (columnas condicionales) #}
     {% set hasComision = false %}
     {% set hasMonto = false %}
@@ -80,6 +75,19 @@
                             </div>
                             <div class="fw-bold text-dark" style="font-size:1.02rem; line-height:1.1;">
                                 {{ evento.pmsUnidad|default('Sin Asignar') }}
+                            </div>
+
+                            {# NUEVO: Origen y Referencia Móvil #}
+                            <div class="mt-1 d-flex align-items-center flex-wrap gap-1">
+                                <span class="badge bg-light text-dark border border-secondary-subtle" style="font-size:.70rem;">
+                                    <i class="fas fa-plug text-muted"></i> {{ evento.channel ? evento.channel : 'Directo' }}
+                                </span>
+                                {% if evento.referenciaCanal %}
+                                    <span class="text-muted fw-semibold" style="font-size:.75rem;">#{{ evento.referenciaCanal }}</span>
+                                {% endif %}
+                                {% if evento.horaLlegadaCanal %}
+                                    <span class="text-muted ms-1" style="font-size:.70rem;" title="Hora estimada de llegada"><i class="fas fa-clock"></i> {{ evento.horaLlegadaCanal }}</span>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -160,6 +168,7 @@
             <thead class="table-light text-secondary text-uppercase small">
             <tr>
                 <th class="fw-bold">Unidad</th>
+                <th class="fw-bold">Origen / OTA</th> {# NUEVA COLUMNA #}
                 <th class="fw-bold">Estancia</th>
                 <th class="fw-bold">Estado</th>
                 <th class="fw-bold">Pago</th>
@@ -180,9 +189,28 @@
                     {# Unidad #}
                     <td>
                         <div class="fw-bold text-dark">{{ evento.pmsUnidad|default('Sin Asignar') }}</div>
-                        <div class="text-muted" style="font-size:.82rem;">
-                            {{ evento.descripcion|default('') }}
+                        {% if evento.descripcion %}
+                            <div class="text-muted" style="font-size:.82rem;">
+                                {{ evento.descripcion }}
+                            </div>
+                        {% endif %}
+                    </td>
+
+                    {# NUEVO: Origen / OTA #}
+                    <td>
+                        <div class="fw-semibold text-dark" style="font-size:.90rem;">
+                            <i class="fas fa-plug text-muted me-1"></i> {{ evento.channel ? evento.channel : 'Directo' }}
                         </div>
+                        {% if evento.referenciaCanal %}
+                            <div class="text-muted" style="font-size:.82rem;">
+                                Ref: <span class="fw-semibold text-dark">{{ evento.referenciaCanal }}</span>
+                            </div>
+                        {% endif %}
+                        {% if evento.horaLlegadaCanal %}
+                            <div class="text-muted" style="font-size:.78rem;" title="ETA / Hora de Llegada">
+                                <i class="fas fa-clock"></i> ETA: {{ evento.horaLlegadaCanal }}
+                            </div>
+                        {% endif %}
                     </td>
 
                     {# Estancia #}

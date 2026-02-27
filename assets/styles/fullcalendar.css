@@ -1,26 +1,49 @@
 /* =========================
-   FULLCALENDAR ESTILOS
+   FULLCALENDAR ESTILOS (OPTIMIZADOS)
    ========================= */
 
+/* 1. Definición de Variables Base (Modo Claro) */
+.fc {
+    --mi-fc-bg: var(--fc-page-bg-color, #ffffff);
+    --mi-fc-toolbar-bg: #ffffff;
+    --mi-fc-border: var(--fc-border-color, #e5e7eb);
+    --mi-fc-shadow: var(--c-shadow-soft, rgba(0, 0, 0, 0.05));
+    --mi-fc-text: var(--c-accent, #333333);
+}
 
+/* 2. Sobreescritura para Modo Oscuro (EasyAdmin & Legacy) */
+/* Añade aquí la clase de tu Sonata legacy si usa algo distinto a data-bs-theme */
+body[data-bs-theme="dark"] .fc,
+body.dark-mode .fc {
+    --mi-fc-bg: #1e1e1e;
+    --mi-fc-toolbar-bg: #2b2d30; /* Un gris sutilmente más claro para el toolbar */
+    --mi-fc-border: #494b50;
+    --mi-fc-shadow: rgba(0, 0, 0, 0.4);
+    --mi-fc-text: #ffffff; /* Ajusta el título para modo oscuro */
+}
+
+/* 3. Aplicación general */
+.fc .fc-timeline {
+    background-color: var(--mi-fc-bg);
+}
+
+/* 4. Toolbars (Propiedades compartidas) */
+.fc .fc-header-toolbar,
+.fc .fc-footer-toolbar {
+    background-color: var(--mi-fc-toolbar-bg);
+}
+
+/* Header Específico */
 .fc .fc-header-toolbar {
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 12px 0 6px;
-    background: var(--fc-page-bg-color, #fff);
-    border-bottom: 1px solid var(--fc-border-color);
-    box-shadow: 0 2px 4px var(--c-shadow-soft);
+    border-bottom: 1px solid var(--mi-fc-border);
+    box-shadow: 0 2px 4px var(--mi-fc-shadow);
 }
 
-.fc .fc-toolbar-title {
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: var(--c-accent);
-    letter-spacing: 0.5px;
-    margin: 0;
-}
-
+/* Footer Específico */
 .fc .fc-footer-toolbar {
     display: flex;
     align-items: center;
@@ -28,9 +51,17 @@
     flex-wrap: wrap;
     gap: 10px;
     padding: 10px 14px;
-    background: var(--fc-page-bg-color, #fff);
-    border-top: 1px solid var(--fc-border-color);
-    box-shadow: 0 -2px 4px var(--c-shadow-soft);
+    border-top: 1px solid var(--mi-fc-border);
+    box-shadow: 0 -2px 4px var(--mi-fc-shadow);
+}
+
+/* 5. Textos e Interfaz */
+.fc .fc-toolbar-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--mi-fc-text);
+    letter-spacing: 0.5px;
+    margin: 0;
 }
 
 .fc .fc-footer-toolbar .fc-toolbar-chunk {

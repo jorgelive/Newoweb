@@ -6,6 +6,8 @@ namespace App\Message\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Exchange\Entity\ExchangeEndpoint;
+use App\Exchange\Entity\GupshupConfig;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Message\Contract\MessageQueueItemInterface;
@@ -52,9 +54,9 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
     private ?GupshupConfig $config = null;
 
-    #[ORM\ManyToOne(targetEntity: GupshupEndpoint::class, inversedBy: 'whatsappGupshupSendQueues')]
+    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class, inversedBy: 'whatsappGupshupSendQueues')]
     #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
-    private ?GupshupEndpoint $endpoint = null;
+    private ?ExchangeEndpoint $endpoint = null;
 
     // =========================================================================
     // SNAPSHOTS & DATOS TÉCNICOS
@@ -208,10 +210,10 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
 
     public function setEndpoint(?EndpointInterface $endpoint): self
     {
-        if ($endpoint !== null && !$endpoint instanceof GupshupEndpoint) {
+        if ($endpoint !== null && !$endpoint instanceof ExchangeEndpoint) {
             throw new InvalidArgumentException(sprintf(
                 'Endpoint inválido. Se esperaba %s, se recibió %s',
-                GupshupEndpoint::class,
+                ExchangeEndpoint::class,
                 get_class($endpoint)
             ));
         }

@@ -136,7 +136,8 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
             ->renderCollapsed();
 
         yield AssociationField::new('beds24Config', 'Configuración Beds24')
-            ->setRequired(true);
+            ->setRequired(true)
+            ->setFormTypeOption('attr', ['required' => true]);
 
         yield TimeField::new('horaCheckIn', 'Check-in')
             ->setColumns(4);

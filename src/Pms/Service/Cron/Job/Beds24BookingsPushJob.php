@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Cron\Job;
 
-use App\Pms\Entity\Beds24Endpoint;
+use App\Exchange\Entity\ExchangeEndpoint;
+use App\Exchange\Enum\ConnectivityProvider;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Service\Beds24\Queue\Beds24BookingsPushQueueCreator;
@@ -47,7 +48,8 @@ class Beds24BookingsPushJob implements CronJobInterface
 
     public function execute(DateTimeImmutable $from, DateTimeImmutable $to, SymfonyStyle $io): void
     {
-        $postEndpoint = $this->em->getRepository(Beds24Endpoint::class)->findOneBy([
+        $postEndpoint = $this->em->getRepository(ExchangeEndpoint::class)->findOneBy([
+            'provider' => ConnectivityProvider::BEDS24,
             'accion' => 'POST_BOOKINGS',
             'activo' => true
         ]);
@@ -123,7 +125,7 @@ class Beds24BookingsPushJob implements CronJobInterface
                 $this->em->clear();
 
                 // Recuperar el endpoint tras el clear()
-                $postEndpoint = $this->em->getRepository(Beds24Endpoint::class)->find($endpointId);
+                $postEndpoint = $this->em->getRepository(ExchangeEndpoint::class)->find($endpointId);
 
                 if ($io->isVerbose()) {
                     $io->write('.');

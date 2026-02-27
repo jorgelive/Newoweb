@@ -139,7 +139,7 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             return sprintf('Evento (%s)', $evento->getEstado()?->getNombre() ?? 'Sin Estado');
         }
 
-        $channel = strtoupper((string)($reserva?->getChannel()?->getId()[0] ?? 'X'));
+        $channel = strtoupper((string)($evento?->getChannel()?->getId()[0] ?? 'X'));
         $pax = $evento->getCantidadAdultos() + $evento->getCantidadNinos();
 
         return sprintf('%s x%d | %s | %s', $channel, $pax, $cliente, (string)$evento->getPmsUnidad());
@@ -153,8 +153,8 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             'Pago: ' . ($evento->getEstadoPago()?->getNombre() ?? '-')
         ];
 
-        if ($reserva?->getReferenciaCanal()) {
-            $lines[] = 'Ref: ' . $reserva->getReferenciaCanal();
+        if ($evento?->getReferenciaCanal()) {
+            $lines[] = 'Ref: ' . $evento->getReferenciaCanal();
         }
 
         return $lines;

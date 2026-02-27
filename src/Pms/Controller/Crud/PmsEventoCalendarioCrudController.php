@@ -14,6 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
@@ -49,10 +50,11 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
     /**
      * ✅ CREACIÓN: Prepara la entidad inicial.
      * Detecta si venimos con el flag `?es_bloqueo=1` para pre-configurar estados.
+     * Nota: El Canal Directo ya viene pre-asignado desde el Factory.
      */
     public function createEntity(string $entityFqcn): PmsEventoCalendario
     {
-        // 1. Instancia base desde Factory
+        // 1. Instancia base desde Factory (Ya trae el Canal Directo por defecto)
         $entity = $this->eventoFactory->createForUi();
 
         // 2. Detección de contexto "Bloqueo"
@@ -149,8 +151,20 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ->setPermission(Action::DELETE, Roles::RESERVAS_DELETE);
     }
 
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            ->add('referenciaCanal');
+    }
+
     public function configureFields(string $pageName): iterable
     {
+        $entity = null;
+        if ($pageName === Crud::PAGE_DETAIL) {
+            $context = $this->getContext();
+            $entity = $context?->getEntity()->getInstance();
+        }
+
         // Resolución de contexto para UI dinámica
         [$isNewOrEdit, $isBloqueo, $isOta] = $this->resolveContext($pageName);
 
@@ -176,7 +190,6 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
                 ->formatValue(fn($v) => $v ? sprintf('<span class="badge badge-secondary">%s</span>', $v) : '');
         }
 
-
         // 2. Estado Sincronización (Badge visual)
         yield $this->buildSyncStatusBadgeField()->hideOnForm();
 
@@ -188,6 +201,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             yield $f['reserva'];
         }
         yield $f['pmsUnidad'];
+        yield $f['channel'];
         yield $f['estado'];
         yield $f['estadoPago'];
 
@@ -202,10 +216,21 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         yield $f['comision']->setCurrency('USD')->setStoredAsCents(false)->setColumns(6);
 
         // 5. Integración (Solo lectura)
-        yield FormField::addPanel('Integración Beds24')->setIcon('fa fa-sync')->renderCollapsed();
+        yield FormField::addPanel('Integración de Canal (OTA)')->setIcon('fa fa-sync')->renderCollapsed();
         yield $f['isOta']->setDisabled(true);
+        $refCanal = $entity?->getReferenciaCanal();
+
+        if ($pageName === Crud::PAGE_EDIT || $pageName === Crud::PAGE_NEW || !empty($refCanal)) {
+            yield $f['referenciaCanal'];
+        }
+
+        // Nuevos campos de tiempo del canal
+        yield $f['horaLlegadaCanal']->hideOnIndex();
+        yield $f['fechaReservaCanal']->hideOnIndex();
+        yield $f['fechaModificacionCanal']->hideOnIndex();
+
         yield TextField::new('estadoBeds24', 'Estado en Beds24')->setDisabled(true);
-        yield AssociationField::new('beds24Links', 'Vínculos Técnicos')->setDisabled(true);
+        yield AssociationField::new('beds24Links', 'Vínculos Técnicos')->setDisabled(true)->onlyOnDetail();
 
         // 6. Auditoría
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
@@ -254,7 +279,10 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             'pmsUnidad' => AssociationField::new('pmsUnidad', 'Unidad')
                 ->setRequired(true)
                 ->setFormTypeOptions($tomSelectNoClear),
-
+            'channel' => AssociationField::new('channel', 'Canal')
+                ->setColumns(6)
+                ->setFormTypeOption('disabled', true)
+                ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.orden', 'ASC')),
             'estado' => AssociationField::new('estado', 'Estado')
                 ->setRequired(true)
                 ->setFormTypeOptions(array_merge(
@@ -299,6 +327,12 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             'comision' => MoneyField::new('comision', 'Comisión Canal'),
 
             'isOta' => BooleanField::new('isOta', 'Origen OTA'),
+
+            // Campos del canal
+            'referenciaCanal' => TextField::new('referenciaCanal', 'Ref. OTA')->setFormTypeOption('disabled', true),
+            'horaLlegadaCanal' => TextField::new('horaLlegadaCanal', 'Hora Llegada OTA')->setFormTypeOption('disabled', true),
+            'fechaReservaCanal' => DateTimeField::new('fechaReservaCanal', 'Fecha Reserva OTA')->setFormTypeOption('disabled', true),
+            'fechaModificacionCanal' => DateTimeField::new('fechaModificacionCanal', 'Fecha Modif. OTA')->setFormTypeOption('disabled', true),
         ];
     }
 

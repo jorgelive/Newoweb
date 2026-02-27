@@ -6,12 +6,12 @@ namespace App\Message\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Exchange\Entity\Beds24Config;
+use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Repository\Beds24SendQueueRepository;
-use App\Pms\Entity\Beds24Config;
-use App\Pms\Entity\Beds24Endpoint;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
@@ -44,9 +44,9 @@ class Beds24SendQueue implements MessageQueueItemInterface
     #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
     private ?Beds24Config $config = null;
 
-    #[ORM\ManyToOne(targetEntity: Beds24Endpoint::class)]
+    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class)]
     #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
-    private ?Beds24Endpoint $endpoint = null;
+    private ?ExchangeEndpoint $endpoint = null;
 
     // --- WORKER FIELDS ---
 
@@ -172,10 +172,10 @@ class Beds24SendQueue implements MessageQueueItemInterface
 
     public function setEndpoint(?EndpointInterface $endpoint): self
     {
-        if ($endpoint !== null && !$endpoint instanceof Beds24Endpoint) {
+        if ($endpoint !== null && !$endpoint instanceof ExchangeEndpoint) {
             throw new InvalidArgumentException(sprintf(
                 'Endpoint inválido. Se esperaba %s, se recibió %s',
-                Beds24Endpoint::class,
+                ExchangeEndpoint::class,
                 get_class($endpoint)
             ));
         }

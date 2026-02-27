@@ -33,7 +33,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             }
 
             // Usamos el contenido traducido si existe, si no el original
-            $text = $msg->getContentTranslated() ?? $msg->getContentOriginal();
+            $text = $msg->getContentExternal() ?? $msg->getContentExternal();
 
             // Construimos el payload específico para Beds24 Messages
             // Nota: Esto depende de la especificación exacta de tu Endpoint en BD.

@@ -20,7 +20,7 @@ class MessageFactory
     ): Message {
         $message = new Message();
         $message->setConversation($conversation);
-        $message->setContentOriginal($content);
+        $message->setContentExternal($content);
         $message->setDirection(Message::DIRECTION_OUTGOING);
         $message->setStatus(Message::STATUS_PENDING);
         $message->setTransientChannels($targetChannels);
@@ -37,7 +37,7 @@ class MessageFactory
     {
         $message = new Message();
         $message->setConversation($incomingMessage->getConversation());
-        $message->setContentOriginal($content);
+        $message->setContentExternal($content);
         $message->setDirection(Message::DIRECTION_OUTGOING);
         $message->setStatus(Message::STATUS_PENDING);
 

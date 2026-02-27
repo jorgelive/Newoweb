@@ -122,7 +122,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
                 success: $success,
                 message: $errorMsg,
                 remoteId: $remoteId ? (string)$remoteId : null,
-                extraData: (array)$respData // Guardamos todo para la auditoría RAW del Handler
+                extraData: (array)$respData // Guardamos para la auditoría RAW del Handler
             );
         }
 
@@ -167,7 +167,12 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
 
         // 3. Datos del Huésped vs Sintéticos (Bloqueos)
         if ($reserva instanceof PmsReserva) {
-            $this->mapGuestData($payload, $reserva, $isMirror);
+            $this->mapGuestData(
+                payload: $payload,
+                reserva: $reserva,
+                evento: $evento,
+                isMirror: $isMirror
+            );
 
             // Si NO es espejo, enviamos datos financieros y Master ID
             if (!$isMirror) {
@@ -188,7 +193,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         return $payload;
     }
 
-    private function mapGuestData(array &$payload, PmsReserva $reserva, bool $isMirror): void
+    private function mapGuestData(array &$payload, PmsReserva $reserva, PmsEventoCalendario $evento, bool $isMirror): void
     {
         $this->setIf($payload, 'firstName', $reserva->getNombreCliente());
         $this->setIf($payload, 'lastName',  $reserva->getApellidoCliente());
@@ -196,14 +201,14 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         $this->setIf($payload, 'phone',     $reserva->getTelefono());
         $this->setIf($payload, 'mobile',    $reserva->getTelefono2());
         $this->setIf($payload, 'notes',     $reserva->getNota());
-        $this->setIf($payload, 'comments',  $reserva->getComentariosHuesped());
+        $this->setIf($payload, 'comments',  $evento->getComentariosHuesped());
         $this->setIf($payload, 'lang',      $reserva->getIdioma()?->getId());
         $this->setIf($payload, 'country2',  $reserva->getPais()?->getId());
 
         // Referencias de Canal (Solo si no es espejo, para no confundir al Channel Manager)
         if (!$isMirror) {
-            $this->setIf($payload, 'apiReference', $reserva->getReferenciaCanal());
-            $this->setIf($payload, 'channel', $reserva->getChannel()?->getBeds24ChannelId());
+            $this->setIf($payload, 'apiReference', $evento->getReferenciaCanal());
+            $this->setIf($payload, 'channel', $evento->getChannel()?->getBeds24ChannelId());
         }
     }
 

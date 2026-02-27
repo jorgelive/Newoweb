@@ -3,6 +3,7 @@
 namespace App\Pms\Entity;
 
 use App\Entity\Trait\TimestampTrait;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -30,6 +31,10 @@ class PmsChannel
     #[ORM\Id]
     #[ORM\Column(type: 'string', length: 50)]
     private ?string $id = null;
+
+    #[ORM\OneToMany(mappedBy: 'chanel', targetEntity: PmsEventoCalendario::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Assert\Valid]
+    private Collection $eventosCalendario;
 
     #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombre = null;
@@ -77,6 +82,23 @@ class PmsChannel
     public function setId(string $id): self
     {
         $this->id = $id;
+        return $this;
+    }
+
+    public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
+
+    public function addEventosCalendario(PmsEventoCalendario $evento): self {
+        if (!$this->eventosCalendario->contains($evento)) {
+            $this->eventosCalendario->add($evento);
+            $evento->setChannel($this);
+        }
+        return $this;
+    }
+
+    public function removeEventosCalendario(PmsEventoCalendario $evento): self {
+        if ($this->eventosCalendario->removeElement($evento)) {
+            if ($evento->getChannel() === $this) $evento->setChannel(null);
+        }
         return $this;
     }
 

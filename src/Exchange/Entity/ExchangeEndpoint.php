@@ -2,44 +2,56 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\Entity;
+namespace App\Exchange\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Exchange\Enum\ConnectivityProvider;
+use App\Exchange\Repository\ExchangeEndpointRepository;
+use App\Exchange\Service\Contract\EndpointInterface;
+use App\Pms\Entity\PmsBookingsPullQueue;
+use App\Pms\Entity\PmsBookingsPushQueue;
+use App\Pms\Entity\PmsRatesPushQueue;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use App\Exchange\Service\Contract\EndpointInterface;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Entidad Beds24Endpoint.
- * Define los puntos de acceso técnicos para la API de Beds24 (v1 y v2).
- * * CRÍTICO: Se mantienen los nombres 'endpoint' y 'metodo' para compatibilidad
- * con la lógica de los Services de sincronización.
+ * Entidad ExchangeEndpoint.
+ * Define los puntos de acceso técnicos para las APIs externas.
  */
-#[ORM\Entity]
-#[ORM\Table(name: 'pms_beds24_endpoint')]
+#[ORM\Entity(repositoryClass: ExchangeEndpointRepository::class)]
+#[ORM\Table(name: 'exchange_exchange_endpoint')]
+// ✅ NUEVO: La combinación de proveedor + acción debe ser única
+#[ORM\UniqueConstraint(name: 'uq_provider_accion', columns: ['provider', 'accion'])]
 #[ORM\HasLifecycleCallbacks]
-class Beds24Endpoint implements EndpointInterface
+class ExchangeEndpoint implements EndpointInterface
 {
     use IdTrait;
     use TimestampTrait;
 
+    // ✅ NUEVO: El proveedor de conectividad basado en Enum
+    #[ORM\Column(type: 'string', length: 50, enumType: ConnectivityProvider::class)]
+    private ?ConnectivityProvider $provider = null;
+
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
 
-    /** Slug técnico único (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
-    #[ORM\Column(type: 'string', length: 50, unique: true)]
+    /** Slug técnico (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
+    // ✅ CORRECCIÓN: Quitamos el "unique: true" de aquí, ahora la unicidad es compuesta
+    #[ORM\Column(type: 'string', length: 50)]
     private ?string $accion = null;
 
-    /** * Ruta de la API o URL completa.
+    /**
+     * Ruta de la API o URL completa.
      * Mantenido como 'endpoint' para no romper Processors.
      */
     #[ORM\Column(type: 'string', length: 255)]
     private ?string $endpoint = null;
 
-    /** * Verbo HTTP (GET, POST, PUT, DELETE).
+    /**
+     * Verbo HTTP (GET, POST, PUT, DELETE).
      * Mantenido como 'metodo' para no romper Processors.
      */
     #[ORM\Column(type: 'string', length: 10)]
@@ -78,13 +90,25 @@ class Beds24Endpoint implements EndpointInterface
 
     public function __toString(): string
     {
-        return sprintf('%s [%s]', $this->nombre, $this->accion);
+        $providerName = $this->provider ? $this->provider->getLabel() : 'Sin Proveedor';
+        return sprintf('%s [%s - %s]', $this->nombre, $providerName, $this->accion);
     }
 
     /* * -------------------------------------------------------------------------
      * GETTERS Y SETTERS EXPLÍCITOS
      * -------------------------------------------------------------------------
      */
+
+    public function getProvider(): ?ConnectivityProvider
+    {
+        return $this->provider;
+    }
+
+    public function setProvider(?ConnectivityProvider $provider): self
+    {
+        $this->provider = $provider;
+        return $this;
+    }
 
     public function getNombre(): ?string
     {

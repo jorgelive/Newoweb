@@ -3,16 +3,17 @@ declare(strict_types=1);
 
 namespace App\Pms\Factory;
 
+use App\Exchange\Entity\ExchangeEndpoint;
+use App\Exchange\Enum\ConnectivityProvider;
+use App\Exchange\Repository\ExchangeEndpointRepository;
 use App\Pms\Entity\PmsBookingsPullQueue;
-use App\Pms\Entity\Beds24Endpoint;
-use App\Pms\Repository\PmsBeds24EndpointRepository;
 
 class PmsBookingsPullQueueFactory
 {
-    private ?Beds24Endpoint $endpointGetBookings = null;
+    private ?ExchangeEndpoint $endpointGetBookings = null;
 
     public function __construct(
-        private readonly PmsBeds24EndpointRepository $endpointRepository
+        private readonly ExchangeEndpointRepository $endpointRepository
     ) {}
 
     public function create(): PmsBookingsPullQueue
@@ -29,12 +30,16 @@ class PmsBookingsPullQueueFactory
         return $job;
     }
 
-    private function getGetBookingsEndpoint(): ?Beds24Endpoint
+    private function getGetBookingsEndpoint(): ?ExchangeEndpoint
     {
         if ($this->endpointGetBookings === null) {
             // Usamos el nuevo método del repositorio PMS
             $this->endpointGetBookings = $this->endpointRepository
-                ->findActiveByAccion('GET_BOOKINGS');
+                ->findOneBy([
+                    'provider' => ConnectivityProvider::BEDS24,
+                    'accion' => 'GET_BOOKINGS',
+                    'activo' => true
+                ]);
         }
 
         return $this->endpointGetBookings;

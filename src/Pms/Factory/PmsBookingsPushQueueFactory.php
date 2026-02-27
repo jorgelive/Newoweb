@@ -5,8 +5,8 @@ declare(strict_types=1);
 
 namespace App\Pms\Factory;
 
-use App\Pms\Entity\Beds24Config;
-use App\Pms\Entity\Beds24Endpoint;
+use App\Exchange\Entity\Beds24Config;
+use App\Exchange\Entity\ExchangeEndpoint;
 use App\Pms\Entity\PmsBookingsPushQueue;
 
 /**
@@ -15,7 +15,7 @@ use App\Pms\Entity\PmsBookingsPushQueue;
  */
 final class PmsBookingsPushQueueFactory
 {
-    public function create(Beds24Config $config, Beds24Endpoint $endpoint): PmsBookingsPushQueue
+    public function create(Beds24Config $config, ExchangeEndpoint $endpoint): PmsBookingsPushQueue
     {
         // 1. Instanciación
         // El constructor de la entidad PmsBookingsPushQueue se encarga de:

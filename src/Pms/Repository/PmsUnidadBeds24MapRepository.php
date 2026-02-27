@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Repository;
 
-use App\Pms\Entity\Beds24Config;
+use App\Exchange\Entity\Beds24Config;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Entity\PmsUnidadBeds24Map;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;

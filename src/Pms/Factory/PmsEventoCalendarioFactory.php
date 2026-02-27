@@ -3,12 +3,14 @@ declare(strict_types=1);
 
 namespace App\Pms\Factory;
 
+use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Entity\PmsUnidadBeds24Map;
 use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * PmsEventoCalendarioFactory.
@@ -24,6 +26,10 @@ use DateTimeImmutable;
  */
 class PmsEventoCalendarioFactory
 {
+
+    public function __construct(
+        private readonly EntityManagerInterface $em
+    ) {}
     /**
      * Calcula la fecha exacta aplicando las horas de check-in/out del establecimiento.
      */
@@ -59,6 +65,11 @@ class PmsEventoCalendarioFactory
         $evento->setMonto('0.00');
         $evento->setComision('0.00');
         $evento->setIsOta(false);
+
+        $canalDirecto = $this->em->getReference(PmsChannel::class, PmsChannel::CODIGO_DIRECTO);
+        if ($canalDirecto) {
+            $evento->setChannel($canalDirecto);
+        }
 
         return $evento;
     }
