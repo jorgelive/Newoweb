@@ -28,13 +28,15 @@ class Beds24SendQueue implements MessageQueueItemInterface
     use IdTrait;
     use TimestampTrait;
 
-    public const string STATUS_PENDING    = 'pending';
+    public const string STATUS_PENDING = 'pending';
     public const string STATUS_PROCESSING = 'processing';
-    public const string STATUS_SUCCESS    = 'success';
-    public const string STATUS_FAILED     = 'failed';
-    public const string STATUS_CANCELLED  = 'cancelled';
+    public const string STATUS_SUCCESS = 'success';
+    public const string STATUS_FAILED = 'failed';
+    public const string STATUS_CANCELLED = 'cancelled';
 
-    // --- RELACIONES ---
+    // =========================================================================
+    // RELACIONES
+    // =========================================================================
 
     #[ORM\ManyToOne(targetEntity: Message::class, inversedBy: 'beds24Queues')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -48,7 +50,16 @@ class Beds24SendQueue implements MessageQueueItemInterface
     #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
     private ?ExchangeEndpoint $endpoint = null;
 
-    // --- WORKER FIELDS ---
+    // =========================================================================
+    // DATOS DEL MENSAJE (SNAPSHOT INICIAL)
+    // =========================================================================
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $targetBookId = null;
+
+    // =========================================================================
+    // CAMPOS DE WORKER (Infraestructura)
+    // =========================================================================
 
     #[ORM\Column(length: 20, options: ['default' => self::STATUS_PENDING])]
     private string $status = self::STATUS_PENDING;
@@ -71,7 +82,9 @@ class Beds24SendQueue implements MessageQueueItemInterface
     #[ORM\Column(type: 'smallint', options: ['default' => 3])]
     private int $maxAttempts = 3;
 
-    // --- AUDITORÍA RAW ---
+    // =========================================================================
+    // AUDITORÍA RAW
+    // =========================================================================
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $lastRequestRaw = null;
@@ -127,13 +140,11 @@ class Beds24SendQueue implements MessageQueueItemInterface
     // GETTERS Y SETTERS TRADICIONALES
     // =========================================================================
 
-    // --- ID (Requerido por la interfaz) ---
     public function getId(): UuidV7
     {
         return $this->id;
     }
 
-    // --- Message ---
     public function getMessage(): ?Message
     {
         return $this->message;
@@ -145,7 +156,17 @@ class Beds24SendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- Config (Polimórfico) ---
+    public function getTargetBookId(): ?string
+    {
+        return $this->targetBookId;
+    }
+
+    public function setTargetBookId(?string $targetBookId): self
+    {
+        $this->targetBookId = $targetBookId;
+        return $this;
+    }
+
     public function getConfig(): ?ChannelConfigInterface
     {
         return $this->config;
@@ -154,17 +175,12 @@ class Beds24SendQueue implements MessageQueueItemInterface
     public function setConfig(?ChannelConfigInterface $config): self
     {
         if ($config !== null && !$config instanceof Beds24Config) {
-            throw new InvalidArgumentException(sprintf(
-                'Configuración inválida. Se esperaba %s, se recibió %s',
-                Beds24Config::class,
-                get_class($config)
-            ));
+            throw new InvalidArgumentException(sprintf('Configuración inválida. Se esperaba %s', Beds24Config::class));
         }
         $this->config = $config;
         return $this;
     }
 
-    // --- Endpoint ---
     public function getEndpoint(): ?EndpointInterface
     {
         return $this->endpoint;
@@ -173,17 +189,12 @@ class Beds24SendQueue implements MessageQueueItemInterface
     public function setEndpoint(?EndpointInterface $endpoint): self
     {
         if ($endpoint !== null && !$endpoint instanceof ExchangeEndpoint) {
-            throw new InvalidArgumentException(sprintf(
-                'Endpoint inválido. Se esperaba %s, se recibió %s',
-                ExchangeEndpoint::class,
-                get_class($endpoint)
-            ));
+            throw new InvalidArgumentException(sprintf('Endpoint inválido. Se esperaba %s', ExchangeEndpoint::class));
         }
         $this->endpoint = $endpoint;
         return $this;
     }
 
-    // --- Status ---
     public function getStatus(): string
     {
         return $this->status;
@@ -195,7 +206,6 @@ class Beds24SendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- RunAt ---
     public function getRunAt(): ?DateTimeImmutable
     {
         return $this->runAt;
@@ -203,15 +213,10 @@ class Beds24SendQueue implements MessageQueueItemInterface
 
     public function setRunAt(?DateTimeInterface $at): self
     {
-        if ($at instanceof DateTimeInterface) {
-            $this->runAt = DateTimeImmutable::createFromInterface($at);
-        } else {
-            $this->runAt = null;
-        }
+        $this->runAt = $at instanceof DateTimeInterface ? DateTimeImmutable::createFromInterface($at) : null;
         return $this;
     }
 
-    // --- LockedAt ---
     public function getLockedAt(): ?DateTimeInterface
     {
         return $this->lockedAt;
@@ -223,7 +228,6 @@ class Beds24SendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- LockedBy ---
     public function getLockedBy(): ?string
     {
         return $this->lockedBy;
@@ -235,7 +239,6 @@ class Beds24SendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- FailedReason ---
     public function getFailedReason(): ?string
     {
         return $this->failedReason;
@@ -247,7 +250,6 @@ class Beds24SendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- RetryCount ---
     public function getRetryCount(): int
     {
         return $this->retryCount;
@@ -259,7 +261,6 @@ class Beds24SendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- MaxAttempts ---
     public function getMaxAttempts(): int
     {
         return $this->maxAttempts;
@@ -271,7 +272,6 @@ class Beds24SendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- LastRequestRaw ---
     public function getLastRequestRaw(): ?string
     {
         return $this->lastRequestRaw;
@@ -283,7 +283,6 @@ class Beds24SendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- LastResponseRaw ---
     public function getLastResponseRaw(): ?string
     {
         return $this->lastResponseRaw;
@@ -295,7 +294,6 @@ class Beds24SendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- ExecutionResult ---
     public function getExecutionResult(): ?array
     {
         return $this->executionResult;
@@ -307,7 +305,6 @@ class Beds24SendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- LastHttpCode ---
     public function getLastHttpCode(): ?int
     {
         return $this->lastHttpCode;

@@ -6,6 +6,7 @@ namespace App\Message\Controller\Crud;
 
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
+use App\Message\Factory\MessageFactory;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,9 +26,10 @@ use Symfony\Component\HttpFoundation\RequestStack;
 class MessageCrudController extends BaseCrudController
 {
     public function __construct(
+        private readonly MessageFactory $messageFactory,
+        private readonly EntityManagerInterface $entityManager,
         protected AdminUrlGenerator $adminUrlGenerator,
-        protected RequestStack $requestStack,
-        private readonly EntityManagerInterface $em
+        protected RequestStack $requestStack
     ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
@@ -37,29 +39,19 @@ class MessageCrudController extends BaseCrudController
         return Message::class;
     }
 
-    /**
-     * 🔥 MAGIA EA: Pre-completar datos si venimos del botón "Responder"
-     */
     public function createEntity(string $entityFqcn)
     {
-        $message = new Message();
-        $message->setDirection(Message::DIRECTION_OUTGOING);
-        $message->setStatus(Message::STATUS_PENDING);
-
         $request = $this->requestStack->getCurrentRequest();
         $replyToId = $request->query->get('reply_to');
 
         if ($replyToId) {
-            $incoming = $this->em->getRepository(Message::class)->find($replyToId);
+            $incoming = $this->entityManager->getRepository(Message::class)->find($replyToId);
             if ($incoming) {
-                $message->setConversation($incoming->getConversation());
-                if ($incoming->getChannel()) {
-                    $message->setTransientChannels([(string) $incoming->getChannel()->getId()]);
-                }
+                return $this->messageFactory->createForUiReply($incoming);
             }
         }
 
-        return $message;
+        return $this->messageFactory->createForUiNew();
     }
 
     public function configureActions(Actions $actions): Actions
@@ -68,20 +60,14 @@ class MessageCrudController extends BaseCrudController
             ->displayIf(fn(Message $m) => $m->getDirection() === Message::DIRECTION_INCOMING)
             ->linkToUrl(function (Message $entity) {
                 return $this->adminUrlGenerator
-                    ->setController(self::class)
-                    ->setAction(Action::NEW)
-                    ->set('reply_to', $entity->getId())
-                    ->generateUrl();
+                    ->setController(self::class)->setAction(Action::NEW)->set('reply_to', $entity->getId())->generateUrl();
             });
 
         return parent::configureActions($actions)
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->add(Crud::PAGE_INDEX, $replyAction)
-            ->add(Crud::PAGE_DETAIL, $replyAction)
-            ->setPermission(Action::INDEX, Roles::MENSAJES_SHOW)
-            ->setPermission(Action::DETAIL, Roles::MENSAJES_SHOW)
-            ->setPermission(Action::NEW, Roles::MENSAJES_WRITE)
-            ->setPermission(Action::EDIT, Roles::MENSAJES_WRITE)
+            ->add(Crud::PAGE_INDEX, $replyAction)->add(Crud::PAGE_DETAIL, $replyAction)
+            ->setPermission(Action::INDEX, Roles::MENSAJES_SHOW)->setPermission(Action::DETAIL, Roles::MENSAJES_SHOW)
+            ->setPermission(Action::NEW, Roles::MENSAJES_WRITE)->setPermission(Action::EDIT, Roles::MENSAJES_WRITE)
             ->setPermission(Action::DELETE, Roles::MENSAJES_DELETE);
     }
 
@@ -90,7 +76,6 @@ class MessageCrudController extends BaseCrudController
         return $crud
             ->setEntityLabelInSingular('Mensaje')
             ->setEntityLabelInPlural('Historial de Mensajes')
-            // 🔥 Actualizado con la nueva semántica
             ->setSearchFields(['contentLocal', 'contentExternal', 'subjectLocal', 'subjectExternal'])
             ->setDefaultSort(['createdAt' => 'DESC'])
             ->showEntityActionsInlined();
@@ -99,86 +84,79 @@ class MessageCrudController extends BaseCrudController
     public function configureFields(string $pageName): iterable
     {
         $isEdit = $pageName === Crud::PAGE_EDIT;
+        $message = $this->getContext()?->getEntity()->getInstance();
+
+        $allChannels = $this->entityManager->getRepository(MessageChannel::class)->findAll();
+        $channelChoices = [];
+        $activeChannelIds = [];
+
+        foreach ($allChannels as $ch) {
+            $idStr = (string) $ch->getId();
+            $channelChoices[$ch->getName()] = $idStr;
+            if ($ch->isActive()) {
+                $activeChannelIds[] = $idStr; // Guardamos los activos para usarlos como default
+            }
+        }
+
+        // 🔥 RECONSTRUCCIÓN DEL HISTORIAL (Para cuando se abre el CRUD suelto)
+        if ($message instanceof Message && $message->getId() !== null) {
+            $usedChannelIds = [];
+            foreach ($allChannels as $ch) {
+                $name = strtolower($ch->getName());
+                if (str_contains($name, 'beds24') && !$message->getBeds24Queues()->isEmpty()) {
+                    $usedChannelIds[] = (string) $ch->getId();
+                }
+                if (str_contains($name, 'whatsapp') && !$message->getWhatsappGupshupQueues()->isEmpty()) {
+                    $usedChannelIds[] = (string) $ch->getId();
+                }
+            }
+            $message->setTransientChannels($usedChannelIds);
+        }
 
         yield IdField::new('id')->hideOnForm();
-
-        // ---------------------------------------------------------------------
-        // PANEL: MENSAJE LOCAL (El idioma del recepcionista)
-        // ---------------------------------------------------------------------
         yield FormField::addPanel('Nuevo Mensaje')->setIcon('fa fa-paper-plane');
 
-        if (!method_exists($this, 'isEmbedded') || !$this->isEmbedded()) {
+        if ($this->isEmbedded()) {
+            yield AssociationField::new('conversation')
+                ->setFormTypeOption('row_attr', ['class' => 'd-none'])->setLabel(false);
+        } else {
             yield AssociationField::new('conversation', 'Conversación / Huésped')
-                ->setRequired(true)
-                ->hideOnIndex();
+                ->setRequired(true)->hideOnIndex();
         }
 
-        $channels = $this->em->getRepository(MessageChannel::class)->findAll();
-        $channelChoices = [];
-        foreach ($channels as $ch) {
-            $channelChoices[$ch->getName()] = (string) $ch->getId();
-        }
-
-        yield ChoiceField::new('transientChannels', 'Canales de Envío')
+        // 🔥 DOBLE CERROJO: Creamos el campo...
+        $channelField = ChoiceField::new('transientChannels', 'Canales de Envío')
             ->setChoices($channelChoices)
             ->allowMultipleChoices()
             ->renderExpanded()
-            ->setHelp('Selecciona por dónde quieres enviar este mensaje. Si usas una plantilla, esta selección será ignorada.')
+            ->setHelp('Selecciona por dónde quieres enviar. Si usas una plantilla, esto será ignorado.')
             ->onlyOnForms()
             ->setFormTypeOption('disabled', $isEdit);
 
+        // ... y si estamos en la pantalla "Añadir Nuevo" de forma independiente (no embebido),
+        // obligamos a Symfony a marcar las cajas sí o sí pasando la propiedad 'data'.
+        if ($pageName === Crud::PAGE_NEW && !$this->isEmbedded()) {
+            $channelField->setFormTypeOption('data', $activeChannelIds);
+        }
+
+        yield $channelField;
+
         yield TextField::new('subjectLocal', 'Asunto (En tu idioma)')
-            ->setRequired(false)
-            ->setHelp('Opcional. Se usará como Asunto para Emails o se concatenará en negrita al inicio en WhatsApp.')
-            ->setColumns(12)
-            ->setFormTypeOption('disabled', $isEdit)
-            ->hideOnIndex();
+            ->setRequired(false)->setColumns(12)->setFormTypeOption('disabled', $isEdit)->hideOnIndex();
 
         yield TextareaField::new('contentLocal', 'Texto del Mensaje (En tu idioma)')
-            ->setHelp('Escribe tu respuesta aquí. El sistema la traducirá automáticamente al idioma del huésped si es necesario.')
-            ->setColumns(12)
-            ->setFormTypeOption('disabled', $isEdit);
+            ->setColumns(12)->setFormTypeOption('disabled', $isEdit);
 
-        // ---------------------------------------------------------------------
-        // PANEL: MENSAJE EXTERNO (Idioma del Huésped / Override / Entrada)
-        // Este es el bloque que seguramente envuelves o controlas con Stimulus
-        // ---------------------------------------------------------------------
-        yield FormField::addPanel('Mensaje Exacto (Idioma del Huésped)')
-            ->setIcon('fa fa-globe')
-            ->setHelp('Override manual o texto original recibido por el huésped.');
-
+        yield FormField::addPanel('Mensaje Exacto (Idioma del Huésped)')->setIcon('fa fa-globe');
         yield TextField::new('subjectExternal', 'Asunto (Idioma del Huésped)')
-            ->setRequired(false)
-            ->setColumns(12)
-            ->setFormTypeOption('disabled', $isEdit)
-            ->hideOnIndex(); // Oculto en el listado para no saturar
-
+            ->setRequired(false)->setColumns(12)->setFormTypeOption('disabled', $isEdit)->hideOnIndex();
         yield TextareaField::new('contentExternal', 'Texto Exacto (Idioma del Huésped)')
-            ->setRequired(false)
-            ->setColumns(12)
-            ->setFormTypeOption('disabled', $isEdit)
-            ->hideOnIndex();
+            ->setRequired(false)->setColumns(12)->setFormTypeOption('disabled', $isEdit)->hideOnIndex();
 
-        // ---------------------------------------------------------------------
-        // PANEL: OPCIONES AVANZADAS Y AUDITORÍA
-        // ---------------------------------------------------------------------
-        yield FormField::addPanel('Opciones Avanzadas y Auditoría')
-            ->setIcon('fa fa-sliders-h');
-
+        yield FormField::addPanel('Opciones Avanzadas y Auditoría')->setIcon('fa fa-sliders-h');
         yield AssociationField::new('template', 'Usar Plantilla')
-            ->setRequired(false)
-            ->setColumns(12)
-            ->setFormTypeOption('disabled', $isEdit)
-            ->setHelp('Opcional. Si seleccionas una plantilla, el texto manual será ignorado.');
-
-        yield DateTimeField::new('createdAt', 'Creado')
-            ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
-            ->setFormTypeOption('disabled', true);
-
-        yield DateTimeField::new('updatedAt', 'Actualizado')
-            ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
-            ->setFormTypeOption('disabled', true);
+            ->setRequired(false)->setColumns(12)->setFormTypeOption('disabled', $isEdit);
+        yield DateTimeField::new('createdAt', 'Creado')->hideOnIndex()->setFormat('yyyy/MM/dd HH:mm')->setFormTypeOption('disabled', true);
+        yield DateTimeField::new('updatedAt', 'Actualizado')->hideOnIndex()->setFormat('yyyy/MM/dd HH:mm')->setFormTypeOption('disabled', true);
     }
 }

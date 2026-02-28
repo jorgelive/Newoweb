@@ -83,7 +83,7 @@ class GupshupConfigCrudController extends BaseCrudController
             ->collapsible();
 
         yield TextField::new('baseUrl', 'API Base URL')
-            ->setHelp('Por defecto: https://api.gupshup.io/wa/api/v1/msg')
+            ->setHelp('Por defecto: https://api.gupshup.io/')
             ->setColumns(12);
 
         // 🔥 Usamos CodeEditorField con lenguaje 'js' para manejar el JSON

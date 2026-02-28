@@ -26,19 +26,15 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
-/**
- * PmsEventoCalendarioCrudController.
- * Gestión de eventos individuales (Bloqueos o Estancias sueltas).
- * Integra PmsEventoCalendarioFactory para integridad de links Beds24.
- */
 final class PmsEventoCalendarioCrudController extends BaseCrudController
 {
     public function __construct(
-        protected AdminUrlGenerator $adminUrlGenerator,
-        protected RequestStack $requestStack,
-        private readonly EntityManagerInterface $entityManager,
-        private readonly PmsEventoCalendarioFactory $eventoFactory // ✅ Inyección del Factory
-    ) {
+        protected AdminUrlGenerator                 $adminUrlGenerator,
+        protected RequestStack                      $requestStack,
+        private readonly EntityManagerInterface     $entityManager,
+        private readonly PmsEventoCalendarioFactory $eventoFactory
+    )
+    {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
 
@@ -47,78 +43,45 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         return PmsEventoCalendario::class;
     }
 
-    /**
-     * ✅ CREACIÓN: Prepara la entidad inicial.
-     * Detecta si venimos con el flag `?es_bloqueo=1` para pre-configurar estados.
-     * Nota: El Canal Directo ya viene pre-asignado desde el Factory.
-     */
     public function createEntity(string $entityFqcn): PmsEventoCalendario
     {
-        // 1. Instancia base desde Factory (Ya trae el Canal Directo por defecto)
         $entity = $this->eventoFactory->createForUi();
-
-        // 2. Detección de contexto "Bloqueo"
-        $esBloqueo = (bool) $this->requestStack->getCurrentRequest()?->query->get('es_bloqueo');
+        $esBloqueo = (bool)$this->requestStack->getCurrentRequest()?->query->get('es_bloqueo');
 
         if ($esBloqueo) {
             $estadoBloqueo = $this->entityManager->getReference(PmsEventoEstado::class, PmsEventoEstado::CODIGO_BLOQUEO);
-            if ($estadoBloqueo) {
-                $entity->setEstado($estadoBloqueo);
-            }
+            if ($estadoBloqueo) $entity->setEstado($estadoBloqueo);
 
             $estadoNoPagado = $this->entityManager->getReference(PmsEventoEstadoPago::class, PmsEventoEstadoPago::ID_SIN_PAGO);
-            if ($estadoNoPagado) {
-                $entity->setEstadoPago($estadoNoPagado);
-            }
+            if ($estadoNoPagado) $entity->setEstadoPago($estadoNoPagado);
         }
 
         return $entity;
     }
 
-    /**
-     * ✅ PERSIST: Guardado inicial.
-     * El formulario ya llenó la Unidad. Llamamos al Factory para crear los links (Root + Mirrors).
-     */
     public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if ($entityInstance instanceof PmsEventoCalendario) {
-            // Defensa: Las OTAs raramente se crean a mano, pero si ocurre, también necesitan links.
-            // Si es bloqueo o evento manual, generamos la estructura.
             $this->eventoFactory->hydrateLinksForUi($entityInstance);
         }
-
         parent::persistEntity($entityManager, $entityInstance);
     }
 
-    /**
-     * ✅ UPDATE: Edición.
-     * Lógica crítica: Solo regeneramos links si cambió la Unidad Física.
-     * Usamos computeChangeSet para máxima seguridad.
-     */
     public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if ($entityInstance instanceof PmsEventoCalendario) {
-            // 1. Blindaje: OTAs no se editan estructuralmente desde UI
             if ($entityInstance->isOta()) {
                 parent::updateEntity($entityManager, $entityInstance);
                 return;
             }
 
             $uow = $entityManager->getUnitOfWork();
-
-            // 2. Forzamos el cálculo de cambios para detectar modificación de relaciones
             $uow->computeChangeSet($entityManager->getClassMetadata(PmsEventoCalendario::class), $entityInstance);
-            $changes = $uow->getEntityChangeSet($entityInstance);
 
-            // 3. Si la clave 'pmsUnidad' aparece en los cambios, es que el usuario la tocó.
-            if (array_key_exists('pmsUnidad', $changes)) {
-                // Regenerar estructura (Esto borra los links viejos y crea nuevos para la nueva unidad)
+            if (array_key_exists('pmsUnidad', $uow->getEntityChangeSet($entityInstance))) {
                 $this->eventoFactory->hydrateLinksForUi($entityInstance);
             }
-
-            // Si NO cambió la unidad, no tocamos nada. Preservamos el beds24BookId existente.
         }
-
         parent::updateEntity($entityManager, $entityInstance);
     }
 
@@ -130,20 +93,15 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ->add(Crud::PAGE_EDIT, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DELETE);
 
-        // Lógica de borrado seguro: No permitir borrar OTAs activas desde aquí
         $checkBorrado = function (Action $action) {
-            return $action->displayIf(static function (PmsEventoCalendario $eventoCalendario) {
-                return $eventoCalendario->isSafeToDelete();
-            });
+            return $action->displayIf(fn(PmsEventoCalendario $e) => $e->isSafeToDelete());
         };
 
         $actions->update(Crud::PAGE_INDEX, Action::DELETE, $checkBorrado);
         $actions->update(Crud::PAGE_DETAIL, Action::DELETE, $checkBorrado);
         $actions->update(Crud::PAGE_EDIT, Action::DELETE, $checkBorrado);
 
-        $actions = parent::configureActions($actions);
-
-        return $actions
+        return parent::configureActions($actions)
             ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
             ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
             ->setPermission(Action::NEW, Roles::RESERVAS_WRITE)
@@ -153,242 +111,187 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
     public function configureFilters(Filters $filters): Filters
     {
-        return $filters
-            ->add('referenciaCanal');
+        return $filters->add('referenciaCanal');
     }
 
+    // =========================================================================
+    // 🔥 EL NUEVO CONFIGURE FIELDS (Limpio, secuencial y sin arrays enredados)
+    // =========================================================================
     public function configureFields(string $pageName): iterable
     {
-        $entity = null;
-        if ($pageName === Crud::PAGE_DETAIL) {
-            $context = $this->getContext();
-            $entity = $context?->getEntity()->getInstance();
-        }
+        $entity = $this->getContext()?->getEntity()->getInstance();
+        $isEmbedded = $this->isEmbedded();
 
-        // Resolución de contexto para UI dinámica
-        [$isNewOrEdit, $isBloqueo, $isOta] = $this->resolveContext($pageName);
+        // Detección de estados lógicos
+        $isBloqueo = (bool)$this->requestStack->getCurrentRequest()?->query->get('es_bloqueo') ||
+            ($entity instanceof PmsEventoCalendario &&
+                $entity->getEstado()?->getId() === PmsEventoEstado::CODIGO_BLOQUEO &&
+                !$entity->getReserva());
+        $isOta = $entity instanceof PmsEventoCalendario && $entity->isOta();
 
-        // Construcción de campos base
-        $f = $this->buildFields($isBloqueo);
+        // Estilos base compartidos
+        $tomSelectNoClear = ['placeholder' => false, 'attr' => ['required' => 'required']];
 
-        // Aplicación de reglas de negocio visuales
-        if ($isNewOrEdit && $isBloqueo) {
-            $this->applyBloqueoRules($f);
-        }
-        if ($isOta) {
-            $this->applyOtaRules($f);
-        }
-
-        // --- RENDERIZADO DEL FORMULARIO ---
-
-        // 1. Identificadores
+        // ---------------------------------------------------------------------
+        // 1. IDENTIFICADORES Y ESTADO
+        // ---------------------------------------------------------------------
         yield TextField::new('id', 'UUID')->onlyOnDetail();
-        if(!$this->isEmbedded()){
+
+        if (!$isEmbedded) {
             yield TextField::new('localizador', 'Localizador')
                 ->setFormTypeOption('disabled', true)
                 ->setColumns(6)
                 ->formatValue(fn($v) => $v ? sprintf('<span class="badge badge-secondary">%s</span>', $v) : '');
         }
 
-        // 2. Estado Sincronización (Badge visual)
-        yield $this->buildSyncStatusBadgeField()->hideOnForm();
+        yield TextField::new('syncStatus', 'Estado Sincro')
+            ->setVirtual(true)
+            ->hideOnForm()
+            ->formatValue(fn($s) => match ($s) {
+                'synced' => '<span class="badge badge-success"><i class="fa fa-check"></i> Sync</span>',
+                'error' => '<span class="badge badge-danger"><i class="fa fa-exclamation"></i> Error</span>',
+                'pending' => '<span class="badge badge-warning"><i class="fa fa-sync fa-spin"></i> Pend.</span>',
+                default => '<span class="badge badge-secondary">Local</span>',
+            })->renderAsHtml();
 
-        // 3. Datos Principales
-        yield $f['descripcion'];
-
-        yield FormField::addPanel('Detalles del Evento')->setIcon('fa fa-calendar-check');
-        if(!$this->isEmbedded()) {
-            yield $f['reserva'];
+        // ---------------------------------------------------------------------
+        // 2. DESCRIPCIÓN / MOTIVO
+        // ---------------------------------------------------------------------
+        $fDescripcion = TextField::new('descripcion', $isBloqueo ? 'Motivo del Bloqueo' : 'Descripción');
+        if ($isBloqueo) {
+            $fDescripcion->setRequired(true)->setFormTypeOption('constraints', [new NotBlank(['message' => 'El motivo es obligatorio.'])]);
         }
-        yield $f['pmsUnidad'];
-        yield $f['channel'];
-        yield $f['estado'];
-        yield $f['estadoPago'];
+        yield $fDescripcion;
+
+        // ---------------------------------------------------------------------
+        // 3. DETALLES DEL EVENTO
+        // ---------------------------------------------------------------------
+        yield FormField::addPanel('Detalles del Evento')->setIcon('fa fa-calendar-check');
+
+        // 🔥 AQUÍ ESTÁ EL TRUCO OPTIMIZADO PARA LA RESERVA PADRE
+        $fReserva = AssociationField::new('reserva', 'Reserva Padre')->setDisabled(true);
+        if ($isEmbedded) {
+            $fReserva->setFormTypeOption('row_attr', ['class' => 'd-none'])->setLabel(false);
+        } elseif ($isBloqueo) {
+            $fReserva->hideOnForm();
+        }
+        yield $fReserva;
+
+        // UNIDAD PMS
+        $fUnidad = AssociationField::new('pmsUnidad', 'Unidad')
+            ->setRequired(true)
+            ->setFormTypeOptions($tomSelectNoClear);
+        if ($isOta) $fUnidad->setDisabled(true);
+        yield $fUnidad;
+
+        // CANAL
+        yield AssociationField::new('channel', 'Canal')
+            ->setColumns(6)
+            ->setFormTypeOption('disabled', true)
+            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.orden', 'ASC'));
+
+        // ESTADO
+        $fEstado = AssociationField::new('estado', 'Estado')
+            ->setRequired(true)
+            ->setFormTypeOptions(array_merge($tomSelectNoClear, [
+                'query_builder' => function ($repo) use ($isBloqueo) {
+                    $qb = $repo->createQueryBuilder('e');
+                    if ($isBloqueo) {
+                        $qb->andWhere('e.id IN (:estados)')->setParameter('estados', [PmsEventoEstado::CODIGO_BLOQUEO, PmsEventoEstado::CODIGO_CANCELADA]);
+                    } else {
+                        $qb->andWhere('e.id != :bloqueo')->setParameter('bloqueo', PmsEventoEstado::CODIGO_BLOQUEO);
+                    }
+                    return $qb->orderBy('e.orden', 'ASC')->addOrderBy('e.nombre', 'ASC');
+                },
+            ]));
+        if ($isBloqueo) $fEstado->hideOnForm();
+        yield $fEstado;
+
+        // ESTADO PAGO
+        $fEstadoPago = AssociationField::new('estadoPago', 'Estado de Pago')
+            ->setRequired(true)
+            ->setFormTypeOptions($tomSelectNoClear);
+        if ($isBloqueo) $fEstadoPago->hideOnForm();
+        yield $fEstadoPago;
 
         yield FormField::addRow();
-        yield $this->decorateInicioField($f['inicio']);
-        yield $this->decorateFinField($f['fin']);
 
-        // 4. Datos Económicos y Pax (Ocultos en bloqueos)
-        yield $f['adultos']->setRequired(true)->setColumns(6);
-        yield $f['ninos']->setRequired(true)->setColumns(6);
-        yield $f['monto']->setCurrency('USD')->setStoredAsCents(false)->setColumns(6);
-        yield $f['comision']->setCurrency('USD')->setStoredAsCents(false)->setColumns(6);
+        // FECHAS
+        $fInicio = DateTimeField::new('inicio', 'Llegada (Check-in)')
+            ->setRequired(true)
+            ->setFormTypeOptions([
+                'widget' => 'single_text', 'html5' => true,
+                'attr' => ['step' => 60, 'data-controller' => 'panel--pms-reserva--form-evento-fechas', 'data-action' => 'change->panel--pms-reserva--form-evento-fechas#updateEnd']
+            ]);
+        if ($isOta) $fInicio->setDisabled(true);
+        yield $fInicio;
 
-        // 5. Integración (Solo lectura)
-        yield FormField::addPanel('Integración de Canal (OTA)')->setIcon('fa fa-sync')->renderCollapsed();
-        yield $f['isOta']->setDisabled(true);
-        $refCanal = $entity?->getReferenciaCanal();
+        $fFin = DateTimeField::new('fin', 'Salida (Check-out)')
+            ->setRequired(true)
+            ->setFormTypeOptions(['widget' => 'single_text', 'html5' => true, 'attr' => ['step' => 60]]);
+        if ($isOta) $fFin->setDisabled(true);
+        yield $fFin;
 
-        if ($pageName === Crud::PAGE_EDIT || $pageName === Crud::PAGE_NEW || !empty($refCanal)) {
-            yield $f['referenciaCanal'];
+        // ---------------------------------------------------------------------
+        // 4. DATOS ECONÓMICOS Y PAX
+        // ---------------------------------------------------------------------
+        $fAdultos = IntegerField::new('cantidadAdultos', 'Nº Adultos')
+            ->setRequired(true)
+            ->setColumns(6);
+        $fNinos = IntegerField::new('cantidadNinos', 'Nº Niños')
+            ->setRequired(true)
+            ->setColumns(6);
+        $fMonto = MoneyField::new('monto', 'Precio Total')
+            ->setCurrency('USD')
+            ->setStoredAsCents(false)
+            ->setColumns(6);
+        $fComision = MoneyField::new('comision', 'Comisión Canal')
+            ->setCurrency('USD')
+            ->setStoredAsCents(false)
+            ->setColumns(6);
+
+        if ($isBloqueo) {
+            $fAdultos->hideOnForm();
+            $fNinos->hideOnForm();
+            $fMonto->hideOnForm();
+            $fComision->hideOnForm();
+        } elseif ($isOta) {
+            $fAdultos->setDisabled(true);
+            $fNinos->setDisabled(true);
+            $fMonto->setDisabled(true);
+            $fComision->setDisabled(true);
         }
 
-        // Nuevos campos de tiempo del canal
-        yield $f['horaLlegadaCanal']->hideOnIndex();
-        yield $f['fechaReservaCanal']->hideOnIndex();
-        yield $f['fechaModificacionCanal']->hideOnIndex();
+        yield $fAdultos;
+        yield $fNinos;
+        yield $fMonto;
+        yield $fComision;
+
+        // ---------------------------------------------------------------------
+        // 5. INTEGRACIÓN (OTA & BEDS24)
+        // ---------------------------------------------------------------------
+        yield FormField::addPanel('Integración de Canal (OTA)')->setIcon('fa fa-sync')->renderCollapsed();
+
+        $fIsOta = BooleanField::new('isOta', 'Origen OTA')->setDisabled(true);
+        if ($isBloqueo) $fIsOta->hideOnForm();
+        yield $fIsOta;
+
+        if ($pageName === Crud::PAGE_EDIT || $pageName === Crud::PAGE_NEW || !empty($entity?->getReferenciaCanal())) {
+            yield TextField::new('referenciaCanal', 'Ref. OTA')->setFormTypeOption('disabled', true);
+        }
+
+        yield TextField::new('horaLlegadaCanal', 'Hora Llegada OTA')->setFormTypeOption('disabled', true)->hideOnIndex();
+        yield DateTimeField::new('fechaReservaCanal', 'Fecha Reserva OTA')->setFormTypeOption('disabled', true)->hideOnIndex();
+        yield DateTimeField::new('fechaModificacionCanal', 'Fecha Modif. OTA')->setFormTypeOption('disabled', true)->hideOnIndex();
 
         yield TextField::new('estadoBeds24', 'Estado en Beds24')->setDisabled(true);
         yield AssociationField::new('beds24Links', 'Vínculos Técnicos')->setDisabled(true)->onlyOnDetail();
 
-        // 6. Auditoría
+        // ---------------------------------------------------------------------
+        // 6. AUDITORÍA
+        // ---------------------------------------------------------------------
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
-
-        yield DateTimeField::new('createdAt', 'Creado')
-            ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
-            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
-
-        yield DateTimeField::new('updatedAt', 'Actualizado')
-            ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
-            ->setFormTypeOption('disabled', true);
-    }
-
-    // =========================================================================
-    // HELPERS PRIVADOS DE UI
-    // =========================================================================
-
-    private function resolveContext(string $pageName): array
-    {
-        $request = $this->requestStack->getCurrentRequest();
-        $entityInstance = $this->getContext()?->getEntity()->getInstance();
-
-        $isNewOrEdit = \in_array($pageName, [Crud::PAGE_NEW, Crud::PAGE_EDIT], true);
-
-        // Es bloqueo si viene por URL o si la entidad ya tiene estado de bloqueo
-        $isBloqueo = (bool)$request?->query->get('es_bloqueo') ||
-            ($entityInstance instanceof PmsEventoCalendario &&
-                $entityInstance->getEstado()?->getId() === PmsEventoEstado::CODIGO_BLOQUEO &&
-                !$entityInstance->getReserva());
-
-        $isOta = $entityInstance instanceof PmsEventoCalendario && $entityInstance->isOta();
-
-        return [$isNewOrEdit, $isBloqueo, $isOta];
-    }
-
-    private function buildFields(bool $isBloqueo = false): array
-    {
-        $tomSelectNoClear = ['placeholder' => false, 'attr' => ['required' => 'required']];
-        $descripcionText = $isBloqueo ? 'Motivo' : 'Descripción';
-
-        return [
-            'descripcion' => TextField::new('descripcion', $descripcionText),
-
-            'pmsUnidad' => AssociationField::new('pmsUnidad', 'Unidad')
-                ->setRequired(true)
-                ->setFormTypeOptions($tomSelectNoClear),
-            'channel' => AssociationField::new('channel', 'Canal')
-                ->setColumns(6)
-                ->setFormTypeOption('disabled', true)
-                ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.orden', 'ASC')),
-            'estado' => AssociationField::new('estado', 'Estado')
-                ->setRequired(true)
-                ->setFormTypeOptions(array_merge(
-                    $tomSelectNoClear,
-                    [
-                        'query_builder' => function ($repo) use ($isBloqueo) {
-                            $qb = $repo->createQueryBuilder('e');
-
-                            if ($isBloqueo) {
-                                // 🔒 SOLO bloqueo + cancelada
-                                $qb->andWhere('e.id IN (:estados)')
-                                    ->setParameter('estados', [
-                                        PmsEventoEstado::CODIGO_BLOQUEO,
-                                        PmsEventoEstado::CODIGO_CANCELADA,
-                                    ]);
-                            } else {
-                                // 🚫 EXCLUIR bloqueo
-                                $qb->andWhere('e.id != :bloqueo')
-                                    ->setParameter('bloqueo', PmsEventoEstado::CODIGO_BLOQUEO);
-                            }
-
-                            return $qb
-                                ->orderBy('e.orden', 'ASC')
-                                ->addOrderBy('e.nombre', 'ASC');
-                        },
-                    ]
-                )),
-
-            'estadoPago' => AssociationField::new('estadoPago', 'Estado de Pago')
-                ->setRequired(true)
-                ->setFormTypeOptions($tomSelectNoClear),
-
-            'reserva' => AssociationField::new('reserva', 'Reserva Padre')->setDisabled(true),
-
-            'inicio' => DateTimeField::new('inicio', 'Llegada (Check-in)'),
-            'fin' => DateTimeField::new('fin', 'Salida (Check-out)'),
-
-            'adultos' => IntegerField::new('cantidadAdultos', 'Nº Adultos'),
-            'ninos' => IntegerField::new('cantidadNinos', 'Nº Niños'),
-
-            'monto' => MoneyField::new('monto', 'Precio Total'),
-            'comision' => MoneyField::new('comision', 'Comisión Canal'),
-
-            'isOta' => BooleanField::new('isOta', 'Origen OTA'),
-
-            // Campos del canal
-            'referenciaCanal' => TextField::new('referenciaCanal', 'Ref. OTA')->setFormTypeOption('disabled', true),
-            'horaLlegadaCanal' => TextField::new('horaLlegadaCanal', 'Hora Llegada OTA')->setFormTypeOption('disabled', true),
-            'fechaReservaCanal' => DateTimeField::new('fechaReservaCanal', 'Fecha Reserva OTA')->setFormTypeOption('disabled', true),
-            'fechaModificacionCanal' => DateTimeField::new('fechaModificacionCanal', 'Fecha Modif. OTA')->setFormTypeOption('disabled', true),
-        ];
-    }
-
-    private function applyBloqueoRules(array $f): void
-    {
-        // En bloqueos, la descripción es obligatoria
-        $f['descripcion']->setLabel('Motivo del Bloqueo')->setRequired(true)
-            ->setFormTypeOption('constraints', [new NotBlank(['message' => 'El motivo es obligatorio.'])]);
-
-        // Ocultar campos irrelevantes para un bloqueo técnico
-        foreach ([$f['estado'], $f['estadoPago'], $f['reserva'], $f['adultos'], $f['ninos'], $f['monto'], $f['comision'], $f['isOta']] as $field) {
-            $field->hideOnForm();
-        }
-    }
-
-    private function applyOtaRules(array $f): void
-    {
-        // Bloquear campos críticos si viene de una OTA para proteger la sincronización
-        foreach ([$f['pmsUnidad'], $f['reserva'], $f['inicio'], $f['fin'], $f['adultos'], $f['ninos'], $f['monto'], $f['comision']] as $field) {
-            $field->setDisabled(true);
-        }
-    }
-
-    private function decorateInicioField(DateTimeField $inicio): DateTimeField
-    {
-        return $inicio->setRequired(true)
-            ->setFormTypeOptions([
-                'widget' => 'single_text',
-                'html5' => true,
-                // JS Controller para UX de fechas (opcional)
-                'attr' => [
-                    'step' => 60,
-                    'data-controller' => 'panel--pms-reserva--form-evento-fechas',
-                    'data-action' => 'change->panel--pms-reserva--form-evento-fechas#updateEnd'
-                ]
-            ]);
-    }
-
-    private function decorateFinField(DateTimeField $fin): DateTimeField
-    {
-        return $fin->setRequired(true)
-            ->setFormTypeOptions(['widget' => 'single_text', 'html5' => true, 'attr' => ['step' => 60]]);
-    }
-
-    private function buildSyncStatusBadgeField(): TextField
-    {
-        return TextField::new('syncStatus', 'Estado Sincro')
-            ->setVirtual(true)
-            ->formatValue(function ($statusValue) {
-                return match ($statusValue) {
-                    'synced'  => '<span class="badge badge-success"><i class="fa fa-check"></i> Sync</span>',
-                    'error'   => '<span class="badge badge-danger"><i class="fa fa-exclamation"></i> Error</span>',
-                    'pending' => '<span class="badge badge-warning"><i class="fa fa-sync fa-spin"></i> Pend.</span>',
-                    default   => '<span class="badge badge-secondary">Local</span>',
-                };
-            })
-            ->renderAsHtml();
+        yield DateTimeField::new('createdAt', 'Creado')->hideOnIndex()->setFormat('yyyy/MM/dd HH:mm')->setFormTypeOption('disabled', true);
+        yield DateTimeField::new('updatedAt', 'Actualizado')->hideOnIndex()->setFormat('yyyy/MM/dd HH:mm')->setFormTypeOption('disabled', true);
     }
 }

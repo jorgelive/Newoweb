@@ -10,9 +10,17 @@ use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
 use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
+use App\Message\Service\MessageDataResolverRegistry;
+use Vich\UploaderBundle\Storage\StorageInterface;
 
 final readonly class Beds24SendMappingStrategy implements MappingStrategyInterface
 {
+    public function __construct(
+        private MessageDataResolverRegistry $resolverRegistry,
+        // 🔥 Inyectamos el Storage de Vich en lugar del project_dir
+        private StorageInterface $vichStorage
+    ) {}
+
     public function map(HomogeneousBatch $batch): MappingResult
     {
         $config = $batch->getConfig();
@@ -27,24 +35,45 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
         foreach ($batch->getItems() as $index => $item) {
             /** @var Beds24SendQueue $item */
             $msg = $item->getMessage();
+            if (!$msg instanceof Message) continue;
 
-            if (!$msg instanceof Message) {
-                continue;
+            $conversation = $msg->getConversation();
+            $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
+
+            $content = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
+
+            if ($resolver && str_contains($content, '{{')) {
+                $variables = $resolver->getTemplateVariables($conversation->getContextId());
+                foreach ($variables as $key => $value) {
+                    $content = str_replace('{{ ' . $key . ' }}', (string)$value, $content);
+                    $content = str_replace('{{' . $key . '}}', (string)$value, $content);
+                }
             }
 
-            // Usamos el contenido traducido si existe, si no el original
-            $text = $msg->getContentExternal() ?? $msg->getContentExternal();
-
-            // Construimos el payload específico para Beds24 Messages
-            // Nota: Esto depende de la especificación exacta de tu Endpoint en BD.
-            // Asumimos formato estándar V2 para postear mensajes.
-            $payload[] = [
-                'bookId' => $item->getTargetBookId(), // ID de reserva de Beds24
-                'message' => $text,
-                // Opcional: 'subject' => ...
+            $messagePayload = [
+                'bookingId' => (int) $item->getTargetBookId(),
+                'message'   => $content,
             ];
 
-            // Mapa de correlación: Índice del array => ID de la cola
+            // 3. Procesamiento del Archivo Adjunto usando Vich
+            $attachment = $msg->getAttachments()->first() ?: null;
+
+            if ($attachment && $attachment->isImage()) {
+                // 🔥 MAGIA: Vich nos da la ruta absoluta real según tu vich_uploader.yaml
+                $filePath = $this->vichStorage->resolvePath($attachment, 'file');
+
+                if ($filePath && file_exists($filePath)) {
+                    $fileContent = file_get_contents($filePath);
+
+                    if ($fileContent !== false) {
+                        $messagePayload['attachment'] = base64_encode($fileContent);
+                        $messagePayload['attachmentName'] = $attachment->getOriginalName() ?? 'image.jpg';
+                        $messagePayload['attachmentMimeType'] = $attachment->getMimeType() ?? 'image/jpeg';
+                    }
+                }
+            }
+
+            $payload[] = $messagePayload;
             $correlation[$index] = (string)$item->getId();
         }
 
@@ -61,30 +90,18 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
     {
         $results = [];
 
-        // Beds24 devuelve un array de resultados posicionales
         foreach ($apiResponse as $index => $respData) {
-
-            if (!isset($mapping->correlationMap[$index])) {
-                continue;
-            }
+            if (!isset($mapping->correlationMap[$index])) continue;
 
             $queueId = $mapping->correlationMap[$index];
-
-            // Determinamos éxito
             $success = (bool)($respData['success'] ?? false);
-            $errorMsg = null;
 
-            if (!$success) {
-                $errorMsg = $respData['message'] ?? 'Error desconocido al enviar mensaje';
-            }
-
-            // A veces Beds24 devuelve un ID del mensaje creado
             $remoteId = $respData['id'] ?? $respData['new']['id'] ?? null;
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
-                message: $errorMsg,
+                message: $success ? null : ($respData['message'] ?? 'Error desconocido al enviar mensaje'),
                 remoteId: $remoteId ? (string)$remoteId : null,
                 extraData: (array)$respData
             );

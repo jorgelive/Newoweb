@@ -15,7 +15,9 @@ use App\Pms\Entity\PmsRatesPushQueue;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Entidad ExchangeEndpoint.
@@ -23,24 +25,35 @@ use Symfony\Component\Uid\Uuid;
  */
 #[ORM\Entity(repositoryClass: ExchangeEndpointRepository::class)]
 #[ORM\Table(name: 'exchange_exchange_endpoint')]
-// ✅ NUEVO: La combinación de proveedor + acción debe ser única
 #[ORM\UniqueConstraint(name: 'uq_provider_accion', columns: ['provider', 'accion'])]
+// ✅ Validación UI: Atrapa el error de duplicados en el formulario de EasyAdmin
+#[UniqueEntity(
+    fields: ['provider', 'accion'],
+    message: 'Este proveedor ya tiene registrada una acción con este slug identificador.'
+)]
 #[ORM\HasLifecycleCallbacks]
 class ExchangeEndpoint implements EndpointInterface
 {
     use IdTrait;
     use TimestampTrait;
 
-    // ✅ NUEVO: El proveedor de conectividad basado en Enum
     #[ORM\Column(type: 'string', length: 50, enumType: ConnectivityProvider::class)]
+    #[Assert\NotNull(message: 'Debe seleccionar un proveedor de conectividad.')]
     private ?ConnectivityProvider $provider = null;
 
     #[ORM\Column(type: 'string', length: 150)]
+    #[Assert\NotBlank(message: 'El nombre descriptivo es obligatorio.')]
+    #[Assert\Length(max: 150, maxMessage: 'El nombre no puede superar los 150 caracteres.')]
     private ?string $nombre = null;
 
     /** Slug técnico (ej: 'GET_TOKEN', 'POST_BOOKINGS') */
-    // ✅ CORRECCIÓN: Quitamos el "unique: true" de aquí, ahora la unicidad es compuesta
     #[ORM\Column(type: 'string', length: 50)]
+    #[Assert\NotBlank(message: 'La acción lógica (slug) es obligatoria.')]
+    #[Assert\Length(max: 50, maxMessage: 'El slug no puede superar los 50 caracteres.')]
+    #[Assert\Regex(
+        pattern: '/^[A-Z0-9_]+$/',
+        message: 'La acción debe contener solo letras mayúsculas, números y guiones bajos (ej. SEND_MESSAGE).'
+    )]
     private ?string $accion = null;
 
     /**
@@ -48,6 +61,8 @@ class ExchangeEndpoint implements EndpointInterface
      * Mantenido como 'endpoint' para no romper Processors.
      */
     #[ORM\Column(type: 'string', length: 255)]
+    #[Assert\NotBlank(message: 'La ruta (endpoint) es obligatoria.')]
+    #[Assert\Length(max: 255)]
     private ?string $endpoint = null;
 
     /**
@@ -55,9 +70,16 @@ class ExchangeEndpoint implements EndpointInterface
      * Mantenido como 'metodo' para no romper Processors.
      */
     #[ORM\Column(type: 'string', length: 10)]
+    #[Assert\NotBlank(message: 'El método HTTP es obligatorio.')]
+    #[Assert\Choice(
+        choices: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+        message: 'Seleccione un método HTTP válido (GET, POST, PUT, DELETE, PATCH).'
+    )]
     private string $metodo = 'POST';
 
     #[ORM\Column(type: 'string', length: 10, options: ['default' => 'v2'])]
+    #[Assert\NotBlank(message: 'La versión de la API es obligatoria.')]
+    #[Assert\Length(max: 10)]
     private string $version = 'v2';
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -128,7 +150,8 @@ class ExchangeEndpoint implements EndpointInterface
 
     public function setAccion(string $accion): self
     {
-        $this->accion = $accion;
+        // Se asegura que la acción se guarde siempre en mayúsculas
+        $this->accion = strtoupper($accion);
         return $this;
     }
 
@@ -150,7 +173,7 @@ class ExchangeEndpoint implements EndpointInterface
 
     public function setMetodo(string $metodo): self
     {
-        $this->metodo = $metodo;
+        $this->metodo = strtoupper($metodo);
         return $this;
     }
 

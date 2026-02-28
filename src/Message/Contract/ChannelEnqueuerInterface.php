@@ -15,14 +15,16 @@ interface ChannelEnqueuerInterface
 
     /**
      * Instancia la entidad de cola correspondiente y la asocia al mensaje.
-     * * @param Message $message El mensaje a encolar.
+     * Retorna NULL si faltan datos críticos (ej: huésped sin teléfono, o reserva sin ID de Beds24).
+     *
+     * @param Message $message El mensaje a encolar.
      * @param MessageChannel $channel El canal por donde saldrá.
      * @param \DateTimeImmutable $runAt La fecha/hora exacta en la que debe ejecutarse.
-     * @return object Entidad de cola (ej: WhatsappGupshupSendQueue).
+     * @return MessageQueueItemInterface|null
      */
     public function createQueueEntity(
         Message $message,
         MessageChannel $channel,
         \DateTimeImmutable $runAt
-    ): object;
+    ): ?MessageQueueItemInterface;
 }

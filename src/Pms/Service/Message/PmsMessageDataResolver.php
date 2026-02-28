@@ -14,7 +14,6 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  *
  * Implementación concreta encargada de buscar datos frescos de reservas
  * en la base de datos justo antes de que se despache un mensaje.
- * Registrado automáticamente mediante la etiqueta autoconfigure.
  */
 #[AutoconfigureTag('app.message_data_resolver')]
 class PmsMessageDataResolver implements MessageDataResolverInterface
@@ -23,43 +22,28 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         private readonly EntityManagerInterface $entityManager
     ) {}
 
-    /**
-     * @inheritDoc
-     */
     public function supports(string $contextType): bool
     {
         return $contextType === 'pms_reserva';
     }
 
-    /**
-     * Búsqueda interna optimizada para evitar duplicación de código.
-     */
     private function getReserva(string $contextId): ?PmsReserva
     {
         return $this->entityManager->getRepository(PmsReserva::class)->find($contextId);
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getContextName(string $contextId): ?string
     {
         $reserva = $this->getReserva($contextId);
         return $reserva ? trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()) : null;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getPhoneNumber(string $contextId): ?string
     {
         $reserva = $this->getReserva($contextId);
         return $reserva ? ($reserva->getTelefono() ?? $reserva->getTelefono2()) : null;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getMetadata(string $contextId): array
     {
         $reserva = $this->getReserva($contextId);
@@ -68,13 +52,13 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         }
 
         return [
+            // Extraemos el ID de la OTA
             'beds24_book_id' => $reserva->getBeds24BookIdPrincipal() ?? $reserva->getBeds24MasterId(),
+            // Extraemos la configuración de Beds24 ligada al hotel de esta reserva
+            'beds24_config'  => $reserva->getEstablecimiento()?->getBeds24Config(),
         ];
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getTemplateVariables(string $contextId): array
     {
         $reserva = $this->getReserva($contextId);

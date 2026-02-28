@@ -35,7 +35,7 @@ class MessageAttachment
      * Vich inyecta automáticamente los datos en las otras propiedades.
      */
     #[Vich\UploadableField(
-        mapping: 'message_attachments', // <-- ¡Debes definir esto en tu vich_uploader.yaml!
+        mapping: 'message_attachments',
         fileNameProperty: 'fileName',
         size: 'fileSize',
         mimeType: 'mimeType',
@@ -60,6 +60,8 @@ class MessageAttachment
 
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTimeImmutable $fileUpdatedAt = null;
+
+    private ?string $fileUrl = null;
 
     public function __construct()
     {
@@ -128,6 +130,17 @@ class MessageAttachment
     public function setFileUpdatedAt(?DateTimeImmutable $fileUpdatedAt): self
     {
         $this->fileUpdatedAt = $fileUpdatedAt;
+        return $this;
+    }
+
+    public function getFileUrl(): ?string
+    {
+        return $this->fileUrl;
+    }
+
+    public function setFileUrl(?string $fileUrl): self
+    {
+        $this->fileUrl = $fileUrl;
         return $this;
     }
 }

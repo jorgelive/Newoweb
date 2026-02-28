@@ -8,17 +8,26 @@ use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
+use App\Message\Entity\MessageAttachment;
 use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Service\MessageDataResolverRegistry;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Vich\UploaderBundle\Storage\StorageInterface;
 
 final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrategyInterface
 {
+    public function __construct(
+        private MessageDataResolverRegistry $resolverRegistry,
+        private StorageInterface $vichStorage, // 🔥 Inyectamos Vich
+        #[Autowire('%env(PANEL_HOST_URL)%')]
+        private string $siteUrl
+    ) {}
+
     public function map(HomogeneousBatch $batch): MappingResult
     {
         $config = $batch->getConfig();
         $endpoint = $batch->getEndpoint();
 
-        // Gupshup suele pedir el 'source' (número de origen) y 'src.name' (App Name)
-        // Asumimos que están en las credenciales JSON del Config.
         $creds = $config->getCredentials();
         $sourcePhone = $creds['source_number'] ?? null;
         $appName = $creds['app_name'] ?? 'MyBedsApp';
@@ -32,38 +41,98 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
         foreach ($batch->getItems() as $index => $item) {
             /** @var WhatsappGupshupSendQueue $item */
             $msg = $item->getMessage();
+            $conversation = $msg->getConversation();
+            $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
 
-            // Lógica de contenido:
-            // 1. ¿Es Template? (Si el mensaje tiene metadata de template)
-            // 2. ¿Es Texto Libre?
-            $content = $msg->getContentTranslated() ?? $msg->getContentOriginal();
-            $destination = $item->getDestinationPhone(); // Ya debe venir limpio del persistidor
+            $livePhone = $resolver ? $resolver->getPhoneNumber($conversation->getContextId()) : null;
+            $destination = $livePhone ?: $item->getDestinationPhone();
+            if ($livePhone && $livePhone !== $item->getDestinationPhone()) {
+                $item->setDestinationPhone($livePhone);
+            }
 
-            // Construcción del Payload Individual (Ejemplo API Single Message)
-            // Si la API soporta Batch real, esto sería un array de objetos.
-            // Si la API es 1 a 1, el BatchProcessor enviará N peticiones.
-
-            // Asumimos estructura estándar de Gupshup Enterprise:
             $messagePayload = [
-                'channel' => 'whatsapp',
-                'source' => $sourcePhone,
+                'channel'     => 'whatsapp',
+                'source'      => $sourcePhone,
                 'destination' => $destination,
-                'src.name' => $appName,
-                'message' => json_encode([
-                    'type' => 'text',
-                    'text' => $content
-                ])
+                'src.name'    => $appName,
             ];
 
-            // Si tienes lógica de Templates, aquí iría el switch case.
+            $attachment = $msg->getAttachments()->first() ?: null;
+            $content = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
+
+            if ($template = $msg->getTemplate()) {
+                $lang = $conversation->getIdioma()->getId();
+                $templateId = $template->getWhatsappGupshupTemplateId($lang);
+
+                $paramsMap = $template->getWhatsappGupshupParamsMap();
+                $resolvedParams = [];
+
+                if ($resolver && !empty($paramsMap)) {
+                    $variables = $resolver->getTemplateVariables($conversation->getContextId());
+                    foreach ($paramsMap as $paramKey) {
+                        $resolvedParams[] = (string) ($variables[$paramKey] ?? '');
+                    }
+                }
+
+                $messagePayload['template'] = json_encode([
+                    'id'     => $templateId,
+                    'params' => $resolvedParams
+                ], JSON_UNESCAPED_UNICODE);
+
+                if ($attachment) {
+                    $mediaType = $this->getGupshupMediaType($attachment);
+                    $mediaUrl = $this->getAbsoluteAttachmentUrl($attachment);
+
+                    $messagePayload['message'] = json_encode([
+                        'type'     => $mediaType,
+                        $mediaType => [
+                            'link'     => $mediaUrl,
+                            'filename' => $attachment->getOriginalName()
+                        ]
+                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                }
+
+            } else {
+                if ($resolver && str_contains($content, '{{')) {
+                    $variables = $resolver->getTemplateVariables($conversation->getContextId());
+                    foreach ($variables as $key => $value) {
+                        $content = str_replace('{{ ' . $key . ' }}', (string)$value, $content);
+                        $content = str_replace('{{' . $key . '}}', (string)$value, $content);
+                    }
+                }
+
+                if ($attachment) {
+                    $mediaType = $this->getGupshupMediaType($attachment);
+                    $mediaUrl = $this->getAbsoluteAttachmentUrl($attachment);
+
+                    $mediaData = [
+                        'type'        => $mediaType,
+                        'originalUrl' => $mediaUrl,
+                        'previewUrl'  => $mediaUrl,
+                    ];
+
+                    if (!empty(trim($content))) {
+                        $mediaData['caption'] = $content;
+                    }
+
+                    if ($mediaType === 'file' || $mediaType === 'document') {
+                        $mediaData['filename'] = $attachment->getOriginalName();
+                        $mediaData['type'] = 'file';
+                    }
+
+                    $messagePayload['message'] = json_encode($mediaData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+                } else {
+                    $messagePayload['message'] = json_encode([
+                        'type' => 'text',
+                        'text' => $content
+                    ], JSON_UNESCAPED_UNICODE);
+                }
+            }
 
             $payload[] = $messagePayload;
             $correlation[$index] = (string) $item->getId();
         }
-
-        // NOTA: Si la API de Gupshup no soporta Batch JSON nativo (array de mensajes),
-        // y tienes que enviar 1 a 1, tu 'ExchangeClient' debe saber manejar arrays en el payload
-        // iterando internamente, O configuras 'getMaxBatchSize' a 1 en la Tarea.
 
         return new MappingResult(
             method: $method,
@@ -78,11 +147,6 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
     {
         $results = [];
 
-        // Gupshup Response suele ser:
-        // { "status": "submitted", "messageId": "UUID..." }
-        // O si es batch, un array de lo anterior.
-
-        // Si la respuesta es un solo objeto (caso batch size = 1)
         if (isset($apiResponse['messageId']) || isset($apiResponse['status'])) {
             $apiResponse = [$apiResponse];
         }
@@ -91,23 +155,45 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
             if (!isset($mapping->correlationMap[$index])) continue;
 
             $queueId = $mapping->correlationMap[$index];
-
-            // Gupshup devuelve 'submitted' o 'queued' como éxito inmediato
             $status = $respData['status'] ?? 'error';
             $success = in_array($status, ['submitted', 'queued', 'sent', 'success']);
-
-            $remoteId = $respData['messageId'] ?? null;
-            $errorMsg = $success ? null : ($respData['message'] ?? 'Error Gupshup');
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
-                message: $errorMsg,
-                remoteId: $remoteId,
+                message: $success ? null : ($respData['message'] ?? 'Error Gupshup'),
+                remoteId: $respData['messageId'] ?? null,
                 extraData: (array)$respData
             );
         }
 
         return $results;
+    }
+
+    // =========================================================================
+    // HELPERS PARA ARCHIVOS ADJUNTOS
+    // =========================================================================
+
+    private function getGupshupMediaType(MessageAttachment $attachment): string
+    {
+        $mime = $attachment->getMimeType() ?? '';
+
+        if (str_starts_with($mime, 'image/')) return 'image';
+        if (str_starts_with($mime, 'video/')) return 'video';
+        if (str_starts_with($mime, 'audio/')) return 'audio';
+
+        return 'file'; // PDF, DOCX, etc.
+    }
+
+    /**
+     * Construye la URL absoluta pública del archivo usando VichUploader
+     */
+    private function getAbsoluteAttachmentUrl(MessageAttachment $attachment): string
+    {
+        $base = rtrim($this->siteUrl, '/');
+        // 🔥 MAGIA: Vich devuelve el prefijo URI correcto (ej: /uploads/mi_carpeta_custom/archivo.jpg)
+        $uri = $this->vichStorage->resolveUri($attachment, 'file');
+
+        return $base . $uri;
     }
 }

@@ -30,17 +30,17 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     use TimestampTrait;
 
     // Status Worker (Infraestructura)
-    public const string STATUS_PENDING    = 'pending';
+    public const string STATUS_PENDING = 'pending';
     public const string STATUS_PROCESSING = 'processing';
-    public const string STATUS_SUCCESS    = 'success';
-    public const string STATUS_FAILED     = 'failed';
-    public const string STATUS_CANCELLED  = 'cancelled';
+    public const string STATUS_SUCCESS = 'success';
+    public const string STATUS_FAILED = 'failed';
+    public const string STATUS_CANCELLED = 'cancelled';
 
     // Status Negocio (Gupshup/WhatsApp)
-    public const string DELIVERY_UNKNOWN   = 'unknown';
+    public const string DELIVERY_UNKNOWN = 'unknown';
     public const string DELIVERY_SUBMITTED = 'submitted';
     public const string DELIVERY_DELIVERED = 'delivered';
-    public const string DELIVERY_READ      = 'read';
+    public const string DELIVERY_READ = 'read';
 
     // =========================================================================
     // RELACIONES
@@ -61,6 +61,9 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     // =========================================================================
     // SNAPSHOTS & DATOS TÉCNICOS
     // =========================================================================
+
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $destinationPhone = null;
 
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $externalMessageId = null;
@@ -171,7 +174,6 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         return $this->id;
     }
 
-    // --- Message ---
     public function getMessage(): ?Message
     {
         return $this->message;
@@ -183,7 +185,17 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- Config (Polimórfico Seguro) ---
+    public function getDestinationPhone(): ?string
+    {
+        return $this->destinationPhone;
+    }
+
+    public function setDestinationPhone(?string $destinationPhone): self
+    {
+        $this->destinationPhone = $destinationPhone;
+        return $this;
+    }
+
     public function getConfig(): ?ChannelConfigInterface
     {
         return $this->config;
@@ -192,17 +204,12 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     public function setConfig(?ChannelConfigInterface $config): self
     {
         if ($config !== null && !$config instanceof GupshupConfig) {
-            throw new InvalidArgumentException(sprintf(
-                'Configuración inválida. Se esperaba %s, se recibió %s',
-                GupshupConfig::class,
-                get_class($config)
-            ));
+            throw new InvalidArgumentException(sprintf('Configuración inválida. Se esperaba %s', GupshupConfig::class));
         }
         $this->config = $config;
         return $this;
     }
 
-    // --- Endpoint (Polimórfico Seguro) ---
     public function getEndpoint(): ?EndpointInterface
     {
         return $this->endpoint;
@@ -211,17 +218,12 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     public function setEndpoint(?EndpointInterface $endpoint): self
     {
         if ($endpoint !== null && !$endpoint instanceof ExchangeEndpoint) {
-            throw new InvalidArgumentException(sprintf(
-                'Endpoint inválido. Se esperaba %s, se recibió %s',
-                ExchangeEndpoint::class,
-                get_class($endpoint)
-            ));
+            throw new InvalidArgumentException(sprintf('Endpoint inválido. Se esperaba %s', ExchangeEndpoint::class));
         }
         $this->endpoint = $endpoint;
         return $this;
     }
 
-    // --- External ID ---
     public function getExternalMessageId(): ?string
     {
         return $this->externalMessageId;
@@ -233,7 +235,6 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- Delivery Status ---
     public function getDeliveryStatus(): string
     {
         return $this->deliveryStatus;
@@ -287,7 +288,6 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- Worker Status ---
     public function getStatus(): string
     {
         return $this->status;
@@ -299,7 +299,6 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- RunAt ---
     public function getRunAt(): ?DateTimeImmutable
     {
         return $this->runAt;
@@ -307,15 +306,10 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
 
     public function setRunAt(?DateTimeInterface $at): self
     {
-        if ($at instanceof DateTimeInterface) {
-            $this->runAt = DateTimeImmutable::createFromInterface($at);
-        } else {
-            $this->runAt = null;
-        }
+        $this->runAt = $at instanceof DateTimeInterface ? DateTimeImmutable::createFromInterface($at) : null;
         return $this;
     }
 
-    // --- Locking ---
     public function getLockedAt(): ?DateTimeInterface
     {
         return $this->lockedAt;
@@ -338,7 +332,6 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- Failures & Retries ---
     public function getFailedReason(): ?string
     {
         return $this->failedReason;
@@ -372,7 +365,6 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    // --- Auditoría RAW ---
     public function getLastRequestRaw(): ?string
     {
         return $this->lastRequestRaw;
@@ -395,17 +387,6 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         return $this;
     }
 
-    public function getLastHttpCode(): ?int
-    {
-        return $this->lastHttpCode;
-    }
-
-    public function setLastHttpCode(?int $code): self
-    {
-        $this->lastHttpCode = $code;
-        return $this;
-    }
-
     public function getExecutionResult(): ?array
     {
         return $this->executionResult;
@@ -414,6 +395,17 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     public function setExecutionResult(?array $result): self
     {
         $this->executionResult = $result;
+        return $this;
+    }
+
+    public function getLastHttpCode(): ?int
+    {
+        return $this->lastHttpCode;
+    }
+
+    public function setLastHttpCode(?int $code): self
+    {
+        $this->lastHttpCode = $code;
         return $this;
     }
 }

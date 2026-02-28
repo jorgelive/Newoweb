@@ -139,8 +139,15 @@ class PmsGuiaItemGaleriaCrudController extends BaseCrudController
         $pathRelativo = $this->params->get('pms.path.galeria_images');
         $basePath = '/' . ltrim($pathRelativo, '/');
 
-        if (!$this->isEmbedded()) {
-            yield AssociationField::new('item', 'Item')->setSortable(true);
+        if ($this->isEmbedded()) {
+            // 🔥 EL TRUCO PARA LA GALERÍA
+            yield AssociationField::new('item')
+                ->setFormTypeOption('row_attr', ['class' => 'd-none'])
+                ->setLabel(false);
+        } else {
+            yield AssociationField::new('item', 'Item')
+                ->setRequired(true)
+                ->setSortable(true);
         }
 
         yield LiipImageField::new('imageUrl', 'Vista Previa')

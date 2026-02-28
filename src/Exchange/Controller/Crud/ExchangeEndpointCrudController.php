@@ -104,7 +104,7 @@ class ExchangeEndpointCrudController extends BaseCrudController
         yield TextField::new('nombre', 'Nombre Descriptivo');
 
         yield TextField::new('endpoint', 'Endpoint / Path')
-            ->setHelp('Ruta de la API. Ej: /bookings o /wa/api/v1/msg')
+            ->setHelp('Ruta de la API. Ej: bookings o wa/api/v1/msg')
             ->setRequired(true);
 
         yield ChoiceField::new('metodo', 'Método HTTP')

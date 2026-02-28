@@ -14,7 +14,6 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'msg_conversation')]
-#[ORM\HasLifecycleCallbacks]
 class MessageConversation
 {
     use IdTrait;
@@ -27,25 +26,18 @@ class MessageConversation
     #[ORM\Column(type: 'string', length: 20, options: ['default' => self::STATUS_OPEN])]
     private string $status = self::STATUS_OPEN;
 
-    // --- EL JOIN LÓGICO ---
     #[ORM\Column(type: 'string', length: 50)]
     private string $contextType;
 
     #[ORM\Column(type: 'string', length: 100)]
     private string $contextId;
 
-    // --- SNAPSHOT DEL CLIENTE ---
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
     private ?string $guestName = null;
 
     #[ORM\Column(type: 'string', length: 30, nullable: true)]
     private ?string $guestPhone = null;
 
-    // --- IDIOMA VIVO (RELACIÓN FÍSICA) ---
-    /**
-     * Idioma vivo de la conversación.
-     * Nace de la reserva, pero puede evolucionar por IA o manualmente.
-     */
     #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
     #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: false)]
     private MaestroIdioma $idioma;
@@ -62,8 +54,6 @@ class MessageConversation
 
         $this->id = Uuid::v7();
     }
-
-    // --- GETTERS Y SETTERS ---
 
     public function getStatus(): string { return $this->status; }
     public function setStatus(string $status): self { $this->status = $status; return $this; }
@@ -91,7 +81,6 @@ class MessageConversation
 
     public function removeMessage(Message $message): self {
         if ($this->messages->removeElement($message)) {
-            // set the owning side to null (unless already changed)
             if ($message->getConversation() === $this) {
                 $message->setConversation(null);
             }
@@ -99,7 +88,6 @@ class MessageConversation
         return $this;
     }
 
-    // Método de conveniencia para EasyAdmin / UI
     public function __toString(): string
     {
         return sprintf('%s (%s)', $this->guestName ?? 'Sin Nombre', $this->guestPhone ?? 'Sin Teléfono');

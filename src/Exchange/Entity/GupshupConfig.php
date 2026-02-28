@@ -28,8 +28,8 @@ class GupshupConfig implements ChannelConfigInterface
     #[ORM\Column(type: 'boolean', nullable: false, options: ['default' => true])]
     private bool $activo = true;
 
-    #[ORM\Column(type: 'string', length: 255, nullable: true, options: ['default' => 'https://api.gupshup.io/wa/api/v1/msg'])]
-    private ?string $baseUrl = 'https://api.gupshup.io/wa/api/v1/msg';
+    #[ORM\Column(type: 'string', length: 255, nullable: true, options: ['default' => 'https://api.gupshup.io/'])]
+    private ?string $baseUrl = 'https://api.gupshup.io/';
 
     #[ORM\Column(type: 'json')]
     private array $credentials = [];

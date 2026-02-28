@@ -19,14 +19,12 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_guia_item')]
-#[ORM\HasLifecycleCallbacks]
 class PmsGuiaItem
 {
     use IdTrait;
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    // Tipos actualizados según tu controlador
     public const TIPO_TARJETA = 'card';
     public const TIPO_ALBUM = 'album';
     public const TIPO_AVISO = 'alert';
@@ -58,7 +56,6 @@ class PmsGuiaItem
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     private ?array $labelBoton = [];
 
-    // Aquí se guardará la URL del botón y cualquier configuración futura
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $metadata = [];
 
@@ -81,39 +78,14 @@ class PmsGuiaItem
         $this->metadata = [];
     }
 
-    // =========================================================================
-    // 🔗 PROPIEDAD VIRTUAL: URL BOTÓN
-    // =========================================================================
-
-    /**
-     * Esta propiedad NO existe en la BD, se lee del JSON metadata.
-     * Al tener el grupo 'pax_evento:read', la API la enviará limpia al Vue.
-     */
     #[Groups(['pax_evento:read'])]
-    public function getUrlBoton(): ?string
-    {
-        return $this->metadata['urlBoton'] ?? null;
-    }
-
-    public function setUrlBoton(?string $val): self
-    {
-        if ($this->metadata === null) {
-            $this->metadata = [];
-        }
-
-        // Si viene vacío, lo limpiamos para no ensuciar el JSON
-        if (empty($val)) {
-            unset($this->metadata['urlBoton']);
-        } else {
-            $this->metadata['urlBoton'] = $val;
-        }
-
+    public function getUrlBoton(): ?string { return $this->metadata['urlBoton'] ?? null; }
+    public function setUrlBoton(?string $val): self {
+        if ($this->metadata === null) $this->metadata = [];
+        if (empty($val)) unset($this->metadata['urlBoton']);
+        else $this->metadata['urlBoton'] = $val;
         return $this;
     }
-
-    // =========================================================================
-    // 📥 GETTERS Y SETTERS
-    // =========================================================================
 
     public function getNombreInterno(): ?string { return $this->nombreInterno; }
     public function setNombreInterno(string $nombreInterno): self { $this->nombreInterno = $nombreInterno; return $this; }
@@ -144,14 +116,9 @@ class PmsGuiaItem
 
     public function __toString(): string { return $this->nombreInterno ?: ($this->titulo['es'] ?? 'Ítem sin nombre'); }
 
-    // =========================================================================
-    // ✅ VALIDACIONES
-    // =========================================================================
-
     #[Assert\Callback]
     public function validate(ExecutionContextInterface $context): void
     {
-        // 1. Título Español Obligatorio
         $espanolEncontrado = false;
         if (!empty($this->titulo)) {
             foreach ($this->titulo as $item) {
@@ -161,11 +128,8 @@ class PmsGuiaItem
                 }
             }
         }
-        if (!$espanolEncontrado) {
-            $context->buildViolation('El título en español es obligatorio.')->atPath('titulo')->addViolation();
-        }
+        if (!$espanolEncontrado) $context->buildViolation('El título en español es obligatorio.')->atPath('titulo')->addViolation();
 
-        // 2. Coherencia del Botón: Si hay URL, debe haber Texto
         $hasUrl = !empty($this->getUrlBoton());
         $hasLabel = false;
         if (!empty($this->labelBoton)) {
@@ -176,11 +140,7 @@ class PmsGuiaItem
                 }
             }
         }
-
-        if ($hasUrl && !$hasLabel) {
-            $context->buildViolation('Si pones una URL, el botón debe tener texto.')
-                ->atPath('labelBoton')
-                ->addViolation();
-        }
+        if ($hasUrl && !$hasLabel) $context->buildViolation('Si pones una URL, el botón debe tener texto.')->atPath('labelBoton')->addViolation();
     }
+
 }

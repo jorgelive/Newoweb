@@ -59,3 +59,13 @@ vich_uploader:
             inject_on_load: false
             delete_on_update: true
             delete_on_remove: true
+
+
+        message_attachments:
+            uri_prefix: '%message.path.message_attachments%'
+            upload_destination: '%app.public_dir%%message.path.message_attachments%'
+            namer: App\Panel\Naming\MediaTokenNamer
+
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true

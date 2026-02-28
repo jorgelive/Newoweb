@@ -8,7 +8,6 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
-use App\Api\Provider\Pms\PmsReservaByLocalizadorProvider;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Maestro\MaestroPais;
 use App\Entity\Maestro\MaestroIdioma;
@@ -23,14 +22,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
-/**
- * Entidad PmsReserva.
- * Centraliza la información de una reserva maestra.
- * 🧼 LIMPIA: 100% libre de acoplamientos con el módulo de Mensajes.
- */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_reserva')]
-#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
         new Get(
@@ -52,18 +45,12 @@ class PmsReserva
     use LocatorTrait;
     use TimestampTrait;
 
-    /* ======================================================
-     * IDENTIFICADORES EXTERNOS
-     * ====================================================== */
     #[ORM\Column(type: 'bigint', unique: true, nullable: true)]
     private ?string $beds24MasterId = null;
 
     #[ORM\Column(type: 'bigint', nullable: true)]
     private ?string $beds24BookIdPrincipal = null;
 
-    /* ======================================================
-     * DATOS DEL CLIENTE
-     * ====================================================== */
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
     #[Assert\NotBlank(message: 'El nombre del cliente es obligatorio.')]
     #[Assert\Length(max: 180)]
@@ -88,15 +75,10 @@ class PmsReserva
     #[Assert\Length(max: 150)]
     private ?string $emailCliente = null;
 
-    /* ======================================================
-     * RELACIONES MAESTRAS (IDs NATURALES)
-     * ====================================================== */
-
     #[ORM\ManyToOne(targetEntity: PmsEstablecimiento::class, inversedBy: 'reservas')]
     #[ORM\JoinColumn(name: 'establecimiento_id', referencedColumnName: 'id', nullable: false)]
     private ?PmsEstablecimiento $establecimiento = null;
 
-    // ✅ NUEVO: El canal principal/ganador de la reserva
     #[ORM\ManyToOne(targetEntity: PmsChannel::class)]
     #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: true)]
     private ?PmsChannel $channel = null;
@@ -114,9 +96,6 @@ class PmsReserva
     #[Assert\NotNull(message: 'El idioma es obligatorio.')]
     private ?MaestroIdioma $idioma = null;
 
-    /* ======================================================
-     * DETALLES DE ESTANCIA Y MONTOS
-     * ====================================================== */
     #[ORM\Column(type: 'integer', nullable: true)]
     #[Assert\PositiveOrZero(message: 'La cantidad de adultos no puede ser negativa.')]
     private ?int $cantidadAdultos = null;
@@ -148,9 +127,6 @@ class PmsReserva
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $nota = null;
 
-    /* ======================================================
-     * COLECCIONES Y CAMPOS AGREGADOS (CACHÉ)
-     * ====================================================== */
     #[ORM\OneToMany(mappedBy: 'reserva', targetEntity: PmsEventoCalendario::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Assert\Valid]
     private Collection $eventosCalendario;
@@ -174,47 +150,28 @@ class PmsReserva
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTimeInterface $ultimaFechaModificacionCanal = null;
 
-
     public function __construct()
     {
         $this->eventosCalendario = new ArrayCollection();
         $this->huespedes = new ArrayCollection();
         $this->initializeLocator();
-
         $this->id = Uuid::v7();
     }
 
-    /* ======================================================
-     * GETTERS DE SERIALIZACIÓN (API PAX)
-     * ====================================================== */
+    #[Groups(['pax_reserva:read'])]
+    public function getLocalizador(): ?string { return $this->localizador; }
 
     #[Groups(['pax_reserva:read'])]
-    public function getLocalizador(): ?string
-    {
-        return $this->localizador;
-    }
+    public function getNombreCompleto(): ?string { return $this->getNombreApellido(); }
 
     #[Groups(['pax_reserva:read'])]
-    public function getNombreCompleto(): ?string
-    {
-        return $this->getNombreApellido();
-    }
+    public function getNumeroNoches(): int { return $this->getNoches(); }
 
     #[Groups(['pax_reserva:read'])]
-    public function getNumeroNoches(): int
-    {
-        return $this->getNoches();
-    }
+    public function getPaxTotal(): int { return ($this->cantidadAdultos ?? 0) + ($this->cantidadNinos ?? 0); }
 
     #[Groups(['pax_reserva:read'])]
-    public function getPaxTotal(): int
-    {
-        return ($this->cantidadAdultos ?? 0) + ($this->cantidadNinos ?? 0);
-    }
-
-    #[Groups(['pax_reserva:read'])]
-    public function getNombreHotel(): string
-    {
+    public function getNombreHotel(): string {
         $evento = $this->eventosCalendario->first();
         if ($evento && $evento->getPmsUnidad()) {
             return $evento->getPmsUnidad()->getEstablecimiento()?->getNombreComercial() ?? 'Hotel por confirmar';
@@ -223,34 +180,16 @@ class PmsReserva
     }
 
     #[Groups(['pax_reserva:read'])]
-    public function getNombreHabitacion(): string
-    {
-        if ($this->eventosCalendario->isEmpty()) {
-            return 'Pendiente';
-        }
-
+    public function getNombreHabitacion(): string {
+        if ($this->eventosCalendario->isEmpty()) return 'Pendiente';
         $nombres = [];
-
         foreach ($this->eventosCalendario as $evento) {
             $unidad = $evento->getPmsUnidad();
-            if ($unidad && $unidad->getNombre()) {
-                $nombres[] = $unidad->getNombre();
-            }
+            if ($unidad && $unidad->getNombre()) $nombres[] = $unidad->getNombre();
         }
-
-        if (empty($nombres)) {
-            return 'Habitación estándar';
-        }
-
-        $nombres = array_unique($nombres);
-
-        return implode(', ', $nombres);
+        if (empty($nombres)) return 'Habitación estándar';
+        return implode(', ', array_unique($nombres));
     }
-
-    /* ======================================================
-     * MÉTODOS AUXILIARES Y LÓGICA DE NEGOCIO
-     * ====================================================== */
-
 
     public function getEstablecimiento(): ?PmsEstablecimiento { return $this->establecimiento; }
     public function setEstablecimiento(?PmsEstablecimiento $val): self { $this->establecimiento = $val; return $this; }
@@ -291,15 +230,8 @@ class PmsReserva
         return $hasError ? 'error' : (!$allSynced ? 'pending' : 'synced');
     }
 
-    /* ======================================================
-     * GETTERS Y SETTERS EXPLÍCITOS
-     * ====================================================== */
-
     #[Groups(['pax_reserva:read'])]
-    public function getId(): ?Uuid
-    {
-        return $this->id;
-    }
+    public function getId(): ?Uuid { return $this->id; }
 
     public function getBeds24MasterId(): ?string { return $this->beds24MasterId; }
     public function setBeds24MasterId(?string $val): self { $this->beds24MasterId = $val; return $this; }
@@ -327,7 +259,6 @@ class PmsReserva
     public function getEmailCliente(): ?string { return $this->emailCliente; }
     public function setEmailCliente(?string $val): self { $this->emailCliente = $val; return $this; }
 
-    // ✅ GETTER / SETTER DEL CANAL / campo propagado por listener, ganador si hay directos
     #[Groups(['pax_reserva:read'])]
     public function getChannel(): ?PmsChannel { return $this->channel; }
     public function setChannel(?PmsChannel $val): self { $this->channel = $val; return $this; }
@@ -388,7 +319,6 @@ class PmsReserva
 
     #[Groups(['pax_reserva:read'])]
     public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
-
     public function addEventosCalendario(PmsEventoCalendario $evento): self {
         if (!$this->eventosCalendario->contains($evento)) {
             $this->eventosCalendario->add($evento);
@@ -396,7 +326,6 @@ class PmsReserva
         }
         return $this;
     }
-
     public function removeEventosCalendario(PmsEventoCalendario $evento): self {
         if ($this->eventosCalendario->removeElement($evento)) {
             if ($evento->getReserva() === $this) $evento->setReserva(null);
@@ -405,7 +334,6 @@ class PmsReserva
     }
 
     public function getHuespedes(): Collection { return $this->huespedes; }
-
     public function addHuesped(PmsReservaHuesped $huesped): self {
         if (!$this->huespedes->contains($huesped)) {
             $this->huespedes->add($huesped);
@@ -413,7 +341,6 @@ class PmsReserva
         }
         return $this;
     }
-
     public function removeHuesped(PmsReservaHuesped $huesped): self {
         if ($this->huespedes->removeElement($huesped)) {
             if ($huesped->getReserva() === $this) $huesped->setReserva(null);
@@ -428,4 +355,6 @@ class PmsReserva
             $this->getLocalizador() ?? 'Sin Loc.'
         );
     }
+
+
 }

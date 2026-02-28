@@ -31,7 +31,6 @@ parameters:
 
     pms.path.huesped_docs: '/carga/pms/pms_reserva_huesped/documento'
     pms.path.huesped_firmas: '/carga/pms/pms_reserva_huesped/firmas'
-
     pms.path.galeria_images: '/carga/pms/pms_guia_item_galeria/images'
-
     pms.path.unidad_images: '/carga/pms/pms_unidad/images'
+    message.path.message_attachments: '/carga/message/message_attachment/file'
