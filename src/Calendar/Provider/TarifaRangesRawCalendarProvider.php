@@ -271,7 +271,7 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
             $out[] = new CalendarResourceDto(id: $id, title: $title);
         }
 
-        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => (string) $a->id <=> (string) $b->id);
+        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
 
         return $out;
     }

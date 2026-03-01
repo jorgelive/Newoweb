@@ -227,7 +227,7 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
             $out[] = new CalendarResourceDto(id: $unitKey, title: $title);
         }
 
-        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => (string)$a->id <=> (string)$b->id);
+        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
 
         return $out;
     }

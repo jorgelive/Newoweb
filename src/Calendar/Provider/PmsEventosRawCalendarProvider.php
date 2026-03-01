@@ -85,6 +85,8 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
             $out[] = new CalendarResourceDto(id: $id, title: (string) $unidad);
         }
 
+        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
+
         return $out;
     }
 
