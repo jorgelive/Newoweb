@@ -125,7 +125,7 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
     {
         $resourceCfg = isset($config['resource']) && is_array($config['resource']) ? $config['resource'] : null;
         if (empty($resourceCfg)) {
-            return [new CalendarResourceDto(id: 'default', title: 'Default')];
+            return [new CalendarResourceDto(id: 'default', title: 'Default', orden: 0)];
         }
 
         $seen = [];
@@ -134,23 +134,17 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
         foreach ($entities as $entity) {
             $resourceRoot = $entity;
 
-            // root: por ejemplo "unit" (ReservaReserva->getUnit()->...)
             if (!empty($resourceCfg['root'])) {
                 $resourceRoot = $this->resolvePath($entity, (string) $resourceCfg['root']);
             }
-            if ($resourceRoot === null) {
-                continue;
-            }
+            if ($resourceRoot === null) continue;
 
             $id = $this->resolvePath($resourceRoot, (string) ($resourceCfg['id'] ?? 'id'));
-            if ($id === null) {
-                continue;
-            }
+            if ($id === null) continue;
 
             $key = (string) $id;
-            if (isset($seen[$key])) {
-                continue;
-            }
+            if (isset($seen[$key])) continue;
+
             $seen[$key] = true;
 
             $titleVal = $this->resolvePath($resourceRoot, (string) ($resourceCfg['title'] ?? 'title'));
@@ -159,9 +153,20 @@ final class DoctrineCalendarProvider implements CalendarProviderInterface
             $out[] = new CalendarResourceDto(id: $id, title: $title);
         }
 
-        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => (string) $a->id <=> (string) $b->id);
+        // 1. Orden Natural Alfabético
+        usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
 
-        return $out;
+        // 🔥 2. Inyección del índice de Orden
+        $finalOut = [];
+        foreach ($out as $index => $resource) {
+            $finalOut[] = new CalendarResourceDto(
+                id: $resource->id,
+                title: $resource->title,
+                orden: $index
+            );
+        }
+
+        return $finalOut;
     }
 
     /**

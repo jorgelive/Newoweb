@@ -227,9 +227,20 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
             $out[] = new CalendarResourceDto(id: $unitKey, title: $title);
         }
 
+        // 1. Orden Natural Alfabético
         usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
 
-        return $out;
+        // 🔥 2. Inyección del índice de Orden
+        $finalOut = [];
+        foreach ($out as $index => $resource) {
+            $finalOut[] = new CalendarResourceDto(
+                id: $resource->id,
+                title: $resource->title,
+                orden: $index
+            );
+        }
+
+        return $finalOut;
     }
 
     /**

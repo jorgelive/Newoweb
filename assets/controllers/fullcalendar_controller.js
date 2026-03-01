@@ -233,6 +233,7 @@ export default class extends Controller {
             editable: false,
             resourceAreaHeaderContent: this.getCurrentConfig().nombre,
             refetchResourcesOnNavigate: true,
+            resourceOrder: 'orden',
             eventOrder: '-prioridadImportante,-duration,start',
             eventOrderStrict: true,
 

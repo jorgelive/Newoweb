@@ -15,6 +15,7 @@ final class CalendarResourceDto implements JsonSerializable
     public function __construct(
         public readonly string|int|object $id,
         public readonly string $title,
+        public readonly int $orden = 0,
         public readonly ?array $extendedProps = null,
     ) {}
 
@@ -28,11 +29,13 @@ final class CalendarResourceDto implements JsonSerializable
         $out = [
             'id' => (string) $this->id,
             'title' => $this->title,
+            'orden' => $this->orden
         ];
 
         if (!empty($this->extendedProps)) {
             $out['extendedProps'] = $this->extendedProps;
         }
+
 
         return $out;
     }

@@ -233,10 +233,7 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
             if ($resourceRootPath !== '') {
                 $resourceRoot = $this->resolvePath($entity, $resourceRootPath);
             }
-
-            if (!is_object($resourceRoot)) {
-                continue;
-            }
+            if (!is_object($resourceRoot)) continue;
 
             $id = null;
             if ($resourceIdPath !== '') {
@@ -245,18 +242,12 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
                 $id = $resourceRoot->getId();
             }
 
-            if ($id instanceof Uuid) {
-                $id = (string) $id;
-            }
-
-            if (!is_scalar($id) || $id === '') {
-                continue;
-            }
+            if ($id instanceof Uuid) $id = (string) $id;
+            if (!is_scalar($id) || $id === '') continue;
 
             $key = (string) $id;
-            if (isset($seen[$key])) {
-                continue;
-            }
+            if (isset($seen[$key])) continue;
+
             $seen[$key] = true;
 
             $titleVal = null;
@@ -271,9 +262,20 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
             $out[] = new CalendarResourceDto(id: $id, title: $title);
         }
 
+        // 1. Orden Natural Alfabético
         usort($out, static fn (CalendarResourceDto $a, CalendarResourceDto $b): int => strnatcasecmp($a->title, $b->title));
 
-        return $out;
+        // 🔥 2. Inyección del índice de Orden
+        $finalOut = [];
+        foreach ($out as $index => $resource) {
+            $finalOut[] = new CalendarResourceDto(
+                id: $resource->id,
+                title: $resource->title,
+                orden: $index
+            );
+        }
+
+        return $finalOut;
     }
 
     private function fetchEntities(DateTimeInterface $from, DateTimeInterface $to, array $config): array
