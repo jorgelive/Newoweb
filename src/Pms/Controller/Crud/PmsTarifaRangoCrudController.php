@@ -145,10 +145,16 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
             ->setRequired(true);
 
         yield DateField::new('fechaInicio', 'Inicio')
-            ->setFormat('yyyy/MM/dd');
+            ->setFormat('dd/MM/yyyy')
+            ->setFormTypeOptions([
+                'widget' => 'single_text', 'html5' => true,
+                'attr' => ['data-controller' => 'panel--pms-tarifa-rango--form-tarifa-fechas', 'data-action' => 'change->panel--pms-tarifa-rango--form-tarifa-fechas#updateEnd']
+            ]);
+
+
 
         yield DateField::new('fechaFin', 'Fin')
-            ->setFormat('yyyy/MM/dd');
+            ->setFormat('dd/MM/yyyy');
 
         // ============================================================
         // 2. CONFIGURACIÓN ECONÓMICA
@@ -196,12 +202,12 @@ final class PmsTarifaRangoCrudController extends BaseCrudController
 
         yield DateTimeField::new('createdAt', 'Creado')
             ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
 
         yield DateTimeField::new('updatedAt', 'Actualizado')
             ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
     }
 }

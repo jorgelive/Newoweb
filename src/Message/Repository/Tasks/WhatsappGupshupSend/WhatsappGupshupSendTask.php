@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
+namespace App\Message\Repository\Tasks\WhatsappGupshupSend;
 
 use App\Exchange\Service\Context\SyncContext;
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;

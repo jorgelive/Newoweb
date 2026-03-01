@@ -25,6 +25,7 @@
         "doctrine/doctrine-migrations-bundle": "^3.2",
         "doctrine/orm": "^2.12",
         "easycorp/easyadmin-bundle": "^4.27",
+        "giggsey/libphonenumber-for-php": "^9.0",
         "google/cloud-translate": "^2.0",
         "jeroendesloovere/vcard": "^1.7",
         "johngrogg/ics-parser": "^3.1",

@@ -9,7 +9,7 @@ services:
         resource: '../../src/Message/'
         exclude:
             - '../../src/Message/Dto/'
-            - '../../src/Messaage/Entity/'
+            - '../../src/Message/Entity/'
 
     # =========================
     # controllers del módulo Pms

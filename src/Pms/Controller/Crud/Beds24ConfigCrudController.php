@@ -103,7 +103,7 @@ class Beds24ConfigCrudController extends BaseCrudController
             ->onlyOnDetail();
 
         yield DateTimeField::new('authTokenExpiresAt', 'Expira')
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
 
         yield FormField::addPanel('Seguridad Webhook')->setIcon('fa fa-shield');
@@ -124,12 +124,12 @@ class Beds24ConfigCrudController extends BaseCrudController
 
         yield DateTimeField::new('createdAt', 'Creado')
             ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true); // Visible pero readonly en form
 
         yield DateTimeField::new('updatedAt', 'Actualizado')
             ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
     }
 }

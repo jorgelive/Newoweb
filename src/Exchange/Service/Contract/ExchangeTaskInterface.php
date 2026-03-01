@@ -5,6 +5,7 @@ namespace App\Exchange\Service\Contract;
 
 use App\Exchange\Service\Context\SyncContext;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Contrato unificado para Tareas de Exchange (Nueva Arquitectura).
@@ -13,6 +14,7 @@ use App\Exchange\Service\Mapping\MappingStrategyInterface;
  * 2. Strategy: Cómo se transforman y envían.
  * 3. Handler:  Cómo se procesa la respuesta.
  */
+#[AutoconfigureTag('app_exchange_task')]
 interface ExchangeTaskInterface
 {
     /**

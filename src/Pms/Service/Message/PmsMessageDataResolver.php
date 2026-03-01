@@ -8,6 +8,7 @@ use App\Message\Contract\MessageDataResolverInterface;
 use App\Pms\Entity\PmsReserva;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * PmsMessageDataResolver
@@ -19,7 +20,9 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 class PmsMessageDataResolver implements MessageDataResolverInterface
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        #[Autowire('%pax_book_guide_url%')]
+        private readonly string $paxBookGuideUrl
     ) {}
 
     public function supports(string $contextType): bool
@@ -68,11 +71,12 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
 
         $canal = $reserva->getChannel();
         $pais = $reserva->getPais();
+        $localizador = $reserva->getLocalizador();
 
         return [
             'guest_name'      => $reserva->getNombreCliente(),
             'guest_full_name' => trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()),
-            'locator'         => $reserva->getLocalizador(),
+            'locator'         => $localizador,
             'checkin_date'    => $reserva->getFechaLlegada()?->format('d/m/Y') ?? '',
             'checkout_date'   => $reserva->getFechaSalida()?->format('d/m/Y') ?? '',
             'nights'          => $reserva->getNoches(),
@@ -82,6 +86,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'room_name'       => $reserva->getNombreHabitacion(),
             'channel_name'    => $canal ? $canal->getNombre() : 'Directo',
             'guest_country'   => $pais ? $pais->getNombre() : '',
+            'url_guide'       => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador,
         ];
     }
 }

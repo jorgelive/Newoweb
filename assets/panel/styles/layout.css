@@ -6,4 +6,7 @@
 .ea-side-menu {
     background-color: var(--pms-primary);
 }
+
+.ea-detail .field-group .field-label {width: 80px; overflow: hidden;}
+
 .form-fieldset-body.show {padding-left: 12px;}

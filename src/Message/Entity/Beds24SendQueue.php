@@ -126,7 +126,7 @@ class Beds24SendQueue implements MessageQueueItemInterface
 
     public function markFailure(string $reason, ?int $httpCode, DateTimeImmutable $nextRetry): void
     {
-        $this->status = self::STATUS_PENDING;
+        $this->status = self::STATUS_FAILED;
         // Cortamos el error para que quepa en la columna TEXT (65kb)
         $this->failedReason = mb_substr($reason, 0, 65000);
         $this->lastHttpCode = $httpCode;

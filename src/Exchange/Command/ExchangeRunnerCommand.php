@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Pms\Command;
+namespace App\Exchange\Command;
 
 use App\Exchange\Service\Engine\ExchangeOrchestrator;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -13,24 +13,25 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * PmsExchangeRunnerCommand
+ * ExchangeRunnerCommand
  * * --- PROPÓSITO ---
  * Este es el MOTOR DE EJECUCIÓN (Runner). Su función es consumir las colas generadas
  * por el TimelineEnqueuer y realizar las llamadas reales a la API de Beds24.
  * * --- RELACIÓN CON EL ENQUEUER ---
  * 1. PmsTimelineEnqueuerCommand: Encuentra cambios y los mete en la tabla '_queue'.
- * 2. PmsExchangeRunnerCommand (Este): Lee la tabla '_queue' y envía los datos.
+ * 2. ExchangeRunnerCommand (Este): Lee la tabla '_queue' y envía los datos.
  * * --- EJEMPLOS DE USO ---
- * @example php bin/console pms:exchange:run bookings_pull   -> Ejecuta importación de reservas pendientes.
- * @example php bin/console pms:exchange:run bookings_push   -> Envía cambios de reservas a Beds24.
- * @example php bin/console pms:exchange:run rates_push      -> Envía actualizaciones de precios a Beds24.
- * @example php bin/console pms:exchange:run rates_push --limit=100 -> Procesa un lote más grande.
+ * @example php bin/console exchange:run bookings_pull           -> Ejecuta importación de reservas pendientes.
+ * @example php bin/console exchange:run bookings_push           -> Envía cambios de reservas a Beds24.
+ * @example php bin/console exchange:run rates_push              -> Envía actualizaciones de precios a Beds24.
+ * @example php bin/console exchange:run rates_push --limit=100  -> Procesa un lote más grande.
+ * @example php bin/console exchange:run beds24_message_push     -> Envía los mensajes a Beds24.
  */
 #[AsCommand(
-    name: 'pms:exchange:run', // Nombre semántico: Acción + Ejecución
+    name: 'exchange:run', // Nombre semántico: Acción + Ejecución
     description: 'Ejecuta el motor de intercambio para procesar los ítems pendientes en una cola específica.',
 )]
-class PmsExchangeRunnerCommand extends Command
+class ExchangeRunnerCommand extends Command
 {
     public function __construct(
         private readonly ExchangeOrchestrator $orchestrator

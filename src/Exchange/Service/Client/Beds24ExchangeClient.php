@@ -1,15 +1,16 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Pms\Service\Exchange\Client;
+namespace App\Exchange\Service\Client;
 
 use App\Exchange\Entity\Beds24Config;
+use App\Exchange\Service\Auth\Beds24AuthService;
 use App\Exchange\Service\Common\ExchangeNetworkResult;
 use App\Exchange\Service\Contract\ExchangeClientInterface;
 use App\Exchange\Service\Mapping\MappingResult;
-use App\Pms\Service\Exchange\Auth\Beds24AuthService;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class Beds24ExchangeClient implements ExchangeClientInterface
@@ -20,7 +21,9 @@ final class Beds24ExchangeClient implements ExchangeClientInterface
         private readonly LoggerInterface $logger
     ) {}
 
-    public static function getClientAlias(): string { return 'beds24'; }
+    public static function getClientAlias(): string {
+        return 'beds24';
+    }
 
     public function send(MappingResult $mapping): ExchangeNetworkResult
     {

@@ -135,12 +135,12 @@ final class PmsEstablecimientoVirtualCrudController extends BaseCrudController
 
         yield DateTimeField::new('createdAt', 'Creado')
             ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
 
         yield DateTimeField::new('updatedAt', 'Actualizado')
             ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
     }
 }

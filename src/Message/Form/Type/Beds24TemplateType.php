@@ -23,7 +23,7 @@ class Beds24TemplateType extends AbstractType
             ])
             ->add('body', CollectionType::class, [
                 'entry_type' => TranslationLongTextType::class,
-                'label' => 'Cuerpo del Mensaje (Soporta [guest_name], [localizador], [casita_url])',
+                'label' => 'Cuerpo del Mensaje ( Soporta {{ guest_name }}, {{ localizador }}, {{ casita_url }} )',
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,

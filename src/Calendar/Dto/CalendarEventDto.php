@@ -49,8 +49,8 @@ final class CalendarEventDto implements JsonSerializable
         $out = [
             'id' => (string) $this->id,
             'title' => $this->title,
-            'start' => $this->start->format('Y-m-d\\TH:i:sP'),
-            'end' => $this->end->format('Y-m-d\\TH:i:sP'),
+            'start' => $this->start->format('Y-m-d\\TH:i:s'),
+            'end' => $this->end->format('Y-m-d\\TH:i:s'),
         ];
 
         if ($this->resourceId !== null) {

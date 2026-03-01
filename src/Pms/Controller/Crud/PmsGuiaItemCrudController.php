@@ -178,7 +178,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
 
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
 
-        yield DateTimeField::new('createdAt', 'Creado')->hideOnIndex()->setFormat('yyyy/MM/dd HH:mm')->setFormTypeOption('disabled', true);
-        yield DateTimeField::new('updatedAt', 'Actualizado')->hideOnIndex()->setFormat('yyyy/MM/dd HH:mm')->setFormTypeOption('disabled', true);
+        yield DateTimeField::new('createdAt', 'Creado')->hideOnIndex()->setFormat('dd/MM/yyyy HH:mm')->setFormTypeOption('disabled', true);
+        yield DateTimeField::new('updatedAt', 'Actualizado')->hideOnIndex()->setFormat('dd/MM/yyyy HH:mm')->setFormTypeOption('disabled', true);
     }
 }

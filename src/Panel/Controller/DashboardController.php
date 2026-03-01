@@ -194,7 +194,7 @@ class DashboardController extends AbstractDashboardController
             ->setSubItems([
                 MenuItem::linkToCrud('Endpoints (Hub)', 'fa fa-link', ExchangeEndpoint::class),
                 MenuItem::linkToCrud('Credenciales Beds24', 'fa fa-key', Beds24Config::class),
-                MenuItem::linkToCrud('Credenciales Gupshup', 'fa fa-whatsapp', GupshupConfig::class),
+                MenuItem::linkToCrud('Credenciales Gupshup', 'fab fa-whatsapp', GupshupConfig::class),
             ])
             ->setPermission(Roles::ADMIN);
 

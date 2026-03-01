@@ -18,8 +18,9 @@ interface ChannelConfigInterface
     public function getId(): mixed;
 
     /**
-     * Retorna el alias del proveedor que debe procesar esta configuración.
-     * Ejemplo: 'beds24', 'airbnb', 'booking'.
+     * Retorna el alias del proveedor que debe procesar esta configuración
+     * Se utiliza para seleccionar el cliente.
+     * Ejemplo: 'beds24', 'gupshup', 'booking'.
      */
     public function getProviderName(): string;
 

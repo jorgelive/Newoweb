@@ -29,6 +29,9 @@ parameters:
 
     pax_host_url: '%env(PAX_HOST_URL)%'
 
+    pax_book_guide_url: '%env(PAX_HOST_URL)%/huesped/reserva'
+
+
     pms.path.huesped_docs: '/carga/pms/pms_reserva_huesped/documento'
     pms.path.huesped_firmas: '/carga/pms/pms_reserva_huesped/firmas'
     pms.path.galeria_images: '/carga/pms/pms_guia_item_galeria/images'

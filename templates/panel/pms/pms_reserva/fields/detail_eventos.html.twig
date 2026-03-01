@@ -94,13 +94,13 @@
                         <div class="text-end">
                             <div class="d-flex justify-content-end gap-2 flex-wrap">
                                 <span class="px-2 py-1 rounded-pill border border-{{ colorBase }} text-{{ colorBase }} bg-white fw-semibold"
-                                      style="font-size:.72rem;">
+                                      style="font-size:.72rem; text-wrap-mode: nowrap;">
                                     {{ evento.estado|default('-') }}
                                 </span>
 
                                 {% if evento.estadoPago %}
                                     <span class="px-2 py-1 rounded-pill border border-{{ pagoColor }} text-{{ pagoColor }} bg-white fw-semibold"
-                                          style="font-size:.72rem;">
+                                          style="font-size:.72rem; text-wrap-mode: nowrap;">
                                         {{ evento.estadoPago }}
                                     </span>
                                 {% endif %}
@@ -232,7 +232,7 @@
                     {# Estado #}
                     <td>
                         <span class="px-2 py-1 rounded-pill border border-{{ estadoBadge }} text-{{ estadoBadge }} bg-white fw-semibold"
-                              style="font-size:.78rem;">
+                              style="font-size:.78rem; text-wrap-mode: nowrap;">
                             {{ evento.estado|default('-') }}
                         </span>
                     </td>
@@ -241,7 +241,7 @@
                     <td>
                         {% if evento.estadoPago %}
                             <span class="px-2 py-1 rounded-pill border border-{{ pagoClass }} text-{{ pagoClass }} bg-white fw-semibold"
-                                  style="font-size:.78rem;">
+                                  style="font-size:.78rem; text-wrap-mode: nowrap;">
                                 {{ evento.estadoPago }}
                             </span>
                         {% else %}

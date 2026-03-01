@@ -22,7 +22,7 @@ class PmsChannel
     public const CODIGO_AIRBNB      = 'airbnb';
     public const CODIGO_VRBO        = 'vrbo';
     public const CODIGO_BOOKING     = 'booking';
-    public const CANAL_PAGO_TOTAL   = [self::CODIGO_BOOKING, self::CODIGO_VRBO];
+    public const CANAL_PAGO_TOTAL   = [self::CODIGO_AIRBNB, self::CODIGO_VRBO];
 
     /**
      * El ID es el código string.

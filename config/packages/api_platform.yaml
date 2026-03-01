@@ -1,7 +1,17 @@
 api_platform:
     title: Hello API Platform
     version: 1.0.0
+
+    # 🔥 AQUI ESTA LA MAGIA: Le decimos dónde buscar los #[ApiResource]
+    mapping:
+        paths:
+            - '%kernel.project_dir%/src/Entity'
+            - '%kernel.project_dir%/src/Pms/Entity'
+            # Descomenta estas líneas si luego quieres exponer APIs de estos módulos:
+            # - '%kernel.project_dir%/src/Exchange/Entity'
+            # - '%kernel.project_dir%/src/Message/Entity'
+
     defaults:
-        stateless: true
+        stateless: false
         cache_headers:
             vary: ['Content-Type', 'Authorization', 'Origin']

@@ -7,11 +7,15 @@ namespace App\Exchange\Service\Engine;
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Contract\ExchangeClientInterface;
 use App\Exchange\Service\Contract\ExchangeTaskInterface;
+use Symfony\Component\DependencyInjection\Attribute\TaggedLocator;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 
 final class ExchangeBatchProcessor
 {
-    public function __construct(private readonly ServiceLocator $clientLocator) {}
+    public function __construct(
+        #[TaggedLocator('app.exchange.client', defaultIndexMethod: 'getClientAlias')]
+        private readonly ServiceLocator $clientLocator
+    ) {}
 
     public function processBatch(ExchangeTaskInterface $task, HomogeneousBatch $batch): array
     {

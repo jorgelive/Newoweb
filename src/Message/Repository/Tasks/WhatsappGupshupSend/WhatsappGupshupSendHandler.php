@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
+namespace App\Message\Repository\Tasks\WhatsappGupshupSend;
 
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
-use App\Message\Entity\WhatsappGupshupSendQueue;
 use App\Message\Entity\Message;
+use App\Message\Entity\WhatsappGupshupSendQueue;
 use DateTimeImmutable;
 use Throwable;
 

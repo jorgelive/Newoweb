@@ -23,7 +23,7 @@ final class CotizacionMenulinkAdmin extends AbstractSecureAdmin
             ->add('menu')         // filtra por menú
             ->add('cotizacion')   // filtra por cotización
             ->add('posicion')
-            ->add('modificado', 'doctrine_orm_datetime_range');
+            ->add('modificado');
     }
 
     protected function configureListFields(ListMapper $list): void

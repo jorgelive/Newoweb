@@ -42,7 +42,7 @@ class MessageConversation
     #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: false)]
     private MaestroIdioma $idioma;
 
-    #[ORM\OneToMany(mappedBy: 'conversation', targetEntity: Message::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'conversation', targetEntity: Message::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $messages;
 

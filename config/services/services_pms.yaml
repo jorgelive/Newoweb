@@ -116,7 +116,7 @@ parameters:
                         params: { tl: 'es' }
             eventTime:
                 start: '12:00:00'
-                end: '11:59:59'
+                end: '11:59:00'
         tarifa_rangos_compactados:
             provider: tarifa_compressed_ranges
             entity: App\Pms\Entity\PmsTarifaRango
@@ -151,7 +151,7 @@ parameters:
                         params: { tl: 'es' }
             eventTime:
                 start: '12:00:00'
-                end: '11:59:59'
+                end: '11:59:00'
 
 services:
 

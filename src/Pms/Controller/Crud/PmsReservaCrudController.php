@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Crud;
 
 use App\Entity\Maestro\MaestroIdioma;
+use App\Message\Entity\MessageTemplate;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoCalendario;
@@ -13,13 +14,17 @@ use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsReservaHuesped;
 use App\Pms\Factory\PmsEventoCalendarioFactory;
 use App\Pms\Form\Type\PmsReservaHuespedType;
+use App\Pms\Service\Message\PmsMessageDataResolver;
 use App\Security\Roles;
+use App\Twig\Extension\PhoneExtension;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\UnitOfWork;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
@@ -31,7 +36,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
 
 final class PmsReservaCrudController extends BaseCrudController
 {
@@ -40,6 +47,9 @@ final class PmsReservaCrudController extends BaseCrudController
         private readonly EntityManagerInterface $entityManager,
         protected AdminUrlGenerator $adminUrlGenerator,
         protected RequestStack $requestStack,
+        private readonly PmsMessageDataResolver $messageDataResolver,
+        // Inyectamos nuestro Formateador Twig para usarlo en el Listado/Detalle
+        private readonly PhoneExtension $phoneExtension
     ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
@@ -59,35 +69,25 @@ final class PmsReservaCrudController extends BaseCrudController
         return $reserva;
     }
 
-    // =========================================================================
-    // ✅ SINCRONIZACIÓN MANUAL + LÓGICA DE FACTORY
-    // =========================================================================
-
     public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if ($entityInstance instanceof PmsReserva) {
-
-            // 1. Sincronizar y procesar Estancias
             foreach ($entityInstance->getEventosCalendario() as $evento) {
                 if (!$evento instanceof PmsEventoCalendario) continue;
-
                 if ($evento->getReserva() === null) {
                     $evento->setReserva($entityInstance);
                 }
-
                 if (!$evento->isOta()) {
                     $this->eventoFactory->hydrateLinksForUi($evento);
                 }
             }
 
-            // 2. Sincronizar Huéspedes (Namelist)
             foreach ($entityInstance->getHuespedes() as $huesped) {
                 if ($huesped instanceof PmsReservaHuesped && $huesped->getReserva() === null) {
                     $huesped->setReserva($entityInstance);
                 }
             }
         }
-
         parent::persistEntity($entityManager, $entityInstance);
     }
 
@@ -97,10 +97,8 @@ final class PmsReservaCrudController extends BaseCrudController
             $uow = $entityManager->getUnitOfWork();
             $metaEvento = $entityManager->getClassMetadata(PmsEventoCalendario::class);
 
-            // 1. Sincronizar y procesar Estancias
             foreach ($entityInstance->getEventosCalendario() as $evento) {
                 if (!$evento instanceof PmsEventoCalendario) continue;
-
                 if ($evento->getReserva() === null) {
                     $evento->setReserva($entityInstance);
                 }
@@ -122,20 +120,14 @@ final class PmsReservaCrudController extends BaseCrudController
                 }
             }
 
-            // 2. Sincronizar Huéspedes (Namelist)
             foreach ($entityInstance->getHuespedes() as $huesped) {
                 if ($huesped instanceof PmsReservaHuesped && $huesped->getReserva() === null) {
                     $huesped->setReserva($entityInstance);
                 }
             }
         }
-
         parent::updateEntity($entityManager, $entityInstance);
     }
-
-    // =========================================================================
-    // CONFIGURACIÓN UI
-    // =========================================================================
 
     public function configureActions(Actions $actions): Actions
     {
@@ -198,6 +190,68 @@ final class PmsReservaCrudController extends BaseCrudController
             ->overrideTemplate('crud/detail', 'panel/pms/pms_reserva/detail.html.twig');
     }
 
+    public function configureResponseParameters(KeyValueStore $responseParameters): KeyValueStore
+    {
+        if ($responseParameters->get('pageName') === Crud::PAGE_DETAIL) {
+            $plantillas = $this->entityManager->getRepository(MessageTemplate::class)->findAll();
+            $plantillasValidas = array_filter($plantillas, function (MessageTemplate $t) {
+                return $t->getWhatsappLinkBody('es') !== null || $t->getWhatsappLinkBody('en') !== null;
+            });
+
+            $responseParameters->set('plantillas_whatsapp', $plantillasValidas);
+        }
+
+        return parent::configureResponseParameters($responseParameters);
+    }
+
+    public function generarWhatsappUrl(AdminContext $context): Response
+    {
+        $reservaId = $context->getRequest()->query->get('entityId');
+        $templateId = $context->getRequest()->query->get('templateId');
+
+        $reserva = $this->entityManager->getRepository(PmsReserva::class)->find($reservaId);
+        $template = $this->entityManager->getRepository(MessageTemplate::class)->find($templateId);
+
+        if (!$reserva instanceof PmsReserva || !$template instanceof MessageTemplate) {
+            $this->addFlash('danger', 'Faltan datos para generar el mensaje.');
+            return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator->setAction(Action::INDEX)->generateUrl());
+        }
+
+        $lang = $reserva->getIdioma() ? (string) $reserva->getIdioma()->getId() : 'es';
+        $cuerpoPlantilla = $template->getWhatsappLinkBody($lang);
+
+        if (!$cuerpoPlantilla) {
+            $this->addFlash('warning', sprintf('La plantilla "%s" no tiene traducción disponible.', $template->getName()));
+            return $this->redirect($context->getReferrer());
+        }
+
+        $variables = $this->messageDataResolver->getTemplateVariables((string)$reserva->getId());
+
+        $replacePairs = [];
+        foreach ($variables as $key => $value) {
+            $replacePairs['{{ ' . $key . ' }}'] = (string) $value;
+            $replacePairs['{{' . $key . '}}'] = (string) $value;
+        }
+
+        $textoFinal = strtr($cuerpoPlantilla, $replacePairs);
+
+        // Se mantiene la regex cruda aquí porque WhatsApp API quiere SÓLO números
+        $telefonoLimpio = preg_replace('/[^0-9]/', '', $reserva->getTelefono() ?? $reserva->getTelefono2() ?? '');
+
+        if (empty($telefonoLimpio)) {
+            $this->addFlash('warning', 'Esta reserva no tiene un número de teléfono válido.');
+            return $this->redirect($context->getReferrer());
+        }
+
+        $whatsappUrl = sprintf(
+            'https://api.whatsapp.com/send/?phone=%s&text=%s&type=phone_number&app_absent=0',
+            $telefonoLimpio,
+            urlencode($textoFinal)
+        );
+
+        return new RedirectResponse($whatsappUrl);
+    }
+
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
@@ -248,7 +302,12 @@ final class PmsReservaCrudController extends BaseCrudController
 
         yield TextField::new('nombreCliente', 'Nombre')->setColumns(6);
         yield TextField::new('apellidoCliente', 'Apellido')->setColumns(6);
-        yield TextField::new('telefono', 'Teléfono')->setColumns(6);
+
+        // 🔥 LLAMAMOS A NUESTRO FILTRO RECIÉN CREADO
+        yield TextField::new('telefono', 'Teléfono')
+            ->setColumns(6)
+            ->formatValue(fn($val) => $val ? $this->phoneExtension->formatPhone($val) : '-');
+
         yield EmailField::new('emailCliente', 'Email')->setColumns(6);
 
         yield AssociationField::new('pais', 'País')
@@ -316,7 +375,7 @@ final class PmsReservaCrudController extends BaseCrudController
 
         yield TextField::new('id', 'UUID')->onlyOnDetail();
 
-        yield DateTimeField::new('createdAt', 'Creado')->hideOnIndex()->setFormat('yyyy/MM/dd HH:mm')->setFormTypeOption('disabled', true);
-        yield DateTimeField::new('updatedAt', 'Actualizado')->hideOnIndex()->setFormat('yyyy/MM/dd HH:mm')->setFormTypeOption('disabled', true);
+        yield DateTimeField::new('createdAt', 'Creado')->hideOnIndex()->setFormat('dd/MM/yyyy HH:mm')->setFormTypeOption('disabled', true);
+        yield DateTimeField::new('updatedAt', 'Actualizado')->hideOnIndex()->setFormat('dd/MM/yyyy HH:mm')->setFormTypeOption('disabled', true);
     }
 }

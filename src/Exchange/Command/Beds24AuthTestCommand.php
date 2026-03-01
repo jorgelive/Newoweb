@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Pms\Command;
+namespace App\Exchange\Command;
 
 use App\Exchange\Entity\Beds24Config;
-use App\Pms\Service\Exchange\Auth\Beds24AuthService;
+use App\Exchange\Service\Auth\Beds24AuthService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

@@ -107,7 +107,7 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
         yield TextField::new('remoteIp', 'IP Origen');
 
         yield DateTimeField::new('receivedAt', 'Recibido')
-            ->setFormat('yyyy/MM/dd HH:mm:ss');
+            ->setFormat('dd/MM/yyyy HH:mm:ss');
 
         // ============================================================
         // 2. DATOS TÉCNICOS (Solo Detalle)
@@ -156,12 +156,12 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
 
         yield DateTimeField::new('createdAt', 'Creado')
             ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
 
         yield DateTimeField::new('updatedAt', 'Actualizado')
             ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
     }
 }

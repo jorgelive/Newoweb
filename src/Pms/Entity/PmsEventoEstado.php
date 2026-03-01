@@ -25,11 +25,11 @@ class PmsEventoEstado
      * CONSTANTES DE ID (Valores originales restaurados)
      * ====================================================== */
 
-    public const CODIGO_PENDIENTE      = 'new';
+    public const CODIGO_PENDIENTE      = 'pendiente';
     public const CODIGO_CONFIRMADA     = 'confirmada';
     public const CODIGO_CANCELADA      = 'cancelada';
-    public const CODIGO_CONSULTA       = 'consulta';
-    public const CODIGO_REQUERIMIENTO  = 'request';
+    public const CODIGO_ABIERTO        = 'abierto';
+    public const CODIGO_REQUERIMIENTO  = 'requerimiento';
     public const CODIGO_BLOQUEO        = 'bloqueo';
 
     /**

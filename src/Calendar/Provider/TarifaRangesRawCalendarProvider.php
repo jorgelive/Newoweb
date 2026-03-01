@@ -50,7 +50,7 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
         $titleFormat = (string) ($eventCfg['titleFormat'] ?? '{currency} {price} | {minStay}');
         $priceDecimals = (int) ($eventCfg['priceDecimals'] ?? 2);
 
-        // UI hours
+        // 🔥 OBTENCIÓN DE HORAS ESTRICTAS DE LA CONFIGURACIÓN (Ej: 12:00:00 y 11:59:59)
         $eventTime = (isset($config['eventTime']) && is_array($config['eventTime'])) ? $config['eventTime'] : [];
         [$sh, $sm, $ss] = $this->parseHms((string)($eventTime['start'] ?? '12:00:00'), [12, 0, 0]);
         [$eh, $em, $es] = $this->parseHms((string)($eventTime['end'] ?? '11:59:59'), [11, 59, 59]);
@@ -59,20 +59,17 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
 
         foreach ($entities as $entity) {
             // 1. Datos básicos (Fechas)
-            $start = $this->resolvePath($entity, (string) $fields['start']);
-            $end = $this->resolvePath($entity, (string) $fields['end']);
+            $startRaw = $this->resolvePath($entity, (string) $fields['start']);
+            $endRaw = $this->resolvePath($entity, (string) $fields['end']);
 
             // Si faltan fechas, saltamos sin error (seguridad)
-            if (!$start instanceof DateTimeInterface || !$end instanceof DateTimeInterface) {
+            if (!$startRaw instanceof DateTimeInterface || !$endRaw instanceof DateTimeInterface) {
                 continue;
             }
 
-            // Aplicar horas UI
-            $startUi = DateTimeImmutable::createFromInterface($start)->setTime($sh, $sm, $ss);
-            $endUi = DateTimeImmutable::createFromInterface($end)->setTime($eh, $em, $es);
-            if ($endUi <= $startUi) {
-                $endUi = DateTimeImmutable::createFromInterface($end);
-            }
+            // 🔥 APLICAMOS LAS HORAS ESTRICTAMENTE SIN TOCAR, SUMAR NI RESTAR DÍAS
+            $startUi = DateTimeImmutable::createFromInterface($startRaw)->setTime($sh, $sm, $ss);
+            $endUi   = DateTimeImmutable::createFromInterface($endRaw)->setTime($eh, $em, $es);
 
             // 2. Active / Inactive
             $isInactive = false;
@@ -89,7 +86,6 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
                 $id = $this->resolvePath($entity, (string) $fields['id']);
             }
 
-            // ✅ FIX: Soporte para UUIDs en el ID del evento
             if ($id instanceof Uuid) {
                 $id = (string) $id;
             }
@@ -103,16 +99,12 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
 
             if (!empty($fields['resourceId'])) {
                 $rid = $this->resolvePath($entity, (string) $fields['resourceId']);
-
-                // ✅ FIX: Soporte para UUIDs en resourceId (unidad.id)
                 if ($rid instanceof Uuid) {
                     $rid = (string) $rid;
                 }
-
                 $resourceId = (is_scalar($rid) && $rid !== '') ? $rid : null;
             } elseif (is_object($resourceRoot) && method_exists($resourceRoot, 'getId')) {
                 $resourceId = $resourceRoot->getId();
-                // ✅ FIX: Soporte para UUIDs si viene del objeto raíz
                 if ($resourceId instanceof Uuid) {
                     $resourceId = (string) $resourceId;
                 }
@@ -142,11 +134,8 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
             // =========================================================
             // 🔥 CÁLCULO DE PRIORIDAD (SCORING)
             // =========================================================
-            // Jerarquía: Importante > Peso > Duración Corta
-
             $prioridadScore = 0;
 
-            // A. Importancia (+10,000,000) - Gana a todo
             if (!empty($fields['important'])) {
                 $val = $this->resolvePath($entity, (string) $fields['important']);
                 if ((bool)$val === true) {
@@ -154,7 +143,6 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
                 }
             }
 
-            // B. Peso (+10,000 * peso) - Gana a la duración
             if (!empty($fields['weight'])) {
                 $val = $this->resolvePath($entity, (string) $fields['weight']);
                 if (is_numeric($val)) {
@@ -162,15 +150,10 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
                 }
             }
 
-            // C. Duración Invertida (+10,000 - días)
-            // Menos días = Más puntaje (Rango corto queda encima)
-            $diff = $start->diff($end);
+            $diff = $startUi->diff($endUi);
             $dias = (int) $diff->format('%a');
-            // Clamp para seguridad: máx 9999 días para no restar demasiado
             $diasSafe = max(0, min($dias, 9999));
-
             $prioridadScore += (10_000 - $diasSafe);
-
 
             // 6. Tooltip
             $tooltip = null;
@@ -209,12 +192,12 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
                 }
             }
 
-            // 8. DTO con Prioridad
+            // 8. DTO
             $out[] = new CalendarEventDto(
                 id: $id,
                 title: $title,
-                start: $startUi,
-                end: $endUi,
+                start: $startUi, // <- Hora exacta del YAML, día exacto de BD
+                end: $endUi,     // <- Hora exacta del YAML, día exacto de BD
                 resourceId: $resourceId,
                 textColor: null,
                 backgroundColor: $backgroundColor,
@@ -224,8 +207,6 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
                 urledit: $urledit,
                 urlshow: $urlshow,
                 tooltip: $tooltip,
-                // Pasamos el cálculo final. Si no hubo configuración de peso/importante,
-                // al menos llevará el puntaje de duración inversa (eventos cortos ganan).
                 prioridadImportante: $prioridadScore
             );
         }
@@ -233,15 +214,10 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
         return $out;
     }
 
-    /**
-     * @return list<CalendarResourceDto>
-     */
     public function getResources(DateTimeInterface $from, DateTimeInterface $to, array $config): array
     {
         $this->assertConfig($config);
-
         $entities = $this->fetchEntities($from, $to, $config);
-
         $fields = (array) $config['fields'];
 
         $resourceRootPath = (string) ($fields['resourceRoot'] ?? '');

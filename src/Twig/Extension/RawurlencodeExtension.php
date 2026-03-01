@@ -1,7 +1,7 @@
 <?php
 
-namespace App\Twig;
-use \Twig\Extension\AbstractExtension;
+namespace App\Twig\Extension;
+use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 
 class RawurlencodeExtension extends AbstractExtension

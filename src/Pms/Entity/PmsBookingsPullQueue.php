@@ -184,7 +184,7 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
      */
     public function markFailure(string $reason, ?int $httpCode, DateTimeImmutable $nextRetry): void {
         $this->status = self::STATUS_FAILED;
-        $this->failedReason = mb_substr($reason, 0, 255);
+        $this->failedReason = mb_substr($reason, 0, 65000);
         $this->lastHttpCode = $httpCode;
         $this->runAt = $nextRetry;
         $this->lockedAt = null;

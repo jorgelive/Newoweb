@@ -29,29 +29,47 @@ class MessageTemplate
     public const string FIELD_BEDS24 = 'beds24Tmpl';
     public const string FIELD_GUPSHUP = 'whatsappGupshupTmpl';
     public const string FIELD_WHATSAPP_LINK = 'whatsappLinkTmpl';
+
     #[ORM\Column(length: 50, unique: true)]
     #[Assert\NotBlank]
     private ?string $code = null;
+
     #[ORM\Column(length: 150)]
     #[Assert\NotBlank]
     private ?string $name = null;
+
     #[ORM\Column(type: 'json')]
     private array $parameters = [];
+
+    // =========================================================================
+    // 🔥 ALCANCE Y SEGREGACIÓN (SCOPE)
+    // =========================================================================
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $contextType = null;
+
     #[ORM\Column(type: 'json', nullable: true)]
-    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['subject', 'body'])] // 👈 Traduce asunto y cuerpo HTML
-    private ?array $emailTmpl = [];
+    private ?array $allowedSources = [];
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $allowedAgencies = [];
 
     // =========================================================================
     // CONFIGURACIONES POR CANAL (Campos JSON con Auto-Traducción)
     // =========================================================================
     #[ORM\Column(type: 'json', nullable: true)]
-    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])] // 👈 Traduce el cuerpo de la OTA
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['subject', 'body'])]
+    private ?array $emailTmpl = [];
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])]
     private ?array $beds24Tmpl = [];
+
     #[ORM\Column(type: 'json', nullable: true)]
-    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['text_reference'])] // 👈 Traduce solo la referencia visual
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['text_reference'])]
     private ?array $whatsappGupshupTmpl = [];
+
     #[ORM\Column(type: 'json', nullable: true)]
-    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])] // 👈 Traduce el texto del link manual
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])]
     private ?array $whatsappLinkTmpl = [];
 
     public function __construct()
@@ -61,6 +79,8 @@ class MessageTemplate
         $this->beds24Tmpl = [];
         $this->whatsappGupshupTmpl = [];
         $this->whatsappLinkTmpl = [];
+        $this->allowedSources = [];
+        $this->allowedAgencies = [];
     }
 
     public static function getTemplateFields(): array
@@ -72,10 +92,6 @@ class MessageTemplate
     {
         return $this->name ?? $this->code ?? 'New Template';
     }
-
-    // =========================================================================
-    // GETTERS Y SETTERS EXPLÍCITOS
-    // =========================================================================
 
     public function getId(): UuidV7
     {
@@ -112,6 +128,40 @@ class MessageTemplate
     public function setParameters(array $parameters): self
     {
         $this->parameters = $parameters;
+        return $this;
+    }
+
+    // --- GETTERS / SETTERS SEGREGACIÓN ---
+    public function getContextType(): ?string
+    {
+        return $this->contextType;
+    }
+
+    public function setContextType(?string $contextType): self
+    {
+        $this->contextType = $contextType;
+        return $this;
+    }
+
+    public function getAllowedSources(): array
+    {
+        return $this->allowedSources ?? [];
+    }
+
+    public function setAllowedSources(?array $allowedSources): self
+    {
+        $this->allowedSources = $allowedSources;
+        return $this;
+    }
+
+    public function getAllowedAgencies(): array
+    {
+        return $this->allowedAgencies ?? [];
+    }
+
+    public function setAllowedAgencies(?array $allowedAgencies): self
+    {
+        $this->allowedAgencies = $allowedAgencies;
         return $this;
     }
 
@@ -159,11 +209,7 @@ class MessageTemplate
         return $this;
     }
 
-    // =========================================================================
-    // HELPERS DE LÓGICA DE NEGOCIO (Extracción tipo MongoDB)
-    // =========================================================================
-
-    // --- INTERRUPTORES (Switches de Encendido/Apagado) ---
+    // --- INTERRUPTORES ---
     public function isEmailActive(): bool
     {
         return ($this->emailTmpl['is_active'] ?? false) === true;
@@ -191,28 +237,22 @@ class MessageTemplate
      */
     private function extract(?array $list, string $lang, string $key = 'content'): ?string
     {
-        if (empty($list) || !is_array($list)) {
-            return null;
-        }
-
+        if (empty($list) || !is_array($list)) return null;
         $foundItem = null;
         $englishItem = null;
 
         foreach ($list as $item) {
             $itemLang = $item['language'] ?? '';
-
             if ($itemLang === $lang) {
                 $foundItem = $item;
                 break;
             }
-
             if ($itemLang === 'en') {
                 $englishItem = $item;
             }
         }
 
         $finalItem = $foundItem ?? $englishItem ?? ($list[0] ?? null);
-
         return $finalItem[$key] ?? null;
     }
 
@@ -223,7 +263,7 @@ class MessageTemplate
         return $this->extract($this->emailTmpl['body'] ?? [], $lang, 'content');
     }
 
-    // --- GETTERS WHATSAPP GUPSHUP (META) ---
+    // --- GETTERS WHATSAPP GUPSHUP ---
 
     public function getBeds24Body(string $lang): ?string
     {
@@ -250,7 +290,7 @@ class MessageTemplate
         return $this->extract($this->whatsappGupshupTmpl['language_mapping'] ?? [], $lang, 'meta_template_id');
     }
 
-    // --- GETTERS WHATSAPP LINK MANUAL ---
+    // --- GETTERS WHATSAPP LINK ---
 
     public function getWhatsappGupshupTextReference(string $lang): ?string
     {

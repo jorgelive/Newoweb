@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Pms\Service\Exchange\Auth;
+namespace App\Exchange\Service\Auth;
 
 use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Entity\ExchangeEndpoint;

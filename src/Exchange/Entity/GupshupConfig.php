@@ -55,6 +55,11 @@ class GupshupConfig implements ChannelConfigInterface
     // IMPLEMENTACIÓN DE ChannelConfigInterface
     // =========================================================================
 
+    /**
+     * Retorna el alias del proveedor que debe procesar esta configuración
+     * Se utiliza para seleccionar el cliente.
+     * Ejemplo: 'beds24', 'gupshup', 'booking'.
+     */
     public function getProviderName(): string
     {
         return 'gupshup';

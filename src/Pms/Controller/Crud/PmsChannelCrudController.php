@@ -123,12 +123,12 @@ final class PmsChannelCrudController extends BaseCrudController
 
         yield DateTimeField::new('createdAt', 'Registrado')
             ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
 
         yield DateTimeField::new('updatedAt', 'Última Modificación')
             ->hideOnIndex()
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
     }
 }

@@ -62,7 +62,7 @@ final class PmsEventoCalendarioSecurityListener
             }
 
             // Bloqueo de degradación a estados informativos
-            if ($idEstado === PmsEventoEstado::CODIGO_CONSULTA) {
+            if ($idEstado === PmsEventoEstado::CODIGO_ABIERTO) {
                 throw new AccessDeniedHttpException(
                     'SEGURIDAD OTA: No se puede degradar una reserva de canal a un estado de consulta.'
                 );

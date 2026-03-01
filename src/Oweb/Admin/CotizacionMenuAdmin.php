@@ -19,7 +19,7 @@ final class CotizacionMenuAdmin extends AbstractSecureAdmin
             ->add('id')
             ->add('nombre')
             ->add('titulo')
-            ->add('modificado', 'doctrine_orm_datetime_range'); // útil
+            ->add('modificado'); // útil
     }
 
     protected function configureListFields(ListMapper $list): void

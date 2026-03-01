@@ -126,16 +126,15 @@ class FullCalendarStimulusExtension extends AbstractExtension
         $calendars,
         $defaultView = null,
         $views = [],
-        $allDaySlot = false,
-        $resourceAreaWidth = 120
+        $resourceAreaWidth = 120,
+        $allDaySlot = false
     ): string {
 
         // =========================
         // Smart arguments logic
         // =========================
         // Detección de firma antigua: si el 5to argumento es numérico, es el ancho.
-        if (is_numeric($allDaySlot)) {
-            $resourceAreaWidth = (int) $allDaySlot;
+        if (!is_bool($allDaySlot)) {
             $allDaySlot = false;
         }
 

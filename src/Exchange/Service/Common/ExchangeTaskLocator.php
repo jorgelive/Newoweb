@@ -5,14 +5,16 @@ namespace App\Exchange\Service\Common;
 
 use App\Exchange\Service\Contract\ExchangeTaskInterface;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\DependencyInjection\Attribute\TaggedLocator;
 use RuntimeException;
 
 final class ExchangeTaskLocator
 {
     /**
-     * @param ContainerInterface $tasks Inyectado automáticamente gracias al !tagged_locator
+     * @param ContainerInterface $tasks Inyectado automáticamente por el Atributo
      */
     public function __construct(
+        #[TaggedLocator('app_exchange_task', defaultIndexMethod: 'getTaskName')]
         private readonly ContainerInterface $tasks
     ) {}
 

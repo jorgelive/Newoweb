@@ -3,6 +3,8 @@ twig:
     globals:
 
         pax_host_url: '%pax_host_url%'
+        pax_book_guide_url: '%pax_book_guide_url%'
+
 
         numero_default: "%numero_default%"
         facturacion_igv_porcentaje: "%facturacion_igv_porcentaje%"

@@ -45,7 +45,7 @@ class PmsEventoCalendario
      */
     public const OTA_ESTADOS_NO_SELECCIONABLES = [
         PmsEventoEstado::CODIGO_CANCELADA,
-        PmsEventoEstado::CODIGO_CONSULTA,
+        PmsEventoEstado::CODIGO_ABIERTO,
         PmsEventoEstado::CODIGO_BLOQUEO,
     ];
 

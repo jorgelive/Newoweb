@@ -6,6 +6,7 @@ namespace App\Message\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Message\Validator\ValidTemplateScope; // 🔥 IMPORTACIÓN REQUERIDA
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -18,6 +19,7 @@ use Symfony\Component\Uid\UuidV7;
 #[ORM\Index(columns: ['status'], name: 'idx_msg_status')]
 #[ORM\Index(columns: ['direction'], name: 'idx_msg_direction')]
 #[ORM\HasLifecycleCallbacks]
+#[ValidTemplateScope] // 🔥 VALIDACIÓN ACTIVA
 class Message
 {
     use IdTrait;
@@ -33,15 +35,10 @@ class Message
     public const string DIRECTION_INCOMING = 'incoming';
     public const string DIRECTION_OUTGOING = 'outgoing';
 
-    // =========================================================================
-    // RELACIONES PRINCIPALES
-    // =========================================================================
-
     #[ORM\ManyToOne(targetEntity: MessageConversation::class, inversedBy: 'messages')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?MessageConversation $conversation = null;
 
-    // 🔥 AHORA ES NULLABLE PARA PERMITIR ENVÍOS MULTI-CANAL (FAN-OUT)
     #[ORM\ManyToOne(targetEntity: MessageChannel::class)]
     #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: true)]
     private ?MessageChannel $channel = null;
@@ -50,25 +47,15 @@ class Message
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?MessageTemplate $template = null;
 
-    // =========================================================================
-    // RELACIONES INVERSAS (COLAS Y ADJUNTOS)
-    // =========================================================================
-
-    /**
-     * @var Collection<int, WhatsappGupshupSendQueue>
-     */
+    /** @var Collection<int, WhatsappGupshupSendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
     private Collection $whatsappGupshupQueues;
 
-    /**
-     * @var Collection<int, Beds24SendQueue>
-     */
+    /** @var Collection<int, Beds24SendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: Beds24SendQueue::class, cascade: ['persist', 'remove'])]
     private Collection $beds24Queues;
 
-    /**
-     * @var Collection<int, MessageAttachment>
-     */
+    /** @var Collection<int, MessageAttachment> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: MessageAttachment::class, cascade: ['persist', 'remove'])]
     private Collection $attachments;
 
@@ -172,11 +159,9 @@ class Message
         // Fallback al external por si el recepcionista escribió el override manual
         $content = $this->contentLocal ?? $this->contentExternal ?? '';
         $subject = $this->subjectLocal ?? $this->subjectExternal ?? '';
-
         if (!empty($subject)) {
             return sprintf("*%s*\n\n%s", trim($subject), trim($content));
         }
-
         return $content;
     }
 
@@ -189,11 +174,9 @@ class Message
         // Fallback de seguridad al local por si el traductor falló
         $content = $this->contentExternal ?? $this->contentLocal ?? '';
         $subject = $this->subjectExternal ?? $this->subjectLocal ?? '';
-
         if (!empty($subject)) {
             return sprintf("*%s*\n\n%s", trim($subject), trim($content));
         }
-
         return $content;
     }
 
@@ -223,17 +206,8 @@ class Message
     public function getExternalId(): ?string { return $this->externalId; }
     public function setExternalId(?string $externalId): self { $this->externalId = $externalId; return $this; }
 
-    // =========================================================================
-    // MÉTODOS DE COLECCIONES (Whatsapp Gupshup)
-    // =========================================================================
-
-    public function getWhatsappGupshupQueues(): Collection
-    {
-        return $this->whatsappGupshupQueues;
-    }
-
-    public function addWhatsappGupshupQueue(WhatsappGupshupSendQueue $queue): self
-    {
+    public function getWhatsappGupshupQueues(): Collection { return $this->whatsappGupshupQueues; }
+    public function addWhatsappGupshupQueue(WhatsappGupshupSendQueue $queue): self {
         if (!$this->whatsappGupshupQueues->contains($queue)) {
             $this->whatsappGupshupQueues->add($queue);
             if ($queue->getMessage() !== $this) {
@@ -242,9 +216,7 @@ class Message
         }
         return $this;
     }
-
-    public function removeWhatsappGupshupQueue(WhatsappGupshupSendQueue $queue): self
-    {
+    public function removeWhatsappGupshupQueue(WhatsappGupshupSendQueue $queue): self {
         if ($this->whatsappGupshupQueues->removeElement($queue)) {
             if ($queue->getMessage() === $this) {
                 $queue->setMessage(null);
@@ -253,17 +225,8 @@ class Message
         return $this;
     }
 
-    // =========================================================================
-    // MÉTODOS DE COLECCIONES (Beds24)
-    // =========================================================================
-
-    public function getBeds24Queues(): Collection
-    {
-        return $this->beds24Queues;
-    }
-
-    public function addBeds24Queue(Beds24SendQueue $queue): self
-    {
+    public function getBeds24Queues(): Collection { return $this->beds24Queues; }
+    public function addBeds24Queue(Beds24SendQueue $queue): self {
         if (!$this->beds24Queues->contains($queue)) {
             $this->beds24Queues->add($queue);
             if ($queue->getMessage() !== $this) {
@@ -272,9 +235,7 @@ class Message
         }
         return $this;
     }
-
-    public function removeBeds24Queue(Beds24SendQueue $queue): self
-    {
+    public function removeBeds24Queue(Beds24SendQueue $queue): self {
         if ($this->beds24Queues->removeElement($queue)) {
             if ($queue->getMessage() === $this) {
                 $queue->setMessage(null);
@@ -283,17 +244,8 @@ class Message
         return $this;
     }
 
-    // =========================================================================
-    // MÉTODOS DE COLECCIONES (Adjuntos)
-    // =========================================================================
-
-    public function getAttachments(): Collection
-    {
-        return $this->attachments;
-    }
-
-    public function addAttachment(MessageAttachment $attachment): self
-    {
+    public function getAttachments(): Collection { return $this->attachments; }
+    public function addAttachment(MessageAttachment $attachment): self {
         if (!$this->attachments->contains($attachment)) {
             $this->attachments->add($attachment);
             if ($attachment->getMessage() !== $this) {
@@ -302,9 +254,7 @@ class Message
         }
         return $this;
     }
-
-    public function removeAttachment(MessageAttachment $attachment): self
-    {
+    public function removeAttachment(MessageAttachment $attachment): self {
         if ($this->attachments->removeElement($attachment)) {
             if ($attachment->getMessage() === $this) {
                 $attachment->setMessage(null);

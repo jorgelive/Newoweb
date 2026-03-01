@@ -5,7 +5,9 @@ namespace App\Exchange\Service\Contract;
 
 use App\Exchange\Service\Common\ExchangeNetworkResult;
 use App\Exchange\Service\Mapping\MappingResult;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
+#[AutoconfigureTag('app.exchange.client')]
 interface ExchangeClientInterface
 {
     public static function getClientAlias(): string;

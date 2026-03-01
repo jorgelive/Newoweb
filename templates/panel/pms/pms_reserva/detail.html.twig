@@ -9,3 +9,39 @@
         </small>
     </h1>
 {% endblock %}
+
+{% block page_actions %}
+
+    {# Dropdown de Plantillas WhatsApp #}
+    {% if plantillas_whatsapp is defined and plantillas_whatsapp|length > 0 %}
+        <div class="btn-group dropdown me-2">
+            <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fab fa-whatsapp me-1"></i> WhatsApp
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow" style="max-inline-size: 340px;">
+                <li><h6 class="dropdown-header">Elegir Plantilla</h6></li>
+
+                {% for plantilla in plantillas_whatsapp %}
+                    <li>
+                        {# Generamos la URL mágica hacia el controlador #}
+                        {% set url = ea_url()
+                            .setController('App\\Pms\\Controller\\Crud\\PmsReservaCrudController')
+                            .setAction('generarWhatsappUrl')
+                            .set('entityId', entity.primaryKeyValue)
+                            .set('templateId', plantilla.id)
+                        %}
+
+                        {# target="_blank" asegura que WhatsApp Web se abra en una nueva pestaña sin sacar al usuario del panel #}
+                        <a class="dropdown-item" href="{{ url }}" target="_blank">
+                            <i class="fab fa-whatsapp text-success me-2"></i> {{ plantilla.name }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {# Imprimimos el resto de botones originales (Editar, Borrar, Crear Bloqueo, etc) #}
+    {{ parent() }}
+
+{% endblock %}

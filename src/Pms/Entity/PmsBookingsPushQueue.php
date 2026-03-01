@@ -148,7 +148,7 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
         $this->failedReason = mb_substr($reason, 0, 65000);
         $this->lastHttpCode = $httpCode; // Guardamos el código HTTP del fallo
 
-        $this->status = self::STATUS_PENDING;
+        $this->status = self::STATUS_FAILED;
         $this->runAt = $nextRetry;
 
         $this->lockedAt = null;

@@ -16,7 +16,7 @@ export default class extends Controller {
         defaultView: String,        // Vista por defecto
         allDaySlot: Boolean,        // Mostrar slot de día completo
         views: { type: Object, default: {} }, // Configuración extendida de vistas
-        resourceAreaWidth: { type: Number, default: 120 } // Ancho columna recursos
+        resourceAreaWidth: { type: Number, default: 80 } // Ancho columna recursos
     };
 
     /**

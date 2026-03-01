@@ -8,6 +8,7 @@ use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueProviderInterface;
 use App\Exchange\Service\Contract\ExchangeTaskInterface;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Tarea de Descarga de Reservas (Bookings Pull).

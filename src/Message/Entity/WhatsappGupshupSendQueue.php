@@ -155,7 +155,7 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
 
     public function markFailure(string $reason, ?int $httpCode, DateTimeImmutable $nextRetry): void
     {
-        $this->status = self::STATUS_PENDING;
+        $this->status = self::STATUS_FAILED;
         // Usamos mb_substr para seguridad con caracteres UTF-8
         $this->failedReason = mb_substr($reason, 0, 65000);
         $this->lastHttpCode = $httpCode;

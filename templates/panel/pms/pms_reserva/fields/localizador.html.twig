@@ -3,11 +3,11 @@
 {% set reserva = entity.instance %}
 
 {% if localizador and reserva %}
-    {% set base_url = pax_host_url|trim('/') %}
-    {% set url = base_url ~ '/huesped/reserva/' ~ localizador %}
+
+    {% set url = pax_book_guide_url|trim('/') ~ '/' ~ localizador %}
 
     <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-secondary font-monospace" style="padding: 0.5em 0.7em;">
+        <span class="badge bg-info-subtle font-monospace" style="padding: 0.5em 0.7em;">
             {{ localizador }}
         </span>
 
