@@ -91,17 +91,30 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                 $minStay = $lr->getMinStay();
                 $currency = $lr->getCurrency();
 
-                $title = number_format($price, 2, '.', '') . ' | ' . $minStay;
+                // 🔥 CÁLCULO DE NETOS (Booking 20% y Airbnb 30%)
+                $netoBooking = $price * 0.80;
+                $netoAirbnb = $price * 0.70;
 
+                // Título formateado: 52.00 (41.60 | 20% - 36.40 | 30%) 2N
+                $title = sprintf('%s (%s | 20%% - %s | 30%%) %dN',
+                    number_format($price, 2, '.', ''),
+                    number_format($netoBooking, 2, '.', ''),
+                    number_format($netoAirbnb, 2, '.', ''),
+                    $minStay
+                );
+
+                // Tooltip extendido con el desglose de netos
                 $tooltip = [
                     $this->scalarToStringOrNull($this->resolvePath($unitObj, (string)($config['fields']['unitTitle'] ?? 'nombre')))
                     ?? (method_exists($unitObj, '__toString') ? (string)$unitObj : ('Unidad ' . (string)$unitKey)),
-                    'Precio: ' . number_format($price, 2, '.', ''),
+                    'Precio Base: ' . number_format($price, 2, '.', ''),
+                    'Neto al 20%: ' . number_format($netoBooking, 2, '.', ''),
+                    'Neto al 30%: ' . number_format($netoAirbnb, 2, '.', ''),
                     'MinStay: ' . $minStay,
                     $currency,
                 ];
 
-                // URLs edit/show (Oweb/EasyAdmin)
+                // --- Lógica de URLs (Mantenida intacta) ---
                 $urledit = null;
                 $urlshow = null;
 
@@ -137,18 +150,10 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                         if (isset($urlCfg['show']) && is_array($urlCfg['show'])) {
                             $show = $urlCfg['show'];
                             if (isset($show['role']) && $this->authorizationChecker->isGranted((string)$show['role'])) {
-                                $params = [];
-                                if (isset($show['params']) && is_array($show['params'])) {
-                                    $params = $show['params'];
-                                }
-
-                                $params = array_merge($params, ['entityId' => $urlId]);
-
-                                // 🔥 2. INYECCIÓN returnTo
+                                $params = array_merge($show['params'] ?? [], ['entityId' => $urlId]);
                                 if (!empty($runtimeReturnTo)) {
                                     $params['returnTo'] = $runtimeReturnTo;
                                 }
-
                                 $urlshow = $this->router->generate((string)$show['route'], $params);
                             }
                         }
@@ -157,17 +162,10 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                         if (isset($urlCfg['edit']) && is_array($urlCfg['edit'])) {
                             $edit = $urlCfg['edit'];
                             if (isset($edit['role']) && $this->authorizationChecker->isGranted((string)$edit['role'])) {
-                                $params = [];
-                                if (isset($edit['params']) && is_array($edit['params'])) {
-                                    $params = $edit['params'];
-                                }
-                                $params = array_merge($params, ['entityId' => $urlId]);
-
-                                // 🔥 2. INYECCIÓN returnTo
+                                $params = array_merge($edit['params'] ?? [], ['entityId' => $urlId]);
                                 if (!empty($runtimeReturnTo)) {
                                     $params['returnTo'] = $runtimeReturnTo;
                                 }
-
                                 $urledit = $this->router->generate((string)$edit['route'], $params);
                             }
                         }
@@ -181,7 +179,6 @@ final class TarifaCompressedRangesCalendarProvider implements CalendarProviderIn
                 $eventStart = $lr->getStart()->setTime($sh, $sm, $ss);
                 $eventEnd = $lr->getEnd()->setTime($eh, $em, $es);
 
-                // Safety mínima (sin inventar días)
                 if ($eventEnd <= $eventStart) {
                     $eventEnd = $lr->getEnd();
                 }

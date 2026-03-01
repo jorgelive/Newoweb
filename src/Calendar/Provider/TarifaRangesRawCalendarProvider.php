@@ -165,12 +165,15 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
                 }
                 $tooltip = $lines;
             } else {
-                $unitLabel = is_object($resourceRoot) && method_exists($resourceRoot, '__toString') ? (string) $resourceRoot : 'Resource';
+                $unitLabel = is_object($resourceRoot) && method_exists($resourceRoot, '__toString') ? (string) $resourceRoot : 'Recurso';
                 $tooltip = [$unitLabel];
-                if ($isInactive) $tooltip[] = 'INACTIVO';
-                $tooltip[] = 'Precio: ' . $this->formatNumber($price, $priceDecimals);
-                $tooltip[] = 'MinStay: ' . $minStay;
-                if ($currencyCode) $tooltip[] = $currencyCode;
+
+                if ($isInactive) $tooltip[] = 'ESTADO: INACTIVO';
+
+                $tooltip[] = 'Precio Base: ' . $this->formatNumber($price, $priceDecimals) . ($currencyCode ? ' ' . $currencyCode : '');
+                $tooltip[] = 'Neto al 20%: ' . $this->formatNumber($price * 0.80, $priceDecimals);
+                $tooltip[] = 'Neto al 30%: ' . $this->formatNumber($price * 0.70, $priceDecimals);
+                $tooltip[] = 'MinStay: ' . $minStay . ' noches';
             }
 
             // 7. URLs
@@ -344,14 +347,24 @@ final class TarifaRangesRawCalendarProvider implements CalendarProviderInterface
 
     private function formatTitle(string $format, float $price, int $minStay, ?string $currency, int $priceDecimals): string
     {
-        $repl = [
-            '{price}' => $this->formatNumber($price, $priceDecimals),
-            '{minStay}' => (string) $minStay,
-            '{currency}' => $currency ?? '',
-        ];
-        $title = strtr($format, $repl);
-        $title = trim(preg_replace('/\s+/', ' ', $title) ?? $title);
-        return $title !== '' ? $title : ($this->formatNumber($price, $priceDecimals) . ' | ' . $minStay);
+        // 1. Calculamos los valores de referencia (Booking 20%, Airbnb 30%)
+        // Como te piden mostrar lo que queda (el neto), multiplicamos por 0.80 y 0.70 respectivamente.
+        $netoBooking = $price * 0.80;
+        $netoAirbnb = $price * 0.70;
+
+        // 2. Formateamos los números según los decimales solicitados
+        $strPrice = $this->formatNumber($price, $priceDecimals);
+        $strBooking = $this->formatNumber($netoBooking, $priceDecimals);
+        $strAirbnb = $this->formatNumber($netoAirbnb, $priceDecimals);
+
+        // 3. Construimos el string exacto que te pidieron:
+        // Ejemplo: 52.00 (41.60 | 20% - 36.40 | 30%) 2N
+        return sprintf('%s (%s | 20%% - %s | 30%%) %dN',
+            $strPrice,
+            $strBooking,
+            $strAirbnb,
+            $minStay
+        );
     }
 
     private function formatNumber(float $n, int $decimals): string
