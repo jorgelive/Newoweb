@@ -69,7 +69,6 @@ class PmsReserva
     private ?string $telefono2 = null;
 
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
-    #[Assert\NotBlank(message: 'El email es obligatorio.')]
     #[Assert\Email(message: 'El formato del email no es válido.')]
     #[Assert\Length(max: 150)]
     private ?string $emailCliente = null;
