@@ -45,7 +45,7 @@ final class PmsRatesPushQueueCrudController extends BaseCrudController
         return $crud
             ->setEntityLabelInSingular('Cola de Tarifas')
             ->setEntityLabelInPlural('Cola de Tarifas')
-            ->setDefaultSort(['runAt' => 'ASC', 'id' => 'DESC'])
+            ->setDefaultSort(['runAt' => 'DESC'])
             ->setSearchFields(['id', 'status', 'failedReason', 'unidad.nombre', 'unidadBeds24Map.beds24RoomId'])
             ->setPaginatorPageSize(30)
             ->showEntityActionsInlined();
