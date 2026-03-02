@@ -118,7 +118,6 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkToCrud('Reservas', 'fa fa-bed', PmsReserva::class),
                 MenuItem::linkToCrud('Namelist (Huéspedes)', 'fa fa-users-viewfinder', PmsReservaHuesped::class),
                 MenuItem::linkToCrud('Eventos Calendario', 'fa fa-calendar-day', PmsEventoCalendario::class),
-                MenuItem::linkToCrud('Tareas / Actividades', 'fa fa-clipboard-list', PmsEventAssignmentActivity::class),
             ])
             ->setPermission(Roles::RESERVAS_SHOW);
 
@@ -130,9 +129,9 @@ class DashboardController extends AbstractDashboardController
             ])
             ->setPermission(Roles::MENSAJES_SHOW);
 
-        yield MenuItem::subMenu('Revenue & Precios', 'fa fa-chart-line')
+        yield MenuItem::subMenu('Precios', 'fa fa-chart-line')
             ->setSubItems([
-                MenuItem::linkToCrud('Tarifas Rango', 'fa fa-tags', PmsTarifaRango::class),
+                MenuItem::linkToCrud('Tarifas', 'fa fa-tags', PmsTarifaRango::class),
             ])
             ->setPermission(Roles::RESERVAS_WRITE);
 
@@ -161,6 +160,7 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkToCrud('Unidades', 'fa fa-door-open', PmsUnidad::class),
                 MenuItem::linkToCrud('Establecimientos Virtuales', 'fa fa-building-flag', PmsEstablecimientoVirtual::class),
                 MenuItem::linkToCrud('Canales de Venta', 'fa fa-shopping-cart', PmsChannel::class),
+                MenuItem::linkToCrud('Tareas / Actividades', 'fa fa-clipboard-list', PmsEventAssignmentActivity::class),
                 MenuItem::linkToCrud('Estados de Evento', 'fa fa-tag', PmsEventoEstado::class),
                 MenuItem::linkToCrud('Estados de Pago', 'fa fa-credit-card', PmsEventoEstadoPago::class),
             ])

@@ -20,5 +20,8 @@ framework:
             Symfony\Component\Notifier\Message\ChatMessage: async
             Symfony\Component\Notifier\Message\SmsMessage: async
 
+            'App\Exchange\Dispatch\RunExchangeTaskDispatch': async
+
+
             # Route your messages to the transports
             # 'App\Message\YourMessage': async
