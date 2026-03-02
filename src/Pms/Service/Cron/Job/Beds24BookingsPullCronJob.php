@@ -34,7 +34,7 @@ final class Beds24BookingsPullCronJob implements CronJobInterface
 
     public function getStepInterval(): DateInterval
     {
-        return new DateInterval('P7D');
+        return new DateInterval('P14D');
     }
 
     public function execute(DateTimeInterface $from, DateTimeInterface $to, SymfonyStyle $io): void

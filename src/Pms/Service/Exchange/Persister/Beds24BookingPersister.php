@@ -490,17 +490,46 @@ final class Beds24BookingPersister
     private function resolveEstado(Beds24BookingDto $dto): PmsEventoEstado
     {
         $statusApi = trim((string) ($dto->status ?? ''));
-        if ($statusApi !== '') {
-            if (isset($this->cacheEstados[$statusApi])) return $this->cacheEstados[$statusApi];
+        $estadoBase = null;
 
-            $estado = $this->em->getRepository(PmsEventoEstado::class)->findOneBy(['codigoBeds24' => $statusApi]);
-            if ($estado) {
-                $this->cacheEstados[$statusApi] = $estado;
-                return $estado;
+        // =======================================================
+        // PASO 1: OBTENER EL ESTADO BASE (Cacheado correctamente)
+        // =======================================================
+        if ($statusApi !== '') {
+            if (isset($this->cacheEstados[$statusApi])) {
+                $estadoBase = $this->cacheEstados[$statusApi];
+            } else {
+                $estadoBase = $this->em->getRepository(PmsEventoEstado::class)->findOneBy(['codigoBeds24' => $statusApi]);
+                if ($estadoBase) {
+                    // Lo guardamos en caché SEA CUAL SEA EL ESTADO
+                    $this->cacheEstados[$statusApi] = $estadoBase;
+                }
             }
         }
-        return $this->em->find(PmsEventoEstado::class, PmsEventoEstado::CODIGO_PENDIENTE)
-            ?? throw new RuntimeException('CRÍTICO: Maestro PmsEventoEstado corrupto (falta CODIGO_PENDIENTE).');
+
+        // Fallback de seguridad si no vino status o no existe en BD
+        if (!$estadoBase) {
+            // Asumimos que la key 'SYS_PENDIENTE' es para nuestras búsquedas internas manuales
+            $estadoBase = $this->em->find(PmsEventoEstado::class, PmsEventoEstado::CODIGO_PENDIENTE)
+                ?? throw new RuntimeException('CRÍTICO: Maestro corrupto (falta PENDIENTE).');
+        }
+
+        // =======================================================
+        // PASO 2: REGLA DE NEGOCIO (El canal pisa al estado base)
+        // =======================================================
+        if ($estadoBase->getId() == PmsEventoEstado::CODIGO_PENDIENTE) {
+
+            $channelCode = strtolower(trim((string) ($dto->channel ?? '')));
+
+            if (in_array($channelCode, PmsChannel::CANAL_PAGO_TOTAL, true)) {
+                // Es OTA de pago total, forzamos a Confirmada
+                return $this->em->find(PmsEventoEstado::class, PmsEventoEstado::CODIGO_CONFIRMADA)
+                    ?? throw new RuntimeException('CRÍTICO: Maestro corrupto (falta CONFIRMADA).');
+            }
+        }
+
+        // Si no es de pago total, o no era Pendiente, devolvemos el estado base normal
+        return $estadoBase;
     }
 
     private function resolveEstadoPagoInicial(Beds24BookingDto $dto): PmsEventoEstadoPago

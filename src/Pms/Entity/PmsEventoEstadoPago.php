@@ -25,7 +25,7 @@ class PmsEventoEstadoPago
      * ====================================================== */
     public const ID_SIN_PAGO     = 'no-pagado';
     public const ID_PAGO_PARCIAL = 'pago-parcial';
-    public const ID_PAGO_TOTAL   = 'pago-completo';
+    public const ID_PAGO_TOTAL   = 'pago-total';
 
     /**
      * Clave primaria basada en código natural.
