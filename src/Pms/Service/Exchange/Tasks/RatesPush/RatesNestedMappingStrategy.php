@@ -97,7 +97,7 @@ final readonly class RatesNestedMappingStrategy implements MappingStrategyInterf
                 'calendar' => [[
                     'from'    => $fechaInicio->format('Y-m-d'),
                     'to'      => $fechaFin->format('Y-m-d'),
-                    'price'   => $precioFinal,
+                    'price1'   => $precioFinal, //es price1 no price!!!!
                     'minStay' => (int) $item->getMinStay(),
                 ]]
             ];
