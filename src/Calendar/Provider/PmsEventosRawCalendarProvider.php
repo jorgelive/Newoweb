@@ -175,8 +175,8 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
 
     private function resolveColor(?PmsEventoEstado $estado, ?PmsEventoEstadoPago $estadoPago): ?string
     {
-        if ($estado?->isColorOverride()) return $estado->getColor();
-        return $estadoPago?->getColor() ?? $estado?->getColor();
+        if ($estadoPago?->isColorOverride()) return $estadoPago->getColor();
+        return $estado?->getColor() ?? null;
     }
 
     private function buildUrls(PmsEventoCalendario $evento, ?PmsReserva $reserva, array $config): array

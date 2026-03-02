@@ -48,6 +48,12 @@ class PmsEventoEstadoPago
     private ?string $color = null;
 
     /**
+     * Si este estado fuerza su color e ignora otras reglas visuales.
+     */
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $colorOverride = false;
+
+    /**
      * Orden de prioridad/aparición en la interfaz.
      */
     #[ORM\Column(type: 'integer', nullable: true)]
@@ -99,6 +105,9 @@ class PmsEventoEstadoPago
 
     public function getColor(): ?string { return $this->color; }
     public function setColor(?string $color): self { $this->color = $color; return $this; }
+
+    public function isColorOverride(): bool { return $this->colorOverride; }
+    public function setColorOverride(bool $colorOverride): self { $this->colorOverride = $colorOverride; return $this; }
 
     public function getOrden(): ?int { return $this->orden; }
     public function setOrden(?int $orden): self { $this->orden = $orden; return $this; }

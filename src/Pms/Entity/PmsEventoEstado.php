@@ -59,12 +59,6 @@ class PmsEventoEstado
     private ?string $codigoBeds24 = null;
 
     /**
-     * Si este estado fuerza su color e ignora otras reglas visuales.
-     */
-    #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    private bool $colorOverride = false;
-
-    /**
      * Orden para listados en la UI.
      */
     #[ORM\Column(type: 'integer', nullable: true)]
@@ -119,9 +113,6 @@ class PmsEventoEstado
 
     public function getCodigoBeds24(): ?string { return $this->codigoBeds24; }
     public function setCodigoBeds24(?string $codigoBeds24): self { $this->codigoBeds24 = $codigoBeds24; return $this; }
-
-    public function isColorOverride(): bool { return $this->colorOverride; }
-    public function setColorOverride(bool $colorOverride): self { $this->colorOverride = $colorOverride; return $this; }
 
     public function getOrden(): ?int { return $this->orden; }
     public function setOrden(?int $orden): self { $this->orden = $orden; return $this; }

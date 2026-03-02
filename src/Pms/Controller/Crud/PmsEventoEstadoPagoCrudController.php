@@ -11,6 +11,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
@@ -68,7 +69,8 @@ class PmsEventoEstadoPagoCrudController extends BaseCrudController
     {
         return $filters
             ->add('nombre')
-            ->add('color');
+            ->add('color')
+            ->add('colorOverride');
     }
 
     public function configureFields(string $pageName): iterable
@@ -102,6 +104,10 @@ class PmsEventoEstadoPagoCrudController extends BaseCrudController
                 'pattern' => '^#?[0-9A-Fa-f]{6}$',
                 'placeholder' => '#1A2B3C',
             ]);
+
+        yield BooleanField::new('colorOverride', 'Prioridad de Color')
+            ->setHelp('Si se activa, este color prevalece sobre el color del estado de pago.')
+            ->renderAsSwitch(true);
 
         // ============================================================
         // 3. AUDITORÍA (ESTÁNDAR)

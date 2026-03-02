@@ -68,8 +68,7 @@ class PmsEventoEstadoCrudController extends BaseCrudController
         return $filters
             ->add('id')
             ->add('nombre')
-            ->add('codigoBeds24')
-            ->add('colorOverride');
+            ->add('codigoBeds24');
     }
 
     public function configureFields(string $pageName): iterable
@@ -115,10 +114,6 @@ class PmsEventoEstadoCrudController extends BaseCrudController
                 'placeholder' => '#FFB300',
             ])
             ->setRequired(false);
-
-        yield BooleanField::new('colorOverride', 'Prioridad de Color')
-            ->setHelp('Si se activa, este color prevalece sobre el color del estado de pago.')
-            ->renderAsSwitch(true);
 
         // ============================================================
         // 3. AUDITORÍA (ESTÁNDAR)
