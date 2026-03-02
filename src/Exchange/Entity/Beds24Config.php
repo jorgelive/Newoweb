@@ -59,7 +59,7 @@ class Beds24Config implements ChannelConfigInterface
     #[ORM\Column(type: 'string', length: 255, nullable: true, options: ['default' => 'https://api.beds24.com/v2'])]
     private ?string $baseUrl = 'https://api.beds24.com/v2';
 
-    #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsEstablecimiento::class, orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'beds24Config', targetEntity: PmsEstablecimiento::class, orphanRemoval: true)]
     private Collection $establecimientos;
 
     /** @var Collection<int, PmsBookingsPushQueue> */
