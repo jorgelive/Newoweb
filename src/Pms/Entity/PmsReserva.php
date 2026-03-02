@@ -354,5 +354,76 @@ class PmsReserva
         );
     }
 
+    /**
+     * 1. EL BUSCADOR BASE: Recorre los links y devuelve el Establecimiento Virtual principal.
+     */
+    public function getEstablecimientoVirtualPrincipal(): ?PmsEstablecimientoVirtual
+    {
+        foreach ($this->eventosCalendario as $evento) {
+            foreach ($evento->getBeds24Links() as $link) {
+                if ($link->isEsPrincipal()) {
+                    // Devuelve el objeto completo
+                    return $link->getUnidadBeds24Map()?->getVirtualEstablecimiento();
+                }
+            }
+        }
+        return null;
+    }
 
+    /**
+     * 2. EL ARMADOR DE URL: Usa el buscador base para obtener el hotel_id.
+     */
+    /**
+     * 2. EL ARMADOR DE URL MULTI-CANAL
+     */
+    public function getUrlCanalExtranet(): ?string
+    {
+        $canalId = $this->getChannel()?->getId(); // Asumiendo que el ID del canal es la constante ('booking', 'airbnb')
+
+        // 1. Si es Directo (o nulo), no hay enlace a extranet
+        if (!$canalId || $canalId === PmsChannel::CODIGO_DIRECTO) {
+            return null;
+        }
+
+        // 2. Extraemos la referencia del canal (El "localizador" de la OTA)
+        $referencia = $this->referenciaCanalAggregate;
+        if (!$referencia) {
+            foreach ($this->eventosCalendario as $evento) {
+                if ($evento->getReferenciaCanal()) {
+                    $referencia = $evento->getReferenciaCanal();
+                    break;
+                }
+            }
+        }
+
+        if (!$referencia) {
+            return null;
+        }
+
+        $referenciaLimpia = trim(explode(',', $referencia)[0]);
+
+        // 3. ARMADO DE URL SEGÚN EL CANAL
+        if ($canalId === PmsChannel::CODIGO_AIRBNB) {
+            // En Airbnb el link directo es con el código de reserva (ej: HMX...)
+            return sprintf('https://www.airbnb.com/hosting/reservations/details/%s', $referenciaLimpia);
+        }
+
+        if ($canalId === PmsChannel::CODIGO_BOOKING) {
+            // En Booking necesitamos el Hotel ID que está en el Listing Virtual
+            $virtual = $this->getEstablecimientoVirtualPrincipal();
+            if (!$virtual || !$virtual->getCodigoExterno()) {
+                return null;
+            }
+
+            return sprintf(
+                'https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?hotel_id=%s&res_no=%s',
+                trim($virtual->getCodigoExterno()),
+                $referenciaLimpia
+            );
+        }
+
+        // Si es VRBO u otro, por ahora devolvemos null (puedes agregar más if después)
+        return null;
+    }
+    
 }

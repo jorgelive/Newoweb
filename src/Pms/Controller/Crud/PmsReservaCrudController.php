@@ -277,6 +277,17 @@ final class PmsReservaCrudController extends BaseCrudController
             ->setColumns(6)
             ->setHelp('Copia el enlace público para el huésped.');
 
+        yield TextField::new('establecimientoVirtualPrincipal', 'Listing Virtual')
+            ->onlyOnDetail()
+            ->formatValue(function ($virtual) {
+                if (!$virtual) return '-';
+                return sprintf(
+                    '<span class="badge bg-secondary-subtle text-secondary font-monospace" style="padding: 0.5em 0.7em;"><i class="fas fa-building me-1"></i> %s</span>',
+                    $virtual->getNombre() ?? $virtual->getCodigo()
+                );
+            })
+            ->renderAsHtml();
+
         yield TextField::new('syncStatusAggregate', 'Estado Sincro')
             ->setVirtual(true)
             ->formatValue(function ($statusValue) {
@@ -294,9 +305,9 @@ final class PmsReservaCrudController extends BaseCrudController
             ->hideOnForm()
             ->formatValue(fn($v) => $v ? sprintf('<span class="badge badge-info">%s</span>', $v) : '-');
 
-        yield TextField::new('referenciaCanalAggregate', 'Referencias OTA')
+        yield TextField::new('referenciaCanalAggregate', 'Referencia OTA')
             ->hideOnForm()
-            ->formatValue(fn($v) => $v ?: '-');
+            ->setTemplatePath('panel/pms/pms_reserva/fields/referencia_extranet.html.twig');
 
         yield FormField::addPanel('Datos del Titular')->setIcon('fa fa-user');
 

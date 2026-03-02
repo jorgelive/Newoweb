@@ -1,0 +1,43 @@
+{# templates/panel/pms/pms_reserva/fields/referencia_extranet.html.twig #}
+{% set referencia = field.value %}
+{% set reserva = entity.instance %}
+{% set url = reserva.urlCanalExtranet %}
+{% set canal_id = reserva.channel ? reserva.channel.id : null %}
+
+{% if referencia %}
+    <div class="d-flex align-items-center gap-2">
+
+        {# 1. BADGE DE LA REFERENCIA #}
+        <span class="badge bg-info-subtle text-dark font-monospace" style="padding: 0.5em 0.7em; font-size: 0.9em;">
+            {{ referencia }}
+        </span>
+
+        {# 2. BOTÓN DE LA EXTRANET (Solo si la entidad devolvió una URL) #}
+        {% if url %}
+            {% set texto = 'Extranet' %}
+            {% set color_clase = 'btn-outline-dark' %}
+            {% set icono = 'fas fa-external-link-alt' %}
+
+            {% if canal_id == 'booking' %}
+                {% set texto = 'Booking.com' %}
+                {% set color_clase = 'btn-outline-primary' %}
+                {% set icono = 'fas fa-hotel' %}
+            {% elseif canal_id == 'airbnb' %}
+                {% set texto = 'Airbnb' %}
+                {% set color_clase = 'btn-outline-danger' %}
+                {% set icono = 'fab fa-airbnb' %}
+            {% endif %}
+
+            <a href="{{ url }}"
+               target="_blank"
+               class="btn btn-sm {{ color_clase }} rounded-pill d-inline-flex align-items-center justify-content-center"
+               style="padding-left: 12px !important; padding-right: 12px !important; height: 30px;">
+                <i class="{{ icono }} me-2" style="font-size: 0.85rem;"></i>
+                <span style="line-height: 1;">{{ texto }}</span>
+            </a>
+        {% endif %}
+
+    </div>
+{% else %}
+    <span class="text-muted small">-</span>
+{% endif %}
