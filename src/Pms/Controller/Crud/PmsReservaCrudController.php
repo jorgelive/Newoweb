@@ -7,7 +7,6 @@ namespace App\Pms\Controller\Crud;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Message\Entity\MessageTemplate;
 use App\Panel\Controller\Crud\BaseCrudController;
-use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
@@ -36,6 +35,10 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use JeroenDesloovere\VCard\VCard;
+use libphonenumber\NumberParseException;
+use libphonenumber\PhoneNumberFormat;
+use libphonenumber\PhoneNumberUtil;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -263,6 +266,104 @@ final class PmsReservaCrudController extends BaseCrudController
             ->add('fechaLlegada');
     }
 
+    public function generarVcard(AdminContext $context): Response
+    {
+        $reserva = $context->getEntity()->getInstance();
+
+        if (!$reserva instanceof PmsReserva) {
+            throw $this->createNotFoundException('Reserva no encontrada.');
+        }
+
+        $vcard = new VCard();
+
+        $localizador = $reserva->getLocalizador() ?? 'Sin-Loc';
+        $nombre = $reserva->getNombreApellido() ?? 'Huésped Desconocido';
+        $cantidad = $reserva->getPaxTotal();
+
+        $inicio = $reserva->getFechaLlegada();
+        $fin = $reserva->getFechaSalida();
+
+        $inicioText = $inicio ? $inicio->format('Y/m/d') : '-';
+        $finText = $fin ? $fin->format('Y/m/d') : '-';
+        $diaFin = $fin ? $fin->format('d') : '-';
+
+        $fechaReservaText = $reserva->getCreatedAt() ? $reserva->getCreatedAt()->format('Y/m/d') : '-';
+
+        $unidad = $reserva->getNombreHabitacion();
+        $canalNombre = $reserva->getChannel() ? (string)$reserva->getChannel()->getId() : 'Directo';
+        $inicialCanal = substr(strtoupper($canalNombre), 0, 1);
+
+        // ============================================================
+        // 🔥 LÓGICA DE FORMATEO (Número sanitizado en BD sin '+')
+        // ============================================================
+        $telefonoRaw = trim((string) $reserva->getTelefono());
+        $telefonoVcard = '';
+
+        if ($telefonoRaw !== '') {
+            // 1. Le devolvemos el '+' que se omitió al guardar en la BD
+            $telefonoConPlus = str_starts_with($telefonoRaw, '+') ? $telefonoRaw : '+' . $telefonoRaw;
+
+            try {
+                $phoneUtil = PhoneNumberUtil::getInstance();
+
+                // 2. Al tener el '+', libphonenumber ya sabe que es formato internacional.
+                $numberProto = $phoneUtil->parse($telefonoConPlus, null);
+
+                if ($phoneUtil->isValidNumber($numberProto)) {
+                    // 3. E164 asegura que quede exactamente como "+51999999999" para WhatsApp
+                    $telefonoVcard = $phoneUtil->format($numberProto, PhoneNumberFormat::E164);
+                } else {
+                    $telefonoVcard = $telefonoConPlus; // Fallback si es inválido
+                }
+            } catch (NumberParseException $e) {
+                // Si falla catastróficamente el parseo, guardamos con el '+' de todas formas
+                $telefonoVcard = $telefonoConPlus;
+            }
+        }
+
+        // Formato visual para la agenda: 2024/05/10/12 B x2 (101) Juan Perez
+        $campoNombre = sprintf('%s/%s %s x%s (%s) %s', $inicioText, $diaFin, $inicialCanal, $cantidad, $unidad, $nombre);
+
+        $nota = <<<TXT
+Localizador: $localizador
+Nombre: $nombre
+Alojamiento: $unidad
+Ingreso: $inicioText
+Salida: $finText
+Canal: $canalNombre
+Fecha de reserva: $fechaReservaText
+TXT;
+
+        $vcard->addName('', $campoNombre);
+
+        if ($telefonoVcard !== '') {
+            $vcard->addPhoneNumber($telefonoVcard, 'CELL');
+        }
+
+        $vcard->addNote($nota);
+
+        // Generar URL absoluta al detalle de la reserva en el panel
+        $detailUrl = $this->adminUrlGenerator
+            ->setController(self::class)
+            ->setAction(Action::DETAIL)
+            ->setEntityId((string) $reserva->getId())
+            ->generateUrl();
+
+        $request = $this->requestStack->getCurrentRequest();
+        if ($request) {
+            $vcard->addURL($request->getSchemeAndHttpHost() . $detailUrl);
+        }
+
+        return new Response(
+            $vcard->getOutput(),
+            200,
+            [
+                'Content-Type' => 'text/vcard',
+                'Content-Disposition' => 'attachment; filename="' . $localizador . '_contacto.vcf"',
+            ]
+        );
+    }
+
     public function configureFields(string $pageName): iterable
     {
         $entity = null;
@@ -317,7 +418,8 @@ final class PmsReservaCrudController extends BaseCrudController
         // 🔥 LLAMAMOS A NUESTRO FILTRO RECIÉN CREADO
         yield TextField::new('telefono', 'Teléfono')
             ->setColumns(6)
-            ->formatValue(fn($val) => $val ? $this->phoneExtension->formatPhone($val) : '-');
+            ->formatValue(fn($val) => $val ? $this->phoneExtension->formatPhone($val) : null)
+            ->setTemplatePath('panel/pms/pms_reserva/fields/telefono_vcard.html.twig');
 
         yield EmailField::new('emailCliente', 'Email')->setColumns(6);
 
