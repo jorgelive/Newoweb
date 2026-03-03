@@ -420,9 +420,12 @@ TXT;
         yield TextField::new('telefono', 'Teléfono')
             ->setColumns(6)
             ->formatValue(fn($val) => $val ? $this->phoneExtension->formatPhone($val) : null)
-            ->setTemplatePath('panel/pms/pms_reserva/fields/telefono_vcard.html.twig');
+            ->setTemplatePath('panel/pms/pms_reserva/fields/telefono_wa_vcard.html.twig');
 
-        yield EmailField::new('emailCliente', 'Email')->setColumns(6);
+        // Ocultar el email en la vista de detalle si está vacío
+        if ($pageName !== Crud::PAGE_DETAIL || ($entity && $entity->getEmailCliente())) {
+            yield EmailField::new('emailCliente', 'Email')->setColumns(6);
+        }
 
         yield AssociationField::new('pais', 'País')
             ->setColumns(6)

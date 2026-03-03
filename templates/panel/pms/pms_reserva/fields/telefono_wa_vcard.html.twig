@@ -1,0 +1,44 @@
+{# templates/panel/pms/pms_reserva/fields/telefono_wa_vcard.html.twig #}
+{% set telefono = field.formattedValue %}
+{% set reserva = entity.instance %}
+
+{% if reserva.telefono %}
+    {# 1. Generamos la URL segura hacia la acción 'generarVcard' del CRUD #}
+    {% set vcard_url = ea_url()
+        .setController('App\\Pms\\Controller\\Crud\\PmsReservaCrudController')
+        .setAction('generarVcard')
+        .setEntityId(reserva.id)
+    %}
+
+    {# 2. Limpiamos el número para WhatsApp (quitamos +, espacios, guiones y paréntesis) #}
+    {% set wa_number = reserva.telefono|replace({'+': '', ' ': '', '-': '', '(': '', ')': ''}) %}
+    {% set wa_url = 'https://wa.me/' ~ wa_number %}
+
+    <div class="d-flex align-items-center gap-2">
+        {# El badge con el número de teléfono #}
+        <span class="badge bg-success-subtle text-success font-monospace" style="padding: 0.5em 0.7em; font-size: 0.9em;">
+            <i class="fas fa-phone-alt me-1"></i> {{ telefono }}
+        </span>
+
+        {# El botón para abrir WhatsApp #}
+        <a href="{{ wa_url }}"
+           target="_blank"
+           class="btn btn-sm btn-outline-success rounded-pill d-inline-flex align-items-center justify-content-center"
+           style="padding-left: 12px !important; padding-right: 12px !important; height: 30px;"
+           title="Abrir chat en WhatsApp">
+            <i class="fab fa-whatsapp me-1" style="font-size: 0.95rem;"></i>
+            <span style="line-height: 1;">WhatsApp</span>
+        </a>
+
+        {# El botón para descargar la vCard #}
+        <a href="{{ vcard_url }}"
+           class="btn btn-sm btn-outline-secondary rounded-pill d-inline-flex align-items-center justify-content-center"
+           style="padding-left: 12px !important; padding-right: 12px !important; height: 30px;"
+           title="Descargar Contacto para el móvil">
+            <i class="fas fa-address-card me-1" style="font-size: 0.85rem;"></i>
+            <span style="line-height: 1;">vCard</span>
+        </a>
+    </div>
+{% else %}
+    <span class="text-muted small">Sin teléfono</span>
+{% endif %}
