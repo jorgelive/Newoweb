@@ -112,6 +112,10 @@ class PmsGuiaItemCrudController extends AbstractCrudController
         yield BooleanField::new('ejecutarTraduccion', 'Traducir Auto')->onlyOnForms()->setColumns(6);
         yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir')->onlyOnForms()->setColumns(6);
 
+        yield CollectionField::new('titulo', 'Título')
+            ->setEntryType(TranslationTextType::class)
+            ->setColumns(12);
+
         yield TextField::new('galleryHelperVisual', false)
             ->setTemplatePath('panel/field/gallery_helper.html.twig')
             ->onlyOnForms()
@@ -120,10 +124,6 @@ class PmsGuiaItemCrudController extends AbstractCrudController
             ->setFormTypeOption('block_prefix', 'gallery_helper')
             ->setFormTypeOptions(['required' => false, 'attr' => ['class' => 'd-none']])
             ->addCssClass('field-gallery-helper');
-
-        yield CollectionField::new('titulo', 'Título')
-            ->setEntryType(TranslationTextType::class)
-            ->setColumns(12);
 
         yield CollectionField::new('descripcion', 'Cuerpo / Instrucciones')
             ->setEntryType(TranslationHtmlType::class)
