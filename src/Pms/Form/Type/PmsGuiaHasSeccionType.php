@@ -28,7 +28,6 @@ class PmsGuiaHasSeccionType extends AbstractType
             ])
             ->add('orden', IntegerType::class, [
                 'label' => 'Orden',
-                'data' => 0,
                 'row_attr' => ['class' => 'col-md-3'],
             ]);
     }
