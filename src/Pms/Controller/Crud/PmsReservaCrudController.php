@@ -255,17 +255,9 @@ final class PmsReservaCrudController extends BaseCrudController
         return new RedirectResponse($whatsappUrl);
     }
 
-    public function configureFilters(Filters $filters): Filters
-    {
-        return $filters
-            ->add('establecimiento')
-            ->add('beds24MasterId')
-            ->add('referenciaCanalAggregate')
-            ->add('canalesAggregate')
-            ->add('nombreCliente')
-            ->add('fechaLlegada');
-    }
-
+    // =========================================================================
+    // 🔥 ACCIÓN PARA GENERAR VCARD (MÓVIL / WHATSAPP AGENDA)
+    // =========================================================================
     public function generarVcard(AdminContext $context): Response
     {
         $reserva = $context->getEntity()->getInstance();
@@ -293,9 +285,7 @@ final class PmsReservaCrudController extends BaseCrudController
         $canalNombre = $reserva->getChannel() ? (string)$reserva->getChannel()->getId() : 'Directo';
         $inicialCanal = substr(strtoupper($canalNombre), 0, 1);
 
-        // ============================================================
-        // 🔥 LÓGICA DE FORMATEO (Número sanitizado en BD sin '+')
-        // ============================================================
+        // LÓGICA DE FORMATEO (Número sanitizado en BD sin '+')
         $telefonoRaw = trim((string) $reserva->getTelefono());
         $telefonoVcard = '';
 
@@ -364,6 +354,17 @@ TXT;
         );
     }
 
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            ->add('establecimiento')
+            ->add('beds24MasterId')
+            ->add('referenciaCanalAggregate')
+            ->add('canalesAggregate')
+            ->add('nombreCliente')
+            ->add('fechaLlegada');
+    }
+
     public function configureFields(string $pageName): iterable
     {
         $entity = null;
@@ -415,7 +416,7 @@ TXT;
         yield TextField::new('nombreCliente', 'Nombre')->setColumns(6);
         yield TextField::new('apellidoCliente', 'Apellido')->setColumns(6);
 
-        // 🔥 LLAMAMOS A NUESTRO FILTRO RECIÉN CREADO
+        // 🔥 AQUÍ QUEDA LISTO TU CAMPO DE TELÉFONO PARA RENDERIZAR LA PLANTILLA VCARD
         yield TextField::new('telefono', 'Teléfono')
             ->setColumns(6)
             ->formatValue(fn($val) => $val ? $this->phoneExtension->formatPhone($val) : null)
@@ -486,7 +487,16 @@ TXT;
 
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
 
-        yield TextField::new('id', 'UUID')->onlyOnDetail();
+        yield TextField::new('id', 'Query Navicat (Copiar)')
+            ->onlyOnDetail()
+            ->formatValue(function ($value) {
+                $uuid = (string) $value;
+                return sprintf(
+                    '<code style="user-select: all; padding: 5px; background: #f8f9fa; border: 1px solid #ddd; display: block; margin-bottom: 10px;">SELECT BIN_TO_UUID(id) as id_str, r.* FROM pms_reserva r WHERE id = UUID_TO_BIN(\'%s\');</code>',
+                    $uuid
+                );
+            })
+            ->renderAsHtml();
 
         yield DateTimeField::new('createdAt', 'Creado')->hideOnIndex()->setFormat('dd/MM/yyyy HH:mm')->setFormTypeOption('disabled', true);
         yield DateTimeField::new('updatedAt', 'Actualizado')->hideOnIndex()->setFormat('dd/MM/yyyy HH:mm')->setFormTypeOption('disabled', true);

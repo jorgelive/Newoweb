@@ -35,6 +35,11 @@ class MaestroPais
     #[ORM\Column(type: 'string', length: 100)]
     private ?string $nombre = null;
 
+    // 🔥 NUEVO: Campo para la Bandera (Emoji)
+    #[ORM\Column(type: 'string', length: 10, nullable: true)]
+    #[Groups(['pax:read'])]
+    private ?string $bandera = null;
+
     // 🔥 NUEVO: Zona horaria (ej: 'America/Lima', 'Europe/Madrid') - Nullable para no romper producción
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $timezone = null;
@@ -90,6 +95,9 @@ class MaestroPais
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(string $nombre): self { $this->nombre = $nombre; return $this; }
 
+    public function getBandera(): ?string { return $this->bandera; }
+    public function setBandera(?string $bandera): self { $this->bandera = $bandera; return $this; }
+
     public function getTimezone(): ?string { return $this->timezone; }
     public function setTimezone(?string $timezone): self { $this->timezone = $timezone; return $this; }
 
@@ -133,5 +141,9 @@ class MaestroPais
         return $this;
     }
 
-    public function __toString(): string { return (string) $this->nombre; }
+    public function __toString(): string
+    {
+        // 🔥 Magia visual: Si tiene bandera, la muestra junto al nombre (Ej: "🇵🇪 Perú")
+        return ($this->bandera ? $this->bandera . ' ' : '') . $this->nombre;
+    }
 }
