@@ -12,6 +12,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\RangeFilter; // <--- Necesario para el filtro > 0
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Egulias\EmailValidator\Parser\IDLeftPart;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity]
@@ -33,9 +34,24 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiFilter(OrderFilter::class, properties: ['prioridad', 'nombre'])] // Permite reordenar desde la URL
 class MaestroIdioma
 {
-    public const DEFAULT_IDIOMA = 'es';
 
-    public const JERARQUIA  = ['es' => 100, 'en' => 90, 'pt' => 80, 'fr' => 70, 'de' => 60, 'it' => 50];
+    public const ID_ESPANOL = 'es';
+    public const ID_INGLES = 'en';
+    public const ID_PORTUGUES = 'pt';
+    public const ID_FRANCES = 'fr';
+    public const ID_ALEMAN = 'de';
+    public const ID_ITALIANO = 'it';
+
+    public const DEFAULT_IDIOMA = self::ID_INGLES;
+
+    public const JERARQUIA  = [
+        self::ID_ESPANOL => 100,
+        self::ID_INGLES => 90,
+        self::ID_PORTUGUES => 80,
+        self::ID_FRANCES => 70,
+        self::ID_ALEMAN => 60,
+        self::ID_ITALIANO => 50
+    ];
 
     use TimestampTrait;
 

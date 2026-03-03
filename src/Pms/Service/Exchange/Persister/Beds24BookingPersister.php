@@ -583,22 +583,55 @@ final class Beds24BookingPersister
 
     private function resolveIdioma(Beds24BookingDto $dto): MaestroIdioma
     {
-        $code = strtolower((string) ($dto->lang ?? ''));
-        if ($code === '') $code = MaestroIdioma::DEFAULT_IDIOMA;
+        // 1. Intentamos leer el idioma directo de la OTA
+        $code = strtolower(trim((string) ($dto->lang ?? '')));
 
-        if (array_key_exists($code, $this->cacheIdiomas)) return $this->cacheIdiomas[$code];
+        // 🔥 NUEVO MAGIA: Si el idioma está vacío, inferimos desde el país
+        if ($code === '') {
+            $countryCode = strtoupper(trim((string) ($dto->country ?? ''))); // Beds24 suele mandar ISO2 o ISO3
 
-        $idioma = $this->em->find(MaestroIdioma::class, $code);
+            if ($countryCode !== '') {
+                // Buscamos el país. (Usa tu método resolvePais si lo tienes, o el EM directo)
+                $pais = $this->em->find(MaestroPais::class, $countryCode);
 
-        // (Obs #1) Fallback estricto
-        if (!$idioma) {
-            $idioma = $this->em->find(MaestroIdioma::class, MaestroIdioma::DEFAULT_IDIOMA);
-            if (!$idioma) {
-                throw new RuntimeException("CRÍTICO: No existe el Idioma solicitado '$code' ni el Default '" . MaestroIdioma::DEFAULT_IDIOMA . "'.");
+                if ($pais && $pais->getIdiomaDefault()) {
+                    // ¡Bingo! El país nos chismeó qué idioma hablan
+                    $code = $pais->getIdiomaDefault()->getId();
+                }
             }
         }
 
+        // Fallback absoluto si la OTA no mandó ni idioma ni país (o el país no tenía idioma configurado)
+        if ($code === '') {
+            $code = MaestroIdioma::DEFAULT_IDIOMA;
+        }
+
+        // 2. ¿Ya lo resolvimos antes en este ciclo? (Memoria RAM)
+        if (array_key_exists($code, $this->cacheIdiomas)) {
+            return $this->cacheIdiomas[$code];
+        }
+
+        // 3. Buscar el idioma en la base de datos
+        $idioma = $this->em->find(MaestroIdioma::class, $code);
+
+        // 4. REGLA DE NEGOCIO: Si no existe, O su prioridad es 0 (no lo manejamos) -> Fallback a Inglés
+        if (!$idioma || $idioma->getPrioridad() <= 0) {
+
+            $idiomaDefault = $this->em->find(MaestroIdioma::class, MaestroIdioma::DEFAULT_IDIOMA);
+
+            if (!$idiomaDefault) {
+                throw new RuntimeException("CRÍTICO: No existe el Idioma Default '" . MaestroIdioma::DEFAULT_IDIOMA . "' en la base de datos.");
+            }
+
+            $idioma = $idiomaDefault;
+        }
+
+        // 5. Cacheamos la decisión.
+        // Ejemplo: Si el huésped era de FR (Francia), pero no mandó idioma.
+        // Detectamos FR -> sacamos idioma 'fr'.
+        // Guardamos en caché que 'fr' = Objeto MaestroIdioma(Francés).
         $this->cacheIdiomas[$code] = $idioma;
+
         return $idioma;
     }
 

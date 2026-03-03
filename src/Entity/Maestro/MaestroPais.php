@@ -22,8 +22,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\HasLifecycleCallbacks]
 class MaestroPais
 {
-    public const ISO_PERU = 'PE';
-    public const DEFAULT_PAIS = self::ISO_PERU;
+    public const ID_PERU = 'PE';
+    public const DEFAULT_PAIS = self::ID_PERU;
 
     use TimestampTrait;
 
@@ -38,6 +38,11 @@ class MaestroPais
     // 🔥 NUEVO: Zona horaria (ej: 'America/Lima', 'Europe/Madrid') - Nullable para no romper producción
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
     private ?string $timezone = null;
+
+    // Añade esto en tu clase MaestroPais
+    #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
+    #[ORM\JoinColumn(name: 'idioma_default_id', referencedColumnName: 'id', nullable: true)]
+    private ?MaestroIdioma $idiomaDefault = null;
 
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $codigoMc = null;
@@ -87,6 +92,17 @@ class MaestroPais
 
     public function getTimezone(): ?string { return $this->timezone; }
     public function setTimezone(?string $timezone): self { $this->timezone = $timezone; return $this; }
+
+    public function getIdiomaDefault(): ?MaestroIdioma
+    {
+        return $this->idiomaDefault;
+    }
+
+    public function setIdiomaDefault(?MaestroIdioma $idiomaDefault): self
+    {
+        $this->idiomaDefault = $idiomaDefault;
+        return $this;
+    }
 
     public function getCodigoMc(): ?int { return $this->codigoMc; }
     public function setCodigoMc(?int $val): self { $this->codigoMc = $val; return $this; }

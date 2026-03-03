@@ -10,6 +10,7 @@ use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField; // <-- IMPORTANTE: Añadida la importación
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
@@ -77,20 +78,26 @@ class MaestroPaisCrudController extends BaseCrudController
 
         yield $id;
 
-        // 2. BANDERA (Emoji) - NUEVO CAMPO
+        // 2. BANDERA (Emoji)
         yield TextField::new('bandera', 'Bandera')
             ->setHelp('Emoji (Win: Win+. / Mac: Ctrl+Cmd+Space)')
             ->setFormTypeOption('attr', [
                 'maxlength' => 10,
                 'placeholder' => '🇵🇪'
             ])
-            ->setColumns(2); // Pequeño, al lado del ID si hay espacio
+            ->setColumns(2);
 
         // 3. NOMBRE
         yield TextField::new('nombre', 'Nombre País')
             ->setColumns(8);
 
-        // 4. PRIORIDAD
+        // 4. IDIOMA DEFAULT (NUEVO CAMPO) 🔥
+        yield AssociationField::new('idiomaDefault', 'Idioma por Defecto')
+            ->setHelp('Se inferirá automáticamente si la OTA no envía el idioma del huésped.')
+            ->setColumns(12)
+            ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
+
+        // 5. PRIORIDAD
         yield BooleanField::new('prioritario', 'Prioridad')
             ->setHelp('Mostrar al inicio de los selectores.')
             ->renderAsSwitch(true)
