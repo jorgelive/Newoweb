@@ -17,33 +17,52 @@ trait GuiaHelperResponseTrait
         $esAutorizado = $acceso['authorized'];
         $mask = '********';
 
-        // A. TEXT FIXED
+        // A. TEXT FIXED (Base inofensiva)
         $textFixed = [
             'guest_name'     => $reserva ? $reserva->getNombreCliente() : 'Visitante',
             'unit_name'      => $unidad->getNombre(),
             'hotel_name'     => $est?->getNombreComercial() ?? 'Hotel',
             'booking_ref'    => $reserva?->getLocalizador() ?? 'DEMO',
-
             'check_in'       => ($evento ? $evento->getInicio() : $est?->getHoraCheckIn())?->format('H:i'),
             'check_out'      => ($evento ? $evento->getFin() : $est?->getHoraCheckOut())?->format('H:i'),
             'start_date'     => $evento?->getInicio()->format('d/m/Y'),
             'end_date'       => $evento?->getFin()->format('d/m/Y'),
-
-            // Códigos (Solo si es autorizado)
-            'door_code'      => $esAutorizado ? $unidad->getCodigoPuerta() : $mask,
-            'safe_code'      => $esAutorizado ? $unidad->getCodigoCaja() : $mask,
-            'keybox_main'    => $esAutorizado ? $est?->getCodigoCajaPrincipal() : $mask,
-            'keybox_sec'     => $esAutorizado ? $est?->getCodigoCajaSecundaria() : $mask,
-
-            // WiFi
             'wifi_ssid'      => $unidad->getWifiNetworks()[0]['ssid'] ?? 'N/A',
-            'wifi_pass'      => $esAutorizado ? ($unidad->getWifiNetworks()[0]['password'] ?? 'N/A') : $mask,
         ];
 
-        // B. TEXT TRANSLATABLE
+        // B. TEXT TRANSLATABLE (Base)
         $textTranslatable = [
-            'status_msg' => $this->traducirEstado($acceso['status']),
+            'status_msg' => $this->traducirEstado($acceso['status'], $evento),
         ];
+
+        // 🔥 LÓGICA DE SEGURIDAD (El backend decide dónde inyectar las llaves)
+        if ($esAutorizado) {
+            // 1. Autorizado: Enviamos los códigos reales directo al Fixed Text
+            $textFixed['door_code']   = $unidad->getCodigoPuerta() ?? 'N/A';
+            $textFixed['safe_code']   = $unidad->getCodigoCaja() ?? 'N/A';
+            $textFixed['keybox_main'] = $est?->getCodigoCajaPrincipal() ?? 'N/A';
+            $textFixed['keybox_sec']  = $est?->getCodigoCajaSecundaria() ?? 'N/A';
+            $textFixed['wifi_pass']   = $unidad->getWifiNetworks()[0]['password'] ?? 'N/A';
+        } else {
+            if (!$evento) {
+                // 2. Público (Demo/QR): Enviamos asteriscos al Fixed Text
+                $textFixed['door_code']   = $mask;
+                $textFixed['safe_code']   = $mask;
+                $textFixed['keybox_main'] = $mask;
+                $textFixed['keybox_sec']  = $mask;
+                $textFixed['wifi_pass']   = $mask;
+            } else {
+                // 3. Huésped No Autorizado: Inyectamos el mensaje dinámico en el Translatable Text!
+                // Al no existir en $textFixed, el frontend saltará a buscarlo aquí y lo traducirá.
+                $mensajeBloqueo = $this->traducirEstado($acceso['status'], $evento);
+
+                $textTranslatable['door_code']   = $mensajeBloqueo;
+                $textTranslatable['safe_code']   = $mensajeBloqueo;
+                $textTranslatable['keybox_main'] = $mensajeBloqueo;
+                $textTranslatable['keybox_sec']  = $mensajeBloqueo;
+                $textTranslatable['wifi_pass']   = $mensajeBloqueo;
+            }
+        }
 
         // C. WIDGETS
         $widgets = [
@@ -55,7 +74,6 @@ trait GuiaHelperResponseTrait
             'mode'           => $evento ? 'guest' : 'demo',
             'access_status'  => $acceso['status'],
             'is_locked'      => !$esAutorizado,
-            // 🔥 CLAVE: Retornamos siempre el UUID de la unidad para que el front cargue el CMS
             'unit_uuid'      => method_exists($unidad, 'getUuid') ? $unidad->getUuid() : $unidad->getId(),
         ];
 
@@ -98,17 +116,20 @@ trait GuiaHelperResponseTrait
         }, $networks);
     }
 
-    private function traducirEstado(string $status): array
+    private function traducirEstado(string $status, ?PmsEventoCalendario $evento): array
     {
+        $fecha = $evento ? $evento->getInicio()->format('d/m/Y') : '';
+        $hora  = $evento ? $evento->getInicio()->format('H:i') : '';
+
         return match($status) {
             'pending' => [
-                ['language' => 'es', 'content' => 'Disponible pronto'],
-                ['language' => 'en', 'content' => 'Available soon'],
-                ['language' => 'pt', 'content' => 'Disponível em breve'],
-                ['language' => 'fr', 'content' => 'Bientôt disponible'],
-                ['language' => 'it', 'content' => 'Disponibile a breve'],
-                ['language' => 'de', 'content' => 'Bald verfügbar'],
-                ['language' => 'nl', 'content' => 'Binnenkort beschikbaar'],
+                ['language' => 'es', 'content' => $fecha ? "Disponible el $fecha a las $hora" : 'Disponible pronto'],
+                ['language' => 'en', 'content' => $fecha ? "Available on $fecha at $hora" : 'Available soon'],
+                ['language' => 'pt', 'content' => $fecha ? "Disponível em $fecha às $hora" : 'Disponível em breve'],
+                ['language' => 'fr', 'content' => $fecha ? "Disponible le $fecha à $hora" : 'Bientôt disponible'],
+                ['language' => 'it', 'content' => $fecha ? "Disponibile il $fecha alle $hora" : 'Disponibile a breve'],
+                ['language' => 'de', 'content' => $fecha ? "Verfügbar am $fecha um $hora" : 'Bald verfügbar'],
+                ['language' => 'nl', 'content' => $fecha ? "Beschikbaar op $fecha om $hora" : 'Binnenkort beschikbaar'],
             ],
             'expired' => [
                 ['language' => 'es', 'content' => 'Reserva finalizada'],
