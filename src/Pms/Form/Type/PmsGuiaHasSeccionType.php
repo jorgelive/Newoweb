@@ -20,13 +20,7 @@ class PmsGuiaHasSeccionType extends AbstractType
             ->add('seccion', EntityType::class, [
                 'class' => PmsGuiaSeccion::class,
                 'choice_label' => function (PmsGuiaSeccion $seccion) {
-                    // Muestra el nombre en español en el selector
-                    $titulos = $seccion->getTitulo();
-                    // Buscamos 'es' en el formato de lista que devuelve tu nuevo Getter inteligente
-                    foreach ($titulos as $t) {
-                        if ($t['language'] === 'es') return "📂 " . $t['content'];
-                    }
-                    return "Sección " . $seccion->getId();
+                    return "📂 " . $seccion->getNombreInterno();
                 },
                 'attr' => ['class' => 'form-select-sm'],
                 'row_attr' => ['class' => 'col-md-9'],
