@@ -416,7 +416,7 @@ class PmsReserva
             }
 
             return sprintf(
-                'https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?hotel_id=%s&res_no=%s',
+                'https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?hotel_id=%s&res_id=%s',
                 trim($virtual->getCodigoExterno()),
                 $referenciaLimpia
             );
@@ -425,5 +425,5 @@ class PmsReserva
         // Si es VRBO u otro, por ahora devolvemos null (puedes agregar más if después)
         return null;
     }
-    
+
 }
