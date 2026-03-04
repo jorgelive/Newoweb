@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\EventListener;
 
+use App\Exchange\Service\Context\SyncContext;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
@@ -20,9 +21,15 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 #[AsEntityListener(event: Events::preUpdate, method: 'preUpdate', entity: PmsEventoCalendario::class)]
 final class PmsEventoCalendarioSecurityListener
 {
+    public function __construct(
+        private readonly SyncContext $syncContext
+    ) {}
+
     public function preRemove(PmsEventoCalendario $evento, PreRemoveEventArgs $args): void
     {
         // Validación centralizada: OTA, sincronización y estados críticos.
+        // No le dejo borrar nada al channel manager
+
         if (!$evento->isSafeToDelete()) {
             throw new AccessDeniedHttpException(
                 sprintf(
@@ -38,6 +45,10 @@ final class PmsEventoCalendarioSecurityListener
     {
         // Solo aplicamos restricciones de integridad a reservas que vienen de canales (OTA)
         if (!$evento->isOta()) {
+            return;
+        }
+
+        if ($this->syncContext->isPull()) {
             return;
         }
 
