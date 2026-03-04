@@ -48,7 +48,8 @@ const shellHtml = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <title>Pax</title>
+  <title>Pax Experince</title>
+  <link rel="icon" type="image/svg+xml" href="/app_pax/favicon.svg">
   ${cssLinks}
 </head>
 <body>
