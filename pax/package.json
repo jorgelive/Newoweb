@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^25.2.0",
     "@vitejs/plugin-basic-ssl": "^2.1.4",
@@ -28,5 +29,8 @@
     "vite": "^6.0.0",
     "vite-plugin-pwa": "^1.2.0",
     "vue-tsc": "^3.2.4"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.3"
   }
 }
