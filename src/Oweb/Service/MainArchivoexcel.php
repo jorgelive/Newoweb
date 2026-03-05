@@ -5,37 +5,45 @@ namespace App\Oweb\Service;
 use Doctrine\Persistence\ObjectRepository;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Servicio principal para la gestión, generación, lectura y manipulación de archivos Excel.
+ * Actúa como un Wrapper avanzado sobre PhpSpreadsheet, añadiendo lógica de negocio
+ * para parsear tablas complejas, aplicar validaciones y configurar formatos de salida.
+ */
 class MainArchivoexcel
 {
+    /**
+     * @var string Ruta absoluta hacia el directorio de plantillas internas.
+     */
+    private string $internalTemplateDir;
 
-    private string $internalTemplateDir = __DIR__ . '/../../public/templates';
-
+    /**
+     * @var array<string, string> Mapeo de extensiones a los Writers de PhpSpreadsheet.
+     */
     protected array $tipoWriter = ['xlsx' => 'Xlsx', 'xls' => 'Xls', 'csv' => 'Csv'];
 
-    protected MainVariableproceso $variableproceso;
-
     private string $archivoBasePath = '';
-    private MainArchivoexcelFactory $archivoexcelFactory;
     private Spreadsheet $archivo;
     private Worksheet $hoja;
 
-//reader
+    // //reader
     private array $setTablaSpecs;
     private array $setColumnaSpecs;
     private array $validCols;
     private bool $parsed = false;
     private bool $descartarBlanco = false;
-    private bool $trimEspacios = false ;
+    private bool $trimEspacios = false;
     private array $tablaSpecs;
     private array $columnaSpecs;
     private array $existentesRaw;
-    private array $existentesIndizados; //indizados por la llave
-    private array $existentesIndizadosMulti; //indizados por la llave
-    private array $existentesIndizadosKp; //indizados valores incluyen las llaves
-    private array $existentesIndizadosMultiKp; //indizados valores incluyen las llaves
+    private array $existentesIndizados; // indizados por la llave
+    private array $existentesIndizadosMulti; // indizados por la llave
+    private array $existentesIndizadosKp; // indizados valores incluyen las llaves
+    private array $existentesIndizadosMultiKp; // indizados valores incluyen las llaves
     private array $existentesCustomRaw;
     private array $existentesCustomIndizados;
     private array $existentesCustomIndizadosMulti;
@@ -43,36 +51,80 @@ class MainArchivoexcel
     private array $camposCustom;
     private int $skipRows = 0;
 
-//writer
+    // //writer
     private int $filaBase = 1;
     private string $columnaBase = 'A';
     private string $nombre;
     private string $tipo;
     private bool $removeEnclosure;
 
-    function __construct(MainVariableproceso $variableproceso, MainArchivoexcelFactory $archivoexcelFactory)
-    {
-        $this->variableproceso = $variableproceso;
-        $this->archivoexcelFactory = $archivoexcelFactory;
+    /**
+     * Constructor del servicio.
+     *
+     * Inyecta las dependencias necesarias mediante promoción de propiedades de PHP 8
+     * y utiliza Autowire para obtener la ruta pública sin necesidad de bindings en services.yaml.
+     *
+     * @param MainVariableproceso $variableproceso Dependencia para manejo de variables de proceso, mensajes de error y utilidades.
+     * @param MainArchivoexcelFactory $archivoexcelFactory Fábrica para construir instancias y Writers de PhpSpreadsheet.
+     * @param string $publicDir Parámetro inyectado con la ruta al directorio público.
+     */
+    public function __construct(
+        protected MainVariableproceso $variableproceso,
+        private MainArchivoexcelFactory $archivoexcelFactory,
+        #[Autowire('%app.public_dir%')]
+        string $publicDir
+    ) {
+        $this->internalTemplateDir = $publicDir . '/templates';
     }
 
+    /**
+     * Obtiene la ruta base actual del archivo con el que se está trabajando.
+     *
+     * @return string La ruta absoluta del archivo base.
+     */
     public function getArchivoBasePath(): string
     {
         return $this->archivoBasePath;
     }
 
+    /**
+     * Obtiene la hoja de cálculo activa.
+     *
+     * Este método existe para uso interno de la clase en los procesos de lectura
+     * y escritura, encapsulando el acceso directo a PhpSpreadsheet.
+     *
+     * @return Worksheet
+     */
     private function getHoja(): Worksheet
     {
         return $this->hoja;
     }
-    
+
+    /**
+     * Establece la cantidad de filas iniciales que el reader debe saltar antes de procesar.
+     *
+     * Útil cuando los archivos Excel tienen cabeceras, títulos o metadatos en las
+     * primeras filas que no forman parte de los datos tabulares.
+     *
+     * @param int $rows Número de filas a ignorar.
+     * @return self
+     */
     public function setSkipRows(int $rows): self
     {
         $this->skipRows = $rows;
-
         return $this;
     }
 
+    /**
+     * Configura el archivo base a procesar consultando una entidad en la base de datos.
+     *
+     * Este método existe para vincular directamente el servicio Excel con archivos
+     * previamente almacenados y registrados mediante un repositorio Doctrine.
+     *
+     * @param ObjectRepository $repositorio Repositorio de la entidad del archivo.
+     * @param int $id Identificador del archivo en la base de datos.
+     * @return self
+     */
     public function setArchivoBaseRepositorio(ObjectRepository $repositorio, int $id): self
     {
         if(empty($repositorio) || empty($id)) {
@@ -94,6 +146,12 @@ class MainArchivoexcel
         return $this;
     }
 
+    /**
+     * Establece explícitamente la ruta del archivo base a procesar desde el directorio de plantillas.
+     *
+     * @param string $path Ruta relativa al archivo dentro del directorio de plantillas internas.
+     * @return self
+     */
     public function setArchivoBasePath(string $path): self
     {
         if(empty($path)) {
@@ -102,7 +160,6 @@ class MainArchivoexcel
         }
 
         $fs = new Filesystem();
-
         $this->archivoBasePath = $this->internalTemplateDir . '/' . $path;
 
         if(!$fs->exists($this->archivoBasePath)) {
@@ -114,7 +171,10 @@ class MainArchivoexcel
     }
 
     /**
-     * @throws \PhpOffice\PhpSpreadsheet\Exception
+     * Inicializa la instancia de Spreadsheet, ya sea cargando un archivo base o creando uno nuevo en blanco.
+     *
+     * @throws \PhpOffice\PhpSpreadsheet\Exception Si ocurre un error al cargar el archivo base.
+     * @return self
      */
     public function setArchivo(): self
     {
@@ -130,19 +190,19 @@ class MainArchivoexcel
         $this->hoja = $this->archivo->setActiveSheetIndex(0);
 
         return $this;
-        //$total_sheets=$this->archivo->getSheetCount();
-        //$allSheetName=$this->archivo->getSheetNames();
-
     }
 
     /**
-     * @throws \PhpOffice\PhpSpreadsheet\Exception
+     * Selecciona una hoja específica del Excel para trabajar, creándola si no existe.
+     *
+     * @param int $hojaIndex Índice base 1 de la hoja a seleccionar.
+     * @throws \PhpOffice\PhpSpreadsheet\Exception Si hay un problema al crear o activar la hoja.
+     * @return self
      */
     public function setHoja(int $hojaIndex): self
     {
         $cantidad = $this->archivo->getSheetCount();
 
-        //si no existe la hoja del indice creamos las hojas necesarias
         if($this->archivo->getSheetCount() < $hojaIndex) {
             $diferencia = $hojaIndex - $this->archivo->getSheetCount();
             for ($x = 0; $x < $diferencia; $x++) {
@@ -153,11 +213,15 @@ class MainArchivoexcel
         $this->hoja = $this->archivo->setActiveSheetIndex($hojaIndex - 1);
 
         return $this;
-        //$total_sheets=$this->archivo->getSheetCount();
-        //$allSheetName=$this->archivo->getSheetNames();
     }
 
-
+    /**
+     * Configura los metadatos y especificaciones de las columnas antes de iniciar el parseo.
+     *
+     * @param array $setTablaSpecs Especificaciones generales de la tabla (ej. tipo).
+     * @param array $setColumnaSpecs Especificaciones detalladas por columna.
+     * @return self
+     */
     public function setParametrosReader(array $setTablaSpecs, array $setColumnaSpecs): self
     {
         $this->setTablaSpecs = $setTablaSpecs;
@@ -203,6 +267,11 @@ class MainArchivoexcel
         return $this;
     }
 
+    /**
+     * Método principal del Reader: Lee la hoja activa y extrae los datos basados en las especificaciones.
+     *
+     * @return bool True si el parseo fue exitoso y encontró datos, False en caso contrario.
+     */
     public function parseExcel(): bool
     {
         if(empty($this->archivo)) {
@@ -230,16 +299,11 @@ class MainArchivoexcel
 
         $startRow = $this->skipRows + 1;
 
-        //recorre filas
         for ($row = $startRow; $row <= $highestRow; ++$row) {
             $procesandoNombre = false;
-            //recorre columnas
             for ($col = 0; $col < $highestColumnIndex; ++$col) {
-
-                //lee valor
                 $value = $this->getHoja()->getCellByColumnAndRow($col, $row)->getValue();
 
-                //detecta filas de "especificacion"
                 if($col == 0 && str_starts_with($value, "&") && substr($value, 3, 1) == "&") {
                     $specRow = true;
                     if(str_starts_with($value, "&ta&")) {
@@ -256,11 +320,6 @@ class MainArchivoexcel
                     $specRow = false;
                     $specRowType = '';
                 }
-
-                //si es fila de especificaciones y no se han pasado las especificaciones como variable
-                //noProcess como nombre descarta la columna
-                //guion en el medio del nombre lee dos variables separadas por guion
-                //proceso='no' es para que no se utilice en la consulta de la base de datos
 
                 if($specRow === true) {
                     if($specRowType == 'C' && is_null($this->setColumnaSpecs)) {
@@ -386,13 +445,9 @@ class MainArchivoexcel
         }
 
         foreach($existentesRaw as $nroLinea => $valor):
-            //primero obtenemos los custom
             if(!empty($this->getCamposCustom())) {
-
                 foreach($this->getCamposCustom() as $llaveCustom):
-
                     if(isset($valor[$llaveCustom])) {
-
                         $existentesCustomRaw[$nroLinea][$llaveCustom] = $valor[$llaveCustom];
                     }
                 endforeach;
@@ -453,172 +508,282 @@ class MainArchivoexcel
         return true;
     }
 
+    /**
+     * Indica si el archivo ya fue procesado mediante parseExcel.
+     * @return bool
+     */
     public function isParsed(): bool
     {
         return $this->parsed;
     }
 
-
+    /**
+     * @return bool
+     */
     public function isDescartarBlanco(): bool
     {
         return $this->descartarBlanco;
     }
 
+    /**
+     * @param bool $descartarBlanco
+     * @return self
+     */
     public function setDescartarBlanco(bool $descartarBlanco): self
     {
         $this->descartarBlanco = $descartarBlanco;
         return $this;
     }
 
+    /**
+     * @param bool $removeEnclosure
+     * @return self
+     */
     public function setRemoveEnclosure(bool $removeEnclosure): self
     {
         $this->removeEnclosure = $removeEnclosure;
         return $this;
     }
 
+    /**
+     * @return bool
+     */
     public function isRemoveEnclosure(): bool
     {
         return $this->removeEnclosure;
     }
 
+    /**
+     * @return bool
+     */
     public function isTrimEspacios(): bool
     {
         return $this->trimEspacios;
     }
 
+    /**
+     * @param bool $trimEspacios
+     * @return self
+     */
     public function setTrimEspacios(bool $trimEspacios): self
     {
         $this->trimEspacios = $trimEspacios;
         return $this;
     }
 
+    /**
+     * @return array
+     */
     public function getExistentesRaw(): array
     {
         return $this->existentesRaw;
     }
 
+    /**
+     * @return array
+     */
     public function getExistentesIndizados(): array
     {
         return $this->existentesIndizados;
     }
 
+    /**
+     * @param array $existentesIndizados
+     * @return self
+     */
     private function setExistentesIndizados(array $existentesIndizados): self
     {
         $this->existentesIndizados = $existentesIndizados;
         return $this;
     }
 
+    /**
+     * @return array
+     */
     public function getExistentesIndizadosMulti(): array
     {
         return $this->existentesIndizadosMulti;
     }
 
+    /**
+     * @param array $existentesIndizadosMulti
+     * @return self
+     */
     private function setExistentesIndizadosMulti(array $existentesIndizadosMulti): self
     {
         $this->existentesIndizadosMulti = $existentesIndizadosMulti;
         return $this;
     }
 
+    /**
+     * @return array
+     */
     public function getExistentesIndizadosKp(): array
     {
         return $this->existentesIndizadosKp;
     }
 
+    /**
+     * @param array $existentesIndizadosKp
+     * @return self
+     */
     private function setExistentesIndizadosKp(array $existentesIndizadosKp): self
     {
         $this->existentesIndizadosKp = $existentesIndizadosKp;
         return $this;
     }
 
+    /**
+     * @return array
+     */
     public function getExistentesIndizadosMultiKp(): array
     {
         return $this->existentesIndizadosMultiKp;
     }
 
+    /**
+     * @param array $existentesIndizadosMultiKp
+     * @return self
+     */
     private function setExistentesIndizadosMultiKp(array $existentesIndizadosMultiKp): self
     {
         $this->existentesIndizadosMultiKp = $existentesIndizadosMultiKp;
         return $this;
     }
 
+    /**
+     * @param array $existentesRaw
+     * @return self
+     */
     private function setExistentesRaw(array $existentesRaw): self
     {
         $this->existentesRaw = $existentesRaw;
         return $this;
     }
 
+    /**
+     * @param array $campos
+     * @return self
+     */
     public function setCamposCustom(array $campos): self
     {
         $this->camposCustom = $campos;
         return $this;
     }
 
+    /**
+     * @return array
+     */
     public function getCamposCustom(): array
     {
         return $this->camposCustom;
     }
 
+    /**
+     * @return array
+     */
     public function getExistentesCustomIndizados(): array
     {
         return $this->existentesCustomIndizados;
     }
 
+    /**
+     * @param array $existentesCustomIndizados
+     * @return self
+     */
     private function setExistentesCustomIndizados(array $existentesCustomIndizados): self
     {
         $this->existentesCustomIndizados = $existentesCustomIndizados;
         return $this;
     }
 
+    /**
+     * @return array
+     */
     public function getExistentesCustomIndizadosMulti(): array
     {
         return $this->existentesCustomIndizadosMulti;
     }
 
+    /**
+     * @param array $existentesCustomIndizadosMulti
+     * @return self
+     */
     private function setExistentesCustomIndizadosMulti(array $existentesCustomIndizadosMulti): self
     {
         $this->existentesCustomIndizadosMulti = $existentesCustomIndizadosMulti;
         return $this;
     }
 
+    /**
+     * @return array
+     */
     public function getExistentesCustomRaw(): array
     {
         return $this->existentesCustomRaw;
     }
 
+    /**
+     * @param array $existentesCustomRaw
+     * @return self
+     */
     private function setExistentesCustomRaw(array $existentesCustomRaw): self
     {
         $this->existentesCustomRaw = $existentesCustomRaw;
         return $this;
     }
 
+    /**
+     * @return array
+     */
     public function getExistentesDescartados(): array
     {
         return $this->existentesDescartados;
     }
 
+    /**
+     * @param array $existentesDescartados
+     * @return self
+     */
     public function setExistentesDescartados(array $existentesDescartados): self
     {
         $this->existentesDescartados = $existentesDescartados;
         return $this;
     }
 
+    /**
+     * @param int $filaBase
+     * @return self
+     */
     public function setFilaBase(int $filaBase): self
     {
         $this->filaBase = $filaBase;
         return $this;
     }
 
+    /**
+     * @param string $columnaBase
+     * @return self
+     */
     public function setColumnaBase(string $columnaBase): self
     {
         $this->columnaBase = $columnaBase;
         return $this;
     }
 
-
+    /**
+     * Método helper del Writer que agrupa la configuración de nombre, extensión y volcado de datos.
+     *
+     * @param array $contenido Array multidimensional con la data a exportar.
+     * @param array $encabezado Array unidimensional con los títulos de las columnas.
+     * @param string $nombre Nombre del archivo final.
+     * @param string $tipo Extensión del archivo ('xlsx', 'csv', etc).
+     * @param bool $removeEnclosure Flag específico para generación CSV sin comillas.
+     * @return self
+     */
     public function setParametrosWriter(array $contenido, array $encabezado = [], string $nombre = 'archivoGenerado', string $tipo = 'xlsx', bool $removeEnclosure = false): self
     {
         $this->setNombre($nombre);
-
         $this->setRemoveEnclosure($removeEnclosure);
 
         if(!empty($encabezado)) {
@@ -631,9 +796,16 @@ class MainArchivoexcel
         return $this;
     }
 
+    /**
+     * Inserta los datos de un array unidimensional a lo largo de una fila específica.
+     *
+     * @param array $fila Datos a insertar.
+     * @param string $posicion Coordenada inicial (ej. 'A1').
+     * @return self
+     */
     public function setFila(array $fila, string $posicion): self
     {
-        if(empty($this->getHoja()) || empty($fila) || !is_array($fila) || $this->variableproceso->is_multi_array($fila) || empty($posicion)) {
+        if(empty($this->getHoja()) || empty($fila) || !is_array($fila) || $this->variableproceso->isMultiArray($fila) || empty($posicion)) {
             $this->variableproceso->setMensajes('El formato de fila no es correcto.', 'error');
             return $this;
         }
@@ -646,17 +818,24 @@ class MainArchivoexcel
                 return $this;
             }
             $columna = $this->archivoexcelFactory->stringFromColumnIndex((int)$key + $posicionXNumerico);
-
             $this->getHoja()->setCellValue($columna . $posicionY, $celda);
         endforeach;
         return $this;
     }
 
+    /**
+     * @return int
+     */
     public function getFilaBase(): int
     {
         return $this->filaBase;
     }
 
+    /**
+     * @param array $columna Array de valores.
+     * @param string $posicion Coordenada inicial.
+     * @return self
+     */
     public function setColumna(array $columna, string $posicion): self
     {
         if(empty($this->getHoja()) || empty($posicion)) {
@@ -668,11 +847,16 @@ class MainArchivoexcel
         return $this;
     }
 
-
-
+    /**
+     * Vuelca un array multidimensional directamente a la hoja de cálculo.
+     *
+     * @param array $tabla Array multidimensional con la data.
+     * @param string $posicion Coordenada de anclaje.
+     * @return self
+     */
     public function setTabla(array $tabla, string $posicion): self
     {
-        if(empty($this->getHoja()) || empty($tabla) || !$this->variableproceso->is_multi_array($tabla) || empty($posicion)) {
+        if(empty($this->getHoja()) || empty($tabla) || !$this->variableproceso->isMultiArray($tabla) || empty($posicion)) {
             $this->variableproceso->setMensajes('El formato de tabla no es correcto.', 'error');
             return $this;
         }
@@ -680,59 +864,78 @@ class MainArchivoexcel
         return $this;
     }
 
+    /**
+     * @param string $tipo
+     * @return self
+     */
     public function setTipo(string $tipo): self
     {
         $this->tipo = $tipo;
         return $this;
     }
 
+    /**
+     * @return string
+     */
     public function getTipo(): string
     {
         return $this->tipo;
     }
 
+    /**
+     * @param string $nombre
+     * @return self
+     */
     public function setNombre(string $nombre): self
     {
         $this->nombre = $nombre;
         return $this;
     }
 
+    /**
+     * @return string
+     */
     public function getNombre(): string
     {
         return $this->nombre;
     }
 
+    /**
+     * Aplica formatos de celda (ej. monetario, fechas, ceros a la izquierda) a rangos de columnas.
+     * BUG FIX: Corrección de error de concatenación Array-to-String.
+     *
+     * @param array $formatoColumna Estructura: ['formatoExcel' => [columna1, columna2]].
+     * @return self
+     */
     public function setFormatoColumna(array $formatoColumna): self
     {
-
-        if(empty($this->getHoja()) || empty($formatoColumna) || !$this->variableproceso->is_multi_array($formatoColumna)) {
+        if(empty($this->getHoja()) || empty($formatoColumna) || !$this->variableproceso->isMultiArray($formatoColumna)) {
             $this->variableproceso->setMensajes('El formato de columna no es correcto.', 'error');
             return $this;
         }
 
         $highestRow = $this->getHoja()->getHighestDataRow();
         $highestColumn = $this->getHoja()->getHighestDataColumn();
+
         foreach($formatoColumna as $formato => $columnas):
             foreach($columnas as $columna):
                 if(str_contains($columna, ':')) {
                     $columna = explode(':', $columna, 2);
                     if(is_numeric($columna[0]) && (is_numeric($columna[1]) || empty($columna[1]))) {
                         if(empty($columna[1])) {
-                            $columna[1] = $this->archivoexcelFactory
-                                ->columnIndexFromString($highestColumn);
+                            $columna[1] = $this->archivoexcelFactory->columnIndexFromString($highestColumn);
                         }
                         foreach(range($columna[0], $columna[1]) as $columnaProceso) {
                             $columnaString = $this->archivoexcelFactory->stringFromColumnIndex($columnaProceso);
                             $this->getHoja()
-                                ->getStyle($columna . $this->getFilaBase() . ':' . $columna . $highestRow)
+                                ->getStyle($columnaString . $this->getFilaBase() . ':' . $columnaString . $highestRow)
                                 ->getNumberFormat()
-                                ->setFormatCode($columnaString);
+                                ->setFormatCode($formato);
                         }
                     }
                 }else{
                     if(is_numeric($columna)) {
-                        $columna = $this->archivoexcelFactory
-                            ->stringFromColumnIndex($columna);
+                        $columna = $this->archivoexcelFactory->stringFromColumnIndex($columna);
                     }
                     $this->getHoja()
                         ->getStyle($columna . $this->getFilaBase() . ':' . $columna . $highestRow)
@@ -745,6 +948,13 @@ class MainArchivoexcel
         return $this;
     }
 
+    /**
+     * Ajusta el ancho de las columnas dadas a un tamaño fijo o automático.
+     * BUG FIX: Corrección de error de concatenación Array-to-String.
+     *
+     * @param array $anchoColumna Mapeo [columna => anchoFijo O 'auto'].
+     * @return self
+     */
     public function setAnchoColumna(array $anchoColumna): self
     {
         if(empty($this->getHoja()) || empty($anchoColumna) || !is_array($anchoColumna)) {
@@ -784,6 +994,13 @@ class MainArchivoexcel
         return $this;
     }
 
+    /**
+     * Forzar la escritura de celdas específicas fijando estrictamente un tipo de dato subyacente.
+     *
+     * @param array $celdas Mapeo de [Coordenada => Valor] (ej. ['A1' => '00123']).
+     * @param string $tipo Tipo forzado, por defecto 'texto'.
+     * @return self
+     */
     public function setCeldas(array $celdas, string $tipo = 'texto'): self
     {
         if(empty($this->getHoja()) || empty($celdas)) {
@@ -799,6 +1016,11 @@ class MainArchivoexcel
         return $this;
     }
 
+    /**
+     * Construye y retorna la respuesta HTTP de Symfony para iniciar la descarga directa.
+     *
+     * @return Response Objeto Response de Symfony configurado.
+     */
     public function getResponse(): Response
     {
         if(empty($this->getTipo())) {
@@ -815,6 +1037,11 @@ class MainArchivoexcel
         return $response;
     }
 
+    /**
+     * Guarda el archivo Excel generado en el sistema temporal del servidor y retorna su ruta.
+     *
+     * @return string Ruta absoluta al archivo temporal creado.
+     */
     public function createFile(): string
     {
         if(empty($this->getTipo())) {

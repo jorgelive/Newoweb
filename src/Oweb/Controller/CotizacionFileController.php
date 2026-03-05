@@ -7,38 +7,41 @@ use App\Oweb\Service\MainArchivoexcel;
 use App\Oweb\Service\MainArchivozip;
 use App\Oweb\Service\MainVariableproceso;
 use Doctrine\ORM\EntityManagerInterface;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\StringValueBinder;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Controlador para la gestión y exportación de archivos relacionados con CotizacionFile.
+ * * Gestiona la generación de archivos Excel/CSV para integraciones gubernamentales
+ * y de proveedores turísticos locales (Llaqta/MC, PeruRail, Consettur).
+ */
 class CotizacionFileController extends CRUDController
 {
-
-    private EntityManagerInterface $entityManager;
-
-    private MainVariableproceso $variableproceso;
-
-    private MainArchivoexcel $archivoexcel;
-
-    private MainArchivozip $archivozip;
-
-    function __construct(
-        EntityManagerInterface $entityManager,
-        MainVariableproceso $variableproceso,
-        MainArchivoexcel $archivoexcel,
-        MainArchivozip $archivozip
-    )
-    {
-        $this->entityManager = $entityManager;
-
-        $this->variableproceso = $variableproceso;
-
-        $this->archivoexcel = $archivoexcel;
-
-        $this->archivozip = $archivozip;
-
+    /**
+     * @param EntityManagerInterface $entityManager
+     * @param MainVariableproceso $variableproceso
+     * @param MainArchivoexcel $archivoexcel
+     * @param MainArchivozip $archivozip
+     */
+    public function __construct(
+        private EntityManagerInterface $entityManager,
+        private MainVariableproceso $variableproceso,
+        private MainArchivoexcel $archivoexcel,
+        private MainArchivozip $archivozip
+    ) {
     }
 
+    /**
+     * Genera el archivo Excel de pasajeros para el Ministerio de Cultura (Llaqta / TuBoletoCultura).
+     * * UTILIZA ESTRATEGIA NULL PARA EVITAR BORRAR FÓRMULAS: Inyecta valores en texto puro
+     * dejando los campos de ID en `null` para que PhpSpreadsheet no sobrescriba el =BUSCARV interno.
+     * * @param Request $request
+     * @return Response
+     */
     public function archivomcAction(Request $request): Response
     {
         $maxLength = 10;
@@ -73,14 +76,59 @@ class CotizacionFileController extends CRUDController
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
-        $resultados = [];
-        $encabezado = [
-            'Item',
-            'Procedencia', 'idProcedencia', 'Pais', 'idPais',
-            'tarifa', 'idTarifa', 'Tipo de Documento', 'idTipoDocumento', 'Nro Documento',
-            'Fecha de nacimiento', 'Nombres', 'Apellido Paterno', 'Apellido Materno',
-            'Cod File', 'Sexo'
+        // --- MAPEOS ESTRICTOS SEGÚN CSV DEL MINISTERIO DE CULTURA ---
+        $tarifasMincul = [
+            'promocional'       => 'General promocional',
+            'menor_promocional' => 'Menor de edad entre 3-17 años promocional',
+            'general'           => 'General',
+            'menor'             => 'Menor de edad entre 3 - 17 años', // Nótese los espacios que exige el MC
         ];
+
+        $procedenciasMincul = [
+            'peruano'       => 'Peruano',
+            'can'           => 'Países CAN',
+            'extranjero'    => 'Extranjero',
+            'residente'     => 'Residente extranjero',
+        ];
+
+        // Mapeo de IDs locales a nombres estrictos de países según Tablas.csv del MC
+        $mapaPaisesMincul = [
+            117 => 'Perú',
+            158 => 'México',
+            64  => 'España',
+            66  => 'Estados Unidos',
+            44  => 'Chile',
+            47  => 'Colombia',
+            28  => 'Bolivia',
+            57  => 'Ecuador',
+            32  => 'Brasil',
+            189 => 'Reino Unido',
+            72  => 'Francia',
+            3   => 'Alemania',
+            126 => 'Italia',
+            41  => 'Canadá',
+            16  => 'Australia',
+            129 => 'Japón',
+            45  => 'China',
+            246 => 'Venezuela',
+            183 => 'Paraguay',
+            243 => 'Uruguay',
+            97  => 'Irlanda',
+            177 => 'Paises Bajos', // Escrito así en su CSV (sin tilde)
+        ];
+
+        // Mapeo de IDs locales a abreviaturas de documentos del MC
+        $mapaDocumentosMincul = [
+            1 => 'DNI',
+            2 => 'PAS',
+            3 => 'CE',
+            4 => 'RUC',
+        ];
+        // -----------------------------------------------------------
+
+        $resultados = [];
+        $encabezado = []; // No lo necesitamos, la plantilla ya lo trae
+
         $i = 1;
         foreach($filePasajeros as $key => $filePasajero){
 
@@ -90,51 +138,44 @@ class CotizacionFileController extends CRUDController
 
             if ($edad < 3){ continue; }
 
-            $tarifas = [
-                'promocional' => ['nombre' => 'General Promocional', 'codigo' => 4],
-                'menor_promocional' => ['nombre' => 'Menor de edad entre 3 - 17 años Promocional', 'codigo' => 6],
-                'general' => ['nombre' => 'General', 'codigo' => 1],
-                'menor' => ['nombre' => 'Menor de edad entre 3 - 17 años', 'codigo' => 3],
-            ];
-
-            $procedencias = [
-                'peruano' => ['nombre' => 'Peruano', 'codigo' => 2],
-                'can_residente' => ['nombre' => 'Países CAN y Residente extranjero', 'codigo' => 3],
-                'extranjero' => ['nombre' => 'Extranjero', 'codigo' => 1],
-            ];
-
-            // Definir tarifa y procedencia por defecto
+            // 1. Determinar procedencia
             if ($paisId == 117) {
-                $procedencia = $procedencias['peruano'];
-            } elseif (in_array($paisId, [20, 41, 32]) || $documentoId == 3) {
-                $procedencia = $procedencias['can_residente'];
+                $procedenciaNombre = $procedenciasMincul['peruano'];
+            } elseif (in_array($paisId, [20, 41, 32])) {
+                $procedenciaNombre = $procedenciasMincul['can'];
+            } elseif ($documentoId == 3) {
+                $procedenciaNombre = $procedenciasMincul['residente'];
             } else {
-                $procedencia = $procedencias['extranjero'];
+                $procedenciaNombre = $procedenciasMincul['extranjero'];
             }
 
-            // Determinar la tarifa
+            // 2. Determinar la tarifa
+            $esPromocional = in_array($procedenciaNombre, [$procedenciasMincul['peruano'], $procedenciasMincul['can'], $procedenciasMincul['residente']]);
             if ($edad >= 18) {
-                $tarifa = ($procedencia['codigo'] == 2 || $procedencia['codigo'] == 3) ? $tarifas['promocional'] : $tarifas['general'];
+                $tarifaNombre = $esPromocional ? $tarifasMincul['promocional'] : $tarifasMincul['general'];
             } else {
-                $tarifa = ($procedencia['codigo'] == 2 || $procedencia['codigo'] == 3) ? $tarifas['menor_promocional'] : $tarifas['menor'];
+                $tarifaNombre = $esPromocional ? $tarifasMincul['menor_promocional'] : $tarifasMincul['menor'];
             }
 
-            // Asignar valores finales
-            $tarifaNombre = $tarifa['nombre'];
-            $tarifaCodigo = $tarifa['codigo'];
-            $procedenciaNombre = $procedencia['nombre'];
-            $procedenciaCodigo = $procedencia['codigo'];
+            // 3. Obtener nombres finales desde el mapa o fallback local
+            $nombrePaisFinal = $mapaPaisesMincul[$paisId] ?? $filePasajero->getPais()->getNombre();
+            $nombreDocFinal = $mapaDocumentosMincul[$documentoId] ?? $filePasajero->getTipodocumento()->getNombremc();
 
-            $resultados[$key]['correlativo'] = $i;
-            $i++;
+            // 4. Armado de la matriz con inyección de NULL en columnas de ID
+            $resultados[$key]['correlativo'] = $i++;
+
             $resultados[$key]['Procedencia'] = $procedenciaNombre;
-            $resultados[$key]['idProcedencia'] = $procedenciaCodigo;
-            $resultados[$key]['paisnombre'] = $filePasajero->getPais()->getNombre();
-            $resultados[$key]['paiscodigo'] = $filePasajero->getPais()->getCodigomc();
+            $resultados[$key]['idProcedencia'] = null; // No sobrescribir fórmula
+
+            $resultados[$key]['paisnombre'] = $nombrePaisFinal;
+            $resultados[$key]['paiscodigo'] = null; // No sobrescribir fórmula
+
             $resultados[$key]['tarifanombre'] = $tarifaNombre;
-            $resultados[$key]['tarifacodigo'] = $tarifaCodigo;
-            $resultados[$key]['tipodocumentonombre'] = $filePasajero->getTipodocumento()->getNombremc();
-            $resultados[$key]['tipodocumentocodigo'] = $filePasajero->getTipodocumento()->getCodigomc();
+            $resultados[$key]['tarifacodigo'] = null; // No sobrescribir fórmula
+
+            $resultados[$key]['tipodocumentonombre'] = $nombreDocFinal;
+            $resultados[$key]['tipodocumentocodigo'] = null; // No sobrescribir fórmula
+
             $resultados[$key]['numerodocumento'] = $filePasajero->getNumerodocumento();
             $resultados[$key]['fechanacimiento'] = $filePasajero->getFechanacimiento()->format('d-m-Y');
             $resultados[$key]['nombre'] = $filePasajero->getNombre();
@@ -144,38 +185,47 @@ class CotizacionFileController extends CRUDController
             $resultados[$key]['sexo'] = $filePasajero->getSexo()->getNombre();
         }
 
+        // FORZAR MODO TEXTO PURO: Evita que PhpSpreadsheet borre ceros a la izquierda o mute fechas
+        Cell::setValueBinder(new StringValueBinder());
+
         if(count($resultados) <= $maxLength) {
-            return $this->archivoexcel
+            $response = $this->archivoexcel
+                ->setArchivoBasePath('tuboletocultura.xlsx')
                 ->setArchivo()
                 ->setColumnaBase('B')
-                ->setFilaBase(3)
+                ->setFilaBase(4)
                 ->setParametrosWriter($resultados, $encabezado, 'MC_' . $object->getNombre(), 'xlsx')
-                ->setAnchoColumna(['0:' => 20]) //['A'=>12,'B'=>'auto','0:'=>20]
                 ->getResponse();
-        }else{
-
+        } else {
             $partes = array_chunk($resultados, $maxLength);
+            $archivos = [];
 
             foreach($partes as $key => $parte){
                 $archivos[$key]['path'] = $this->archivoexcel
+                    ->setArchivoBasePath('tuboletocultura.xlsx')
                     ->setArchivo()
                     ->setColumnaBase('B')
-                    ->setFilaBase(3)
+                    ->setFilaBase(4)
                     ->setParametrosWriter($parte, $encabezado, 'MC_' . $object->getNombre(), 'xlsx')
-                    ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
                     ->createFile();
-                $archivos[$key]['nombre'] = 'MC_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xlsx';
+                $archivos[$key]['nombre'] = 'MC_' . $object->getNombre() . '_Parte_' . ($key + 1) . '.xlsx';
             }
 
-            return $this->archivozip
+            $response = $this->archivozip
                 ->setParametros($archivos, 'MC_' . $object->getNombre())
                 ->procesar()
                 ->getResponse();
-
         }
+
+        // RESTAURAR AL BINDER POR DEFECTO PARA NO AFECTAR OTROS EXPORTADORES
+        Cell::setValueBinder(new DefaultValueBinder());
+
+        return $response;
     }
 
-
+    /**
+     * Genera el archivo CSV de pasajeros para la DDC (Dirección Desconcentrada de Cultura).
+     */
     public function archivodccAction(Request $request): Response
     {
         $maxLength = 10;
@@ -211,7 +261,7 @@ class CotizacionFileController extends CRUDController
         }
 
         $resultados = [];
-        $encabezado = []; //['Apellido', 'Nombre', 'Tipo Doc', 'Número Doc', 'Nacimiento', 'Pais', 'Sexo', 'File', 'Categoria'];
+        $encabezado = [];
         foreach($filePasajeros as $key => $filePasajero){
             $resultados[$key]['apellido'] = $filePasajero->getApellido();
             $resultados[$key]['nombre'] = $filePasajero->getNombre();
@@ -227,8 +277,8 @@ class CotizacionFileController extends CRUDController
         if(count($resultados) <= $maxLength) {
             return $this->archivoexcel
                 ->setArchivo()
-                ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
-                ->setAnchoColumna(['0:' => 20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                ->setParametrosWriter($resultados, $encabezado, 'DDC_' . $object->getNombre(), 'csv', true)
+                ->setAnchoColumna(['0:' => 20])
                 ->getResponse();
         }else{
 
@@ -237,8 +287,8 @@ class CotizacionFileController extends CRUDController
             foreach($partes as $key => $parte){
                 $archivos[$key]['path'] = $this->archivoexcel
                     ->setArchivo()
-                    ->setParametrosWriter($parte, $encabezado, 'DCC_' . $object->getNombre(), 'csv', true) //true para quitar comillas de csv
-                    ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                    ->setParametrosWriter($parte, $encabezado, 'DCC_' . $object->getNombre(), 'csv', true)
+                    ->setAnchoColumna(['0:'=>20])
                     ->createFile();
                 $archivos[$key]['nombre'] = 'DCC_' . $object->getNombre() . '_Parte_' . $key + 1 . '.csv';
             }
@@ -247,10 +297,12 @@ class CotizacionFileController extends CRUDController
                 ->setParametros($archivos, 'DCC_' . $object->getNombre())
                 ->procesar()
                 ->getResponse();
-
         }
     }
 
+    /**
+     * Genera el archivo Excel de pasajeros formateado específicamente para PeruRail.
+     */
     public function archivoprAction(Request $request): Response
     {
         $maxLength = 100;
@@ -303,7 +355,7 @@ class CotizacionFileController extends CRUDController
                 ->setArchivo()
                 ->setFilaBase(2)
                 ->setParametrosWriter($resultados, [], 'PERURAIL_' . $object->getNombre(), 'xlsx')
-                ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                ->setAnchoColumna(['0:'=>20])
                 ->getResponse();
         }else{
             $partes = array_chunk($resultados, $maxLength);
@@ -314,7 +366,7 @@ class CotizacionFileController extends CRUDController
                     ->setArchivo()
                     ->setFilaBase(2)
                     ->setParametrosWriter($parte, [], 'PERURAIL_' . $object->getNombre(), 'xlsx')
-                    ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                    ->setAnchoColumna(['0:'=>20])
                     ->createFile();
                 $archivos[$key]['nombre'] = 'PERURAIL_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xlsx';
 
@@ -325,9 +377,11 @@ class CotizacionFileController extends CRUDController
                 ->procesar()
                 ->getResponse();
         }
-
     }
 
+    /**
+     * Genera el archivo Excel de pasajeros formateado para Consettur (Buses Machu Picchu).
+     */
     public function archivoconAction(Request $request): Response
     {
         $maxLength = 50;
@@ -368,7 +422,7 @@ class CotizacionFileController extends CRUDController
             $resultados[$key]['apellidopaterno'] = $filePasajero->getApellidoPaterno();
             $resultados[$key]['apellidomaterno'] = $filePasajero->getApellidoMaterno();
             $resultados[$key]['nombre'] = $filePasajero->getNombre();
-            if($filePasajero->getPais()->getId() != 117){//si no es peruano fuerzo a pasaporte
+            if($filePasajero->getPais()->getId() != 117){
                 $resultados[$key]['tipodocumento'] = '4';
             }else{
                 $resultados[$key]['tipodocumento'] = $filePasajero->getTipodocumento()->getCodigocon();
@@ -378,7 +432,6 @@ class CotizacionFileController extends CRUDController
 
             $resultados[$key]['pais'] = $filePasajero->getPais()->getCodigocon();
             if ($filePasajero->getPais()->getIso2() === MaestroPais::ISO_PERU) {
-                // Si es peruano, asignamos el código por defecto (Lima) definido en la entidad
                 $resultados[$key]['ciudad'] = MaestroPais::CODIGO_CIUDAD_DEFAULT_COSETTUR_PERU;
             } else {
                 $resultados[$key]['ciudad'] = '';
@@ -393,7 +446,7 @@ class CotizacionFileController extends CRUDController
                 ->setArchivo()
                 ->setFilaBase(2)
                 ->setParametrosWriter($resultados, [], 'consettur_' . $object->getNombre(), 'xlsx')
-                ->setAnchoColumna(['0:' => 20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                ->setAnchoColumna(['0:' => 20])
                 ->getResponse();
         }else{
             $partes = array_chunk($resultados, $maxLength);
@@ -404,7 +457,7 @@ class CotizacionFileController extends CRUDController
                     ->setArchivo()
                     ->setFilaBase(2)
                     ->setParametrosWriter($parte, [], 'consettur_' . $object->getNombre(), 'xlsx')
-                    ->setAnchoColumna(['0:'=>20]) //['A'=>12,'B'=>'auto','0:'=>20]
+                    ->setAnchoColumna(['0:'=>20])
                     ->createFile();
                 $archivos[$key]['nombre'] = 'consettur_' . $object->getNombre() . '_Parte_' . $key + 1 . '.xlsx';
 
@@ -418,20 +471,20 @@ class CotizacionFileController extends CRUDController
         }
     }
 
-    public function resumenAction(Request $request = null): Response | RedirectResponse
+    /**
+     * Muestra la vista detallada (resumen) de la cotización o file.
+     */
+    public function resumenAction(?Request $request = null): Response | RedirectResponse
     {
         $object = $this->assertObjectExists($request, true);
         \assert(null !== $object);
 
-        //verificamos token
         if($request->get('token') != $object->getToken()){
             $this->addFlash('sonata_flash_error', 'El código de autorización no coincide');
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
         $this->checkParentChildAssociation($request, $object);
-
-        //$this->admin->checkAccess('show', $object);
 
         $preResponse = $this->preShow($request, $object);
         if(null !== $preResponse) {
@@ -441,8 +494,6 @@ class CotizacionFileController extends CRUDController
         $this->admin->setSubject($object);
 
         $fields = $this->admin->getShow();
-
-        //$template = $this->templateRegistry->getTemplate('show'); es privado en la clase padre
         $template = 'oweb/admin/cotizacion_file/show.html.twig';
 
         return $this->renderWithExtraParams($template,
@@ -451,7 +502,5 @@ class CotizacionFileController extends CRUDController
                 'action' => 'resumen',
                 'elements' => $fields,
             ]);
-
     }
-    
 }
