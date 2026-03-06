@@ -320,7 +320,7 @@ trait MainArchivoTrait
         $ext   = strtolower((string) $this->getExtension());
         $mime  = $file->getClientMimeType();
         $name  = $this->id . '_' . $this->getToken() . '.' . $ext;
-        $path  = rtrim($destDir, '/') . 'MainArchivoTrait.php/' .$name;
+        $path  = rtrim($destDir, '/') . '/' .$name;
         $src   = $file->getPathname();
 
         $isWebp = ($ext === 'webp' || $mime === 'image/webp');
