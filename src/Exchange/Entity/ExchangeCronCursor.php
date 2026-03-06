@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Pms\Entity;
+namespace App\Exchange\Entity;
 
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Table(name: 'pms_cron_cursor')]
+#[ORM\Table(name: 'exchange_cron_cursor')]
 #[ORM\Entity]
-class PmsCronCursor
+class ExchangeCronCursor
 {
     #[ORM\Id]
     #[ORM\Column(length: 100)]

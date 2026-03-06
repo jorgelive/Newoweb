@@ -15,7 +15,7 @@ use App\Message\Entity\WhatsappGupshupSendQueue;
 use App\Message\Service\MessageDataResolverRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 
-class WhatsappGupshupEnqueuer implements ChannelEnqueuerInterface
+class WhatsappGupshupSendEnqueuer implements ChannelEnqueuerInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $em,

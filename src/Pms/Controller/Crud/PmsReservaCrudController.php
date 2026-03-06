@@ -228,7 +228,7 @@ final class PmsReservaCrudController extends BaseCrudController
             return $this->redirect($context->getReferrer());
         }
 
-        $variables = $this->messageDataResolver->getTemplateVariables((string)$reserva->getId());
+        $variables = $this->messageDataResolver->getMessageVariables((string)$reserva->getId());
 
         $replacePairs = [];
         foreach ($variables as $key => $value) {

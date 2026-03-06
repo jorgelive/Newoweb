@@ -5,17 +5,14 @@ declare(strict_types=1);
 namespace App\Pms\Service\Message;
 
 use App\Message\Contract\MessageDataResolverInterface;
+use App\Pms\Entity\PmsChannel; // 🔥 IMPORTANTE
+use App\Pms\Entity\PmsEventoBeds24Link;
+use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsReserva;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-/**
- * PmsMessageDataResolver
- *
- * Implementación concreta encargada de buscar datos frescos de reservas
- * en la base de datos justo antes de que se despache un mensaje.
- */
 #[AutoconfigureTag('app.message_data_resolver')]
 class PmsMessageDataResolver implements MessageDataResolverInterface
 {
@@ -54,15 +51,35 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             return [];
         }
 
+        // 1. Intentamos obtener el ID Principal
+        $targetBookId = $reserva->getBeds24MasterId();
+
+        // 2. Sino lo buscamos en el link
+        if (empty($targetBookId) ) {
+            foreach ($reserva->getEventosCalendario() as $evento) {
+                /** @var PmsEventoCalendario $evento */
+                foreach ($evento->getBeds24Links() as $link) {
+                    /** @var PmsEventoBeds24Link $link */
+                    if ($link->isEsPrincipal()) {
+                        $targetBookId = $link->getBeds24BookId();
+                        break 2;
+                    }
+                }
+            }
+        }
+
+        // 🔥 OBTENEMOS EL ID DEL CANAL (Ej: 'airbnb', 'booking', 'directo')
+        $sourceId = $reserva->getChannel() ? $reserva->getChannel()->getId() : PmsChannel::CODIGO_DIRECTO;
+
         return [
-            // Extraemos el ID de la OTA
-            'beds24_book_id' => $reserva->getBeds24BookIdPrincipal() ?? $reserva->getBeds24MasterId(),
-            // Extraemos la configuración de Beds24 ligada al hotel de esta reserva
+            'beds24_book_id' => $targetBookId,
             'beds24_config'  => $reserva->getEstablecimiento()?->getBeds24Config(),
+            'source'         => $sourceId, // 🔥 AÑADIDO PARA LA REGLA DE OTAs
         ];
     }
 
-    public function getTemplateVariables(string $contextId): array
+    // 🔥 CAMBIADO EL NOMBRE A getMessageVariables (Refactor)
+    public function getMessageVariables(string $contextId): array
     {
         $reserva = $this->getReserva($contextId);
         if (!$reserva) {

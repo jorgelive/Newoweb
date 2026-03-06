@@ -18,7 +18,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Este es el MOTOR DE EJECUCIÓN (Runner). Su función es consumir las colas generadas
  * por el TimelineEnqueuer y realizar las llamadas reales a la API de Beds24.
  * * --- RELACIÓN CON EL ENQUEUER ---
- * 1. PmsTimelineEnqueuerCommand: Encuentra cambios y los mete en la tabla '_queue'.
+ * 1. TimelineEnqueuerCommand: Encuentra cambios y los mete en la tabla '_queue'.
  * 2. ExchangeRunnerCommand (Este): Lee la tabla '_queue' y envía los datos.
  * * --- EJEMPLOS DE USO ---
  * @example php bin/console exchange:run bookings_pull           -> Ejecuta importación de reservas pendientes.

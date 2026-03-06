@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Pms\Service\Cron;
+namespace App\Exchange\Service\Cron;
 
 use DateInterval;
 use DateTimeImmutable;

@@ -137,14 +137,16 @@ class MessageConversationCrudController extends BaseCrudController
         if (!$this->isEmbedded()) {
             yield FormField::addPanel('Historial de Chat')->setIcon('fa fa-history');
 
-            // 🔥 INYECCIÓN DEL PROTOTIPO: Esto obliga a EasyAdmin a marcar los
-            // checkboxes cuando el usuario hace clic en "Añadir Mensaje"
-            $prototype = clone $this->messageFactory->createForUiNew();
+            // 🔥 INYECCIÓN DEL PROTOTIPO MODIFICADO:
+            // Le pasamos la conversación actual para que aplique la regla de ocultar Beds24
+            $prototype = clone $this->messageFactory->createForUiNew(
+                $conversation instanceof MessageConversation ? $conversation : null
+            );
 
             yield CollectionField::new('messages', 'Mensajes')
                 ->useEntryCrudForm(MessageCrudController::class)
                 ->setFormTypeOption('by_reference', false)
-                ->setFormTypeOption('prototype_data', $prototype); // <-- Clave para el embebido
+                ->setFormTypeOption('prototype_data', $prototype);
         }
     }
 }

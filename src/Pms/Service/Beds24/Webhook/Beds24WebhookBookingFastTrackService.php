@@ -6,7 +6,7 @@ namespace App\Pms\Service\Beds24\Webhook;
 use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Service\Context\SyncContext;
 use App\Pms\Dto\Beds24BookingDto;
-use App\Pms\Service\Exchange\Persister\Beds24BookingPersister;
+use App\Pms\Service\Exchange\Tasks\BookingsPull\BookingPullPersister;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 use Throwable;
@@ -15,8 +15,8 @@ final class Beds24WebhookBookingFastTrackService
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly Beds24BookingPersister $persister,
-        private readonly SyncContext $syncContext,
+        private readonly BookingPullPersister   $persister,
+        private readonly SyncContext            $syncContext,
     ) {}
 
     /**

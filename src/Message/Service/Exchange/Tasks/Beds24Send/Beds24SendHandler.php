@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Repository\Tasks\Beds24Send;
+namespace App\Message\Service\Exchange\Tasks\Beds24Send;
 
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
@@ -19,27 +19,37 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
             return ['status' => 'error', 'message' => 'Entidad incorrecta'];
         }
 
-        // 1. Auditoría RAW (Ya se seteó en el BatchProcessor, pero aquí aseguramos lógica extra si hace falta)
-        // El 'lastResponseRaw' ya viene lleno desde el Orchestrator/BatchProcessor.
-
+        // 1. Auditoría RAW (El 'lastResponseRaw' ya se llenó en el BatchProcessor)
         $item->setLastHttpCode(200);
 
-        // 2. Actualizar Estado del Mensaje Padre
-        // Si el mensaje se envió correctamente, actualizamos el Message principal
+        // 2. Extraer el ID externo del payload de Beds24
+        // Según la API v2 de Beds24, al crear un mensaje viene en ['new']['id']
+        // Dejamos el fallback ['id'] por si en algún momento hacen un update o cambia la respuesta.
+        $remoteId = $data['new']['id'] ?? $data['id'] ?? null;
+
+        // 3. Actualizar Estado del Mensaje Padre y Guardar ID de Idempotencia
         $msg = $item->getMessage();
-        if ($msg && $msg->getStatus() !== Message::STATUS_READ) {
-            // Solo pasamos a SENT si no estaba ya en READ (por si acaso)
-            $msg->setStatus(Message::STATUS_SENT);
+        if ($msg) {
+            // Pasamos a SENT si no estaba ya en READ
+            if ($msg->getStatus() !== Message::STATUS_READ) {
+                $msg->setStatus(Message::STATUS_SENT);
+            }
+
+            // 🔥 CRÍTICO: Guardamos el ID remoto en el mensaje para evitar
+            // que el proceso de PULL/Webhooks lo vuelva a insertar como duplicado.
+            if ($remoteId) {
+                $msg->setBeds24ExternalId((string) $remoteId);
+            }
         }
 
-        // 3. Resultado de Ejecución
+        // 4. Construir el Resultado de Ejecución para la auditoría JSON de la cola
         $summary = [
             'status' => 'success',
-            'remote_msg_id' => $data['id'] ?? null, // Si la API devuelve ID
+            'remote_msg_id' => $remoteId,
             'timestamp' => (new DateTimeImmutable())->format('Y-m-d H:i:s')
         ];
 
-        // 4. Marcar cola como Éxito
+        // 5. Marcar la cola como Éxito (limpia bloqueos y quita de la lista de pendientes)
         $item->markSuccess(new DateTimeImmutable());
 
         return $summary;

@@ -21,7 +21,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: PmsReserva::class)]
 #[ORM\Table(name: 'pms_reserva')]
 #[ApiResource(
     operations: [

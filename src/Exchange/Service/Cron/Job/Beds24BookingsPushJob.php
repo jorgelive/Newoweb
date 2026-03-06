@@ -1,14 +1,14 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Pms\Service\Cron\Job;
+namespace App\Exchange\Service\Cron\Job;
 
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
+use App\Exchange\Service\Cron\CronJobInterface;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Service\Beds24\Queue\Beds24BookingsPushQueueCreator;
-use App\Pms\Service\Cron\CronJobInterface;
 use DateInterval;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;

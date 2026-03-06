@@ -8,7 +8,6 @@ use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Dto\Beds24BookingDto;
 use App\Pms\Entity\PmsBookingsPullQueue;
-use App\Pms\Service\Exchange\Persister\Beds24BookingPersister;
 use DateTimeImmutable;
 use Symfony\Component\Serializer\SerializerInterface;
 use Throwable;
@@ -22,8 +21,8 @@ use Throwable;
 final class BookingsPullHandler implements ExchangeHandlerInterface
 {
     public function __construct(
-        private readonly Beds24BookingPersister $persister,
-        private readonly SerializerInterface $serializer
+        private readonly BookingPullPersister $persister,
+        private readonly SerializerInterface  $serializer
     ) {}
 
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array

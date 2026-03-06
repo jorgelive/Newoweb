@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Repository\Tasks\WhatsappGupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
 
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Contract\ExchangeQueueProviderInterface;

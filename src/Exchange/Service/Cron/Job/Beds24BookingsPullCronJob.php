@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\Service\Cron\Job;
+namespace App\Exchange\Service\Cron\Job;
 
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
+use App\Exchange\Service\Cron\CronJobInterface;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Service\Beds24\Queue\Beds24BookingsPullQueueCreator;
-use App\Pms\Service\Cron\CronJobInterface;
 use DateInterval;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;

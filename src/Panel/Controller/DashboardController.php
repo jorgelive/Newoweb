@@ -11,6 +11,7 @@ use App\Entity\Maestro\MaestroPais;
 use App\Entity\Maestro\MaestroTipocambio;
 use App\Entity\User;
 use App\Exchange\Entity\Beds24Config;
+use App\Exchange\Entity\ExchangeCronCursor;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\GupshupConfig;
 use App\Message\Entity\Beds24SendQueue;
@@ -26,7 +27,6 @@ use App\Pms\Entity\PmsBeds24WebhookAudit;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsChannel;
-use App\Pms\Entity\PmsCronCursor;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEstablecimientoVirtual;
 use App\Pms\Entity\PmsEventAssignmentActivity;
@@ -223,7 +223,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::subMenu('Auditoría Técnica', 'fa fa-bug')
             ->setSubItems([
                 MenuItem::linkToCrud('Webhook Audit (Beds24)', 'fa fa-stethoscope', PmsBeds24WebhookAudit::class),
-                MenuItem::linkToCrud('Estado de Crons', 'fa fa-clock', PmsCronCursor::class),
+                MenuItem::linkToCrud('Estado de Crons', 'fa fa-clock', ExchangeCronCursor::class),
             ])
             ->setPermission(Roles::ADMIN);
 

@@ -7,34 +7,54 @@ namespace App\Message\Factory;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
+use App\Message\Service\MessageDataResolverRegistry;
+use App\Pms\Entity\PmsChannel; // 🔥 IMPORTANTE
 use Doctrine\ORM\EntityManagerInterface;
 
 class MessageFactory
 {
-    public function __construct(private readonly EntityManagerInterface $em) {}
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly MessageDataResolverRegistry $resolverRegistry // 🔥 Inyectado
+    ) {}
 
-    /**
-     * Crea un mensaje base para la Interfaz (EasyAdmin).
-     * Pre-selecciona todos los canales activos por defecto.
-     */
-    public function createForUiNew(): Message
+    public function createForUiNew(?MessageConversation $conversation = null): Message
     {
         $message = new Message();
         $message->setDirection(Message::DIRECTION_OUTGOING);
         $message->setStatus(Message::STATUS_PENDING);
 
-        // Fan-Out: Seleccionamos todos los canales activos por defecto
+        // 🔥 LOGICA PARA OCULTAR BEDS24 EN OTAs
+        $isDirect = true;
+        if ($conversation !== null) {
+            $message->setConversation($conversation);
+            $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
+            $meta = $resolver ? $resolver->getMetadata($conversation->getContextId()) : [];
+
+            $source = (string) ($meta['source'] ?? '');
+            $canalesDirectos = [PmsChannel::CODIGO_DIRECTO, 'manual', 'web', ''];
+
+            $isDirect = in_array($source, $canalesDirectos, true);
+        }
+
         $activeChannels = $this->em->getRepository(MessageChannel::class)->findBy(['isActive' => true]);
-        $channelIds = array_map(fn(MessageChannel $ch) => (string) $ch->getId(), $activeChannels);
+        $channelIds = [];
+
+        foreach ($activeChannels as $ch) {
+            $chId = (string) $ch->getId();
+
+            // Si es Beds24 y la reserva NO es directa (ej: Airbnb), no lo marcamos
+            if ($chId === 'beds24' && !$isDirect) {
+                continue;
+            }
+            $channelIds[] = $chId;
+        }
+
         $message->setTransientChannels($channelIds);
 
         return $message;
     }
 
-    /**
-     * Crea una respuesta base para la Interfaz (EasyAdmin).
-     * Restringe los canales solo al canal de origen del mensaje entrante.
-     */
     public function createForUiReply(Message $incomingMessage): Message
     {
         $message = new Message();
@@ -49,9 +69,6 @@ class MessageFactory
         return $message;
     }
 
-    /**
-     * Crea un mensaje directo vía Código/API (Procesos automáticos).
-     */
     public function createOutboundProgrammatic(
         MessageConversation $conversation,
         string $content,

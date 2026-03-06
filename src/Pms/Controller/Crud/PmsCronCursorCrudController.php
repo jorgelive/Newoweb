@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Crud;
 
 // ✅ Restauramos la herencia de tu BaseCrudController
+use App\Exchange\Entity\ExchangeCronCursor;
 use App\Panel\Controller\Crud\BaseCrudController;
-use App\Pms\Entity\PmsCronCursor;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -37,7 +37,7 @@ class PmsCronCursorCrudController extends BaseCrudController
 
     public static function getEntityFqcn(): string
     {
-        return PmsCronCursor::class;
+        return ExchangeCronCursor::class;
     }
 
     public function configureCrud(Crud $crud): Crud

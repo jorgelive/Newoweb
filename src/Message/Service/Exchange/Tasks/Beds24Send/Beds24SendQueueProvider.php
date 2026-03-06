@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Repository\Tasks\Beds24Send;
+namespace App\Message\Service\Exchange\Tasks\Beds24Send;
 
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Contract\ExchangeQueueProviderInterface;

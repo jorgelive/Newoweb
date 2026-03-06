@@ -62,5 +62,5 @@ interface MessageDataResolverInterface
      * 'checkin_date' => '25/12/2026'
      * ];
      */
-    public function getTemplateVariables(string $contextId): array;
+    public function getMessageVariables(string $contextId): array;
 }

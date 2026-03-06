@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Repository\Tasks\WhatsappGupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
 
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
@@ -26,9 +26,10 @@ final class WhatsappGupshupSendHandler implements ExchangeHandlerInterface
         if ($remoteId) {
             $item->setExternalMessageId((string)$remoteId);
 
-            // También lo guardamos en el mensaje padre para referencia rápida
+            // También lo guardamos en el mensaje padre para referencia rápida (y control de idempotencia)
             if ($item->getMessage()) {
-                $item->getMessage()->setExternalId((string)$remoteId);
+                // 🔥 AQUÍ EL CAMBIO: Usamos el nuevo setter del campo JSON
+                $item->getMessage()->setGupshupExternalId((string)$remoteId);
             }
         }
 

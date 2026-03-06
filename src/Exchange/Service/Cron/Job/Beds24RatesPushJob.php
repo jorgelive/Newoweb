@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Pms\Service\Cron\Job;
+namespace App\Exchange\Service\Cron\Job;
 
+use App\Exchange\Service\Cron\CronJobInterface;
 use App\Pms\Entity\PmsUnidad;
 use App\Pms\Service\Beds24\Queue\Beds24RatesPushQueueCreator;
-use App\Pms\Service\Cron\CronJobInterface;
 use DateInterval;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;

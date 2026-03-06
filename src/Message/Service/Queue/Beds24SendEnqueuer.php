@@ -12,9 +12,10 @@ use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Service\MessageDataResolverRegistry;
+use App\Pms\Entity\PmsChannel; // 🔥 IMPORTANTE
 use Doctrine\ORM\EntityManagerInterface;
 
-class Beds24Enqueuer implements ChannelEnqueuerInterface
+class Beds24SendEnqueuer implements ChannelEnqueuerInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -40,6 +41,15 @@ class Beds24Enqueuer implements ChannelEnqueuerInterface
 
         // 1. Obtener la Metadata del PMS (Snapshot)
         $metadata = $resolver->getMetadata($conversation->getContextId());
+
+        // 🔥 REGLA DE SEGURIDAD ESTRICTA: ¿Es Reserva Directa?
+        $source = (string) ($metadata['source'] ?? '');
+        $canalesDirectos = [PmsChannel::CODIGO_DIRECTO, 'manual', 'web', ''];
+
+        if (!in_array($source, $canalesDirectos, true)) {
+            throw new \RuntimeException("No se permite enviar mensajes por Beds24 a reservas de OTAs (Canal: $source).");
+        }
+
         $config = $metadata['beds24_config'] ?? null;
         $bookId = $metadata['beds24_book_id'] ?? null;
 

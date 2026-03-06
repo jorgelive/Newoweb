@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Repository\Tasks\WhatsappGupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
 
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
@@ -68,7 +68,7 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
                 $resolvedParams = [];
 
                 if ($resolver && !empty($paramsMap)) {
-                    $variables = $resolver->getTemplateVariables($conversation->getContextId());
+                    $variables = $resolver->getMessageVariables($conversation->getContextId());
                     foreach ($paramsMap as $paramKey) {
                         $resolvedParams[] = (string) ($variables[$paramKey] ?? '');
                     }
@@ -94,7 +94,7 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
 
             } else {
                 if ($resolver && str_contains($content, '{{')) {
-                    $variables = $resolver->getTemplateVariables($conversation->getContextId());
+                    $variables = $resolver->getMessageVariables($conversation->getContextId());
                     foreach ($variables as $key => $value) {
                         $content = str_replace('{{ ' . $key . ' }}', (string)$value, $content);
                         $content = str_replace('{{' . $key . '}}', (string)$value, $content);

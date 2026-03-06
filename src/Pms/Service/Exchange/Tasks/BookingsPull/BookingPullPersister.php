@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Pms\Service\Exchange\Persister;
+namespace App\Pms\Service\Exchange\Tasks\BookingsPull;
 
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroPais;
@@ -29,7 +29,7 @@ use RuntimeException;
  * * ✅ Validación fuerte de Maestros (Pais/Idioma) para evitar nulls silenciosos.
  * * ✅ Inyección obligatoria de PmsEstablecimiento para evitar reservas huérfanas.
  */
-final class Beds24BookingPersister
+final class BookingPullPersister
 {
     /** @var array<string, PmsReserva|false> Cache local por ciclo de ejecución */
     private array $reservaByMasterId = [];

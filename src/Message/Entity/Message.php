@@ -6,7 +6,7 @@ namespace App\Message\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
-use App\Message\Validator\ValidTemplateScope; // 🔥 IMPORTACIÓN REQUERIDA
+use App\Message\Validator\ValidTemplateScope;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -19,7 +19,7 @@ use Symfony\Component\Uid\UuidV7;
 #[ORM\Index(columns: ['status'], name: 'idx_msg_status')]
 #[ORM\Index(columns: ['direction'], name: 'idx_msg_direction')]
 #[ORM\HasLifecycleCallbacks]
-#[ValidTemplateScope] // 🔥 VALIDACIÓN ACTIVA
+#[ValidTemplateScope]
 class Message
 {
     use IdTrait;
@@ -35,6 +35,12 @@ class Message
     public const string DIRECTION_INCOMING = 'incoming';
     public const string DIRECTION_OUTGOING = 'outgoing';
 
+    // === NUEVAS CONSTANTES DE ORIGEN (SENDER TYPE) ===
+    public const string SENDER_HOST     = 'host';
+    public const string SENDER_GUEST    = 'guest';
+    public const string SENDER_SYSTEM   = 'system';
+    public const string SENDER_INTERNAL = 'internalNote';
+
     #[ORM\ManyToOne(targetEntity: MessageConversation::class, inversedBy: 'messages')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?MessageConversation $conversation = null;
@@ -47,13 +53,14 @@ class Message
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?MessageTemplate $template = null;
 
+    // 🔥 REFACTOR: Renombrado a explícitamente "SendQueues"
     /** @var Collection<int, WhatsappGupshupSendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
-    private Collection $whatsappGupshupQueues;
+    private Collection $whatsappGupshupSendQueues;
 
     /** @var Collection<int, Beds24SendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: Beds24SendQueue::class, cascade: ['persist', 'remove'])]
-    private Collection $beds24Queues;
+    private Collection $beds24SendQueues;
 
     /** @var Collection<int, MessageAttachment> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: MessageAttachment::class, cascade: ['persist', 'remove'])]
@@ -94,8 +101,11 @@ class Message
     #[ORM\Column(length: 20, options: ['default' => self::STATUS_PENDING])]
     private string $status = self::STATUS_PENDING;
 
-    #[ORM\Column(length: 100, nullable: true)]
-    private ?string $externalId = null;
+    #[ORM\Column(length: 30, options: ['default' => self::SENDER_HOST])]
+    private string $senderType = self::SENDER_HOST;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $externalIds = [];
 
     /** Propiedad transitoria (Memoria) para selección manual de canales */
     private array $transientChannels = [];
@@ -103,9 +113,10 @@ class Message
     public function __construct()
     {
         $this->id = Uuid::v7();
-        $this->whatsappGupshupQueues = new ArrayCollection();
-        $this->beds24Queues  = new ArrayCollection();
+        $this->whatsappGupshupSendQueues = new ArrayCollection();
+        $this->beds24SendQueues  = new ArrayCollection();
         $this->attachments   = new ArrayCollection();
+        $this->externalIds   = [];
     }
 
     public function __toString(): string
@@ -146,17 +157,8 @@ class Message
     public function getSubjectExternal(): ?string { return $this->subjectExternal; }
     public function setSubjectExternal(?string $subjectExternal): self { $this->subjectExternal = $subjectExternal; return $this; }
 
-    // =========================================================================
-    // HELPERS DE CONCATENACIÓN (Ideales para UI y API Payloads)
-    // =========================================================================
-
-    /**
-     * Devuelve Asunto + Contenido en el IDIOMA DEL RECEPCIONISTA (Local).
-     * Ideal para mostrar el historial en EasyAdmin.
-     */
     public function getFullContentLocal(): string
     {
-        // Fallback al external por si el recepcionista escribió el override manual
         $content = $this->contentLocal ?? $this->contentExternal ?? '';
         $subject = $this->subjectLocal ?? $this->subjectExternal ?? '';
         if (!empty($subject)) {
@@ -165,13 +167,8 @@ class Message
         return $content;
     }
 
-    /**
-     * Devuelve Asunto + Contenido en el IDIOMA DEL HUÉSPED (External).
-     * Ideal para armar el Payload de WhatsApp / Beds24 / Email.
-     */
     public function getFullContentExternal(): string
     {
-        // Fallback de seguridad al local por si el traductor falló
         $content = $this->contentExternal ?? $this->contentLocal ?? '';
         $subject = $this->subjectExternal ?? $this->subjectLocal ?? '';
         if (!empty($subject)) {
@@ -203,21 +200,63 @@ class Message
     public function getStatus(): string { return $this->status; }
     public function setStatus(string $status): self { $this->status = $status; return $this; }
 
-    public function getExternalId(): ?string { return $this->externalId; }
-    public function setExternalId(?string $externalId): self { $this->externalId = $externalId; return $this; }
+    public function getSenderType(): string { return $this->senderType; }
+    public function setSenderType(string $senderType): self { $this->senderType = $senderType; return $this; }
 
-    public function getWhatsappGupshupQueues(): Collection { return $this->whatsappGupshupQueues; }
-    public function addWhatsappGupshupQueue(WhatsappGupshupSendQueue $queue): self {
-        if (!$this->whatsappGupshupQueues->contains($queue)) {
-            $this->whatsappGupshupQueues->add($queue);
+    // =========================================================================
+    // EXTERNAL IDs (Idempotencia Multicanal)
+    // =========================================================================
+
+    public function getExternalIds(): array
+    {
+        return $this->externalIds ?? [];
+    }
+
+    public function setExternalIds(?array $externalIds): self
+    {
+        $this->externalIds = $externalIds;
+        return $this;
+    }
+
+    public function getBeds24ExternalId(): ?string
+    {
+        return $this->externalIds['beds24'] ?? null;
+    }
+
+    public function setBeds24ExternalId(?string $id): self
+    {
+        $this->externalIds['beds24'] = $id;
+        return $this;
+    }
+
+    public function getGupshupExternalId(): ?string
+    {
+        return $this->externalIds['gupshup'] ?? null;
+    }
+
+    public function setGupshupExternalId(?string $id): self
+    {
+        $this->externalIds['gupshup'] = $id;
+        return $this;
+    }
+
+    // =========================================================================
+    // RELACIONES (COLAS DE ENVÍO Y ADJUNTOS)
+    // =========================================================================
+
+    // 🔥 REFACTOR GUPSHUP SEND
+    public function getWhatsappGupshupSendQueues(): Collection { return $this->whatsappGupshupSendQueues; }
+    public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self {
+        if (!$this->whatsappGupshupSendQueues->contains($queue)) {
+            $this->whatsappGupshupSendQueues->add($queue);
             if ($queue->getMessage() !== $this) {
                 $queue->setMessage($this);
             }
         }
         return $this;
     }
-    public function removeWhatsappGupshupQueue(WhatsappGupshupSendQueue $queue): self {
-        if ($this->whatsappGupshupQueues->removeElement($queue)) {
+    public function removeWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self {
+        if ($this->whatsappGupshupSendQueues->removeElement($queue)) {
             if ($queue->getMessage() === $this) {
                 $queue->setMessage(null);
             }
@@ -225,18 +264,19 @@ class Message
         return $this;
     }
 
-    public function getBeds24Queues(): Collection { return $this->beds24Queues; }
-    public function addBeds24Queue(Beds24SendQueue $queue): self {
-        if (!$this->beds24Queues->contains($queue)) {
-            $this->beds24Queues->add($queue);
+    // 🔥 REFACTOR BEDS24 SEND
+    public function getBeds24SendQueues(): Collection { return $this->beds24SendQueues; }
+    public function addBeds24SendQueue(Beds24SendQueue $queue): self {
+        if (!$this->beds24SendQueues->contains($queue)) {
+            $this->beds24SendQueues->add($queue);
             if ($queue->getMessage() !== $this) {
                 $queue->setMessage($this);
             }
         }
         return $this;
     }
-    public function removeBeds24Queue(Beds24SendQueue $queue): self {
-        if ($this->beds24Queues->removeElement($queue)) {
+    public function removeBeds24SendQueue(Beds24SendQueue $queue): self {
+        if ($this->beds24SendQueues->removeElement($queue)) {
             if ($queue->getMessage() === $this) {
                 $queue->setMessage(null);
             }
@@ -244,6 +284,7 @@ class Message
         return $this;
     }
 
+    // ADJUNTOS
     public function getAttachments(): Collection { return $this->attachments; }
     public function addAttachment(MessageAttachment $attachment): self {
         if (!$this->attachments->contains($attachment)) {
