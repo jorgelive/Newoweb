@@ -350,5 +350,78 @@
         })(jQuery);
     </script>
 
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const wellElement = document.querySelector('.well');
+
+            if (!wellElement) {
+                return;
+            }
+
+            /**
+             * Evalúa la posición del scroll y alterna los estilos en línea del elemento.
+             * * Si la distancia hacia el final del documento es mayor a 50px, aplica
+             * un posicionamiento fijo (fixed). En lugar de usar medidas absolutas al 100%,
+             * clona el ancho (width) y la posición izquierda (left) del contenedor padre
+             * en tiempo real. Esto garantiza que respete la separación de 10px y la
+             * expansión o contracción del menú lateral (.main-sidebar).
+             * * Si la distancia es 50px o menor, limpia los estilos en línea,
+             * devolviendo el elemento a su flujo normal y posición original en el DOM.
+             *
+             * @returns {void}
+             */
+            function ajustarPosicionWell() {
+                const alturaDocumento = document.documentElement.scrollHeight;
+                const posicionActual = window.scrollY + window.innerHeight;
+                const distanciaAlFinal = alturaDocumento - posicionActual;
+
+                if (distanciaAlFinal <= 150) {
+                    // Limpiamos los estilos inyectados.
+                    // Esto hace que el div recupere su comportamiento original de Sonata.
+                    wellElement.style.position = '';
+                    wellElement.style.bottom = '';
+                    wellElement.style.zIndex = '';
+                    wellElement.style.width = '';
+                    wellElement.style.left = '';
+                } else {
+                    // Obtenemos las dimensiones y posición del padre en este exacto milisegundo
+                    const parentRect = wellElement.parentElement.getBoundingClientRect();
+
+                    // Aplicamos los estilos para que flote respetando el layout
+                    wellElement.style.position = 'fixed';
+                    wellElement.style.bottom = '-20px';
+                    wellElement.style.zIndex = '1000';
+
+                    // Aplicamos la posición 'left' y el 'width' basados en el padre
+                    wellElement.style.left = parentRect.left + 'px';
+                    wellElement.style.width = parentRect.width + 'px';
+                }
+            }
+
+            // Escuchamos el evento de scroll
+            window.addEventListener('scroll', ajustarPosicionWell);
+
+            // Escuchamos redimensionamientos tradicionales de la ventana
+            window.addEventListener('resize', ajustarPosicionWell);
+
+            // Utilizamos ResizeObserver para detectar cambios en el tamaño del contenedor.
+            // Esto es vital porque al colapsar/expandir el .main-sidebar, el ancho del
+            // contenido cambia por CSS (margin), lo cual NO dispara un evento 'resize' de window.
+            if (typeof ResizeObserver !== 'undefined') {
+                const observer = new ResizeObserver(function() {
+                    // Solo recalculamos si el elemento está flotando para evitar repintados innecesarios
+                    if (wellElement.style.position === 'fixed') {
+                        ajustarPosicionWell();
+                    }
+                });
+                // Observamos al elemento padre del .well
+                observer.observe(wellElement.parentElement);
+            }
+
+            // Ejecución inicial al cargar
+            ajustarPosicionWell();
+        });
+    </script>
+
 
 {% endblock %}
