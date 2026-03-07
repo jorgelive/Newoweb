@@ -31,7 +31,7 @@ class PmsReservaRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('r');
 
         return $qb
-            ->leftJoin('r.eventos', 'e')
+            ->leftJoin('r.eventosCalendario', 'e')
             ->leftJoin('e.beds24Links', 'l')
             ->where(
                 $qb->expr()->orX(

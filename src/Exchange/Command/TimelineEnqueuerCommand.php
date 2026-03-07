@@ -20,6 +20,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * @example php bin/console exchange:timeline:enqueue beds24_bookings_pull_arrival
  * @example php bin/console exchange:timeline:enqueue beds24_bookings_push
  * @example php bin/console exchange:timeline:enqueue beds24_rates_push
+ * @example php bin/console exchange:timeline:enqueue beds24_message_pull
  */
 #[AsCommand(
     name: 'exchange:timeline:enqueue', // Nombre altamente semántico: Acción + Contexto

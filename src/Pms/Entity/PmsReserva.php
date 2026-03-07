@@ -13,6 +13,7 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Pms\Repository\PmsReservaRepository;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -21,7 +22,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\Entity(repositoryClass: PmsReserva::class)]
+#[ORM\Entity(repositoryClass: PmsReservaRepository::class)]
 #[ORM\Table(name: 'pms_reserva')]
 #[ApiResource(
     operations: [

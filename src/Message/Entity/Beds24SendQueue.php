@@ -20,7 +20,7 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
 #[ORM\Entity(repositoryClass: Beds24SendQueueRepository::class)]
-#[ORM\Table(name: 'msg_beds24_queue')]
+#[ORM\Table(name: 'msg_beds24_send_queue')]
 #[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_b24_worker')]
 #[ORM\HasLifecycleCallbacks]
 class Beds24SendQueue implements MessageQueueItemInterface
