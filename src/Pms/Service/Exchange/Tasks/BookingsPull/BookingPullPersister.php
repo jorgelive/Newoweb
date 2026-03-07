@@ -110,7 +110,11 @@ final class BookingPullPersister
             // Fallback: Stub
             if (!$reserva) {
                 // ✅ CAMBIO APLICADO: Pasamos el establecimiento para evitar Stub huérfano
-                $reserva = $this->resolveOrCreateStubReserva($masterIdReal, $establecimiento);
+                $reserva = $this->resolveOrCreateStubReserva(
+                    masterIdStr: $masterIdReal,
+                    establecimiento: $establecimiento,
+                    booking: $booking
+                );
                 $reservaAction = 'created_stub';
             } else {
                 $reservaAction = 'linked_to_master';
@@ -294,6 +298,11 @@ final class BookingPullPersister
             $reserva->setComisionTotal($this->normalizeDecimal($booking->commission));
         }
 
+        // 🔥 FIX 1048: El idioma es obligatorio en la BD. Lo asignamos siempre si es nulo.
+        if ($reserva->getIdioma() === null) {
+            $reserva->setIdioma($this->resolveIdioma($booking));
+        }
+
         $hasRealData =
             trim((string) $booking->firstName) !== '' ||
             trim((string) $booking->lastName) !== '' ||
@@ -312,16 +321,14 @@ final class BookingPullPersister
             $reserva->setIdioma($this->resolveIdioma($booking));
             $reserva->setDatosLocked(true);
         }
-
-
-
+        
         return $reserva;
     }
 
     /**
      * ✅ CAMBIO APLICADO: Se inyecta el PmsEstablecimiento para amarrar correctamente la reserva stub.
      */
-    private function resolveOrCreateStubReserva(string $masterIdStr, PmsEstablecimiento $establecimiento): PmsReserva
+    private function resolveOrCreateStubReserva(string $masterIdStr, PmsEstablecimiento $establecimiento, Beds24BookingDto $booking): PmsReserva
     {
         $reserva = $this->resolveReservaFromLayers(effMaster: $masterIdStr, book: null);
 
@@ -331,6 +338,8 @@ final class BookingPullPersister
             $reserva->setNombreCliente('Pendiente Sync');
             $reserva->setApellidoCliente('(Grupo)');
             $reserva->setEstablecimiento($establecimiento); // ✅ Amarre del establecimiento al stub
+            $reserva->setIdioma($this->resolveIdioma($booking));
+
 
             $this->em->persist($reserva);
         }
