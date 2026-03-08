@@ -7,7 +7,6 @@ import { useMaestroStore } from '@/stores/maestroStore';
 import type { PmsGuiaSeccion } from '@/types/pms';
 import GuiaUnidadItemDispatcher from '@/components/GuiaUnidad/GuiaUnidadItemDispatcher.vue';
 
-// Definimos la prop que viene del Router
 const props = defineProps<{
   mode: 'public' | 'guest';
 }>();
@@ -22,11 +21,8 @@ const expandedItems = ref<Set<string>>(new Set());
 const scrollContainer = ref<HTMLElement | null>(null);
 const homeScroll = ref<HTMLElement | null>(null);
 
-// --- LOGICA DE CARGA INTELIGENTE ---
 const cargarTodo = async () => {
   let idTarget = '';
-
-  // Detectamos el parámetro correcto según el modo
   if (props.mode === 'guest') {
     idTarget = route.params.uuidEvento as string;
   } else {
@@ -35,7 +31,6 @@ const cargarTodo = async () => {
 
   if (idTarget) {
     await store.cargarDatosCompletos(idTarget, props.mode);
-
     if (route.query.section && store.guia) {
       const s = store.guia.secciones.find(sec => sec.id === route.query.section);
       seccionActiva.value = s || null;
@@ -44,12 +39,9 @@ const cargarTodo = async () => {
         setTimeout(smoothResetScroll, 100);
       }
     }
-  } else {
-    console.error("No se encontró UUID en la ruta para el modo:", props.mode);
   }
 };
 
-// --- COMPUTED PROPERTIES ---
 const getFirstName = computed(() => {
   const nombre = store.helperContext?.data?.text_fixed?.guest_name || 'Viajero';
   return nombre.split(' ')[0];
@@ -70,15 +62,21 @@ const itemsNormalizados = computed(() => {
 
 const esItemUnico = computed(() => itemsNormalizados.value.length === 1);
 
-// 🔥 Cómputo del Bloqueo y Formateo Dinámico de la Fecha
+// 🔥 1. Controla la ocultación de contraseñas (Aplica para 'demo' y 'pending')
 const isLocked = computed(() => {
   return store.helperContext?.data?.config?.is_locked === true;
+});
+
+// 🔥 2. Controla si se muestra el BANNER NARANJA (Solo para 'pending')
+const showPendingWarning = computed(() => {
+  return store.helperContext?.data?.config?.access_status === 'pending';
 });
 
 const unlockDateFormatted = computed(() => {
   const dateStr = store.helperContext?.data?.config?.unlock_at;
   if (!dateStr) return '--';
 
+  // Al venir sin "T" o timezone desde tu Trait, se respeta la hora local del texto
   const date = new Date(dateStr);
   return date.toLocaleDateString(maestroStore.idiomaActual, {
     day: '2-digit',
@@ -88,7 +86,6 @@ const unlockDateFormatted = computed(() => {
   });
 });
 
-// --- SCROLL HELPERS ---
 const smoothResetScroll = async () => {
   await nextTick();
   const options: ScrollToOptions = { top: 0, behavior: 'smooth' };
@@ -104,7 +101,6 @@ const onPanelAfterEnter = () => {
   if (el) el.scrollTop = 0;
 };
 
-// --- ACTIONS ---
 const toggleItem = (id: string) => {
   if (expandedItems.value.has(id)) expandedItems.value.delete(id);
   else expandedItems.value.add(id);
@@ -115,7 +111,6 @@ const isExpanded = (id: string) => expandedItems.value.has(id);
 const recargar = () => { cargarTodo(); };
 
 const abrirSeccion = (seccion: PmsGuiaSeccion) => {
-  // 🔥 AHORA SÍ PERMITIMOS EL CLIC SIEMPRE
   router.push({
     name: route.name as string,
     params: route.params,
@@ -137,7 +132,6 @@ const irAReserva = () => {
   }
 };
 
-// --- WATCHERS & MOUNT ---
 watch(() => route.query.section, async (newId) => {
   if (newId && store.guia) {
     const s = store.guia.secciones.find(sec => sec.id === newId);
@@ -217,7 +211,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <div v-if="isLocked" class="mb-8 px-5 py-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-center gap-4 shadow-sm animate-fadeIn">
+        <div v-if="showPendingWarning" class="mb-8 px-5 py-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-center gap-4 shadow-sm animate-fadeIn">
           <div class="w-10 h-10 bg-white text-[#E07845] rounded-full flex items-center justify-center shadow-sm shrink-0">
             <i class="fas fa-lock text-sm"></i>
           </div>
@@ -234,6 +228,11 @@ onMounted(() => {
         <div class="grid grid-cols-2 gap-4">
           <button v-for="seccion in store.guia.secciones" :key="seccion.id" @click="abrirSeccion(seccion)" class="group flex flex-col items-center justify-center p-6 bg-white border border-[#376875]/10 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-[#376875]/30 hover:-translate-y-1 active:scale-[0.98] transition-all duration-300 aspect-square relative overflow-hidden">
             <span class="absolute inset-0 bg-gradient-to-br from-[#376875]/0 via-[#376875]/0 to-[#376875]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
+
+            <div v-if="showPendingWarning" class="absolute top-4 right-4 text-orange-300">
+              <i class="fas fa-lock text-xs"></i>
+            </div>
+
             <span class="relative w-14 h-14 mb-4 rounded-2xl bg-[#E07845]/10 text-[#E07845] flex items-center justify-center text-xl group-hover:bg-[#376875] group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-[#376875]/40">
               <i :class="['fas', seccion.icono || 'fa-star']"></i>
             </span>
