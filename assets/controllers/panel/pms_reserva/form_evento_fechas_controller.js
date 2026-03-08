@@ -13,14 +13,14 @@ export default class extends Controller {
             return;
         }
 
-        // 2. Calculamos la duración inicial (para mantenerla si se mueve la fecha de inicio)
+        // 2. Calculamos la duración inicial (noches) y la hora de salida
         this.recalculateDuration();
 
-        // 3. 🔥 NUEVO: Aplicamos la restricción inicial (Min = Inicio + 1 día)
+        // 3. Aplicamos la restricción inicial (Min = Inicio + 1 día a las 00:00)
         this.updateMinAttribute();
 
         // 4. Listeners
-        // Si cambia el FIN manualmente, recalculamos la duración base
+        // Si cambia el FIN manualmente, recalculamos las noches base
         this.endInput.addEventListener('change', () => this.recalculateDuration());
     }
 
@@ -33,54 +33,71 @@ export default class extends Controller {
 
         const startDate = new Date(this.startInput.value);
 
-        // A. Sincronización inteligente:
-        // Movemos la fecha fin para mantener la misma cantidad de noches que había antes
-        const newEndDate = new Date(startDate.getTime() + this.duration);
+        // A. Sincronización inteligente por NOCHES (no por milisegundos)
+        const newEndDate = new Date(startDate);
+
+        // Sumamos la cantidad de noches que tenía la reserva
+        newEndDate.setDate(newEndDate.getDate() + (this.dayOffset || 1));
+
+        // Restauramos la hora y minutos exactos que tenía el check-out original
+        // (Si por algún motivo no existen, usamos 11:00 por defecto)
+        newEndDate.setHours(this.endHours !== undefined ? this.endHours : 11);
+        newEndDate.setMinutes(this.endMinutes !== undefined ? this.endMinutes : 0);
+
         this.endInput.value = this.toLocalISOString(newEndDate);
 
-        // B. 🔥 NUEVO: Actualizamos el bloqueo del calendario (atributo min)
+        // B. Actualizamos el bloqueo del calendario para que no permita errores
         this.updateMinAttribute();
     }
 
     /**
-     * 🔥 NUEVO MÉTODO: Bloqueo de fechas inválidas
-     * Establece el atributo 'min' del campo Fin para que sea (Inicio + 1 día).
-     * Esto deshabilita visualmente los días anteriores en el selector.
+     * Bloqueo de fechas inválidas
+     * Establece el atributo 'min' del campo Fin para que sea (Inicio + 1 día a las 00:00).
      */
     updateMinAttribute() {
         if (!this.startInput.value || !this.endInput) return;
 
         const startDate = new Date(this.startInput.value);
-
-        // Clonamos la fecha para no modificar la original
         const minDate = new Date(startDate);
 
-        // Regla de Negocio: La salida debe ser al menos 1 día después de la entrada
+        // Regla de Negocio: La salida debe ser al menos al día siguiente
         minDate.setDate(minDate.getDate() + 1);
 
-        // Aplicamos el atributo HTML5 'min'
+        // Reseteamos la hora a 00:00 para permitir salidas a primera hora de la madrugada
+        minDate.setHours(0, 0, 0, 0);
+
         this.endInput.min = this.toLocalISOString(minDate);
     }
 
+    /**
+     * Calcula cuántas noches de diferencia hay entre el inicio y el fin,
+     * e identifica la hora a la que el huésped hará el check-out.
+     */
     recalculateDuration() {
         if (!this.startInput.value || !this.endInput.value) return;
 
         const start = new Date(this.startInput.value);
         const end = new Date(this.endInput.value);
 
-        // Guardamos la diferencia en milisegundos
-        this.duration = end - start;
+        // Guardamos explícitamente la hora y los minutos de salida
+        this.endHours = end.getHours();
+        this.endMinutes = end.getMinutes();
 
-        // Seguridad: Si por alguna razón la duración es negativa o cero (usuario forzó input),
-        // reseteamos la duración a 1 día (86400000 ms) por defecto.
-        if (this.duration <= 0) {
-            this.duration = 86400000;
+        // Comparamos solo los días (ignorando las horas) para saber el número de noches
+        const startDay = new Date(start).setHours(0, 0, 0, 0);
+        const endDay = new Date(end).setHours(0, 0, 0, 0);
+
+        // 86400000 son los milisegundos que tiene un día
+        this.dayOffset = Math.round((endDay - startDay) / 86400000);
+
+        // Seguridad: Si la fecha está invertida o es el mismo día, forzamos mínimo 1 noche
+        if (this.dayOffset <= 0) {
+            this.dayOffset = 1;
         }
     }
 
     toLocalISOString(date) {
         // Función auxiliar para mantener la zona horaria local y el formato 'YYYY-MM-DDTHH:mm'
-        // necesario para inputs datetime-local
         const pad = (num) => num.toString().padStart(2, '0');
         const year = date.getFullYear();
         const month = pad(date.getMonth() + 1);

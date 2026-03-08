@@ -8,6 +8,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
 use DateTimeInterface;
+use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -41,13 +42,19 @@ class PmsEventoCalendario
     /**
      * ✅ Blindaje: estados que un evento OTA NO debe poder seleccionar manualmente.
      * (Si el OTA llega en esos estados por import/legacy, igual lo verás,
-     *  pero aquí evitamos “cambiar a” esos estados mediante formularios).
+     * pero aquí evitamos “cambiar a” esos estados mediante formularios).
      */
     public const OTA_ESTADOS_NO_SELECCIONABLES = [
         PmsEventoEstado::CODIGO_CANCELADA,
         PmsEventoEstado::CODIGO_ABIERTO,
         PmsEventoEstado::CODIGO_BLOQUEO,
     ];
+
+    /**
+     * Propiedad temporal (no mapeada en la base de datos).
+     * Se utiliza para registrar cuál era el estado original al cargar la entidad.
+     */
+    private mixed $estadoOriginalId = null;
 
     /* ======================================================
      * RELACIONES DE NEGOCIO (UUID v7)
@@ -168,9 +175,31 @@ class PmsEventoCalendario
     }
 
     /* ======================================================
+     * EVENTOS DE CICLO DE VIDA
+     * ====================================================== */
+
+    /**
+     * Guarda en memoria el estado original de la entidad en cuanto se hidrata desde la base de datos.
+     * Esto permite saber más adelante si el estado fue cambiado de forma explícita o si ya venía así.
+     * * Ejemplo de uso:
+     * Al intentar editar un evento ya cancelado, se permite guardar cambios de texto (como la descripción)
+     * sin que el validador rechace el formulario por estar en un estado restringido.
+     */
+    #[ORM\PostLoad]
+    public function captureOriginalState(): void
+    {
+        $this->estadoOriginalId = $this->estado?->getId();
+    }
+
+    /* ======================================================
      * ✅ BLINDAJE TOTAL (SERVER-SIDE)
      * ====================================================== */
 
+    /**
+     * Valida que no se asignen manualmente estados prohibidos a una reserva OTA.
+     *
+     * @param ExecutionContextInterface $context El contexto del validador.
+     */
     #[Assert\Callback]
     public function validateOtaEstado(ExecutionContextInterface $context): void
     {
@@ -184,10 +213,42 @@ class PmsEventoCalendario
             return;
         }
 
-        // No permitir seleccionar esos estados en OTA
+        // Permitimos guardar si el estado actual es exactamente el mismo que se cargó desde la BD.
+        // Esto permite editar otras cosas (como notas o fechas) a una reserva que YA ESTÁ en estado "cancelada".
+        if ($this->estadoOriginalId === $estadoId) {
+            return;
+        }
+
+        // Si el estado ES distinto al original, evaluamos si está intentando elegir uno prohibido.
         if (in_array($estadoId, self::OTA_ESTADOS_NO_SELECCIONABLES, true)) {
-            $context->buildViolation('En reservas OTA no se permite seleccionar este estado.')
+            $context->buildViolation('En reservas OTA no se permite seleccionar este estado de forma manual.')
                 ->atPath('estado')
+                ->addViolation();
+        }
+    }
+
+    /**
+     * Valida que la fecha de salida sea al menos al día siguiente de la fecha de entrada.
+     * Soporta casos extremos (ej. entrada 23:59 y salida 00:01 del día siguiente) porque
+     * compara estrictamente las fechas calendario ignorando las horas.
+     *
+     * @param ExecutionContextInterface $context El contexto del validador.
+     */
+    #[Assert\Callback]
+    public function validateFechasCoherentes(ExecutionContextInterface $context): void
+    {
+        if (null === $this->inicio || null === $this->fin) {
+            return;
+        }
+
+        // Usamos DateTimeImmutable para evitar alterar la referencia original en la entidad.
+        // Ponemos la hora a 00:00:00 para comparar solo el "día calendario".
+        $inicioDia = DateTimeImmutable::createFromInterface($this->inicio)->setTime(0, 0, 0);
+        $finDia = DateTimeImmutable::createFromInterface($this->fin)->setTime(0, 0, 0);
+
+        if ($inicioDia >= $finDia) {
+            $context->buildViolation('La fecha de salida debe ser al menos al día siguiente de la fecha de entrada.')
+                ->atPath('fin')
                 ->addViolation();
         }
     }
@@ -196,6 +257,11 @@ class PmsEventoCalendario
      * LÓGICA DE NEGOCIO Y SINCRONIZACIÓN
      * ====================================================== */
 
+    /**
+     * Comprueba si el evento está completamente sincronizado.
+     *
+     * @return bool True si todos los enlaces y colas tienen éxito o están cancelados, o si no hay enlaces.
+     */
     public function isSynced(): bool
     {
         if ($this->beds24Links->isEmpty()) return true;
@@ -209,6 +275,11 @@ class PmsEventoCalendario
         return true;
     }
 
+    /**
+     * Obtiene el estado consolidado de la sincronización.
+     *
+     * @return string Puede ser 'local', 'error', 'pending' o 'synced'.
+     */
     public function getSyncStatus(): string
     {
         if ($this->beds24Links->isEmpty()) return 'local';
@@ -225,6 +296,11 @@ class PmsEventoCalendario
         return $isPending ? 'pending' : 'synced';
     }
 
+    /**
+     * Determina si la entidad es segura de eliminar basándose en su origen y estado de sincronización.
+     *
+     * @return bool True si se puede eliminar sin causar inconsistencias, false de lo contrario.
+     */
     public function isSafeToDelete(): bool
     {
         if ($this->isOta()) return false;
@@ -276,7 +352,6 @@ class PmsEventoCalendario
 
     public function getFechaModificacionCanal(): ?DateTimeInterface { return $this->fechaModificacionCanal; }
     public function setFechaModificacionCanal(?DateTimeInterface $val): self { $this->fechaModificacionCanal = $val; return $this; }
-
 
     public function getComentariosHuesped(): ?string { return $this->comentariosHuesped; }
     public function setComentariosHuesped(?string $val): self { $this->comentariosHuesped = $val; return $this; }
