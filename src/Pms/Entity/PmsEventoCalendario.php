@@ -20,7 +20,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 /**
  * Entidad PmsEventoCalendario.
  * Gestiona bloqueos y reservas.
- * ✅ Restaurados todos los campos de Beds24 y lógica de sincronización.
+ * ✅ Entidad limpia de hacks temporales. La protección de estados OTA
+ * se delega a la UI (EasyAdmin) y al Listener de Doctrine (UnitOfWork).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'pms_evento_calendario')]
@@ -41,20 +42,13 @@ class PmsEventoCalendario
 
     /**
      * ✅ Blindaje: estados que un evento OTA NO debe poder seleccionar manualmente.
-     * (Si el OTA llega en esos estados por import/legacy, igual lo verás,
-     * pero aquí evitamos “cambiar a” esos estados mediante formularios).
+     * Utilizado por el formulario para ocultarlos y por el Listener para bloquear mutaciones.
      */
     public const OTA_ESTADOS_NO_SELECCIONABLES = [
         PmsEventoEstado::CODIGO_CANCELADA,
         PmsEventoEstado::CODIGO_ABIERTO,
         PmsEventoEstado::CODIGO_BLOQUEO,
     ];
-
-    /**
-     * Propiedad temporal (no mapeada en la base de datos).
-     * Se utiliza para registrar cuál era el estado original al cargar la entidad.
-     */
-    private mixed $estadoOriginalId = null;
 
     /* ======================================================
      * RELACIONES DE NEGOCIO (UUID v7)
@@ -88,7 +82,6 @@ class PmsEventoCalendario
 
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTimeInterface $fechaModificacionCanal = null;
-
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $comentariosHuesped = null;
@@ -175,57 +168,8 @@ class PmsEventoCalendario
     }
 
     /* ======================================================
-     * EVENTOS DE CICLO DE VIDA
+     * VALIDACIONES DE FORMULARIO
      * ====================================================== */
-
-    /**
-     * Guarda en memoria el estado original de la entidad en cuanto se hidrata desde la base de datos.
-     * Esto permite saber más adelante si el estado fue cambiado de forma explícita o si ya venía así.
-     * * Ejemplo de uso:
-     * Al intentar editar un evento ya cancelado, se permite guardar cambios de texto (como la descripción)
-     * sin que el validador rechace el formulario por estar en un estado restringido.
-     */
-    #[ORM\PostLoad]
-    public function captureOriginalState(): void
-    {
-        $this->estadoOriginalId = $this->estado?->getId();
-    }
-
-    /* ======================================================
-     * ✅ BLINDAJE TOTAL (SERVER-SIDE)
-     * ====================================================== */
-
-    /**
-     * Valida que no se asignen manualmente estados prohibidos a una reserva OTA.
-     *
-     * @param ExecutionContextInterface $context El contexto del validador.
-     */
-    #[Assert\Callback]
-    public function validateOtaEstado(ExecutionContextInterface $context): void
-    {
-        // Solo aplica a OTAs
-        if (!$this->isOta) {
-            return;
-        }
-
-        $estadoId = $this->estado?->getId();
-        if (!$estadoId) {
-            return;
-        }
-
-        // Permitimos guardar si el estado actual es exactamente el mismo que se cargó desde la BD.
-        // Esto permite editar otras cosas (como notas o fechas) a una reserva que YA ESTÁ en estado "cancelada".
-        if ($this->estadoOriginalId === $estadoId) {
-            return;
-        }
-
-        // Si el estado ES distinto al original, evaluamos si está intentando elegir uno prohibido.
-        if (in_array($estadoId, self::OTA_ESTADOS_NO_SELECCIONABLES, true)) {
-            $context->buildViolation('En reservas OTA no se permite seleccionar este estado de forma manual.')
-                ->atPath('estado')
-                ->addViolation();
-        }
-    }
 
     /**
      * Valida que la fecha de salida sea al menos al día siguiente de la fecha de entrada.
@@ -449,22 +393,14 @@ class PmsEventoCalendario
         $inicio = $this->inicio?->format('d/m');
         $descripcion = $this->descripcion;
 
-        // 1. Título dinámico completo
         if ($unidad && $inicio) {
-            return sprintf(
-                '%s | %s - %s',
-                $unidad,
-                $inicio,
-                $descripcion ?: 'Reserva'
-            );
+            return sprintf('%s | %s - %s', $unidad, $inicio, $descripcion ?: 'Reserva');
         }
 
-        // 2. Fallback cacheado
         if ($this->tituloCache) {
             return $this->tituloCache;
         }
 
-        // 3. Último recurso absoluto
         return 'Reserva';
     }
 }

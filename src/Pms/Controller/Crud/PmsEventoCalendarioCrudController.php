@@ -114,22 +114,17 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         return $filters->add('referenciaCanal');
     }
 
-    // =========================================================================
-    // 🔥 EL NUEVO CONFIGURE FIELDS (Limpio, secuencial y sin arrays enredados)
-    // =========================================================================
     public function configureFields(string $pageName): iterable
     {
         $entity = $this->getContext()?->getEntity()->getInstance();
         $isEmbedded = $this->isEmbedded();
 
-        // Detección de estados lógicos
         $isBloqueo = (bool)$this->requestStack->getCurrentRequest()?->query->get('es_bloqueo') ||
             ($entity instanceof PmsEventoCalendario &&
                 $entity->getEstado()?->getId() === PmsEventoEstado::CODIGO_BLOQUEO &&
                 !$entity->getReserva());
         $isOta = $entity instanceof PmsEventoCalendario && $entity->isOta();
 
-        // Estilos base compartidos
         $tomSelectNoClear = ['placeholder' => false, 'attr' => ['required' => 'required']];
 
         // ---------------------------------------------------------------------
@@ -137,7 +132,10 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         // ---------------------------------------------------------------------
         yield TextField::new('id', 'UUID')->onlyOnDetail();
 
-        if (!$isEmbedded) {
+        // 🔥 SALVAVIDAS ANTI-DELETE PARA COLECCIONES
+        if ($isEmbedded) {
+            yield FormField::addField('hidden', 'id')->setFormTypeOption('mapped', false);
+        } else {
             yield TextField::new('localizador', 'Localizador')
                 ->setFormTypeOption('disabled', true)
                 ->setColumns(6)
@@ -155,20 +153,22 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             })->renderAsHtml();
 
         // ---------------------------------------------------------------------
-        // 2. DESCRIPCIÓN / MOTIVO
+        // 2. DESCRIPCIÓN Y COMENTARIOS (SIEMPRE HABILITADOS)
         // ---------------------------------------------------------------------
-        $fDescripcion = TextField::new('descripcion', $isBloqueo ? 'Motivo del Bloqueo' : 'Descripción');
+        $fDescripcion = TextField::new('descripcion', $isBloqueo ? 'Motivo del Bloqueo' : 'Notas Internas (Hotel)');
         if ($isBloqueo) {
             $fDescripcion->setRequired(true)->setFormTypeOption('constraints', [new NotBlank(['message' => 'El motivo es obligatorio.'])]);
         }
         yield $fDescripcion;
+
+        yield TextField::new('comentariosHuesped', 'Comentarios del Huésped')
+            ->setHelp('Notas dejadas por el huésped o información adicional de la reserva.');
 
         // ---------------------------------------------------------------------
         // 3. DETALLES DEL EVENTO
         // ---------------------------------------------------------------------
         yield FormField::addPanel('Detalles del Evento')->setIcon('fa fa-calendar-check');
 
-        // 🔥 AQUÍ ESTÁ EL TRUCO OPTIMIZADO PARA LA RESERVA PADRE
         $fReserva = AssociationField::new('reserva', 'Reserva Padre')->setDisabled(true);
         if ($isEmbedded) {
             $fReserva->setFormTypeOption('row_attr', ['class' => 'd-none'])->setLabel(false);
@@ -177,37 +177,41 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         }
         yield $fReserva;
 
-        // UNIDAD PMS
         $fUnidad = AssociationField::new('pmsUnidad', 'Unidad')
             ->setRequired(true)
             ->setFormTypeOptions($tomSelectNoClear);
         if ($isOta) $fUnidad->setDisabled(true);
         yield $fUnidad;
 
-        // CANAL
         yield AssociationField::new('channel', 'Canal')
             ->setColumns(6)
             ->setFormTypeOption('disabled', true)
             ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.orden', 'ASC'));
 
-        // ESTADO
         $fEstado = AssociationField::new('estado', 'Estado')
             ->setRequired(true)
             ->setFormTypeOptions(array_merge($tomSelectNoClear, [
-                'query_builder' => function ($repo) use ($isBloqueo) {
+                'query_builder' => function ($repo) use ($isBloqueo, $isOta) {
                     $qb = $repo->createQueryBuilder('e');
                     if ($isBloqueo) {
                         $qb->andWhere('e.id IN (:estados)')->setParameter('estados', [PmsEventoEstado::CODIGO_BLOQUEO, PmsEventoEstado::CODIGO_CANCELADA]);
+                    } elseif ($isOta) {
+                        $qb->andWhere('e.id NOT IN (:restringidos)')->setParameter('restringidos', PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES);
                     } else {
                         $qb->andWhere('e.id != :bloqueo')->setParameter('bloqueo', PmsEventoEstado::CODIGO_BLOQUEO);
                     }
                     return $qb->orderBy('e.orden', 'ASC')->addOrderBy('e.nombre', 'ASC');
                 },
             ]));
-        if ($isBloqueo) $fEstado->hideOnForm();
+
+        // Bloqueo total de estado si es OTA cancelada (u otro estado restringido)
+        if ($isOta && in_array($entity?->getEstado()?->getId(), PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES, true)) {
+            $fEstado->setDisabled(true);
+        } elseif ($isBloqueo) {
+            $fEstado->hideOnForm();
+        }
         yield $fEstado;
 
-        // ESTADO PAGO
         $fEstadoPago = AssociationField::new('estadoPago', 'Estado de Pago')
             ->setRequired(true)
             ->setFormTypeOptions($tomSelectNoClear);
@@ -216,7 +220,6 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
         yield FormField::addRow();
 
-        // FECHAS
         $fInicio = DateTimeField::new('inicio', 'Llegada (Check-in)')
             ->setRequired(true)
             ->setFormTypeOptions([
@@ -235,20 +238,10 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         // ---------------------------------------------------------------------
         // 4. DATOS ECONÓMICOS Y PAX
         // ---------------------------------------------------------------------
-        $fAdultos = IntegerField::new('cantidadAdultos', 'Nº Adultos')
-            ->setRequired(true)
-            ->setColumns(6);
-        $fNinos = IntegerField::new('cantidadNinos', 'Nº Niños')
-            ->setRequired(true)
-            ->setColumns(6);
-        $fMonto = MoneyField::new('monto', 'Precio Total')
-            ->setCurrency('USD')
-            ->setStoredAsCents(false)
-            ->setColumns(6);
-        $fComision = MoneyField::new('comision', 'Comisión Canal')
-            ->setCurrency('USD')
-            ->setStoredAsCents(false)
-            ->setColumns(6);
+        $fAdultos = IntegerField::new('cantidadAdultos', 'Nº Adultos')->setRequired(true)->setColumns(6);
+        $fNinos = IntegerField::new('cantidadNinos', 'Nº Niños')->setRequired(true)->setColumns(6);
+        $fMonto = MoneyField::new('monto', 'Precio Total')->setCurrency('USD')->setStoredAsCents(false)->setColumns(6);
+        $fComision = MoneyField::new('comision', 'Comisión Canal')->setCurrency('USD')->setStoredAsCents(false)->setColumns(6);
 
         if ($isBloqueo) {
             $fAdultos->hideOnForm();
@@ -256,10 +249,11 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             $fMonto->hideOnForm();
             $fComision->hideOnForm();
         } elseif ($isOta) {
-            $fAdultos->setDisabled(true);
-            $fNinos->setDisabled(true);
-            $fMonto->setDisabled(true);
-            $fComision->setDisabled(true);
+            // Se usa readonly para que los datos viajen en el POST y eviten el borrado de colección
+            $fAdultos->setFormTypeOption('attr', ['readonly' => true]);
+            $fNinos->setFormTypeOption('attr', ['readonly' => true]);
+            $fMonto->setFormTypeOption('attr', ['readonly' => true]);
+            $fComision->setFormTypeOption('attr', ['readonly' => true]);
         }
 
         yield $fAdultos;

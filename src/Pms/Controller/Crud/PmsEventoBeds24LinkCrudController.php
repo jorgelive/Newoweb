@@ -6,6 +6,7 @@ namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsEventoBeds24Link;
+use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -111,17 +112,19 @@ class PmsEventoBeds24LinkCrudController extends BaseCrudController
         yield TextField::new('evento.reserva', 'Info Reserva')
             ->onlyOnDetail()
             ->formatValue(static function ($value) {
+                /* @var $value PmsReserva */
                 if ($value === null) return null;
-                $rid = method_exists($value, 'getId') ? $value->getId() : '?';
-                $master = method_exists($value, 'getBeds24MasterId') ? $value->getBeds24MasterId() : '-';
+                $rid = $value->getId() ?? '?';
+                $master = $value->getBeds24MasterId() ?? '-';
                 return sprintf('ID: %s | Master: %s', $rid, $master);
             });
 
         yield TextField::new('evento.reserva', 'Info Cliente')
             ->onlyOnDetail()
             ->formatValue(static function ($value) {
+                /* @var $value PmsReserva */
                 if ($value === null) return null;
-                $nombre = method_exists($value, 'getNombreApellido') ? $value->getNombreApellido() : '';
+                $nombre = $value->getNombreApellido() ?? '';
                 return $nombre ?: 'Sin nombre';
             });
 

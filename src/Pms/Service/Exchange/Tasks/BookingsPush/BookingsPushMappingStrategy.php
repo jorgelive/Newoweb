@@ -249,9 +249,6 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
      */
     private function applyMasterIdLogic(array &$payload, PmsReserva $reserva, ?int $currentId): void
     {
-        if (!method_exists($reserva, 'getBeds24MasterId')) {
-            return;
-        }
 
         $mId = $this->toIntOrNull($reserva->getBeds24MasterId());
 

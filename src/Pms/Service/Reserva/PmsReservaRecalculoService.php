@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Reserva;
 
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
@@ -16,9 +17,9 @@ final class PmsReservaRecalculoService
      * Estrategia "blindada":
      * - Convertimos UUIDs a BINARY(16)
      * - Ejecutamos un UPDATE masivo con LEFT JOIN a una subquery agregada.
-     * - Usamos GROUP_CONCAT para agrupar textos únicos (canales, referencias).
-     * - Calcula dinámicamente el canal principal (Si hay OTA, manda OTA. Si no, Directo).
-     * - Refrescamos (refresh) el UnitOfWork para evitar objetos cacheados obsoletos.
+     * - ✅ Agregación Condicional: Ignoramos eventos cancelados para calcular
+     * fechas, dinero, pax y el canal dominante (para casos donde la OTA
+     * cancela y el recepcionista lo pasa a directo).
      *
      * @param string[] $reservaIds UUIDs RFC4122 (string)
      */
@@ -31,6 +32,7 @@ final class PmsReservaRecalculoService
         }
 
         $conn = $em->getConnection();
+        $estadoCancelada = PmsEventoEstado::CODIGO_CANCELADA;
 
         // Loteo por seguridad (evita queries gigantes y límites de placeholders)
         foreach (array_chunk($reservaIds, 400) as $chunk) {
@@ -48,26 +50,37 @@ UPDATE pms_reserva r
 LEFT JOIN (
     SELECT
         e.reserva_id AS reserva_id,
-        MIN(DATE(e.inicio)) AS fechaMin,
-        MAX(DATE(e.fin))    AS fechaMax,
-        COALESCE(SUM(COALESCE(e.monto, 0)), 0)            AS totalMonto,
-        COALESCE(SUM(COALESCE(e.comision, 0)), 0)         AS totalComision,
-        COALESCE(SUM(COALESCE(e.cantidad_adultos, 0)), 0) AS totalAdultos,
-        COALESCE(SUM(COALESCE(e.cantidad_ninos, 0)), 0)   AS totalNinos,
         
-        -- Agregaciones de Texto (Eliminando nulos y vacíos, separados por | )
+        -- ✅ FECHAS (Ignorando cancelados)
+        -- Fallback de seguridad: Si TODOS los eventos están cancelados, retiene las fechas canceladas para no insertar un NULL.
+        COALESCE(
+            MIN(CASE WHEN e.estado_id != '$estadoCancelada' THEN DATE(e.inicio) END), 
+            MIN(DATE(e.inicio))
+        ) AS fechaMin,
+        
+        COALESCE(
+            MAX(CASE WHEN e.estado_id != '$estadoCancelada' THEN DATE(e.fin) END), 
+            MAX(DATE(e.fin))
+        ) AS fechaMax,
+        
+        -- ✅ FINANZAS Y PAX (Ignorando cancelados. Un evento cancelado vale 0 y trae 0 personas)
+        COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.monto, 0) ELSE 0 END), 0)            AS totalMonto,
+        COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.comision, 0) ELSE 0 END), 0)         AS totalComision,
+        COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.cantidad_adultos, 0) ELSE 0 END), 0) AS totalAdultos,
+        COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.cantidad_ninos, 0) ELSE 0 END), 0)   AS totalNinos,
+        
+        -- Agregaciones de Texto (Mantenemos todo el historial, incluso cancelados, para saber que hubo un intento por OTA)
         GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.channel_id), '') SEPARATOR ' | ')         AS canalesAgregados,
         GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.referencia_canal), '') SEPARATOR ' | ')   AS refAgregadas,
         GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.hora_llegada_canal), '') SEPARATOR ' | ') AS horasAgregadas,
         
-        -- Fechas extremas de creación/modificación en el canal
         MIN(e.fecha_reserva_canal)      AS minFechaReserva,
         MAX(e.fecha_modificacion_canal) AS maxFechaModif,
         
         -- ✅ LÓGICA DE CANAL PRINCIPAL
-        -- Si existe al menos un canal que NO sea 'directo', toma ese.
-        -- Si todos son 'directo' (o nulos), el resultado será NULL en el MAX.
-        MAX(CASE WHEN e.channel_id != 'directo' THEN e.channel_id END) AS canalDominante
+        -- Solo evalúa eventos NO cancelados. 
+        -- Si hay una OTA viva, gana la OTA. Si la OTA está cancelada y hay un directo, devuelve NULL.
+        MAX(CASE WHEN e.estado_id != '$estadoCancelada' AND e.channel_id != 'directo' THEN e.channel_id END) AS canalDominante
         
     FROM pms_evento_calendario e
     WHERE e.reserva_id IN ($in)
@@ -87,7 +100,9 @@ SET
     r.primera_fecha_reserva_canal     = s.minFechaReserva,
     r.ultima_fecha_modificacion_canal = s.maxFechaModif,
     
-    -- ✅ ASIGNACIÓN DEL CANAL (Si el subquery devuelve NULL, usamos 'directo')
+    -- ✅ ASIGNACIÓN DEL CANAL
+    -- Si 'canalDominante' viene NULL (porque el único vivo es directo, o todos están cancelados),
+    -- el COALESCE fuerza automáticamente a que la reserva sea 'directo'.
     r.channel_id                      = COALESCE(s.canalDominante, 'directo')
     
 WHERE r.id IN ($in)
