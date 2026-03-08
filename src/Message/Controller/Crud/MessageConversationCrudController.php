@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageFactory;
@@ -95,15 +96,17 @@ class MessageConversationCrudController extends BaseCrudController
         // 🔥 RECONSTRUCCIÓN DEL HISTORIAL: Llenamos las colas guardadas.
         if ($conversation instanceof MessageConversation) {
             foreach ($conversation->getMessages() as $msg) {
+                /** @var Message $msg */
                 if ($msg->getId() !== null) {
+
                     $usedChannelIds = [];
                     foreach ($channels as $ch) {
                         $name = strtolower($ch->getName());
                         // NOTA: Asume que el nombre del canal contiene "beds24" o "whatsapp"
-                        if (str_contains($name, 'beds24') && !$msg->getBeds24Queues()->isEmpty()) {
+                        if (str_contains($name, 'beds24') && !$msg->getBeds24SendQueues()->isEmpty()) {
                             $usedChannelIds[] = (string) $ch->getId();
                         }
-                        if (str_contains($name, 'whatsapp') && !$msg->getWhatsappGupshupQueues()->isEmpty()) {
+                        if (str_contains($name, 'whatsapp') && !$msg->getWhatsappGupshupSendQueues()->isEmpty()) {
                             $usedChannelIds[] = (string) $ch->getId();
                         }
                     }
@@ -146,7 +149,8 @@ class MessageConversationCrudController extends BaseCrudController
             yield CollectionField::new('messages', 'Mensajes')
                 ->useEntryCrudForm(MessageCrudController::class)
                 ->setFormTypeOption('by_reference', false)
-                ->setFormTypeOption('prototype_data', $prototype);
+                ->setFormTypeOption('prototype_data', $prototype)
+                ->allowDelete(false);
         }
     }
 }

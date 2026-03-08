@@ -46,8 +46,8 @@ class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         $source = (string) ($metadata['source'] ?? '');
         $canalesDirectos = [PmsChannel::CODIGO_DIRECTO, 'manual', 'web', ''];
 
-        if (!in_array($source, $canalesDirectos, true)) {
-            throw new \RuntimeException("No se permite enviar mensajes por Beds24 a reservas de OTAs (Canal: $source).");
+        if (in_array($source, $canalesDirectos, true)) {
+            throw new \RuntimeException("No se permite enviar mensajes por Beds24 a reservas de directas (Canal: $source).");
         }
 
         $config = $metadata['beds24_config'] ?? null;

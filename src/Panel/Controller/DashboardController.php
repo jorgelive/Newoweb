@@ -14,6 +14,7 @@ use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Entity\ExchangeCronCursor;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\GupshupConfig;
+use App\Message\Entity\Beds24ReceiveQueue;
 use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageAttachment;
@@ -217,6 +218,7 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkToCrud('Push Tarifas', 'fa fa-tags', PmsRatesPushQueue::class),
                 MenuItem::linkToCrud('Salida WhatsApp', 'fa fa-paper-plane', WhatsappGupshupSendQueue::class),
                 MenuItem::linkToCrud('Salida Beds24', 'fa fa-cloud-upload-alt', Beds24SendQueue::class),
+                MenuItem::linkToCrud('Entrada Beds24', 'fa fa-cloud-download-alt', Beds24ReceiveQueue::class),
             ])
             ->setPermission(Roles::ADMIN);
 

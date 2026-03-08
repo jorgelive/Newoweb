@@ -6,7 +6,7 @@ namespace App\Message\Repository;
 
 use App\Exchange\Repository\AbstractExchangeRepository;
 use App\Message\Entity\WhatsappGupshupSendQueue;
-use Doctrine\DBAL\ArrayParameterType; // <--- AGREGAR ESTO
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -21,7 +21,8 @@ final class WhatsappGupshupSendQueueRepository extends AbstractExchangeRepositor
 
     protected function getTableName(): string
     {
-        return 'msg_gupshup_queue';
+        // Nombre de la tabla física según tu mapeo
+        return 'msg_gupshup_send_queue';
     }
 
     /**
@@ -29,13 +30,17 @@ final class WhatsappGupshupSendQueueRepository extends AbstractExchangeRepositor
      */
     protected function hydrateItems(array $ids): array
     {
+        // 🔥 GUARDIA: Previene error "IN ()" si el array viene vacío
+        if (empty($ids)) {
+            return [];
+        }
+
         return $this->createQueryBuilder('q')
-            ->addSelect('msg', 'cfg', 'ep')
+            ->addSelect('msg', 'cfg', 'ep') // Eager loading para evitar N+1
             ->innerJoin('q.message', 'msg')
             ->innerJoin('q.config', 'cfg')
             ->innerJoin('q.endpoint', 'ep')
             ->andWhere('q.id IN (:ids)')
-            // CAMBIO CRÍTICO: Definir tipo explícito para los bytes
             ->setParameter('ids', $ids, ArrayParameterType::BINARY)
             ->getQuery()
             ->getResult();

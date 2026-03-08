@@ -5,6 +5,7 @@ namespace App\Pms\Controller\Webhook;
 
 use App\Pms\Entity\PmsBeds24WebhookAudit;
 use App\Pms\Service\Beds24\Webhook\Beds24WebhookBookingFastTrackService;
+use App\Message\Service\Beds24\Webhook\Beds24WebhookMessageFastTrackService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,7 +19,7 @@ final class Beds24WebhookController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly Beds24WebhookBookingFastTrackService $bookingService,
-        // En el futuro: private readonly Beds24WebhookMessageService $messageService,
+        private readonly Beds24WebhookMessageFastTrackService $messageService, // ✅ Inyectado
     ) {}
 
     #[Route('/endpoint', name: 'main_endpoint', methods: ['POST'])]
@@ -55,7 +56,7 @@ final class Beds24WebhookController extends AbstractController
             $globalErrors = [];
             $processedAny = false;
 
-            // 1. BOOKINGS (Estricto: debe venir dentro de 'booking')
+            // 1. BOOKINGS
             if (isset($payload['booking'])) {
                 $bookingResult = $this->handleBookings($payload['booking'], (string)$token);
                 $responseDetails['bookings'] = $bookingResult['processed'];
@@ -65,10 +66,13 @@ final class Beds24WebhookController extends AbstractController
                 $processedAny = true;
             }
 
-            // 2. MESSAGES (Futuro)
+            // 2. MESSAGES ✅ (Ahora procesa usando el FastTrack de Mensajes)
             if (isset($payload['messages'])) {
-                // $this->messageService->processBatch(...)
-                $responseDetails['messages'] = 'pending_implementation';
+                $messageResult = $this->handleMessages($payload['messages'], (string)$token);
+                $responseDetails['messages'] = $messageResult['processed'];
+                if (!empty($messageResult['errors'])) {
+                    $globalErrors = array_merge($globalErrors, $messageResult['errors']);
+                }
                 $processedAny = true;
             }
 
@@ -83,7 +87,6 @@ final class Beds24WebhookController extends AbstractController
             // =================================================================
 
             if (!$processedAny) {
-                // El payload es JSON válido pero no trae claves conocidas
                 throw new \RuntimeException('Payload sin datos reconocibles (booking, messages, invoiceItems).');
             }
 
@@ -91,7 +94,7 @@ final class Beds24WebhookController extends AbstractController
             $finalStatus = empty($globalErrors) ? PmsBeds24WebhookAudit::STATUS_PROCESSED : 'partial_error';
 
             // Si hubo errores y no se procesó nada con éxito, es ERROR total
-            if (!empty($globalErrors) && empty($responseDetails['bookings'])) {
+            if (!empty($globalErrors) && empty($responseDetails['bookings']) && empty($responseDetails['messages'])) {
                 $finalStatus = PmsBeds24WebhookAudit::STATUS_ERROR;
             }
 
@@ -130,13 +133,11 @@ final class Beds24WebhookController extends AbstractController
     {
         $bookingsToProcess = [];
 
-        // Normalización Estricta:
-        // Beds24 envía { "booking": {...} } o { "booking": [{...}, {...}] }
         if (is_array($bookingData)) {
             if (array_is_list($bookingData)) {
-                $bookingsToProcess = $bookingData; // Lista
+                $bookingsToProcess = $bookingData;
             } else {
-                $bookingsToProcess = [$bookingData]; // Objeto único
+                $bookingsToProcess = [$bookingData];
             }
         }
 
@@ -150,12 +151,50 @@ final class Beds24WebhookController extends AbstractController
             }
 
             try {
-                // Llamamos al servicio. NOTA: Ya no pasamos $audit para evitar efectos colaterales.
                 $res = $this->bookingService->process($token, $data);
                 $processedIds[] = $res['id'];
             } catch (\Throwable $e) {
                 $errors[] = [
                     'id' => $data['id'] ?? 'unknown',
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        return ['processed' => $processedIds, 'errors' => $errors];
+    }
+
+    /**
+     * ✅ Normaliza y procesa el bloque 'messages'.
+     */
+    private function handleMessages(mixed $messagesData, string $token): array
+    {
+        $messagesToProcess = [];
+
+        // Soporta { "messages": {...} } o { "messages": [{...}, {...}] }
+        if (is_array($messagesData)) {
+            if (array_is_list($messagesData)) {
+                $messagesToProcess = $messagesData;
+            } else {
+                $messagesToProcess = [$messagesData];
+            }
+        }
+
+        $processedIds = [];
+        $errors = [];
+
+        foreach ($messagesToProcess as $index => $data) {
+            if (!is_array($data) || !isset($data['id'])) {
+                $errors[] = ['index' => $index, 'error' => 'Estructura de mensaje inválida'];
+                continue;
+            }
+
+            try {
+                $res = $this->messageService->process($token, $data);
+                $processedIds[] = $res['id'];
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'message_id' => $data['id'] ?? 'unknown',
                     'error' => $e->getMessage()
                 ];
             }

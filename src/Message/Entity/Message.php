@@ -35,7 +35,7 @@ class Message
     public const string DIRECTION_INCOMING = 'incoming';
     public const string DIRECTION_OUTGOING = 'outgoing';
 
-    // === NUEVAS CONSTANTES DE ORIGEN (SENDER TYPE) ===
+    // === CONSTANTES DE ORIGEN (SENDER TYPE) ===
     public const string SENDER_HOST     = 'host';
     public const string SENDER_GUEST    = 'guest';
     public const string SENDER_SYSTEM   = 'system';
@@ -53,7 +53,6 @@ class Message
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?MessageTemplate $template = null;
 
-    // 🔥 REFACTOR: Renombrado a explícitamente "SendQueues"
     /** @var Collection<int, WhatsappGupshupSendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
     private Collection $whatsappGupshupSendQueues;
@@ -93,7 +92,10 @@ class Message
     private array $templateContext = [];
 
     #[ORM\Column(type: 'json')]
-    private array $metadata = [];
+    private array $metadata = [
+        'beds24'  => [],
+        'gupshup' => []
+    ];
 
     #[ORM\Column(length: 20, options: ['default' => self::DIRECTION_OUTGOING])]
     private string $direction = self::DIRECTION_OUTGOING;
@@ -178,15 +180,137 @@ class Message
     }
 
     // =========================================================================
-    // METADATA Y ESTADO
+    // METADATA Y ESTADO (ESTANDARIZADO PARA CANALES)
     // =========================================================================
 
     public function getTemplateContext(): array { return $this->templateContext; }
     public function setTemplateContext(array $templateContext): self { $this->templateContext = $templateContext; return $this; }
 
-    public function getMetadata(): array { return $this->metadata; }
-    public function setMetadata(array $metadata): self { $this->metadata = $metadata; return $this; }
-    public function addMetadata(string $key, mixed $value): self { $this->metadata[$key] = $value; return $this; }
+    public function getMetadata(): array
+    {
+        return array_merge(['beds24' => [], 'gupshup' => []], $this->metadata);
+    }
+
+    public function setMetadata(array $metadata): self
+    {
+        $this->metadata = $metadata;
+        return $this;
+    }
+
+    public function addMetadata(string $key, mixed $value): self
+    {
+        $this->metadata[$key] = $value;
+        return $this;
+    }
+
+    // --- ESTANDARIZACIÓN BEDS24 METADATA ---
+
+    public function getBeds24Metadata(): array
+    {
+        return $this->metadata['beds24'] ?? [];
+    }
+
+    public function setBeds24Metadata(array $data): self
+    {
+        $this->metadata['beds24'] = $data;
+        return $this;
+    }
+
+    public function addBeds24Metadata(string $key, mixed $value): self
+    {
+        if (!isset($this->metadata['beds24']) || !is_array($this->metadata['beds24'])) {
+            $this->metadata['beds24'] = [];
+        }
+        $this->metadata['beds24'][$key] = $value;
+        return $this;
+    }
+
+    // 🔥 MÉTODO ACTUALIZADO A "ReceivedAt" en lugar de "ReadAt"
+    public function getBeds24ReceivedAt(): ?string
+    {
+        return $this->metadata['beds24']['received_at'] ?? null;
+    }
+
+    public function setBeds24ReceivedAt(string $dateTimeIso8601): self
+    {
+        return $this->addBeds24Metadata('received_at', $dateTimeIso8601);
+    }
+
+    // --- ESTANDARIZACIÓN GUPSHUP METADATA ---
+
+    public function getGupshupMetadata(): array
+    {
+        return $this->metadata['gupshup'] ?? [];
+    }
+
+    public function setGupshupMetadata(array $data): self
+    {
+        $this->metadata['gupshup'] = $data;
+        return $this;
+    }
+
+    public function addGupshupMetadata(string $key, mixed $value): self
+    {
+        if (!isset($this->metadata['gupshup']) || !is_array($this->metadata['gupshup'])) {
+            $this->metadata['gupshup'] = [];
+        }
+        $this->metadata['gupshup'][$key] = $value;
+        return $this;
+    }
+
+    public function getGupshupSentAt(): ?string
+    {
+        return $this->metadata['gupshup']['sent_at'] ?? null;
+    }
+
+    public function setGupshupSentAt(string $dateTimeIso8601): self
+    {
+        return $this->addGupshupMetadata('sent_at', $dateTimeIso8601);
+    }
+
+    public function getGupshupDeliveredAt(): ?string
+    {
+        return $this->metadata['gupshup']['delivered_at'] ?? null;
+    }
+
+    public function setGupshupDeliveredAt(string $dateTimeIso8601): self
+    {
+        return $this->addGupshupMetadata('delivered_at', $dateTimeIso8601);
+    }
+
+    public function getGupshupReadAt(): ?string
+    {
+        return $this->metadata['gupshup']['read_at'] ?? null;
+    }
+
+    public function setGupshupReadAt(string $dateTimeIso8601): self
+    {
+        return $this->addGupshupMetadata('read_at', $dateTimeIso8601);
+    }
+
+    public function getGupshupErrorCode(): ?string
+    {
+        return $this->metadata['gupshup']['error_code'] ?? null;
+    }
+
+    public function setGupshupErrorCode(string $code): self
+    {
+        return $this->addGupshupMetadata('error_code', $code);
+    }
+
+    public function getGupshupErrorReason(): ?string
+    {
+        return $this->metadata['gupshup']['error_reason'] ?? null;
+    }
+
+    public function setGupshupErrorReason(string $reason): self
+    {
+        return $this->addGupshupMetadata('error_reason', $reason);
+    }
+
+    // =========================================================================
+    // ESTADO GENERAL
+    // =========================================================================
 
     public function getDirection(): string { return $this->direction; }
     public function setDirection(string $direction): self {
@@ -244,7 +368,6 @@ class Message
     // RELACIONES (COLAS DE ENVÍO Y ADJUNTOS)
     // =========================================================================
 
-    // 🔥 REFACTOR GUPSHUP SEND
     public function getWhatsappGupshupSendQueues(): Collection { return $this->whatsappGupshupSendQueues; }
     public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self {
         if (!$this->whatsappGupshupSendQueues->contains($queue)) {
@@ -264,7 +387,6 @@ class Message
         return $this;
     }
 
-    // 🔥 REFACTOR BEDS24 SEND
     public function getBeds24SendQueues(): Collection { return $this->beds24SendQueues; }
     public function addBeds24SendQueue(Beds24SendQueue $queue): self {
         if (!$this->beds24SendQueues->contains($queue)) {
@@ -284,7 +406,6 @@ class Message
         return $this;
     }
 
-    // ADJUNTOS
     public function getAttachments(): Collection { return $this->attachments; }
     public function addAttachment(MessageAttachment $attachment): self {
         if (!$this->attachments->contains($attachment)) {

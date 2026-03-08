@@ -6,7 +6,7 @@ namespace App\Message\Repository;
 
 use App\Exchange\Repository\AbstractExchangeRepository;
 use App\Message\Entity\Beds24SendQueue;
-use Doctrine\DBAL\ArrayParameterType; // <--- AGREGAR ESTO
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -21,7 +21,8 @@ final class Beds24SendQueueRepository extends AbstractExchangeRepository
 
     protected function getTableName(): string
     {
-        return 'msg_beds24_queue';
+        // Hardcodearlo aquí es fraccionalmente más rápido que leer el MetaData de Doctrine
+        return 'msg_beds24_send_queue';
     }
 
     /**
@@ -30,13 +31,18 @@ final class Beds24SendQueueRepository extends AbstractExchangeRepository
      */
     protected function hydrateItems(array $ids): array
     {
+        // 🔥 GUARDIA CRÍTICA: Doctrine falla con "Syntax Error" si $ids está vacío
+        if (empty($ids)) {
+            return [];
+        }
+
         return $this->createQueryBuilder('q')
             ->addSelect('msg', 'cfg', 'ep')
             ->innerJoin('q.message', 'msg')
             ->innerJoin('q.config', 'cfg')
             ->innerJoin('q.endpoint', 'ep')
             ->andWhere('q.id IN (:ids)')
-            // CAMBIO CRÍTICO: Definir tipo explícito para los bytes
+            // Le decimos explícitamente a DQL que trate el array como binarios crudos
             ->setParameter('ids', $ids, ArrayParameterType::BINARY)
             ->getQuery()
             ->getResult();

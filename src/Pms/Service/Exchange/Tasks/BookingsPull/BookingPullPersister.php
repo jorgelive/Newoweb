@@ -321,7 +321,7 @@ final class BookingPullPersister
             $reserva->setIdioma($this->resolveIdioma($booking));
             $reserva->setDatosLocked(true);
         }
-        
+
         return $reserva;
     }
 

@@ -26,6 +26,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * @example php bin/console exchange:run rates_push              -> Envía actualizaciones de precios a Beds24.
  * @example php bin/console exchange:run rates_push --limit=100  -> Procesa un lote más grande.
  * @example php bin/console exchange:run beds24_message_push     -> Envía los mensajes a Beds24.
+ * @example php bin/console exchange:run beds24_message_pull     -> Recibe los mensajes a Beds24.
  */
 #[AsCommand(
     name: 'exchange:run', // Nombre semántico: Acción + Ejecución

@@ -24,7 +24,7 @@ class MessageFactory
         $message->setDirection(Message::DIRECTION_OUTGOING);
         $message->setStatus(Message::STATUS_PENDING);
 
-        // 🔥 LOGICA PARA OCULTAR BEDS24 EN OTAs
+        // 🔥 LOGICA PARA OCULTAR BEDS24 EN Directas
         $isDirect = true;
         if ($conversation !== null) {
             $message->setConversation($conversation);
@@ -43,8 +43,8 @@ class MessageFactory
         foreach ($activeChannels as $ch) {
             $chId = (string) $ch->getId();
 
-            // Si es Beds24 y la reserva NO es directa (ej: Airbnb), no lo marcamos
-            if ($chId === 'beds24' && !$isDirect) {
+            // Si es Beds24 y la reserva es directa, no lo marcamos
+            if ($chId === 'beds24' && $isDirect) {
                 continue;
             }
             $channelIds[] = $chId;
