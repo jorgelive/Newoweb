@@ -65,7 +65,8 @@ class MaestroDocumentoTipoCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Tipo de Documento')
             ->setEntityLabelInPlural('Tipos de Documento')
             ->setDefaultSort(['id' => 'ASC'])
-            ->setSearchFields(['id', 'nombre']);
+            ->setSearchFields(['id', 'nombre'])
+            ->showEntityActionsInlined();
     }
 
     /**

@@ -134,7 +134,10 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
         // 🔥 SALVAVIDAS ANTI-DELETE PARA COLECCIONES
         if ($isEmbedded) {
-            yield FormField::addField('hidden', 'id')->setFormTypeOption('mapped', false);
+            yield TextField::new('id')
+                ->setFormTypeOption('mapped', false)
+                ->onlyOnForms()
+                ->addCssClass('d-none'); // Lo oculta visualmente en el layout de EasyAdmin
         } else {
             yield TextField::new('localizador', 'Localizador')
                 ->setFormTypeOption('disabled', true)

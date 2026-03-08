@@ -60,7 +60,8 @@ class PmsEventoBeds24LinkCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Vínculo Beds24')
             ->setEntityLabelInPlural('Vínculos Beds24')
             ->setDefaultSort(['id' => 'DESC'])
-            ->setSearchFields(['id', 'beds24BookId', 'status']);
+            ->setSearchFields(['id', 'beds24BookId', 'status'])
+            ->showEntityActionsInlined();
     }
 
     public function configureFields(string $pageName): iterable

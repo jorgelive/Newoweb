@@ -62,7 +62,9 @@ class Beds24SendQueueCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')
+            ->setMaxLength(40)
+            ->hideOnForm();
 
         // --- PANEL 1: ESTADO DEL ENVÍO ---
         yield FormField::addPanel('Estado del Envío')->setIcon('fa fa-exchange-alt');

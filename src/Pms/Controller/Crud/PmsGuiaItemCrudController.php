@@ -89,7 +89,9 @@ class PmsGuiaItemCrudController extends AbstractCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')
+            ->setMaxLength(40)
+            ->hideOnForm();
 
         yield FormField::addPanel('Configuración')->setIcon('fa fa-cog');
 

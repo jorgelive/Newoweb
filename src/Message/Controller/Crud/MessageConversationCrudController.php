@@ -115,7 +115,9 @@ class MessageConversationCrudController extends BaseCrudController
             }
         }
 
-        yield IdField::new('id', 'ID Conversación')->hideOnForm();
+        yield IdField::new('id', 'ID Conversación')
+            ->setMaxLength(40)
+            ->hideOnForm();
 
         yield FormField::addPanel('Estado')->setIcon('fa fa-comments');
         yield ChoiceField::new('status', 'Estado de la Conversación')

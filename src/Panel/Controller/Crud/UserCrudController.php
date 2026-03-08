@@ -72,7 +72,8 @@ class UserCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Usuario')
             ->setEntityLabelInPlural('Usuarios')
             ->setSearchFields(['username', 'email', 'firstname', 'lastname'])
-            ->setDefaultSort(['id' => 'DESC']);
+            ->setDefaultSort(['id' => 'DESC'])
+            ->showEntityActionsInlined();
     }
 
     public function configureFields(string $pageName): iterable

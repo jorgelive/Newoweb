@@ -62,7 +62,8 @@ class MaestroMonedaCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Moneda')
             ->setEntityLabelInPlural('Monedas')
             ->setSearchFields(['id', 'nombre'])
-            ->setDefaultSort(['id' => 'ASC']);
+            ->setDefaultSort(['id' => 'ASC'])
+            ->showEntityActionsInlined();
     }
 
     /**

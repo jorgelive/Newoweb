@@ -86,21 +86,17 @@ export interface PmsGuiaItemGaleria {
     "@type"?: string;
     "@id"?: string;
     descripcion?: PmsContenidoTraducible[];
-    imageUrl: string; // Asegúrate de que tu API devuelva este campo exacto
+    imageUrl: string;
 }
 
 export interface PmsGuiaItem {
     "@type"?: string;
     "@id": string;
     tipo: 'card' | 'album' | 'alert' | string;
-
     titulo: PmsContenidoTraducible[];
-
     descripcion?: PmsContenidoTraducible[];
     labelBoton?: PmsContenidoTraducible[];
-
     urlBoton?: string;
-
     galeria: PmsGuiaItemGaleria[];
 }
 
@@ -126,21 +122,16 @@ export interface PmsGuia {
 // --- HELPER CONTEXT (ESTRUCTURA SEGURA) ---
 export interface GuiaHelperContext {
     data: {
-        // 1. SOLO TEXTO (No se intenta traducir)
         text_fixed: {
             guest_name?: string;
             unit_name?: string;
             booking_ref?: string;
-            [key: string]: string | undefined; // Flexible
+            [key: string]: string | undefined;
         };
-
-        // 2. SOLO TRADUCCIONES (Siempre pasa por el motor de idiomas)
         text_translatable: {
             status_msg?: PmsContenidoTraducible[];
-            [key: string]: PmsContenidoTraducible[] | undefined; // Flexible
+            [key: string]: PmsContenidoTraducible[] | undefined;
         };
-
-        // 3. WIDGETS
         widgets: {
             wifi_data?: Array<{
                 ssid: string;
@@ -150,13 +141,12 @@ export interface GuiaHelperContext {
             }>;
             [key: string]: any;
         };
-
-        // 4. CONFIG
         config: {
             mode: 'guest' | 'demo';
-            access_status: string;
+            // 🔥 Añadido 'unconfirmed' al tipo
+            access_status: 'active' | 'pending' | 'expired' | 'unconfirmed' | 'demo';
             is_locked: boolean;
-            unit_uuid: string; // 🔥 Obligatorio
+            unit_uuid: string;
             [key: string]: any;
         };
     }

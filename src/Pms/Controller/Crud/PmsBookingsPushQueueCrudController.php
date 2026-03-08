@@ -47,7 +47,8 @@ final class PmsBookingsPushQueueCrudController extends BaseCrudController
             ->setEntityLabelInPlural('Push Queue (Bookings)')
             // ✅ UUID v7 permite orden cronológico natural
             ->setDefaultSort(['runAt' => 'DESC'])
-            ->setSearchFields(['id', 'status', 'failedReason', 'lockedBy', 'beds24BookIdOriginal']);
+            ->setSearchFields(['id', 'status', 'failedReason', 'lockedBy', 'beds24BookIdOriginal'])
+            ->showEntityActionsInlined();
     }
 
     /**

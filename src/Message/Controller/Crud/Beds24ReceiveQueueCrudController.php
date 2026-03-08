@@ -64,7 +64,9 @@ class Beds24ReceiveQueueCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')
+            ->setMaxLength(40)
+            ->hideOnForm();
 
         // --- PANEL 1: ESTADO DE LA DESCARGA ---
         yield FormField::addPanel('Estado de Descarga (Pull)')->setIcon('fa fa-download');

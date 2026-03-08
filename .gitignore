@@ -50,5 +50,12 @@ cookies.txt
 /pax/.env.production
 /pax/certs/
 /pax/node_modules/
+
+/public/app_util/
+/util/.env.development
+/util/.env.production
+/util/certs/
+/util/node_modules/
+
 ###< Vite ###
 

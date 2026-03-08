@@ -83,7 +83,7 @@ export default defineConfig(({ command }) => {
 
         resolve: {
             alias: {
-                '@': fileURLToPath(new URL('./src', import.meta.url)),
+                '@': resolve(__dirname, 'src'),
             },
         },
 

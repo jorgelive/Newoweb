@@ -65,7 +65,9 @@ class PmsGuiaCrudController extends BaseCrudController
     public function configureFields(string $pageName): iterable
     {
         // El ID siempre oculto en formulario
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')
+            ->setMaxLength(40)
+            ->hideOnForm();
 
         // --- PANEL 1: CONFIGURACIÓN ---
         yield FormField::addPanel('Configuración General')

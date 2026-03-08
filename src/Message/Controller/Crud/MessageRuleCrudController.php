@@ -66,7 +66,9 @@ class MessageRuleCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->onlyOnDetail();
+        yield IdField::new('id')
+            ->setMaxLength(40)
+            ->onlyOnDetail();
 
         // =========================================================================
         // 1. DEFINICIÓN DE LA REGLA

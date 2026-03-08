@@ -123,7 +123,9 @@ class MessageCrudController extends BaseCrudController
             $validTemplateIds = $this->getValidTemplateIds($conversation);
         }
 
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')
+            ->setMaxLength(40)
+            ->hideOnForm();
 
         // ---------------------------------------------------------------------
         // PANEL: NUEVO MENSAJE

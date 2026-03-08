@@ -75,6 +75,7 @@ final class PmsEstablecimientoCrudController extends BaseCrudController
     {
         // 1. ID (Solo visible en detalle e índice si es necesario)
         yield IdField::new('id', 'UUID')
+            ->setMaxLength(40)
             ->onlyOnDetail();
 
         // ============================================================

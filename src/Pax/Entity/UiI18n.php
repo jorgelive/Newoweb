@@ -29,7 +29,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
         )
     ],
     normalizationContext: ['groups' => ['pax:read']],
-    order: ['scope' => 'DESC', 'id' => 'ASC']
+    order: ['scope' => 'DESC', 'id' => 'ASC'],
+    paginationEnabled: false
 )]
 #[ApiFilter(RangeFilter::class, properties: ['scope'])] // Permite ?scope=scope
 #[ApiFilter(OrderFilter::class, properties: ['prioridad', 'nombre'])]
@@ -59,10 +60,8 @@ class UiI18n
     #[AutoTranslate(sourceLanguage: 'es')]
     private array $contenido = [];
 
-    public function __construct(string $id, string $scope)
+    public function __construct()
     {
-        $this->id = $id;
-        $this->scope = $scope;
     }
 
     #[Groups(['pax:read'])]
@@ -70,7 +69,13 @@ class UiI18n
     {
         return $this->id;
     }
-    // No hay setId porque es Natural Key definida en el constructor
+
+
+    public function setId(string $id): self
+    {
+        $this->id = $id;
+        return $this;
+    }
 
     #[Groups(['pax:read'])]
     public function getScope(): string

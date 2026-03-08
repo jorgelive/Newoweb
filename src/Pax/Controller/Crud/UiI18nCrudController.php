@@ -29,7 +29,9 @@ final class UiI18nCrudController extends AbstractCrudController
             ->setEntityLabelInSingular('Traducción UI')
             ->setEntityLabelInPlural('Traducciones UI')
             ->setSearchFields(['id', 'scope'])
-            ->setDefaultSort(['id' => 'ASC']);
+            ->setDefaultSort(['id' => 'ASC'])
+            ->showEntityActionsInlined();
+
     }
 
     public function configureFields(string $pageName): iterable
@@ -37,7 +39,8 @@ final class UiI18nCrudController extends AbstractCrudController
         // El ID es la Natural Key. Lo permitimos al crear, pero lo bloqueamos al editar.
         yield IdField::new('id', 'Clave (ID)')
             ->setHelp('Ejemplo: res_checkin, gui_hola')
-            ->setDisabled($pageName !== Crud::PAGE_NEW);
+            ->setDisabled($pageName !== Crud::PAGE_NEW)
+            ->setMaxLength(40);
 
         yield ChoiceField::new('scope', 'Ámbito / Scope')
             ->setChoices([

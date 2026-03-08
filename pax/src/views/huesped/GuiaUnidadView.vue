@@ -28,18 +28,14 @@ const cargarTodo = async () => {
 
   // Detectamos el parámetro correcto según el modo
   if (props.mode === 'guest') {
-    // Viene de /huesped/evento/:uuidEvento
     idTarget = route.params.uuidEvento as string;
   } else {
-    // Viene de /huesped/unidad/:uuidUnidad
     idTarget = route.params.uuidUnidad as string;
   }
 
   if (idTarget) {
-    // Pasamos ID + MODO al store
     await store.cargarDatosCompletos(idTarget, props.mode);
 
-    // Manejo de Deeplink a sección
     if (route.query.section && store.guia) {
       const s = store.guia.secciones.find(sec => sec.id === route.query.section);
       seccionActiva.value = s || null;
@@ -74,6 +70,24 @@ const itemsNormalizados = computed(() => {
 
 const esItemUnico = computed(() => itemsNormalizados.value.length === 1);
 
+// 🔥 Cómputo del Bloqueo y Formateo Dinámico de la Fecha
+const isLocked = computed(() => {
+  return store.helperContext?.data?.config?.is_locked === true;
+});
+
+const unlockDateFormatted = computed(() => {
+  const dateStr = store.helperContext?.data?.config?.unlock_at;
+  if (!dateStr) return '--';
+
+  const date = new Date(dateStr);
+  return date.toLocaleDateString(maestroStore.idiomaActual, {
+    day: '2-digit',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+});
+
 // --- SCROLL HELPERS ---
 const smoothResetScroll = async () => {
   await nextTick();
@@ -101,7 +115,7 @@ const isExpanded = (id: string) => expandedItems.value.has(id);
 const recargar = () => { cargarTodo(); };
 
 const abrirSeccion = (seccion: PmsGuiaSeccion) => {
-  // Mantenemos el mismo nombre de ruta y parámetros actuales
+  // 🔥 AHORA SÍ PERMITIMOS EL CLIC SIEMPRE
   router.push({
     name: route.name as string,
     params: route.params,
@@ -115,7 +129,6 @@ const cerrarSeccion = () => {
 };
 
 const irAReserva = () => {
-  // Intentamos obtener localizador del contexto o query
   const loc = store.helperContext?.data?.text_fixed?.booking_ref;
   if (loc && loc !== 'DEMO') {
     router.push({ name: 'pms_reserva', params: { localizador: loc } });
@@ -140,7 +153,6 @@ watch(() => route.query.section, async (newId) => {
   }
 });
 
-// Detectar cambios en params (por si navegan de evento A a evento B directamente)
 watch(() => route.params, () => {
   cargarTodo();
 });
@@ -201,6 +213,20 @@ onMounted(() => {
             <p class="text-indigo-100 text-sm leading-relaxed font-medium drop-shadow-sm">
               {{ maestroStore.t('gui_bienvenido_a') || 'Bienvenido a' }}
               <span class="text-[#E07845] font-black bg-white/90 px-2 py-0.5 rounded-md backdrop-blur-sm shadow-sm">{{ getUnitName }}</span>.
+            </p>
+          </div>
+        </div>
+
+        <div v-if="isLocked" class="mb-8 px-5 py-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-center gap-4 shadow-sm animate-fadeIn">
+          <div class="w-10 h-10 bg-white text-[#E07845] rounded-full flex items-center justify-center shadow-sm shrink-0">
+            <i class="fas fa-lock text-sm"></i>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-sm font-black text-orange-900 leading-tight mb-0.5">
+              {{ maestroStore.t('gui_aviso_previa') || 'Datos protegidos' }}
+            </h3>
+            <p class="text-xs text-orange-800/80 leading-snug">
+              {{ maestroStore.t('gui_info_restringida', { date: unlockDateFormatted }) || `Claves de acceso disponibles el ${unlockDateFormatted}.` }}
             </p>
           </div>
         </div>

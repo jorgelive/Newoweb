@@ -15,8 +15,13 @@ const listaFinal = computed(() => {
   return props.context?.data?.widgets?.wifi_data || [];
 });
 
-// Nota: Esta lógica asume que si el primero está bloqueado, todo el widget cambia de estilo.
+// Verifica el bloqueo Global o individual
 const isLocked = computed(() => {
+  // 1. Bloqueo global de la reserva (24hrs antes)
+  if (props.context?.data?.config?.is_locked === true) {
+    return true;
+  }
+  // 2. Bloqueo individual enviado por el backend
   if (listaFinal.value.length > 0 && listaFinal.value[0].is_locked) {
     return true;
   }
@@ -38,7 +43,7 @@ const traducirUbicacion = (ubicacion: any) => {
     <div v-for="(wifi, index) in listaFinal" :key="index"
          class="relative overflow-hidden rounded-2xl border transition-all duration-300"
          :class="isLocked
-            ? 'bg-slate-100 border-slate-200'
+            ? 'bg-slate-50 border-slate-200'
             : 'bg-white border-[#376875]/10 shadow-sm hover:shadow-md hover:border-[#376875]/30'"
     >
       <div class="p-5 pb-3 flex items-center gap-4">
@@ -65,7 +70,7 @@ const traducirUbicacion = (ubicacion: any) => {
         <div class="relative group">
           <div class="flex items-center justify-between p-4 rounded-xl border transition-colors"
                :class="isLocked
-                  ? 'bg-slate-200/50 border-slate-200'
+                  ? 'bg-slate-100 border-slate-200'
                   : 'bg-[#376875]/5 border-[#376875]/10 group-hover:border-[#376875]/30'"
           >
             <div class="flex flex-col">
@@ -73,9 +78,11 @@ const traducirUbicacion = (ubicacion: any) => {
                      :class="isLocked ? 'text-slate-400' : 'text-[#376875]/60'">
                  Password
                </span>
-              <span class="font-mono text-base font-bold tracking-wider truncate mr-2"
-                    :class="isLocked ? 'text-slate-400' : 'text-gray-800 select-all'">
+              <span v-if="!isLocked" class="font-mono text-base font-bold tracking-wider truncate mr-2 text-gray-800 select-all">
                   {{ wifi.password }}
+              </span>
+              <span v-else class="font-mono text-base font-bold tracking-wider text-slate-400">
+                  ••••••••
               </span>
             </div>
 

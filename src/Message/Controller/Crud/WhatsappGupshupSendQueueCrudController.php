@@ -31,7 +31,9 @@ class WhatsappGupshupSendQueueCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->onlyOnDetail();
+        yield IdField::new('id')
+            ->setMaxLength(40)
+            ->onlyOnDetail();
         yield TextField::new('destinationPhone', 'Destinatario');
 
         yield ChoiceField::new('status', 'Estado Worker')

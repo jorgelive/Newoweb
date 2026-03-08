@@ -48,7 +48,8 @@ class MaestroIdiomaCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Idioma Global')
             ->setEntityLabelInPlural('Idiomas Globales')
             // ✅ Ahora el orden principal es la prioridad numérica
-            ->setDefaultSort(['prioridad' => 'DESC', 'nombre' => 'ASC']);
+            ->setDefaultSort(['prioridad' => 'DESC', 'nombre' => 'ASC'])
+            ->showEntityActionsInlined();
     }
 
     public function configureFields(string $pageName): iterable

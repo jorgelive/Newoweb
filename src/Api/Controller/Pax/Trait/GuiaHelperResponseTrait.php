@@ -15,6 +15,7 @@ trait GuiaHelperResponseTrait
 
         $acceso = $this->calcularAcceso($evento);
         $esAutorizado = $acceso['authorized'];
+        $unlockAt = $acceso['unlock_at'];
         $mask = '********';
 
         // A. TEXT FIXED (Base inofensiva)
@@ -27,22 +28,21 @@ trait GuiaHelperResponseTrait
             'check_out'      => ($evento ? $evento->getFin() : $est?->getHoraCheckOut())?->format('H:i'),
             'start_date'     => $evento?->getInicio()->format('d/m/Y'),
             'end_date'       => $evento?->getFin()->format('d/m/Y'),
-            'wifi_ssid'      => $unidad->getWifiNetworks()[0]['ssid'] ?? 'N/A',
         ];
 
         // B. TEXT TRANSLATABLE (Base)
+        // Pasamos la fecha de liberación en lugar del evento completo para mayor precisión
         $textTranslatable = [
-            'status_msg' => $this->traducirEstado($acceso['status'], $evento),
+            'status_msg' => $this->traducirEstado($acceso['status'], $unlockAt),
         ];
 
-        // 🔥 LÓGICA DE SEGURIDAD (El backend decide dónde inyectar las llaves)
+        // 🔥 LÓGICA DE SEGURIDAD
         if ($esAutorizado) {
             // 1. Autorizado: Enviamos los códigos reales directo al Fixed Text
             $textFixed['door_code']   = $unidad->getCodigoPuerta() ?? 'N/A';
             $textFixed['safe_code']   = $unidad->getCodigoCaja() ?? 'N/A';
             $textFixed['keybox_main'] = $est?->getCodigoCajaPrincipal() ?? 'N/A';
             $textFixed['keybox_sec']  = $est?->getCodigoCajaSecundaria() ?? 'N/A';
-            $textFixed['wifi_pass']   = $unidad->getWifiNetworks()[0]['password'] ?? 'N/A';
         } else {
             if (!$evento) {
                 // 2. Público (Demo/QR): Enviamos asteriscos al Fixed Text
@@ -50,30 +50,24 @@ trait GuiaHelperResponseTrait
                 $textFixed['safe_code']   = $mask;
                 $textFixed['keybox_main'] = $mask;
                 $textFixed['keybox_sec']  = $mask;
-                $textFixed['wifi_pass']   = $mask;
             } else {
-                // 3. Huésped No Autorizado: Inyectamos el mensaje dinámico en el Translatable Text!
-                // Al no existir en $textFixed, el frontend saltará a buscarlo aquí y lo traducirá.
-                $mensajeBloqueo = $this->traducirEstado($acceso['status'], $evento);
+                // 3. Huésped No Autorizado: Inyectamos el mensaje dinámico en el Translatable Text
+                $mensajeBloqueo = $this->traducirEstado($acceso['status'], $unlockAt);
 
                 $textTranslatable['door_code']   = $mensajeBloqueo;
                 $textTranslatable['safe_code']   = $mensajeBloqueo;
                 $textTranslatable['keybox_main'] = $mensajeBloqueo;
                 $textTranslatable['keybox_sec']  = $mensajeBloqueo;
-                $textTranslatable['wifi_pass']   = $mensajeBloqueo;
             }
         }
 
-        // C. WIDGETS
-        $widgets = [
-            'wifi_data' => $this->prepararWifi($unidad->getWifiNetworks(), $esAutorizado)
-        ];
-
         // D. CONFIG
+        // 🔥 AQUÍ SE INYECTA LA FECHA PARA QUE LLEGUE A VUE
         $config = [
             'mode'           => $evento ? 'guest' : 'demo',
             'access_status'  => $acceso['status'],
             'is_locked'      => !$esAutorizado,
+            'unlock_at'      => $unlockAt ? $unlockAt->format('Y-m-d\TH:i:s') : null,
             'unit_uuid'      => method_exists($unidad, 'getUuid') ? $unidad->getUuid() : $unidad->getId(),
         ];
 
@@ -81,47 +75,62 @@ trait GuiaHelperResponseTrait
             'data' => [
                 'text_fixed'        => $textFixed,
                 'text_translatable' => $textTranslatable,
-                'widgets'           => $widgets,
                 'config'            => $config
             ]
         ]);
     }
 
+    /**
+     * Evalúa si el evento tiene el estado correcto y si está dentro de la ventana de tiempo.
+     */
     private function calcularAcceso(?PmsEventoCalendario $evento): array
     {
-        if (!$evento) return ['status' => 'demo', 'authorized' => false];
+        if (!$evento) return ['status' => 'demo', 'authorized' => false, 'unlock_at' => null];
 
+        // 1. Validamos primero el estado de la reserva
+        $estadoId = $evento->getEstado()?->getId();
+        if (!in_array($estadoId, PmsEventoCalendario::ESTADOS_CONFIRMADOS, true)) {
+            return ['status' => 'unconfirmed', 'authorized' => false, 'unlock_at' => null];
+        }
+
+        // 2. Validamos la ventana de tiempo (Exactamente 24 horas antes del Check-in)
         $ahora = new \DateTime();
-        $inicio = (clone $evento->getInicio())->modify('-1 day')->setTime(0, 0, 0);
+        $fechaLiberacion = (clone $evento->getInicio())->modify('-24 hours');
         $fin = (clone $evento->getFin())->setTime(23, 59, 59);
 
-        if ($ahora < $inicio) return ['status' => 'pending', 'authorized' => false];
-        if ($ahora > $fin)    return ['status' => 'expired', 'authorized' => false];
+        if ($ahora < $fechaLiberacion) {
+            // Aún no llega la fecha de liberación
+            return ['status' => 'pending', 'authorized' => false, 'unlock_at' => $fechaLiberacion];
+        }
 
-        return ['status' => 'active', 'authorized' => true];
+        if ($ahora > $fin) {
+            // Ya pasó el checkout
+            return ['status' => 'expired', 'authorized' => false, 'unlock_at' => null];
+        }
+
+        // Todo correcto, damos acceso
+        return ['status' => 'active', 'authorized' => true, 'unlock_at' => $fechaLiberacion];
     }
 
-    private function prepararWifi(?array $networks, bool $autorizado): array
+    /**
+     * Traduce los estados a diferentes idiomas para el frontend.
+     * Ahora recibe la fecha exacta de liberación en lugar del evento completo.
+     */
+    private function traducirEstado(string $status, ?\DateTimeInterface $unlockAt): array
     {
-        if (empty($networks)) return [];
-        if ($autorizado) return $networks;
-
-        return array_map(function($net) {
-            return [
-                'ssid' => $net['ssid'],
-                'password' => '********',
-                'ubicacion' => $net['ubicacion'] ?? 'General',
-                'is_locked' => true
-            ];
-        }, $networks);
-    }
-
-    private function traducirEstado(string $status, ?PmsEventoCalendario $evento): array
-    {
-        $fecha = $evento ? $evento->getInicio()->format('d/m/Y') : '';
-        $hora  = $evento ? $evento->getInicio()->format('H:i') : '';
+        $fecha = $unlockAt ? $unlockAt->format('d/m/Y') : '';
+        $hora  = $unlockAt ? $unlockAt->format('H:i') : '';
 
         return match($status) {
+            'unconfirmed' => [
+                ['language' => 'es', 'content' => 'Reserva no confirmada o cancelada'],
+                ['language' => 'en', 'content' => 'Booking unconfirmed or cancelled'],
+                ['language' => 'pt', 'content' => 'Reserva não confirmada ou cancelada'],
+                ['language' => 'fr', 'content' => 'Réservation non confirmée ou annulée'],
+                ['language' => 'it', 'content' => 'Prenotazione non confermata o annullata'],
+                ['language' => 'de', 'content' => 'Buchung nicht bestätigt oder storniert'],
+                ['language' => 'nl', 'content' => 'Boeking niet bevestigd of geannuleerd'],
+            ],
             'pending' => [
                 ['language' => 'es', 'content' => $fecha ? "Disponible el $fecha a las $hora" : 'Disponible pronto'],
                 ['language' => 'en', 'content' => $fecha ? "Available on $fecha at $hora" : 'Available soon'],

@@ -54,7 +54,8 @@ class MaestroPaisCrudController extends BaseCrudController
         return $crud
             ->setEntityLabelInSingular('País Global')
             ->setEntityLabelInPlural('Países Globales')
-            ->setDefaultSort(['prioritario' => 'DESC', 'nombre' => 'ASC']);
+            ->setDefaultSort(['prioritario' => 'DESC', 'nombre' => 'ASC'])
+            ->showEntityActionsInlined();
     }
 
     public function configureFields(string $pageName): iterable

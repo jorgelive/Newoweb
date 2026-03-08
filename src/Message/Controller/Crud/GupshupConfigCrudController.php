@@ -62,7 +62,9 @@ class GupshupConfigCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->hideOnForm();
+        yield IdField::new('id')
+            ->setMaxLength(40)
+            ->hideOnForm();
 
         // --- PANEL 1: IDENTIFICACIÓN ---
         yield FormField::addPanel('Identificación de la App')

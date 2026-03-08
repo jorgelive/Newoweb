@@ -61,7 +61,8 @@ class MaestroTipocambioCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Tasa de Cambio')
             ->setEntityLabelInPlural('Historial de Cambios')
             ->setDefaultSort(['fecha' => 'DESC'])
-            ->setSearchFields(['fecha', 'moneda.id']);
+            ->setSearchFields(['fecha', 'moneda.id'])
+            ->showEntityActionsInlined();
     }
 
     /**

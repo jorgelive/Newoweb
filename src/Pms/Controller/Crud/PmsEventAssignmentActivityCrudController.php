@@ -43,7 +43,8 @@ class PmsEventAssignmentActivityCrudController extends BaseCrudController
             ->setEntityLabelInPlural('Catálogo de Actividades')
             ->setSearchFields(['id', 'nombre', 'rol'])
             ->setDefaultSort(['orden' => 'ASC', 'nombre' => 'ASC'])
-            ->setEntityPermission(Roles::MAESTROS_SHOW);
+            ->setEntityPermission(Roles::MAESTROS_SHOW)
+            ->showEntityActionsInlined();
     }
 
     public function configureActions(Actions $actions): Actions

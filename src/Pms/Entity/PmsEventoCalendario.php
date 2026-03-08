@@ -50,6 +50,11 @@ class PmsEventoCalendario
         PmsEventoEstado::CODIGO_BLOQUEO,
     ];
 
+    public const ESTADOS_CONFIRMADOS = [
+        PmsEventoEstado::CODIGO_CONFIRMADA,
+        PmsEventoEstado::CODIGO_REQUERIMIENTO,
+    ];
+
     /* ======================================================
      * RELACIONES DE NEGOCIO (UUID v7)
      * ====================================================== */

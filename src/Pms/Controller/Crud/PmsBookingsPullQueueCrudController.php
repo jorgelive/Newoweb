@@ -57,7 +57,8 @@ final class PmsBookingsPullQueueCrudController extends BaseCrudController
             ->setEntityLabelInSingular('Tarea de Pull')
             ->setEntityLabelInPlural('Cola de Pull (Reservas)')
             ->setDefaultSort(['runAt' => 'DESC'])
-            ->setSearchFields(['id', 'status', 'failedReason', 'lockedBy']);
+            ->setSearchFields(['id', 'status', 'failedReason', 'lockedBy'])
+            ->showEntityActionsInlined();
     }
 
     /**
