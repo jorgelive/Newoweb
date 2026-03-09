@@ -24,7 +24,7 @@
     {% if not is_dev and css_files is defined %}
         {% for css in css_files %}
             {# El controlador ya inyecta el prefijo /app_util/ en la variable css #}
-            <link rel="stylesheet" href="{{ css }}">
+            <link rel="stylesheet" href="/app_util/{{ css }}">
         {% endfor %}
     {% endif %}
 
@@ -43,7 +43,7 @@
     <script type="module" src="https://util.openperu.test:5174/app_util/{{ vite_entry }}"></script>
 {% else %}
     {# El controlador ya inyecta el prefijo /app_util/ en la variable js_file #}
-    <script type="module" src="{{ js_file }}"></script>
+    <script type="module" src="/app_util/{{ js_file }}"></script>
 
     <script>
         if ('serviceWorker' in navigator) {
