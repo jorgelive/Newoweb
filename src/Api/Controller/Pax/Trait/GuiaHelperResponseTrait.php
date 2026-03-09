@@ -6,8 +6,20 @@ use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsUnidad;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
+/**
+ * Trait encargado de construir el payload dinámico para la Guía Digital del huésped.
+ * Centraliza la lógica de seguridad, inyectando contraseñas reales o máscaras
+ * dependiendo del estado de la reserva y la ventana de tiempo (Check-in).
+ */
 trait GuiaHelperResponseTrait
 {
+    /**
+     * Construye la respuesta JSON final con los datos dinámicos requeridos por el frontend.
+     *
+     * @param PmsUnidad $unidad La unidad de alojamiento asociada.
+     * @param PmsEventoCalendario|null $evento El evento de reserva (null si es acceso público/demo).
+     * @return JsonResponse Payload estructurado con textos fijos, traducibles, widgets y configuración.
+     */
     private function buildResponse(PmsUnidad $unidad, ?PmsEventoCalendario $evento): JsonResponse
     {
         $est = $unidad->getEstablecimiento();
@@ -18,7 +30,7 @@ trait GuiaHelperResponseTrait
         $unlockAt = $acceso['unlock_at'];
         $mask = '********';
 
-        // A. TEXT FIXED (Base inofensiva)
+        // A. TEXT FIXED (Textos estáticos que no requieren traducción)
         $textFixed = [
             'guest_name'     => $reserva ? $reserva->getNombreCliente() : 'Visitante',
             'unit_name'      => $unidad->getNombre(),
@@ -30,30 +42,29 @@ trait GuiaHelperResponseTrait
             'end_date'       => $evento?->getFin()->format('d/m/Y'),
         ];
 
-        // B. TEXT TRANSLATABLE (Base)
-        // Pasamos la fecha de liberación en lugar del evento completo para mayor precisión
+        // B. TEXT TRANSLATABLE (Textos que el frontend debe traducir)
         $textTranslatable = [
             'status_msg' => $this->traducirEstado($acceso['status'], $unlockAt),
         ];
 
-        // 🔥 LÓGICA DE SEGURIDAD
+        // 🔥 LÓGICA DE SEGURIDAD PARA CÓDIGOS Y PUERTAS
         if ($esAutorizado) {
-            // 1. Autorizado: Enviamos los códigos reales directo al Fixed Text
+            // El huésped está autorizado (en fechas y con reserva confirmada)
             $textFixed['door_code']   = $unidad->getCodigoPuerta() ?? 'N/A';
             $textFixed['safe_code']   = $unidad->getCodigoCaja() ?? 'N/A';
             $textFixed['keybox_main'] = $est?->getCodigoCajaPrincipal() ?? 'N/A';
             $textFixed['keybox_sec']  = $est?->getCodigoCajaSecundaria() ?? 'N/A';
         } else {
+            // El huésped NO está autorizado (o es una vista pública DEMO)
             if (!$evento) {
-                // 2. Público (Demo/QR): Enviamos asteriscos al Fixed Text
+                // Vista Demo: mostramos asteriscos
                 $textFixed['door_code']   = $mask;
                 $textFixed['safe_code']   = $mask;
                 $textFixed['keybox_main'] = $mask;
                 $textFixed['keybox_sec']  = $mask;
             } else {
-                // 3. Huésped No Autorizado: Inyectamos el mensaje dinámico en el Translatable Text
+                // Huésped real pero fuera de tiempo: mostramos mensaje de bloqueo
                 $mensajeBloqueo = $this->traducirEstado($acceso['status'], $unlockAt);
-
                 $textTranslatable['door_code']   = $mensajeBloqueo;
                 $textTranslatable['safe_code']   = $mensajeBloqueo;
                 $textTranslatable['keybox_main'] = $mensajeBloqueo;
@@ -61,8 +72,24 @@ trait GuiaHelperResponseTrait
             }
         }
 
-        // D. CONFIG
-        // 🔥 AQUÍ SE INYECTA LA FECHA PARA QUE LLEGUE A VUE
+        // C. WIDGETS DINÁMICOS (Procesando el JSON de wifiNetworks)
+        $wifiData = [];
+        $redesWifi = $unidad->getWifiNetworks();
+
+        if (!empty($redesWifi)) {
+            foreach ($redesWifi as $red) {
+                $wifiData[] = [
+                    // Se envía el array multi-idioma tal cual para que el helper de Vue lo procese
+                    'ubicacion' => $red['ubicacion'] ?? [],
+                    'ssid'      => $red['ssid'] ?? 'N/A',
+                    // Protegemos la contraseña si la reserva no está autorizada
+                    'password'  => $esAutorizado ? ($red['password'] ?? 'N/A') : $mask,
+                    'is_locked' => !$esAutorizado
+                ];
+            }
+        }
+
+        // D. CONFIG (Parámetros de control para el frontend)
         $config = [
             'mode'           => $evento ? 'guest' : 'demo',
             'access_status'  => $acceso['status'],
@@ -75,17 +102,26 @@ trait GuiaHelperResponseTrait
             'data' => [
                 'text_fixed'        => $textFixed,
                 'text_translatable' => $textTranslatable,
+                'widgets'           => [
+                    'wifi_data' => $wifiData
+                ],
                 'config'            => $config
             ]
         ]);
     }
 
     /**
-     * Evalúa si el evento tiene el estado correcto y si está dentro de la ventana de tiempo.
+     * Evalúa si el evento tiene el estado correcto y si está dentro de la ventana de tiempo permitida.
+     * Considera como autorizados a los eventos a partir de 24 horas antes del Check-in.
+     *
+     * @param PmsEventoCalendario|null $evento
+     * @return array{status: string, authorized: bool, unlock_at: \DateTimeInterface|null}
      */
     private function calcularAcceso(?PmsEventoCalendario $evento): array
     {
-        if (!$evento) return ['status' => 'demo', 'authorized' => false, 'unlock_at' => null];
+        if (!$evento) {
+            return ['status' => 'demo', 'authorized' => false, 'unlock_at' => null];
+        }
 
         // 1. Validamos primero el estado de la reserva
         $estadoId = $evento->getEstado()?->getId();
@@ -113,8 +149,11 @@ trait GuiaHelperResponseTrait
     }
 
     /**
-     * Traduce los estados a diferentes idiomas para el frontend.
-     * Ahora recibe la fecha exacta de liberación en lugar del evento completo.
+     * Devuelve el array multi-idioma estandarizado con el estado de la reserva.
+     *
+     * @param string $status Estado calculado ('unconfirmed', 'pending', 'expired', etc.)
+     * @param \DateTimeInterface|null $unlockAt Fecha en la que se liberan los datos
+     * @return array Lista de traducciones
      */
     private function traducirEstado(string $status, ?\DateTimeInterface $unlockAt): array
     {

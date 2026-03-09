@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useMaestroStore } from '@/stores/maestroStore';
 
 const props = defineProps<{
@@ -9,30 +9,48 @@ const props = defineProps<{
 
 const maestroStore = useMaestroStore();
 
-// 🔥 BUSCA EN context.data.widgets.wifi_data
+// Estado reactivo para mostrar feedback visual al copiar la contraseña
+const indiceCopiado = ref<number | null>(null);
+
+// 🔥 Busca primero en el payload estático de la guía, si no, busca en el payload dinámico del Helper
 const listaFinal = computed(() => {
-  if (props.wifiData) return props.wifiData;
+  if (props.wifiData && props.wifiData.length > 0) return props.wifiData;
   return props.context?.data?.widgets?.wifi_data || [];
 });
 
-// Verifica el bloqueo Global o individual
+// Verifica el bloqueo Global o individual para aplicar estilos de candado
 const isLocked = computed(() => {
-  // 1. Bloqueo global de la reserva (24hrs antes)
+  // 1. Bloqueo global de la reserva (fuera de la ventana de 24hrs o inactiva)
   if (props.context?.data?.config?.is_locked === true) {
     return true;
   }
-  // 2. Bloqueo individual enviado por el backend
+  // 2. Bloqueo individual enviado por el backend en el propio array de WiFi
   if (listaFinal.value.length > 0 && listaFinal.value[0].is_locked) {
     return true;
   }
   return false;
 });
 
-const copiarAlPortapapeles = (texto: string) => {
+/**
+ * Copia la contraseña al portapapeles y activa el icono de check temporalmente
+ */
+const copiarAlPortapapeles = (texto: string, index: number) => {
   if (texto.includes('*')) return;
   navigator.clipboard.writeText(texto);
+
+  // Feedback visual
+  indiceCopiado.value = index;
+  setTimeout(() => {
+    if (indiceCopiado.value === index) {
+      indiceCopiado.value = null;
+    }
+  }, 2000);
 };
 
+/**
+ * Asegura la correcta traducción de la ubicación usando el store maestro.
+ * Útil porque el backend envía un array [{language: 'es', content: 'Salón'}, ...]
+ */
 const traducirUbicacion = (ubicacion: any) => {
   return maestroStore.traducir ? maestroStore.traducir(ubicacion) : (ubicacion || 'WiFi');
 };
@@ -87,12 +105,13 @@ const traducirUbicacion = (ubicacion: any) => {
             </div>
 
             <button v-if="!isLocked"
-                    @click="copiarAlPortapapeles(wifi.password)"
+                    @click="copiarAlPortapapeles(wifi.password, index)"
                     class="w-10 h-10 flex items-center justify-center rounded-lg bg-white text-[#E07845] shadow-sm border border-orange-100 hover:bg-[#E07845] hover:text-white hover:shadow-md transition-all active:scale-95 shrink-0"
                     title="Copiar contraseña"
             >
-              <i class="fas fa-copy"></i>
+              <i class="fas" :class="indiceCopiado === index ? 'fa-check text-green-500 hover:text-white' : 'fa-copy'"></i>
             </button>
+
             <div v-else class="text-slate-400 px-2">
               <i class="fas fa-lock-alt"></i>
             </div>
