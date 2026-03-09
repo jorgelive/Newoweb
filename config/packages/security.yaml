@@ -126,6 +126,8 @@ security:
         # PANEL: todos requiere login (por host)
         - { host: '%app.host.panel%', path: '^/', roles: ROLE_USER }
 
+        - { host: '%app.host.util%',  path: '^/', roles: ROLE_USER } #
+
         # OWEB legacy (si quieres, también por host)
         - { host: '%app.host.oweb%',  path: '^/', roles: ROLE_USER }
 
