@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="OpenPeru Util">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    {% if not is_dev %}
+        <link rel="manifest" href="/manifest.webmanifest">
+    {% endif %}
+
+    <title>OpenPeru Chat</title>
+
+    <link rel="icon" type="image/svg+xml" href="/app_util/favicon.svg" />
+    {% if not is_dev %}
+        <link rel="apple-touch-icon" href="/app_util/pwa-192x192.png">
+    {% endif %}
+
+    {% if not is_dev and css_files is defined %}
+        {% for css in css_files %}
+            {# El controlador ya inyecta el prefijo /app_util/ en la variable css #}
+            <link rel="stylesheet" href="{{ css }}">
+        {% endfor %}
+    {% endif %}
+
+    <script>
+        window.OPENPERU_CONFIG = {
+            apiUrl: "{{ app.environment == 'dev' ? 'https://newapi.openperu.test:8890' : 'https://api.openperu.pe' }}"
+        };
+    </script>
+</head>
+<body class="bg-slate-50">
+<div id="app"></div>
+
+{% if is_dev %}
+    {# En desarrollo, apuntamos al servidor de Vite de Util. Usamos el puerto 5174 para evitar conflicto con Pax (5173) #}
+    <script type="module" src="https://util.openperu.test:5174/app_util/@vite/client"></script>
+    <script type="module" src="https://util.openperu.test:5174/app_util/{{ vite_entry }}"></script>
+{% else %}
+    {# El controlador ya inyecta el prefijo /app_util/ en la variable js_file #}
+    <script type="module" src="{{ js_file }}"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            // El Service Worker se registra en la raíz para cubrir el subdominio util.openperu.pe completo
+            navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+        }
+    </script>
+{% endif %}
+</body>
+</html>

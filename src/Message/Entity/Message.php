@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace App\Message\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Link;
+use ApiPlatform\Metadata\Post;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\Validator\ValidTemplateScope;
@@ -11,15 +18,38 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use InvalidArgumentException;
+use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
+/**
+ * Entidad que representa un mensaje individual dentro de una conversación.
+ * Expuesta a través de API Platform permitiendo lectura y escritura (envío de mensajes).
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'msg_message')]
 #[ORM\Index(columns: ['status'], name: 'idx_msg_status')]
 #[ORM\Index(columns: ['direction'], name: 'idx_msg_direction')]
 #[ORM\HasLifecycleCallbacks]
 #[ValidTemplateScope]
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            uriTemplate: '/user/util/msg/conversations/{id}/messages',
+            uriVariables: [
+                'id' => new Link(
+                    fromClass: MessageConversation::class,
+                    toProperty: 'conversation'
+                )
+            ],
+            order: ['createdAt' => 'ASC']
+        ),
+
+        new GetCollection(uriTemplate: '/user/util/msg/messages'),
+        new Get(uriTemplate: '/user/util/msg/messages/{id}'),
+        new Post(uriTemplate: '/user/util/msg/messages')
+    ]
+)]
 class Message
 {
     use IdTrait;
@@ -43,6 +73,7 @@ class Message
 
     #[ORM\ManyToOne(targetEntity: MessageConversation::class, inversedBy: 'messages')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[Groups(['message:read', 'message:write'])]
     private ?MessageConversation $conversation = null;
 
     #[ORM\ManyToOne(targetEntity: MessageChannel::class)]
@@ -73,9 +104,11 @@ class Message
     private string $languageCode = 'es';
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['message:read', 'message:write'])]
     private ?string $contentLocal = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['message:read'])]
     private ?string $contentExternal = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -98,12 +131,15 @@ class Message
     ];
 
     #[ORM\Column(length: 20, options: ['default' => self::DIRECTION_OUTGOING])]
+    #[Groups(['message:read', 'message:write'])]
     private string $direction = self::DIRECTION_OUTGOING;
 
     #[ORM\Column(length: 20, options: ['default' => self::STATUS_PENDING])]
+    #[Groups(['message:read', 'message:write'])]
     private string $status = self::STATUS_PENDING;
 
     #[ORM\Column(length: 30, options: ['default' => self::SENDER_HOST])]
+    #[Groups(['message:read', 'message:write'])]
     private string $senderType = self::SENDER_HOST;
 
     #[ORM\Column(type: 'json', nullable: true)]
@@ -127,10 +163,34 @@ class Message
     }
 
     // =========================================================================
-    // GETTERS Y SETTERS BÁSICOS
+    // GETTERS EXPLÍCITOS PARA API PLATFORM (Basados en Traits)
     // =========================================================================
 
-    public function getId(): UuidV7 { return $this->id; }
+    /**
+     * Devuelve el ID único del mensaje.
+     * Mapeado explícitamente para asegurar su lectura en API Platform.
+     * * @return UuidV7
+     */
+    #[Groups(['message:read'])]
+    public function getId(): UuidV7
+    {
+        return $this->id;
+    }
+
+    /**
+     * Devuelve la fecha de creación del mensaje.
+     * Expuesto explícitamente para garantizar su serialización en API Platform.
+     * * @return \DateTimeInterface|null
+     */
+    #[Groups(['message:read'])]
+    public function getCreatedAt(): ?\DateTimeInterface
+    {
+        return $this->createdAt ?? null;
+    }
+
+    // =========================================================================
+    // GETTERS Y SETTERS BÁSICOS
+    // =========================================================================
 
     public function getConversation(): ?MessageConversation { return $this->conversation; }
     public function setConversation(?MessageConversation $conversation): self { $this->conversation = $conversation; return $this; }
@@ -369,6 +429,11 @@ class Message
     // =========================================================================
 
     public function getWhatsappGupshupSendQueues(): Collection { return $this->whatsappGupshupSendQueues; }
+
+    /**
+     * @param WhatsappGupshupSendQueue $queue
+     * @return self
+     */
     public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self {
         if (!$this->whatsappGupshupSendQueues->contains($queue)) {
             $this->whatsappGupshupSendQueues->add($queue);
@@ -378,6 +443,11 @@ class Message
         }
         return $this;
     }
+
+    /**
+     * @param WhatsappGupshupSendQueue $queue
+     * @return self
+     */
     public function removeWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self {
         if ($this->whatsappGupshupSendQueues->removeElement($queue)) {
             if ($queue->getMessage() === $this) {
@@ -388,6 +458,11 @@ class Message
     }
 
     public function getBeds24SendQueues(): Collection { return $this->beds24SendQueues; }
+
+    /**
+     * @param Beds24SendQueue $queue
+     * @return self
+     */
     public function addBeds24SendQueue(Beds24SendQueue $queue): self {
         if (!$this->beds24SendQueues->contains($queue)) {
             $this->beds24SendQueues->add($queue);
@@ -397,6 +472,11 @@ class Message
         }
         return $this;
     }
+
+    /**
+     * @param Beds24SendQueue $queue
+     * @return self
+     */
     public function removeBeds24SendQueue(Beds24SendQueue $queue): self {
         if ($this->beds24SendQueues->removeElement($queue)) {
             if ($queue->getMessage() === $this) {
@@ -407,6 +487,11 @@ class Message
     }
 
     public function getAttachments(): Collection { return $this->attachments; }
+
+    /**
+     * @param MessageAttachment $attachment
+     * @return self
+     */
     public function addAttachment(MessageAttachment $attachment): self {
         if (!$this->attachments->contains($attachment)) {
             $this->attachments->add($attachment);
@@ -416,6 +501,11 @@ class Message
         }
         return $this;
     }
+
+    /**
+     * @param MessageAttachment $attachment
+     * @return self
+     */
     public function removeAttachment(MessageAttachment $attachment): self {
         if ($this->attachments->removeElement($attachment)) {
             if ($attachment->getMessage() === $this) {

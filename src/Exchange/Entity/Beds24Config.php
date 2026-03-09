@@ -16,6 +16,7 @@ use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Ignore;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -59,10 +60,12 @@ class Beds24Config implements ChannelConfigInterface
     #[ORM\Column(type: 'string', length: 255, nullable: true, options: ['default' => 'https://api.beds24.com/v2'])]
     private ?string $baseUrl = 'https://api.beds24.com/v2';
 
+    #[Ignore]
     #[ORM\OneToMany(mappedBy: 'beds24Config', targetEntity: PmsEstablecimiento::class, orphanRemoval: true)]
     private Collection $establecimientos;
 
     /** @var Collection<int, PmsBookingsPushQueue> */
+    #[Ignore]
     #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsBookingsPushQueue::class)]
     private Collection $bookingsPushQueues;
 
@@ -70,6 +73,7 @@ class Beds24Config implements ChannelConfigInterface
      * Lado inverso para PullQueue.
      * @var Collection<int, PmsBookingsPullQueue>
      */
+    #[Ignore]
     #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsBookingsPullQueue::class)]
     private Collection $bookingsPullQueues;
 
@@ -77,6 +81,7 @@ class Beds24Config implements ChannelConfigInterface
      * Lado inverso para Rates (Entidad Plana).
      * @var Collection<int, PmsRatesPushQueue>
      */
+    #[Ignore]
     #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsRatesPushQueue::class)]
     private Collection $ratesPushQueues;
 

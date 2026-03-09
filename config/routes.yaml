@@ -19,6 +19,11 @@ pax_controllers:
     type: attribute
     host: '%app.host.pax%'
 
+util_controllers:
+    resource: ../src/Util/Controller/
+    type: attribute
+    host: '%app.host.util%'
+
 # API (ajax, ical, calendar, etc.)
 api_controllers:
     resource: ../src/Api/Controller/

@@ -6,16 +6,14 @@ imports:
 
 
     - { resource: 'services/services_calendar.yaml' }
+
 #debe declararse antes de exchange
     - { resource: 'services/services_pms.yaml' }
-
     - { resource: 'services/services_message.yaml' }
-
     - { resource: 'services/services_api.yaml' }
-
     - { resource: 'services/services_front.yaml' }
-
     - { resource: 'services/services_pax.yaml' }
+    - { resource: 'services/services_util.yaml' }
 
     - { resource: 'services/services_exchange.yaml' }
 

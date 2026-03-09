@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Estilos base globales */
+@layer base {
+    body {
+        margin: 0;
+        background-color: #f8fafc;
+        /* Evita el scroll global para que el chat controle su propio scroll */
+        overflow: hidden;
+    }
+}
+
+/* Utilidad para ocultar barras de scroll pero permitir el desplazamiento (útil en el sidebar del chat) */
+@layer utilities {
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+}

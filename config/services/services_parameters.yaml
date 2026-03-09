@@ -26,8 +26,11 @@ parameters:
     app.host.api: '%env(API_HOST)%'
     app.host.front: '%env(FRONT_HOST)%'
     app.host.pax: '%env(PAX_HOST)%'
+    app.host.util: '%env(UTIL_HOST)%'
 
     pax_host_url: '%env(PAX_HOST_URL)%'
+    util_host_url: '%env(UTIL_HOST_URL)%'
+    panel_host_url: '%env(PANEL_HOST_URL)%'
 
     pax_book_guide_url: '%env(PAX_HOST_URL)%/huesped/reserva'
     pax_book_unidad_url: '%env(PAX_HOST_URL)%/huesped/unidad'

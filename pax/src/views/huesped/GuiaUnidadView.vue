@@ -233,10 +233,10 @@ onMounted(() => {
               <i class="fas fa-lock text-xs"></i>
             </div>
 
-            <span class="relative w-14 h-14 mb-4 rounded-2xl bg-[#E07845]/10 text-[#E07845] flex items-center justify-center text-xl group-hover:bg-[#376875] group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-[#376875]/40">
+            <span class="relative w-18 h-18 mb-4 rounded-2xl bg-[#E07845]/10 text-[#E07845] flex items-center justify-center text-3xl group-hover:bg-[#376875] group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-[#376875]/40">
               <i :class="['fas', seccion.icono || 'fa-star']"></i>
             </span>
-            <span class="relative text-[11px] font-black text-gray-600 text-center uppercase tracking-wider leading-tight group-hover:text-[#376875] transition-colors">{{ store.traducir(seccion.titulo) }}</span>
+            <span class="relative text-[12px] font-black text-gray-600 text-center uppercase tracking-wider leading-tight group-hover:text-[#376875] transition-colors">{{ store.traducir(seccion.titulo) }}</span>
           </button>
         </div>
 
