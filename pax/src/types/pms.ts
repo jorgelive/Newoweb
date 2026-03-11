@@ -78,7 +78,7 @@ export interface PmsReserva {
     cantidadAdultos: number;
     cantidadNinos: number;
     paxTotal: number;
-    eventosCalendario: PmsEventoCalendario[];
+    eventosActivosGuia: PmsEventoCalendario[];
 }
 
 // --- GUÍA ---

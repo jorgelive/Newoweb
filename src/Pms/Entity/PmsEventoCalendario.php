@@ -138,6 +138,12 @@ class PmsEventoCalendario
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
     private ?string $tituloCache = null;
 
+    /**
+     * Indica si la asignación de guía para este evento está deshabilitada.
+     */
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $guiaDisabled = false;
+
     /* ======================================================
      * CAMPOS DE DOMINIO BEDS24 (⚠️ NO ELIMINAR)
      * ====================================================== */
@@ -342,6 +348,26 @@ class PmsEventoCalendario
 
     public function getTituloCache(): ?string { return $this->tituloCache; }
     public function setTituloCache(?string $tituloCache): self { $this->tituloCache = $tituloCache; return $this; }
+
+    /**
+     * Obtiene si la asignación de guía está deshabilitada.
+     * * @return bool
+     */
+    public function isGuiaDisabled(): bool
+    {
+        return $this->guiaDisabled;
+    }
+
+    /**
+     * Define si la asignación de guía para este evento debe estar deshabilitada.
+     * * @param bool $guiaDisabled
+     * @return self
+     */
+    public function setGuiaDisabled(bool $guiaDisabled): self
+    {
+        $this->guiaDisabled = $guiaDisabled;
+        return $this;
+    }
 
     public function getRateDescription(): ?string { return $this->rateDescription; }
     public function setRateDescription(?string $val): self { $this->rateDescription = $val; return $this; }

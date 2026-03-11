@@ -167,6 +167,10 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         yield TextField::new('comentariosHuesped', 'Comentarios del Huésped')
             ->setHelp('Notas dejadas por el huésped o información adicional de la reserva.');
 
+        // Se agrega la opción para deshabilitar en la vista de guías
+        yield BooleanField::new('guiaDisabled', 'No mostrar en guía')
+            ->setHelp('Si se marca, este evento no aparecerá en la asignación o listado para los guías.');
+
         // ---------------------------------------------------------------------
         // 3. DETALLES DEL EVENTO
         // ---------------------------------------------------------------------

@@ -137,7 +137,7 @@ const verGuiaEvento = (eventoId: string | number) => {
         </div>
       </header>
 
-      <div v-if="pmsStore.reserva.eventosCalendario?.length">
+      <div v-if="pmsStore.reserva.eventosActivosGuia?.length">
         <div class="flex items-center gap-4 mb-6 ml-2">
           <span class="h-px bg-[#376875]/20 flex-1"></span>
           <h2 class="text-[#376875]/60 font-black uppercase tracking-[0.2em] text-[11px]">
@@ -146,7 +146,7 @@ const verGuiaEvento = (eventoId: string | number) => {
           <span class="h-px bg-[#376875]/20 flex-1"></span>
         </div>
 
-        <div v-for="evento in pmsStore.reserva.eventosCalendario" :key="evento.id" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100 mb-8 group hover:shadow-2xl hover:shadow-[#376875]/10 transition-all duration-500">
+        <div v-for="evento in pmsStore.reserva.eventosActivosGuia" :key="evento.id" class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100 mb-8 group hover:shadow-2xl hover:shadow-[#376875]/10 transition-all duration-500">
 
           <div class="h-56 md:h-64 bg-slate-100 relative overflow-hidden">
             <template v-if="evento.pmsUnidad?.imageUrl">

@@ -316,7 +316,6 @@ class PmsReserva
     public function getUltimaFechaModificacionCanal(): ?DateTimeInterface { return $this->ultimaFechaModificacionCanal; }
     public function setUltimaFechaModificacionCanal(?DateTimeInterface $val): self { $this->ultimaFechaModificacionCanal = $val; return $this; }
 
-    #[Groups(['pax_reserva:read'])]
     public function getEventosCalendario(): Collection { return $this->eventosCalendario; }
     public function addEventosCalendario(PmsEventoCalendario $evento): self {
         if (!$this->eventosCalendario->contains($evento)) {
@@ -325,6 +324,33 @@ class PmsReserva
         }
         return $this;
     }
+
+    /**
+     * Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX).
+     * Filtra por estados confirmados y asegura que la guía no esté explícitamente deshabilitada.
+     * * @return Collection<int, PmsEventoCalendario>
+     */
+    #[Groups(['pax_reserva:read'])]
+    public function getEventosActivosGuia(): Collection
+    {
+        // Importamos o usamos las constantes de estado
+        $estadosPermitidos = [
+            PmsEventoEstado::CODIGO_CONFIRMADA,
+            PmsEventoEstado::CODIGO_REQUERIMIENTO,
+        ];
+
+        return $this->eventosCalendario->filter(function(PmsEventoCalendario $evento) use ($estadosPermitidos) {
+            // 1. Verificar que el estado sea uno de los confirmados
+            $estadoOk = in_array($evento->getEstado()?->getId(), $estadosPermitidos, true);
+
+            // 2. Verificar que la guía NO esté deshabilitada para este evento/unidad
+            // Asumo que el método se llama isGuiaDisabled() en PmsEventoCalendario
+            $guiaHabilitada = !$evento->isGuiaDisabled();
+
+            return $estadoOk && $guiaHabilitada;
+        });
+    }
+
     public function removeEventosCalendario(PmsEventoCalendario $evento): self {
         if ($this->eventosCalendario->removeElement($evento)) {
             if ($evento->getReserva() === $this) $evento->setReserva(null);
