@@ -331,24 +331,25 @@ class PmsReserva
      * * @return Collection<int, PmsEventoCalendario>
      */
     #[Groups(['pax_reserva:read'])]
-    public function getEventosActivosGuia(): Collection
+    public function getEventosActivosGuia(): array
     {
-        // Importamos o usamos las constantes de estado
         $estadosPermitidos = [
             PmsEventoEstado::CODIGO_CONFIRMADA,
             PmsEventoEstado::CODIGO_REQUERIMIENTO,
         ];
 
-        return $this->eventosCalendario->filter(function(PmsEventoCalendario $evento) use ($estadosPermitidos) {
-            // 1. Verificar que el estado sea uno de los confirmados
-            $estadoOk = in_array($evento->getEstado()?->getId(), $estadosPermitidos, true);
+        $filtrados = $this->eventosCalendario->filter(function(PmsEventoCalendario $evento) use ($estadosPermitidos) {
+            // Validamos estado
+            $estadoOk = in_array($evento->getEstado()?->getCodigo(), $estadosPermitidos, true);
 
-            // 2. Verificar que la guía NO esté deshabilitada para este evento/unidad
-            // Asumo que el método se llama isGuiaDisabled() en PmsEventoCalendario
-            $guiaHabilitada = !$evento->isGuiaDisabled();
+            // Validamos que no esté deshabilitado (ajusta el nombre del campo según tu BD)
+            $guiaHabilitada = !($evento->isGuiaDisabled());
 
             return $estadoOk && $guiaHabilitada;
         });
+
+        // IMPORTANTE: .getValues() resetea los índices para que en JSON sea [{}, {}] y no {"1": {}, "2": {}}
+        return $filtrados->getValues();
     }
 
     public function removeEventosCalendario(PmsEventoCalendario $evento): self {
