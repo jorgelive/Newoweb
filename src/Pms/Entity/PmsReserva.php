@@ -340,7 +340,7 @@ class PmsReserva
 
         $filtrados = $this->eventosCalendario->filter(function(PmsEventoCalendario $evento) use ($estadosPermitidos) {
             // Validamos estado
-            $estadoOk = in_array($evento->getEstado()?->getCodigo(), $estadosPermitidos, true);
+            $estadoOk = in_array($evento->getEstado()?->getId(), $estadosPermitidos, true);
 
             // Validamos que no esté deshabilitado (ajusta el nombre del campo según tu BD)
             $guiaHabilitada = !($evento->isGuiaDisabled());
