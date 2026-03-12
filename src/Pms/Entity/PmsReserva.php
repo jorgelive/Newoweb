@@ -137,6 +137,9 @@ class PmsReserva
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $canalesAggregate = null;
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $unidadesAggregate = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $referenciaCanalAggregate = null;
 
@@ -304,6 +307,9 @@ class PmsReserva
     public function getCanalesAggregate(): ?string { return $this->canalesAggregate; }
     public function setCanalesAggregate(?string $val): self { $this->canalesAggregate = $val; return $this; }
 
+    #[Groups(['pax_reserva:read'])]
+    public function getUnidadesAggregate(): ?string { return $this->unidadesAggregate; }
+    public function setUnidadesAggregate(?string $val): self { $this->unidadesAggregate = $val; return $this; }
     public function getReferenciaCanalAggregate(): ?string { return $this->referenciaCanalAggregate; }
     public function setReferenciaCanalAggregate(?string $val): self { $this->referenciaCanalAggregate = $val; return $this; }
 
@@ -396,6 +402,25 @@ class PmsReserva
             }
         }
         return null;
+    }
+
+    /**
+     * REGLA DE NEGOCIO: Determina si la reserva está COMPLETAMENTE cancelada.
+     * Verdadero SOLO si tiene eventos y TODOS están en estado cancelado.
+     */
+    public function isTotalmenteCancelada(): bool
+    {
+        if ($this->eventosCalendario->isEmpty()) {
+            return false; // Si está vacía, es un draft/borrador, no está cancelada
+        }
+
+        foreach ($this->eventosCalendario as $evento) {
+            if ($evento->getEstado()?->getId() !== PmsEventoEstado::CODIGO_CANCELADA) {
+                return false; // Si hay al menos 1 evento vivo, la reserva sigue activa
+            }
+        }
+
+        return true;
     }
 
     /**

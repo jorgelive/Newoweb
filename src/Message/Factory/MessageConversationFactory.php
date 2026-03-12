@@ -57,12 +57,26 @@ class MessageConversationFactory
             $this->entityManager->persist($conversation);
         }
 
-        // 3. ACTUALIZACIÓN CONTINUA (SNAPSHOT)
-        // Actualizamos siempre el nombre y teléfono por si el huésped los modificó en la reserva
+        // 1. Snapshot de contacto
         $conversation->setGuestName($context->getContextName());
         $conversation->setGuestPhone($context->getContextPhone());
 
-        // 4. Flush opcional
+        // 2. Llenado estricto del JSON (Agnóstico)
+        $conversation->setContextOrigin($context->getOrigin());
+        $conversation->setContextStatusTag($context->getStatusTag());
+        $conversation->setContextMilestones($context->getMilestones());
+        $conversation->setContextItems($context->getItems());
+        $conversation->setContextFinancials($context->getFinancialTotal(), $context->isFinancialCleared());
+
+        // 3. AUTO-ARCHIVADO y REACTIVACIÓN
+        if ($context->isArchivable()) {
+            $conversation->setStatus(MessageConversation::STATUS_ARCHIVED);
+        } else {
+            if ($conversation->getStatus() === MessageConversation::STATUS_ARCHIVED) {
+                $conversation->setStatus(MessageConversation::STATUS_OPEN);
+            }
+        }
+
         if ($flush) {
             $this->entityManager->flush();
         }

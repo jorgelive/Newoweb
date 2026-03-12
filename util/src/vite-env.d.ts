@@ -11,6 +11,7 @@ declare module '*.vue' {
 interface Window {
     OPENPERU_CONFIG: {
         apiUrl: string;
+        panelUrl: string;
     };
 }
 

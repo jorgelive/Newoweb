@@ -67,7 +67,6 @@ class MessageRule
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $allowedAgencies = [];
 
-
     public function __construct()
     {
         $this->id = Uuid::v7();
@@ -89,22 +88,21 @@ class MessageRule
             return false;
         }
 
-        $attributes = $context->getSegmentationAttributes();
-
-        // 1. EVALUAR FUENTES (OTAs, Directo, etc.)
+        // 1. EVALUAR FUENTES (OTAs, Directo, etc.) utilizando el nuevo contrato
         $allowedSources = $this->getAllowedSources();
         if (!empty($allowedSources)) {
-            $contextSource = $attributes['source'] ?? null;
-            if (!in_array($contextSource, $allowedSources, true)) {
+            // Si el origen del contexto actual (ej: 'booking') no está en los permitidos de esta regla, fallamos.
+            if (!in_array($context->getOrigin(), $allowedSources, true)) {
                 return false;
             }
         }
 
-        // 2. EVALUAR AGENCIAS
+        // 2. EVALUAR AGENCIAS (Placeholder para el futuro B2B)
         $allowedAgencies = $this->getAllowedAgencies();
         if (!empty($allowedAgencies)) {
-            $contextAgency = (string) ($attributes['agency_id'] ?? '');
-            if (!in_array($contextAgency, $allowedAgencies, true)) {
+            // Como el contrato actual no tiene getAgencyId() explícito, asumimos que por ahora
+            // no hay agencias asignadas a la reserva. Cuando las agregues al contrato, solo actualizas este if.
+            if (!method_exists($context, 'getAgencyId') || !in_array($context->getAgencyId(), $allowedAgencies, true)) {
                 return false;
             }
         }
@@ -121,16 +119,8 @@ class MessageRule
     public function getName(): ?string { return $this->name; }
     public function setName(string $name): self { $this->name = $name; return $this; }
 
-    public function getContextType(): string
-    {
-        return $this->contextType;
-    }
-
-    public function setContextType(string $contextType): self
-    {
-        $this->contextType = $contextType;
-        return $this;
-    }
+    public function getContextType(): string { return $this->contextType; }
+    public function setContextType(string $contextType): self { $this->contextType = $contextType; return $this; }
 
     public function isActive(): bool { return $this->isActive; }
     public function setIsActive(bool $isActive): self { $this->isActive = $isActive; return $this; }

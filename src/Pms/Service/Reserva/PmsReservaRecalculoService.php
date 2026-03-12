@@ -3,46 +3,37 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Reserva;
 
+use App\Message\Factory\MessageConversationFactory;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Message\PmsReservaMessageContext;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
 
 final class PmsReservaRecalculoService
 {
-    /**
-     * Recalcula datos de la reserva a partir de TODOS sus eventos persistidos.
-     *
-     * Estrategia "blindada":
-     * - Convertimos UUIDs a BINARY(16)
-     * - Ejecutamos un UPDATE masivo con LEFT JOIN a una subquery agregada.
-     * - ✅ Agregación Condicional: Ignoramos eventos cancelados para calcular
-     * fechas, dinero, pax y el canal dominante (para casos donde la OTA
-     * cancela y el recepcionista lo pasa a directo).
-     *
-     * @param string[] $reservaIds UUIDs RFC4122 (string)
-     */
-    public function recalcularDesdeEventos(array $reservaIds, EntityManagerInterface $em): void
+    // 🔥 1. INYECTAMOS EL FACTORY DEL CHAT
+    public function __construct(
+        private readonly MessageConversationFactory $messageFactory
+    ) {}
+
+    public function recalcularDesdeEventos(array $reservaIds, EntityManagerInterface $entityManager, $flush): void
     {
-        // Limpieza y validación de IDs
         $reservaIds = array_values(array_unique(array_filter($reservaIds, static fn ($v) => is_string($v) && $v !== '')));
         if ($reservaIds === []) {
             return;
         }
 
-        $conn = $em->getConnection();
+        $conn = $entityManager->getConnection();
         $estadoCancelada = PmsEventoEstado::CODIGO_CANCELADA;
 
-        // Loteo por seguridad (evita queries gigantes y límites de placeholders)
         foreach (array_chunk($reservaIds, 400) as $chunk) {
             $binaryIds = [];
             foreach ($chunk as $idStr) {
-                // Si viene un UUID inválido, mejor explotar aquí que dejar data corrupta
                 $binaryIds[] = Uuid::fromString($idStr)->toBinary();
             }
 
-            // Placeholders para IN (...)
             $in = implode(',', array_fill(0, count($binaryIds), '?'));
 
             $sql = <<<SQL
@@ -51,38 +42,28 @@ LEFT JOIN (
     SELECT
         e.reserva_id AS reserva_id,
         
-        -- ✅ FECHAS (Ignorando cancelados)
-        -- Fallback de seguridad: Si TODOS los eventos están cancelados, retiene las fechas canceladas para no insertar un NULL.
-        COALESCE(
-            MIN(CASE WHEN e.estado_id != '$estadoCancelada' THEN DATE(e.inicio) END), 
-            MIN(DATE(e.inicio))
-        ) AS fechaMin,
+        COALESCE(MIN(CASE WHEN e.estado_id != '$estadoCancelada' THEN DATE(e.inicio) END), MIN(DATE(e.inicio))) AS fechaMin,
+        COALESCE(MAX(CASE WHEN e.estado_id != '$estadoCancelada' THEN DATE(e.fin) END), MAX(DATE(e.fin))) AS fechaMax,
         
-        COALESCE(
-            MAX(CASE WHEN e.estado_id != '$estadoCancelada' THEN DATE(e.fin) END), 
-            MAX(DATE(e.fin))
-        ) AS fechaMax,
-        
-        -- ✅ FINANZAS Y PAX (Ignorando cancelados. Un evento cancelado vale 0 y trae 0 personas)
-        COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.monto, 0) ELSE 0 END), 0)            AS totalMonto,
-        COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.comision, 0) ELSE 0 END), 0)         AS totalComision,
+        COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.monto, 0) ELSE 0 END), 0) AS totalMonto,
+        COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.comision, 0) ELSE 0 END), 0) AS totalComision,
         COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.cantidad_adultos, 0) ELSE 0 END), 0) AS totalAdultos,
-        COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.cantidad_ninos, 0) ELSE 0 END), 0)   AS totalNinos,
+        COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.cantidad_ninos, 0) ELSE 0 END), 0) AS totalNinos,
         
-        -- Agregaciones de Texto (Mantenemos todo el historial, incluso cancelados, para saber que hubo un intento por OTA)
-        GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.channel_id), '') SEPARATOR ' | ')         AS canalesAgregados,
-        GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.referencia_canal), '') SEPARATOR ' | ')   AS refAgregadas,
+        GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.channel_id), '') SEPARATOR ' | ') AS canalesAgregados,
+        GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.referencia_canal), '') SEPARATOR ' | ') AS refAgregadas,
         GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.hora_llegada_canal), '') SEPARATOR ' | ') AS horasAgregadas,
         
-        MIN(e.fecha_reserva_canal)      AS minFechaReserva,
+        -- 🔥 AGRUPACIÓN DE NOMBRES DE UNIDADES (Solo vivos)
+        GROUP_CONCAT(DISTINCT CASE WHEN e.estado_id != '$estadoCancelada' THEN NULLIF(TRIM(u.nombre), '') END SEPARATOR ', ') AS unidadesAgregadas,
+        
+        MIN(e.fecha_reserva_canal) AS minFechaReserva,
         MAX(e.fecha_modificacion_canal) AS maxFechaModif,
         
-        -- ✅ LÓGICA DE CANAL PRINCIPAL
-        -- Solo evalúa eventos NO cancelados. 
-        -- Si hay una OTA viva, gana la OTA. Si la OTA está cancelada y hay un directo, devuelve NULL.
         MAX(CASE WHEN e.estado_id != '$estadoCancelada' AND e.channel_id != 'directo' THEN e.channel_id END) AS canalDominante
         
     FROM pms_evento_calendario e
+    LEFT JOIN pms_unidad u ON e.pms_unidad_id = u.id 
     WHERE e.reserva_id IN ($in)
     GROUP BY e.reserva_id
 ) s ON s.reserva_id = r.id
@@ -97,35 +78,33 @@ SET
     r.canales_aggregate               = s.canalesAgregados,
     r.referencia_canal_aggregate      = s.refAgregadas,
     r.hora_llegada_canal_aggregate    = s.horasAgregadas,
+    r.unidades_aggregate              = s.unidadesAgregadas,
+    
     r.primera_fecha_reserva_canal     = s.minFechaReserva,
     r.ultima_fecha_modificacion_canal = s.maxFechaModif,
     
-    -- ✅ ASIGNACIÓN DEL CANAL
-    -- Si 'canalDominante' viene NULL (porque el único vivo es directo, o todos están cancelados),
-    -- el COALESCE fuerza automáticamente a que la reserva sea 'directo'.
     r.channel_id                      = COALESCE(s.canalDominante, 'directo')
     
 WHERE r.id IN ($in)
 SQL;
 
-            // Pasamos los IDs dos veces (subquery IN + WHERE IN)
             $params = array_merge($binaryIds, $binaryIds);
-
-            // Tipamos como BINARY para que MySQL compare 16 bytes reales
             $types = array_fill(0, count($params), ParameterType::BINARY);
 
-            // 1. Ejecutamos la consulta pura en MySQL
             $conn->executeStatement($sql, $params, $types);
 
-            // 2. Refrescamos las entidades en el UnitOfWork de Doctrine
+            // 🔥 2. ACTUALIZAMOS EL CHAT CON LOS DATOS FRESCOS
             foreach ($chunk as $idStr) {
-                // find() busca primero en memoria, lo cual es gratis si ya está cacheado
-                $reserva = $em->find(PmsReserva::class, $idStr);
-
+                $reserva = $entityManager->find(PmsReserva::class, $idStr);
                 if ($reserva) {
-                    // refresh() obliga a Doctrine a lanzar un SELECT a la base de datos
-                    // sobrescribiendo el objeto actual con los montos, textos y el nuevo CANAL
-                    $em->refresh($reserva);
+                    // Refrescamos la reserva con los datos recién calculados por el SQL
+                    $entityManager->refresh($reserva);
+
+                    // Envolvemos la reserva en su adaptador
+                    $context = new PmsReservaMessageContext($reserva);
+
+                    // Actualizamos el chat (con true para que haga flush de la conversación)
+                    $this->messageFactory->upsertFromContext($context, $flush);
                 }
             }
         }

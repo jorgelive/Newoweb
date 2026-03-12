@@ -1,175 +1,115 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import axios from 'axios';
 
-// ============================================================================
-// INTERFACES (Mapeo exacto de los grupos de serialización de API Platform)
-// ============================================================================
-
 export interface ApiMessage {
-    '@id': string;
-    id: string;
-    direction: string;
-    status: string;
-    senderType: string;
-    contentLocal: string | null;
-    contentExternal: string | null;
-    createdAt: string;
+    '@id': string; id: string; direction: string; status: string;
+    senderType: string; contentLocal: string | null; contentExternal: string | null; createdAt: string;
 }
 
 export interface ApiConversation {
-    '@id': string;
-    id: string;
-    status: string;
-    guestName: string | null;
-    guestPhone: string | null;
-    contextType: string;
-    contextId: string;
-    createdAt: string;
+    '@id': string; id: string; status: string; guestName: string | null;
+    guestPhone: string | null; contextType: string; contextId: string;
+    createdAt: string; lastMessageAt: string | null; unreadCount: number;
+    contextOrigin: string | null; contextStatusTag: string | null;
+    contextMilestones: { start?: string; end?: string; booked_at?: string; eta?: string; };
+    contextItems: string[];
 }
 
 export const useChatStore = defineStore('chatStore', () => {
-    // ============================================================================
-    // CONFIGURACIÓN BASE
-    // ============================================================================
-
-    // Obtenemos la URL base desde la configuración inyectada por Symfony o el archivo .env
     // @ts-ignore
-    const apiBaseUrl = window.OPENPERU_CONFIG?.apiUrl || import.meta.env.VITE_API_URL || '';
+    const config = window.OPENPERU_CONFIG;
+    const apiBaseUrl = config?.apiUrl || import.meta.env.VITE_API_URL || '';
+    const panelBaseUrl = config?.panelUrl || import.meta.env.VITE_PANEL_URL || '';
 
-    // Cliente Axios pre-configurado para interactuar con API Platform y Symfony
     const apiClient = axios.create({
         baseURL: apiBaseUrl,
-        withCredentials: true, // Vital: Permite enviar la cookie de sesión de Symfony para pasar el firewall
-        headers: {
-            'Accept': 'application/ld+json',
-            'Content-Type': 'application/ld+json'
-        }
+        withCredentials: true,
+        headers: { 'Accept': 'application/ld+json', 'Content-Type': 'application/ld+json' }
     });
-
-    // ============================================================================
-    // ESTADO REACTIVO (State)
-    // ============================================================================
 
     const conversations = ref<ApiConversation[]>([]);
     const currentConversation = ref<ApiConversation | null>(null);
     const messages = ref<ApiMessage[]>([]);
+    const filterStatus = ref<string>('open');
 
-    const loadingConversations = ref<boolean>(false);
-    const loadingMessages = ref<boolean>(false);
-    const sendingMessage = ref<boolean>(false);
+    const loadingConversations = ref(false);
+    const loadingMessages = ref(false);
+    const sendingMessage = ref(false);
     const error = ref<string | null>(null);
 
-    // ============================================================================
-    // ACCIONES (Actions)
-    // ============================================================================
+    // FILTRO DINÁMICO (Insensible a Mayúsculas/Minúsculas)
+    const filteredConversations = computed(() => {
+        return conversations.value.filter(c =>
+            c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()
+        );
+    });
 
-    /**
-     * Obtiene la lista de todas las conversaciones disponibles.
-     * API Platform ordena automáticamente por createdAt DESC gracias al atributo #[ApiFilter].
-     */
-    const fetchConversations = async (): Promise<void> => {
+    const getExternalContextUrl = computed(() => {
+        if (!currentConversation.value) return null;
+        const chat = currentConversation.value;
+        const routes: Record<string, string> = { 'pms_reserva': `/pms-reserva/${chat.contextId}` };
+        return routes[chat.contextType] ? `${panelBaseUrl}${routes[chat.contextType]}` : null;
+    });
+
+    // Función Helper para extraer arrays de API Platform
+    const extractData = (response: any) => {
+        return response.data['hydra:member'] || response.data['member'] || (Array.isArray(response.data) ? response.data : []);
+    };
+
+    const fetchConversations = async () => {
         loadingConversations.value = true;
         error.value = null;
         try {
             const response = await apiClient.get('/platform/user/util/msg/conversations');
-            // 'hydra:member' es el array donde API Platform coloca los resultados
-            conversations.value = response.data['member'] || response.data['hydra:member'] || [];
-        } catch (err: any) {
-            console.error('Error fetching conversations:', err);
-            error.value = err.response?.data?.['hydra:description'] || 'No se pudieron cargar las conversaciones.';
+            conversations.value = extractData(response);
+        } catch (err) {
+            error.value = 'Error al sincronizar chats';
+            console.error('Fetch Error:', err);
         } finally {
             loadingConversations.value = false;
         }
     };
 
-    /**
-     * Selecciona una conversación como activa y descarga su historial de mensajes.
-     * @param conversationId El UUID (id normal) de la conversación a seleccionar.
-     */
-    const selectConversation = async (conversationId: string): Promise<void> => {
-        // Buscamos la conversación en nuestra lista local
-        const found = conversations.value.find(c => c.id === conversationId);
-
-        if (found) {
-            currentConversation.value = found;
-        } else {
-            error.value = 'Conversación no encontrada en memoria.';
-            return;
-        }
-
+    const selectConversation = async (id: string) => {
+        const found = conversations.value.find(c => c.id === id);
+        if (!found) return;
+        currentConversation.value = found;
         loadingMessages.value = true;
-        error.value = null;
         try {
-            // Utilizamos el '@id' (IRI) de la conversación para filtrar los mensajes en API Platform.
-            // Ordenamos ascendente para que los mensajes más antiguos queden arriba.
-            const response = await apiClient.get(`/platform/user/util/msg/conversations/${conversationId}/messages`);
-            messages.value = response.data['member'] || response.data['hydra:member'] || [];
-        } catch (err: any) {
-            console.error('Error fetching messages:', err);
-            error.value = 'No se pudieron cargar los mensajes de esta conversación.';
+            const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}/messages`);
+            messages.value = extractData(response);
+            found.unreadCount = 0;
+        } catch (err) {
+            error.value = 'Error al cargar mensajes';
         } finally {
             loadingMessages.value = false;
         }
     };
 
-    /**
-     * Envía un nuevo mensaje asociado a la conversación actual activa.
-     * @param text El contenido escrito por el usuario en la interfaz.
-     */
-    const sendMessage = async (text: string): Promise<void> => {
-        if (!currentConversation.value || !text.trim()) return;
-
+    const sendMessage = async (text: string) => {
+        if (!currentConversation.value) return;
         sendingMessage.value = true;
-        error.value = null;
-
         try {
-            // El payload cumple con la estructura requerida por la entidad Message en Symfony
             const payload = {
-                conversation: currentConversation.value['@id'], // Referencia IRI vital para la relación ORM
+                conversation: currentConversation.value['@id'],
                 contentLocal: text.trim(),
-                direction: 'outgoing', // Siempre saliente porque lo envía el host desde la app
+                direction: 'outgoing',
                 senderType: 'host',
-                status: 'pending'      // Queda pendiente hasta que el worker/API lo procese
+                status: 'pending'
             };
-
             const response = await apiClient.post('/platform/user/util/msg/messages', payload);
-
-            // Agregamos el mensaje recién creado a la lista local para respuesta visual instantánea (UI optimista)
             messages.value.push(response.data);
-
-        } catch (err: any) {
-            console.error('Error sending message:', err);
-            error.value = 'Fallo al enviar el mensaje. Revisa tu conexión.';
+        } catch {
+            error.value = 'Fallo al enviar mensaje';
         } finally {
             sendingMessage.value = false;
         }
     };
 
-    /**
-     * Limpia la conversación activa y los mensajes actuales.
-     * Útil para cuando el usuario presiona "Volver" en la vista móvil.
-     */
-    const clearCurrentConversation = (): void => {
-        currentConversation.value = null;
-        messages.value = [];
-        error.value = null;
-    };
-
     return {
-        // Estado
-        conversations,
-        currentConversation,
-        messages,
-        loadingConversations,
-        loadingMessages,
-        sendingMessage,
-        error,
-
-        // Acciones
-        fetchConversations,
-        selectConversation,
-        sendMessage,
-        clearCurrentConversation
+        conversations, filteredConversations, currentConversation, messages,
+        filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
+        getExternalContextUrl, fetchConversations, selectConversation, sendMessage
     };
 });

@@ -3,217 +3,203 @@ import { ref, onMounted, watch, nextTick, computed } from 'vue';
 import { useChatStore } from '@/stores/chatStore';
 
 const store = useChatStore();
-
-// Referencias del DOM y UI
 const messagesContainer = ref<HTMLElement | null>(null);
 const newMessageText = ref('');
-const isMobileSidebarOpen = ref(true); // Para responsive: controla si vemos la lista o el chat
+const isMobileSidebarOpen = ref(true);
 
-// --- LIFECYCLE ---
-onMounted(() => {
-  store.fetchConversations();
-});
+onMounted(() => store.fetchConversations());
 
-// --- SCROLL AUTOMÁTICO ---
-const scrollToBottom = () => {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-  }
-};
+const scrollToBottom = () => { if (messagesContainer.value) messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight; };
+watch(() => store.messages, async () => { await nextTick(); scrollToBottom(); }, { deep: true });
+watch(() => store.error, (v) => { if (v) setTimeout(() => store.error = null, 5000); });
 
-// Observamos cambios en la lista de mensajes para hacer scroll hacia abajo
-watch(() => store.messages, async () => {
-  await nextTick();
-  scrollToBottom();
-}, { deep: true });
-
-// --- MÉTODOS ---
 const selectChat = async (id: string) => {
   await store.selectConversation(id);
-  isMobileSidebarOpen.value = false; // Oculta sidebar en móviles al seleccionar
+  isMobileSidebarOpen.value = false;
 };
 
 const send = async () => {
   if (!newMessageText.value.trim()) return;
-  const textToSend = newMessageText.value;
-  newMessageText.value = ''; // Limpiamos el input inmediatamente por UX
-  await store.sendMessage(textToSend);
+  const t = newMessageText.value; newMessageText.value = '';
+  await store.sendMessage(t);
 };
 
-const goBackToList = () => {
-  store.currentConversation = null;
-  isMobileSidebarOpen.value = true;
+const formatTime = (iso?: string) => iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+const formatDate = (iso?: string) => iso ? new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '';
+const formatFullDate = (iso?: string) => iso ? new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) : '';
+
+const groupedMessages = computed(() => {
+  const groups: Record<string, any[]> = {};
+  store.messages.forEach(msg => {
+    const d = new Date(msg.createdAt).toISOString().split('T')[0];
+    if (!groups[d]) groups[d] = [];
+    groups[d].push(msg);
+  });
+  return groups;
+});
+
+const formatDividerDate = (d: string) => {
+  const today = new Date().toISOString().split('T')[0];
+  if (d === today) return 'Hoy';
+  return new Date(d).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
 };
 
-// --- FORMATTERS ---
-const formatTime = (isoString: string) => {
-  if (!isoString) return '';
-  const date = new Date(isoString);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const getOriginClass = (origin?: string | null) => {
+  const colors: Record<string, string> = { booking: 'bg-[#003580]', airbnb: 'bg-[#FF5A5F]', expedia: 'bg-[#00355F]' };
+  return colors[origin || ''] || 'bg-[#376875]';
 };
-
-const formatDate = (isoString: string) => {
-  if (!isoString) return '';
-  const date = new Date(isoString);
-  return date.toLocaleDateString([], { day: '2-digit', month: 'short' });
-};
-
-// --- COMPUTADOS ---
-const activeConversationId = computed(() => store.currentConversation?.id);
 </script>
 
 <template>
-  <div class="flex h-screen bg-slate-50 font-sans overflow-hidden">
+  <div class="flex h-screen bg-[#F8FAFC] font-sans overflow-hidden relative text-slate-900 antialiased">
+
+    <Transition name="fade-slide">
+      <div v-if="store.error" class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/10 backdrop-blur-xl">
+        <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+        <span class="text-xs font-black uppercase tracking-wide">{{ store.error }}</span>
+      </div>
+    </Transition>
 
     <aside
-        class="w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 z-10"
-        :class="isMobileSidebarOpen ? 'block' : 'hidden md:flex'"
+        class="fixed inset-y-0 left-0 z-40 w-full md:relative md:w-80 lg:w-[380px] bg-white border-r border-slate-200 flex flex-col transition-all duration-500 md:translate-x-0"
+        :class="isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
-      <div class="p-4 border-b border-slate-100 bg-white flex justify-between items-center shrink-0 h-16">
-        <h1 class="font-black text-xl text-slate-800">Mensajes</h1>
-        <button @click="store.fetchConversations" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-[#376875] hover:text-white transition-colors flex items-center justify-center">
-          <i class="fas fa-sync-alt text-xs" :class="{'fa-spin': store.loadingConversations}"></i>
-        </button>
+      <div class="px-6 pt-6 bg-white shrink-0">
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="font-black text-2xl tracking-tight text-slate-800">Mensajes</h1>
+          <button @click="store.fetchConversations" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-900 group transition-all shadow-sm">
+            <i class="fas fa-sync-alt text-slate-400 group-hover:text-white text-xs" :class="{'fa-spin': store.loadingConversations}"></i>
+          </button>
+        </div>
+
+        <div class="flex bg-slate-100 p-1 rounded-xl mb-4 shadow-inner">
+          <button
+              v-for="status in ['open', 'archived', 'closed']"
+              :key="status"
+              @click="store.filterStatus = status"
+              class="flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all"
+              :class="store.filterStatus === status ? 'bg-white text-[#376875] shadow-sm' : 'text-slate-400 hover:text-slate-600'"
+          >
+            {{ status === 'open' ? 'Activos' : status === 'archived' ? 'Archivados' : 'Cerrados' }}
+          </button>
+        </div>
       </div>
 
-      <div class="flex-1 overflow-y-auto scrollbar-hide">
-        <div v-if="store.loadingConversations" class="p-8 text-center text-slate-400">
-          <i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-[#376875]"></i>
-          <p class="text-sm">Cargando chats...</p>
+      <div class="flex-1 overflow-y-auto scrollbar-hide py-2 px-3">
+        <div v-if="store.loadingConversations" class="p-10 text-center">
+          <i class="fas fa-circle-notch fa-spin text-slate-300"></i>
+        </div>
+        <div v-else-if="store.filteredConversations.length === 0" class="p-10 text-center opacity-30 italic text-xs">
+          No hay conversaciones {{ store.filterStatus }}.
         </div>
 
-        <div v-else-if="store.conversations.length === 0" class="p-8 text-center text-slate-400">
-          <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="fas fa-inbox text-2xl text-slate-300"></i>
-          </div>
-          <p class="text-sm font-medium">No hay conversaciones activas.</p>
-        </div>
+        <div v-for="chat in store.filteredConversations" :key="chat.id" class="mb-1">
+          <button
+              @click="selectChat(chat.id)"
+              class="w-full text-left p-4 rounded-2xl transition-all flex gap-4 relative group border border-transparent"
+              :class="store.currentConversation?.id === chat.id ? 'bg-white border-slate-200 shadow-xl shadow-slate-200/50 translate-x-1' : 'hover:bg-slate-50'"
+          >
+            <div v-if="store.currentConversation?.id === chat.id" class="absolute left-0 top-4 bottom-4 w-1.5 bg-[#376875] rounded-r-full"></div>
 
-        <ul v-else class="divide-y divide-slate-50">
-          <li v-for="chat in store.conversations" :key="chat.id">
-            <button
-                @click="selectChat(chat.id)"
-                class="w-full text-left p-4 hover:bg-slate-50 transition-colors flex items-start gap-3 relative"
-                :class="{'bg-slate-50 border-l-4 border-[#E07845]': activeConversationId === chat.id}"
-            >
-              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#376875] to-slate-600 text-white flex items-center justify-center shrink-0 font-bold shadow-sm">
-                {{ chat.guestName ? chat.guestName.charAt(0).toUpperCase() : '?' }}
+            <div class="w-12 h-12 rounded-xl text-white flex items-center justify-center shrink-0 font-black text-lg shadow-sm" :class="getOriginClass(chat.contextOrigin)">
+              {{ chat.guestName?.charAt(0).toUpperCase() || '?' }}
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-baseline mb-0.5">
+                <h3 class="font-bold truncate text-sm" :class="store.currentConversation?.id === chat.id ? 'text-[#376875]' : 'text-slate-800'">
+                  {{ chat.guestName || 'Huésped' }}
+                </h3>
+                <span class="text-[9px] font-black uppercase text-slate-400 ml-2">
+                    {{ formatDate(chat.lastMessageAt || chat.createdAt) }}
+                </span>
               </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex justify-between items-baseline mb-1">
-                  <h3 class="font-bold text-slate-900 truncate" :class="{'text-[#376875]': activeConversationId === chat.id}">
-                    {{ chat.guestName || 'Huésped' }}
-                  </h3>
-                  <span class="text-[10px] text-slate-400 whitespace-nowrap ml-2">
-                                        {{ formatDate(chat.createdAt) }}
-                                    </span>
-                </div>
-                <p class="text-xs text-slate-500 truncate flex items-center gap-1">
-                  <i class="fas fa-hashtag text-[9px] text-slate-300"></i>
-                  {{ chat.contextId || 'Sin Reserva' }}
-                </p>
+
+              <p class="text-[10px] font-black truncate text-[#E07845] mb-1 uppercase tracking-tight">
+                {{ chat.contextItems && chat.contextItems.length ? chat.contextItems.join(', ') : 'Sin unidad' }}
+              </p>
+
+              <div class="flex items-center gap-2">
+                <span class="text-[8px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-black uppercase tracking-widest">
+                    {{ chat.contextOrigin || 'directo' }}
+                </span>
+                <span v-if="chat.contextMilestones?.start" class="text-[9px] font-bold text-slate-300 italic">
+                    {{ formatDate(chat.contextMilestones.start) }} - {{ formatDate(chat.contextMilestones.end) }}
+                </span>
               </div>
-            </button>
-          </li>
-        </ul>
+            </div>
+
+            <div v-if="chat.unreadCount > 0" class="absolute -right-1 -top-1 w-5 h-5 bg-[#E07845] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-md">
+              {{ chat.unreadCount }}
+            </div>
+          </button>
+        </div>
       </div>
     </aside>
 
-    <main
-        class="flex-1 bg-[#F8FAFC] flex flex-col relative"
-        :class="!isMobileSidebarOpen ? 'block' : 'hidden md:flex'"
-    >
-      <div v-if="!store.currentConversation" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-white/50">
-        <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 shadow-inner border border-slate-100">
-          <i class="fas fa-comments text-4xl text-slate-300"></i>
-        </div>
-        <h2 class="text-xl font-black text-slate-700">Central de Mensajería</h2>
-        <p class="text-sm mt-2">Selecciona una conversación del panel izquierdo.</p>
+    <main class="flex-1 bg-[#F1F5F9] flex flex-col relative z-30 transition-all duration-300">
+      <div v-if="!store.currentConversation" class="hidden md:flex flex-1 flex-col items-center justify-center bg-white text-slate-300">
+        <i class="fas fa-paper-plane text-4xl mb-4 opacity-10"></i>
+        <h2 class="text-xl font-black text-slate-800 tracking-tighter uppercase tracking-widest">Central de Operaciones</h2>
       </div>
 
       <template v-else>
-        <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm z-10">
-          <div class="flex items-center gap-4">
-            <button @click="goBackToList" class="md:hidden w-8 h-8 flex items-center justify-center text-slate-500 bg-slate-100 rounded-full">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-            <div>
-              <h2 class="font-black text-slate-800 text-lg leading-tight">
-                {{ store.currentConversation.guestName || 'Huésped' }}
-              </h2>
-              <p class="text-[11px] text-[#E07845] font-bold tracking-wide uppercase">
-                <i class="fas fa-bed mr-1"></i> {{ store.currentConversation.contextId }}
-              </p>
+        <header class="h-20 md:h-24 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30">
+          <div class="flex items-center gap-4 overflow-hidden">
+            <button @click="isMobileSidebarOpen = true" class="md:hidden w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 shadow-sm"><i class="fas fa-chevron-left"></i></button>
+            <div class="truncate">
+              <h2 class="font-black text-slate-900 text-lg md:text-2xl tracking-tight truncate leading-none mb-1">{{ store.currentConversation.guestName }}</h2>
+              <div class="flex items-center gap-3 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-400">
+                <span class="text-[#E07845]">{{ store.currentConversation.contextItems && store.currentConversation.contextItems.length ? store.currentConversation.contextItems.join(' + ') : 'PMS' }}</span>
+                <span class="hidden sm:inline text-slate-200">/</span>
+                <span class="hidden sm:inline">{{ formatFullDate(store.currentConversation.contextMilestones.start) }} - {{ formatFullDate(store.currentConversation.contextMilestones.end) }}</span>
+              </div>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-                        <span class="px-2 py-1 bg-green-50 text-green-600 text-[10px] font-bold uppercase rounded-md border border-green-100">
-                            {{ store.currentConversation.status }}
-                        </span>
+
+          <div class="flex items-center gap-3">
+            <a v-if="store.getExternalContextUrl" :href="store.getExternalContextUrl" target="_blank"
+               class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl shadow-xl hover:-translate-y-0.5 transition-all text-[10px] font-black uppercase tracking-wider">
+              <i class="fas fa-external-link-alt"></i>
+              <span class="hidden md:inline">Ver Reserva</span>
+            </a>
+            <span class="px-3 py-1.5 text-[10px] font-black uppercase rounded-lg border-2" :class="store.currentConversation.contextStatusTag === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-green-50 text-green-600 border-green-100'">
+              {{ store.currentConversation.contextStatusTag || store.currentConversation.status }}
+            </span>
           </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-hide scroll-smooth" ref="messagesContainer">
-          <div v-if="store.loadingMessages" class="flex justify-center py-10">
-                        <span class="px-4 py-2 bg-white rounded-full shadow-sm text-xs font-bold text-[#376875] border border-slate-100 animate-pulse">
-                            Cargando historial...
-                        </span>
-          </div>
-
-          <div v-else class="space-y-4 max-w-3xl mx-auto flex flex-col">
-            <div
-                v-for="msg in store.messages"
-                :key="msg.id"
-                class="flex flex-col w-full"
-            >
-              <div v-if="msg.direction === 'outgoing'" class="self-end max-w-[85%] md:max-w-[70%]">
-                <div class="bg-[#376875] text-white p-3 rounded-2xl rounded-tr-sm shadow-sm relative group">
-                  <p class="text-sm whitespace-pre-wrap leading-relaxed">{{ msg.contentLocal || msg.contentExternal }}</p>
-                </div>
-                <div class="flex justify-end items-center gap-1 mt-1 px-1">
-                  <span class="text-[10px] text-slate-400">{{ formatTime(msg.createdAt) }}</span>
-                  <i class="fas fa-check-double text-[10px]" :class="msg.status === 'read' ? 'text-[#E07845]' : 'text-slate-300'"></i>
-                </div>
+        <div class="flex-1 overflow-y-auto p-4 md:p-10" ref="messagesContainer">
+          <div class="max-w-4xl mx-auto">
+            <div v-for="(group, date) in groupedMessages" :key="date">
+              <div class="flex justify-center my-10 sticky top-4 z-20">
+                <span class="px-5 py-2 bg-white/90 backdrop-blur-md border border-slate-200 shadow-sm rounded-full text-[10px] font-black text-slate-800 uppercase tracking-widest">
+                  {{ formatDividerDate(date) }}
+                </span>
               </div>
-
-              <div v-else class="self-start max-w-[85%] md:max-w-[70%]">
-                <div class="bg-white border border-slate-100 text-slate-800 p-3 rounded-2xl rounded-tl-sm shadow-sm">
-                  <p class="text-sm whitespace-pre-wrap leading-relaxed">{{ msg.contentLocal || msg.contentExternal }}</p>
-                </div>
-                <div class="flex justify-start items-center mt-1 px-1">
-                  <span class="text-[10px] text-slate-400">{{ formatTime(msg.createdAt) }}</span>
+              <div class="space-y-8 mb-10 flex flex-col">
+                <div v-for="msg in group" :key="msg.id" class="flex flex-col" :class="msg.direction === 'outgoing' ? 'items-end' : 'items-start'">
+                  <div :class="msg.direction === 'outgoing' ? 'bg-[#376875] text-white rounded-3xl rounded-tr-none shadow-lg' : 'bg-white border border-slate-100 text-slate-800 rounded-3xl rounded-tl-none shadow-sm'" class="max-w-[85%] md:max-w-[70%] p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed">
+                    {{ msg.contentLocal || msg.contentExternal }}
+                  </div>
+                  <div class="flex items-center gap-2 mt-2 px-2 text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                    <span>{{ formatTime(msg.createdAt) }}</span>
+                    <i v-if="msg.direction === 'outgoing'" class="fas fa-check-double text-[10px]" :class="msg.status === 'read' ? 'text-[#E07845]' : 'opacity-20'"></i>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <footer class="bg-white border-t border-slate-200 p-4 shrink-0">
-          <form @submit.prevent="send" class="max-w-3xl mx-auto flex items-end gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-3xl focus-within:border-[#376875]/50 focus-within:ring-2 focus-within:ring-[#376875]/10 transition-all">
-
-            <button type="button" class="w-10 h-10 shrink-0 text-slate-400 hover:text-[#376875] rounded-full transition-colors flex items-center justify-center">
-              <i class="fas fa-paperclip"></i>
-            </button>
-
-            <textarea
-                v-model="newMessageText"
-                @keydown.enter.exact.prevent="send"
-                placeholder="Escribe un mensaje..."
-                class="flex-1 bg-transparent border-0 focus:ring-0 resize-none max-h-32 min-h-[40px] py-2.5 text-sm text-slate-800 placeholder-slate-400 scrollbar-hide"
-                rows="1"
-            ></textarea>
-
-            <button
-                type="submit"
-                :disabled="!newMessageText.trim() || store.sendingMessage"
-                class="w-10 h-10 shrink-0 bg-[#E07845] text-white rounded-full flex items-center justify-center hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-            >
-              <i class="fas" :class="store.sendingMessage ? 'fa-circle-notch fa-spin' : 'fa-paper-plane'"></i>
+        <footer class="bg-white border-t border-slate-100 p-4 md:p-8">
+          <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-3 bg-slate-50 border-2 border-slate-100 p-3 rounded-[32px] focus-within:bg-white transition-all shadow-inner">
+            <button type="button" class="w-12 h-12 flex items-center justify-center text-slate-300 hover:text-slate-900 transition-all"><i class="fas fa-plus-circle text-xl"></i></button>
+            <textarea v-model="newMessageText" @keydown.enter.exact.prevent="send" placeholder="Responder..." class="flex-1 bg-transparent border-0 focus:ring-0 resize-none py-3 text-sm font-semibold text-slate-800 scrollbar-hide" rows="1"></textarea>
+            <button type="submit" :disabled="!newMessageText.trim() || store.sendingMessage" class="w-14 h-14 bg-[#E07845] text-white rounded-[24px] flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-30">
+              <i class="fas text-lg" :class="store.sendingMessage ? 'fa-circle-notch fa-spin' : 'fa-paper-plane'"></i>
             </button>
           </form>
-          <div class="text-center mt-2">
-            <span class="text-[9px] text-slate-400 font-medium">Presiona <b>Enter</b> para enviar, <b>Shift + Enter</b> para salto de línea.</span>
-          </div>
         </footer>
       </template>
     </main>
@@ -222,6 +208,7 @@ const activeConversationId = computed(() => store.currentConversation?.id);
 
 <style scoped>
 .scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.4s ease; }
+.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translate(-50%, -20px); }
 textarea { outline: none; }
 </style>

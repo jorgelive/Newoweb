@@ -6,7 +6,6 @@ namespace App\Pms\Service\Message;
 
 use App\Message\Contract\MessageContextInterface;
 use App\Pms\Entity\PmsReserva;
-use DateTimeInterface;
 
 /**
  * Patrón Adaptador: Envuelve una entidad PmsReserva para que cumpla
@@ -18,9 +17,17 @@ class PmsReservaMessageContext implements MessageContextInterface
         private readonly PmsReserva $reserva
     ) {}
 
+    // =========================================================================
+    // IDENTIFICADORES Y CONTACTO BASE
+    // =========================================================================
+
     public function getContextType(): string { return 'pms_reserva'; }
+
     public function getContextId(): string { return (string) $this->reserva->getId(); }
-    public function getContextLanguage(): string { return $this->reserva->getIdioma() ? strtolower((string)$this->reserva->getIdioma()->getId()) : 'es'; }
+
+    public function getContextLanguage(): string {
+        return $this->reserva->getIdioma() ? strtolower((string)$this->reserva->getIdioma()->getId()) : 'es';
+    }
 
     public function getContextName(): ?string
     {
@@ -32,21 +39,64 @@ class PmsReservaMessageContext implements MessageContextInterface
         return $this->reserva->getTelefono() ?? $this->reserva->getTelefono2();
     }
 
-    public function getMilestone(string $milestoneName): ?DateTimeInterface
+    // =========================================================================
+    // DICCIONARIO AGNÓSTICO PARA EL JSON
+    // =========================================================================
+
+    public function getOrigin(): ?string
     {
-        return match ($milestoneName) {
-            'start'   => $this->reserva->getFechaLlegada(),
-            'end'     => $this->reserva->getFechaSalida(),
-            'created' => $this->reserva->getCreatedAt(),
-            default   => null,
-        };
+        return $this->reserva->getChannel()?->getId() ?? 'directo';
     }
 
-    public function getSegmentationAttributes(): array
+    public function getStatusTag(): ?string
     {
-        return [
-            'source'    => $this->reserva->getChannel()?->getId(),
-            'agency_id' => null, // Placeholder para futuras entidades de agencias B2B
+        return $this->isArchivable() ? 'cancelled' : 'confirmed';
+    }
+
+    public function getMilestones(): array
+    {
+        $milestones = [
+            'start' => $this->reserva->getFechaLlegada(),
+            'end'   => $this->reserva->getFechaSalida(),
+            'booked_at' => $this->reserva->getPrimeraFechaReservaCanal() ?? $this->reserva->getCreatedAt(),
         ];
+
+        if ($this->reserva->getHoraLlegadaCanalAggregate()) {
+            $milestones['eta'] = $this->reserva->getHoraLlegadaCanalAggregate();
+        }
+
+        if ($this->isArchivable() && $this->reserva->getUltimaFechaModificacionCanal()) {
+            $milestones['cancelled_at'] = $this->reserva->getUltimaFechaModificacionCanal();
+        }
+
+        return $milestones;
+    }
+
+    public function getItems(): array
+    {
+        $unidadesString = $this->reserva->getUnidadesAggregate();
+        if (!$unidadesString) {
+            return [];
+        }
+        return array_map('trim', explode(',', $unidadesString));
+    }
+
+    public function getFinancialTotal(): ?float
+    {
+        return (float) $this->reserva->getMontoTotal();
+    }
+
+    public function isFinancialCleared(): bool
+    {
+        return false;
+    }
+
+    // =========================================================================
+    // REGLAS DE NEGOCIO DEL CHAT
+    // =========================================================================
+
+    public function isArchivable(): bool
+    {
+        return $this->reserva->isTotalmenteCancelada();
     }
 }

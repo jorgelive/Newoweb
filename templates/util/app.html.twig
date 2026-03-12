@@ -31,6 +31,7 @@
     <script>
         window.OPENPERU_CONFIG = {
             apiUrl: "{{ app.environment == 'dev' ? 'https://newapi.openperu.test:8890' : 'https://api.openperu.pe' }}"
+            panelUrl: "{{ app.environment == 'dev' ? 'https://panel.openperu.test:8890' : 'https://panel.openperu.pe' }}"
         };
     </script>
 </head>

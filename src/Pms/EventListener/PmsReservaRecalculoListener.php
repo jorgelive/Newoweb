@@ -17,8 +17,11 @@ use Doctrine\ORM\UnitOfWork;
 
 /**
  * Listener PmsReservaRecalculoListener.
- * Automatiza el recálculo de los totales de la reserva cuando cambian sus componentes.
- * Adaptado para UUID v7 y tipado estricto (Sin lógica mágica).
+ * * ACTÚA COMO EL "DIRECTOR DE ORQUESTA" DE LAS RESERVAS:
+ * Detecta cualquier cambio estructural (Fechas, Precios, Huéspedes, Unidades)
+ * y llama al PmsReservaRecalculoService para que actualice:
+ * 1. Los totales matemáticos y fechas agregadas en la BD (SQL Puro).
+ * 2. El JSON Agnóstico y el estado de la Conversación de Chat en tiempo real.
  */
 #[AsDoctrineListener(event: Events::onFlush, priority: -1000)]
 #[AsDoctrineListener(event: Events::postFlush, priority: -1000)]
@@ -97,7 +100,11 @@ final class PmsReservaRecalculoListener
             $em = $args->getObjectManager();
 
             // Ejecutamos el servicio de recálculo (UPDATE pms_reserva SET monto = SUM(...))
-            $this->service->recalcularDesdeEventos($ids, $em);
+            $this->service->recalcularDesdeEventos(
+                reservaIds: $ids,
+                entityManager: $em,
+                flush: true
+            );
         } finally {
             $this->isFlushing = false;
         }
