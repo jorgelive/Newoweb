@@ -2,6 +2,8 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
 
+// ... (Interfaces ApiMessage y ApiConversation se mantienen igual)
+
 export interface ApiMessage {
     '@id': string; id: string; direction: string; status: string;
     senderType: string; contentLocal: string | null; contentExternal: string | null; createdAt: string;
@@ -17,17 +19,34 @@ export interface ApiConversation {
 }
 
 export const useChatStore = defineStore('chatStore', () => {
-    // @ts-ignore
-    const config = window.OPENPERU_CONFIG;
-    const apiBaseUrl = config?.apiUrl || import.meta.env.VITE_API_URL || '';
-    const panelBaseUrl = config?.panelUrl || import.meta.env.VITE_PANEL_URL || '';
 
+    // --- LÓGICA DE URLS DINÁMICAS ---
+    const getUrls = () => {
+        // @ts-ignore
+        const config = window.OPENPERU_CONFIG;
+        return {
+            api: config?.apiUrl || import.meta.env.VITE_API_URL || 'https://api.openperu.pe',
+            panel: config?.panelUrl || import.meta.env.VITE_PANEL_URL || 'https://panel.openperu.pe'
+        };
+    };
+
+    // Creamos la instancia sin baseURL fija inicialmente
     const apiClient = axios.create({
-        baseURL: apiBaseUrl,
         withCredentials: true,
-        headers: { 'Accept': 'application/ld+json', 'Content-Type': 'application/ld+json' }
+        headers: {
+            'Accept': 'application/ld+json',
+            'Content-Type': 'application/ld+json'
+        }
     });
 
+    // INTERCEPTOR: Inyecta la URL correcta en cada petición
+    apiClient.interceptors.request.use((config) => {
+        const urls = getUrls();
+        config.baseURL = urls.api;
+        return config;
+    });
+
+    // --- ESTADO ---
     const conversations = ref<ApiConversation[]>([]);
     const currentConversation = ref<ApiConversation | null>(null);
     const messages = ref<ApiMessage[]>([]);
@@ -38,7 +57,7 @@ export const useChatStore = defineStore('chatStore', () => {
     const sendingMessage = ref(false);
     const error = ref<string | null>(null);
 
-    // FILTRO DINÁMICO (Insensible a Mayúsculas/Minúsculas)
+    // --- COMPUTADOS ---
     const filteredConversations = computed(() => {
         return conversations.value.filter(c =>
             c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()
@@ -47,25 +66,26 @@ export const useChatStore = defineStore('chatStore', () => {
 
     const getExternalContextUrl = computed(() => {
         if (!currentConversation.value) return null;
+        const urls = getUrls();
         const chat = currentConversation.value;
         const routes: Record<string, string> = { 'pms_reserva': `/pms-reserva/${chat.contextId}` };
-        return routes[chat.contextType] ? `${panelBaseUrl}${routes[chat.contextType]}` : null;
+        return routes[chat.contextType] ? `${urls.panel}${routes[chat.contextType]}` : null;
     });
 
-    // Función Helper para extraer arrays de API Platform
     const extractData = (response: any) => {
         return response.data['hydra:member'] || response.data['member'] || (Array.isArray(response.data) ? response.data : []);
     };
 
+    // --- ACCIONES ---
     const fetchConversations = async () => {
         loadingConversations.value = true;
         error.value = null;
         try {
             const response = await apiClient.get('/platform/user/util/msg/conversations');
             conversations.value = extractData(response);
-        } catch (err) {
+        } catch (err: any) {
             error.value = 'Error al sincronizar chats';
-            console.error('Fetch Error:', err);
+            console.error('Fetch Error en URL:', getUrls().api, err);
         } finally {
             loadingConversations.value = false;
         }
