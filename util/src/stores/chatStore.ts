@@ -2,7 +2,9 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
 
-// ... (Interfaces ApiMessage y ApiConversation se mantienen igual)
+// ============================================================================
+// INTERFACES
+// ============================================================================
 
 export interface ApiMessage {
     '@id': string; id: string; direction: string; status: string;
@@ -20,7 +22,6 @@ export interface ApiConversation {
 
 export const useChatStore = defineStore('chatStore', () => {
 
-    // --- LÓGICA DE URLS DINÁMICAS ---
     const getUrls = () => {
         // @ts-ignore
         const config = window.OPENPERU_CONFIG;
@@ -30,23 +31,16 @@ export const useChatStore = defineStore('chatStore', () => {
         };
     };
 
-    // Creamos la instancia sin baseURL fija inicialmente
     const apiClient = axios.create({
         withCredentials: true,
-        headers: {
-            'Accept': 'application/ld+json',
-            'Content-Type': 'application/ld+json'
-        }
+        headers: { 'Accept': 'application/ld+json', 'Content-Type': 'application/ld+json' }
     });
 
-    // INTERCEPTOR: Inyecta la URL correcta en cada petición
     apiClient.interceptors.request.use((config) => {
-        const urls = getUrls();
-        config.baseURL = urls.api;
+        config.baseURL = getUrls().api;
         return config;
     });
 
-    // --- ESTADO ---
     const conversations = ref<ApiConversation[]>([]);
     const currentConversation = ref<ApiConversation | null>(null);
     const messages = ref<ApiMessage[]>([]);
@@ -57,7 +51,6 @@ export const useChatStore = defineStore('chatStore', () => {
     const sendingMessage = ref(false);
     const error = ref<string | null>(null);
 
-    // --- COMPUTADOS ---
     const filteredConversations = computed(() => {
         return conversations.value.filter(c =>
             c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()
@@ -76,16 +69,14 @@ export const useChatStore = defineStore('chatStore', () => {
         return response.data['hydra:member'] || response.data['member'] || (Array.isArray(response.data) ? response.data : []);
     };
 
-    // --- ACCIONES ---
     const fetchConversations = async () => {
         loadingConversations.value = true;
         error.value = null;
         try {
-            const response = await apiClient.get('/platform/user/util/msg/conversations');
+            const response = await apiClient.get('/platform/user/util/msg/conversations?order[lastMessageAt]=desc');
             conversations.value = extractData(response);
         } catch (err: any) {
             error.value = 'Error al sincronizar chats';
-            console.error('Fetch Error en URL:', getUrls().api, err);
         } finally {
             loadingConversations.value = false;
         }
@@ -120,6 +111,7 @@ export const useChatStore = defineStore('chatStore', () => {
             };
             const response = await apiClient.post('/platform/user/util/msg/messages', payload);
             messages.value.push(response.data);
+            fetchConversations();
         } catch {
             error.value = 'Fallo al enviar mensaje';
         } finally {
