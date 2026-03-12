@@ -19,18 +19,29 @@ final class Beds24WebhookController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly Beds24WebhookBookingFastTrackService $bookingService,
-        private readonly Beds24WebhookMessageFastTrackService $messageService, // ✅ Inyectado
+        private readonly Beds24WebhookMessageFastTrackService $messageService,
     ) {}
 
     #[Route('/endpoint', name: 'main_endpoint', methods: ['POST'])]
     public function __invoke(Request $request): JsonResponse
     {
-        // 1. Auditoría Inicial
+        // 1. Obtener el contenido original
+        $rawContent = (string) $request->getContent();
+
+        // 🔥 FIX DE CODIFICACIÓN PARA EMOJIS DE BEDS24 🔥
+        // Beds24 a veces envía el payload sin el charset estricto UTF-8.
+        // Si detectamos que no es UTF-8 nativo, lo convertimos para salvar los iconos (📍, 🏠, etc.)
+        $currentEncoding = mb_detect_encoding($rawContent, 'UTF-8, ISO-8859-1', true);
+        if ($currentEncoding !== 'UTF-8') {
+            $rawContent = mb_convert_encoding($rawContent, 'UTF-8', $currentEncoding ?: 'ISO-8859-1');
+        }
+
+        // 2. Auditoría Inicial (Guardamos el contenido ya sanitizado a UTF-8)
         $audit = new PmsBeds24WebhookAudit();
         $audit->setReceivedAt(new DateTimeImmutable());
         $audit->setRemoteIp($request->getClientIp());
         $audit->setHeaders($request->headers->all());
-        $audit->setPayloadRaw((string) $request->getContent());
+        $audit->setPayloadRaw($rawContent);
 
         $token = $request->headers->get('X-Beds24-Webhook-Token') ?? $request->query->get('token');
 
@@ -40,7 +51,8 @@ final class Beds24WebhookController extends AbstractController
         }
 
         try {
-            $payload = json_decode((string) $request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            // Decodificamos el contenido ya forzado a UTF-8
+            $payload = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
             $audit->setPayload($payload);
 
             if (is_array($payload)) {
@@ -66,7 +78,7 @@ final class Beds24WebhookController extends AbstractController
                 $processedAny = true;
             }
 
-            // 2. MESSAGES ✅ (Ahora procesa usando el FastTrack de Mensajes)
+            // 2. MESSAGES
             if (isset($payload['messages'])) {
                 $messageResult = $this->handleMessages($payload['messages'], (string)$token);
                 $responseDetails['messages'] = $messageResult['processed'];
@@ -90,10 +102,8 @@ final class Beds24WebhookController extends AbstractController
                 throw new \RuntimeException('Payload sin datos reconocibles (booking, messages, invoiceItems).');
             }
 
-            // Determinamos estado global basado en los acumuladores
             $finalStatus = empty($globalErrors) ? PmsBeds24WebhookAudit::STATUS_PROCESSED : 'partial_error';
 
-            // Si hubo errores y no se procesó nada con éxito, es ERROR total
             if (!empty($globalErrors) && empty($responseDetails['bookings']) && empty($responseDetails['messages'])) {
                 $finalStatus = PmsBeds24WebhookAudit::STATUS_ERROR;
             }
@@ -126,9 +136,8 @@ final class Beds24WebhookController extends AbstractController
         }
     }
 
-    /**
-     * Normaliza y procesa el bloque 'booking'.
-     */
+    // ... el resto del controlador (handleBookings, handleMessages, etc.) se mantiene exactamente igual ...
+
     private function handleBookings(mixed $bookingData, string $token): array
     {
         $bookingsToProcess = [];
@@ -164,14 +173,10 @@ final class Beds24WebhookController extends AbstractController
         return ['processed' => $processedIds, 'errors' => $errors];
     }
 
-    /**
-     * ✅ Normaliza y procesa el bloque 'messages'.
-     */
     private function handleMessages(mixed $messagesData, string $token): array
     {
         $messagesToProcess = [];
 
-        // Soporta { "messages": {...} } o { "messages": [{...}, {...}] }
         if (is_array($messagesData)) {
             if (array_is_list($messagesData)) {
                 $messagesToProcess = $messagesData;
