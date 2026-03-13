@@ -10,7 +10,6 @@ use App\Exchange\Service\Contract\ExchangeClientInterface;
 use App\Exchange\Service\Mapping\MappingResult;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class Beds24ExchangeClient implements ExchangeClientInterface
@@ -27,8 +26,6 @@ final class Beds24ExchangeClient implements ExchangeClientInterface
 
     public function send(MappingResult $mapping): ExchangeNetworkResult
     {
-        // 1. Validación de Tipo (Type Guard)
-        // Convertimos la interfaz genérica a la clase concreta que necesita el Auth Service
         $config = $mapping->config;
 
         if (!$config instanceof Beds24Config) {
@@ -41,7 +38,6 @@ final class Beds24ExchangeClient implements ExchangeClientInterface
         try {
             $options = [
                 'headers' => array_merge(
-                // Ahora pasamos la variable $config validada
                     $this->authService->getAuthHeaders($config),
                     ['Accept' => 'application/json', 'Content-Type' => 'application/json']
                 ),
@@ -50,17 +46,21 @@ final class Beds24ExchangeClient implements ExchangeClientInterface
 
             $response = $this->httpClient->request($mapping->method, $mapping->fullUrl, $options);
 
-            // 2. Captura de Auditoría (Raw Body)
-            // Obtenemos el contenido sin lanzar excepciones todavía (false)
+            // 1. Obtenemos el texto crudo
             $rawContent = $response->getContent(false);
             $statusCode = $response->getStatusCode();
 
+            // 🔥 2. FIX UTF-8: Forzamos la codificación correcta para salvar Emojis (📍, 🏠)
+            $currentEncoding = mb_detect_encoding($rawContent, 'UTF-8, ISO-8859-1', true);
+            if ($currentEncoding !== 'UTF-8') {
+                $rawContent = mb_convert_encoding($rawContent, 'UTF-8', $currentEncoding ?: 'ISO-8859-1');
+            }
+
             // 3. Decodificación Segura
             try {
-                $decoded = $response->toArray(false);
+                $decoded = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
             } catch (\Throwable) {
-                // Si falla el JSON (ej: error 504 Gateway Timeout HTML), devolvemos array vacío
-                // pero conservamos el $rawContent para que el log muestre el error HTML real.
+                // Si falla (ej: error 504 Gateway Timeout HTML), devolvemos array vacío
                 $decoded = [];
             }
 

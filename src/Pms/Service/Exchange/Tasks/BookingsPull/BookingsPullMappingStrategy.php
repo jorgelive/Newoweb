@@ -12,11 +12,6 @@ use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Entity\PmsUnidad;
 use DateTimeImmutable;
 
-/**
- * Estrategia de Mapeo para Descarga de Reservas (PULL).
- * * Convierte un Job de PmsBookingsPullQueue en una petición GET filtrada a Beds24.
- * * Maneja la respuesta masiva para pasarla al Handler.
- */
 final readonly class BookingsPullMappingStrategy implements MappingStrategyInterface
 {
     /**
@@ -36,23 +31,21 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
 
         // 3. Definición de Fechas (Con Fallback de seguridad)
         $arrivalFrom = $job->getArrivalFrom() ?? new DateTimeImmutable('today');
-        $arrivalTo = $job->getArrivalTo(); // Puede ser null (open-ended)
+        $arrivalTo = $job->getArrivalTo();
 
         // 4. Construcción de Parámetros (Query String)
         $payload = [
             'arrivalFrom'      => $arrivalFrom->format('Y-m-d'),
             'includeInvoice'   => true,
             'includeInfoItems' => true,
-            // ✅ ESTADOS OBLIGATORIOS:
-            // Si no enviamos esto, Beds24 oculta 'cancelled' por defecto.
-            // Al listarlos explícitamente, forzamos la descarga del historial completo.
-            'status'           => [
+            // 🔥 FIX: Convertir array a string separado por comas para evitar que Beds24 lo ignore
+            'status'           => implode(',', [
                 'confirmed',
                 'new',
                 'request',
-                'cancelled', // Vital para detectar cancelaciones
-                'black'      // Vital para detectar bloqueos manuales o mantenimientos
-            ],
+                'cancelled',
+                'black'
+            ]),
         ];
 
         if ($arrivalTo) {
@@ -74,7 +67,8 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
 
         // Si hay habitaciones específicas, filtramos. Si no, Beds24 devuelve todo (según permisos del token).
         if (!empty($roomIds)) {
-            $payload['roomId'] = array_values(array_unique($roomIds));
+            // 🔥 FIX: Convertir IDs a string separado por comas
+            $payload['roomId'] = implode(',', array_unique($roomIds));
         }
 
         return new MappingResult(
@@ -102,10 +96,7 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
             if (isset($apiResponse['errors'][0]['message'])) {
                 $msg .= ': ' . $apiResponse['errors'][0]['message'];
             }
-
-            return [
-                $jobId => new ItemResult($jobId, false, $msg)
-            ];
+            return [$jobId => new ItemResult($jobId, false, $msg)];
         }
 
         // 2. Normalización de Datos
@@ -115,9 +106,7 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
 
         if (isset($apiResponse['data']) && is_array($apiResponse['data'])) {
             $bookingsData = $apiResponse['data'];
-        }
-        // Caso borde: Si devuelve un solo objeto no envuelto en array (raro en GET masivo, pero posible)
-        elseif (isset($apiResponse['id']) && !isset($apiResponse[0])) {
+        } elseif (isset($apiResponse['id']) && !isset($apiResponse[0])) {
             $bookingsData = [$apiResponse];
         }
 
@@ -132,7 +121,7 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
                 success: true,
                 message: "Descarga completada: $count reservas recuperadas.",
                 remoteId: null,
-                extraData: $bookingsData // Array crudo de reservas para el Handler
+                extraData: $bookingsData
             )
         ];
     }

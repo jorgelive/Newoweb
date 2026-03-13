@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\Beds24Receive;
@@ -25,7 +24,8 @@ final readonly class Beds24ReceiveTask implements ExchangeTaskInterface
 
     public function getMaxBatchSize(): int
     {
-        return 10; // Extrae lotes pequeños pero paralelizables para no sobrecargar
+        // 🔥 DECISIÓN ARQUITECTÓNICA: Lote de 1 para evitar cortes por paginación en Beds24
+        return 1;
     }
 
     public function getSyncMode(): string

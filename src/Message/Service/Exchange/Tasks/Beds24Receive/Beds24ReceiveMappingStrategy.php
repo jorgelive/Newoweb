@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\Beds24Receive;
@@ -16,16 +15,15 @@ final readonly class Beds24ReceiveMappingStrategy implements MappingStrategyInte
         $config = $batch->getConfig();
         $endpoint = $batch->getEndpoint();
 
-        $fullUrl = rtrim($config->getBaseUrl(), '/') . '/' . ltrim((string)$endpoint->getEndpoint(), '/');
-
-        // Para esta tarea de Pull de mensajes, procesamos de 1 en 1 (1 job = 1 reserva)
+        // Sabemos que el lote es estrictamente 1
         $job = $batch->getItems()[0];
+
+        $fullUrl = rtrim($config->getBaseUrl(), '/') . '/' . ltrim((string)$endpoint->getEndpoint(), '/');
 
         return new MappingResult(
             method: (string)$endpoint->getMetodo(),
             fullUrl: $fullUrl,
-            // Beds24 GET endpoint utiliza Query Parameters para consultar por bookingId
-            payload: ['bookingId' => $job->getTargetBookId()],
+            payload: ['bookingId' => $job->getTargetBookId()], // Symfony lo enviará limpio
             config: $config,
             correlationMap: ['job' => (string)$job->getId()]
         );
@@ -50,7 +48,7 @@ final readonly class Beds24ReceiveMappingStrategy implements MappingStrategyInte
                 success: true,
                 message: null,
                 remoteId: null,
-                extraData: $messagesData // Pasamos el array completo al Handler para que genere los DTOs
+                extraData: $messagesData
             )
         ];
     }
