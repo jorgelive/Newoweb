@@ -16,6 +16,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use InvalidArgumentException;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
@@ -69,6 +70,7 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     private ?string $externalMessageId = null;
 
     #[ORM\Column(length: 20, options: ['default' => self::DELIVERY_UNKNOWN])]
+    #[Groups(['message:read'])]
     private string $deliveryStatus = self::DELIVERY_UNKNOWN;
 
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
@@ -85,6 +87,7 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     // =========================================================================
 
     #[ORM\Column(length: 20, options: ['default' => self::STATUS_PENDING])]
+    #[Groups(['message:read'])]
     private string $status = self::STATUS_PENDING;
 
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]

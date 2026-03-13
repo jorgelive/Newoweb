@@ -18,7 +18,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use InvalidArgumentException;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
@@ -78,22 +78,27 @@ class Message
 
     #[ORM\ManyToOne(targetEntity: MessageChannel::class)]
     #[ORM\JoinColumn(name: 'channel_id', referencedColumnName: 'id', nullable: true)]
+    #[Groups(['message:read'])]
     private ?MessageChannel $channel = null;
 
     #[ORM\ManyToOne(targetEntity: MessageTemplate::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['message:read'])]
     private ?MessageTemplate $template = null;
 
     /** @var Collection<int, WhatsappGupshupSendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
+    #[Groups(['message:read'])]
     private Collection $whatsappGupshupSendQueues;
 
     /** @var Collection<int, Beds24SendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: Beds24SendQueue::class, cascade: ['persist', 'remove'])]
+    #[Groups(['message:read'])]
     private Collection $beds24SendQueues;
 
     /** @var Collection<int, MessageAttachment> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: MessageAttachment::class, cascade: ['persist', 'remove'])]
+    #[Groups(['message:read'])]
     private Collection $attachments;
 
     // =========================================================================
@@ -125,9 +130,10 @@ class Message
     private array $templateContext = [];
 
     #[ORM\Column(type: 'json')]
+    #[Groups(['message:read'])]
     private array $metadata = [
         'beds24'  => [],
-        'gupshup' => []
+        'whatsappGupshup' => []
     ];
 
     #[ORM\Column(length: 20, options: ['default' => self::DIRECTION_OUTGOING])]
@@ -146,6 +152,7 @@ class Message
     private ?array $externalIds = [];
 
     /** Propiedad transitoria (Memoria) para selección manual de canales */
+    #[Groups(['message:write'])]
     private array $transientChannels = [];
 
     public function __construct()
@@ -248,7 +255,7 @@ class Message
 
     public function getMetadata(): array
     {
-        return array_merge(['beds24' => [], 'gupshup' => []], $this->metadata);
+        return array_merge(['beds24' => [], 'whatsappGupshup' => []], $this->metadata);
     }
 
     public function setMetadata(array $metadata): self
@@ -285,7 +292,6 @@ class Message
         return $this;
     }
 
-    // 🔥 MÉTODO ACTUALIZADO A "ReceivedAt" en lugar de "ReadAt"
     public function getBeds24ReceivedAt(): ?string
     {
         return $this->metadata['beds24']['received_at'] ?? null;
@@ -296,31 +302,41 @@ class Message
         return $this->addBeds24Metadata('received_at', $dateTimeIso8601);
     }
 
+    public function getBeds24ReadAt(): ?string
+    {
+        return $this->metadata['beds24']['read_at'] ?? null;
+    }
+
+    public function setBeds24ReadAt(string $dateTimeIso8601): self
+    {
+        return $this->addBeds24Metadata('read_at', $dateTimeIso8601);
+    }
+
     // --- ESTANDARIZACIÓN GUPSHUP METADATA ---
 
     public function getGupshupMetadata(): array
     {
-        return $this->metadata['gupshup'] ?? [];
+        return $this->metadata['whatsappGupshup'] ?? [];
     }
 
     public function setGupshupMetadata(array $data): self
     {
-        $this->metadata['gupshup'] = $data;
+        $this->metadata['whatsappGupshup'] = $data;
         return $this;
     }
 
     public function addGupshupMetadata(string $key, mixed $value): self
     {
-        if (!isset($this->metadata['gupshup']) || !is_array($this->metadata['gupshup'])) {
-            $this->metadata['gupshup'] = [];
+        if (!isset($this->metadata['whatsappGupshup']) || !is_array($this->metadata['whatsappGupshup'])) {
+            $this->metadata['whatsappGupshup'] = [];
         }
-        $this->metadata['gupshup'][$key] = $value;
+        $this->metadata['whatsappGupshup'][$key] = $value;
         return $this;
     }
 
     public function getGupshupSentAt(): ?string
     {
-        return $this->metadata['gupshup']['sent_at'] ?? null;
+        return $this->metadata['whatsappGupshup']['sent_at'] ?? null;
     }
 
     public function setGupshupSentAt(string $dateTimeIso8601): self
@@ -330,7 +346,7 @@ class Message
 
     public function getGupshupDeliveredAt(): ?string
     {
-        return $this->metadata['gupshup']['delivered_at'] ?? null;
+        return $this->metadata['whatsappGupshup']['delivered_at'] ?? null;
     }
 
     public function setGupshupDeliveredAt(string $dateTimeIso8601): self
@@ -340,7 +356,7 @@ class Message
 
     public function getGupshupReadAt(): ?string
     {
-        return $this->metadata['gupshup']['read_at'] ?? null;
+        return $this->metadata['whatsappGupshup']['read_at'] ?? null;
     }
 
     public function setGupshupReadAt(string $dateTimeIso8601): self
@@ -350,7 +366,7 @@ class Message
 
     public function getGupshupErrorCode(): ?string
     {
-        return $this->metadata['gupshup']['error_code'] ?? null;
+        return $this->metadata['whatsappGupshup']['error_code'] ?? null;
     }
 
     public function setGupshupErrorCode(string $code): self
@@ -360,7 +376,7 @@ class Message
 
     public function getGupshupErrorReason(): ?string
     {
-        return $this->metadata['gupshup']['error_reason'] ?? null;
+        return $this->metadata['whatsappGupshup']['error_reason'] ?? null;
     }
 
     public function setGupshupErrorReason(string $reason): self
@@ -430,10 +446,6 @@ class Message
 
     public function getWhatsappGupshupSendQueues(): Collection { return $this->whatsappGupshupSendQueues; }
 
-    /**
-     * @param WhatsappGupshupSendQueue $queue
-     * @return self
-     */
     public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self {
         if (!$this->whatsappGupshupSendQueues->contains($queue)) {
             $this->whatsappGupshupSendQueues->add($queue);
@@ -444,10 +456,6 @@ class Message
         return $this;
     }
 
-    /**
-     * @param WhatsappGupshupSendQueue $queue
-     * @return self
-     */
     public function removeWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self {
         if ($this->whatsappGupshupSendQueues->removeElement($queue)) {
             if ($queue->getMessage() === $this) {
@@ -459,10 +467,6 @@ class Message
 
     public function getBeds24SendQueues(): Collection { return $this->beds24SendQueues; }
 
-    /**
-     * @param Beds24SendQueue $queue
-     * @return self
-     */
     public function addBeds24SendQueue(Beds24SendQueue $queue): self {
         if (!$this->beds24SendQueues->contains($queue)) {
             $this->beds24SendQueues->add($queue);
@@ -473,10 +477,6 @@ class Message
         return $this;
     }
 
-    /**
-     * @param Beds24SendQueue $queue
-     * @return self
-     */
     public function removeBeds24SendQueue(Beds24SendQueue $queue): self {
         if ($this->beds24SendQueues->removeElement($queue)) {
             if ($queue->getMessage() === $this) {
@@ -488,10 +488,6 @@ class Message
 
     public function getAttachments(): Collection { return $this->attachments; }
 
-    /**
-     * @param MessageAttachment $attachment
-     * @return self
-     */
     public function addAttachment(MessageAttachment $attachment): self {
         if (!$this->attachments->contains($attachment)) {
             $this->attachments->add($attachment);
@@ -502,10 +498,6 @@ class Message
         return $this;
     }
 
-    /**
-     * @param MessageAttachment $attachment
-     * @return self
-     */
     public function removeAttachment(MessageAttachment $attachment): self {
         if ($this->attachments->removeElement($attachment)) {
             if ($attachment->getMessage() === $this) {

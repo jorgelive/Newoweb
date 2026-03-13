@@ -2,13 +2,29 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
 
-// ============================================================================
-// INTERFACES
-// ============================================================================
+export interface ApiMessageQueue {
+    status: string;
+    deliveryStatus?: string;
+}
+
+export interface ApiAttachment {
+    '@id': string; id: string; originalName: string; mimeType: string; fileUrl?: string;
+}
 
 export interface ApiMessage {
     '@id': string; id: string; direction: string; status: string;
     senderType: string; contentLocal: string | null; contentExternal: string | null; createdAt: string;
+    metadata: { beds24: any; whatsappGupshup: any; };
+    channel?: { id: string; name: string };
+    whatsappGupshupSendQueues?: ApiMessageQueue[];
+    beds24SendQueues?: ApiMessageQueue[];
+    template?: any; // Puede ser un IRI o el objeto
+    attachments?: ApiAttachment[] | string[]; // Array de objetos o IRIs
+}
+
+export interface ApiTemplate {
+    '@id': string; id: string; code: string; name: string;
+    contextType: string | null; allowedSources: string[]; allowedAgencies: string[];
 }
 
 export interface ApiConversation {
@@ -44,6 +60,7 @@ export const useChatStore = defineStore('chatStore', () => {
     const conversations = ref<ApiConversation[]>([]);
     const currentConversation = ref<ApiConversation | null>(null);
     const messages = ref<ApiMessage[]>([]);
+    const templates = ref<ApiTemplate[]>([]);
     const filterStatus = ref<string>('open');
 
     const loadingConversations = ref(false);
@@ -52,21 +69,34 @@ export const useChatStore = defineStore('chatStore', () => {
     const error = ref<string | null>(null);
 
     const filteredConversations = computed(() => {
-        return conversations.value.filter(c =>
-            c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()
-        );
+        return conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase());
+    });
+
+    const validTemplates = computed(() => {
+        if (!currentConversation.value) return [];
+        const chat = currentConversation.value;
+        const origin = chat.contextOrigin || 'manual';
+        return templates.value.filter(t => {
+            if (t.contextType && t.contextType !== chat.contextType) return false;
+            if (t.allowedSources?.length && !t.allowedSources.includes(origin)) return false;
+            return true;
+        });
     });
 
     const getExternalContextUrl = computed(() => {
         if (!currentConversation.value) return null;
-        const urls = getUrls();
         const chat = currentConversation.value;
         const routes: Record<string, string> = { 'pms_reserva': `/pms-reserva/${chat.contextId}` };
-        return routes[chat.contextType] ? `${urls.panel}${routes[chat.contextType]}` : null;
+        return routes[chat.contextType] ? `${getUrls().panel}${routes[chat.contextType]}` : null;
     });
 
-    const extractData = (response: any) => {
-        return response.data['hydra:member'] || response.data['member'] || (Array.isArray(response.data) ? response.data : []);
+    const extractData = (response: any) => response.data['hydra:member'] || response.data['member'] || (Array.isArray(response.data) ? response.data : []);
+
+    const fetchTemplates = async () => {
+        try {
+            const response = await apiClient.get('/platform/user/util/msg/templates');
+            templates.value = extractData(response);
+        } catch (err) { console.error('Error plantillas', err); }
     };
 
     const fetchConversations = async () => {
@@ -75,11 +105,8 @@ export const useChatStore = defineStore('chatStore', () => {
         try {
             const response = await apiClient.get('/platform/user/util/msg/conversations?order[lastMessageAt]=desc');
             conversations.value = extractData(response);
-        } catch (err: any) {
-            error.value = 'Error al sincronizar chats';
-        } finally {
-            loadingConversations.value = false;
-        }
+        } catch (err) { error.value = 'Error al sincronizar chats'; }
+        finally { loadingConversations.value = false; }
     };
 
     const selectConversation = async (id: string) => {
@@ -91,24 +118,29 @@ export const useChatStore = defineStore('chatStore', () => {
             const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}/messages`);
             messages.value = extractData(response);
             found.unreadCount = 0;
-        } catch (err) {
-            error.value = 'Error al cargar mensajes';
-        } finally {
-            loadingMessages.value = false;
-        }
+        } catch (err) { error.value = 'Error al cargar mensajes'; }
+        finally { loadingMessages.value = false; }
     };
 
-    const sendMessage = async (text: string) => {
+    // 🔥 Acepta los canales seleccionados (Hook multicanal)
+    const sendMessage = async (text: string, templateIri: string | null = null, channels: string[] = []) => {
         if (!currentConversation.value) return;
         sendingMessage.value = true;
         try {
-            const payload = {
+            const payload: any = {
                 conversation: currentConversation.value['@id'],
-                contentLocal: text.trim(),
                 direction: 'outgoing',
                 senderType: 'host',
-                status: 'pending'
+                status: 'pending',
+                transientChannels: channels // Inyectamos las colas deseadas
             };
+
+            if (templateIri) {
+                payload.template = templateIri;
+            } else {
+                payload.contentLocal = text.trim();
+            }
+
             const response = await apiClient.post('/platform/user/util/msg/messages', payload);
             messages.value.push(response.data);
             fetchConversations();
@@ -120,8 +152,8 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     return {
-        conversations, filteredConversations, currentConversation, messages,
+        conversations, filteredConversations, currentConversation, messages, templates, validTemplates,
         filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
-        getExternalContextUrl, fetchConversations, selectConversation, sendMessage
+        getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, sendMessage
     };
 });

@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Message\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
 use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -16,6 +19,12 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 #[ORM\Table(name: 'msg_template')]
 #[ORM\HasLifecycleCallbacks]
+#[ApiResource(
+    operations: [
+        new GetCollection(uriTemplate: '/user/util/msg/templates')
+    ],
+    normalizationContext: ['groups' => ['template:read']]
+)]
 class MessageTemplate
 {
     use IdTrait;
@@ -32,10 +41,12 @@ class MessageTemplate
 
     #[ORM\Column(length: 50, unique: true)]
     #[Assert\NotBlank]
+    #[Groups(['template:read'])]
     private ?string $code = null;
 
     #[ORM\Column(length: 150)]
     #[Assert\NotBlank]
+    #[Groups(['template:read'])]
     private ?string $name = null;
 
     #[ORM\Column(type: 'json')]
@@ -45,12 +56,15 @@ class MessageTemplate
     // 🔥 ALCANCE Y SEGREGACIÓN (SCOPE)
     // =========================================================================
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    #[Groups(['template:read'])]
     private ?string $contextType = null;
 
     #[ORM\Column(type: 'json', nullable: true)]
+    #[Groups(['template:read'])]
     private ?array $allowedSources = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
+    #[Groups(['template:read'])]
     private ?array $allowedAgencies = [];
 
     // =========================================================================
@@ -93,6 +107,7 @@ class MessageTemplate
         return $this->name ?? $this->code ?? 'New Template';
     }
 
+    #[Groups(['template:read'])]
     public function getId(): UuidV7
     {
         return $this->id;

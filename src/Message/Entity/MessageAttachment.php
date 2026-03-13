@@ -9,6 +9,7 @@ use App\Entity\Trait\TimestampTrait;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
@@ -50,9 +51,11 @@ class MessageAttachment
     private ?string $fileName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['message:read'])]
     private ?string $originalName = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['message:read'])]
     private ?string $mimeType = null;
 
     #[ORM\Column(type: 'integer', nullable: true)]
@@ -61,6 +64,7 @@ class MessageAttachment
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTimeImmutable $fileUpdatedAt = null;
 
+    #[Groups(['message:read'])]
     private ?string $fileUrl = null;
 
     public function __construct()

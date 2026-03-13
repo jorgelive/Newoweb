@@ -104,13 +104,15 @@ class Beds24ReceivePersister
             } else {
                 $message->setDirection(Message::DIRECTION_INCOMING);
 
+                // 🔥 Se registra el momento de recepción en UTC para TODOS los mensajes entrantes
+                $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
+                $message->setBeds24ReceivedAt($nowUtc);
+
                 if ($dto->read === true) {
                     $message->setStatus(Message::STATUS_READ);
                     $message->addBeds24Metadata('read', true);
-
-                    // Auditoría: Como ya viene leído, registramos el momento en UTC
-                    $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
-                    $message->setBeds24ReceivedAt($nowUtc);
+                    // Como ya viene leído desde el inicio, registramos también la lectura
+                    $message->setBeds24ReadAt($nowUtc);
                 } else {
                     $message->setStatus(Message::STATUS_RECEIVED);
                     $message->addBeds24Metadata('read', false);

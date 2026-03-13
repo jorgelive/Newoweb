@@ -13,7 +13,7 @@ use ApiPlatform\Doctrine\Orm\Filter\RangeFilter; // <--- Necesario para el filtr
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Egulias\EmailValidator\Parser\IDLeftPart;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'maestro_idioma')]

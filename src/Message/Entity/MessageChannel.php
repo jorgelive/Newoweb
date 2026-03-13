@@ -7,6 +7,7 @@ namespace App\Message\Entity;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
@@ -22,11 +23,13 @@ class MessageChannel
     #[ORM\Column(type: 'string', length: 50)]
     #[Assert\NotBlank]
     #[Assert\Regex(pattern: '/^[a-z0-9_]+$/', message: 'El ID solo puede contener letras minúsculas, números y guiones bajos.')]
+    #[Groups(['message:read'])]
     private ?string $id = null;
 
     // Nombre editable en EasyAdmin (con lógica de limpieza en el Setter)
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
+    #[Groups(['message:read'])]
     private ?string $name = null;
 
     // Configuración dinámica: ¿Qué campo de la plantilla lee este canal?

@@ -15,7 +15,7 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'pax_ui_i18n')]

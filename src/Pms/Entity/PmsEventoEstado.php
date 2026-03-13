@@ -6,7 +6,7 @@ namespace App\Pms\Entity;
 
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 /**
  * Entidad PmsEventoEstado.
