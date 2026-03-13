@@ -7,8 +7,11 @@ const messagesContainer = ref<HTMLElement | null>(null);
 const newMessageText = ref('');
 const isMobileSidebarOpen = ref(true);
 
+// Estados del Composer
 const selectedTemplateId = ref<string | null>(null);
 const showTemplateDropdown = ref(false);
+
+// Hook Multicanal (Por defecto marcamos WhatsApp)
 const selectedChannels = ref<string[]>(['whatsapp_gupshup']);
 
 onMounted(() => {
@@ -16,13 +19,23 @@ onMounted(() => {
   store.fetchTemplates();
 });
 
-const scrollToBottom = () => { if (messagesContainer.value) messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight; };
-watch(() => store.messages, async () => { await nextTick(); scrollToBottom(); }, { deep: true });
-watch(() => store.error, (v) => { if (v) setTimeout(() => store.error = null, 5000); });
+const scrollToBottom = () => {
+  if (messagesContainer.value) messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+};
+
+watch(() => store.messages, async () => {
+  await nextTick();
+  scrollToBottom();
+}, { deep: true });
+
+watch(() => store.error, (v) => {
+  if (v) setTimeout(() => store.error = null, 5000);
+});
 
 watch(() => store.currentConversation, (chat) => {
   selectedTemplateId.value = null;
   showTemplateDropdown.value = false;
+  // Auto-seleccionar canales según el origen
   if (chat?.contextOrigin && !['manual', 'web', 'directo'].includes(chat.contextOrigin.toLowerCase())) {
     selectedChannels.value = ['beds24', 'whatsapp_gupshup'];
   } else {
@@ -57,24 +70,26 @@ const send = async () => {
 };
 
 // ============================================================================
-// HELPERS VISUALES ULTRA-DEFENSIVOS (Evita Blank Screens)
+// HELPERS VISUALES (TypeScript Estricto)
 // ============================================================================
 
 const getChannelIcons = (msg: ApiMessage) => {
   const icons = [];
 
-  // 1. Validar Colas (Asegurarse de que existan y tengan longitud)
-  if (msg?.whatsappGupshupSendQueues?.length > 0) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
-  if (msg?.beds24SendQueues?.length > 0) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
-
-  // 2. Validar Metadata
-  if (icons.length === 0) {
-    if (msg?.metadata?.whatsappGupshup?.received_at || msg?.metadata?.whatsappGupshup?.external_id) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
-    if (msg?.metadata?.beds24?.received_at) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
+  if (msg.whatsappGupshupSendQueues && msg.whatsappGupshupSendQueues.length > 0) {
+    icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
+  }
+  if (msg.beds24SendQueues && msg.beds24SendQueues.length > 0) {
+    icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
   }
 
-  // 3. Fallback de Canal (Soporta si el backend manda Objeto o un IRI String)
-  if (icons.length === 0 && msg?.channel) {
+  if (icons.length === 0) {
+    const waMeta = msg.metadata?.whatsappGupshup || msg.metadata?.gupshup;
+    if (waMeta?.received_at || waMeta?.external_id) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
+    if (msg.metadata?.beds24?.received_at) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
+  }
+
+  if (icons.length === 0 && msg.channel) {
     const channelId = typeof msg.channel === 'string' ? msg.channel : msg.channel.id;
     if (channelId?.includes('whatsapp')) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
     if (channelId?.includes('beds24')) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
@@ -89,35 +104,34 @@ const getTemplateName = (templateData: any) => {
     const found = store.templates.find(t => t['@id'] === templateData);
     return found ? found.name : 'Plantilla';
   }
-  return templateData?.name || 'Plantilla';
+  return templateData.name || 'Plantilla';
 };
 
 const getMessageTicks = (msg: ApiMessage) => {
-  if (msg?.status === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500' };
+  if (msg.status === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500', title: 'Error general' };
 
-  if (msg?.whatsappGupshupSendQueues?.length > 0) {
-    // Tomar la última cola si es un array de IRIs o un array de objetos
+  if (msg.whatsappGupshupSendQueues && msg.whatsappGupshupSendQueues.length > 0) {
     const q = msg.whatsappGupshupSendQueues[msg.whatsappGupshupSendQueues.length - 1];
-    const delivery = typeof q === 'string' ? null : q?.deliveryStatus;
-    const qStatus = typeof q === 'string' ? null : q?.status;
+    const delivery = typeof q === 'string' ? null : q.deliveryStatus;
+    const qStatus = typeof q === 'string' ? null : q.status;
 
-    if (delivery === 'read') return { class: 'fas fa-check-double', color: 'text-blue-500' };
-    if (delivery === 'delivered') return { class: 'fas fa-check-double', color: 'text-slate-400' };
-    if (delivery === 'submitted') return { class: 'fas fa-check', color: 'text-slate-400' };
-    if (qStatus === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500' };
+    if (delivery === 'read') return { class: 'fas fa-check-double', color: 'text-blue-500', title: 'Leído en WhatsApp' };
+    if (delivery === 'delivered') return { class: 'fas fa-check-double', color: 'text-slate-400', title: 'Entregado al teléfono' };
+    if (delivery === 'submitted') return { class: 'fas fa-check', color: 'text-slate-400', title: 'Enviado a Meta' };
+    if (qStatus === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500', title: 'Error en WhatsApp' };
   }
 
-  if (msg?.beds24SendQueues?.length > 0) {
+  if (msg.beds24SendQueues && msg.beds24SendQueues.length > 0) {
     const q = msg.beds24SendQueues[msg.beds24SendQueues.length - 1];
-    const qStatus = typeof q === 'string' ? null : q?.status;
+    const qStatus = typeof q === 'string' ? null : q.status;
 
-    if (qStatus === 'success') return { class: 'fas fa-check-double', color: 'text-slate-400' };
-    if (qStatus === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500' };
+    if (qStatus === 'success') return { class: 'fas fa-check-double', color: 'text-slate-400', title: 'Enviado a Beds24' };
+    if (qStatus === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500', title: 'Error en Beds24' };
   }
 
-  if (msg?.status === 'read') return { class: 'fas fa-check-double', color: 'text-blue-500' };
-  if (msg?.status === 'sent') return { class: 'fas fa-check', color: 'text-slate-400' };
-  if (msg?.status === 'queued') return { class: 'far fa-clock', color: 'text-slate-300' };
+  if (msg.status === 'read') return { class: 'fas fa-check-double', color: 'text-blue-500' };
+  if (msg.status === 'sent') return { class: 'fas fa-check', color: 'text-slate-400' };
+  if (msg.status === 'queued') return { class: 'far fa-clock', color: 'text-slate-300' };
 
   return { class: 'far fa-clock', color: 'text-slate-200' };
 };
@@ -129,7 +143,7 @@ const formatFullDate = (iso?: string) => iso ? new Date(iso).toLocaleDateString(
 const groupedMessages = computed(() => {
   const groups: Record<string, any[]> = {};
   store.messages.forEach(msg => {
-    if(!msg?.createdAt) return;
+    if(!msg.createdAt) return;
     const d = new Date(msg.createdAt).toISOString().split('T')[0];
     if (!groups[d]) groups[d] = [];
     groups[d].push(msg);
@@ -150,7 +164,7 @@ const getOriginClass = (origin?: string | null) => {
 </script>
 
 <template>
-  <div class="flex h-screen bg-[#F8FAFC] font-sans overflow-hidden relative text-slate-900 antialiased">
+  <div class="flex h-[100dvh] w-full bg-[#F8FAFC] font-sans overflow-hidden relative text-slate-900 antialiased">
 
     <Transition name="fade-slide">
       <div v-if="store.error" class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-xl border border-white/10">
@@ -183,22 +197,26 @@ const getOriginClass = (origin?: string | null) => {
 
         <div v-for="chat in store.filteredConversations" :key="chat?.id" class="mb-1">
           <button @click="selectChat(chat.id)" class="w-full text-left p-4 rounded-2xl transition-all flex gap-4 relative group border border-transparent" :class="store.currentConversation?.id === chat.id ? 'bg-white border-slate-200 shadow-xl translate-x-1' : 'hover:bg-slate-50'">
-            <div v-if="store.currentConversation?.id === chat.id" class="absolute left-0 top-4 bottom-4 w-1.5 bg-[#376875] rounded-r-full"></div>
-            <div class="w-12 h-12 rounded-xl text-white flex items-center justify-center shrink-0 font-black text-lg shadow-sm" :class="getOriginClass(chat.contextOrigin)">
+            <span v-if="store.currentConversation?.id === chat.id" class="absolute left-0 top-4 bottom-4 w-1.5 bg-[#376875] rounded-r-full block"></span>
+
+            <span class="w-12 h-12 rounded-xl text-white flex items-center justify-center shrink-0 font-black text-lg shadow-sm" :class="getOriginClass(chat.contextOrigin)">
               {{ chat.guestName?.charAt(0).toUpperCase() || '?' }}
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex justify-between items-baseline mb-0.5">
-                <h3 class="font-bold truncate text-sm" :class="store.currentConversation?.id === chat.id ? 'text-[#376875]' : 'text-slate-800'">{{ chat.guestName || 'Huésped' }}</h3>
-                <span class="text-[9px] font-black uppercase text-slate-400 ml-2">{{ formatDate(chat.lastMessageAt || chat.createdAt) }}</span>
-              </div>
-              <p class="text-[10px] font-black truncate text-[#E07845] mb-1 uppercase tracking-tight">{{ chat.contextItems && chat.contextItems.length ? chat.contextItems.join(', ') : 'Reserva PMS' }}</p>
-              <div class="flex items-center gap-2">
-                <span class="text-[8px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-black uppercase tracking-widest">{{ chat.contextOrigin || 'directo' }}</span>
-                <span v-if="chat?.contextMilestones?.start" class="text-[9px] font-bold text-slate-300 italic">{{ formatDate(chat.contextMilestones.start) }} - {{ formatDate(chat.contextMilestones.end) }}</span>
-              </div>
-            </div>
-            <div v-if="chat.unreadCount > 0" class="absolute -right-1 -top-1 w-5 h-5 bg-[#E07845] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-md">{{ chat.unreadCount }}</div>
+            </span>
+
+            <span class="flex-1 min-w-0 block">
+              <span class="flex justify-between items-baseline mb-0.5">
+                <span class="font-bold truncate text-sm block" :class="store.currentConversation?.id === chat.id ? 'text-[#376875]' : 'text-slate-800'">{{ chat.guestName || 'Huésped' }}</span>
+                <span class="text-[9px] font-black uppercase text-slate-400 ml-2 block">{{ formatDate(chat.lastMessageAt || chat.createdAt) }}</span>
+              </span>
+              <span class="text-[10px] font-black truncate text-[#E07845] mb-1 uppercase tracking-tight block">{{ chat.contextItems?.length ? chat.contextItems.join(', ') : 'Reserva PMS' }}</span>
+
+              <span class="flex items-center gap-2">
+                <span class="text-[8px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-black uppercase tracking-widest block">{{ chat.contextOrigin || 'directo' }}</span>
+                <span v-if="chat?.contextMilestones?.start" class="text-[9px] font-bold text-slate-300 italic block">{{ formatDate(chat.contextMilestones.start) }} - {{ formatDate(chat.contextMilestones.end) }}</span>
+              </span>
+            </span>
+
+            <span v-if="chat.unreadCount > 0" class="absolute -right-1 -top-1 w-5 h-5 bg-[#E07845] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-md">{{ chat.unreadCount }}</span>
           </button>
         </div>
       </div>
@@ -211,7 +229,7 @@ const getOriginClass = (origin?: string | null) => {
       </div>
 
       <template v-else>
-        <header class="h-20 md:h-24 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30">
+        <header class="h-16 md:h-24 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30">
           <div class="flex items-center gap-4 overflow-hidden">
             <button @click="isMobileSidebarOpen = true" class="md:hidden w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 shadow-sm transition-colors hover:bg-slate-200"><i class="fas fa-chevron-left"></i></button>
             <div class="truncate">
@@ -224,8 +242,7 @@ const getOriginClass = (origin?: string | null) => {
             </div>
           </div>
           <div class="flex items-center gap-3">
-            <a v-if="store.getExternalContextUrl" :href="store.getExternalContextUrl" target="_blank" class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl shadow-xl hover:-translate-y-0.5 transition-all text-[10px] font-black uppercase tracking-wider"><i class="fas fa-external-link-alt"></i><span class="hidden md:inline">Ver Reserva</span></a>
-            <span class="px-3 py-1.5 text-[10px] font-black uppercase rounded-lg border-2" :class="store.currentConversation?.contextStatusTag === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-green-50 text-green-600 border-green-100'">{{ store.currentConversation?.contextStatusTag || 'Activo' }}</span>
+            <a v-if="store.getExternalContextUrl" :href="store.getExternalContextUrl" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-xl shadow-xl hover:-translate-y-0.5 transition-all text-[10px] font-black uppercase tracking-wider"><i class="fas fa-external-link-alt"></i><span class="hidden md:inline">Ver</span></a>
           </div>
         </header>
 
@@ -242,17 +259,17 @@ const getOriginClass = (origin?: string | null) => {
               <div class="space-y-6 flex flex-col mb-8">
                 <div v-for="msg in group" :key="msg.id" class="flex w-full" :class="msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'">
 
-                  <div class="relative max-w-[85%] md:max-w-[70%] flex flex-col" :class="msg.direction === 'outgoing' ? 'items-end pr-10' : 'items-start pl-10'">
+                  <div class="relative max-w-[85%] md:max-w-[70%] flex flex-col" :class="msg.direction === 'outgoing' ? 'items-end pl-10' : 'items-start pr-10'">
 
-                    <div class="absolute top-1 flex flex-col gap-1.5" :class="msg.direction === 'outgoing' ? 'right-0' : 'left-0'">
-                      <div v-for="icon in getChannelIcons(msg)" :key="icon.class" class="w-7 h-7 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-100 transition-transform hover:scale-110 cursor-help">
-                        <i :class="[icon.class, icon.color]" class="text-xs"></i>
+                    <div class="absolute top-1 flex flex-col gap-1.5" :class="msg.direction === 'outgoing' ? 'left-0' : 'right-0'">
+                      <div v-for="icon in getChannelIcons(msg)" :key="icon.class" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-100 transition-transform hover:scale-110 cursor-help">
+                        <i :class="[icon.class, icon.color]" class="text-sm"></i>
                       </div>
                     </div>
 
                     <div
                         :class="msg.direction === 'outgoing' ? 'bg-[#376875] text-white rounded-3xl rounded-tr-none shadow-lg' : 'bg-white border border-slate-200 text-slate-800 rounded-3xl rounded-tl-none shadow-sm'"
-                        class="p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative w-full"
+                        class="p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative w-full break-words"
                     >
                       <div v-if="msg.template" class="flex items-center gap-2 mb-2 pb-2 border-b" :class="msg.direction === 'outgoing' ? 'border-white/20' : 'border-slate-100'">
                         <i class="fas fa-robot text-xs opacity-70"></i>
@@ -260,24 +277,24 @@ const getOriginClass = (origin?: string | null) => {
                       </div>
 
                       <div v-if="msg.attachments?.length" class="mb-3 space-y-2">
-                        <div v-for="att in msg.attachments" :key="att.id || att" class="flex items-center gap-3 p-3 rounded-xl bg-black/10">
+                        <div v-for="att in msg.attachments" :key="(typeof att === 'string') ? att : att.id" class="flex items-center gap-3 p-3 rounded-xl bg-black/10">
                           <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
                             <i class="fas fa-file-alt text-lg"></i>
                           </div>
                           <div class="min-w-0">
-                            <p class="text-xs font-bold truncate">{{ att?.originalName || 'Archivo Adjunto' }}</p>
-                            <p class="text-[9px] font-mono opacity-70">{{ att?.mimeType || 'Documento' }}</p>
+                            <p class="text-xs font-bold truncate">{{ (typeof att === 'string') ? 'Archivo Adjunto' : att.originalName || 'Archivo Adjunto' }}</p>
+                            <p class="text-[9px] font-mono opacity-70">{{ (typeof att === 'string') ? 'Documento' : att.mimeType || 'Documento' }}</p>
                           </div>
                         </div>
                       </div>
 
-                      <span>{{ msg.contentLocal || msg.contentExternal || 'Mensaje de sistema' }}</span>
+                      <span>{{ msg.contentLocal || msg.contentExternal || 'Mensaje enviado' }}</span>
                     </div>
 
                     <div class="flex items-center gap-2 mt-1.5 px-2 text-[10px] font-black text-slate-400 uppercase tracking-tighter" :class="msg.direction === 'outgoing' ? 'flex-row-reverse' : 'flex-row'">
                       <span>{{ formatTime(msg.createdAt) }}</span>
                       <template v-if="msg.direction === 'outgoing'">
-                        <i :class="[getMessageTicks(msg).class, getMessageTicks(msg).color]" class="text-[11px]"></i>
+                        <i :class="[getMessageTicks(msg).class, getMessageTicks(msg).color]" :title="getMessageTicks(msg).title" class="text-[11px]"></i>
                       </template>
                     </div>
 
@@ -289,30 +306,33 @@ const getOriginClass = (origin?: string | null) => {
           </div>
         </div>
 
-        <footer class="bg-white border-t border-slate-100 p-4 md:p-6 shrink-0 relative flex flex-col gap-3">
+        <footer class="bg-white border-t border-slate-100 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6 shrink-0 relative flex flex-col gap-3">
 
-          <div class="flex items-center gap-3 px-2 max-w-4xl mx-auto w-full">
-            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest"><i class="fas fa-satellite-dish mr-1"></i> Salida:</span>
-            <button @click="toggleChannel('beds24')" :class="selectedChannels.includes('beds24') ? 'text-[#003580] bg-[#003580]/10 border-[#003580]/30' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2">
+          <div class="flex items-center gap-2 px-1 max-w-4xl mx-auto w-full overflow-x-auto scrollbar-hide">
+            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"><i class="fas fa-satellite-dish mr-1"></i> Salida:</span>
+            <button @click="toggleChannel('beds24')" :class="selectedChannels.includes('beds24') ? 'text-[#003580] bg-[#003580]/10 border-[#003580]/30' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
               <i class="fas fa-bed"></i> Beds24
             </button>
-            <button @click="toggleChannel('whatsapp_gupshup')" :class="selectedChannels.includes('whatsapp_gupshup') ? 'text-green-600 bg-green-50 border-green-200' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2">
+            <button @click="toggleChannel('whatsapp_gupshup')" :class="selectedChannels.includes('whatsapp_gupshup') ? 'text-green-600 bg-green-50 border-green-200' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
               <i class="fab fa-whatsapp text-sm"></i> WhatsApp
             </button>
           </div>
 
           <Transition name="fade-slide">
-            <div v-if="showTemplateDropdown" class="absolute bottom-[80px] left-4 md:left-8 z-50 bg-white border border-slate-200 shadow-2xl rounded-2xl p-2 w-72 md:w-96 max-h-64 overflow-y-auto">
-              <div class="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 mb-2">Plantillas Permitidas</div>
+            <div v-if="showTemplateDropdown" class="absolute bottom-[80px] left-2 right-2 md:left-auto md:right-auto z-50 bg-white border border-slate-200 shadow-2xl rounded-2xl p-2 md:w-96 max-h-64 overflow-y-auto">
+              <div class="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 mb-2 flex justify-between items-center">
+                <span>Plantillas Permitidas</span>
+                <button @click="showTemplateDropdown = false" class="text-slate-300 hover:text-red-400"><i class="fas fa-times"></i></button>
+              </div>
               <button
                   v-for="tpl in store.validTemplates" :key="tpl.id"
                   @click="selectedTemplateId = tpl['@id']; showTemplateDropdown = false"
                   class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl transition-colors mb-1 group flex items-center justify-between"
               >
-                <div>
+                <span class="block">
                   <span class="block text-sm font-bold text-slate-800">{{ tpl.name }}</span>
                   <span class="block text-[10px] font-mono text-slate-400">{{ tpl.code }}</span>
-                </div>
+                </span>
               </button>
               <div v-if="store.validTemplates.length === 0" class="p-4 text-center text-xs text-slate-400 italic">
                 No hay plantillas para este canal.
@@ -320,23 +340,23 @@ const getOriginClass = (origin?: string | null) => {
             </div>
           </Transition>
 
-          <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-[28px] focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full">
+          <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-2 md:gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-[24px] focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full relative">
             <button type="button" @click="showTemplateDropdown = !showTemplateDropdown" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all shrink-0">
               <i class="fas fa-file-invoice text-sm"></i>
             </button>
 
             <div class="flex-1 min-h-[40px] flex items-center">
-              <div v-if="selectedTemplateId" class="flex-1 bg-white border border-[#376875]/20 rounded-xl px-4 py-2 flex justify-between items-center shadow-sm">
-                <div class="flex items-center gap-3">
-                  <i class="fas fa-robot text-[#376875]"></i>
-                  <div>
+              <div v-if="selectedTemplateId" class="flex-1 bg-white border border-[#376875]/20 rounded-xl px-3 py-2 flex justify-between items-center shadow-sm overflow-hidden">
+                <div class="flex items-center gap-2 md:gap-3 truncate">
+                  <i class="fas fa-robot text-[#376875] shrink-0"></i>
+                  <div class="truncate">
                     <span class="block text-[9px] font-black uppercase text-slate-400">Plantilla</span>
-                    <span class="block text-xs font-bold text-slate-800">{{ getTemplateName(selectedTemplateId) }}</span>
+                    <span class="block text-xs font-bold text-slate-800 truncate">{{ getTemplateName(selectedTemplateId) }}</span>
                   </div>
                 </div>
-                <button type="button" @click="selectedTemplateId = null" class="w-6 h-6 rounded-full hover:bg-red-50 text-red-400 flex items-center justify-center"><i class="fas fa-times text-xs"></i></button>
+                <button type="button" @click="selectedTemplateId = null" class="w-6 h-6 shrink-0 rounded-full hover:bg-red-50 text-red-400 flex items-center justify-center"><i class="fas fa-times text-xs"></i></button>
               </div>
-              <textarea v-else v-model="newMessageText" @keydown.enter.exact.prevent="send" placeholder="Escribe tu mensaje..." class="w-full bg-transparent border-0 focus:ring-0 resize-none py-2 text-sm font-semibold text-slate-800 scrollbar-hide" rows="1"></textarea>
+              <textarea v-else v-model="newMessageText" @keydown.enter.exact.prevent="send" placeholder="Escribe tu mensaje..." class="w-full bg-transparent border-0 focus:ring-0 resize-none py-2 px-2 text-sm font-semibold text-slate-800 scrollbar-hide" rows="1"></textarea>
             </div>
 
             <button type="submit" :disabled="(!newMessageText.trim() && !selectedTemplateId) || store.sendingMessage" class="w-10 h-10 shrink-0 bg-[#E07845] text-white rounded-full flex items-center justify-center shadow-md hover:scale-105 transition-all disabled:opacity-30">
