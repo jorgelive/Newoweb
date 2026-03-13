@@ -2,36 +2,65 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
 
+// ============================================================================
+// INTERFACES (TypeScript Estricto)
+// ============================================================================
+
 export interface ApiMessageQueue {
     status: string;
     deliveryStatus?: string;
 }
 
 export interface ApiAttachment {
-    '@id': string; id: string; originalName: string; mimeType: string; fileUrl?: string;
+    '@id': string;
+    id: string;
+    originalName: string;
+    mimeType: string;
+    fileUrl?: string;
 }
 
 export interface ApiMessage {
-    '@id': string; id: string; direction: string; status: string;
-    senderType: string; contentLocal: string | null; contentExternal: string | null; createdAt: string;
-    metadata: { beds24: any; whatsappGupshup: any; };
-    channel?: { id: string; name: string };
-    whatsappGupshupSendQueues?: ApiMessageQueue[];
-    beds24SendQueues?: ApiMessageQueue[];
-    template?: any; // Puede ser un IRI o el objeto
-    attachments?: ApiAttachment[] | string[]; // Array de objetos o IRIs
+    '@id': string;
+    id: string;
+    direction: string;
+    status: string;
+    senderType: string;
+    contentLocal: string | null;
+    contentExternal: string | null;
+    createdAt: string;
+    // Soportamos 'gupshup' por retrocompatibilidad con registros viejos en la BD
+    metadata?: { beds24?: any; whatsappGupshup?: any; gupshup?: any };
+    // API Platform puede devolver el objeto hidratado o solo el string (IRI)
+    channel?: { id: string; name: string } | string;
+    whatsappGupshupSendQueues?: ApiMessageQueue[] | string[];
+    beds24SendQueues?: ApiMessageQueue[] | string[];
+    template?: any;
+    attachments?: ApiAttachment[] | string[];
 }
 
 export interface ApiTemplate {
-    '@id': string; id: string; code: string; name: string;
-    contextType: string | null; allowedSources: string[]; allowedAgencies: string[];
+    '@id': string;
+    id: string;
+    code: string;
+    name: string;
+    contextType: string | null;
+    allowedSources: string[];
+    allowedAgencies: string[];
 }
 
 export interface ApiConversation {
-    '@id': string; id: string; status: string; guestName: string | null;
-    guestPhone: string | null; contextType: string; contextId: string;
-    createdAt: string; lastMessageAt: string | null; unreadCount: number;
-    contextOrigin: string | null; contextStatusTag: string | null;
+    '@id': string;
+    id: string;
+    status: string;
+    guestName: string | null;
+    guestPhone: string | null;
+    contextType: string;
+    contextId: string;
+    createdAt: string;
+    lastMessageAt: string | null;
+    unreadCount: number;
+    contextOrigin: string | null;
+    contextStatusTag: string | null;
     contextMilestones: { start?: string; end?: string; booked_at?: string; eta?: string; };
     contextItems: string[];
 }
@@ -40,10 +69,10 @@ export const useChatStore = defineStore('chatStore', () => {
 
     const getUrls = () => {
         // @ts-ignore
-        const config = window.OPENPERU_CONFIG;
+        const config = window.OPENPERU_CONFIG || {};
         return {
-            api: config?.apiUrl || import.meta.env.VITE_API_URL || 'https://api.openperu.pe',
-            panel: config?.panelUrl || import.meta.env.VITE_PANEL_URL || 'https://panel.openperu.pe'
+            api: config.apiUrl || import.meta.env.VITE_API_URL || 'https://api.openperu.pe',
+            panel: config.panelUrl || import.meta.env.VITE_PANEL_URL || 'https://panel.openperu.pe'
         };
     };
 
@@ -52,6 +81,7 @@ export const useChatStore = defineStore('chatStore', () => {
         headers: { 'Accept': 'application/ld+json', 'Content-Type': 'application/ld+json' }
     });
 
+    // 🔥 RESTAURADO: Inyección dinámica de la URL base para evitar el error 404
     apiClient.interceptors.request.use((config) => {
         config.baseURL = getUrls().api;
         return config;
@@ -96,7 +126,9 @@ export const useChatStore = defineStore('chatStore', () => {
         try {
             const response = await apiClient.get('/platform/user/util/msg/templates');
             templates.value = extractData(response);
-        } catch (err) { console.error('Error plantillas', err); }
+        } catch (err) {
+            console.error('Error cargando plantillas', err);
+        }
     };
 
     const fetchConversations = async () => {
@@ -105,8 +137,11 @@ export const useChatStore = defineStore('chatStore', () => {
         try {
             const response = await apiClient.get('/platform/user/util/msg/conversations?order[lastMessageAt]=desc');
             conversations.value = extractData(response);
-        } catch (err) { error.value = 'Error al sincronizar chats'; }
-        finally { loadingConversations.value = false; }
+        } catch (err: any) {
+            error.value = 'Error al sincronizar chats';
+        } finally {
+            loadingConversations.value = false;
+        }
     };
 
     const selectConversation = async (id: string) => {
@@ -118,11 +153,13 @@ export const useChatStore = defineStore('chatStore', () => {
             const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}/messages`);
             messages.value = extractData(response);
             found.unreadCount = 0;
-        } catch (err) { error.value = 'Error al cargar mensajes'; }
-        finally { loadingMessages.value = false; }
+        } catch (err) {
+            error.value = 'Error al cargar mensajes';
+        } finally {
+            loadingMessages.value = false;
+        }
     };
 
-    // 🔥 Acepta los canales seleccionados (Hook multicanal)
     const sendMessage = async (text: string, templateIri: string | null = null, channels: string[] = []) => {
         if (!currentConversation.value) return;
         sendingMessage.value = true;
@@ -132,7 +169,7 @@ export const useChatStore = defineStore('chatStore', () => {
                 direction: 'outgoing',
                 senderType: 'host',
                 status: 'pending',
-                transientChannels: channels // Inyectamos las colas deseadas
+                transientChannels: channels
             };
 
             if (templateIri) {
