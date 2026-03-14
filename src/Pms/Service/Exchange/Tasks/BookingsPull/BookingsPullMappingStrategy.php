@@ -38,14 +38,13 @@ final readonly class BookingsPullMappingStrategy implements MappingStrategyInter
             'arrivalFrom'      => $arrivalFrom->format('Y-m-d'),
             'includeInvoice'   => true,
             'includeInfoItems' => true,
-            // 🔥 FIX: Convertir array a string separado por comas para evitar que Beds24 lo ignore
-            'status'           => implode(',', [
+            'status'           => [
                 'confirmed',
                 'new',
                 'request',
                 'cancelled',
                 'black'
-            ]),
+            ],
         ];
 
         if ($arrivalTo) {
