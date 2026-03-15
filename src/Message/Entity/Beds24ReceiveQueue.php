@@ -32,11 +32,11 @@ class Beds24ReceiveQueue implements ExchangeQueueItemInterface
     public const string STATUS_SUCCESS    = 'success';
     public const string STATUS_FAILED     = 'failed';
 
-    #[ORM\ManyToOne(targetEntity: Beds24Config::class)]
+    #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'beds24ReceiveQueues')]
     #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?Beds24Config $config = null;
 
-    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class)]
+    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class, inversedBy: 'beds24ReceiveQueues')]
     #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
     private ?ExchangeEndpoint $endpoint = null;
 

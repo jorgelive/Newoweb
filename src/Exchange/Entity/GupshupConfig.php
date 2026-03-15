@@ -8,6 +8,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Pms\Entity\PmsEstablecimiento;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -40,10 +41,20 @@ class GupshupConfig implements ChannelConfigInterface
     #[ORM\OneToMany(mappedBy: 'config', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
     private Collection $whatsappGupshupSendQueues;
 
+    /**
+     * Colección de establecimientos PMS vinculados a esta configuración de Gupshup.
+     * Esta es la relación inversa (OneToMany) mapeada desde PmsEstablecimiento.
+     *
+     * @var Collection<int, PmsEstablecimiento>
+     */
+    #[ORM\OneToMany(mappedBy: 'gupshupConfig', targetEntity: PmsEstablecimiento::class)]
+    private Collection $establecimientos;
+
     public function __construct()
     {
         $this->id = Uuid::v7();
         $this->whatsappGupshupSendQueues = new ArrayCollection();
+        $this->establecimientos = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -160,6 +171,52 @@ class GupshupConfig implements ChannelConfigInterface
             // Establecer el lado propietario a null (si no cambió ya)
             if ($queue->getConfig() === $this) {
                 $queue->setConfig(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Obtiene la colección de establecimientos asociados a esta configuración.
+     *
+     * @return Collection<int, PmsEstablecimiento>
+     */
+    public function getEstablecimientos(): Collection
+    {
+        return $this->establecimientos;
+    }
+
+    /**
+     * Asocia un establecimiento a esta configuración de Gupshup.
+     * Mantiene la consistencia bidireccional estableciendo esta configuración en el establecimiento.
+     *
+     * @param PmsEstablecimiento $establecimiento El establecimiento a vincular
+     * @return static
+     */
+    public function addEstablecimiento(PmsEstablecimiento $establecimiento): static
+    {
+        if (!$this->establecimientos->contains($establecimiento)) {
+            $this->establecimientos->add($establecimiento);
+            $establecimiento->setGupshupConfig($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Desvincula un establecimiento de esta configuración de Gupshup.
+     * Mantiene la consistencia bidireccional anulando la configuración en el establecimiento si aún apunta a esta instancia.
+     *
+     * @param PmsEstablecimiento $establecimiento El establecimiento a desvincular
+     * @return static
+     */
+    public function removeEstablecimiento(PmsEstablecimiento $establecimiento): static
+    {
+        if ($this->establecimientos->removeElement($establecimiento)) {
+            // set the owning side to null (unless already changed)
+            if ($establecimiento->getGupshupConfig() === $this) {
+                $establecimiento->setGupshupConfig(null);
             }
         }
 

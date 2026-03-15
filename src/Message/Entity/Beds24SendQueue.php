@@ -35,11 +35,7 @@ class Beds24SendQueue implements MessageQueueItemInterface
     public const string STATUS_FAILED = 'failed';
     public const string STATUS_CANCELLED = 'cancelled';
 
-    // =========================================================================
-    // RELACIONES
-    // =========================================================================
-
-    #[ORM\ManyToOne(targetEntity: Message::class, inversedBy: 'beds24Queues')]
+    #[ORM\ManyToOne(targetEntity: Message::class, inversedBy: 'beds24SendQueues')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Message $message = null;
 
@@ -58,15 +54,14 @@ class Beds24SendQueue implements MessageQueueItemInterface
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $targetBookId = null;
 
-    // =========================================================================
-    // CAMPOS DE WORKER (Infraestructura)
-    // =========================================================================
-
+    // 🔥 API PLATFORM: Status expuesto a Vue
     #[ORM\Column(length: 20, options: ['default' => self::STATUS_PENDING])]
     #[Groups(['message:read'])]
     private string $status = self::STATUS_PENDING;
 
+    // 🔥 API PLATFORM: RunAt expuesto a Vue
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[Groups(['message:read'])]
     private ?DateTimeImmutable $runAt = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
@@ -138,183 +133,48 @@ class Beds24SendQueue implements MessageQueueItemInterface
         $this->retryCount++;
     }
 
-    // =========================================================================
-    // GETTERS Y SETTERS TRADICIONALES
-    // =========================================================================
-
-    public function getId(): UuidV7
-    {
-        return $this->id;
-    }
-
-    public function getMessage(): ?Message
-    {
-        return $this->message;
-    }
-
-    public function setMessage(?Message $message): self
-    {
-        $this->message = $message;
-        return $this;
-    }
-
-    public function getTargetBookId(): ?string
-    {
-        return $this->targetBookId;
-    }
-
-    public function setTargetBookId(?string $targetBookId): self
-    {
-        $this->targetBookId = $targetBookId;
-        return $this;
-    }
-
-    public function getConfig(): ?ChannelConfigInterface
-    {
-        return $this->config;
-    }
-
-    public function setConfig(?ChannelConfigInterface $config): self
-    {
+    public function getId(): UuidV7 { return $this->id; }
+    public function getMessage(): ?Message { return $this->message; }
+    public function setMessage(?Message $message): self { $this->message = $message; return $this; }
+    public function getTargetBookId(): ?string { return $this->targetBookId; }
+    public function setTargetBookId(?string $targetBookId): self { $this->targetBookId = $targetBookId; return $this; }
+    public function getConfig(): ?ChannelConfigInterface { return $this->config; }
+    public function setConfig(?ChannelConfigInterface $config): self {
         if ($config !== null && !$config instanceof Beds24Config) {
             throw new InvalidArgumentException(sprintf('Configuración inválida. Se esperaba %s', Beds24Config::class));
         }
-        $this->config = $config;
-        return $this;
+        $this->config = $config; return $this;
     }
-
-    public function getEndpoint(): ?EndpointInterface
-    {
-        return $this->endpoint;
-    }
-
-    public function setEndpoint(?EndpointInterface $endpoint): self
-    {
+    public function getEndpoint(): ?EndpointInterface { return $this->endpoint; }
+    public function setEndpoint(?EndpointInterface $endpoint): self {
         if ($endpoint !== null && !$endpoint instanceof ExchangeEndpoint) {
             throw new InvalidArgumentException(sprintf('Endpoint inválido. Se esperaba %s', ExchangeEndpoint::class));
         }
-        $this->endpoint = $endpoint;
-        return $this;
+        $this->endpoint = $endpoint; return $this;
     }
-
-    public function getStatus(): string
-    {
-        return $this->status;
-    }
-
-    public function setStatus(string $status): self
-    {
-        $this->status = $status;
-        return $this;
-    }
-
-    public function getRunAt(): ?DateTimeImmutable
-    {
-        return $this->runAt;
-    }
-
-    public function setRunAt(?DateTimeInterface $at): self
-    {
+    public function getStatus(): string { return $this->status; }
+    public function setStatus(string $status): self { $this->status = $status; return $this; }
+    public function getRunAt(): ?DateTimeImmutable { return $this->runAt; }
+    public function setRunAt(?DateTimeInterface $at): self {
         $this->runAt = $at instanceof DateTimeInterface ? DateTimeImmutable::createFromInterface($at) : null;
         return $this;
     }
-
-    public function getLockedAt(): ?DateTimeInterface
-    {
-        return $this->lockedAt;
-    }
-
-    public function setLockedAt(?DateTimeInterface $lockedAt): self
-    {
-        $this->lockedAt = $lockedAt;
-        return $this;
-    }
-
-    public function getLockedBy(): ?string
-    {
-        return $this->lockedBy;
-    }
-
-    public function setLockedBy(?string $lockedBy): self
-    {
-        $this->lockedBy = $lockedBy;
-        return $this;
-    }
-
-    public function getFailedReason(): ?string
-    {
-        return $this->failedReason;
-    }
-
-    public function setFailedReason(?string $reason): self
-    {
-        $this->failedReason = $reason;
-        return $this;
-    }
-
-    public function getRetryCount(): int
-    {
-        return $this->retryCount;
-    }
-
-    public function setRetryCount(int $count): self
-    {
-        $this->retryCount = $count;
-        return $this;
-    }
-
-    public function getMaxAttempts(): int
-    {
-        return $this->maxAttempts;
-    }
-
-    public function setMaxAttempts(int $maxAttempts): self
-    {
-        $this->maxAttempts = $maxAttempts;
-        return $this;
-    }
-
-    public function getLastRequestRaw(): ?string
-    {
-        return $this->lastRequestRaw;
-    }
-
-    public function setLastRequestRaw(?string $raw): self
-    {
-        $this->lastRequestRaw = $raw;
-        return $this;
-    }
-
-    public function getLastResponseRaw(): ?string
-    {
-        return $this->lastResponseRaw;
-    }
-
-    public function setLastResponseRaw(?string $raw): self
-    {
-        $this->lastResponseRaw = $raw;
-        return $this;
-    }
-
-    public function getExecutionResult(): ?array
-    {
-        return $this->executionResult;
-    }
-
-    public function setExecutionResult(?array $result): self
-    {
-        $this->executionResult = $result;
-        return $this;
-    }
-
-    public function getLastHttpCode(): ?int
-    {
-        return $this->lastHttpCode;
-    }
-
-    public function setLastHttpCode(?int $code): self
-    {
-        $this->lastHttpCode = $code;
-        return $this;
-    }
+    public function getLockedAt(): ?DateTimeInterface { return $this->lockedAt; }
+    public function setLockedAt(?DateTimeInterface $lockedAt): self { $this->lockedAt = $lockedAt; return $this; }
+    public function getLockedBy(): ?string { return $this->lockedBy; }
+    public function setLockedBy(?string $lockedBy): self { $this->lockedBy = $lockedBy; return $this; }
+    public function getFailedReason(): ?string { return $this->failedReason; }
+    public function setFailedReason(?string $reason): self { $this->failedReason = $reason; return $this; }
+    public function getRetryCount(): int { return $this->retryCount; }
+    public function setRetryCount(int $count): self { $this->retryCount = $count; return $this; }
+    public function getMaxAttempts(): int { return $this->maxAttempts; }
+    public function setMaxAttempts(int $maxAttempts): self { $this->maxAttempts = $maxAttempts; return $this; }
+    public function getLastRequestRaw(): ?string { return $this->lastRequestRaw; }
+    public function setLastRequestRaw(?string $raw): self { $this->lastRequestRaw = $raw; return $this; }
+    public function getLastResponseRaw(): ?string { return $this->lastResponseRaw; }
+    public function setLastResponseRaw(?string $raw): self { $this->lastResponseRaw = $raw; return $this; }
+    public function getExecutionResult(): ?array { return $this->executionResult; }
+    public function setExecutionResult(?array $result): self { $this->executionResult = $result; return $this; }
+    public function getLastHttpCode(): ?int { return $this->lastHttpCode; }
+    public function setLastHttpCode(?int $code): self { $this->lastHttpCode = $code; return $this; }
 }

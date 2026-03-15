@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick, computed } from 'vue';
 import { useChatStore, ApiMessage } from '@/stores/chatStore';
+import { useAttachmentStore } from '@/stores/attachmentStore';
 
 const store = useChatStore();
+const attachmentStore = useAttachmentStore();
+
 const messagesContainer = ref<HTMLElement | null>(null);
 const newMessageText = ref('');
+
 const isMobileSidebarOpen = ref(true);
 
 // Estados del Composer
 const selectedTemplateId = ref<string | null>(null);
 const showTemplateDropdown = ref(false);
+const fileInput = ref<HTMLInputElement | null>(null);
 
-// Hook Multicanal (Por defecto marcamos WhatsApp)
+// Hook Multicanal
 const selectedChannels = ref<string[]>(['whatsapp_gupshup']);
 
 onMounted(() => {
@@ -29,13 +34,14 @@ watch(() => store.messages, async () => {
 }, { deep: true });
 
 watch(() => store.error, (v) => {
-  if (v) setTimeout(() => store.error = null, 5000);
+  if (v) setTimeout(() => store.error = null, 6000);
 });
 
 watch(() => store.currentConversation, (chat) => {
   selectedTemplateId.value = null;
   showTemplateDropdown.value = false;
-  // Auto-seleccionar canales según el origen
+  attachmentStore.clear(); // Limpiamos store de adjuntos al cambiar de chat
+
   if (chat?.contextOrigin && !['manual', 'web', 'directo'].includes(chat.contextOrigin.toLowerCase())) {
     selectedChannels.value = ['beds24', 'whatsapp_gupshup'];
   } else {
@@ -48,16 +54,44 @@ const selectChat = async (id: string) => {
   isMobileSidebarOpen.value = false;
 };
 
+// ============================================================================
+// LÓGICA DE CANALES Y ADJUNTOS
+// ============================================================================
+
 const toggleChannel = (channel: string) => {
   if (selectedChannels.value.includes(channel)) {
     selectedChannels.value = selectedChannels.value.filter(c => c !== channel);
   } else {
+    // 🔥 BLOQUEO BEDS24: Validamos usando el store de adjuntos
+    if (channel === 'beds24' && attachmentStore.file && !attachmentStore.isImage) {
+      store.error = 'No puedes activar Beds24 porque has adjuntado un documento. Beds24 solo admite imágenes.';
+      return;
+    }
     selectedChannels.value.push(channel);
   }
 };
 
+const onFileSelected = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    const success = attachmentStore.setFile(target.files[0]);
+
+    if (success) {
+      // 🔥 ALERTA BEDS24: Si suben un documento y Beds24 estaba marcado
+      if (!attachmentStore.isImage && selectedChannels.value.includes('beds24')) {
+        store.error = 'Beds24 solo permite el envío de imágenes. Se ha desmarcado este canal automáticamente.';
+        selectedChannels.value = selectedChannels.value.filter(c => c !== 'beds24');
+      }
+    } else {
+      store.error = attachmentStore.error;
+    }
+  }
+
+  if (fileInput.value) fileInput.value.value = '';
+};
+
 const send = async () => {
-  if (!newMessageText.value.trim() && !selectedTemplateId.value) return;
+  if (!newMessageText.value.trim() && !selectedTemplateId.value && !attachmentStore.file) return;
   if (selectedChannels.value.length === 0 && !selectedTemplateId.value) {
     store.error = 'Selecciona al menos un canal de envío.';
     return;
@@ -70,31 +104,19 @@ const send = async () => {
 };
 
 // ============================================================================
-// HELPERS VISUALES (TypeScript Estricto)
+// HELPERS VISUALES
 // ============================================================================
 
 const getChannelIcons = (msg: ApiMessage) => {
   const icons = [];
-
-  if (msg.whatsappGupshupSendQueues && msg.whatsappGupshupSendQueues.length > 0) {
-    icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
-  }
-  if (msg.beds24SendQueues && msg.beds24SendQueues.length > 0) {
-    icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
-  }
+  if (msg.whatsappGupshupSendQueues?.length) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
+  if (msg.beds24SendQueues?.length) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
 
   if (icons.length === 0) {
     const waMeta = msg.metadata?.whatsappGupshup || msg.metadata?.gupshup;
     if (waMeta?.received_at || waMeta?.external_id) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
     if (msg.metadata?.beds24?.received_at) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
   }
-
-  if (icons.length === 0 && msg.channel) {
-    const channelId = typeof msg.channel === 'string' ? msg.channel : msg.channel.id;
-    if (channelId?.includes('whatsapp')) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
-    if (channelId?.includes('beds24')) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
-  }
-
   return icons.length ? icons : [{ class: 'fas fa-comment-dots', color: 'text-slate-400' }];
 };
 
@@ -110,7 +132,7 @@ const getTemplateName = (templateData: any) => {
 const getMessageTicks = (msg: ApiMessage) => {
   if (msg.status === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500', title: 'Error general' };
 
-  if (msg.whatsappGupshupSendQueues && msg.whatsappGupshupSendQueues.length > 0) {
+  if (msg.whatsappGupshupSendQueues?.length) {
     const q = msg.whatsappGupshupSendQueues[msg.whatsappGupshupSendQueues.length - 1];
     const delivery = typeof q === 'string' ? null : q.deliveryStatus;
     const qStatus = typeof q === 'string' ? null : q.status;
@@ -120,15 +142,6 @@ const getMessageTicks = (msg: ApiMessage) => {
     if (delivery === 'submitted') return { class: 'fas fa-check', color: 'text-slate-400', title: 'Enviado a Meta' };
     if (qStatus === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500', title: 'Error en WhatsApp' };
   }
-
-  if (msg.beds24SendQueues && msg.beds24SendQueues.length > 0) {
-    const q = msg.beds24SendQueues[msg.beds24SendQueues.length - 1];
-    const qStatus = typeof q === 'string' ? null : q.status;
-
-    if (qStatus === 'success') return { class: 'fas fa-check-double', color: 'text-slate-400', title: 'Enviado a Beds24' };
-    if (qStatus === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500', title: 'Error en Beds24' };
-  }
-
   if (msg.status === 'read') return { class: 'fas fa-check-double', color: 'text-blue-500' };
   if (msg.status === 'sent') return { class: 'fas fa-check', color: 'text-slate-400' };
   if (msg.status === 'queued') return { class: 'far fa-clock', color: 'text-slate-300' };
@@ -151,12 +164,6 @@ const groupedMessages = computed(() => {
   return groups;
 });
 
-const formatDividerDate = (d: string) => {
-  const today = new Date().toISOString().split('T')[0];
-  if (d === today) return 'Hoy';
-  return new Date(d).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
-};
-
 const getOriginClass = (origin?: string | null) => {
   const colors: Record<string, string> = { booking: 'bg-[#003580]', airbnb: 'bg-[#FF5A5F]', expedia: 'bg-[#00355F]' };
   return colors[origin?.toLowerCase() || ''] || 'bg-[#376875]';
@@ -167,9 +174,9 @@ const getOriginClass = (origin?: string | null) => {
   <div class="flex h-[100dvh] w-full bg-[#F8FAFC] font-sans overflow-hidden relative text-slate-900 antialiased">
 
     <Transition name="fade-slide">
-      <div v-if="store.error" class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-xl border border-white/10">
-        <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-        <span class="text-xs font-black uppercase tracking-wide">{{ store.error }}</span>
+      <div v-if="store.error" class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-xl border border-white/10 max-w-[90vw] text-center">
+        <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0"></div>
+        <span class="text-xs font-black uppercase tracking-wide leading-tight">{{ store.error }}</span>
       </div>
     </Transition>
 
@@ -198,31 +205,23 @@ const getOriginClass = (origin?: string | null) => {
         <div v-for="chat in store.filteredConversations" :key="chat?.id" class="mb-1">
           <button @click="selectChat(chat.id)" class="w-full text-left p-4 rounded-2xl transition-all flex gap-4 relative group border border-transparent" :class="store.currentConversation?.id === chat.id ? 'bg-white border-slate-200 shadow-xl translate-x-1' : 'hover:bg-slate-50'">
             <span v-if="store.currentConversation?.id === chat.id" class="absolute left-0 top-4 bottom-4 w-1.5 bg-[#376875] rounded-r-full block"></span>
-
             <span class="w-12 h-12 rounded-xl text-white flex items-center justify-center shrink-0 font-black text-lg shadow-sm" :class="getOriginClass(chat.contextOrigin)">
               {{ chat.guestName?.charAt(0).toUpperCase() || '?' }}
             </span>
-
             <span class="flex-1 min-w-0 block">
               <span class="flex justify-between items-baseline mb-0.5">
                 <span class="font-bold truncate text-sm block" :class="store.currentConversation?.id === chat.id ? 'text-[#376875]' : 'text-slate-800'">{{ chat.guestName || 'Huésped' }}</span>
                 <span class="text-[9px] font-black uppercase text-slate-400 ml-2 block">{{ formatDate(chat.lastMessageAt || chat.createdAt) }}</span>
               </span>
               <span class="text-[10px] font-black truncate text-[#E07845] mb-1 uppercase tracking-tight block">{{ chat.contextItems?.length ? chat.contextItems.join(', ') : 'Reserva PMS' }}</span>
-
-              <span class="flex items-center gap-2">
-                <span class="text-[8px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-black uppercase tracking-widest block">{{ chat.contextOrigin || 'directo' }}</span>
-                <span v-if="chat?.contextMilestones?.start" class="text-[9px] font-bold text-slate-300 italic block">{{ formatDate(chat.contextMilestones.start) }} - {{ formatDate(chat.contextMilestones.end) }}</span>
-              </span>
             </span>
-
             <span v-if="chat.unreadCount > 0" class="absolute -right-1 -top-1 w-5 h-5 bg-[#E07845] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-md">{{ chat.unreadCount }}</span>
           </button>
         </div>
       </div>
     </aside>
 
-    <main class="flex-1 bg-[#F1F5F9] flex flex-col relative z-30 transition-all duration-300">
+    <main class="flex-1 bg-[#F1F5F9] flex flex-col relative z-30 transition-all duration-300 min-w-0">
       <div v-if="!store.currentConversation" class="hidden md:flex flex-1 flex-col items-center justify-center bg-white text-slate-300">
         <i class="fas fa-paper-plane text-4xl mb-4 opacity-10"></i>
         <h2 class="text-xl font-black text-slate-800 tracking-tighter uppercase tracking-widest">Selecciona un chat</h2>
@@ -231,7 +230,7 @@ const getOriginClass = (origin?: string | null) => {
       <template v-else>
         <header class="h-16 md:h-24 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30">
           <div class="flex items-center gap-4 overflow-hidden">
-            <button @click="isMobileSidebarOpen = true" class="md:hidden w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 shadow-sm transition-colors hover:bg-slate-200"><i class="fas fa-chevron-left"></i></button>
+            <button @click="isMobileSidebarOpen = true" class="md:hidden w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 shadow-sm transition-colors"><i class="fas fa-chevron-left"></i></button>
             <div class="truncate">
               <h2 class="font-black text-slate-900 text-lg md:text-2xl tracking-tight truncate leading-none mb-1">{{ store.currentConversation?.guestName }}</h2>
               <div class="flex items-center gap-3 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-400">
@@ -241,15 +240,11 @@ const getOriginClass = (origin?: string | null) => {
               </div>
             </div>
           </div>
-          <div class="flex items-center gap-3">
-            <a v-if="store.getExternalContextUrl" :href="store.getExternalContextUrl" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-xl shadow-xl hover:-translate-y-0.5 transition-all text-[10px] font-black uppercase tracking-wider"><i class="fas fa-external-link-alt"></i><span class="hidden md:inline">Ver</span></a>
-          </div>
         </header>
 
         <div class="flex-1 overflow-y-auto p-4 md:px-12 md:py-8" ref="messagesContainer">
           <div class="max-w-4xl mx-auto flex flex-col">
             <div v-for="(group, date) in groupedMessages" :key="date" class="flex flex-col">
-
               <div class="flex justify-center my-6 sticky top-2 z-10">
                 <span class="px-4 py-1.5 bg-white/90 backdrop-blur-md border border-slate-200 shadow-sm rounded-full text-[10px] font-black text-slate-800 uppercase tracking-widest">
                   {{ date === new Date().toISOString().split('T')[0] ? 'Hoy' : formatDate(date) }}
@@ -258,19 +253,16 @@ const getOriginClass = (origin?: string | null) => {
 
               <div class="space-y-6 flex flex-col mb-8">
                 <div v-for="msg in group" :key="msg.id" class="flex w-full" :class="msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'">
-
                   <div class="relative max-w-[85%] md:max-w-[70%] flex flex-col" :class="msg.direction === 'outgoing' ? 'items-end pl-10' : 'items-start pr-10'">
 
                     <div class="absolute top-1 flex flex-col gap-1.5" :class="msg.direction === 'outgoing' ? 'left-0' : 'right-0'">
-                      <div v-for="icon in getChannelIcons(msg)" :key="icon.class" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-100 transition-transform hover:scale-110 cursor-help">
+                      <div v-for="icon in getChannelIcons(msg)" :key="icon.class" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-100">
                         <i :class="[icon.class, icon.color]" class="text-sm"></i>
                       </div>
                     </div>
 
-                    <div
-                        :class="msg.direction === 'outgoing' ? 'bg-[#376875] text-white rounded-3xl rounded-tr-none shadow-lg' : 'bg-white border border-slate-200 text-slate-800 rounded-3xl rounded-tl-none shadow-sm'"
-                        class="p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative w-full break-words"
-                    >
+                    <div :class="msg.direction === 'outgoing' ? 'bg-[#376875] text-white rounded-3xl rounded-tr-none shadow-lg' : 'bg-white border border-slate-200 text-slate-800 rounded-3xl rounded-tl-none shadow-sm'" class="p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative w-full break-words">
+
                       <div v-if="msg.template" class="flex items-center gap-2 mb-2 pb-2 border-b" :class="msg.direction === 'outgoing' ? 'border-white/20' : 'border-slate-100'">
                         <i class="fas fa-robot text-xs opacity-70"></i>
                         <span class="text-[10px] font-black uppercase tracking-widest opacity-80 truncate">{{ getTemplateName(msg.template) }}</span>
@@ -278,8 +270,9 @@ const getOriginClass = (origin?: string | null) => {
 
                       <div v-if="msg.attachments?.length" class="mb-3 space-y-2">
                         <div v-for="att in msg.attachments" :key="(typeof att === 'string') ? att : att.id" class="flex items-center gap-3 p-3 rounded-xl bg-black/10">
-                          <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
-                            <i class="fas fa-file-alt text-lg"></i>
+                          <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                            <img v-if="typeof att !== 'string' && att.fileUrl" :src="att.fileUrl" class="w-full h-full object-cover" />
+                            <i v-else class="fas fa-file-alt text-lg"></i>
                           </div>
                           <div class="min-w-0">
                             <p class="text-xs font-bold truncate">{{ (typeof att === 'string') ? 'Archivo Adjunto' : att.originalName || 'Archivo Adjunto' }}</p>
@@ -301,12 +294,11 @@ const getOriginClass = (origin?: string | null) => {
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
 
-        <footer class="bg-white border-t border-slate-100 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6 shrink-0 relative flex flex-col gap-3">
+        <footer class="bg-white border-t border-slate-100 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6 shrink-0 relative flex flex-col gap-3 min-w-0">
 
           <div class="flex items-center gap-2 px-1 max-w-4xl mx-auto w-full overflow-x-auto scrollbar-hide">
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"><i class="fas fa-satellite-dish mr-1"></i> Salida:</span>
@@ -319,47 +311,59 @@ const getOriginClass = (origin?: string | null) => {
           </div>
 
           <Transition name="fade-slide">
-            <div v-if="showTemplateDropdown" class="absolute bottom-[80px] left-2 right-2 md:left-auto md:right-auto z-50 bg-white border border-slate-200 shadow-2xl rounded-2xl p-2 md:w-96 max-h-64 overflow-y-auto">
+            <div v-if="showTemplateDropdown" class="absolute bottom-[90px] left-2 right-2 md:left-auto md:right-auto z-50 bg-white border border-slate-200 shadow-2xl rounded-2xl p-2 md:w-96 max-h-64 overflow-y-auto">
               <div class="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 mb-2 flex justify-between items-center">
                 <span>Plantillas Permitidas</span>
                 <button @click="showTemplateDropdown = false" class="text-slate-300 hover:text-red-400"><i class="fas fa-times"></i></button>
               </div>
-              <button
-                  v-for="tpl in store.validTemplates" :key="tpl.id"
-                  @click="selectedTemplateId = tpl['@id']; showTemplateDropdown = false"
-                  class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl transition-colors mb-1 group flex items-center justify-between"
-              >
-                <span class="block">
-                  <span class="block text-sm font-bold text-slate-800">{{ tpl.name }}</span>
-                  <span class="block text-[10px] font-mono text-slate-400">{{ tpl.code }}</span>
+              <button v-for="tpl in store.validTemplates" :key="tpl.id" @click="selectedTemplateId = tpl['@id']; showTemplateDropdown = false" class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl transition-colors mb-1 group flex items-center justify-between">
+                <span class="block min-w-0">
+                  <span class="block text-sm font-bold text-slate-800 truncate">{{ tpl.name }}</span>
+                  <span class="block text-[10px] font-mono text-slate-400 truncate">{{ tpl.code }}</span>
                 </span>
               </button>
-              <div v-if="store.validTemplates.length === 0" class="p-4 text-center text-xs text-slate-400 italic">
-                No hay plantillas para este canal.
-              </div>
+              <div v-if="store.validTemplates.length === 0" class="p-4 text-center text-xs text-slate-400 italic">No hay plantillas para este canal.</div>
             </div>
           </Transition>
 
-          <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-2 md:gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-[24px] focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full relative">
-            <button type="button" @click="showTemplateDropdown = !showTemplateDropdown" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all shrink-0">
-              <i class="fas fa-file-invoice text-sm"></i>
-            </button>
+          <input type="file" ref="fileInput" class="hidden" @change="onFileSelected" />
 
-            <div class="flex-1 min-h-[40px] flex items-center">
-              <div v-if="selectedTemplateId" class="flex-1 bg-white border border-[#376875]/20 rounded-xl px-3 py-2 flex justify-between items-center shadow-sm overflow-hidden">
-                <div class="flex items-center gap-2 md:gap-3 truncate">
-                  <i class="fas fa-robot text-[#376875] shrink-0"></i>
-                  <div class="truncate">
+          <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-2 md:gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-[24px] focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full relative min-w-0">
+
+            <div v-if="attachmentStore.file" class="absolute -top-14 left-0 bg-white border border-slate-200 shadow-lg rounded-xl px-3 py-2 flex items-center gap-3 z-10 animate-fade-in max-w-full">
+              <img v-if="attachmentStore.isImage" :src="attachmentStore.previewUrl" class="w-8 h-8 object-cover rounded shadow-sm shrink-0" />
+              <i v-else class="fas fa-file-pdf text-red-500 text-2xl shrink-0"></i>
+              <div class="flex flex-col min-w-0">
+                <span class="text-xs font-bold text-slate-800 truncate">{{ attachmentStore.fileName }}</span>
+                <span class="text-[9px] text-slate-400">{{ attachmentStore.fileSizeKB }} KB</span>
+              </div>
+              <button type="button" @click="attachmentStore.clear()" class="text-slate-400 hover:text-red-500 ml-2 shrink-0"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="flex items-center gap-1 shrink-0 pb-1">
+              <button type="button" @click="showTemplateDropdown = !showTemplateDropdown" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all">
+                <i class="fas fa-robot text-xs"></i>
+              </button>
+              <button type="button" @click="fileInput?.click()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#376875] bg-white shadow-sm border border-slate-100 rounded-full transition-all">
+                <i class="fas fa-paperclip text-xs"></i>
+              </button>
+            </div>
+
+            <div class="flex-1 min-h-[40px] flex items-center min-w-0">
+              <div v-if="selectedTemplateId" class="w-full bg-white border border-[#376875]/20 rounded-xl px-3 py-1.5 flex justify-between items-center shadow-sm overflow-hidden min-w-0 mr-1">
+                <div class="flex items-center gap-2 min-w-0">
+                  <i class="fas fa-robot text-[#376875] shrink-0 text-xs"></i>
+                  <div class="min-w-0 truncate">
                     <span class="block text-[9px] font-black uppercase text-slate-400">Plantilla</span>
                     <span class="block text-xs font-bold text-slate-800 truncate">{{ getTemplateName(selectedTemplateId) }}</span>
                   </div>
                 </div>
-                <button type="button" @click="selectedTemplateId = null" class="w-6 h-6 shrink-0 rounded-full hover:bg-red-50 text-red-400 flex items-center justify-center"><i class="fas fa-times text-xs"></i></button>
+                <button type="button" @click="selectedTemplateId = null" class="w-6 h-6 shrink-0 rounded-full hover:bg-red-50 text-red-400 flex items-center justify-center ml-2"><i class="fas fa-times text-xs"></i></button>
               </div>
               <textarea v-else v-model="newMessageText" @keydown.enter.exact.prevent="send" placeholder="Escribe tu mensaje..." class="w-full bg-transparent border-0 focus:ring-0 resize-none py-2 px-2 text-sm font-semibold text-slate-800 scrollbar-hide" rows="1"></textarea>
             </div>
 
-            <button type="submit" :disabled="(!newMessageText.trim() && !selectedTemplateId) || store.sendingMessage" class="w-10 h-10 shrink-0 bg-[#E07845] text-white rounded-full flex items-center justify-center shadow-md hover:scale-105 transition-all disabled:opacity-30">
+            <button type="submit" :disabled="(!newMessageText.trim() && !selectedTemplateId && !attachmentStore.file) || store.sendingMessage" class="w-10 h-10 shrink-0 bg-[#E07845] text-white rounded-full flex items-center justify-center shadow-md hover:scale-105 transition-all disabled:opacity-30 mb-0.5">
               <i class="fas text-xs" :class="store.sendingMessage ? 'fa-circle-notch fa-spin' : 'fa-paper-plane'"></i>
             </button>
           </form>
@@ -373,5 +377,7 @@ const getOriginClass = (origin?: string | null) => {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateY(10px) scale(0.98); }
+.animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 textarea { outline: none; }
 </style>

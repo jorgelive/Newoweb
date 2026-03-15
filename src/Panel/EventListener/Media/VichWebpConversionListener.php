@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\EventListener\Media;
 
+use App\Panel\Contract\RequiresJpegConversionInterface;
 use Liip\ImagineBundle\Imagine\Filter\FilterManager;
 use Liip\ImagineBundle\Model\Binary;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -12,85 +13,117 @@ use Vich\UploaderBundle\Event\Event;
 use Vich\UploaderBundle\Event\Events;
 
 /**
- * VichWebpConversionListener.
- * Intercepta cualquier subida de imagen en entidades con MediaTrait,
- * la convierte a WebP y cambia su extensión ANTES de que Vich la procese.
+ * Intercepta cualquier subida de imagen en entidades compatibles ANTES de que Vich la procese.
+ * Aplica compresión y conversión de formato dependiendo de las interfaces de la entidad.
  */
 #[AsEventListener(event: Events::PRE_UPLOAD)]
 class VichWebpConversionListener
 {
-    // El nombre del filtro en liip_imagine.yaml que tiene 'format: webp'
-    private const FILTER_NAME = 'pms_compress_initial';
+    // Filtro estándar para optimización interna (WebP)
+    private const FILTER_WEBP = 'pms_compress_initial';
+
+    // Filtro legacy para compatibilidad con canales externos como Beds24 (JPEG)
+    private const FILTER_JPG  = 'pms_compress_legacy';
 
     public function __construct(
-        private FilterManager $filterManager
+        private readonly FilterManager $filterManager
     ) {}
 
+    /**
+     * Punto de entrada del evento disparado por VichUploader.
+     *
+     * @param Event $event Evento que contiene la entidad y el mapeo del archivo.
+     */
     public function __invoke(Event $event): void
     {
         $object = $event->getObject();
         $mapping = $event->getMapping();
 
-        // 1. Verificar si la entidad usa MediaTrait (Duck Typing)
-        // Buscamos métodos específicos del trait para asegurar compatibilidad
+        // 1. Verificamos si la entidad está preparada para manejar medios (Duck Typing de MediaTrait)
         if (!$this->usesMediaTrait($object)) {
             return;
         }
 
-        // 2. Obtener el archivo subido
-        $fileProperty = $mapping->getFilePropertyName(); // ej: 'imageFile', 'documentoFile'
+        // 2. Extraemos el archivo físico interceptado
+        $fileProperty = $mapping->getFilePropertyName();
         $uploadedFile = $this->getUploadedFile($object, $fileProperty);
 
-        // 3. Validaciones: Debe ser una instancia válida de UploadedFile
         if (!$uploadedFile instanceof UploadedFile) {
             return;
         }
 
-        // 4. Validar tipo MIME (Solo imágenes, ignorar lo que ya es WebP o SVG)
         $mimeType = $uploadedFile->getMimeType();
-        if (!str_starts_with($mimeType, 'image/') || $mimeType === 'image/webp' || $mimeType === 'image/svg+xml') {
+
+        // 3. Lógica de Decisión: ¿La entidad exige compatibilidad Legacy (JPEG)?
+        $requiresJpg  = $object instanceof RequiresJpegConversionInterface;
+
+        // Asignamos las variables de conversión dinámicamente
+        $targetMime   = $requiresJpg ? 'image/jpeg' : 'image/webp';
+        $targetExt    = $requiresJpg ? 'jpg' : 'webp';
+        $targetFilter = $requiresJpg ? self::FILTER_JPG : self::FILTER_WEBP;
+
+        // 4. Salida rápida: Si no es imagen, o ya está en el formato final, o es un SVG (vectorial), no tocamos nada.
+        if (!str_starts_with((string)$mimeType, 'image/') || $mimeType === $targetMime || $mimeType === 'image/svg+xml') {
             return;
         }
 
-        // 5. CONVERSIÓN
+        // 5. Ejecutamos la conversión
         try {
-            $this->convertToWebp($object, $uploadedFile, $fileProperty);
+            $this->convertImage($object, $uploadedFile, $fileProperty, $targetFilter, $targetExt, $targetMime);
         } catch (\Throwable $e) {
-            // Si falla la conversión (ej: Imagick no disponible), dejamos pasar el original
-            // para no romper el flujo del usuario.
+            // Fallback silencioso: Si Imagick falla, el archivo original continuará su ciclo de vida natural.
         }
     }
 
-    private function convertToWebp(object $entity, UploadedFile $originalFile, string $propertyName): void
-    {
-        // A. Leer binario original
+    /**
+     * Procesa la imagen a través de Liip Imagine, la guarda temporalmente con la nueva extensión
+     * y la re-inyecta en la entidad reemplazando al archivo original.
+     *
+     * @param object $entity La entidad que contiene el archivo.
+     * @param UploadedFile $originalFile El archivo original tal como llegó en el Request.
+     * @param string $propertyName El nombre de la propiedad donde Vich mapea el archivo.
+     * @param string $filterName El nombre del filtro configurado en liip_imagine.yaml.
+     * @param string $targetExt La extensión resultante ('jpg' o 'webp').
+     * @param string $targetMime El tipo MIME resultante ('image/jpeg' o 'image/webp').
+     */
+    private function convertImage(
+        object $entity,
+        UploadedFile $originalFile,
+        string $propertyName,
+        string $filterName,
+        string $targetExt,
+        string $targetMime
+    ): void {
+        // A. Convertir el archivo físico en un objeto binario para Liip
         $binary = new Binary(
             file_get_contents($originalFile->getPathname()),
             $originalFile->getMimeType(),
             $originalFile->getClientOriginalExtension()
         );
 
-        // B. Procesar con Liip (Debe tener format: webp en el YAML)
-        $newBinary = $this->filterManager->applyFilter($binary, self::FILTER_NAME);
+        // B. Aplicar el filtro de compresión y formato
+        $newBinary = $this->filterManager->applyFilter($binary, $filterName);
 
-        // C. Crear archivo temporal .webp
-        $tmpPath = sys_get_temp_dir() . '/' . uniqid('pms_webp_', true) . '.webp';
+        // C. Guardar el resultado en el directorio temporal del sistema operativo
+        $tmpPath = sys_get_temp_dir() . '/' . uniqid('pms_media_', true) . '.' . $targetExt;
         file_put_contents($tmpPath, $newBinary->getContent());
 
-        // D. Calcular nuevo nombre (archivo.jpg -> archivo.webp)
+        // D. Reconstruir el nombre original pero con la nueva extensión
         $originalName = pathinfo($originalFile->getClientOriginalName(), PATHINFO_FILENAME);
-        $newFilename = $originalName . '.webp';
+        $newFilename = $originalName . '.' . $targetExt;
 
-        // E. Crear el nuevo UploadedFile simulado
+        // E. Crear una nueva instancia de UploadedFile apuntando al archivo temporal
+        // El quinto parámetro (true) es el 'test mode', que permite instanciar el objeto
+        // sin que PHP lance un error de validación de seguridad de subida HTTP.
         $newUploadedFile = new UploadedFile(
             $tmpPath,
             $newFilename,
-            'image/webp',
+            $targetMime,
             null,
-            true // test mode = true evita que Symfony intente mover el archivo tmp del sistema
+            true
         );
 
-        // F. Reemplazar el archivo en la entidad (Inyección)
+        // F. Inyectar el nuevo archivo procesado de vuelta a la entidad
         $setter = 'set' . ucfirst($propertyName);
         if (method_exists($entity, $setter)) {
             $entity->$setter($newUploadedFile);
@@ -98,7 +131,7 @@ class VichWebpConversionListener
     }
 
     /**
-     * Obtiene el archivo usando el getter de la propiedad.
+     * Llama al getter correspondiente de la entidad para obtener el archivo instanciado.
      */
     private function getUploadedFile(object $object, string $property): ?object
     {
@@ -110,7 +143,7 @@ class VichWebpConversionListener
     }
 
     /**
-     * Verifica si la entidad implementa la lógica de MediaTrait.
+     * Evalúa si la entidad implementa los métodos provistos por el MediaTrait.
      */
     private function usesMediaTrait(object $object): bool
     {

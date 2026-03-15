@@ -112,9 +112,11 @@ class Beds24SendQueueCrudController extends BaseCrudController
 
         yield TextField::new('failedReason', 'Razón del Fallo')->onlyOnDetail();
 
+        // 🔥 AQUÍ ESTÁ LA MAGIA: Convertimos el array a un string JSON formateado bonito
         yield CodeEditorField::new('executionResult', 'Resultado Ejecución (JSON)')
             ->setLanguage('js')
-            ->onlyOnDetail();
+            ->onlyOnDetail()
+            ->formatValue(fn ($value) => $value ? json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '');
 
         yield CodeEditorField::new('lastRequestRaw', 'Último Request (Raw)')
             ->setLanguage('js')

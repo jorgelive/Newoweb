@@ -12,10 +12,12 @@ use ApiPlatform\Metadata\GetCollection;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Message\Contract\ConversationMilestoneInterface;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use InvalidArgumentException;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
@@ -36,9 +38,9 @@ class MessageConversation
     use IdTrait;
     use TimestampTrait;
 
-    public const STATUS_OPEN = 'open';
-    public const STATUS_CLOSED = 'closed';
-    public const STATUS_ARCHIVED = 'archived';
+    public const string STATUS_OPEN = 'open';
+    public const string STATUS_CLOSED = 'closed';
+    public const string STATUS_ARCHIVED = 'archived';
 
     #[ORM\Column(type: 'string', length: 20, options: ['default' => self::STATUS_OPEN])]
     #[Groups(['conversation:read'])]
@@ -72,6 +74,13 @@ class MessageConversation
     #[ORM\Column(type: 'datetime', nullable: true)]
     #[Groups(['conversation:read'])]
     private ?DateTimeInterface $lastInboundAt = null;
+
+    /**
+     * Puntero exacto para la ventana de servicio de 24 horas de WhatsApp (Meta).
+     */
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Groups(['conversation:read'])]
+    private ?DateTimeInterface $whatsappSessionValidUntil = null;
 
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
     #[Groups(['conversation:read'])]
@@ -120,6 +129,27 @@ class MessageConversation
     public function getLastInboundAt(): ?DateTimeInterface { return $this->lastInboundAt; }
     public function setLastInboundAt(?DateTimeInterface $lastInboundAt): self { $this->lastInboundAt = $lastInboundAt; return $this; }
 
+    public function getWhatsappSessionValidUntil(): ?DateTimeInterface { return $this->whatsappSessionValidUntil; }
+    public function setWhatsappSessionValidUntil(?DateTimeInterface $whatsappSessionValidUntil): self {
+        $this->whatsappSessionValidUntil = $whatsappSessionValidUntil;
+        return $this;
+    }
+
+    /**
+     * Comprueba si la ventana de servicio de 24 horas de WhatsApp está abierta.
+     * Si devuelve true, se pueden enviar mensajes libres.
+     * Si devuelve false, SOLO se pueden enviar plantillas pre-aprobadas.
+     */
+    #[Groups(['conversation:read'])]
+    public function isWhatsappSessionActive(): bool
+    {
+        if ($this->whatsappSessionValidUntil === null) {
+            return false;
+        }
+
+        return $this->whatsappSessionValidUntil > new \DateTime();
+    }
+
     public function getUnreadCount(): int { return $this->unreadCount; }
     public function setUnreadCount(int $unreadCount): self { $this->unreadCount = $unreadCount; return $this; }
     public function incrementUnreadCount(): self { $this->unreadCount++; return $this; }
@@ -139,6 +169,7 @@ class MessageConversation
 
     /**
      * Añade un mensaje y actualiza metadatos (fecha y contadores).
+     * Aplica reglas de negocio específicas por canal (ej. Ventana 24h Meta).
      */
     public function addMessage(Message $message): self
     {
@@ -150,10 +181,18 @@ class MessageConversation
             $fechaMensaje = clone ($message->getCreatedAt() ?? new \DateTime());
             $this->setLastMessageAt($fechaMensaje);
 
-            // 2. Si el mensaje es entrante, actualizamos el puntero de entrada e incrementamos no leídos
-            if (method_exists($message, 'getDirection') && $message->getDirection() === 'inbound') {
+            // 2. Si el mensaje es entrante (del huésped)
+            if ($message->getDirection() === Message::DIRECTION_INCOMING) {
                 $this->setLastInboundAt($fechaMensaje);
                 $this->incrementUnreadCount();
+
+                // 🔥 3. FILTRO ESTRICTO: Solo abrimos ventana de 24h si el origen es WhatsApp exacto
+                $channel = $message->getChannel();
+
+                if ($channel !== null && $channel->getId() === 'whatsapp_gupshup') {
+                    $ventanaCierre = (clone $fechaMensaje)->modify('+24 hours');
+                    $this->setWhatsappSessionValidUntil($ventanaCierre);
+                }
             }
         }
         return $this;
@@ -206,18 +245,45 @@ class MessageConversation
     public function setContextMilestones(array $milestones): self {
         $this->initContextData();
         $this->contextData['milestones'] = [];
+
         foreach ($milestones as $key => $value) {
             $this->addContextMilestone($key, $value);
         }
+
         return $this;
     }
 
     public function addContextMilestone(string $key, \DateTimeInterface|string|null $date): self {
+        // 🔥 BARRERA DE VALIDACIÓN ESTRICTA
+        $validMilestones = [
+            ConversationMilestoneInterface::CREATED,
+            ConversationMilestoneInterface::START,
+            ConversationMilestoneInterface::END,
+            ConversationMilestoneInterface::EXPECTED_ARRIVAL,
+            ConversationMilestoneInterface::CANCELLED,
+        ];
+
+        if (!in_array($key, $validMilestones, true)) {
+            throw new InvalidArgumentException(sprintf(
+                'El milestone "%s" no es válido. Solo se permiten las constantes definidas en %s.',
+                $key,
+                ConversationMilestoneInterface::class
+            ));
+        }
+
         $this->initContextData();
-        if (!isset($this->contextData['milestones'])) $this->contextData['milestones'] = [];
-        if ($date === null) return $this;
+        if (!isset($this->contextData['milestones'])) {
+            $this->contextData['milestones'] = [];
+        }
+
+        if ($date === null) {
+            return $this;
+        }
+
         $this->contextData['milestones'][$key] = $date instanceof \DateTimeInterface
-            ? $date->format('Y-m-d\TH:i:s') : $date;
+            ? $date->format('Y-m-d\TH:i:s')
+            : $date;
+
         return $this;
     }
 

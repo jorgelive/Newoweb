@@ -6,10 +6,12 @@ namespace App\Message\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\MessageContextInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use InvalidArgumentException;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -52,7 +54,14 @@ class MessageRule
 
     #[ORM\Column(length: 50)]
     #[Assert\NotBlank]
-    private string $milestone = 'start';
+    #[Assert\Choice(choices: [
+        ConversationMilestoneInterface::CREATED,
+        ConversationMilestoneInterface::START,
+        ConversationMilestoneInterface::END,
+        ConversationMilestoneInterface::EXPECTED_ARRIVAL,
+        ConversationMilestoneInterface::CANCELLED,
+    ], message: 'El hito de referencia seleccionado no es válido.')]
+    private string $milestone = ConversationMilestoneInterface::START;
 
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
     private int $offsetMinutes = 0;
@@ -129,7 +138,27 @@ class MessageRule
     public function setTemplate(?MessageTemplate $template): self { $this->template = $template; return $this; }
 
     public function getMilestone(): string { return $this->milestone; }
-    public function setMilestone(string $milestone): self { $this->milestone = $milestone; return $this; }
+
+    public function setMilestone(string $milestone): self {
+        $validMilestones = [
+            ConversationMilestoneInterface::CREATED,
+            ConversationMilestoneInterface::START,
+            ConversationMilestoneInterface::END,
+            ConversationMilestoneInterface::EXPECTED_ARRIVAL,
+            ConversationMilestoneInterface::CANCELLED,
+        ];
+
+        if (!in_array($milestone, $validMilestones, true)) {
+            throw new InvalidArgumentException(sprintf(
+                'El hito "%s" no es válido. Debe ser una de las constantes definidas en %s.',
+                $milestone,
+                ConversationMilestoneInterface::class
+            ));
+        }
+
+        $this->milestone = $milestone;
+        return $this;
+    }
 
     public function getOffsetMinutes(): int { return $this->offsetMinutes; }
     public function setOffsetMinutes(int $offsetMinutes): self { $this->offsetMinutes = $offsetMinutes; return $this; }

@@ -6,7 +6,10 @@ namespace App\Message\Entity;
 
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Panel\Contract\RequiresJpegConversionInterface; // 🔥 Importamos el contrato
+use App\Panel\Entity\Trait\MediaTrait;
 use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -14,14 +17,20 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
+/**
+ * Representa un archivo físico adjunto a un mensaje.
+ * Implementa RequiresJpegConversionInterface para forzar que las imágenes
+ * se guarden como JPEG, garantizando compatibilidad con canales externos (Beds24).
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'msg_attachment')]
 #[ORM\HasLifecycleCallbacks]
-#[Vich\Uploadable] // 🔥 ATRIBUTO REQUERIDO POR VICH
-class MessageAttachment
+#[Vich\Uploadable]
+class MessageAttachment implements RequiresJpegConversionInterface
 {
     use IdTrait;
     use TimestampTrait;
+    use MediaTrait;
 
     #[ORM\ManyToOne(targetEntity: Message::class, inversedBy: 'attachments')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -32,8 +41,8 @@ class MessageAttachment
     // =========================================================================
 
     /**
-     * Este es el campo virtual (NO se guarda en BD) que recibe el archivo físico del formulario.
-     * Vich inyecta automáticamente los datos en las otras propiedades.
+     * Campo virtual (NO persistido en BD) que recibe el archivo temporal inyectado
+     * por el controlador, el decodificador o el State Processor.
      */
     #[Vich\UploadableField(
         mapping: 'message_attachments',
@@ -44,10 +53,8 @@ class MessageAttachment
     )]
     private ?File $file = null;
 
-    /**
-     * El nombre generado por Vich (ej: "65c3a1...8d.pdf"). Reemplaza a tu antiguo filePath.
-     */
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['message:read'])]
     private ?string $fileName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -61,7 +68,7 @@ class MessageAttachment
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $fileSize = null;
 
-    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?DateTimeImmutable $fileUpdatedAt = null;
 
     #[Groups(['message:read'])]
@@ -73,16 +80,19 @@ class MessageAttachment
     }
 
     // =========================================================================
-    // MÉTODOS DE VICH UPLOADER (El Setter es vital)
+    // MÉTODOS DE ARCHIVO VIRTUAL (VICH UPLOADER)
     // =========================================================================
 
+    /**
+     * Inyecta el archivo físico. Al hacerlo, actualizamos la fecha de modificación
+     * para que Doctrine detecte un cambio en la entidad y dispare los eventos de VichUploader.
+     *
+     * @param File|null $file
+     */
     public function setFile(?File $file = null): void
     {
         $this->file = $file;
-
         if (null !== $file) {
-            // Es OBLIGATORIO modificar una fecha para que Doctrine detecte
-            // el cambio en la entidad y lance los eventos que Vich necesita escuchar.
             $this->fileUpdatedAt = new DateTimeImmutable();
         }
     }
@@ -93,47 +103,88 @@ class MessageAttachment
     }
 
     // =========================================================================
-    // HELPER PARA LIIP IMAGINE (El agnóstico)
+    // GETTERS Y SETTERS ESTÁNDAR
     // =========================================================================
 
-    /**
-     * Helper para que la vista (Twig) sepa si debe pasarle el archivo a Liip
-     * o si debe mostrar un simple enlace de descarga (para PDFs, DOCX).
-     */
-    public function isImage(): bool
+    #[Groups(['message:read'])]
+    public function getId(): UuidV7
     {
-        return $this->mimeType !== null && str_starts_with($this->mimeType, 'image/');
+        return $this->id;
     }
 
-    // =========================================================================
-    // GETTERS Y SETTERS TRADICIONALES
-    // =========================================================================
+    public function getMessage(): ?Message
+    {
+        return $this->message;
+    }
 
-    public function getId(): UuidV7 { return $this->id; }
+    public function setMessage(?Message $message): self
+    {
+        $this->message = $message;
+        return $this;
+    }
 
-    public function getMessage(): ?Message { return $this->message; }
-    public function setMessage(?Message $message): self { $this->message = $message; return $this; }
+    public function getFileName(): ?string
+    {
+        return $this->fileName;
+    }
 
-    public function getFileName(): ?string { return $this->fileName; }
-    public function setFileName(?string $fileName): self { $this->fileName = $fileName; return $this; }
+    public function setFileName(?string $fileName): self
+    {
+        $this->fileName = $fileName;
+        return $this;
+    }
 
-    public function getOriginalName(): ?string { return $this->originalName; }
-    public function setOriginalName(?string $originalName): self { $this->originalName = $originalName; return $this; }
+    public function getOriginalName(): ?string
+    {
+        return $this->originalName;
+    }
 
-    public function getMimeType(): ?string { return $this->mimeType; }
-    public function setMimeType(?string $mimeType): self { $this->mimeType = $mimeType; return $this; }
+    public function setOriginalName(?string $originalName): self
+    {
+        $this->originalName = $originalName;
+        return $this;
+    }
 
-    public function getFileSize(): ?int { return $this->fileSize; }
-    public function setFileSize(?int $fileSize): self { $this->fileSize = $fileSize; return $this; }
+    public function getMimeType(): ?string
+    {
+        return $this->mimeType;
+    }
+
+    public function setMimeType(?string $mimeType): self
+    {
+        $this->mimeType = $mimeType;
+        return $this;
+    }
+
+    public function getFileSize(): ?int
+    {
+        return $this->fileSize;
+    }
+
+    public function setFileSize(?int $fileSize): self
+    {
+        $this->fileSize = $fileSize;
+        return $this;
+    }
 
     public function getFileUpdatedAt(): ?DateTimeImmutable
     {
         return $this->fileUpdatedAt;
     }
 
-    public function setFileUpdatedAt(?DateTimeImmutable $fileUpdatedAt): self
+    /**
+     * Establece la fecha de actualización del archivo.
+     * Si la librería envía un objeto DateTime estándar, lo convertimos a Inmutable
+     * para mantener la consistencia del tipo de dato en la entidad.
+     */
+    public function setFileUpdatedAt(?DateTimeInterface $fileUpdatedAt): self
     {
-        $this->fileUpdatedAt = $fileUpdatedAt;
+        if ($fileUpdatedAt instanceof \DateTime) {
+            $this->fileUpdatedAt = DateTimeImmutable::createFromMutable($fileUpdatedAt);
+        } else {
+            $this->fileUpdatedAt = $fileUpdatedAt;
+        }
+
         return $this;
     }
 

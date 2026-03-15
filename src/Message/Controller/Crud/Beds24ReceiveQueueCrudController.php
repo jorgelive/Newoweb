@@ -66,7 +66,7 @@ class Beds24ReceiveQueueCrudController extends BaseCrudController
     {
         yield IdField::new('id')
             ->setMaxLength(40)
-            ->hideOnForm();
+            ->onlyOnDetail();
 
         // --- PANEL 1: ESTADO DE LA DESCARGA ---
         yield FormField::addPanel('Estado de Descarga (Pull)')->setIcon('fa fa-download');

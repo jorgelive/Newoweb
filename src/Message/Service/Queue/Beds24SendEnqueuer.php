@@ -80,7 +80,7 @@ class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         $queue->setStatus(Beds24SendQueue::STATUS_PENDING);
         $queue->setRunAt($runAt);
         $queue->setRetryCount(0);
-        $queue->setMaxAttempts(3);
+        $queue->setMaxAttempts(5);
 
         return $queue;
     }

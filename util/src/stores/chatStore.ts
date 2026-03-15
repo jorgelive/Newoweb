@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import { useAttachmentStore } from './attachmentStore';
 
 // ============================================================================
 // INTERFACES (TypeScript Estricto)
@@ -28,9 +29,7 @@ export interface ApiMessage {
     contentLocal: string | null;
     contentExternal: string | null;
     createdAt: string;
-    // Soportamos 'gupshup' por retrocompatibilidad con registros viejos en la BD
     metadata?: { beds24?: any; whatsappGupshup?: any; gupshup?: any };
-    // API Platform puede devolver el objeto hidratado o solo el string (IRI)
     channel?: { id: string; name: string } | string;
     whatsappGupshupSendQueues?: ApiMessageQueue[] | string[];
     beds24SendQueues?: ApiMessageQueue[] | string[];
@@ -78,10 +77,11 @@ export const useChatStore = defineStore('chatStore', () => {
 
     const apiClient = axios.create({
         withCredentials: true,
-        headers: { 'Accept': 'application/ld+json', 'Content-Type': 'application/ld+json' }
+        // 🔥 Quitamos el Content-Type genérico para que Axios lo configure dinámicamente
+        // según si mandamos un JSON o un FormData. El Accept en ld+json se queda para leer las respuestas.
+        headers: { 'Accept': 'application/ld+json' }
     });
 
-    // 🔥 RESTAURADO: Inyección dinámica de la URL base para evitar el error 404
     apiClient.interceptors.request.use((config) => {
         config.baseURL = getUrls().api;
         return config;
@@ -160,29 +160,59 @@ export const useChatStore = defineStore('chatStore', () => {
         }
     };
 
+    // ============================================================================
+    // ENVÍO MULTIPART (JSON + ARCHIVOS)
+    // ============================================================================
     const sendMessage = async (text: string, templateIri: string | null = null, channels: string[] = []) => {
         if (!currentConversation.value) return;
-        sendingMessage.value = true;
-        try {
-            const payload: any = {
-                conversation: currentConversation.value['@id'],
-                direction: 'outgoing',
-                senderType: 'host',
-                status: 'pending',
-                transientChannels: channels
-            };
 
+        sendingMessage.value = true;
+        const attachmentStore = useAttachmentStore(); // Consumimos el store de archivos
+
+        try {
+            // 🔥 Creamos el paquete Multipart
+            const form = new FormData();
+
+            // 1. Datos base
+            form.append('conversation', currentConversation.value['@id']);
+            form.append('direction', 'outgoing');
+            form.append('senderType', 'host');
+            form.append('status', 'pending');
+
+            // 2. Arrays en FormData (OBLIGATORIO usar los corchetes [] al final del nombre)
+            channels.forEach(channel => {
+                form.append('transientChannels[]', channel);
+            });
+
+            // 3. Contenido o Plantilla
             if (templateIri) {
-                payload.template = templateIri;
+                form.append('template', templateIri);
             } else {
-                payload.contentLocal = text.trim();
+                form.append('contentLocal', text.trim());
             }
 
-            const response = await apiClient.post('/platform/user/util/msg/messages', payload);
+            // 4. El Archivo Físico (Si el usuario seleccionó uno)
+            if (attachmentStore.file) {
+                form.append('file', attachmentStore.file);
+            }
+
+            // 5. POST al endpoint normal de API Platform, pero con cabecera multipart
+            const response = await apiClient.post('/platform/user/util/msg/messages', form, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            // Añadimos a la UI
             messages.value.push(response.data);
+
+            // Limpiamos los estados de adjuntos y recargamos conversaciones
+            attachmentStore.clear();
             fetchConversations();
-        } catch {
-            error.value = 'Fallo al enviar mensaje';
+
+        } catch (err) {
+            error.value = 'Fallo al enviar el mensaje. Verifica el tamaño del archivo.';
+            console.error('Error enviando mensaje Multipart:', err);
         } finally {
             sendingMessage.value = false;
         }

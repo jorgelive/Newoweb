@@ -6,7 +6,7 @@ namespace App\Message\Factory;
 
 use App\Message\Entity\MessageAttachment;
 use RuntimeException;
-use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class MessageAttachmentFactory
 {
@@ -28,24 +28,31 @@ class MessageAttachmentFactory
         }
 
         // 3. Crear un archivo temporal físico en el sistema
-        // Usamos un prefijo único para evitar colisiones
-        $tmpFileName = uniqid('beds24_attach_', true) . '_' . preg_replace('/[^a-zA-Z0-9_.-]/', '_', $originalName);
+        $tmpFileName = uniqid('chat_attach_', true) . '_' . preg_replace('/[^a-zA-Z0-9_.-]/', '_', $originalName);
         $tmpFilePath = sys_get_temp_dir() . \DIRECTORY_SEPARATOR . $tmpFileName;
 
         if (file_put_contents($tmpFilePath, $decodedData) === false) {
             throw new RuntimeException('No se pudo escribir el archivo adjunto temporal.');
         }
 
-        // 4. Instanciar el objeto File de Symfony
-        $file = new File($tmpFilePath);
+        // 🔥 4. TRUCO CLAVE: Instanciar como UploadedFile en modo "$test = true"
+        // Esto engaña a VichUploader para que trate el archivo programático
+        // exactamente igual que si hubiera entrado por un <input type="file"> tradicional.
+        $file = new UploadedFile(
+            $tmpFilePath,        // Ruta del archivo físico temporal
+            $originalName,       // Nombre original que trajo el front
+            $mimeType,           // Tipo MIME que trajo el front
+            null,                // Sin código de error
+            true                 // Modo TEST activado: bypass a la seguridad is_uploaded_file()
+        );
 
         // 5. Crear la entidad
         $attachment = new MessageAttachment();
 
-        // Al setear el File, VichUploader se engancha y sabe que debe procesarlo
+        // Al setear el UploadedFile, VichUploader se engancha y lo procesará en el prePersist
         $attachment->setFile($file);
 
-        // Seteamos la metadata original (Vich también lo haría, pero es buena práctica asegurarlo)
+        // Seteamos la metadata original
         $attachment->setOriginalName($originalName);
         $attachment->setMimeType($mimeType);
         $attachment->setFileSize($file->getSize());

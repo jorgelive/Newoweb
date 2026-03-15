@@ -64,7 +64,7 @@ class GupshupConfigCrudController extends BaseCrudController
     {
         yield IdField::new('id')
             ->setMaxLength(40)
-            ->hideOnForm();
+            ->onlyOnDetail();
 
         // --- PANEL 1: IDENTIFICACIÓN ---
         yield FormField::addPanel('Identificación de la App')

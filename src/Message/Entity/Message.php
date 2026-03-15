@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Message\Entity;
 
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
-use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
@@ -13,7 +11,9 @@ use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Message\ApiPlatform\State\MessageMultipartProcessor;
 use App\Message\Validator\ValidTemplateScope;
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -24,7 +24,7 @@ use Symfony\Component\Uid\UuidV7;
 
 /**
  * Entidad que representa un mensaje individual dentro de una conversación.
- * Expuesta a través de API Platform permitiendo lectura y escritura (envío de mensajes).
+ * Expuesta a través de API Platform permitiendo lectura y escritura.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'msg_message')]
@@ -38,17 +38,27 @@ use Symfony\Component\Uid\UuidV7;
             uriTemplate: '/user/util/msg/conversations/{id}/messages',
             uriVariables: [
                 'id' => new Link(
-                    fromClass: MessageConversation::class,
-                    toProperty: 'conversation'
+                    toProperty: 'conversation',
+                    fromClass: MessageConversation::class
                 )
             ],
             order: ['createdAt' => 'ASC']
         ),
-
         new GetCollection(uriTemplate: '/user/util/msg/messages'),
         new Get(uriTemplate: '/user/util/msg/messages/{id}'),
-        new Post(uriTemplate: '/user/util/msg/messages')
-    ]
+
+        new Post(
+            uriTemplate: '/user/util/msg/messages',
+            inputFormats: [
+                'jsonld' => ['application/ld+json'],
+                'multipart' => ['multipart/form-data']
+            ],
+            // 🔥 AQUÍ ESTÁ LA MAGIA: Desviamos el tráfico a nuestro procesador personalizado
+            processor: MessageMultipartProcessor::class
+        )
+    ],
+    normalizationContext: ['groups' => ['message:read']],
+    denormalizationContext: ['groups' => ['message:write']]
 )]
 class Message
 {
@@ -65,7 +75,6 @@ class Message
     public const string DIRECTION_INCOMING = 'incoming';
     public const string DIRECTION_OUTGOING = 'outgoing';
 
-    // === CONSTANTES DE ORIGEN (SENDER TYPE) ===
     public const string SENDER_HOST     = 'host';
     public const string SENDER_GUEST    = 'guest';
     public const string SENDER_SYSTEM   = 'system';
@@ -83,27 +92,20 @@ class Message
 
     #[ORM\ManyToOne(targetEntity: MessageTemplate::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['message:read'])]
+    #[Groups(['message:read', 'message:write'])]
     private ?MessageTemplate $template = null;
 
-    /** @var Collection<int, WhatsappGupshupSendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
     private Collection $whatsappGupshupSendQueues;
 
-    /** @var Collection<int, Beds24SendQueue> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: Beds24SendQueue::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
     private Collection $beds24SendQueues;
 
-    /** @var Collection<int, MessageAttachment> */
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: MessageAttachment::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
     private Collection $attachments;
-
-    // =========================================================================
-    // CONTENIDO SEMÁNTICO (LOCAL vs EXTERNAL)
-    // =========================================================================
 
     #[ORM\Column(length: 10, options: ['default' => 'es'])]
     private string $languageCode = 'es';
@@ -122,19 +124,12 @@ class Message
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $subjectExternal = null;
 
-    // =========================================================================
-    // METADATA Y ESTADO
-    // =========================================================================
-
     #[ORM\Column(type: 'json')]
     private array $templateContext = [];
 
     #[ORM\Column(type: 'json')]
     #[Groups(['message:read'])]
-    private array $metadata = [
-        'beds24'  => [],
-        'whatsappGupshup' => []
-    ];
+    private array $metadata = ['beds24' => [], 'whatsappGupshup' => []];
 
     #[ORM\Column(length: 20, options: ['default' => self::DIRECTION_OUTGOING])]
     #[Groups(['message:read', 'message:write'])]
@@ -151,9 +146,10 @@ class Message
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $externalIds = [];
 
-    /** Propiedad transitoria (Memoria) para selección manual de canales */
     #[Groups(['message:write'])]
     private array $transientChannels = [];
+
+    private ?\DateTimeImmutable $scheduledAt = null;
 
     public function __construct()
     {
@@ -169,35 +165,11 @@ class Message
         return $this->template ? ('Plantilla: ' . $this->template->getName()) : 'Mensaje Libre';
     }
 
-    // =========================================================================
-    // GETTERS EXPLÍCITOS PARA API PLATFORM (Basados en Traits)
-    // =========================================================================
-
-    /**
-     * Devuelve el ID único del mensaje.
-     * Mapeado explícitamente para asegurar su lectura en API Platform.
-     * * @return UuidV7
-     */
     #[Groups(['message:read'])]
-    public function getId(): UuidV7
-    {
-        return $this->id;
-    }
+    public function getId(): UuidV7 { return $this->id; }
 
-    /**
-     * Devuelve la fecha de creación del mensaje.
-     * Expuesto explícitamente para garantizar su serialización en API Platform.
-     * * @return \DateTimeInterface|null
-     */
     #[Groups(['message:read'])]
-    public function getCreatedAt(): ?\DateTimeInterface
-    {
-        return $this->createdAt ?? null;
-    }
-
-    // =========================================================================
-    // GETTERS Y SETTERS BÁSICOS
-    // =========================================================================
+    public function getCreatedAt(): ?DateTimeInterface { return $this->createdAt ?? null; }
 
     public function getConversation(): ?MessageConversation { return $this->conversation; }
     public function setConversation(?MessageConversation $conversation): self { $this->conversation = $conversation; return $this; }
@@ -210,6 +182,9 @@ class Message
 
     public function getTransientChannels(): array { return $this->transientChannels; }
     public function setTransientChannels(array $channels): self { $this->transientChannels = $channels; return $this; }
+
+    public function getScheduledAt(): ?\DateTimeImmutable { return $this->scheduledAt; }
+    public function setScheduledAt(?\DateTimeImmutable $scheduledAt): self { $this->scheduledAt = $scheduledAt; return $this; }
 
     public function getLanguageCode(): string { return $this->languageCode; }
     public function setLanguageCode(string $languageCode): self { $this->languageCode = $languageCode; return $this; }
@@ -226,175 +201,61 @@ class Message
     public function getSubjectExternal(): ?string { return $this->subjectExternal; }
     public function setSubjectExternal(?string $subjectExternal): self { $this->subjectExternal = $subjectExternal; return $this; }
 
-    public function getFullContentLocal(): string
-    {
+    public function getFullContentLocal(): string {
         $content = $this->contentLocal ?? $this->contentExternal ?? '';
         $subject = $this->subjectLocal ?? $this->subjectExternal ?? '';
-        if (!empty($subject)) {
-            return sprintf("*%s*\n\n%s", trim($subject), trim($content));
-        }
+        if (!empty($subject)) return sprintf("*%s*\n\n%s", trim($subject), trim($content));
         return $content;
     }
 
-    public function getFullContentExternal(): string
-    {
+    public function getFullContentExternal(): string {
         $content = $this->contentExternal ?? $this->contentLocal ?? '';
         $subject = $this->subjectExternal ?? $this->subjectLocal ?? '';
-        if (!empty($subject)) {
-            return sprintf("*%s*\n\n%s", trim($subject), trim($content));
-        }
+        if (!empty($subject)) return sprintf("*%s*\n\n%s", trim($subject), trim($content));
         return $content;
     }
-
-    // =========================================================================
-    // METADATA Y ESTADO (ESTANDARIZADO PARA CANALES)
-    // =========================================================================
 
     public function getTemplateContext(): array { return $this->templateContext; }
     public function setTemplateContext(array $templateContext): self { $this->templateContext = $templateContext; return $this; }
 
-    public function getMetadata(): array
-    {
-        return array_merge(['beds24' => [], 'whatsappGupshup' => []], $this->metadata);
-    }
+    public function getMetadata(): array { return array_merge(['beds24' => [], 'whatsappGupshup' => []], $this->metadata); }
+    public function setMetadata(array $metadata): self { $this->metadata = $metadata; return $this; }
+    public function addMetadata(string $key, mixed $value): self { $this->metadata[$key] = $value; return $this; }
 
-    public function setMetadata(array $metadata): self
-    {
-        $this->metadata = $metadata;
-        return $this;
-    }
-
-    public function addMetadata(string $key, mixed $value): self
-    {
-        $this->metadata[$key] = $value;
-        return $this;
-    }
-
-    // --- ESTANDARIZACIÓN BEDS24 METADATA ---
-
-    public function getBeds24Metadata(): array
-    {
-        return $this->metadata['beds24'] ?? [];
-    }
-
-    public function setBeds24Metadata(array $data): self
-    {
-        $this->metadata['beds24'] = $data;
-        return $this;
-    }
-
-    public function addBeds24Metadata(string $key, mixed $value): self
-    {
-        if (!isset($this->metadata['beds24']) || !is_array($this->metadata['beds24'])) {
-            $this->metadata['beds24'] = [];
-        }
+    public function getBeds24Metadata(): array { return $this->metadata['beds24'] ?? []; }
+    public function setBeds24Metadata(array $data): self { $this->metadata['beds24'] = $data; return $this; }
+    public function addBeds24Metadata(string $key, mixed $value): self {
+        if (!isset($this->metadata['beds24']) || !is_array($this->metadata['beds24'])) $this->metadata['beds24'] = [];
         $this->metadata['beds24'][$key] = $value;
         return $this;
     }
+    public function getBeds24ReceivedAt(): ?string { return $this->metadata['beds24']['received_at'] ?? null; }
+    public function setBeds24ReceivedAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('received_at', $dateTimeIso8601); }
+    public function getBeds24ReadAt(): ?string { return $this->metadata['beds24']['read_at'] ?? null; }
+    public function setBeds24ReadAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('read_at', $dateTimeIso8601); }
 
-    public function getBeds24ReceivedAt(): ?string
-    {
-        return $this->metadata['beds24']['received_at'] ?? null;
-    }
-
-    public function setBeds24ReceivedAt(string $dateTimeIso8601): self
-    {
-        return $this->addBeds24Metadata('received_at', $dateTimeIso8601);
-    }
-
-    public function getBeds24ReadAt(): ?string
-    {
-        return $this->metadata['beds24']['read_at'] ?? null;
-    }
-
-    public function setBeds24ReadAt(string $dateTimeIso8601): self
-    {
-        return $this->addBeds24Metadata('read_at', $dateTimeIso8601);
-    }
-
-    // --- ESTANDARIZACIÓN GUPSHUP METADATA ---
-
-    public function getGupshupMetadata(): array
-    {
-        return $this->metadata['whatsappGupshup'] ?? [];
-    }
-
-    public function setGupshupMetadata(array $data): self
-    {
-        $this->metadata['whatsappGupshup'] = $data;
-        return $this;
-    }
-
-    public function addGupshupMetadata(string $key, mixed $value): self
-    {
-        if (!isset($this->metadata['whatsappGupshup']) || !is_array($this->metadata['whatsappGupshup'])) {
-            $this->metadata['whatsappGupshup'] = [];
-        }
+    public function getGupshupMetadata(): array { return $this->metadata['whatsappGupshup'] ?? []; }
+    public function setGupshupMetadata(array $data): self { $this->metadata['whatsappGupshup'] = $data; return $this; }
+    public function addGupshupMetadata(string $key, mixed $value): self {
+        if (!isset($this->metadata['whatsappGupshup']) || !is_array($this->metadata['whatsappGupshup'])) $this->metadata['whatsappGupshup'] = [];
         $this->metadata['whatsappGupshup'][$key] = $value;
         return $this;
     }
-
-    public function getGupshupSentAt(): ?string
-    {
-        return $this->metadata['whatsappGupshup']['sent_at'] ?? null;
-    }
-
-    public function setGupshupSentAt(string $dateTimeIso8601): self
-    {
-        return $this->addGupshupMetadata('sent_at', $dateTimeIso8601);
-    }
-
-    public function getGupshupDeliveredAt(): ?string
-    {
-        return $this->metadata['whatsappGupshup']['delivered_at'] ?? null;
-    }
-
-    public function setGupshupDeliveredAt(string $dateTimeIso8601): self
-    {
-        return $this->addGupshupMetadata('delivered_at', $dateTimeIso8601);
-    }
-
-    public function getGupshupReadAt(): ?string
-    {
-        return $this->metadata['whatsappGupshup']['read_at'] ?? null;
-    }
-
-    public function setGupshupReadAt(string $dateTimeIso8601): self
-    {
-        return $this->addGupshupMetadata('read_at', $dateTimeIso8601);
-    }
-
-    public function getGupshupErrorCode(): ?string
-    {
-        return $this->metadata['whatsappGupshup']['error_code'] ?? null;
-    }
-
-    public function setGupshupErrorCode(string $code): self
-    {
-        return $this->addGupshupMetadata('error_code', $code);
-    }
-
-    public function getGupshupErrorReason(): ?string
-    {
-        return $this->metadata['whatsappGupshup']['error_reason'] ?? null;
-    }
-
-    public function setGupshupErrorReason(string $reason): self
-    {
-        return $this->addGupshupMetadata('error_reason', $reason);
-    }
-
-    // =========================================================================
-    // ESTADO GENERAL
-    // =========================================================================
+    public function getGupshupSentAt(): ?string { return $this->metadata['whatsappGupshup']['sent_at'] ?? null; }
+    public function setGupshupSentAt(string $dateTimeIso8601): self { return $this->addGupshupMetadata('sent_at', $dateTimeIso8601); }
+    public function getGupshupDeliveredAt(): ?string { return $this->metadata['whatsappGupshup']['delivered_at'] ?? null; }
+    public function setGupshupDeliveredAt(string $dateTimeIso8601): self { return $this->addGupshupMetadata('delivered_at', $dateTimeIso8601); }
+    public function getGupshupReadAt(): ?string { return $this->metadata['whatsappGupshup']['read_at'] ?? null; }
+    public function setGupshupReadAt(string $dateTimeIso8601): self { return $this->addGupshupMetadata('read_at', $dateTimeIso8601); }
+    public function getGupshupErrorCode(): ?string { return $this->metadata['whatsappGupshup']['error_code'] ?? null; }
+    public function setGupshupErrorCode(string $code): self { return $this->addGupshupMetadata('error_code', $code); }
+    public function getGupshupErrorReason(): ?string { return $this->metadata['whatsappGupshup']['error_reason'] ?? null; }
+    public function setGupshupErrorReason(string $reason): self { return $this->addGupshupMetadata('error_reason', $reason); }
 
     public function getDirection(): string { return $this->direction; }
     public function setDirection(string $direction): self {
-        if (!in_array($direction, [self::DIRECTION_INCOMING, self::DIRECTION_OUTGOING])) {
-            throw new InvalidArgumentException("Dirección inválida");
-        }
-        $this->direction = $direction;
-        return $this;
+        if (!in_array($direction, [self::DIRECTION_INCOMING, self::DIRECTION_OUTGOING])) throw new InvalidArgumentException("Dirección inválida");
+        $this->direction = $direction; return $this;
     }
 
     public function getStatus(): string { return $this->status; }
@@ -403,85 +264,28 @@ class Message
     public function getSenderType(): string { return $this->senderType; }
     public function setSenderType(string $senderType): self { $this->senderType = $senderType; return $this; }
 
-    // =========================================================================
-    // EXTERNAL IDs (Idempotencia Multicanal)
-    // =========================================================================
-
-    public function getExternalIds(): array
-    {
-        return $this->externalIds ?? [];
-    }
-
-    public function setExternalIds(?array $externalIds): self
-    {
-        $this->externalIds = $externalIds;
-        return $this;
-    }
-
-    public function getBeds24ExternalId(): ?string
-    {
-        return $this->externalIds['beds24'] ?? null;
-    }
-
-    public function setBeds24ExternalId(?string $id): self
-    {
-        $this->externalIds['beds24'] = $id;
-        return $this;
-    }
-
-    public function getGupshupExternalId(): ?string
-    {
-        return $this->externalIds['gupshup'] ?? null;
-    }
-
-    public function setGupshupExternalId(?string $id): self
-    {
-        $this->externalIds['gupshup'] = $id;
-        return $this;
-    }
-
-    // =========================================================================
-    // RELACIONES (COLAS DE ENVÍO Y ADJUNTOS)
-    // =========================================================================
+    public function getExternalIds(): array { return $this->externalIds ?? []; }
+    public function setExternalIds(?array $externalIds): self { $this->externalIds = $externalIds; return $this; }
+    public function getBeds24ExternalId(): ?string { return $this->externalIds['beds24'] ?? null; }
+    public function setBeds24ExternalId(?string $id): self { $this->externalIds['beds24'] = $id; return $this; }
+    public function getGupshupExternalId(): ?string { return $this->externalIds['gupshup'] ?? null; }
+    public function setGupshupExternalId(?string $id): self { $this->externalIds['gupshup'] = $id; return $this; }
 
     public function getWhatsappGupshupSendQueues(): Collection { return $this->whatsappGupshupSendQueues; }
 
     public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self {
         if (!$this->whatsappGupshupSendQueues->contains($queue)) {
             $this->whatsappGupshupSendQueues->add($queue);
-            if ($queue->getMessage() !== $this) {
-                $queue->setMessage($this);
-            }
-        }
-        return $this;
-    }
-
-    public function removeWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self {
-        if ($this->whatsappGupshupSendQueues->removeElement($queue)) {
-            if ($queue->getMessage() === $this) {
-                $queue->setMessage(null);
-            }
+            if ($queue->getMessage() !== $this) $queue->setMessage($this);
         }
         return $this;
     }
 
     public function getBeds24SendQueues(): Collection { return $this->beds24SendQueues; }
-
     public function addBeds24SendQueue(Beds24SendQueue $queue): self {
         if (!$this->beds24SendQueues->contains($queue)) {
             $this->beds24SendQueues->add($queue);
-            if ($queue->getMessage() !== $this) {
-                $queue->setMessage($this);
-            }
-        }
-        return $this;
-    }
-
-    public function removeBeds24SendQueue(Beds24SendQueue $queue): self {
-        if ($this->beds24SendQueues->removeElement($queue)) {
-            if ($queue->getMessage() === $this) {
-                $queue->setMessage(null);
-            }
+            if ($queue->getMessage() !== $this) $queue->setMessage($this);
         }
         return $this;
     }
@@ -491,18 +295,7 @@ class Message
     public function addAttachment(MessageAttachment $attachment): self {
         if (!$this->attachments->contains($attachment)) {
             $this->attachments->add($attachment);
-            if ($attachment->getMessage() !== $this) {
-                $attachment->setMessage($this);
-            }
-        }
-        return $this;
-    }
-
-    public function removeAttachment(MessageAttachment $attachment): self {
-        if ($this->attachments->removeElement($attachment)) {
-            if ($attachment->getMessage() === $this) {
-                $attachment->setMessage(null);
-            }
+            if ($attachment->getMessage() !== $this) $attachment->setMessage($this);
         }
         return $this;
     }

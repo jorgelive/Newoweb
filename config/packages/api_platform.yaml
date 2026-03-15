@@ -10,9 +10,15 @@ api_platform:
             - '%kernel.project_dir%/src/Message/Entity'
             # Descomenta estas líneas si luego quieres exponer APIs de estos módulos:
             # - '%kernel.project_dir%/src/Exchange/Entity'
-            # - '%kernel.project_dir%/src/Message/Entity'
+
 
     defaults:
         stateless: false
         cache_headers:
             vary: ['Content-Type', 'Authorization', 'Origin']
+
+    formats:
+        jsonld: ['application/ld+json']
+        json: ['application/json']
+        html: ['text/html']
+        multipart: ['multipart/form-data']

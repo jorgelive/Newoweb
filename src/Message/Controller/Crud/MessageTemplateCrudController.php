@@ -87,7 +87,7 @@ class MessageTemplateCrudController extends BaseCrudController
     {
         yield IdField::new('id')
             ->setMaxLength(40)
-            ->hideOnForm();
+            ->onlyOnDetail();
 
         // --- PANEL 1: GENERAL ---
         yield FormField::addPanel('Información General')

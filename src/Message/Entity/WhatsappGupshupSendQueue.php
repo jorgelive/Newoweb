@@ -43,19 +43,15 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     public const string DELIVERY_DELIVERED = 'delivered';
     public const string DELIVERY_READ = 'read';
 
-    // =========================================================================
-    // RELACIONES
-    // =========================================================================
-
-    #[ORM\ManyToOne(targetEntity: Message::class, inversedBy: 'whatsappGupshupQueues')]
+    #[ORM\ManyToOne(targetEntity: Message::class, inversedBy: 'whatsappGupshupSendQueues')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Message $message = null;
 
-    #[ORM\ManyToOne(targetEntity: GupshupConfig::class, inversedBy: 'whatsappGupshupSendQueues')]
+    #[ORM\ManyToOne(targetEntity: GupshupConfig::class)]
     #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
     private ?GupshupConfig $config = null;
 
-    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class, inversedBy: 'whatsappGupshupSendQueues')]
+    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class)]
     #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
     private ?ExchangeEndpoint $endpoint = null;
 
@@ -69,6 +65,7 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $externalMessageId = null;
 
+    // 🔥 API PLATFORM
     #[ORM\Column(length: 20, options: ['default' => self::DELIVERY_UNKNOWN])]
     #[Groups(['message:read'])]
     private string $deliveryStatus = self::DELIVERY_UNKNOWN;
@@ -82,15 +79,14 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $webhookHistory = [];
 
-    // =========================================================================
-    // CAMPOS DE WORKER (Infraestructura)
-    // =========================================================================
-
+    // 🔥 API PLATFORM
     #[ORM\Column(length: 20, options: ['default' => self::STATUS_PENDING])]
     #[Groups(['message:read'])]
     private string $status = self::STATUS_PENDING;
 
+    // 🔥 API PLATFORM
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[Groups(['message:read'])]
     private ?DateTimeImmutable $runAt = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
@@ -168,247 +164,63 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         $this->retryCount++;
     }
 
-    // =========================================================================
-    // GETTERS Y SETTERS TRADICIONALES
-    // =========================================================================
-
-    public function getId(): UuidV7
-    {
-        return $this->id;
-    }
-
-    public function getMessage(): ?Message
-    {
-        return $this->message;
-    }
-
-    public function setMessage(?Message $message): self
-    {
-        $this->message = $message;
-        return $this;
-    }
-
-    public function getDestinationPhone(): ?string
-    {
-        return $this->destinationPhone;
-    }
-
-    public function setDestinationPhone(?string $destinationPhone): self
-    {
-        $this->destinationPhone = $destinationPhone;
-        return $this;
-    }
-
-    public function getConfig(): ?ChannelConfigInterface
-    {
-        return $this->config;
-    }
-
-    public function setConfig(?ChannelConfigInterface $config): self
-    {
+    public function getId(): UuidV7 { return $this->id; }
+    public function getMessage(): ?Message { return $this->message; }
+    public function setMessage(?Message $message): self { $this->message = $message; return $this; }
+    public function getDestinationPhone(): ?string { return $this->destinationPhone; }
+    public function setDestinationPhone(?string $destinationPhone): self { $this->destinationPhone = $destinationPhone; return $this; }
+    public function getConfig(): ?ChannelConfigInterface { return $this->config; }
+    public function setConfig(?ChannelConfigInterface $config): self {
         if ($config !== null && !$config instanceof GupshupConfig) {
             throw new InvalidArgumentException(sprintf('Configuración inválida. Se esperaba %s', GupshupConfig::class));
         }
-        $this->config = $config;
-        return $this;
+        $this->config = $config; return $this;
     }
-
-    public function getEndpoint(): ?EndpointInterface
-    {
-        return $this->endpoint;
-    }
-
-    public function setEndpoint(?EndpointInterface $endpoint): self
-    {
+    public function getEndpoint(): ?EndpointInterface { return $this->endpoint; }
+    public function setEndpoint(?EndpointInterface $endpoint): self {
         if ($endpoint !== null && !$endpoint instanceof ExchangeEndpoint) {
             throw new InvalidArgumentException(sprintf('Endpoint inválido. Se esperaba %s', ExchangeEndpoint::class));
         }
-        $this->endpoint = $endpoint;
-        return $this;
+        $this->endpoint = $endpoint; return $this;
     }
-
-    public function getExternalMessageId(): ?string
-    {
-        return $this->externalMessageId;
-    }
-
-    public function setExternalMessageId(?string $externalMessageId): self
-    {
-        $this->externalMessageId = $externalMessageId;
-        return $this;
-    }
-
-    public function getDeliveryStatus(): string
-    {
-        return $this->deliveryStatus;
-    }
-
-    public function setDeliveryStatus(string $deliveryStatus): self
-    {
-        $this->deliveryStatus = $deliveryStatus;
-        return $this;
-    }
-
-    public function getDeliveredAt(): ?DateTimeImmutable
-    {
-        return $this->deliveredAt;
-    }
-
-    public function setDeliveredAt(?DateTimeImmutable $deliveredAt): self
-    {
-        $this->deliveredAt = $deliveredAt;
-        return $this;
-    }
-
-    public function getReadAt(): ?DateTimeImmutable
-    {
-        return $this->readAt;
-    }
-
-    public function setReadAt(?DateTimeImmutable $readAt): self
-    {
-        $this->readAt = $readAt;
-        return $this;
-    }
-
-    public function getWebhookHistory(): array
-    {
-        return $this->webhookHistory ?? [];
-    }
-
-    public function setWebhookHistory(?array $webhookHistory): self
-    {
-        $this->webhookHistory = $webhookHistory;
-        return $this;
-    }
-
-    public function addWebhookEntry(array $entry): self
-    {
-        if ($this->webhookHistory === null) {
-            $this->webhookHistory = [];
-        }
+    public function getExternalMessageId(): ?string { return $this->externalMessageId; }
+    public function setExternalMessageId(?string $externalMessageId): self { $this->externalMessageId = $externalMessageId; return $this; }
+    public function getDeliveryStatus(): string { return $this->deliveryStatus; }
+    public function setDeliveryStatus(string $deliveryStatus): self { $this->deliveryStatus = $deliveryStatus; return $this; }
+    public function getDeliveredAt(): ?DateTimeImmutable { return $this->deliveredAt; }
+    public function setDeliveredAt(?DateTimeImmutable $deliveredAt): self { $this->deliveredAt = $deliveredAt; return $this; }
+    public function getReadAt(): ?DateTimeImmutable { return $this->readAt; }
+    public function setReadAt(?DateTimeImmutable $readAt): self { $this->readAt = $readAt; return $this; }
+    public function getWebhookHistory(): array { return $this->webhookHistory ?? []; }
+    public function setWebhookHistory(?array $webhookHistory): self { $this->webhookHistory = $webhookHistory; return $this; }
+    public function addWebhookEntry(array $entry): self {
+        if ($this->webhookHistory === null) $this->webhookHistory = [];
         $this->webhookHistory[] = $entry;
         return $this;
     }
-
-    public function getStatus(): string
-    {
-        return $this->status;
-    }
-
-    public function setStatus(string $status): self
-    {
-        $this->status = $status;
-        return $this;
-    }
-
-    public function getRunAt(): ?DateTimeImmutable
-    {
-        return $this->runAt;
-    }
-
-    public function setRunAt(?DateTimeInterface $at): self
-    {
+    public function getStatus(): string { return $this->status; }
+    public function setStatus(string $status): self { $this->status = $status; return $this; }
+    public function getRunAt(): ?DateTimeImmutable { return $this->runAt; }
+    public function setRunAt(?DateTimeInterface $at): self {
         $this->runAt = $at instanceof DateTimeInterface ? DateTimeImmutable::createFromInterface($at) : null;
         return $this;
     }
-
-    public function getLockedAt(): ?DateTimeInterface
-    {
-        return $this->lockedAt;
-    }
-
-    public function setLockedAt(?DateTimeInterface $lockedAt): self
-    {
-        $this->lockedAt = $lockedAt;
-        return $this;
-    }
-
-    public function getLockedBy(): ?string
-    {
-        return $this->lockedBy;
-    }
-
-    public function setLockedBy(?string $lockedBy): self
-    {
-        $this->lockedBy = $lockedBy;
-        return $this;
-    }
-
-    public function getFailedReason(): ?string
-    {
-        return $this->failedReason;
-    }
-
-    public function setFailedReason(?string $reason): self
-    {
-        $this->failedReason = $reason;
-        return $this;
-    }
-
-    public function getRetryCount(): int
-    {
-        return $this->retryCount;
-    }
-
-    public function setRetryCount(int $count): self
-    {
-        $this->retryCount = $count;
-        return $this;
-    }
-
-    public function getMaxAttempts(): int
-    {
-        return $this->maxAttempts;
-    }
-
-    public function setMaxAttempts(int $maxAttempts): self
-    {
-        $this->maxAttempts = $maxAttempts;
-        return $this;
-    }
-
-    public function getLastRequestRaw(): ?string
-    {
-        return $this->lastRequestRaw;
-    }
-
-    public function setLastRequestRaw(?string $raw): self
-    {
-        $this->lastRequestRaw = $raw;
-        return $this;
-    }
-
-    public function getLastResponseRaw(): ?string
-    {
-        return $this->lastResponseRaw;
-    }
-
-    public function setLastResponseRaw(?string $raw): self
-    {
-        $this->lastResponseRaw = $raw;
-        return $this;
-    }
-
-    public function getExecutionResult(): ?array
-    {
-        return $this->executionResult;
-    }
-
-    public function setExecutionResult(?array $result): self
-    {
-        $this->executionResult = $result;
-        return $this;
-    }
-
-    public function getLastHttpCode(): ?int
-    {
-        return $this->lastHttpCode;
-    }
-
-    public function setLastHttpCode(?int $code): self
-    {
-        $this->lastHttpCode = $code;
-        return $this;
-    }
+    public function getLockedAt(): ?DateTimeInterface { return $this->lockedAt; }
+    public function setLockedAt(?DateTimeInterface $lockedAt): self { $this->lockedAt = $lockedAt; return $this; }
+    public function getLockedBy(): ?string { return $this->lockedBy; }
+    public function setLockedBy(?string $lockedBy): self { $this->lockedBy = $lockedBy; return $this; }
+    public function getFailedReason(): ?string { return $this->failedReason; }
+    public function setFailedReason(?string $reason): self { $this->failedReason = $reason; return $this; }
+    public function getRetryCount(): int { return $this->retryCount; }
+    public function setRetryCount(int $count): self { $this->retryCount = $count; return $this; }
+    public function getMaxAttempts(): int { return $this->maxAttempts; }
+    public function setMaxAttempts(int $maxAttempts): self { $this->maxAttempts = $maxAttempts; return $this; }
+    public function getLastRequestRaw(): ?string { return $this->lastRequestRaw; }
+    public function setLastRequestRaw(?string $raw): self { $this->lastRequestRaw = $raw; return $this; }
+    public function getLastResponseRaw(): ?string { return $this->lastResponseRaw; }
+    public function setLastResponseRaw(?string $raw): self { $this->lastResponseRaw = $raw; return $this; }
+    public function getExecutionResult(): ?array { return $this->executionResult; }
+    public function setExecutionResult(?array $result): self { $this->executionResult = $result; return $this; }
+    public function getLastHttpCode(): ?int { return $this->lastHttpCode; }
+    public function setLastHttpCode(?int $code): self { $this->lastHttpCode = $code; return $this; }
 }

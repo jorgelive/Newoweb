@@ -9,6 +9,9 @@ use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Enum\ConnectivityProvider;
 use App\Exchange\Repository\ExchangeEndpointRepository;
 use App\Exchange\Service\Contract\EndpointInterface;
+use App\Message\Entity\Beds24ReceiveQueue;
+use App\Message\Entity\Beds24SendQueue;
+use App\Message\Entity\WhatsappGupshupSendQueue;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsRatesPushQueue;
@@ -100,12 +103,41 @@ class ExchangeEndpoint implements EndpointInterface
     #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: PmsBookingsPullQueue::class)]
     private Collection $bookingsPullQueues;
 
+    /**
+     * Colección de colas de envío de WhatsApp Gupshup asociadas a este endpoint.
+     * Permite acceder a todas las colas generadas por este punto de enlace.
+     *
+     * @var Collection<int, WhatsappGupshupSendQueue>
+     */
+    #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
+    private Collection $whatsappGupshupSendQueues;
+
+    /**
+     * Colección de colas de envío de Beds24 asociadas a este endpoint.
+     * Permite rastrear los envíos dirigidos específicamente a este punto de enlace.
+     *
+     * @var Collection<int, Beds24SendQueue>
+     */
+    #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: Beds24SendQueue::class, cascade: ['persist', 'remove'])]
+    private Collection $beds24SendQueues;
+
+    /**
+     * Colección de colas de recepción (webhooks entrantes) de Beds24 que entraron por este endpoint.
+     *
+     * @var Collection<int, Beds24ReceiveQueue>
+     */
+    #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: Beds24ReceiveQueue::class, cascade: ['persist', 'remove'])]
+    private Collection $beds24ReceiveQueues;
+
 
     public function __construct()
     {
         $this->ratesPushQueues = new ArrayCollection();
         $this->bookingsPushQueues = new ArrayCollection();
         $this->bookingsPullQueues = new ArrayCollection();
+        $this->whatsappGupshupSendQueues = new ArrayCollection();
+        $this->beds24SendQueues = new ArrayCollection();
+        $this->beds24ReceiveQueues = new ArrayCollection();
 
         $this->id = Uuid::v7();
     }
@@ -255,6 +287,130 @@ class ExchangeEndpoint implements EndpointInterface
             $this->bookingsPullQueues->add($pullJob);
             $pullJob->setEndpoint($this);
         }
+        return $this;
+    }
+
+    /**
+     * Obtiene la colección de colas de WhatsApp Gupshup asociadas.
+     *
+     * @return Collection<int, WhatsappGupshupSendQueue>
+     */
+    public function getWhatsappGupshupSendQueues(): Collection
+    {
+        return $this->whatsappGupshupSendQueues;
+    }
+
+    /**
+     * Añade una cola de envío de WhatsApp a este endpoint.
+     * Asegura la consistencia de la relación bidireccional.
+     *
+     * @param WhatsappGupshupSendQueue $whatsappGupshupSendQueue
+     * @return static
+     */
+    public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $whatsappGupshupSendQueue): static
+    {
+        if (!$this->whatsappGupshupSendQueues->contains($whatsappGupshupSendQueue)) {
+            $this->whatsappGupshupSendQueues->add($whatsappGupshupSendQueue);
+            $whatsappGupshupSendQueue->setEndpoint($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Elimina una cola de envío de WhatsApp de este endpoint.
+     *
+     * @param WhatsappGupshupSendQueue $whatsappGupshupSendQueue
+     * @return static
+     */
+    public function removeWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $whatsappGupshupSendQueue): static
+    {
+        if ($this->whatsappGupshupSendQueues->removeElement($whatsappGupshupSendQueue)) {
+            // set the owning side to null (unless already changed)
+            if ($whatsappGupshupSendQueue->getEndpoint() === $this) {
+                $whatsappGupshupSendQueue->setEndpoint(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Añade una cola de envío de Beds24 a este endpoint.
+     * Mantiene la consistencia bidireccional asignando el endpoint a la cola.
+     *
+     * @param Beds24SendQueue $beds24SendQueue La cola a vincular
+     * @return static
+     */
+    public function addBeds24SendQueue(Beds24SendQueue $beds24SendQueue): static
+    {
+        if (!$this->beds24SendQueues->contains($beds24SendQueue)) {
+            $this->beds24SendQueues->add($beds24SendQueue);
+            $beds24SendQueue->setEndpoint($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Elimina una cola de envío de Beds24 de este endpoint.
+     *
+     * @param Beds24SendQueue $beds24SendQueue La cola a desvincular
+     * @return static
+     */
+    public function removeBeds24SendQueue(Beds24SendQueue $beds24SendQueue): static
+    {
+        if ($this->beds24SendQueues->removeElement($beds24SendQueue)) {
+            // set the owning side to null (unless already changed)
+            if ($beds24SendQueue->getEndpoint() === $this) {
+                $beds24SendQueue->setEndpoint(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Obtiene la colección de colas de recepción de Beds24 asociadas a este endpoint.
+     *
+     * @return Collection<int, Beds24ReceiveQueue>
+     */
+    public function getBeds24ReceiveQueues(): Collection
+    {
+        return $this->beds24ReceiveQueues;
+    }
+
+    /**
+     * Añade una cola de recepción de Beds24 a este endpoint.
+     *
+     * @param Beds24ReceiveQueue $beds24ReceiveQueue
+     * @return static
+     */
+    public function addBeds24ReceiveQueue(Beds24ReceiveQueue $beds24ReceiveQueue): static
+    {
+        if (!$this->beds24ReceiveQueues->contains($beds24ReceiveQueue)) {
+            $this->beds24ReceiveQueues->add($beds24ReceiveQueue);
+            $beds24ReceiveQueue->setEndpoint($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Elimina una cola de recepción de Beds24 de este endpoint.
+     *
+     * @param Beds24ReceiveQueue $beds24ReceiveQueue
+     * @return static
+     */
+    public function removeBeds24ReceiveQueue(Beds24ReceiveQueue $beds24ReceiveQueue): static
+    {
+        if ($this->beds24ReceiveQueues->removeElement($beds24ReceiveQueue)) {
+            // set the owning side to null (unless already changed)
+            if ($beds24ReceiveQueue->getEndpoint() === $this) {
+                $beds24ReceiveQueue->setEndpoint(null);
+            }
+        }
+
         return $this;
     }
 }

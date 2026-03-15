@@ -33,12 +33,15 @@ class MessageDispatcher
         $queues = [];
         $errors = []; // 🔥 Guardaremos los motivos de fallo
         $channels = $this->resolveChannels($message);
-        $runAt = new \DateTimeImmutable();
+
+        // 🔥 MAGIA DEL SCHEDULER: Leemos la fecha programada en memoria, o usamos "ahora"
+        $runAt = $message->getScheduledAt() ?? new \DateTimeImmutable();
 
         foreach ($channels as $channel) {
             foreach ($this->enqueuers as $enqueuer) {
                 if ($enqueuer->supports($channel)) {
                     try {
+                        // Pasamos el $runAt exacto (presente o futuro) al Enqueuer
                         $queue = $enqueuer->createQueueEntity($message, $channel, $runAt);
 
                         if ($queue !== null) {
@@ -53,7 +56,7 @@ class MessageDispatcher
             }
         }
 
-        // 🔥 LOGICA DE FALLO NOTORIO
+        // 🔥 LÓGICA DE FALLO NOTORIO
         // Si hubo excepciones, o si había canales pero no se generó ninguna cola:
         if (!empty($errors) || (empty($queues) && !empty($channels))) {
             $message->setStatus(Message::STATUS_FAILED);
@@ -104,7 +107,7 @@ class MessageDispatcher
         }
 
         // =====================================================================
-        // REGLA 2: SELECCIÓN MANUAL DEL OPERADOR (EasyAdmin checkboxes)
+        // REGLA 2: SELECCIÓN MANUAL DEL OPERADOR (EasyAdmin checkboxes / Vue UI)
         // =====================================================================
         $transientIds = $message->getTransientChannels();
         if (!empty($transientIds)) {

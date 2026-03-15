@@ -35,39 +35,79 @@ final class Beds24ExchangeClient implements ExchangeClientInterface
             ));
         }
 
+        $allDecodedData = null;
+        $finalStatusCode = 200;
+
+        $currentUrl = $mapping->fullUrl;
+        $currentPayload = $mapping->payload; // Para GET va en query, para POST en json
+
         try {
-            $options = [
-                'headers' => array_merge(
-                    $this->authService->getAuthHeaders($config),
-                    ['Accept' => 'application/json', 'Content-Type' => 'application/json']
-                ),
-                ($mapping->method === 'GET' ? 'query' : 'json') => $mapping->payload
-            ];
+            // 🔥 EL BUCLE TRANSPARENTE DE PAGINACIÓN
+            do {
+                $options = [
+                    'headers' => array_merge(
+                        $this->authService->getAuthHeaders($config),
+                        ['Accept' => 'application/json', 'Content-Type' => 'application/json']
+                    ),
+                    ($mapping->method === 'GET' ? 'query' : 'json') => $currentPayload
+                ];
 
-            $response = $this->httpClient->request($mapping->method, $mapping->fullUrl, $options);
+                $response = $this->httpClient->request($mapping->method, $currentUrl, $options);
 
-            // 1. Obtenemos el texto crudo
-            $rawContent = $response->getContent(false);
-            $statusCode = $response->getStatusCode();
+                $rawContent = $response->getContent(false);
+                $finalStatusCode = $response->getStatusCode(); // Guardamos el status de la última iteración
 
-            // 🔥 2. FIX UTF-8: Forzamos la codificación correcta para salvar Emojis (📍, 🏠)
-            $currentEncoding = mb_detect_encoding($rawContent, 'UTF-8, ISO-8859-1', true);
-            if ($currentEncoding !== 'UTF-8') {
-                $rawContent = mb_convert_encoding($rawContent, 'UTF-8', $currentEncoding ?: 'ISO-8859-1');
-            }
+                // FIX UTF-8: Forzamos la codificación correcta para salvar Emojis (📍, 🏠)
+                $currentEncoding = mb_detect_encoding($rawContent, 'UTF-8, ISO-8859-1', true);
+                if ($currentEncoding !== 'UTF-8') {
+                    $rawContent = mb_convert_encoding($rawContent, 'UTF-8', $currentEncoding ?: 'ISO-8859-1');
+                }
 
-            // 3. Decodificación Segura
-            try {
-                $decoded = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
-            } catch (\Throwable) {
-                // Si falla (ej: error 504 Gateway Timeout HTML), devolvemos array vacío
+                // Decodificación Segura de la página actual
                 $decoded = [];
-            }
+                try {
+                    $decoded = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
+                } catch (\Throwable) {
+                    // Fallo silencioso en decodificación (ej: error 504 HTML), rompe el bucle
+                    $hasNextPage = false;
+                }
 
-            return new ExchangeNetworkResult($decoded, $rawContent, $statusCode);
+                // 🏗️ FUSIÓN DE DATOS (Merge)
+                if ($allDecodedData === null) {
+                    // Es la primera página, inicializamos el objeto maestro
+                    $allDecodedData = $decoded;
+                } else {
+                    // Son páginas siguientes, solo agregamos los items al array 'data'
+                    if (isset($decoded['data']) && is_array($decoded['data'])) {
+                        $allDecodedData['data'] = array_merge($allDecodedData['data'] ?? [], $decoded['data']);
+                    }
+                }
+
+                // 🧭 EVALUAR PAGINACIÓN (Solo aplica para peticiones GET que tengan nextPageExists)
+                $hasNextPage = false;
+                if ($mapping->method === 'GET'
+                    && isset($decoded['pages']['nextPageExists'])
+                    && $decoded['pages']['nextPageExists'] === true
+                    && !empty($decoded['pages']['nextPageLink'])
+                ) {
+                    $hasNextPage = true;
+                    $currentUrl = $decoded['pages']['nextPageLink'];
+
+                    // IMPORTANTE: Al usar el nextPageLink, Beds24 ya incluye los query parameters originales
+                    // (ej: ?status=confirmed&page=2). Debemos vaciar el payload para que Symfony no los duplique.
+                    $currentPayload = [];
+                }
+
+            } while ($hasNextPage);
+
+            // 📦 Para la auditoría (LastResponseRaw), re-codificamos el array combinado
+            // Así en la base de datos podrás ver todo lo que se procesó en un solo JSON.
+            $finalRawContent = json_encode($allDecodedData, JSON_UNESCAPED_UNICODE);
+
+            return new ExchangeNetworkResult($allDecodedData ?? [], $finalRawContent, $finalStatusCode);
 
         } catch (\Throwable $e) {
-            $this->logger->error("Beds24 Client Error: " . $e->getMessage(), ['url' => $mapping->fullUrl]);
+            $this->logger->error("Beds24 Client Error: " . $e->getMessage(), ['url' => $currentUrl]);
             throw $e;
         }
     }

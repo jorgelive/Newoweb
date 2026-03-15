@@ -17,10 +17,13 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
 {
     public function __construct(
         private MessageDataResolverRegistry $resolverRegistry,
-        // 🔥 Inyectamos el Storage de Vich en lugar del project_dir
         private StorageInterface $vichStorage
     ) {}
 
+    /**
+     * @param HomogeneousBatch $batch
+     * @return MappingResult
+     */
     public function map(HomogeneousBatch $batch): MappingResult
     {
         $config = $batch->getConfig();
@@ -35,14 +38,37 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
         foreach ($batch->getItems() as $index => $item) {
             /** @var Beds24SendQueue $item */
             $msg = $item->getMessage();
-            if (!$msg instanceof Message) continue;
+            if (!$msg instanceof Message) {
+                continue;
+            }
 
             $conversation = $msg->getConversation();
             $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
 
-            $content = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
+            // =================================================================
+            // 1. EXTRACCIÓN DE CONTENIDO Y PLANTILLA
+            // =================================================================
+            $content = '';
+            $template = $msg->getTemplate();
 
-            if ($resolver && str_contains($content, '{{')) {
+            if ($template !== null) {
+                $language = $msg->getLanguageCode() ?: 'es';
+                $content = (string) $template->getBeds24Body($language);
+            }
+
+            if (empty(trim($content))) {
+                $content = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
+            }
+
+            $subject = $msg->getSubjectExternal() ?? $msg->getSubjectLocal() ?? '';
+            if (!empty(trim($subject))) {
+                $content = trim($subject) . "\n\n" . trim($content);
+            }
+
+            // =================================================================
+            // 2. INTERPOLACIÓN DE VARIABLES (ej. {{ guest_name }})
+            // =================================================================
+            if ($resolver !== null && str_contains($content, '{{')) {
                 $variables = $resolver->getMessageVariables($conversation->getContextId());
                 foreach ($variables as $key => $value) {
                     $content = str_replace('{{ ' . $key . ' }}', (string)$value, $content);
@@ -50,16 +76,31 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 }
             }
 
-            $messagePayload = [
-                'bookingId' => (int) $item->getTargetBookId(),
-                'message'   => $content,
-            ];
-
-            // 3. Procesamiento del Archivo Adjunto usando Vich
+            // =================================================================
+            // 3. EXTRACCIÓN DEL ADJUNTO (Vich Uploader)
+            // =================================================================
             $attachment = $msg->getAttachments()->first() ?: null;
 
-            if ($attachment && $attachment->isImage()) {
-                // 🔥 MAGIA: Vich nos da la ruta absoluta real según tu vich_uploader.yaml
+            // 🔥 FIX: Prevención de rechazo por mensaje vacío en Beds24
+            // Si no hay texto, pero SÍ hay adjunto, usamos el nombre del archivo.
+            if (empty(trim($content)) && $attachment !== null) {
+                $content = 'Archivo adjunto: ' . ($attachment->getOriginalName() ?? 'imagen.jpg');
+            }
+
+            // Red de seguridad final: Si por algún error de UI llega totalmente vacío (sin texto ni foto)
+            if (empty(trim($content))) {
+                $content = '(Mensaje sin texto)';
+            }
+
+            // =================================================================
+            // 4. CONSTRUCCIÓN DEL PAYLOAD FINAL
+            // =================================================================
+            $messagePayload = [
+                'bookingId' => (int) $item->getTargetBookId(),
+                'message'   => trim($content),
+            ];
+
+            if ($attachment !== null && $attachment->isImage()) {
                 $filePath = $this->vichStorage->resolvePath($attachment, 'file');
 
                 if ($filePath && file_exists($filePath)) {
@@ -86,12 +127,19 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
         );
     }
 
+    /**
+     * @param array $apiResponse
+     * @param MappingResult $mapping
+     * @return array<string, ItemResult>
+     */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
         $results = [];
 
         foreach ($apiResponse as $index => $respData) {
-            if (!isset($mapping->correlationMap[$index])) continue;
+            if (!isset($mapping->correlationMap[$index])) {
+                continue;
+            }
 
             $queueId = $mapping->correlationMap[$index];
             $success = (bool)($respData['success'] ?? false);

@@ -7,6 +7,8 @@ namespace App\Exchange\Entity;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
+use App\Message\Entity\Beds24ReceiveQueue;
+use App\Message\Entity\Beds24SendQueue;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsEstablecimiento;
@@ -85,11 +87,31 @@ class Beds24Config implements ChannelConfigInterface
     #[ORM\OneToMany(mappedBy: 'config', targetEntity: PmsRatesPushQueue::class)]
     private Collection $ratesPushQueues;
 
+    /**
+     * Colección de colas de envío de Beds24 asociadas a esta configuración.
+     * Permite acceder al historial de envíos encolados bajo esta cuenta de Beds24.
+     *
+     * @var Collection<int, Beds24SendQueue>
+     */
+    #[ORM\OneToMany(mappedBy: 'config', targetEntity: Beds24SendQueue::class, cascade: ['persist', 'remove'])]
+    private Collection $beds24SendQueues;
+
+    /**
+     * Colección de colas de recepción (webhooks entrantes) asociadas a esta configuración de Beds24.
+     *
+     * @var Collection<int, Beds24ReceiveQueue>
+     */
+    #[ORM\OneToMany(mappedBy: 'config', targetEntity: Beds24ReceiveQueue::class, cascade: ['persist', 'remove'])]
+    private Collection $beds24ReceiveQueues;
+
     public function __construct()
     {
         $this->bookingsPullQueues = new ArrayCollection();
+        $this->bookingsPushQueues = new ArrayCollection();
         $this->ratesPushQueues = new ArrayCollection();
         $this->establecimientos = new ArrayCollection();
+        $this->beds24SendQueues = new ArrayCollection();
+        $this->beds24ReceiveQueues = new ArrayCollection();
 
         $this->id = Uuid::v7();
     }
@@ -289,6 +311,96 @@ class Beds24Config implements ChannelConfigInterface
             $this->bookingsPushQueues->add($bookingsPushQueue);
             $bookingsPushQueue->setConfig($this);
         }
+        return $this;
+    }
+
+    /**
+     * Obtiene la colección de colas de envío de Beds24 asociadas.
+     *
+     * @return Collection<int, Beds24SendQueue>
+     */
+    public function getBeds24SendQueues(): Collection
+    {
+        return $this->beds24SendQueues;
+    }
+
+    /**
+     * Añade una cola de envío de Beds24 a esta configuración.
+     * Mantiene la consistencia de la relación bidireccional estableciendo la configuración en la cola.
+     *
+     * @param Beds24SendQueue $beds24SendQueue La cola a vincular
+     * @return static
+     */
+    public function addBeds24SendQueue(Beds24SendQueue $beds24SendQueue): static
+    {
+        if (!$this->beds24SendQueues->contains($beds24SendQueue)) {
+            $this->beds24SendQueues->add($beds24SendQueue);
+            $beds24SendQueue->setConfig($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Elimina una cola de envío de Beds24 de esta configuración.
+     * Anula la relación en la cola si esta aún apunta a la configuración actual.
+     *
+     * @param Beds24SendQueue $beds24SendQueue La cola a desvincular
+     * @return static
+     */
+    public function removeBeds24SendQueue(Beds24SendQueue $beds24SendQueue): static
+    {
+        if ($this->beds24SendQueues->removeElement($beds24SendQueue)) {
+            // set the owning side to null (unless already changed)
+            if ($beds24SendQueue->getConfig() === $this) {
+                $beds24SendQueue->setConfig(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Obtiene la colección de colas de recepción de Beds24.
+     *
+     * @return Collection<int, Beds24ReceiveQueue>
+     */
+    public function getBeds24ReceiveQueues(): Collection
+    {
+        return $this->beds24ReceiveQueues;
+    }
+
+    /**
+     * Añade una cola de recepción entrante a esta configuración.
+     *
+     * @param Beds24ReceiveQueue $beds24ReceiveQueue
+     * @return static
+     */
+    public function addBeds24ReceiveQueue(Beds24ReceiveQueue $beds24ReceiveQueue): static
+    {
+        if (!$this->beds24ReceiveQueues->contains($beds24ReceiveQueue)) {
+            $this->beds24ReceiveQueues->add($beds24ReceiveQueue);
+            $beds24ReceiveQueue->setConfig($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Elimina una cola de recepción entrante de esta configuración.
+     *
+     * @param Beds24ReceiveQueue $beds24ReceiveQueue
+     * @return static
+     */
+    public function removeBeds24ReceiveQueue(Beds24ReceiveQueue $beds24ReceiveQueue): static
+    {
+        if ($this->beds24ReceiveQueues->removeElement($beds24ReceiveQueue)) {
+            // set the owning side to null (unless already changed)
+            if ($beds24ReceiveQueue->getConfig() === $this) {
+                $beds24ReceiveQueue->setConfig(null);
+            }
+        }
+
         return $this;
     }
 }

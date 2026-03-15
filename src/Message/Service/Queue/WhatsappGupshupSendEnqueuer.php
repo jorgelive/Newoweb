@@ -77,7 +77,7 @@ class WhatsappGupshupSendEnqueuer implements ChannelEnqueuerInterface
         $queue->setStatus(WhatsappGupshupSendQueue::STATUS_PENDING);
         $queue->setRunAt($runAt);
         $queue->setRetryCount(0);
-        $queue->setMaxAttempts(3);
+        $queue->setMaxAttempts(5);
 
         return $queue;
     }

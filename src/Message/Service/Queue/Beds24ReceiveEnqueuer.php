@@ -46,7 +46,7 @@ final class Beds24ReceiveEnqueuer
         $queue->setStatus(Beds24ReceiveQueue::STATUS_PENDING);
         $queue->setRunAt(new DateTimeImmutable());
         $queue->setRetryCount(0);
-        $queue->setMaxAttempts(3);
+        $queue->setMaxAttempts(5);
 
         $this->em->persist($queue);
         $this->runtimeDedupe[$dedupeKey] = true;

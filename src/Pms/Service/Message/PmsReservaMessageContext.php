@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Message;
 
+use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\MessageContextInterface;
 use App\Pms\Entity\PmsReserva;
 
@@ -55,18 +56,35 @@ class PmsReservaMessageContext implements MessageContextInterface
 
     public function getMilestones(): array
     {
+        $fechaLlegada = $this->reserva->getFechaLlegada();
+
         $milestones = [
-            'start' => $this->reserva->getFechaLlegada(),
-            'end'   => $this->reserva->getFechaSalida(),
-            'booked_at' => $this->reserva->getPrimeraFechaReservaCanal() ?? $this->reserva->getCreatedAt(),
+            ConversationMilestoneInterface::START   => $fechaLlegada,
+            ConversationMilestoneInterface::END     => $this->reserva->getFechaSalida(),
+            ConversationMilestoneInterface::CREATED => $this->reserva->getPrimeraFechaReservaCanal() ?? $this->reserva->getCreatedAt(),
         ];
 
-        if ($this->reserva->getHoraLlegadaCanalAggregate()) {
-            $milestones['eta'] = $this->reserva->getHoraLlegadaCanalAggregate();
+        // 🔥 Llegada Esperada (Expected Arrival)
+        $expectedArrivalRaw = $this->reserva->getHoraLlegadaCanalAggregate();
+
+        if ($expectedArrivalRaw) {
+            if ($expectedArrivalRaw instanceof \DateTimeInterface) {
+                $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $expectedArrivalRaw;
+            } elseif ($fechaLlegada instanceof \DateTimeInterface) {
+                try {
+                    $fechaString = $fechaLlegada->format('Y-m-d');
+                    $horaLimpia = trim((string) $expectedArrivalRaw);
+
+                    $expectedArrivalCompleto = new \DateTimeImmutable("$fechaString $horaLimpia");
+                    $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $expectedArrivalCompleto;
+                } catch (\Exception $e) {
+                    // Fallback silencioso
+                }
+            }
         }
 
         if ($this->isArchivable() && $this->reserva->getUltimaFechaModificacionCanal()) {
-            $milestones['cancelled_at'] = $this->reserva->getUltimaFechaModificacionCanal();
+            $milestones[ConversationMilestoneInterface::CANCELLED] = $this->reserva->getUltimaFechaModificacionCanal();
         }
 
         return $milestones;

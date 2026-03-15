@@ -24,3 +24,11 @@ liip_imagine:
             filters:
                 thumbnail: { size: [150, 150], mode: outbound, allow_upscale: true }
                 # ❌ ELIMINA: format: { name: webp } de aquí adentro
+
+        # 🔥 FILTRO 3: COMPRESIÓN LEGACY (Para Beds24 / Canales externos) ---
+        pms_compress_legacy:
+            quality: 85 # Un poco más alto porque el JPEG pierde más detalle que WebP
+            format: jpeg
+            filters:
+                downscale: { max: [ 1600, 1600 ] }
+                strip: ~

@@ -17,12 +17,14 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ArrayField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -117,7 +119,10 @@ class MessageConversationCrudController extends BaseCrudController
 
         // --- SECCIÓN 1: IDENTIFICACIÓN Y ESTADO ---
         yield FormField::addPanel('Estado y Metadatos')->setIcon('fa fa-info-circle');
-        yield IdField::new('id', 'UUID')->hideOnForm()->setColumns(4);
+        yield IdField::new('id', 'UUID')
+            ->setMaxLength(40)
+            ->onlyOnDetail()
+            ->setColumns(4);
         yield ChoiceField::new('status', 'Estado')
             ->setChoices([
                 'Abierto' => MessageConversation::STATUS_OPEN,
@@ -130,7 +135,10 @@ class MessageConversationCrudController extends BaseCrudController
                 MessageConversation::STATUS_ARCHIVED => 'dark'
             ])->setColumns(4);
 
-        yield IntegerField::new('unreadCount', 'No leídos')->hideOnForm()->setColumns(4);
+        yield IntegerField::new('unreadCount', 'No leídos')
+            ->hideOnForm()
+            ->setColumns(4)
+            ->formatValue(fn ($value) => $value > 0 ? sprintf('<span class="badge badge-danger">%d</span>', $value) : '0');
 
         // --- SECCIÓN 2: DATOS DEL HUÉSPED ---
         yield FormField::addPanel('Huésped e Idioma')->setIcon('fa fa-user');
@@ -142,17 +150,29 @@ class MessageConversationCrudController extends BaseCrudController
             ->setColumns(4);
 
         // --- SECCIÓN 3: CONTEXTO PMS (Lógica de Negocio) ---
-        yield FormField::addPanel('Contexto del Sistema')->setIcon('fa fa-link');
-        yield ChoiceField::new('contextType', 'Tipo de Módulo')->setChoices(['Reserva PMS' => 'pms_reserva', 'Manual' => 'manual'])->setColumns(3);
+        yield FormField::addPanel('Contexto de Reserva (PMS)')->setIcon('fa fa-link');
+        yield ChoiceField::new('contextType', 'Tipo de Contexto')->setChoices(['Reserva PMS' => 'pms_reserva', 'Manual' => 'manual'])->setColumns(3);
         yield TextField::new('contextId', 'ID / Localizador')->setColumns(3);
         yield TextField::new('contextOrigin', 'Origen (OTA)')->hideOnForm()->setColumns(3);
-        yield ArrayField::new('contextItems', 'Unidades / Casitas')->hideOnForm()->setColumns(3);
+        yield TextField::new('contextStatusTag', 'Etiqueta PMS')->hideOnForm()->setColumns(3);
 
-        // --- SECCIÓN 4: TIEMPOS DE RESPUESTA ---
-        yield FormField::addPanel('Cronología')->setIcon('fa fa-clock')->renderCollapsed();
-        yield DateTimeField::new('lastMessageAt', 'Último Mensaje (General)')->hideOnForm()->setColumns(4);
-        yield DateTimeField::new('lastInboundAt', 'Última Respuesta Huésped')->hideOnForm()->setColumns(4);
-        yield DateTimeField::new('createdAt', 'Fecha Creación')->hideOnForm()->setColumns(4);
+        yield ArrayField::new('contextItems', 'Unidades / Casitas')->hideOnForm()->setColumns(4);
+        yield NumberField::new('contextFinancialTotal', 'Monto Total Reserva')->hideOnForm()->setColumns(4)->setNumDecimals(2);
+        yield BooleanField::new('contextFinancialIsCleared', '¿Pagado?')->hideOnForm()->setColumns(4)->renderAsSwitch(false);
+
+        // --- SECCIÓN 4: CRONOLOGÍA Y SESIONES DE CANAL ---
+        yield FormField::addPanel('Cronología y Sesiones de Canal')->setIcon('fa fa-clock')->renderCollapsed();
+        yield DateTimeField::new('createdAt', 'Fecha de Creación')->hideOnForm()->setColumns(3);
+        yield DateTimeField::new('lastMessageAt', 'Último Mensaje (General)')->hideOnForm()->setColumns(3);
+        yield DateTimeField::new('lastInboundAt', 'Última Respuesta Huésped')->hideOnForm()->setColumns(3);
+
+        // Control de Sesión Meta (Visual y Práctico)
+        yield DateTimeField::new('whatsappSessionValidUntil', 'Vencimiento Ventana Meta (24h)')->hideOnForm()->setColumns(3);
+        yield BooleanField::new('isWhatsappSessionActive', '¿Chat Meta Activo?')
+            ->hideOnForm()
+            ->setHelp('Si está en verde, puedes enviar mensajes libres por WhatsApp.')
+            ->renderAsSwitch(false) // Lo forzamos a ser de solo lectura visual
+            ->setColumns(12);
 
         // --- SECCIÓN 5: CHAT INTERACTIVO ---
         if (!$this->isEmbedded()) {

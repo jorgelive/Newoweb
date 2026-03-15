@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
+use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Entity\MessageRule;
 use App\Message\Service\MessageSegmentationAggregator;
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -135,18 +136,22 @@ class MessageRuleCrudController extends BaseCrudController
 
         yield ChoiceField::new('milestone', 'Hito de Referencia')
             ->setChoices([
-                'Inicio del Servicio (Check-in / Recojo)' => 'start',
-                'Fin del Servicio (Check-out / Retorno)' => 'end',
-                'Creación (Reserva / Registro)' => 'created',
+                'Creación (Reserva / Registro)' => ConversationMilestoneInterface::CREATED,
+                'Llegada Esperada informada (ETA)' => ConversationMilestoneInterface::EXPECTED_ARRIVAL,
+                'Inicio del Servicio (Check-in / Recojo)' => ConversationMilestoneInterface::START,
+                'Fin del Servicio (Check-out / Retorno)' => ConversationMilestoneInterface::END,
+                'Cancelación del Servicio' => ConversationMilestoneInterface::CANCELLED,
             ])
             ->setRequired(true)
             ->setColumns(6)
             ->formatValue(function ($value, $entity) {
                 return match ($value) {
-                    'start'   => '🟢 Inicio (Check-in / Tour)',
-                    'end'     => '🔴 Fin (Check-out / Fin Tour)',
-                    'created' => '📅 Registro Inicial',
-                    default   => $value,
+                    ConversationMilestoneInterface::CREATED          => '📅 Registro Inicial',
+                    ConversationMilestoneInterface::EXPECTED_ARRIVAL => '⏱️ Llegada Esperada',
+                    ConversationMilestoneInterface::START            => '🟢 Inicio (Check-in / Tour)',
+                    ConversationMilestoneInterface::END              => '🔴 Fin (Check-out / Retorno)',
+                    ConversationMilestoneInterface::CANCELLED        => '❌ Cancelación',
+                    default                                          => $value,
                 };
             });
 
