@@ -45,7 +45,6 @@ onUnmounted(() => {
 
 // 🔥 CERROJOS LOCALES PARA PAGINACIÓN Y SCROLL
 let isAdjustingMessageScroll = false;
-let isAdjustingChatScroll = false;
 
 // SCROLL INFINITO: Mensajes antiguos (Hacia arriba)
 const onMessageScroll = async () => {
@@ -53,8 +52,8 @@ const onMessageScroll = async () => {
   // Abortamos si no hay scroll, si ya está cargando, o si cerramos el candado de ajuste
   if (!el || store.loadingMoreMessages || !store.hasMoreMessages || isAdjustingMessageScroll) return;
 
-  // Tolerancia de 5px para pantallas retina
-  if (el.scrollTop <= 5) {
+  // Tolerancia ampliada a 50px para detectar el techo antes de chocar (ideal para Mac/iOS)
+  if (el.scrollTop <= 50) {
     isAdjustingMessageScroll = true; // 🔒 CERRAMOS CANDADO
     const previousScrollHeight = el.scrollHeight;
 
@@ -62,30 +61,27 @@ const onMessageScroll = async () => {
     await nextTick();
 
     // Empujamos el scroll hacia abajo para compensar los mensajes nuevos arriba
-    el.scrollTop = el.scrollHeight - previousScrollHeight;
+    el.scrollTop = el.scrollTop + (el.scrollHeight - previousScrollHeight);
 
     // 🔓 ABRIMOS CANDADO después de que el DOM asiente el movimiento
     setTimeout(() => {
       isAdjustingMessageScroll = false;
-    }, 100);
+    }, 50);
   }
 };
 
 // SCROLL INFINITO: Lista de chats (Hacia abajo)
 const onConversationScroll = async () => {
   const el = conversationsContainer.value;
-  if (!el || store.loadingMoreConversations || !store.hasMoreConversations || isAdjustingChatScroll) return;
+  if (!el || store.loadingMoreConversations || !store.hasMoreConversations) return;
 
-  // Si llegamos a 50px del final de la lista
-  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
-    isAdjustingChatScroll = true; // 🔒 CERRAMOS CANDADO
+  // Usamos Math.ceil() por los monitores retina y ampliamos el margen de detección a 150px.
+  // De esta forma, detectará que llegaste al final INCLUSO antes de rebotar.
+  const isBottom = Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight - 150;
 
+  if (isBottom) {
+    // El Store ya tiene su propio seguro interno, por lo que nunca pedirá la misma página dos veces.
     await store.fetchConversations(true);
-
-    // 🔓 ABRIMOS CANDADO
-    setTimeout(() => {
-      isAdjustingChatScroll = false;
-    }, 100);
   }
 };
 

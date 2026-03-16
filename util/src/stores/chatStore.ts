@@ -279,7 +279,7 @@ export const useChatStore = defineStore('chatStore', () => {
     return {
         conversations, filteredConversations, currentConversation, messages, templates, validTemplates,
         filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
-        loadingMoreConversations, loadingMoreMessages, hasMoreMessages,
+        loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, // 🔥 AQUÍ ESTÁ EL FIX
         getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage
     };
 });
