@@ -137,21 +137,22 @@ export const useChatStore = defineStore('chatStore', () => {
         } catch (err) {}
     };
 
-    // 🔥 CARGA Y PAGINACIÓN DE CONVERSACIONES
+    // 🔥 CARGA Y PAGINACIÓN DE CONVERSACIONES (Scroll Hacia Abajo)
     const fetchConversations = async (loadMore = false) => {
+        let pageToFetch = 1;
+
         if (loadMore) {
             if (!hasMoreConversations.value || loadingMoreConversations.value) return;
             loadingMoreConversations.value = true;
-            conversationsPage.value++;
+            pageToFetch = conversationsPage.value + 1; // Calculamos la página futura de forma segura
         } else {
             loadingConversations.value = true;
-            conversationsPage.value = 1;
             hasMoreConversations.value = true;
         }
 
         error.value = null;
         try {
-            const response = await apiClient.get(`/platform/user/util/msg/conversations?order[lastMessageAt]=desc&page=${conversationsPage.value}`);
+            const response = await apiClient.get(`/platform/user/util/msg/conversations?order[lastMessageAt]=desc&page=${pageToFetch}`);
             const data = extractData(response);
 
             if (loadMore) {
@@ -159,7 +160,9 @@ export const useChatStore = defineStore('chatStore', () => {
             } else {
                 conversations.value = data;
             }
+
             hasMoreConversations.value = hasNextPage(response);
+            conversationsPage.value = pageToFetch; // Solo actualizamos si tuvo éxito
         } catch (err: any) {
             error.value = 'Error al sincronizar chats';
         } finally {
@@ -168,14 +171,14 @@ export const useChatStore = defineStore('chatStore', () => {
         }
     };
 
-    // 🔥 SELECCIÓN Y PAGINACIÓN DE MENSAJES
+    // 🔥 SELECCIÓN DE CHAT
     const selectConversation = async (id: string) => {
         const found = conversations.value.find(c => c.id === id);
         if (!found) return;
 
         currentConversation.value = found;
         loadingMessages.value = true;
-        messagesPage.value = 1;
+        messagesPage.value = 1; // Reiniciamos contador de paginación
         hasMoreMessages.value = true;
 
         try {
@@ -199,19 +202,22 @@ export const useChatStore = defineStore('chatStore', () => {
         }
     };
 
+    // 🔥 CARGA DE HISTORIAL ANTIGUO (Scroll Hacia Arriba)
     const loadMoreMessages = async () => {
         if (!currentConversation.value || !hasMoreMessages.value || loadingMoreMessages.value) return;
 
         loadingMoreMessages.value = true;
-        messagesPage.value++;
+        const nextPage = messagesPage.value + 1; // Calculamos la página futura de forma segura
 
         try {
-            const response = await apiClient.get(`/platform/user/util/msg/conversations/${currentConversation.value.id}/messages?order[createdAt]=desc&page=${messagesPage.value}`);
+            const response = await apiClient.get(`/platform/user/util/msg/conversations/${currentConversation.value.id}/messages?order[createdAt]=desc&page=${nextPage}`);
             const olderMessages = extractData(response).reverse();
 
             // Prepend: Agregamos los mensajes antiguos al INICIO del array
             messages.value = [...olderMessages, ...messages.value];
+
             hasMoreMessages.value = hasNextPage(response);
+            messagesPage.value = nextPage; // Solo avanzamos la página si la petición tuvo éxito
         } catch (err) {
             error.value = 'Error al cargar historial antiguo';
         } finally {
@@ -260,7 +266,7 @@ export const useChatStore = defineStore('chatStore', () => {
             messages.value.push(response.data);
 
             attachmentStore.clear();
-            fetchConversations();
+            fetchConversations(); // Refresca el orden en la barra lateral
 
         } catch (err) {
             error.value = 'Fallo al enviar el mensaje. Verifica el tamaño del archivo.';

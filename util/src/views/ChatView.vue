@@ -20,12 +20,11 @@ const fileInput = ref<HTMLInputElement | null>(null);
 // Hook Multicanal
 const selectedChannels = ref<string[]>(['whatsapp_gupshup']);
 
-// 🔥 GESTIÓN DE HISTORIAL MÓVIL (BOTÓN ATRÁS)
+// 🔥 GESTIÓN DE HISTORIAL MÓVIL (BOTÓN ATRÁS NATIVO)
 const handlePopState = (event: PopStateEvent) => {
+  // Solo alteramos la UI si el navegador retrocedió. NO inyectamos pushState aquí.
   if (window.innerWidth < 768 && !isMobileSidebarOpen.value) {
     isMobileSidebarOpen.value = true;
-    // Evitamos que vuelva a retroceder de verdad y lo sacamos de la app
-    history.pushState({ sidebar: true }, '');
   }
 };
 
@@ -33,9 +32,9 @@ onMounted(() => {
   store.fetchConversations();
   store.fetchTemplates();
 
-  // Plantamos el estado inicial
+  // Plantamos el estado inicial reemplazando el actual (no apilando uno nuevo)
   if (window.innerWidth < 768) {
-    history.pushState({ sidebar: true }, '');
+    history.replaceState({ view: 'sidebar' }, '');
   }
   window.addEventListener('popstate', handlePopState);
 });
@@ -44,29 +43,49 @@ onUnmounted(() => {
   window.removeEventListener('popstate', handlePopState);
 });
 
-// 🔥 SCROLL INFINITO: Mensajes antiguos (Hacia arriba)
+// 🔥 CERROJOS LOCALES PARA PAGINACIÓN Y SCROLL
+let isAdjustingMessageScroll = false;
+let isAdjustingChatScroll = false;
+
+// SCROLL INFINITO: Mensajes antiguos (Hacia arriba)
 const onMessageScroll = async () => {
   const el = messagesContainer.value;
-  if (!el || store.loadingMoreMessages || !store.hasMoreMessages) return;
+  // Abortamos si no hay scroll, si ya está cargando, o si cerramos el candado de ajuste
+  if (!el || store.loadingMoreMessages || !store.hasMoreMessages || isAdjustingMessageScroll) return;
 
-  // Si tocamos el techo (scroll = 0)
-  if (el.scrollTop === 0) {
+  // Tolerancia de 5px para pantallas retina
+  if (el.scrollTop <= 5) {
+    isAdjustingMessageScroll = true; // 🔒 CERRAMOS CANDADO
     const previousScrollHeight = el.scrollHeight;
+
     await store.loadMoreMessages();
     await nextTick();
-    // Ajustamos el scroll para que el usuario no salte bruscamente al techo de nuevo
+
+    // Empujamos el scroll hacia abajo para compensar los mensajes nuevos arriba
     el.scrollTop = el.scrollHeight - previousScrollHeight;
+
+    // 🔓 ABRIMOS CANDADO después de que el DOM asiente el movimiento
+    setTimeout(() => {
+      isAdjustingMessageScroll = false;
+    }, 100);
   }
 };
 
-// 🔥 SCROLL INFINITO: Lista de chats (Hacia abajo)
+// SCROLL INFINITO: Lista de chats (Hacia abajo)
 const onConversationScroll = async () => {
   const el = conversationsContainer.value;
-  if (!el || store.loadingMoreConversations) return;
+  if (!el || store.loadingMoreConversations || !store.hasMoreConversations || isAdjustingChatScroll) return;
 
-  // Si llegamos casi al final de la lista
+  // Si llegamos a 50px del final de la lista
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+    isAdjustingChatScroll = true; // 🔒 CERRAMOS CANDADO
+
     await store.fetchConversations(true);
+
+    // 🔓 ABRIMOS CANDADO
+    setTimeout(() => {
+      isAdjustingChatScroll = false;
+    }, 100);
   }
 };
 
@@ -79,7 +98,7 @@ const scrollToBottom = () => {
 // Control inteligente de auto-scroll
 watch(() => store.messages.length, async (newLen, oldLen) => {
   await nextTick();
-  // Solo auto-scroll si creció y NO estamos cargando historial antiguo (para que no te jale al fondo)
+  // Solo auto-scroll si el array creció (mensaje nuevo) y NO estamos paginando hacia atrás
   if (newLen > oldLen && !store.loadingMoreMessages) {
     scrollToBottom();
   }
@@ -107,15 +126,14 @@ const selectChat = async (id: string) => {
   await nextTick();
   scrollToBottom();
 
-  // Inyectamos el estado "chat_abierto" en el historial móvil
+  // Inyectamos el estado "chat_abierto" para que el gesto atrás de iOS/Android funcione
   if (window.innerWidth < 768) {
-    history.pushState({ chat: true }, '');
+    history.pushState({ view: 'chat' }, '');
   }
 };
 
 const closeMobileChat = () => {
-  isMobileSidebarOpen.value = true;
-  // Disparamos un retroceso en el historial para limpiar la pila
+  // Dejamos que el navegador retroceda de forma nativa (disparará handlePopState)
   history.back();
 };
 
@@ -419,7 +437,8 @@ const getOriginClass = (origin?: string | null) => {
           <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-2 md:gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-[24px] focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full relative min-w-0">
 
             <div v-if="attachmentStore.file" class="absolute -top-14 left-0 bg-white border border-slate-200 shadow-lg rounded-xl px-3 py-2 flex items-center gap-3 z-10 animate-fade-in max-w-full">
-              <img v-if="attachmentStore.isImage" :src="attachmentStore.previewUrl ?? undefined" class="w-8 h-8 object-cover rounded shadow-sm shrink-0" />              <i v-else class="fas fa-file-pdf text-red-500 text-2xl shrink-0"></i>
+              <img v-if="attachmentStore.isImage" :src="attachmentStore.previewUrl ?? undefined" class="w-8 h-8 object-cover rounded shadow-sm shrink-0" />
+              <i v-else class="fas fa-file-pdf text-red-500 text-2xl shrink-0"></i>
               <div class="flex flex-col min-w-0">
                 <span class="text-xs font-bold text-slate-800 truncate">{{ attachmentStore.fileName }}</span>
                 <span class="text-[9px] text-slate-400">{{ attachmentStore.fileSizeKB }} KB</span>
