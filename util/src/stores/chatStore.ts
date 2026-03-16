@@ -96,6 +96,15 @@ export const useChatStore = defineStore('chatStore', () => {
     const sendingMessage = ref(false);
     const error = ref<string | null>(null);
 
+    // 🔥 ESTADOS DE PAGINACIÓN (Scroll Infinito)
+    const conversationsPage = ref(1);
+    const hasMoreConversations = ref(true);
+    const loadingMoreConversations = ref(false);
+
+    const messagesPage = ref(1);
+    const hasMoreMessages = ref(true);
+    const loadingMoreMessages = ref(false);
+
     const filteredConversations = computed(() => {
         return conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase());
     });
@@ -119,56 +128,94 @@ export const useChatStore = defineStore('chatStore', () => {
     });
 
     const extractData = (response: any) => response.data['hydra:member'] || response.data['member'] || (Array.isArray(response.data) ? response.data : []);
+    const hasNextPage = (response: any) => !!(response.data['hydra:view'] && response.data['hydra:view']['hydra:next']);
 
     const fetchTemplates = async () => {
         try {
             const response = await apiClient.get('/platform/user/util/msg/templates');
             templates.value = extractData(response);
-        } catch (err) {
-            console.error('Error cargando plantillas', err);
-        }
+        } catch (err) {}
     };
 
-    const fetchConversations = async () => {
-        loadingConversations.value = true;
+    // 🔥 CARGA Y PAGINACIÓN DE CONVERSACIONES
+    const fetchConversations = async (loadMore = false) => {
+        if (loadMore) {
+            if (!hasMoreConversations.value || loadingMoreConversations.value) return;
+            loadingMoreConversations.value = true;
+            conversationsPage.value++;
+        } else {
+            loadingConversations.value = true;
+            conversationsPage.value = 1;
+            hasMoreConversations.value = true;
+        }
+
         error.value = null;
         try {
-            const response = await apiClient.get('/platform/user/util/msg/conversations?order[lastMessageAt]=desc');
-            conversations.value = extractData(response);
+            const response = await apiClient.get(`/platform/user/util/msg/conversations?order[lastMessageAt]=desc&page=${conversationsPage.value}`);
+            const data = extractData(response);
+
+            if (loadMore) {
+                conversations.value.push(...data);
+            } else {
+                conversations.value = data;
+            }
+            hasMoreConversations.value = hasNextPage(response);
         } catch (err: any) {
             error.value = 'Error al sincronizar chats';
         } finally {
             loadingConversations.value = false;
+            loadingMoreConversations.value = false;
         }
     };
 
+    // 🔥 SELECCIÓN Y PAGINACIÓN DE MENSAJES
     const selectConversation = async (id: string) => {
         const found = conversations.value.find(c => c.id === id);
         if (!found) return;
 
         currentConversation.value = found;
         loadingMessages.value = true;
+        messagesPage.value = 1;
+        hasMoreMessages.value = true;
 
         try {
-            // 🔥 1. MARCAR COMO LEÍDO (Si hay mensajes pendientes de leer)
+            // 1. MARCAR COMO LEÍDO (Endpoint dedicado)
             if (found.unreadCount > 0) {
-                // Hacemos el request en segundo plano para no bloquear la UI
                 apiClient.post(`/platform/user/util/msg/conversations/${id}/read`)
                     .then(() => found.unreadCount = 0)
-                    .catch(e => console.error("Error marcando mensajes como leídos", e));
-
-                // Actualizamos visualmente al instante
+                    .catch(e => console.error("Error al marcar leídos", e));
                 found.unreadCount = 0;
             }
 
-            // 🔥 2. CARGAR EL HISTORIAL DE CHAT
-            const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}/messages`);
-            messages.value = extractData(response);
+            // 2. CARGAR HISTORIAL RECIENTE (Orden DESC invertido a ASC para la vista)
+            const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}/messages?order[createdAt]=desc&page=1`);
+            messages.value = extractData(response).reverse();
+            hasMoreMessages.value = hasNextPage(response);
 
         } catch (err) {
             error.value = 'Error al cargar mensajes';
         } finally {
             loadingMessages.value = false;
+        }
+    };
+
+    const loadMoreMessages = async () => {
+        if (!currentConversation.value || !hasMoreMessages.value || loadingMoreMessages.value) return;
+
+        loadingMoreMessages.value = true;
+        messagesPage.value++;
+
+        try {
+            const response = await apiClient.get(`/platform/user/util/msg/conversations/${currentConversation.value.id}/messages?order[createdAt]=desc&page=${messagesPage.value}`);
+            const olderMessages = extractData(response).reverse();
+
+            // Prepend: Agregamos los mensajes antiguos al INICIO del array
+            messages.value = [...olderMessages, ...messages.value];
+            hasMoreMessages.value = hasNextPage(response);
+        } catch (err) {
+            error.value = 'Error al cargar historial antiguo';
+        } finally {
+            loadingMoreMessages.value = false;
         }
     };
 
@@ -209,6 +256,7 @@ export const useChatStore = defineStore('chatStore', () => {
                 }
             });
 
+            // Agregamos el mensaje nuevo al final del array
             messages.value.push(response.data);
 
             attachmentStore.clear();
@@ -225,6 +273,7 @@ export const useChatStore = defineStore('chatStore', () => {
     return {
         conversations, filteredConversations, currentConversation, messages, templates, validTemplates,
         filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
-        getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, sendMessage
+        loadingMoreConversations, loadingMoreMessages, hasMoreMessages,
+        getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage
     };
 });

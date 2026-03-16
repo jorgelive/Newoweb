@@ -142,12 +142,19 @@ class MessageConversationCrudController extends BaseCrudController
 
         // --- SECCIÓN 2: DATOS DEL HUÉSPED ---
         yield FormField::addPanel('Huésped e Idioma')->setIcon('fa fa-user');
+
         yield TextField::new('guestName', 'Nombre Completo')->setColumns(4);
         yield TextField::new('guestPhone', 'Teléfono / WhatsApp')->setColumns(4);
+
         yield AssociationField::new('idioma', 'Idioma')
             ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->andWhere('entity.prioridad > 0')->orderBy('entity.prioridad', 'DESC'))
             ->setRequired(true)
-            ->setColumns(4);
+            ->setColumns(2);
+
+        yield BooleanField::new('idiomaFijado', 'Bloquear Idioma (Fijado)')
+            ->setHelp('Si se activa, el PMS no sobreescribirá este idioma.')
+            ->renderAsSwitch(true)
+            ->setColumns(2);
 
         // --- SECCIÓN 3: CONTEXTO PMS (Lógica de Negocio) ---
         yield FormField::addPanel('Contexto de Reserva (PMS)')->setIcon('fa fa-link');

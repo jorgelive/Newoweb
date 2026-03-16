@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import { useChatStore, ApiMessage } from '@/stores/chatStore';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 
@@ -7,6 +7,7 @@ const store = useChatStore();
 const attachmentStore = useAttachmentStore();
 
 const messagesContainer = ref<HTMLElement | null>(null);
+const conversationsContainer = ref<HTMLElement | null>(null);
 const newMessageText = ref('');
 
 const isMobileSidebarOpen = ref(true);
@@ -19,19 +20,70 @@ const fileInput = ref<HTMLInputElement | null>(null);
 // Hook Multicanal
 const selectedChannels = ref<string[]>(['whatsapp_gupshup']);
 
+// 🔥 GESTIÓN DE HISTORIAL MÓVIL (BOTÓN ATRÁS)
+const handlePopState = (event: PopStateEvent) => {
+  if (window.innerWidth < 768 && !isMobileSidebarOpen.value) {
+    isMobileSidebarOpen.value = true;
+    // Evitamos que vuelva a retroceder de verdad y lo sacamos de la app
+    history.pushState({ sidebar: true }, '');
+  }
+};
+
 onMounted(() => {
   store.fetchConversations();
   store.fetchTemplates();
+
+  // Plantamos el estado inicial
+  if (window.innerWidth < 768) {
+    history.pushState({ sidebar: true }, '');
+  }
+  window.addEventListener('popstate', handlePopState);
 });
 
-const scrollToBottom = () => {
-  if (messagesContainer.value) messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+onUnmounted(() => {
+  window.removeEventListener('popstate', handlePopState);
+});
+
+// 🔥 SCROLL INFINITO: Mensajes antiguos (Hacia arriba)
+const onMessageScroll = async () => {
+  const el = messagesContainer.value;
+  if (!el || store.loadingMoreMessages || !store.hasMoreMessages) return;
+
+  // Si tocamos el techo (scroll = 0)
+  if (el.scrollTop === 0) {
+    const previousScrollHeight = el.scrollHeight;
+    await store.loadMoreMessages();
+    await nextTick();
+    // Ajustamos el scroll para que el usuario no salte bruscamente al techo de nuevo
+    el.scrollTop = el.scrollHeight - previousScrollHeight;
+  }
 };
 
-watch(() => store.messages, async () => {
+// 🔥 SCROLL INFINITO: Lista de chats (Hacia abajo)
+const onConversationScroll = async () => {
+  const el = conversationsContainer.value;
+  if (!el || store.loadingMoreConversations) return;
+
+  // Si llegamos casi al final de la lista
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+    await store.fetchConversations(true);
+  }
+};
+
+const scrollToBottom = () => {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+  }
+};
+
+// Control inteligente de auto-scroll
+watch(() => store.messages.length, async (newLen, oldLen) => {
   await nextTick();
-  scrollToBottom();
-}, { deep: true });
+  // Solo auto-scroll si creció y NO estamos cargando historial antiguo (para que no te jale al fondo)
+  if (newLen > oldLen && !store.loadingMoreMessages) {
+    scrollToBottom();
+  }
+});
 
 watch(() => store.error, (v) => {
   if (v) setTimeout(() => store.error = null, 6000);
@@ -40,7 +92,7 @@ watch(() => store.error, (v) => {
 watch(() => store.currentConversation, (chat) => {
   selectedTemplateId.value = null;
   showTemplateDropdown.value = false;
-  attachmentStore.clear(); // Limpiamos store de adjuntos al cambiar de chat
+  attachmentStore.clear();
 
   if (chat?.contextOrigin && !['manual', 'web', 'directo'].includes(chat.contextOrigin.toLowerCase())) {
     selectedChannels.value = ['beds24', 'whatsapp_gupshup'];
@@ -52,6 +104,19 @@ watch(() => store.currentConversation, (chat) => {
 const selectChat = async (id: string) => {
   await store.selectConversation(id);
   isMobileSidebarOpen.value = false;
+  await nextTick();
+  scrollToBottom();
+
+  // Inyectamos el estado "chat_abierto" en el historial móvil
+  if (window.innerWidth < 768) {
+    history.pushState({ chat: true }, '');
+  }
+};
+
+const closeMobileChat = () => {
+  isMobileSidebarOpen.value = true;
+  // Disparamos un retroceso en el historial para limpiar la pila
+  history.back();
 };
 
 // ============================================================================
@@ -62,7 +127,6 @@ const toggleChannel = (channel: string) => {
   if (selectedChannels.value.includes(channel)) {
     selectedChannels.value = selectedChannels.value.filter(c => c !== channel);
   } else {
-    // 🔥 BLOQUEO BEDS24: Validamos usando el store de adjuntos
     if (channel === 'beds24' && attachmentStore.file && !attachmentStore.isImage) {
       store.error = 'No puedes activar Beds24 porque has adjuntado un documento. Beds24 solo admite imágenes.';
       return;
@@ -77,7 +141,6 @@ const onFileSelected = (event: Event) => {
     const success = attachmentStore.setFile(target.files[0]);
 
     if (success) {
-      // 🔥 ALERTA BEDS24: Si suben un documento y Beds24 estaba marcado
       if (!attachmentStore.isImage && selectedChannels.value.includes('beds24')) {
         store.error = 'Beds24 solo permite el envío de imágenes. Se ha desmarcado este canal automáticamente.';
         selectedChannels.value = selectedChannels.value.filter(c => c !== 'beds24');
@@ -187,7 +250,7 @@ const getOriginClass = (origin?: string | null) => {
       <div class="px-6 pt-6 bg-white shrink-0">
         <div class="flex justify-between items-center mb-6">
           <h1 class="font-black text-2xl tracking-tight text-slate-800">Inbox</h1>
-          <button @click="store.fetchConversations" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-900 group transition-all shadow-sm">
+          <button @click="store.fetchConversations()" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-900 group transition-all shadow-sm">
             <i class="fas fa-sync-alt text-slate-400 group-hover:text-white text-xs" :class="{'fa-spin': store.loadingConversations}"></i>
           </button>
         </div>
@@ -198,7 +261,7 @@ const getOriginClass = (origin?: string | null) => {
         </div>
       </div>
 
-      <div class="flex-1 overflow-y-auto scrollbar-hide py-2 px-3">
+      <div class="flex-1 overflow-y-auto scrollbar-hide py-2 px-3" ref="conversationsContainer" @scroll="onConversationScroll">
         <div v-if="store.loadingConversations" class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-slate-300"></i></div>
         <div v-else-if="store.filteredConversations.length === 0" class="p-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">Bandeja Vacía</div>
 
@@ -218,6 +281,10 @@ const getOriginClass = (origin?: string | null) => {
             <span v-if="chat.unreadCount > 0" class="absolute -right-1 -top-1 w-5 h-5 bg-[#E07845] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-md">{{ chat.unreadCount }}</span>
           </button>
         </div>
+
+        <div v-if="store.loadingMoreConversations" class="py-4 text-center">
+          <i class="fas fa-circle-notch fa-spin text-slate-300"></i>
+        </div>
       </div>
     </aside>
 
@@ -230,9 +297,11 @@ const getOriginClass = (origin?: string | null) => {
       <template v-else>
         <header class="h-16 md:h-24 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30">
           <div class="flex items-center gap-4 overflow-hidden">
-            <button @click="isMobileSidebarOpen = true" class="md:hidden w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 shadow-sm transition-colors"><i class="fas fa-chevron-left"></i></button>
+            <button @click="closeMobileChat" class="md:hidden w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 shadow-sm transition-colors"><i class="fas fa-chevron-left"></i></button>
             <div class="truncate">
-              <h2 class="font-black text-slate-900 text-lg md:text-2xl tracking-tight truncate leading-none mb-1">{{ store.currentConversation?.guestName }}</h2>
+              <h2 class="font-black text-slate-900 text-lg md:text-2xl tracking-tight truncate leading-none mb-1">
+                {{ store.currentConversation?.guestName || 'Huésped Sin Nombre' }}
+              </h2>
               <div class="flex items-center gap-3 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-400">
                 <span class="text-[#E07845]">{{ store.currentConversation?.contextItems?.length ? store.currentConversation.contextItems.join(' + ') : 'PMS' }}</span>
                 <span class="hidden sm:inline text-slate-200">/</span>
@@ -240,9 +309,28 @@ const getOriginClass = (origin?: string | null) => {
               </div>
             </div>
           </div>
+
+          <div class="flex items-center gap-3 shrink-0 ml-4">
+            <span v-if="store.currentConversation?.contextStatusTag"
+                  class="hidden lg:inline-flex items-center px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest">
+              {{ store.currentConversation.contextStatusTag }}
+            </span>
+
+            <a v-if="store.getExternalContextUrl"
+               :href="store.getExternalContextUrl"
+               target="_blank"
+               class="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-xl shadow-xl hover:-translate-y-0.5 hover:shadow-2xl hover:bg-slate-800 transition-all text-[10px] font-black uppercase tracking-wider">
+              <i class="fas fa-external-link-alt"></i><span class="hidden md:inline">Ver Reserva</span>
+            </a>
+          </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-4 md:px-12 md:py-8" ref="messagesContainer">
+        <div class="flex-1 overflow-y-auto p-4 md:px-12 md:py-8" ref="messagesContainer" @scroll="onMessageScroll">
+
+          <div v-if="store.loadingMoreMessages" class="flex justify-center py-4">
+            <i class="fas fa-circle-notch fa-spin text-slate-300"></i>
+          </div>
+
           <div class="max-w-4xl mx-auto flex flex-col">
             <div v-for="(group, date) in groupedMessages" :key="date" class="flex flex-col">
               <div class="flex justify-center my-6 sticky top-2 z-10">
@@ -331,8 +419,7 @@ const getOriginClass = (origin?: string | null) => {
           <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-2 md:gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-[24px] focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full relative min-w-0">
 
             <div v-if="attachmentStore.file" class="absolute -top-14 left-0 bg-white border border-slate-200 shadow-lg rounded-xl px-3 py-2 flex items-center gap-3 z-10 animate-fade-in max-w-full">
-              <img v-if="attachmentStore.isImage" :src="attachmentStore.previewUrl" class="w-8 h-8 object-cover rounded shadow-sm shrink-0" />
-              <i v-else class="fas fa-file-pdf text-red-500 text-2xl shrink-0"></i>
+              <img v-if="attachmentStore.isImage" :src="attachmentStore.previewUrl ?? undefined" class="w-8 h-8 object-cover rounded shadow-sm shrink-0" />              <i v-else class="fas fa-file-pdf text-red-500 text-2xl shrink-0"></i>
               <div class="flex flex-col min-w-0">
                 <span class="text-xs font-bold text-slate-800 truncate">{{ attachmentStore.fileName }}</span>
                 <span class="text-[9px] text-slate-400">{{ attachmentStore.fileSizeKB }} KB</span>

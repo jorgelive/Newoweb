@@ -81,6 +81,10 @@ class MessageConversation
     #[Groups(['conversation:read'])]
     private MaestroIdioma $idioma;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    #[Groups(['conversation:read'])]
+    private bool $idiomaFijado = false;
+
     #[ORM\Column(type: 'datetime', nullable: true)]
     #[Groups(['conversation:read'])]
     private ?DateTimeInterface $lastMessageAt = null;
@@ -136,6 +140,9 @@ class MessageConversation
 
     public function getIdioma(): MaestroIdioma { return $this->idioma; }
     public function setIdioma(MaestroIdioma $idioma): self { $this->idioma = $idioma; return $this; }
+
+    public function isIdiomaFijado(): bool { return $this->idiomaFijado; }
+    public function setIdiomaFijado(bool $idiomaFijado): self { $this->idiomaFijado = $idiomaFijado; return $this; }
 
     public function getLastMessageAt(): ?DateTimeInterface { return $this->lastMessageAt; }
     public function setLastMessageAt(?DateTimeInterface $lastMessageAt): self { $this->lastMessageAt = $lastMessageAt; return $this; }
