@@ -149,6 +149,7 @@ class MessageConversationCrudController extends BaseCrudController
         yield AssociationField::new('idioma', 'Idioma')
             ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->andWhere('entity.prioridad > 0')->orderBy('entity.prioridad', 'DESC'))
             ->setRequired(true)
+            ->setFormTypeOption('attr', ['required' => true])
             ->setColumns(2);
 
         yield BooleanField::new('idiomaFijado', 'Bloquear Idioma (Fijado)')

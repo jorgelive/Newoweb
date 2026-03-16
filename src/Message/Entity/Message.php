@@ -42,7 +42,7 @@ use Symfony\Component\Uid\UuidV7;
                     fromClass: MessageConversation::class
                 )
             ],
-            order: ['createdAt' => 'ASC']
+            order: ['createdAt' => 'DESC']
         ),
         new GetCollection(uriTemplate: '/user/util/msg/messages'),
         new Get(uriTemplate: '/user/util/msg/messages/{id}'),
