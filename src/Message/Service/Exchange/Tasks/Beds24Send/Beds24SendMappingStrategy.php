@@ -52,7 +52,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             $template = $msg->getTemplate();
 
             if ($template !== null) {
-                $language = $msg->getLanguageCode() ?: 'es';
+                $language = $msg->getConversation()->getIdioma()?->getId() ?? 'es';
                 $content = (string) $template->getBeds24Body($language);
             }
 

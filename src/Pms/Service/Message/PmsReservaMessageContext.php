@@ -27,7 +27,7 @@ class PmsReservaMessageContext implements MessageContextInterface
     public function getContextId(): string { return (string) $this->reserva->getId(); }
 
     public function getContextLanguage(): string {
-        return $this->reserva->getIdioma() ? strtolower((string)$this->reserva->getIdioma()->getId()) : 'es';
+        return $this->reserva->getIdioma()?->getId() ?? 'en';
     }
 
     public function getContextName(): ?string
