@@ -21,21 +21,36 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const selectedChannels = ref<string[]>(['whatsapp_gupshup']);
 
 // 🔥 GESTIÓN DE HISTORIAL MÓVIL (BOTÓN ATRÁS NATIVO)
+// Chrome Android dispara el gesto atrás en dos fases (preview + commit).
+// Si reaccionamos sin leer el state real del history se produce un parpadeo.
+// Este handler usa history.state como fuente de verdad.
+
 const handlePopState = (event: PopStateEvent) => {
-  // Solo alteramos la UI si el navegador retrocedió. NO inyectamos pushState aquí.
-  if (window.innerWidth < 768 && !isMobileSidebarOpen.value) {
-    isMobileSidebarOpen.value = true;
-  }
+  if (window.innerWidth >= 768) return;
+
+  const view = event.state?.view ?? 'sidebar';
+
+  // Pequeño defer para evitar conflicto con la animación del gesto atrás
+  setTimeout(() => {
+    if (view === 'sidebar') {
+      isMobileSidebarOpen.value = true;
+    } else if (view === 'chat') {
+      isMobileSidebarOpen.value = false;
+    }
+  }, 0);
 };
 
 onMounted(() => {
   store.fetchConversations();
   store.fetchTemplates();
 
-  // Plantamos el estado inicial reemplazando el actual (no apilando uno nuevo)
+  // Plantamos estado inicial sin crear una nueva entrada de history
   if (window.innerWidth < 768) {
-    history.replaceState({ view: 'sidebar' }, '');
+    if (!history.state || history.state.view !== 'sidebar') {
+      history.replaceState({ view: 'sidebar' }, '');
+    }
   }
+
   window.addEventListener('popstate', handlePopState);
 });
 
@@ -123,7 +138,7 @@ const selectChat = async (id: string) => {
   scrollToBottom();
 
   // Inyectamos el estado "chat_abierto" para que el gesto atrás de iOS/Android funcione
-  if (window.innerWidth < 768) {
+  if (window.innerWidth < 768 && history.state?.view !== 'chat') {
     history.pushState({ view: 'chat' }, '');
   }
 };
