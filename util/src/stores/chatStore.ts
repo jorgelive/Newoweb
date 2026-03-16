@@ -127,8 +127,16 @@ export const useChatStore = defineStore('chatStore', () => {
         return routes[chat.contextType] ? `${getUrls().panel}${routes[chat.contextType]}` : null;
     });
 
-    const extractData = (response: any) => response.data['hydra:member'] || response.data['member'] || (Array.isArray(response.data) ? response.data : []);
-    const hasNextPage = (response: any) => !!(response.data['hydra:view'] && response.data['hydra:view']['hydra:next']);
+    // 🔥 COMPATIBILIDAD API PLATFORM V3 (Soporta JSON-LD plano o con prefijo hydra:)
+    const extractData = (response: any) => {
+        const data = response.data;
+        return data['hydra:member'] || data['member'] || (Array.isArray(data) ? data : []);
+    };
+
+    const hasNextPage = (response: any) => {
+        const view = response.data['hydra:view'] || response.data['view'];
+        return !!(view && (view['hydra:next'] || view['next']));
+    };
 
     const fetchTemplates = async () => {
         try {
@@ -279,7 +287,7 @@ export const useChatStore = defineStore('chatStore', () => {
     return {
         conversations, filteredConversations, currentConversation, messages, templates, validTemplates,
         filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
-        loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, // 🔥 AQUÍ ESTÁ EL FIX
+        loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations,
         getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage
     };
 });
