@@ -21,32 +21,42 @@ const fileInput = ref<HTMLInputElement | null>(null);
 // Hook Multicanal
 const selectedChannels = ref<string[]>(['whatsapp_gupshup']);
 
-// 🔥 GESTIÓN DE HISTORIAL MÓVIL Y ANIMACIONES NATIVAS
+// 🔥 GESTIÓN DE HISTORIAL MÓVIL (MÁQUINA DE ESTADOS + PREVENCIÓN DE FLICKER)
 const handlePopState = (event: PopStateEvent) => {
-  if (window.innerWidth < 768) {
-    // 1. Apagamos la animación CSS de Vue para que el DOM encaje
-    // instantáneamente con la captura de pantalla de la animación de Chrome/Android.
-    isTransitioning.value = false;
+  if (window.innerWidth >= 768) return;
 
+  // 1. Apagamos la animación CSS para que el DOM no pelee con la captura del gesto de Android
+  isTransitioning.value = false;
+
+  // 2. Leemos el destino real del historial
+  const targetView = event.state?.view;
+
+  if (targetView === 'sidebar' || !targetView) {
+    // Solo actuamos si realmente NO estamos ya en sidebar
     if (!isMobileSidebarOpen.value) {
       isMobileSidebarOpen.value = true;
     }
-
-    // 2. Reactivamos las animaciones un par de frames después
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        isTransitioning.value = true;
-      }, 50);
-    });
+  } else if (targetView === 'chat') {
+    // Esto previene el doble-disparo en Android
+    if (isMobileSidebarOpen.value) {
+      isMobileSidebarOpen.value = false;
+    }
   }
+
+  // 3. Reactivamos las animaciones sutilmente después del gesto
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      isTransitioning.value = true;
+    }, 50);
+  });
 };
 
 onMounted(() => {
   store.fetchConversations();
   store.fetchTemplates();
 
-  // Plantamos el estado inicial reemplazando el actual
   if (window.innerWidth < 768) {
+    // Definimos el estado base al cargar la app
     history.replaceState({ view: 'sidebar' }, '');
   }
   window.addEventListener('popstate', handlePopState);
@@ -62,10 +72,8 @@ let isAdjustingMessageScroll = false;
 // SCROLL INFINITO: Mensajes antiguos (Hacia arriba)
 const onMessageScroll = async () => {
   const el = messagesContainer.value;
-  // Abortamos si no hay scroll, si ya está cargando, o si cerramos el candado de ajuste
   if (!el || store.loadingMoreMessages || !store.hasMoreMessages || isAdjustingMessageScroll) return;
 
-  // Tolerancia ampliada a 50px para detectar el techo antes de chocar (ideal para Mac/iOS)
   if (el.scrollTop <= 50) {
     isAdjustingMessageScroll = true; // 🔒 CERRAMOS CANDADO
     const previousScrollHeight = el.scrollHeight;
@@ -88,12 +96,9 @@ const onConversationScroll = async () => {
   const el = conversationsContainer.value;
   if (!el || store.loadingMoreConversations || !store.hasMoreConversations) return;
 
-  // Usamos Math.ceil() por los monitores retina y ampliamos el margen de detección a 150px.
-  // De esta forma, detectará que llegaste al final INCLUSO antes de rebotar.
   const isBottom = Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight - 150;
 
   if (isBottom) {
-    // El Store ya tiene su propio seguro interno, por lo que nunca pedirá la misma página dos veces.
     await store.fetchConversations(true);
   }
 };
@@ -107,7 +112,6 @@ const scrollToBottom = () => {
 // Control inteligente de auto-scroll
 watch(() => store.messages.length, async (newLen, oldLen) => {
   await nextTick();
-  // Solo auto-scroll si el array creció (mensaje nuevo) y NO estamos paginando hacia atrás
   if (newLen > oldLen && !store.loadingMoreMessages) {
     scrollToBottom();
   }
@@ -132,7 +136,6 @@ watch(() => store.currentConversation, (chat) => {
 const selectChat = async (id: string) => {
   await store.selectConversation(id);
 
-  // Aseguramos que la animación esté encendida al hacer click
   isTransitioning.value = true;
   isMobileSidebarOpen.value = false;
 
@@ -140,17 +143,27 @@ const selectChat = async (id: string) => {
   scrollToBottom();
 
   if (window.innerWidth < 768) {
-    // 🔥 TRUCO MAESTRO: Esperamos 350ms (lo que dura la animación) antes de empujar el historial.
-    // Así obligamos a Chrome a tomar la "captura" con la pantalla ya acomodada, evitando el pestañeo.
+    // Nos aseguramos de que el estado base 'sidebar' exista antes de apilar 'chat'
+    if (history.state?.view !== 'sidebar') {
+      history.replaceState({ view: 'sidebar' }, '');
+    }
+
+    // 🔥 TRUCO VISUAL: Esperamos a que la animación inicie antes de empujar el nuevo estado.
+    // Esto evita que Chrome tome una "captura de pantalla" rota a medio movimiento en Android.
     setTimeout(() => {
       history.pushState({ view: 'chat' }, '');
-    }, 350);
+    }, 300);
   }
 };
 
 const closeMobileChat = () => {
-  // El botón '<' simplemente le dice a Chrome que vuelva, disparando la magia del handlePopState
-  history.back();
+  // Solo hacemos back si aún estamos en el estado 'chat'
+  if (history.state?.view === 'chat') {
+    history.back();
+  } else {
+    // El navegador ya retrocedió, solo sincronizamos la UI
+    isMobileSidebarOpen.value = true;
+  }
 };
 
 // ============================================================================
