@@ -11,6 +11,7 @@ const conversationsContainer = ref<HTMLElement | null>(null);
 const newMessageText = ref('');
 
 const isMobileSidebarOpen = ref(true);
+const isTransitioning = ref(true); // Controla si permitimos animaciones CSS
 
 // Estados del Composer
 const selectedTemplateId = ref<string | null>(null);
@@ -20,37 +21,34 @@ const fileInput = ref<HTMLInputElement | null>(null);
 // Hook Multicanal
 const selectedChannels = ref<string[]>(['whatsapp_gupshup']);
 
-// 🔥 GESTIÓN DE HISTORIAL MÓVIL (BOTÓN ATRÁS NATIVO)
-// Chrome Android dispara el gesto atrás en dos fases (preview + commit).
-// Si reaccionamos sin leer el state real del history se produce un parpadeo.
-// Este handler usa history.state como fuente de verdad.
-
+// 🔥 GESTIÓN DE HISTORIAL MÓVIL Y ANIMACIONES NATIVAS
 const handlePopState = (event: PopStateEvent) => {
-  if (window.innerWidth >= 768) return;
+  if (window.innerWidth < 768) {
+    // 1. Apagamos la animación CSS de Vue para que el DOM encaje
+    // instantáneamente con la captura de pantalla de la animación de Chrome/Android.
+    isTransitioning.value = false;
 
-  const view = event.state?.view ?? 'sidebar';
-
-  // Pequeño defer para evitar conflicto con la animación del gesto atrás
-  setTimeout(() => {
-    if (view === 'sidebar') {
+    if (!isMobileSidebarOpen.value) {
       isMobileSidebarOpen.value = true;
-    } else if (view === 'chat') {
-      isMobileSidebarOpen.value = false;
     }
-  }, 0);
+
+    // 2. Reactivamos las animaciones un par de frames después
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        isTransitioning.value = true;
+      }, 50);
+    });
+  }
 };
 
 onMounted(() => {
   store.fetchConversations();
   store.fetchTemplates();
 
-  // Plantamos estado inicial sin crear una nueva entrada de history
+  // Plantamos el estado inicial reemplazando el actual
   if (window.innerWidth < 768) {
-    if (!history.state || history.state.view !== 'sidebar') {
-      history.replaceState({ view: 'sidebar' }, '');
-    }
+    history.replaceState({ view: 'sidebar' }, '');
   }
-
   window.addEventListener('popstate', handlePopState);
 });
 
@@ -133,18 +131,25 @@ watch(() => store.currentConversation, (chat) => {
 
 const selectChat = async (id: string) => {
   await store.selectConversation(id);
+
+  // Aseguramos que la animación esté encendida al hacer click
+  isTransitioning.value = true;
   isMobileSidebarOpen.value = false;
+
   await nextTick();
   scrollToBottom();
 
-  // Inyectamos el estado "chat_abierto" para que el gesto atrás de iOS/Android funcione
-  if (window.innerWidth < 768 && history.state?.view !== 'chat') {
-    history.pushState({ view: 'chat' }, '');
+  if (window.innerWidth < 768) {
+    // 🔥 TRUCO MAESTRO: Esperamos 350ms (lo que dura la animación) antes de empujar el historial.
+    // Así obligamos a Chrome a tomar la "captura" con la pantalla ya acomodada, evitando el pestañeo.
+    setTimeout(() => {
+      history.pushState({ view: 'chat' }, '');
+    }, 350);
   }
 };
 
 const closeMobileChat = () => {
-  // Dejamos que el navegador retroceda de forma nativa (disparará handlePopState)
+  // El botón '<' simplemente le dice a Chrome que vuelva, disparando la magia del handlePopState
   history.back();
 };
 
@@ -273,8 +278,11 @@ const getOriginClass = (origin?: string | null) => {
     </Transition>
 
     <aside
-        class="fixed inset-y-0 left-0 z-40 w-full md:relative md:w-80 lg:w-[380px] bg-white border-r border-slate-200 flex flex-col transition-all duration-500 ease-in-out md:translate-x-0"
-        :class="isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        class="fixed inset-y-0 left-0 z-40 w-full md:relative md:w-80 lg:w-[380px] bg-white border-r border-slate-200 flex flex-col md:translate-x-0"
+        :class="[
+            isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+            isTransitioning ? 'transition-transform duration-300 ease-in-out' : ''
+        ]"
     >
       <div class="px-6 pt-6 bg-white shrink-0">
         <div class="flex justify-between items-center mb-6">
@@ -388,7 +396,7 @@ const getOriginClass = (origin?: string | null) => {
                       <div v-if="msg.attachments?.length" class="mb-3 space-y-2">
                         <div v-for="att in msg.attachments" :key="(typeof att === 'string') ? att : att.id" class="flex items-center gap-3 p-3 rounded-xl bg-black/10">
                           <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                            <img v-if="typeof att !== 'string' && att.fileUrl" :src="att.fileUrl" class="w-full h-full object-cover" />
+                            <img v-if="typeof att !== 'string' && att.fileUrl" :src="att.fileUrl ?? undefined" class="w-full h-full object-cover" />
                             <i v-else class="fas fa-file-alt text-lg"></i>
                           </div>
                           <div class="min-w-0">
