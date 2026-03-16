@@ -16,7 +16,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 #[AutoconfigureTag('app.cron_job')]
-class Beds24MessagePullJob implements CronJobInterface
+class Beds24MessageReceiveJob implements CronJobInterface
 {
     private const BATCH_SIZE = 50;
 
@@ -28,7 +28,7 @@ class Beds24MessagePullJob implements CronJobInterface
 
     public function getName(): string
     {
-        return 'beds24_message_pull'; // Alias para ejecutarlo en consola
+        return 'beds24_message_receive'; // Alias para ejecutarlo en consola
     }
 
     public function getStepInterval(): DateInterval

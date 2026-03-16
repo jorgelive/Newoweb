@@ -19,7 +19,7 @@ final readonly class Beds24ReceiveTask implements ExchangeTaskInterface
 
     public static function getTaskName(): string
     {
-        return 'beds24_message_pull';
+        return 'beds24_message_receive';
     }
 
     public function getMaxBatchSize(): int

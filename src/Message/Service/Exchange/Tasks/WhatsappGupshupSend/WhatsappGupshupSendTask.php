@@ -20,7 +20,7 @@ final readonly class WhatsappGupshupSendTask implements ExchangeTaskInterface
 
     public static function getTaskName(): string
     {
-        return 'whatsapp_gupshup_message_push';
+        return 'whatsapp_gupshup_message_send';
     }
 
     public function getMaxBatchSize(): int
