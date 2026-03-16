@@ -77,8 +77,6 @@ export const useChatStore = defineStore('chatStore', () => {
 
     const apiClient = axios.create({
         withCredentials: true,
-        // 🔥 Quitamos el Content-Type genérico para que Axios lo configure dinámicamente
-        // según si mandamos un JSON o un FormData. El Accept en ld+json se queda para leer las respuestas.
         headers: { 'Accept': 'application/ld+json' }
     });
 
@@ -147,12 +145,26 @@ export const useChatStore = defineStore('chatStore', () => {
     const selectConversation = async (id: string) => {
         const found = conversations.value.find(c => c.id === id);
         if (!found) return;
+
         currentConversation.value = found;
         loadingMessages.value = true;
+
         try {
+            // 🔥 1. MARCAR COMO LEÍDO (Si hay mensajes pendientes de leer)
+            if (found.unreadCount > 0) {
+                // Hacemos el request en segundo plano para no bloquear la UI
+                apiClient.post(`/platform/user/util/msg/conversations/${id}/read`)
+                    .then(() => found.unreadCount = 0)
+                    .catch(e => console.error("Error marcando mensajes como leídos", e));
+
+                // Actualizamos visualmente al instante
+                found.unreadCount = 0;
+            }
+
+            // 🔥 2. CARGAR EL HISTORIAL DE CHAT
             const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}/messages`);
             messages.value = extractData(response);
-            found.unreadCount = 0;
+
         } catch (err) {
             error.value = 'Error al cargar mensajes';
         } finally {
@@ -167,46 +179,38 @@ export const useChatStore = defineStore('chatStore', () => {
         if (!currentConversation.value) return;
 
         sendingMessage.value = true;
-        const attachmentStore = useAttachmentStore(); // Consumimos el store de archivos
+        const attachmentStore = useAttachmentStore();
 
         try {
-            // 🔥 Creamos el paquete Multipart
             const form = new FormData();
 
-            // 1. Datos base
             form.append('conversation', currentConversation.value['@id']);
             form.append('direction', 'outgoing');
             form.append('senderType', 'host');
             form.append('status', 'pending');
 
-            // 2. Arrays en FormData (OBLIGATORIO usar los corchetes [] al final del nombre)
             channels.forEach(channel => {
                 form.append('transientChannels[]', channel);
             });
 
-            // 3. Contenido o Plantilla
             if (templateIri) {
                 form.append('template', templateIri);
             } else {
                 form.append('contentLocal', text.trim());
             }
 
-            // 4. El Archivo Físico (Si el usuario seleccionó uno)
             if (attachmentStore.file) {
                 form.append('file', attachmentStore.file);
             }
 
-            // 5. POST al endpoint normal de API Platform, pero con cabecera multipart
             const response = await apiClient.post('/platform/user/util/msg/messages', form, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
             });
 
-            // Añadimos a la UI
             messages.value.push(response.data);
 
-            // Limpiamos los estados de adjuntos y recargamos conversaciones
             attachmentStore.clear();
             fetchConversations();
 

@@ -42,12 +42,33 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 continue;
             }
 
+            // =================================================================
+            // 🔥 ESCENARIO A: RECIBO DE LECTURA (READ RECEIPT)
+            // Si el mensaje es entrante, significa que estamos mandando un update
+            // a Beds24 para decirle que el host ya leyó este mensaje.
+            // =================================================================
+            if ($msg->getDirection() === Message::DIRECTION_INCOMING) {
+                $extId = $msg->getBeds24ExternalId();
+
+                // Si el mensaje no tiene ID en Beds24, es imposible marcarlo.
+                if ($extId) {
+                    $payload[] = [
+                        'id' => (int) $extId,
+                        'read' => true
+                    ];
+                    $correlation[$index] = (string)$item->getId();
+                }
+                continue; // Saltamos la lógica de generación de texto y adjuntos
+            }
+
+
+            // =================================================================
+            // ⬇️ ESCENARIO B: ENVÍO DE MENSAJE NUEVO (OUTGOING) ⬇️
+            // =================================================================
             $conversation = $msg->getConversation();
             $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
 
-            // =================================================================
             // 1. EXTRACCIÓN DE CONTENIDO Y PLANTILLA
-            // =================================================================
             $content = '';
             $template = $msg->getTemplate();
 
@@ -65,9 +86,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 $content = trim($subject) . "\n\n" . trim($content);
             }
 
-            // =================================================================
             // 2. INTERPOLACIÓN DE VARIABLES (ej. {{ guest_name }})
-            // =================================================================
             if ($resolver !== null && str_contains($content, '{{')) {
                 $variables = $resolver->getMessageVariables($conversation->getContextId());
                 foreach ($variables as $key => $value) {
@@ -76,25 +95,19 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 }
             }
 
-            // =================================================================
             // 3. EXTRACCIÓN DEL ADJUNTO (Vich Uploader)
-            // =================================================================
             $attachment = $msg->getAttachments()->first() ?: null;
 
-            // 🔥 FIX: Prevención de rechazo por mensaje vacío en Beds24
-            // Si no hay texto, pero SÍ hay adjunto, usamos el nombre del archivo.
+            // FIX: Prevención de rechazo por mensaje vacío en Beds24
             if (empty(trim($content)) && $attachment !== null) {
                 $content = 'Archivo adjunto: ' . ($attachment->getOriginalName() ?? 'imagen.jpg');
             }
 
-            // Red de seguridad final: Si por algún error de UI llega totalmente vacío (sin texto ni foto)
             if (empty(trim($content))) {
                 $content = '(Mensaje sin texto)';
             }
 
-            // =================================================================
             // 4. CONSTRUCCIÓN DEL PAYLOAD FINAL
-            // =================================================================
             $messagePayload = [
                 'bookingId' => (int) $item->getTargetBookId(),
                 'message'   => trim($content),

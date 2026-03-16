@@ -9,10 +9,13 @@ use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\OpenApi\Model\Operation;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\Contract\ConversationMilestoneInterface;
+use App\Message\Controller\Api\MarkConversationReadController;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -27,7 +30,18 @@ use Symfony\Component\Uid\Uuid;
     shortName: 'Conversation',
     operations: [
         new GetCollection(uriTemplate: '/user/util/msg/conversations'),
-        new Get(uriTemplate: '/user/util/msg/conversations/{id}')
+        new Get(uriTemplate: '/user/util/msg/conversations/{id}'),
+
+        // 🔥 NUEVO ENDPOINT: Marca la conversación como leída y dispara los webhooks de salida
+        new Post(
+            uriTemplate: '/user/util/msg/conversations/{id}/read',
+            controller: MarkConversationReadController::class,
+            openapi: new Operation(
+                summary: 'Marca el chat como leído',
+                description: 'Marca todos los mensajes INCOMING de la conversación como leídos y notifica a las OTAs (Beds24/WhatsApp) mediante la cola de salida.'
+            ), // El controlador hará la búsqueda
+            read: false, // No necesitamos body JSON
+            deserialize: false)
     ],
     normalizationContext: ['groups' => ['conversation:read']],
     order: ['lastMessageAt' => 'DESC']

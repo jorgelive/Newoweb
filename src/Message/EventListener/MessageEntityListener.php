@@ -27,30 +27,35 @@ class MessageEntityListener
 
     /**
      * Intercepta la creación de un nuevo mensaje antes de que sea insertado en la base de datos.
-     * * Responsabilidades principales:
-     * 1. Ejecutar el motor de traducción para asegurar que el contenido (local/externo) esté en el idioma correcto.
-     * 2. Implementar el patrón Outbox generando las colas de envío necesarias (Beds24, WhatsApp) si el mensaje es saliente.
      *
-     * @param Message $message La entidad del mensaje que está a punto de ser persistida.
-     * @param PrePersistEventArgs $event Argumentos del evento proporcionados por Doctrine.
-     * * @throws \Exception Si el dispatcher falla al generar las colas de envío.
-     * * @example
-     * // Al hacer $em->persist($message); Doctrine llamará automáticamente a este método.
-     * // Si $message->getDirection() === 'outgoing', se crearán y persistirán registros en WhatsappGupshupSendQueue.
+     * Responsabilidades principales:
+     * 1. Ejecutar el motor de traducción para asegurar que el contenido esté en el idioma correcto.
+     * 2. Implementar el patrón Outbox generando las colas de envío (Beds24, WhatsApp).
      */
     public function prePersist(Message $message, PrePersistEventArgs $event): void
     {
         // 1. Procesar Traducciones Automáticas
-        // Analiza el contexto de la plantilla y los idiomas objetivo para rellenar contentLocal y contentExternal.
         $this->translator->process($message);
 
-        // 2. Patrón Outbox: Generar las colas de envío
-        // Solo evaluamos mensajes que nosotros estamos enviando (outgoing) y que no han sido procesados aún (pending).
+        // =========================================================================
+        // 🔥 ADVERTENCIA ARQUITECTÓNICA (NO MODIFICAR ESTA CONDICIÓN) 🔥
+        // =========================================================================
+        // Este Listener SOLO reacciona a mensajes SALIENTES (outgoing).
+        //
+        // ¿Por qué no reaccionamos a mensajes INCOMING (entrantes)?
+        // No vayas a pensar que nos olvidamos de generar los recibos de lectura (Read Receipts)
+        // para Beds24 o WhatsApp al recibir un Webhook. ¡Está hecho a propósito!
+        //
+        // Si hiciéramos eso aquí (de forma Reactiva), crearíamos un efecto cascada
+        // (Event Cascade) y bucles infinitos en la base de datos.
+        // La generación de colas para marcar como leído se hace de forma PROACTIVA
+        // y manual directamente dentro del controlador `MarkConversationReadController`.
+        // =========================================================================
+
         if ($message->getDirection() === Message::DIRECTION_OUTGOING
             && $message->getStatus() === Message::STATUS_PENDING) {
 
-            // El dispatcher evalúa los 'transientChannels' (ej: ['beds24', 'whatsapp_gupshup'])
-            // y genera las entidades de cola correspondientes.
+            // El dispatcher evalúa los 'transientChannels' y genera las entidades de cola
             $queues = $this->dispatcher->dispatch($message);
 
             foreach ($queues as $queue) {
@@ -62,12 +67,7 @@ class MessageEntityListener
     }
 
     /**
-     * Intercepta la actualización de un mensaje existente antes de que los cambios se apliquen en la base de datos.
-     * * Responsabilidades principales:
-     * 1. Re-evaluar las traducciones si los campos de contenido han sido modificados manualmente.
-     *
-     * @param Message $message La entidad del mensaje que está a punto de ser actualizada.
-     * @param PreUpdateEventArgs $event Argumentos del evento que permiten inspeccionar qué campos cambiaron (hasChangedField).
+     * Intercepta la actualización de un mensaje existente antes de que los cambios se apliquen.
      */
     public function preUpdate(Message $message, PreUpdateEventArgs $event): void
     {
