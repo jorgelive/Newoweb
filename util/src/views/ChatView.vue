@@ -260,7 +260,19 @@ const getMessageTicks = (msg: ApiMessage) => {
 };
 
 const formatTime = (iso?: string) => iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-const formatDate = (iso?: string) => iso ? new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '';
+
+// 🔥 NUEVO: formatDate Inteligente (Muestra el año solo si es diferente al actual)
+const formatDate = (iso?: string) => {
+  if (!iso) return '';
+  const date = new Date(iso);
+  const currentYear = new Date().getFullYear();
+  return date.toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: date.getFullYear() !== currentYear ? 'numeric' : undefined
+  });
+};
+
 const formatFullDate = (iso?: string) => iso ? new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) : '';
 
 const groupedMessages = computed(() => {
@@ -326,7 +338,14 @@ const getOriginClass = (origin?: string | null) => {
                 <span class="font-bold truncate text-sm block" :class="store.currentConversation?.id === chat.id ? 'text-[#376875]' : 'text-slate-800'">{{ chat.guestName || 'Huésped' }}</span>
                 <span class="text-[9px] font-black uppercase text-slate-400 ml-2 block">{{ formatDate(chat.lastMessageAt || chat.createdAt) }}</span>
               </span>
-              <span class="text-[10px] font-black truncate text-[#E07845] mb-1 uppercase tracking-tight block">{{ chat.contextItems?.length ? chat.contextItems.join(', ') : 'Reserva PMS' }}</span>
+
+              <span class="flex flex-col sm:flex-row sm:items-center sm:gap-2 mb-1">
+                <span class="text-[10px] font-black truncate text-[#E07845] uppercase tracking-tight">{{ chat.contextItems?.length ? chat.contextItems.join(', ') : 'Reserva PMS' }}</span>
+                <span v-if="chat.contextMilestones?.start && chat.contextMilestones?.end" class="text-[10px] font-bold text-slate-400 mt-0.5 sm:mt-0 flex items-center gap-1">
+                  <i class="far fa-calendar-alt opacity-70"></i>
+                  {{ formatDate(chat.contextMilestones.start) }} - {{ formatDate(chat.contextMilestones.end) }}
+                </span>
+              </span>
             </span>
             <span v-if="chat.unreadCount > 0" class="absolute -right-1 -top-1 w-5 h-5 bg-[#E07845] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-md">{{ chat.unreadCount }}</span>
           </button>
