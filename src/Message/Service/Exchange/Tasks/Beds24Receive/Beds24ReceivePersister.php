@@ -22,6 +22,9 @@ use Throwable;
 /**
  * Encargado de persistir mensajes provenientes de Beds24 (Pull o Webhooks)
  * garantizando idempotencia total y gestionando archivos adjuntos en Base64.
+ * * Implementa manejo estricto de zonas horarias:
+ * - La fecha de creación (createdAt) se persiste en America/Lima para visualización local.
+ * - La metadata de auditoría (recibido/leído) se mantiene en UTC (ISO 8601).
  */
 class Beds24ReceivePersister
 {
@@ -32,9 +35,17 @@ class Beds24ReceivePersister
         private readonly LoggerInterface $logger
     ) {}
 
+    /**
+     * Inserta o actualiza una colección de mensajes provenientes de Beds24.
+     *
+     * @param string $targetBookId El ID de la reserva en Beds24.
+     * @param array<int, Beds24MessageDto> $messages Colección de DTOs de mensajes.
+     * @return array<string, int> Estadísticas del proceso (imported, updated, skipped).
+     * @throws RuntimeException Si la reserva no existe en el sistema local.
+     */
     public function upsertMessages(string $targetBookId, array $messages): array
     {
-        /** @var PmsReservaRepository $repo*/
+        /** @var PmsReservaRepository $repo */
         $repo = $this->em->getRepository(PmsReserva::class);
         $reserva = $repo->findByAnyBeds24Id($targetBookId);
 
@@ -68,6 +79,7 @@ class Beds24ReceivePersister
 
             if ($existing) {
                 // Solo actualizamos el estado si es del Huésped (Incoming)
+                // y ha pasado de no-leído a leído en Beds24.
                 if ($existing->getDirection() === Message::DIRECTION_INCOMING
                     && $dto->read === true
                     && $existing->getStatus() !== Message::STATUS_READ) {
@@ -81,7 +93,7 @@ class Beds24ReceivePersister
 
                     $stats['updated']++;
                 } else {
-                    // Protege los mensajes del Host (Outgoing) y los adjuntos locales
+                    // Protege los mensajes del Host (Outgoing) y los adjuntos locales de ser sobrescritos
                     $stats['skipped']++;
                 }
                 continue;
@@ -102,16 +114,17 @@ class Beds24ReceivePersister
                 $message->setDirection(Message::DIRECTION_OUTGOING);
                 $message->setStatus(Message::STATUS_SENT);
             } else {
+                // Mensaje entrante del huésped
                 $message->setDirection(Message::DIRECTION_INCOMING);
 
                 // 🔥 Se registra el momento de recepción en UTC para TODOS los mensajes entrantes
-                $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
+                $nowUtc = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
                 $message->setBeds24ReceivedAt($nowUtc);
 
                 if ($dto->read === true) {
                     $message->setStatus(Message::STATUS_READ);
                     $message->addBeds24Metadata('read', true);
-                    // Como ya viene leído desde el inicio, registramos también la lectura
+                    // Como ya viene leído desde el inicio, registramos también la lectura en UTC
                     $message->setBeds24ReadAt($nowUtc);
                 } else {
                     $message->setStatus(Message::STATUS_RECEIVED);
@@ -119,21 +132,29 @@ class Beds24ReceivePersister
                 }
             }
 
-            // El 'time' que envía Beds24 ya viene hidratado como objeto gracias al DTO
+            // =================================================================
+            // 3. MANEJO DE ZONAS HORARIAS (UTC -> America/Lima)
+            // =================================================================
+            // El 'time' que envía Beds24 incluye la 'Z' (Zulu/UTC).
+            // Convertimos ese instante a la zona horaria de Perú para que la
+            // base de datos (que no guarda Timezones) asuma la hora correcta.
             if ($dto->time !== null) {
-                // Si tu entidad exige DateTimeImmutable y el DTO podría traer DateTime normal:
-                $message->setCreatedAt(
-                    $dto->time instanceof \DateTimeImmutable
-                        ? $dto->time
-                        : \DateTimeImmutable::createFromInterface($dto->time)
-                );
+                // Aseguramos inmutabilidad del objeto original
+                $timeUtc = $dto->time instanceof DateTimeImmutable
+                    ? $dto->time
+                    : DateTimeImmutable::createFromInterface($dto->time);
+
+                // Desplazamos la hora a Lima (UTC-5)
+                $timeLima = $timeUtc->setTimezone(new DateTimeZone('America/Lima'));
+
+                $message->setCreatedAt($timeLima);
             }
 
             // =================================================================
-            // 3. PROCESAMIENTO DE ADJUNTOS (Blindado contra getattach.php)
+            // 4. PROCESAMIENTO DE ADJUNTOS (Blindado contra getattach.php)
             // =================================================================
             // Solo procesamos adjuntos si vienen del HUÉSPED para no procesar
-            // los links inalcanzables que genera Beds24 para el Host.
+            // los links inalcanzables que genera Beds24 para los mensajes del Host.
             if (!empty($dto->attachment) && $source === Message::SENDER_GUEST) {
                 try {
                     $attachment = $this->attachmentFactory->createFromBase64(
