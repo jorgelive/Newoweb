@@ -10,6 +10,7 @@ use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Factory\MessageConversationFactory;
+use App\Message\Service\MercureBroadcaster;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Repository\PmsReservaRepository;
 use App\Pms\Service\Message\PmsReservaMessageContext;
@@ -31,9 +32,17 @@ class Beds24ReceivePersister
         private readonly EntityManagerInterface $em,
         private readonly MessageConversationFactory $conversationFactory,
         private readonly MessageAttachmentFactory $attachmentFactory,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly MercureBroadcaster $mercureBroadcaster // 🔥 Inyectamos nuestro servicio
     ) {}
 
+    /**
+     * Sincroniza los mensajes entrantes contra la base de datos local.
+     * Utiliza un algoritmo de deduplicación en memoria antes del flush.
+     * @param string $targetBookId El ID de la reserva en Beds24
+     * @param Beds24MessageDto[] $messages Array de DTOs fuertemente tipados
+     * @return array<string, int> Estadísticas de la operación ['imported', 'updated', 'skipped']
+     */
     public function upsertMessages(string $targetBookId, array $messages): array
     {
         /** @var PmsReservaRepository $repo */
@@ -49,11 +58,14 @@ class Beds24ReceivePersister
         $channel = $this->em->getReference(MessageChannel::class, 'beds24');
 
         $stats = ['imported' => 0, 'updated' => 0, 'skipped' => 0];
+        $mercureBroadcasts = [];
 
         // =====================================================================
         // 1. PROCESAMIENTO E INSERCIÓN EN MEMORIA
         // =====================================================================
+        /** @var \App\Message\Dto\Beds24MessageDto $dto */
         foreach ($messages as $dto) {
+
             if (!$dto->id) continue;
 
             $extId = (string) $dto->id;
@@ -76,6 +88,8 @@ class Beds24ReceivePersister
                     $nowUtc = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
                     $existing->setBeds24ReadAt($nowUtc);
                     $stats['updated']++;
+
+                    $mercureBroadcasts[] = $existing;
                 } else {
                     $stats['skipped']++;
                 }
@@ -133,6 +147,7 @@ class Beds24ReceivePersister
             $conversation->addMessage($message);
             $this->em->persist($message);
             $stats['imported']++;
+            $mercureBroadcasts[] = $message;
         }
 
         // =====================================================================
@@ -148,6 +163,13 @@ class Beds24ReceivePersister
         // 3. 🔥 EL ÚNICO FLUSH 🔥
         // =====================================================================
         $this->em->flush();
+
+        // 🔥 Disparamos los eventos individuales
+        foreach ($mercureBroadcasts as $msg) {
+            if ($this->em->contains($msg)) {
+                $this->mercureBroadcaster->broadcastMessage($msg);
+            }
+        }
 
         return $stats;
     }
@@ -185,7 +207,7 @@ class Beds24ReceivePersister
             if ($orphan->getCreatedAt() === null) continue;
 
             $bestMatchIndex = null;
-            $smallestDiff = 901; // Tolerancia de 15 minutos (900s)
+            $smallestDiff = 901;
 
             foreach ($withIds as $index => $withId) {
                 if ($withId->getCreatedAt() === null) continue;

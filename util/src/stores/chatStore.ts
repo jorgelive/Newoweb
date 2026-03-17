@@ -29,6 +29,8 @@ export interface ApiMessage {
     contentLocal: string | null;
     contentExternal: string | null;
     createdAt: string;
+    scheduledAt?: string | null;
+    isScheduledForFuture?: boolean;
     metadata?: { beds24?: any; whatsappGupshup?: any; gupshup?: any };
     channel?: { id: string; name: string } | string;
     whatsappGupshupSendQueues?: ApiMessageQueue[] | string[];
@@ -96,7 +98,6 @@ export const useChatStore = defineStore('chatStore', () => {
     const sendingMessage = ref(false);
     const error = ref<string | null>(null);
 
-    // 🔥 ESTADOS DE PAGINACIÓN (Scroll Infinito)
     const conversationsPage = ref(1);
     const hasMoreConversations = ref(true);
     const loadingMoreConversations = ref(false);
@@ -105,8 +106,29 @@ export const useChatStore = defineStore('chatStore', () => {
     const hasMoreMessages = ref(true);
     const loadingMoreMessages = ref(false);
 
+    const eventSource = ref<EventSource | null>(null);
+    const globalEventSource = ref<EventSource | null>(null);
+
     const filteredConversations = computed(() => {
         return conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase());
+    });
+
+    // ============================================================================
+    // 🔥 FILTROS COMPUTADOS PARA LA INTERFAZ DE CHAT Y PROGRAMADOS
+    // ============================================================================
+
+    const activeChatMessages = computed(() => {
+        return messages.value.filter(m => !m.isScheduledForFuture);
+    });
+
+    const scheduledMessages = computed(() => {
+        return messages.value
+            .filter(m => m.isScheduledForFuture)
+            .sort((a, b) => {
+                const dateA = new Date(a.scheduledAt || a.createdAt).getTime();
+                const dateB = new Date(b.scheduledAt || b.createdAt).getTime();
+                return dateA - dateB;
+            });
     });
 
     const validTemplates = computed(() => {
@@ -127,7 +149,6 @@ export const useChatStore = defineStore('chatStore', () => {
         return routes[chat.contextType] ? `${getUrls().panel}${routes[chat.contextType]}` : null;
     });
 
-    // 🔥 COMPATIBILIDAD API PLATFORM V3 (Soporta JSON-LD plano o con prefijo hydra:)
     const extractData = (response: any) => {
         const data = response.data;
         return data['hydra:member'] || data['member'] || (Array.isArray(data) ? data : []);
@@ -145,14 +166,13 @@ export const useChatStore = defineStore('chatStore', () => {
         } catch (err) {}
     };
 
-    // 🔥 CARGA Y PAGINACIÓN DE CONVERSACIONES (Scroll Hacia Abajo)
     const fetchConversations = async (loadMore = false) => {
         let pageToFetch = 1;
 
         if (loadMore) {
             if (!hasMoreConversations.value || loadingMoreConversations.value) return;
             loadingMoreConversations.value = true;
-            pageToFetch = conversationsPage.value + 1; // Calculamos la página futura de forma segura
+            pageToFetch = conversationsPage.value + 1;
         } else {
             loadingConversations.value = true;
             hasMoreConversations.value = true;
@@ -170,7 +190,7 @@ export const useChatStore = defineStore('chatStore', () => {
             }
 
             hasMoreConversations.value = hasNextPage(response);
-            conversationsPage.value = pageToFetch; // Solo actualizamos si tuvo éxito
+            conversationsPage.value = pageToFetch;
         } catch (err: any) {
             error.value = 'Error al sincronizar chats';
         } finally {
@@ -179,18 +199,103 @@ export const useChatStore = defineStore('chatStore', () => {
         }
     };
 
-    // 🔥 SELECCIÓN DE CHAT
+    const initGlobalMercure = async () => {
+        if (globalEventSource.value) return;
+
+        try {
+            const authResponse = await apiClient.get('/message/mercure/auth');
+            const { hubUrl, token } = authResponse.data;
+
+            const topic = 'https://openperu.pe/host/conversations';
+            const url = new URL(hubUrl);
+            url.searchParams.append('topic', topic);
+
+            if (token) url.searchParams.append('authorization', token);
+
+            globalEventSource.value = new EventSource(url.toString(), { withCredentials: true });
+
+            globalEventSource.value.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'conversation_updated' || data.type === 'conversation_created') {
+                    const convData = data.conversation;
+                    const index = conversations.value.findIndex(c => c.id === convData.id);
+
+                    if (index !== -1) {
+                        conversations.value[index] = { ...conversations.value[index], ...convData };
+                    } else {
+                        conversations.value.unshift(convData);
+                    }
+
+                    conversations.value.sort((a, b) => {
+                        const dateA = new Date(a.lastMessageAt || 0).getTime();
+                        const dateB = new Date(b.lastMessageAt || 0).getTime();
+                        return dateB - dateA;
+                    });
+                }
+            };
+
+            globalEventSource.value.onerror = (err) => {
+                console.error('❌ Error en el túnel Global de Mercure:', err);
+            };
+
+        } catch (err) {
+            console.error('❌ Fallo al inicializar Global Mercure:', err);
+        }
+    };
+
+    const connectToMercure = async (conversationId: string) => {
+        if (eventSource.value) {
+            eventSource.value.close();
+            eventSource.value = null;
+        }
+
+        try {
+            const authResponse = await apiClient.get('/message/mercure/auth');
+            const { hubUrl, token } = authResponse.data;
+
+            const topic = `https://openperu.pe/conversations/${conversationId}`;
+            const url = new URL(hubUrl);
+            url.searchParams.append('topic', topic);
+
+            if (token) {
+                url.searchParams.append('authorization', token);
+            }
+
+            eventSource.value = new EventSource(url.toString(), { withCredentials: true });
+
+            eventSource.value.onmessage = (event) => {
+                const incomingData = JSON.parse(event.data);
+
+                const index = messages.value.findIndex(m => m.id === incomingData.id);
+
+                if (index !== -1) {
+                    messages.value[index] = { ...messages.value[index], ...incomingData };
+                } else {
+                    messages.value.push(incomingData);
+                    fetchConversations();
+                }
+            };
+
+            eventSource.value.onerror = (err) => {
+                console.error('❌ Error en el túnel de Mercure:', err);
+            };
+
+        } catch (err) {
+            console.error('❌ Fallo al inicializar Mercure:', err);
+        }
+    };
+
     const selectConversation = async (id: string) => {
         const found = conversations.value.find(c => c.id === id);
         if (!found) return;
 
         currentConversation.value = found;
         loadingMessages.value = true;
-        messagesPage.value = 1; // Reiniciamos contador de paginación
+        messagesPage.value = 1;
         hasMoreMessages.value = true;
 
         try {
-            // 1. MARCAR COMO LEÍDO (Endpoint dedicado)
             if (found.unreadCount > 0) {
                 apiClient.post(`/platform/user/util/msg/conversations/${id}/read`)
                     .then(() => found.unreadCount = 0)
@@ -198,10 +303,11 @@ export const useChatStore = defineStore('chatStore', () => {
                 found.unreadCount = 0;
             }
 
-            // 2. CARGAR HISTORIAL RECIENTE (Orden DESC invertido a ASC para la vista)
             const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}/messages?order[createdAt]=desc&page=1`);
             messages.value = extractData(response).reverse();
             hasMoreMessages.value = hasNextPage(response);
+
+            connectToMercure(id);
 
         } catch (err) {
             error.value = 'Error al cargar mensajes';
@@ -210,22 +316,20 @@ export const useChatStore = defineStore('chatStore', () => {
         }
     };
 
-    // 🔥 CARGA DE HISTORIAL ANTIGUO (Scroll Hacia Arriba)
     const loadMoreMessages = async () => {
         if (!currentConversation.value || !hasMoreMessages.value || loadingMoreMessages.value) return;
 
         loadingMoreMessages.value = true;
-        const nextPage = messagesPage.value + 1; // Calculamos la página futura de forma segura
+        const nextPage = messagesPage.value + 1;
 
         try {
             const response = await apiClient.get(`/platform/user/util/msg/conversations/${currentConversation.value.id}/messages?order[createdAt]=desc&page=${nextPage}`);
             const olderMessages = extractData(response).reverse();
 
-            // Prepend: Agregamos los mensajes antiguos al INICIO del array
             messages.value = [...olderMessages, ...messages.value];
 
             hasMoreMessages.value = hasNextPage(response);
-            messagesPage.value = nextPage; // Solo avanzamos la página si la petición tuvo éxito
+            messagesPage.value = nextPage;
         } catch (err) {
             error.value = 'Error al cargar historial antiguo';
         } finally {
@@ -233,9 +337,6 @@ export const useChatStore = defineStore('chatStore', () => {
         }
     };
 
-    // ============================================================================
-    // ENVÍO MULTIPART (JSON + ARCHIVOS)
-    // ============================================================================
     const sendMessage = async (text: string, templateIri: string | null = null, channels: string[] = []) => {
         if (!currentConversation.value) return;
 
@@ -270,11 +371,10 @@ export const useChatStore = defineStore('chatStore', () => {
                 }
             });
 
-            // Agregamos el mensaje nuevo al final del array
             messages.value.push(response.data);
 
             attachmentStore.clear();
-            fetchConversations(); // Refresca el orden en la barra lateral
+            fetchConversations();
 
         } catch (err) {
             error.value = 'Fallo al enviar el mensaje. Verifica el tamaño del archivo.';
@@ -285,9 +385,10 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     return {
-        conversations, filteredConversations, currentConversation, messages, templates, validTemplates,
-        filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
+        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages,
+        templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
         loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations,
-        getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage
+        getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage,
+        initGlobalMercure, connectToMercure
     };
 });

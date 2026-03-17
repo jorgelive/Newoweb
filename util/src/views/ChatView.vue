@@ -11,7 +11,10 @@ const conversationsContainer = ref<HTMLElement | null>(null);
 const newMessageText = ref('');
 
 const isMobileSidebarOpen = ref(true);
-const isTransitioning = ref(true); // Controla si permitimos animaciones CSS
+const isTransitioning = ref(true);
+
+// 🔥 NUEVO: Estado de la pestaña activa (Historial vs Programados)
+const activeTab = ref<'history' | 'scheduled'>('history');
 
 // Estados del Composer
 const selectedTemplateId = ref<string | null>(null);
@@ -21,33 +24,19 @@ const fileInput = ref<HTMLInputElement | null>(null);
 // Hook Multicanal
 const selectedChannels = ref<string[]>(['whatsapp_gupshup']);
 
-// 🔥 GESTIÓN DE HISTORIAL MÓVIL (MÁQUINA DE ESTADOS + PREVENCIÓN DE FLICKER)
 const handlePopState = (event: PopStateEvent) => {
   if (window.innerWidth >= 768) return;
-
-  // 1. Apagamos la animación CSS para que el DOM no pelee con la captura del gesto de Android
   isTransitioning.value = false;
-
-  // 2. Leemos el destino real del historial
   const targetView = event.state?.view;
 
   if (targetView === 'sidebar' || !targetView) {
-    // Solo actuamos si realmente NO estamos ya en sidebar
-    if (!isMobileSidebarOpen.value) {
-      isMobileSidebarOpen.value = true;
-    }
+    if (!isMobileSidebarOpen.value) isMobileSidebarOpen.value = true;
   } else if (targetView === 'chat') {
-    // Esto previene el doble-disparo en Android
-    if (isMobileSidebarOpen.value) {
-      isMobileSidebarOpen.value = false;
-    }
+    if (isMobileSidebarOpen.value) isMobileSidebarOpen.value = false;
   }
 
-  // 3. Reactivamos las animaciones sutilmente después del gesto
   requestAnimationFrame(() => {
-    setTimeout(() => {
-      isTransitioning.value = true;
-    }, 50);
+    setTimeout(() => { isTransitioning.value = true; }, 50);
   });
 };
 
@@ -55,8 +44,9 @@ onMounted(() => {
   store.fetchConversations();
   store.fetchTemplates();
 
+  store.initGlobalMercure();
+
   if (window.innerWidth < 768) {
-    // Definimos el estado base al cargar la app
     history.replaceState({ view: 'sidebar' }, '');
   }
   window.addEventListener('popstate', handlePopState);
@@ -66,41 +56,33 @@ onUnmounted(() => {
   window.removeEventListener('popstate', handlePopState);
 });
 
-// 🔥 CERROJOS LOCALES PARA PAGINACIÓN Y SCROLL
 let isAdjustingMessageScroll = false;
 
-// SCROLL INFINITO: Mensajes antiguos (Hacia arriba)
 const onMessageScroll = async () => {
+  // 🔒 Solo cargar historial antiguo si estamos en la pestaña principal
+  if (activeTab.value !== 'history') return;
+
   const el = messagesContainer.value;
   if (!el || store.loadingMoreMessages || !store.hasMoreMessages || isAdjustingMessageScroll) return;
 
   if (el.scrollTop <= 50) {
-    isAdjustingMessageScroll = true; // 🔒 CERRAMOS CANDADO
+    isAdjustingMessageScroll = true;
     const previousScrollHeight = el.scrollHeight;
 
     await store.loadMoreMessages();
     await nextTick();
 
-    // Empujamos el scroll hacia abajo para compensar los mensajes nuevos arriba
     el.scrollTop = el.scrollTop + (el.scrollHeight - previousScrollHeight);
 
-    // 🔓 ABRIMOS CANDADO después de que el DOM asiente el movimiento
-    setTimeout(() => {
-      isAdjustingMessageScroll = false;
-    }, 50);
+    setTimeout(() => { isAdjustingMessageScroll = false; }, 50);
   }
 };
 
-// SCROLL INFINITO: Lista de chats (Hacia abajo)
 const onConversationScroll = async () => {
   const el = conversationsContainer.value;
   if (!el || store.loadingMoreConversations || !store.hasMoreConversations) return;
-
   const isBottom = Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight - 150;
-
-  if (isBottom) {
-    await store.fetchConversations(true);
-  }
+  if (isBottom) await store.fetchConversations(true);
 };
 
 const scrollToBottom = () => {
@@ -109,10 +91,10 @@ const scrollToBottom = () => {
   }
 };
 
-// Control inteligente de auto-scroll
-watch(() => store.messages.length, async (newLen, oldLen) => {
+watch(() => store.activeChatMessages.length, async (newLen, oldLen) => {
   await nextTick();
-  if (newLen > oldLen && !store.loadingMoreMessages) {
+  // Solo hacemos scroll si estamos viendo el historial
+  if (activeTab.value === 'history' && newLen > oldLen && !store.loadingMoreMessages) {
     scrollToBottom();
   }
 });
@@ -126,6 +108,9 @@ watch(() => store.currentConversation, (chat) => {
   showTemplateDropdown.value = false;
   attachmentStore.clear();
 
+  // Reseteamos a la vista principal siempre que cambiamos de chat
+  activeTab.value = 'history';
+
   if (chat?.contextOrigin && !['manual', 'web', 'directo'].includes(chat.contextOrigin.toLowerCase())) {
     selectedChannels.value = ['beds24', 'whatsapp_gupshup'];
   } else {
@@ -135,7 +120,6 @@ watch(() => store.currentConversation, (chat) => {
 
 const selectChat = async (id: string) => {
   await store.selectConversation(id);
-
   isTransitioning.value = true;
   isMobileSidebarOpen.value = false;
 
@@ -143,32 +127,20 @@ const selectChat = async (id: string) => {
   scrollToBottom();
 
   if (window.innerWidth < 768) {
-    // Nos aseguramos de que el estado base 'sidebar' exista antes de apilar 'chat'
     if (history.state?.view !== 'sidebar') {
       history.replaceState({ view: 'sidebar' }, '');
     }
-
-    // 🔥 TRUCO VISUAL: Esperamos a que la animación inicie antes de empujar el nuevo estado.
-    // Esto evita que Chrome tome una "captura de pantalla" rota a medio movimiento en Android.
-    setTimeout(() => {
-      history.pushState({ view: 'chat' }, '');
-    }, 300);
+    setTimeout(() => { history.pushState({ view: 'chat' }, ''); }, 300);
   }
 };
 
 const closeMobileChat = () => {
-  // Solo hacemos back si aún estamos en el estado 'chat'
   if (history.state?.view === 'chat') {
     history.back();
   } else {
-    // El navegador ya retrocedió, solo sincronizamos la UI
     isMobileSidebarOpen.value = true;
   }
 };
-
-// ============================================================================
-// LÓGICA DE CANALES Y ADJUNTOS
-// ============================================================================
 
 const toggleChannel = (channel: string) => {
   if (selectedChannels.value.includes(channel)) {
@@ -186,7 +158,6 @@ const onFileSelected = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
     const success = attachmentStore.setFile(target.files[0]);
-
     if (success) {
       if (!attachmentStore.isImage && selectedChannels.value.includes('beds24')) {
         store.error = 'Beds24 solo permite el envío de imágenes. Se ha desmarcado este canal automáticamente.';
@@ -196,7 +167,6 @@ const onFileSelected = (event: Event) => {
       store.error = attachmentStore.error;
     }
   }
-
   if (fileInput.value) fileInput.value.value = '';
 };
 
@@ -212,10 +182,6 @@ const send = async () => {
   selectedTemplateId.value = null;
   showTemplateDropdown.value = false;
 };
-
-// ============================================================================
-// HELPERS VISUALES
-// ============================================================================
 
 const getChannelIcons = (msg: ApiMessage) => {
   const icons = [];
@@ -254,14 +220,13 @@ const getMessageTicks = (msg: ApiMessage) => {
   }
   if (msg.status === 'read') return { class: 'fas fa-check-double', color: 'text-blue-500' };
   if (msg.status === 'sent') return { class: 'fas fa-check', color: 'text-slate-400' };
-  if (msg.status === 'queued') return { class: 'far fa-clock', color: 'text-slate-300' };
+  if (msg.status === 'queued') return { class: 'far fa-clock', color: 'text-slate-300', title: 'Programado' };
 
   return { class: 'far fa-clock', color: 'text-slate-200' };
 };
 
 const formatTime = (iso?: string) => iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-// 🔥 NUEVO: formatDate Inteligente (Muestra el año solo si es diferente al actual)
 const formatDate = (iso?: string) => {
   if (!iso) return '';
   const date = new Date(iso);
@@ -275,11 +240,19 @@ const formatDate = (iso?: string) => {
 
 const formatFullDate = (iso?: string) => iso ? new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) : '';
 
+// 🔥 NUEVO: Agrupador inteligente dependiendo de la pestaña
 const groupedMessages = computed(() => {
   const groups: Record<string, any[]> = {};
-  store.messages.forEach(msg => {
-    if(!msg.createdAt) return;
-    const d = new Date(msg.createdAt).toISOString().split('T')[0];
+
+  // Seleccionamos la fuente de datos correcta según la pestaña
+  const sourceList = activeTab.value === 'history' ? store.activeChatMessages : store.scheduledMessages;
+
+  sourceList.forEach(msg => {
+    // Si es un mensaje programado, agrupamos por su fecha de destino. Si no, por su fecha de creación.
+    const dateToUse = msg.isScheduledForFuture && msg.scheduledAt ? msg.scheduledAt : msg.createdAt;
+    if(!dateToUse) return;
+
+    const d = new Date(dateToUse).toISOString().split('T')[0];
     if (!groups[d]) groups[d] = [];
     groups[d].push(msg);
   });
@@ -302,13 +275,7 @@ const getOriginClass = (origin?: string | null) => {
       </div>
     </Transition>
 
-    <aside
-        class="fixed inset-y-0 left-0 z-40 w-full md:relative md:w-80 lg:w-[380px] bg-white border-r border-slate-200 flex flex-col md:translate-x-0"
-        :class="[
-            isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full',
-            isTransitioning ? 'transition-transform duration-300 ease-in-out' : ''
-        ]"
-    >
+    <aside class="fixed inset-y-0 left-0 z-40 w-full md:relative md:w-80 lg:w-[380px] bg-white border-r border-slate-200 flex flex-col md:translate-x-0" :class="[isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full', isTransitioning ? 'transition-transform duration-300 ease-in-out' : '']">
       <div class="px-6 pt-6 bg-white shrink-0">
         <div class="flex justify-between items-center mb-6">
           <h1 class="font-black text-2xl tracking-tight text-slate-800">Inbox</h1>
@@ -364,47 +331,57 @@ const getOriginClass = (origin?: string | null) => {
       </div>
 
       <template v-else>
-        <header class="h-16 md:h-24 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30">
-          <div class="flex items-center gap-4 overflow-hidden">
-            <button @click="closeMobileChat" class="md:hidden w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 shadow-sm transition-colors"><i class="fas fa-chevron-left"></i></button>
-            <div class="truncate">
-              <h2 class="font-black text-slate-900 text-lg md:text-2xl tracking-tight truncate leading-none mb-1">
-                {{ store.currentConversation?.guestName || 'Huésped Sin Nombre' }}
-              </h2>
-              <div class="flex items-center gap-3 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-400">
-                <span class="text-[#E07845]">{{ store.currentConversation?.contextItems?.length ? store.currentConversation.contextItems.join(' + ') : 'PMS' }}</span>
-                <span class="hidden sm:inline text-slate-200">/</span>
-                <span class="hidden sm:inline">{{ formatFullDate(store.currentConversation?.contextMilestones?.start) }} - {{ formatFullDate(store.currentConversation?.contextMilestones?.end) }}</span>
+        <div class="flex flex-col shrink-0 sticky top-0 z-30 shadow-sm">
+          <header class="h-16 md:h-24 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between">
+            <div class="flex items-center gap-4 overflow-hidden">
+              <button @click="closeMobileChat" class="md:hidden w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 shadow-sm transition-colors"><i class="fas fa-chevron-left"></i></button>
+              <div class="truncate">
+                <h2 class="font-black text-slate-900 text-lg md:text-2xl tracking-tight truncate leading-none mb-1">
+                  {{ store.currentConversation?.guestName || 'Huésped Sin Nombre' }}
+                </h2>
+                <div class="flex items-center gap-3 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-400">
+                  <span class="text-[#E07845]">{{ store.currentConversation?.contextItems?.length ? store.currentConversation.contextItems.join(' + ') : 'PMS' }}</span>
+                  <span class="hidden sm:inline text-slate-200">/</span>
+                  <span class="hidden sm:inline">{{ formatFullDate(store.currentConversation?.contextMilestones?.start) }} - {{ formatFullDate(store.currentConversation?.contextMilestones?.end) }}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="flex items-center gap-3 shrink-0 ml-4">
-            <span v-if="store.currentConversation?.contextStatusTag"
-                  class="hidden lg:inline-flex items-center px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest">
-              {{ store.currentConversation.contextStatusTag }}
-            </span>
+            <div class="flex items-center gap-3 shrink-0 ml-4">
+              <span v-if="store.currentConversation?.contextStatusTag" class="hidden lg:inline-flex items-center px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                {{ store.currentConversation.contextStatusTag }}
+              </span>
+              <a v-if="store.getExternalContextUrl" :href="store.getExternalContextUrl" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-xl shadow-xl hover:-translate-y-0.5 hover:shadow-2xl hover:bg-slate-800 transition-all text-[10px] font-black uppercase tracking-wider">
+                <i class="fas fa-external-link-alt"></i><span class="hidden md:inline">Ver Reserva</span>
+              </a>
+            </div>
+          </header>
 
-            <a v-if="store.getExternalContextUrl"
-               :href="store.getExternalContextUrl"
-               target="_blank"
-               class="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-xl shadow-xl hover:-translate-y-0.5 hover:shadow-2xl hover:bg-slate-800 transition-all text-[10px] font-black uppercase tracking-wider">
-              <i class="fas fa-external-link-alt"></i><span class="hidden md:inline">Ver Reserva</span>
-            </a>
+          <div v-if="store.scheduledMessages.length > 0" class="bg-slate-50 border-b border-slate-200 px-4 md:px-8 py-2 flex gap-6 text-xs font-black uppercase tracking-widest">
+            <button @click="activeTab = 'history'" class="pb-1 transition-colors" :class="activeTab === 'history' ? 'text-[#376875] border-b-2 border-[#376875]' : 'text-slate-400 hover:text-slate-600'">
+              <i class="fas fa-history mr-1"></i> Historial
+            </button>
+            <button @click="activeTab = 'scheduled'" class="pb-1 transition-colors" :class="activeTab === 'scheduled' ? 'text-[#E07845] border-b-2 border-[#E07845]' : 'text-slate-400 hover:text-slate-600'">
+              <i class="far fa-calendar-alt mr-1"></i> Programados ({{ store.scheduledMessages.length }})
+            </button>
           </div>
-        </header>
+        </div>
 
         <div class="flex-1 overflow-y-auto p-4 md:px-12 md:py-8" ref="messagesContainer" @scroll="onMessageScroll">
-
           <div v-if="store.loadingMoreMessages" class="flex justify-center py-4">
             <i class="fas fa-circle-notch fa-spin text-slate-300"></i>
           </div>
 
           <div class="max-w-4xl mx-auto flex flex-col">
+            <div v-if="activeTab === 'scheduled' && store.scheduledMessages.length === 0" class="text-center py-10 opacity-50">
+              <i class="far fa-check-circle text-4xl mb-3 block"></i>
+              <p class="text-sm font-bold uppercase tracking-widest">No hay envíos pendientes</p>
+            </div>
+
             <div v-for="(group, date) in groupedMessages" :key="date" class="flex flex-col">
               <div class="flex justify-center my-6 sticky top-2 z-10">
-                <span class="px-4 py-1.5 bg-white/90 backdrop-blur-md border border-slate-200 shadow-sm rounded-full text-[10px] font-black text-slate-800 uppercase tracking-widest">
-                  {{ date === new Date().toISOString().split('T')[0] ? 'Hoy' : formatDate(date) }}
+                <span :class="activeTab === 'scheduled' ? 'bg-[#E07845] text-white' : 'bg-white/90 text-slate-800'" class="px-4 py-1.5 backdrop-blur-md border border-slate-200 shadow-sm rounded-full text-[10px] font-black uppercase tracking-widest">
+                  {{ activeTab === 'history' && date === new Date().toISOString().split('T')[0] ? 'Hoy' : formatDate(date) }}
                 </span>
               </div>
 
@@ -418,9 +395,13 @@ const getOriginClass = (origin?: string | null) => {
                       </div>
                     </div>
 
-                    <div :class="msg.direction === 'outgoing' ? 'bg-[#376875] text-white rounded-3xl rounded-tr-none shadow-lg' : 'bg-white border border-slate-200 text-slate-800 rounded-3xl rounded-tl-none shadow-sm'" class="p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative w-full break-words">
+                    <div :class="[
+                      msg.direction === 'outgoing' ? 'rounded-tr-none' : 'rounded-tl-none',
+                      activeTab === 'scheduled' ? 'bg-orange-50 border-2 border-orange-200 text-slate-800 shadow-sm' :
+                      (msg.direction === 'outgoing' ? 'bg-[#376875] text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')
+                    ]" class="rounded-3xl p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative w-full break-words">
 
-                      <div v-if="msg.template" class="flex items-center gap-2 mb-2 pb-2 border-b" :class="msg.direction === 'outgoing' ? 'border-white/20' : 'border-slate-100'">
+                      <div v-if="msg.template" class="flex items-center gap-2 mb-2 pb-2 border-b" :class="msg.direction === 'outgoing' && activeTab !== 'scheduled' ? 'border-white/20' : 'border-slate-200'">
                         <i class="fas fa-robot text-xs opacity-70"></i>
                         <span class="text-[10px] font-black uppercase tracking-widest opacity-80 truncate">{{ getTemplateName(msg.template) }}</span>
                       </div>
@@ -441,8 +422,8 @@ const getOriginClass = (origin?: string | null) => {
                       <span>{{ msg.contentLocal || msg.contentExternal || 'Mensaje enviado' }}</span>
                     </div>
 
-                    <div class="flex items-center gap-2 mt-1.5 px-2 text-[10px] font-black text-slate-400 uppercase tracking-tighter" :class="msg.direction === 'outgoing' ? 'flex-row-reverse' : 'flex-row'">
-                      <span>{{ formatTime(msg.createdAt) }}</span>
+                    <div class="flex items-center gap-2 mt-1.5 px-2 text-[10px] font-black uppercase tracking-tighter" :class="[msg.direction === 'outgoing' ? 'flex-row-reverse' : 'flex-row', activeTab === 'scheduled' ? 'text-orange-400' : 'text-slate-400']">
+                      <span>{{ formatTime(activeTab === 'scheduled' ? msg.scheduledAt : msg.createdAt) }}</span>
                       <template v-if="msg.direction === 'outgoing'">
                         <i :class="[getMessageTicks(msg).class, getMessageTicks(msg).color]" :title="getMessageTicks(msg).title" class="text-[11px]"></i>
                       </template>
@@ -455,7 +436,7 @@ const getOriginClass = (origin?: string | null) => {
           </div>
         </div>
 
-        <footer class="bg-white border-t border-slate-100 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6 shrink-0 relative flex flex-col gap-3 min-w-0">
+        <footer v-show="activeTab === 'history'" class="bg-white border-t border-slate-100 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6 shrink-0 relative flex flex-col gap-3 min-w-0">
 
           <div class="flex items-center gap-2 px-1 max-w-4xl mx-auto w-full overflow-x-auto scrollbar-hide">
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"><i class="fas fa-satellite-dish mr-1"></i> Salida:</span>

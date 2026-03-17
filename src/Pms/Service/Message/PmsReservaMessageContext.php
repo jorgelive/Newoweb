@@ -7,6 +7,8 @@ namespace App\Pms\Service\Message;
 use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\MessageContextInterface;
 use App\Pms\Entity\PmsReserva;
+use DateTimeImmutable;
+use DateTimeZone;
 
 /**
  * Patrón Adaptador: Envuelve una entidad PmsReserva para que cumpla
@@ -56,12 +58,42 @@ class PmsReservaMessageContext implements MessageContextInterface
 
     public function getMilestones(): array
     {
-        $fechaLlegada = $this->reserva->getFechaLlegada();
 
+        //TODO: Refactor: poner todo en UTC para mensajes
+        $tzLima = new DateTimeZone('America/Lima');
+
+        // 🔹 HORAS
+        $horaCheckIn  = $this->reserva->getEstablecimiento()?->getHoraCheckIn() ?? '14:00:00';
+        $horaCheckOut = $this->reserva->getEstablecimiento()?->getHoraCheckOut() ?? '10:00:00';
+
+        // 🔹 PARSEO
+        [$hIn, $mIn, $sIn]    = array_map('intval', explode(':', $horaCheckIn));
+        [$hOut, $mOut, $sOut] = array_map('intval', explode(':', $horaCheckOut));
+
+        // 🔹 START / END
+        $start = (clone $this->reserva->getFechaLlegada())
+            ->setTime($hIn, $mIn, $sIn);
+
+        $end = (clone $this->reserva->getFechaSalida())
+            ->setTime($hOut, $mOut, $sOut);
+
+        // 🔹 CREATED (caso mixto)
+        if ($this->reserva->getPrimeraFechaReservaCanal() !== null) {
+            // viene en UTC → convertir a Lima y dejar naive
+            $created = (clone $this->reserva->getPrimeraFechaReservaCanal())
+                ->setTimezone($tzLima);
+
+            $created = new DateTimeImmutable($created->format('Y-m-d H:i:s'));
+        } else {
+            // ya está en naive (NO tocar)
+            $created = clone $this->reserva->getCreatedAt();
+        }
+
+        // 🔹 RESULTADO
         $milestones = [
-            ConversationMilestoneInterface::START   => $fechaLlegada,
-            ConversationMilestoneInterface::END     => $this->reserva->getFechaSalida(),
-            ConversationMilestoneInterface::CREATED => $this->reserva->getPrimeraFechaReservaCanal() ?? $this->reserva->getCreatedAt(),
+            ConversationMilestoneInterface::START   => $start,
+            ConversationMilestoneInterface::END     => $end,
+            ConversationMilestoneInterface::CREATED => $created,
         ];
 
         // 🔥 Llegada Esperada (Expected Arrival)

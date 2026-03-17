@@ -13,6 +13,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\ApiPlatform\State\MessageMultipartProcessor;
 use App\Message\Validator\ValidTemplateScope;
+use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -149,7 +150,9 @@ class Message
     #[Groups(['message:write'])]
     private array $transientChannels = [];
 
-    private ?\DateTimeImmutable $scheduledAt = null;
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[Groups(['message:read', 'message:write'])]
+    private ?DateTimeImmutable $scheduledAt = null;
 
     public function __construct()
     {
@@ -171,6 +174,25 @@ class Message
     #[Groups(['message:read'])]
     public function getCreatedAt(): ?DateTimeInterface { return $this->createdAt ?? null; }
 
+    /**
+     * 🔥 FLAG VIRTUAL: Determina si el mensaje es una programación a futuro.
+     * Evita ensuciar la vista principal de chat asumiendo errores prematuros.
+     * Si la fecha de programación es mayor a 5 minutos respecto al reloj actual, es futuro.
+     */
+    #[Groups(['message:read'])]
+    public function getIsScheduledForFuture(): bool
+    {
+        if ($this->status !== self::STATUS_PENDING || $this->scheduledAt === null) {
+            return false;
+        }
+
+        $now = new DateTimeImmutable();
+        $diffSeconds = $this->scheduledAt->getTimestamp() - $now->getTimestamp();
+
+        // Si faltan más de 300 segundos (5 minutos) para su ejecución
+        return $diffSeconds > 300;
+    }
+
     public function getConversation(): ?MessageConversation { return $this->conversation; }
     public function setConversation(?MessageConversation $conversation): self { $this->conversation = $conversation; return $this; }
 
@@ -183,8 +205,8 @@ class Message
     public function getTransientChannels(): array { return $this->transientChannels; }
     public function setTransientChannels(array $channels): self { $this->transientChannels = $channels; return $this; }
 
-    public function getScheduledAt(): ?\DateTimeImmutable { return $this->scheduledAt; }
-    public function setScheduledAt(?\DateTimeImmutable $scheduledAt): self { $this->scheduledAt = $scheduledAt; return $this; }
+    public function getScheduledAt(): ?DateTimeImmutable { return $this->scheduledAt; }
+    public function setScheduledAt(?DateTimeImmutable $scheduledAt): self { $this->scheduledAt = $scheduledAt; return $this; }
 
     public function getLanguageCode(): string { return $this->languageCode; }
     public function setLanguageCode(string $languageCode): self { $this->languageCode = $languageCode; return $this; }

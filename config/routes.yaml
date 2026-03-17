@@ -42,6 +42,12 @@ webhook_controllers:
     type: attribute
     host: '%app.host.api%'
 
+# webhook (módulo nuevo)
+message_api_controllers:
+    resource: ../src/Message/Controller/Api/
+    type: attribute
+    host: '%app.host.api%'
+
 # Panel (Easyadmin)
 panel_controllers:
     resource: ../src/Panel/Controller/

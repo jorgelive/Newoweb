@@ -39,6 +39,8 @@ phpstan.neon
 ###> varios ###
 cookies.txt
 /debug/
+mercure-start.sh
+mercure.Caddyfile
 ###< varios ###
 
 ###> Vite ###

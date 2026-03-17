@@ -8,11 +8,16 @@ use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
+use App\Message\Service\MercureBroadcaster;
 use DateTimeImmutable;
 use Throwable;
 
 final class Beds24SendHandler implements ExchangeHandlerInterface
 {
+    public function __construct(
+        private readonly MercureBroadcaster $mercureBroadcaster
+    ) {}
+
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
     {
         if (!$item instanceof Beds24SendQueue) {
@@ -29,6 +34,7 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
 
         // 3. Actualizar Estado del Mensaje Padre y Guardar ID de Idempotencia
         $msg = $item->getMessage();
+
         if ($msg) {
             // Pasamos a SENT si no estaba ya en READ
             if ($msg->getStatus() !== Message::STATUS_READ) {
@@ -40,6 +46,9 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
             if ($remoteId) {
                 $msg->setBeds24ExternalId((string) $remoteId);
             }
+
+            // 🔥 Avisamos a Vue que se envió
+            $this->mercureBroadcaster->broadcastMessage($msg);
         }
 
         // 4. Construir el Resultado de Ejecución para la auditoría JSON de la cola
@@ -69,8 +78,11 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
 
         // Si falla el envío, marcamos el mensaje padre como FAILED también
         $msg = $item->getMessage();
+
         if ($msg) {
             $msg->setStatus(Message::STATUS_FAILED);
+            // 🔥 Avisamos a Vue que falló el envío
+            $this->mercureBroadcaster->broadcastMessage($msg);
         }
 
         // Reintento: 2 minutos (mensajería requiere inmediatez o fallo rápido)
