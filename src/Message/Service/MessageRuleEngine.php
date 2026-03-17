@@ -123,7 +123,8 @@ final readonly class MessageRuleEngine
      */
     private function ruleAppliesToConversation(MessageRule $rule, MessageConversation $conversation): bool
     {
-        if ($conversation->getStatus() === MessageConversation::STATUS_ARCHIVED) {
+        // ⛔ BARRERA: No procesar reglas en chats que ya terminaron su ciclo (cerrados) o fueron cancelados (archivados)
+        if (in_array($conversation->getStatus(), [MessageConversation::STATUS_ARCHIVED, MessageConversation::STATUS_CLOSED], true)) {
             return false;
         }
 

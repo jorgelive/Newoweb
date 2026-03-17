@@ -53,7 +53,7 @@ class PmsReservaMessageContext implements MessageContextInterface
 
     public function getStatusTag(): ?string
     {
-        return $this->isArchivable() ? 'cancelled' : 'confirmed';
+        return $this->isClosable() ? 'cancelled' : 'confirmed';
     }
 
     public function getMilestones(): array
@@ -123,7 +123,7 @@ class PmsReservaMessageContext implements MessageContextInterface
             }
         }
 
-        if ($this->isArchivable() && $this->reserva->getUltimaFechaModificacionCanal()) {
+        if ($this->isClosable() && $this->reserva->getUltimaFechaModificacionCanal()) {
             $milestones[ConversationMilestoneInterface::CANCELLED] = $this->reserva->getUltimaFechaModificacionCanal();
         }
 
@@ -153,7 +153,7 @@ class PmsReservaMessageContext implements MessageContextInterface
     // REGLAS DE NEGOCIO DEL CHAT
     // =========================================================================
 
-    public function isArchivable(): bool
+    public function isClosable(): bool
     {
         return $this->reserva->isTotalmenteCancelada();
     }
