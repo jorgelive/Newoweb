@@ -64,7 +64,7 @@ class MessageConversationFactory
         $conversation->setContextFinancials($context->getFinancialTotal(), $context->isFinancialCleared());
 
         // 5. AUTO-ARCHIVADO y REACTIVACIÓN
-        if ($context->isClosable()) {
+        if ($context->isCancelled()) {
             $conversation->setStatus(MessageConversation::STATUS_CLOSED); //Cambiado
         } else {
             if ($conversation->getStatus() === MessageConversation::STATUS_CLOSED) { //Cambiado

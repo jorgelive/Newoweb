@@ -37,5 +37,5 @@ interface MessageContextInterface
      * Define si la conversación debe archivarse/cerrarse automáticamente
      * (Ej: Si todos los eventos de la reserva fueron cancelados).
      */
-    public function isClosable(): bool;
+    public function isCancelled(): bool;
 }
