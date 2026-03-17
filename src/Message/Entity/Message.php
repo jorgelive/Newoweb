@@ -54,7 +54,6 @@ use Symfony\Component\Uid\UuidV7;
                 'jsonld' => ['application/ld+json'],
                 'multipart' => ['multipart/form-data']
             ],
-            // 🔥 AQUÍ ESTÁ LA MAGIA: Desviamos el tráfico a nuestro procesador personalizado
             processor: MessageMultipartProcessor::class
         )
     ],
@@ -175,22 +174,39 @@ class Message
     public function getCreatedAt(): ?DateTimeInterface { return $this->createdAt ?? null; }
 
     /**
-     * 🔥 FLAG VIRTUAL: Determina si el mensaje es una programación a futuro.
-     * Evita ensuciar la vista principal de chat asumiendo errores prematuros.
-     * Si la fecha de programación es mayor a 5 minutos respecto al reloj actual, es futuro.
+     * Obtiene la fecha efectiva del mensaje para el ordenamiento en el frontend.
+     * Si está programado, devuelve la fecha de programación; si no, la de creación.
+     *
+     * @return DateTimeInterface|null La fecha más relevante del mensaje.
+     */
+    #[Groups(['message:read'])]
+    public function getEffectiveDateTime(): ?DateTimeInterface
+    {
+        return $this->scheduledAt ?? $this->createdAt ?? null;
+    }
+
+    /**
+     * Determina de forma robusta si este mensaje es una programación futura.
+     * Evalúa estrictamente que el estado sea PENDING y que la fecha objetivo sea mayor a la actual.
+     *
+     * @return bool True si el mensaje debe considerarse en el pool de "Programados".
      */
     #[Groups(['message:read'])]
     public function getIsScheduledForFuture(): bool
     {
-        if ($this->status !== self::STATUS_PENDING || $this->scheduledAt === null) {
+        // 1. Si no tiene fecha programada, es un mensaje inmediato
+        if ($this->scheduledAt === null) {
             return false;
         }
 
-        $now = new DateTimeImmutable();
-        $diffSeconds = $this->scheduledAt->getTimestamp() - $now->getTimestamp();
+        // 2. Si ya no está "pending" (ej. ya se procesó, envió o falló), ya pertenece al historial real
+        if ($this->status !== self::STATUS_PENDING) {
+            return false;
+        }
 
-        // Si faltan más de 300 segundos (5 minutos) para su ejecución
-        return $diffSeconds > 300;
+        // 3. Si sigue pendiente, verificamos que la fecha objetivo aún no haya sido superada
+        $now = new DateTimeImmutable();
+        return $this->scheduledAt > $now;
     }
 
     public function getConversation(): ?MessageConversation { return $this->conversation; }

@@ -32,15 +32,15 @@ use Symfony\Component\Uid\Uuid;
         new GetCollection(uriTemplate: '/user/util/msg/conversations'),
         new Get(uriTemplate: '/user/util/msg/conversations/{id}'),
 
-        // 🔥 NUEVO ENDPOINT: Marca la conversación como leída y dispara los webhooks de salida
+        // 🔥 ENDPOINT: Marca la conversación como leída y dispara los webhooks de salida
         new Post(
             uriTemplate: '/user/util/msg/conversations/{id}/read',
             controller: MarkConversationReadController::class,
             openapi: new Operation(
                 summary: 'Marca el chat como leído',
                 description: 'Marca todos los mensajes INCOMING de la conversación como leídos y notifica a las OTAs (Beds24/WhatsApp) mediante la cola de salida.'
-            ), // El controlador hará la búsqueda
-            read: false, // No necesitamos body JSON
+            ),
+            read: false,
             deserialize: false)
     ],
     normalizationContext: ['groups' => ['conversation:read']],
@@ -167,7 +167,6 @@ class MessageConversation
         if ($this->whatsappSessionValidUntil === null) {
             return false;
         }
-
         return $this->whatsappSessionValidUntil > new \DateTime();
     }
 
@@ -190,7 +189,7 @@ class MessageConversation
 
     /**
      * Añade un mensaje y actualiza metadatos (fecha y contadores).
-     * Aplica reglas de negocio específicas por canal (ej. Ventana 24h Meta).
+     * BARRERA: Solo altera los metadatos de la conversación si el mensaje NO es futuro.
      */
     public function addMessage(Message $message): self
     {
@@ -198,21 +197,21 @@ class MessageConversation
             $this->messages->add($message);
             $message->setConversation($this);
 
-            // 1. Clonamos la fecha de creación del mensaje para el puntero de "último mensaje"
-            $fechaMensaje = clone ($message->getCreatedAt() ?? new \DateTime());
-            $this->setLastMessageAt($fechaMensaje);
-
-            // 2. Si el mensaje es entrante (del huésped)
-            if ($message->getDirection() === Message::DIRECTION_INCOMING) {
-                $this->setLastInboundAt($fechaMensaje);
-                $this->incrementUnreadCount();
-
-                // 🔥 3. FILTRO ESTRICTO: Solo abrimos ventana de 24h si el origen es WhatsApp exacto
-                $channel = $message->getChannel();
-
-                if ($channel !== null && $channel->getId() === 'whatsapp_gupshup') {
-                    $ventanaCierre = (clone $fechaMensaje)->modify('+24 hours');
-                    $this->setWhatsappSessionValidUntil($ventanaCierre);
+            // 🔥 BARRERA CRONOLÓGICA: Un mensaje programado no debe hacer "ruido" en la lista de chats
+            if (!$message->getIsScheduledForFuture()) {
+                // 1. Clonamos la fecha de creación del mensaje para el puntero de "último mensaje"
+                $fechaMensaje = clone ($message->getCreatedAt() ?? new \DateTime());
+                $this->setLastMessageAt($fechaMensaje);
+                // 2. Si el mensaje es entrante (del huésped)
+                if ($message->getDirection() === Message::DIRECTION_INCOMING) {
+                    $this->setLastInboundAt($fechaMensaje);
+                    $this->incrementUnreadCount();
+                    // 🔥 3. FILTRO ESTRICTO: Solo abrimos ventana de 24h si el origen es WhatsApp exacto
+                    $channel = $message->getChannel();
+                    if ($channel !== null && $channel->getId() === 'whatsapp_gupshup') {
+                        $ventanaCierre = (clone $fechaMensaje)->modify('+24 hours');
+                        $this->setWhatsappSessionValidUntil($ventanaCierre);
+                    }
                 }
             }
         }
@@ -266,11 +265,9 @@ class MessageConversation
     public function setContextMilestones(array $milestones): self {
         $this->initContextData();
         $this->contextData['milestones'] = [];
-
         foreach ($milestones as $key => $value) {
             $this->addContextMilestone($key, $value);
         }
-
         return $this;
     }
 

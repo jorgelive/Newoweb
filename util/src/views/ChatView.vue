@@ -43,7 +43,6 @@ const handlePopState = (event: PopStateEvent) => {
 onMounted(() => {
   store.fetchConversations();
   store.fetchTemplates();
-
   store.initGlobalMercure();
 
   if (window.innerWidth < 768) {
@@ -59,7 +58,6 @@ onUnmounted(() => {
 let isAdjustingMessageScroll = false;
 
 const onMessageScroll = async () => {
-  // 🔒 Solo cargar historial antiguo si estamos en la pestaña principal
   if (activeTab.value !== 'history') return;
 
   const el = messagesContainer.value;
@@ -93,7 +91,6 @@ const scrollToBottom = () => {
 
 watch(() => store.activeChatMessages.length, async (newLen, oldLen) => {
   await nextTick();
-  // Solo hacemos scroll si estamos viendo el historial
   if (activeTab.value === 'history' && newLen > oldLen && !store.loadingMoreMessages) {
     scrollToBottom();
   }
@@ -108,7 +105,6 @@ watch(() => store.currentConversation, (chat) => {
   showTemplateDropdown.value = false;
   attachmentStore.clear();
 
-  // Reseteamos a la vista principal siempre que cambiamos de chat
   activeTab.value = 'history';
 
   if (chat?.contextOrigin && !['manual', 'web', 'directo'].includes(chat.contextOrigin.toLowerCase())) {
@@ -200,9 +196,9 @@ const getTemplateName = (templateData: any) => {
   if (!templateData) return null;
   if (typeof templateData === 'string') {
     const found = store.templates.find(t => t['@id'] === templateData);
-    return found ? found.name : 'Plantilla';
+    return found ? found.name : 'Plantilla Automática';
   }
-  return templateData.name || 'Plantilla';
+  return templateData.name || 'Plantilla Automática';
 };
 
 const getMessageTicks = (msg: ApiMessage) => {
@@ -240,16 +236,13 @@ const formatDate = (iso?: string) => {
 
 const formatFullDate = (iso?: string) => iso ? new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) : '';
 
-// 🔥 NUEVO: Agrupador inteligente dependiendo de la pestaña
 const groupedMessages = computed(() => {
   const groups: Record<string, any[]> = {};
-
-  // Seleccionamos la fuente de datos correcta según la pestaña
   const sourceList = activeTab.value === 'history' ? store.activeChatMessages : store.scheduledMessages;
 
   sourceList.forEach(msg => {
-    // Si es un mensaje programado, agrupamos por su fecha de destino. Si no, por su fecha de creación.
-    const dateToUse = msg.isScheduledForFuture && msg.scheduledAt ? msg.scheduledAt : msg.createdAt;
+    // 🔥 USANDO LA NUEVA FECHA EFECTIVA DEL BACKEND
+    const dateToUse = msg.effectiveDateTime || msg.createdAt;
     if(!dateToUse) return;
 
     const d = new Date(dateToUse).toISOString().split('T')[0];
@@ -395,16 +388,17 @@ const getOriginClass = (origin?: string | null) => {
                       </div>
                     </div>
 
-                    <div :class="[
+                    <div v-if="msg.template && msg.direction === 'outgoing'" :class="activeTab === 'scheduled' ? 'bg-orange-50 border-orange-200' : 'bg-slate-100 border-slate-200 text-slate-600'" class="rounded-2xl p-4 border text-sm font-medium leading-relaxed relative w-full shadow-sm text-center">
+                      <i class="fas fa-robot text-lg mb-2 block opacity-50"></i>
+                      <span class="block text-[10px] font-black uppercase tracking-widest opacity-80 mb-2">{{ getTemplateName(msg.template) }}</span>
+                      <span class="opacity-90 italic">"{{ msg.contentLocal || msg.contentExternal }}"</span>
+                    </div>
+
+                    <div v-else :class="[
                       msg.direction === 'outgoing' ? 'rounded-tr-none' : 'rounded-tl-none',
                       activeTab === 'scheduled' ? 'bg-orange-50 border-2 border-orange-200 text-slate-800 shadow-sm' :
                       (msg.direction === 'outgoing' ? 'bg-[#376875] text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')
                     ]" class="rounded-3xl p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative w-full break-words">
-
-                      <div v-if="msg.template" class="flex items-center gap-2 mb-2 pb-2 border-b" :class="msg.direction === 'outgoing' && activeTab !== 'scheduled' ? 'border-white/20' : 'border-slate-200'">
-                        <i class="fas fa-robot text-xs opacity-70"></i>
-                        <span class="text-[10px] font-black uppercase tracking-widest opacity-80 truncate">{{ getTemplateName(msg.template) }}</span>
-                      </div>
 
                       <div v-if="msg.attachments?.length" class="mb-3 space-y-2">
                         <div v-for="att in msg.attachments" :key="(typeof att === 'string') ? att : att.id" class="flex items-center gap-3 p-3 rounded-xl bg-black/10">
@@ -423,7 +417,7 @@ const getOriginClass = (origin?: string | null) => {
                     </div>
 
                     <div class="flex items-center gap-2 mt-1.5 px-2 text-[10px] font-black uppercase tracking-tighter" :class="[msg.direction === 'outgoing' ? 'flex-row-reverse' : 'flex-row', activeTab === 'scheduled' ? 'text-orange-400' : 'text-slate-400']">
-                      <span>{{ formatTime(activeTab === 'scheduled' ? msg.scheduledAt : msg.createdAt) }}</span>
+                      <span>{{ formatTime(msg.effectiveDateTime || msg.createdAt) }}</span>
                       <template v-if="msg.direction === 'outgoing'">
                         <i :class="[getMessageTicks(msg).class, getMessageTicks(msg).color]" :title="getMessageTicks(msg).title" class="text-[11px]"></i>
                       </template>

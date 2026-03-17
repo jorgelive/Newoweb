@@ -3,10 +3,6 @@ import { ref, computed } from 'vue';
 import axios from 'axios';
 import { useAttachmentStore } from './attachmentStore';
 
-// ============================================================================
-// INTERFACES (TypeScript Estricto)
-// ============================================================================
-
 export interface ApiMessageQueue {
     status: string;
     deliveryStatus?: string;
@@ -30,6 +26,7 @@ export interface ApiMessage {
     contentExternal: string | null;
     createdAt: string;
     scheduledAt?: string | null;
+    effectiveDateTime?: string | null;
     isScheduledForFuture?: boolean;
     metadata?: { beds24?: any; whatsappGupshup?: any; gupshup?: any };
     channel?: { id: string; name: string } | string;
@@ -125,8 +122,8 @@ export const useChatStore = defineStore('chatStore', () => {
         return messages.value
             .filter(m => m.isScheduledForFuture)
             .sort((a, b) => {
-                const dateA = new Date(a.scheduledAt || a.createdAt).getTime();
-                const dateB = new Date(b.scheduledAt || b.createdAt).getTime();
+                const dateA = new Date(a.effectiveDateTime || a.createdAt).getTime();
+                const dateB = new Date(b.effectiveDateTime || b.createdAt).getTime();
                 return dateA - dateB;
             });
     });

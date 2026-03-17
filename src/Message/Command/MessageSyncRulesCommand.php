@@ -15,9 +15,10 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-
 /*
+ * Uso:
  * php bin/console app:message:sync-rules 019cea14-bdd4-769e-bd63-8abac315738c
+ * php bin/console app:message:sync-rules --all
  */
 #[AsCommand(
     name: 'app:message:sync-rules',
@@ -51,34 +52,42 @@ class MessageSyncRulesCommand extends Command
         }
 
         $repository = $this->em->getRepository(MessageConversation::class);
-        $conversations = [];
+        $conversationIds = [];
 
+        // 🔥 CORRECCIÓN: Solo extraemos los IDs (strings) de la base de datos, no los objetos completos
         if ($conversationId) {
-            $conversation = $repository->find($conversationId);
-            if (!$conversation) {
-                $io->error(sprintf('No se encontró la conversación con ID: %s', $conversationId));
-                return Command::FAILURE;
-            }
-            $conversations[] = $conversation;
+            $conversationIds[] = $conversationId;
         } elseif ($syncAll) {
-            $conversations = $repository->findBy(['status' => MessageConversation::STATUS_OPEN]);
-            $io->info(sprintf('Se encontraron %d conversaciones abiertas para evaluar.', count($conversations)));
+            $results = $repository->createQueryBuilder('c')
+                ->select('c.id')
+                ->where('c.status = :status')
+                ->setParameter('status', MessageConversation::STATUS_OPEN)
+                ->getQuery()
+                ->getArrayResult();
+
+            $conversationIds = array_column($results, 'id');
+            $io->info(sprintf('Se encontraron %d conversaciones abiertas para evaluar.', count($conversationIds)));
         }
 
-        $io->progressStart(count($conversations));
+        $io->progressStart(count($conversationIds));
 
         $countSynced = 0;
-        foreach ($conversations as $conversation) {
+        foreach ($conversationIds as $id) {
             try {
-                $this->ruleEngine->syncConversationRules($conversation);
-                $countSynced++;
+                // 🔥 Cargamos la entidad "fresca" en cada iteración
+                $conversation = $repository->find($id);
+
+                if ($conversation) {
+                    $this->ruleEngine->syncConversationRules($conversation);
+                    $countSynced++;
+                }
             } catch (\Throwable $e) {
-                $io->warning(sprintf('Error al procesar la conversación %s: %s', $conversation->getId(), $e->getMessage()));
+                $io->warning(sprintf('Error al procesar la conversación %s: %s', $id, $e->getMessage()));
             }
 
             $io->progressAdvance();
 
-            // Liberar memoria en barridos masivos
+            // Liberar memoria de forma segura sin romper los objetos pendientes
             if ($syncAll && $countSynced % 50 === 0) {
                 $this->em->clear();
             }

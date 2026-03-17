@@ -25,6 +25,7 @@ class MercureMessageDto implements JsonSerializable
     private ?string $contentExternal;
     private ?string $createdAt;
     private ?string $scheduledAt;
+    private ?string $effectiveDateTime;
     private bool $isScheduledForFuture;
     private string $conversation;
     private array $metadata = [];
@@ -49,6 +50,7 @@ class MercureMessageDto implements JsonSerializable
         $this->contentExternal = $message->getContentExternal();
         $this->createdAt = $message->getCreatedAt() ? $message->getCreatedAt()->format(DateTimeInterface::ATOM) : null;
         $this->scheduledAt = $message->getScheduledAt() ? $message->getScheduledAt()->format(DateTimeInterface::ATOM) : null;
+        $this->effectiveDateTime = $message->getEffectiveDateTime() ? $message->getEffectiveDateTime()->format(DateTimeInterface::ATOM) : null;
 
         // Asignamos el flag virtual
         $this->isScheduledForFuture = $message->getIsScheduledForFuture();
@@ -106,6 +108,7 @@ class MercureMessageDto implements JsonSerializable
             'contentExternal' => $this->getContentExternal(),
             'createdAt' => $this->getCreatedAt(),
             'scheduledAt' => $this->getScheduledAt(),
+            'effectiveDateTime' => $this->getEffectiveDateTime(),
             'isScheduledForFuture' => $this->getIsScheduledForFuture(),
             'conversation' => $this->getConversation(),
             'metadata' => $this->getMetadata(),
@@ -122,55 +125,40 @@ class MercureMessageDto implements JsonSerializable
 
     public function getContext(): string { return $this->context; }
     public function setContext(string $context): self { $this->context = $context; return $this; }
-
     public function getIri(): string { return $this->iri; }
     public function setIri(string $iri): self { $this->iri = $iri; return $this; }
-
     public function getType(): string { return $this->type; }
     public function setType(string $type): self { $this->type = $type; return $this; }
-
     public function getId(): string { return $this->id; }
     public function setId(string $id): self { $this->id = $id; return $this; }
-
     public function getDirection(): string { return $this->direction; }
     public function setDirection(string $direction): self { $this->direction = $direction; return $this; }
-
     public function getStatus(): string { return $this->status; }
     public function setStatus(string $status): self { $this->status = $status; return $this; }
-
     public function getSenderType(): string { return $this->senderType; }
     public function setSenderType(string $senderType): self { $this->senderType = $senderType; return $this; }
-
     public function getContentLocal(): ?string { return $this->contentLocal; }
     public function setContentLocal(?string $contentLocal): self { $this->contentLocal = $contentLocal; return $this; }
-
     public function getContentExternal(): ?string { return $this->contentExternal; }
     public function setContentExternal(?string $contentExternal): self { $this->contentExternal = $contentExternal; return $this; }
-
     public function getCreatedAt(): ?string { return $this->createdAt; }
     public function setCreatedAt(?string $createdAt): self { $this->createdAt = $createdAt; return $this; }
-
     public function getScheduledAt(): ?string { return $this->scheduledAt; }
     public function setScheduledAt(?string $scheduledAt): self { $this->scheduledAt = $scheduledAt; return $this; }
-
+    public function getEffectiveDateTime(): ?string { return $this->effectiveDateTime; }
+    public function setEffectiveDateTime(?string $effectiveDateTime): self { $this->effectiveDateTime = $effectiveDateTime; return $this; }
     public function getIsScheduledForFuture(): bool { return $this->isScheduledForFuture; }
     public function setIsScheduledForFuture(bool $isScheduledForFuture): self { $this->isScheduledForFuture = $isScheduledForFuture; return $this; }
-
     public function getConversation(): string { return $this->conversation; }
     public function setConversation(string $conversation): self { $this->conversation = $conversation; return $this; }
-
     public function getMetadata(): array { return $this->metadata; }
     public function setMetadata(array $metadata): self { $this->metadata = $metadata; return $this; }
-
     public function getChannel(): ?array { return $this->channel; }
     public function setChannel(?array $channel): self { $this->channel = $channel; return $this; }
-
     public function getAttachments(): array { return $this->attachments; }
     public function setAttachments(array $attachments): self { $this->attachments = $attachments; return $this; }
-
     public function getBeds24SendQueues(): array { return $this->beds24SendQueues; }
     public function setBeds24SendQueues(array $beds24SendQueues): self { $this->beds24SendQueues = $beds24SendQueues; return $this; }
-
     public function getWhatsappGupshupSendQueues(): array { return $this->whatsappGupshupSendQueues; }
     public function setWhatsappGupshupSendQueues(array $whatsappGupshupSendQueues): self { $this->whatsappGupshupSendQueues = $whatsappGupshupSendQueues; return $this; }
 }

@@ -14,6 +14,9 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+/*
+ * uso: php bin/console app:message:rebuild-context
+ */
 #[AsCommand(
     name: 'app:message:rebuild-context',
     description: 'Sincroniza el contexto PMS, repara cronología y archiva chats antiguos.'
@@ -58,17 +61,28 @@ class RebuildConversationContextCommand extends Command
         foreach ($conversations as $conversation) {
             /** @var MessageConversation $conversation */
 
-            // Sincronizar fecha del último mensaje para el ordenamiento
-            $lastMessage = $this->entityManager->getRepository(Message::class)->findOneBy(
-                ['conversation' => $conversation],
-                ['createdAt' => 'DESC']
-            );
+            // 🔥 NUEVA LÓGICA: Encontrar el último mensaje REAL (ignorando programados a futuro)
+            // Iteramos sobre la colección en lugar de hacer una consulta directa para garantizar
+            // que usamos la misma lógica estricta de la entidad.
+            $lastValidMessage = null;
+            $lastValidDate = null;
 
-            if ($lastMessage) {
-                $conversation->setLastMessageAt($lastMessage->getCreatedAt());
+            foreach ($conversation->getMessages() as $msg) {
+                if (!$msg->getIsScheduledForFuture()) {
+                    $msgDate = $msg->getEffectiveDateTime() ?? clone $msg->getCreatedAt();
+
+                    if ($lastValidDate === null || $msgDate > $lastValidDate) {
+                        $lastValidDate = clone $msgDate;
+                        $lastValidMessage = $msg;
+                    }
+                }
+            }
+
+            if ($lastValidMessage) {
+                $conversation->setLastMessageAt($lastValidDate);
 
                 // Si el último mensaje es OUTGOING, el chat está atendido
-                if ($lastMessage->getDirection() === Message::DIRECTION_OUTGOING) {
+                if ($lastValidMessage->getDirection() === Message::DIRECTION_OUTGOING) {
                     $conversation->setUnreadCount(0);
                 }
             }
@@ -91,7 +105,7 @@ class RebuildConversationContextCommand extends Command
         $this->entityManager->flush();
         $io->progressFinish();
 
-        $io->success('Proceso completado: Contexto PMS sincronizado, notificaciones limpias y chats antiguos archivados.');
+        $io->success('Proceso completado: Contexto PMS sincronizado, cronología reparada y chats antiguos archivados.');
 
         return Command::SUCCESS;
     }
