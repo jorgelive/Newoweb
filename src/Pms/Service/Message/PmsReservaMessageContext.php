@@ -58,24 +58,30 @@ class PmsReservaMessageContext implements MessageContextInterface
 
     public function getMilestones(): array
     {
-
         //TODO: Refactor: poner todo en UTC para mensajes
         $tzLima = new DateTimeZone('America/Lima');
 
-        // 🔹 HORAS
-        $horaCheckIn  = $this->reserva->getEstablecimiento()?->getHoraCheckIn() ?? '14:00:00';
-        $horaCheckOut = $this->reserva->getEstablecimiento()?->getHoraCheckOut() ?? '10:00:00';
+        // 🔹 HORAS (Manejando tanto si Doctrine devuelve DateTime como si devuelve String)
+        $horaCheckInRaw  = $this->reserva->getEstablecimiento()?->getHoraCheckIn();
+        $horaCheckOutRaw = $this->reserva->getEstablecimiento()?->getHoraCheckOut();
+
+        $horaCheckInStr  = $horaCheckInRaw instanceof \DateTimeInterface ? $horaCheckInRaw->format('H:i:s') : (string) ($horaCheckInRaw ?: '14:00:00');
+        $horaCheckOutStr = $horaCheckOutRaw instanceof \DateTimeInterface ? $horaCheckOutRaw->format('H:i:s') : (string) ($horaCheckOutRaw ?: '10:00:00');
 
         // 🔹 PARSEO
-        [$hIn, $mIn, $sIn]    = array_map('intval', explode(':', $horaCheckIn));
-        [$hOut, $mOut, $sOut] = array_map('intval', explode(':', $horaCheckOut));
+        [$hIn, $mIn, $sIn]    = array_map('intval', explode(':', $horaCheckInStr));
+        [$hOut, $mOut, $sOut] = array_map('intval', explode(':', $horaCheckOutStr));
 
         // 🔹 START / END
-        $start = (clone $this->reserva->getFechaLlegada())
-            ->setTime($hIn, $mIn, $sIn);
+        $start = clone $this->reserva->getFechaLlegada();
+        if ($start) {
+            $start->setTime($hIn, $mIn, $sIn);
+        }
 
-        $end = (clone $this->reserva->getFechaSalida())
-            ->setTime($hOut, $mOut, $sOut);
+        $end = clone $this->reserva->getFechaSalida();
+        if ($end) {
+            $end->setTime($hOut, $mOut, $sOut);
+        }
 
         // 🔹 CREATED (caso mixto)
         if ($this->reserva->getPrimeraFechaReservaCanal() !== null) {
@@ -90,11 +96,10 @@ class PmsReservaMessageContext implements MessageContextInterface
         }
 
         // 🔹 RESULTADO
-        $milestones = [
-            ConversationMilestoneInterface::START   => $start,
-            ConversationMilestoneInterface::END     => $end,
-            ConversationMilestoneInterface::CREATED => $created,
-        ];
+        $milestones = [];
+        if ($start) $milestones[ConversationMilestoneInterface::START] = $start;
+        if ($end) $milestones[ConversationMilestoneInterface::END] = $end;
+        if ($created) $milestones[ConversationMilestoneInterface::CREATED] = $created;
 
         // 🔥 Llegada Esperada (Expected Arrival)
         $expectedArrivalRaw = $this->reserva->getHoraLlegadaCanalAggregate();
@@ -102,15 +107,18 @@ class PmsReservaMessageContext implements MessageContextInterface
         if ($expectedArrivalRaw) {
             if ($expectedArrivalRaw instanceof \DateTimeInterface) {
                 $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $expectedArrivalRaw;
-            } elseif ($fechaLlegada instanceof \DateTimeInterface) {
-                try {
-                    $fechaString = $fechaLlegada->format('Y-m-d');
-                    $horaLimpia = trim((string) $expectedArrivalRaw);
+            } else {
+                $fechaLlegada = clone $this->reserva->getFechaLlegada();
+                if ($fechaLlegada instanceof \DateTimeInterface) {
+                    try {
+                        $fechaString = $fechaLlegada->format('Y-m-d');
+                        $horaLimpia = trim((string) $expectedArrivalRaw);
 
-                    $expectedArrivalCompleto = new \DateTimeImmutable("$fechaString $horaLimpia");
-                    $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $expectedArrivalCompleto;
-                } catch (\Exception $e) {
-                    // Fallback silencioso
+                        $expectedArrivalCompleto = new \DateTimeImmutable("$fechaString $horaLimpia");
+                        $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $expectedArrivalCompleto;
+                    } catch (\Exception $e) {
+                        // Fallback silencioso
+                    }
                 }
             }
         }
