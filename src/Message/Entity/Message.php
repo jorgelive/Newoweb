@@ -199,12 +199,12 @@ class Message
             return false;
         }
 
-        // 2. Si ya no está "pending" (ej. ya se procesó, envió o falló), ya pertenece al historial real
-        if ($this->status !== self::STATUS_PENDING) {
+        // 2. 🔥 ACEPTAMOS AMBOS ESTADOS: 'pending' (por si acaso) y 'queued' (el real)
+        if (!in_array($this->status, [self::STATUS_PENDING, self::STATUS_QUEUED], true)) {
             return false;
         }
 
-        // 3. Si sigue pendiente, verificamos que la fecha objetivo aún no haya sido superada
+        // 3. Verificamos que la fecha objetivo aún no haya sido superada
         $now = new DateTimeImmutable();
         return $this->scheduledAt > $now;
     }
