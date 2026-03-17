@@ -35,17 +35,29 @@ class RebuildConversationContextCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('Reconstrucción de Contexto de Mensajería');
 
-        $conversations = $this->entityManager->getRepository(MessageConversation::class)
-            ->findBy(['contextType' => 'pms_reserva']);
+        $repository = $this->entityManager->getRepository(MessageConversation::class);
 
+        // Obtenemos los objetos puros inicialmente para poder extraer sus IDs limpios
+        $conversations = $repository->findBy(['contextType' => 'pms_reserva']);
         $total = count($conversations);
+
         if ($total === 0) {
             $io->warning('No hay conversaciones para procesar.');
             return Command::SUCCESS;
         }
 
         $io->note(sprintf('Sincronizando %d conversaciones...', $total));
-        $reservaIds = array_map(fn($c) => $c->getContextId(), $conversations);
+
+        // 🔥 OPTIMIZACIÓN: Extraemos los IDs como texto (String) y luego limpiamos la RAM
+        $reservaIds = [];
+        $conversationIds = [];
+        foreach ($conversations as $c) {
+            $conversationIds[] = (string) $c->getId();
+            $reservaIds[] = $c->getContextId();
+        }
+
+        // Vaciamos la memoria de Doctrine para que no colapse en procesamientos masivos
+        $this->entityManager->clear();
 
         // 1. LLAMADA AL SERVICIO PMS (Unidades, Hitos, Montos)
         $this->recalculoService->recalcularDesdeEventos(
@@ -56,14 +68,19 @@ class RebuildConversationContextCommand extends Command
 
         $io->progressStart($total);
         $now = new \DateTime();
+        $countSynced = 0;
 
         // 2. LÓGICA DE SANIDAD DE MENSAJERÍA
-        foreach ($conversations as $conversation) {
-            /** @var MessageConversation $conversation */
+        foreach ($conversationIds as $id) {
+            /** @var MessageConversation|null $conversation */
+            // Ahora Doctrine recibe un String válido y encuentra la conversación sin problema
+            $conversation = $repository->find($id);
 
-            // 🔥 NUEVA LÓGICA: Encontrar el último mensaje REAL (ignorando programados a futuro)
-            // Iteramos sobre la colección en lugar de hacer una consulta directa para garantizar
-            // que usamos la misma lógica estricta de la entidad.
+            if (!$conversation) {
+                $io->progressAdvance();
+                continue;
+            }
+
             $lastValidMessage = null;
             $lastValidDate = null;
 
@@ -81,31 +98,40 @@ class RebuildConversationContextCommand extends Command
             if ($lastValidMessage) {
                 $conversation->setLastMessageAt($lastValidDate);
 
-                // Si el último mensaje es OUTGOING, el chat está atendido
                 if ($lastValidMessage->getDirection() === Message::DIRECTION_OUTGOING) {
                     $conversation->setUnreadCount(0);
                 }
+            } else {
+                // 🔥 RESCATE: Si NO hay mensajes reales (solo futuros), le damos la fecha de creación del chat
+                // para que no pierda su lugar cronológico base en Vue.
+                $conversation->setLastMessageAt($conversation->getCreatedAt());
             }
 
             // --- LÓGICA DE ARCHIVADO AUTOMÁTICO ---
-            // Si la estancia terminó hace más de 7 días, lo movemos a Archivados
             $milestones = $conversation->getContextMilestones();
             if (isset($milestones['end'])) {
                 $endDate = new \DateTime($milestones['end']);
                 $diff = $now->diff($endDate)->days;
 
                 if ($endDate < $now && $diff > 7 && $conversation->getStatus() === MessageConversation::STATUS_OPEN) {
-                    $conversation->setStatus(MessageConversation::STATUS_ARCHIVED); //Cambiado
+                    $conversation->setStatus(MessageConversation::STATUS_CLOSED);
                 }
             }
 
+            $countSynced++;
             $io->progressAdvance();
+
+            // 🔥 Liberar memoria de forma segura
+            if ($countSynced % 50 === 0) {
+                $this->entityManager->flush();
+                $this->entityManager->clear();
+            }
         }
 
         $this->entityManager->flush();
         $io->progressFinish();
 
-        $io->success('Proceso completado: Contexto PMS sincronizado, cronología reparada y chats antiguos archivados.');
+        $io->success('Proceso completado: Contexto PMS sincronizado, cronología reparada y chats antiguos cerrados.');
 
         return Command::SUCCESS;
     }
