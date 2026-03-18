@@ -12,6 +12,20 @@ use Symfony\Component\HttpKernel\KernelInterface;
 
 class UtilAppController extends AbstractController
 {
+
+    /**
+     * Controlador para la página de inicio (Landing Page).
+     * Sirve como punto de entrada principal para la aplicación en la raíz del dominio (/),
+     * proporcionando un acceso visual y amigable hacia las herramientas internas (como el Chat PWA).
+     *
+     * @return Response Documento HTML con la Landing Page renderizada en Twig.
+     */
+    #[Route('/', name: 'app_home', methods: ['GET'])]
+    public function home(): Response
+    {
+        return $this->render('util/home.html.twig');
+    }
+
     /**
      * Controlador principal para la aplicación SPA de utilidades internas (Chat, etc.).
      * * Esta ruta atrapa /chat y cualquier subruta generada por Vue Router (prioridad -1 para no pisar rutas de API).
