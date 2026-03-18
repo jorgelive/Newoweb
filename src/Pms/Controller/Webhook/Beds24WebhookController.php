@@ -9,6 +9,7 @@ use App\Message\Service\Beds24\Webhook\Beds24WebhookMessageFastTrackService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -20,29 +21,29 @@ final class Beds24WebhookController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly Beds24WebhookBookingFastTrackService $bookingService,
         private readonly Beds24WebhookMessageFastTrackService $messageService,
+        #[Autowire('%kernel.logs_dir%')] private readonly string $logsDir,
     ) {}
 
     #[Route('/endpoint', name: 'main_endpoint', methods: ['POST'])]
     public function __invoke(Request $request): JsonResponse
     {
-        // 🔥 FIX EMOJIS: Forzamos el charset de la conexión ANTES de leer el contenido.
-        // Si Beds24 olvida mandar el charset en los headers, Symfony asume el por defecto.
-        // Aquí lo obligamos a tratar los bytes crudos como UTF-8 puro.
-        if (str_contains($request->headers->get('Content-Type', ''), 'application/json') && !str_contains($request->headers->get('Content-Type', ''), 'charset')) {
-            $request->headers->set('Content-Type', 'application/json; charset=UTF-8');
-        }
-
-        // 1. Obtener el contenido original (Ahora garantizado como String UTF-8)
+        // 1. Captura absoluta del contenido crudo
         $rawContent = (string) $request->getContent();
 
-        // 2. Auditoría Inicial
+        // 2. Escritura a disco para diagnóstico de emojis — quitar una vez confirmado el origen
+        file_put_contents(
+            $this->logsDir . '/beds24_debug.json',
+            $rawContent . PHP_EOL,
+            FILE_APPEND | LOCK_EX
+        );
+
+        // 3. Auditoría Inicial — guardamos el raw SIN TOCAR antes de cualquier procesamiento
         $audit = new PmsBeds24WebhookAudit();
         $audit->setReceivedAt(new DateTimeImmutable());
         $audit->setRemoteIp($request->getClientIp());
         $audit->setHeaders($request->headers->all());
-
-        // Guardamos el raw original por si algo falla
         $audit->setPayloadRaw($rawContent);
+        $this->persistAudit($audit);
 
         $token = $request->headers->get('X-Beds24-Webhook-Token') ?? $request->query->get('token');
 
@@ -52,14 +53,9 @@ final class Beds24WebhookController extends AbstractController
         }
 
         try {
-            // 🔥 FIX EMOJIS PARTE 2: Decodificamos permitiendo que PHP interprete libremente el Unicode
-            // Convertimos la cadena cruda a Array Asociativo. JSON_INVALID_UTF8_IGNORE ayuda a no romper si
-            // viene un byte corrupto en la ráfaga de red.
-            $payload = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE);
+            // Decodificamos sin JSON_INVALID_UTF8_IGNORE para no descartar emojis
+            $payload = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
 
-            // Si el payload se decodificó bien, re-guardamos el Raw Content forzando los caracteres nativos
-            // Esto asegura que en tu base de datos (y luego en tu Vue) veas "🏠" y no "\ud83c\udfe0" o "???"
-            $audit->setPayloadRaw(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             $audit->setPayload($payload);
 
             if (is_array($payload)) {

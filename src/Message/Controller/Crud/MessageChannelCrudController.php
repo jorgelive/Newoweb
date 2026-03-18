@@ -64,7 +64,7 @@ class MessageChannelCrudController extends BaseCrudController
         yield FormField::addPanel('Configuración General')->setIcon('fa fa-plug')->collapsible();
 
         yield TextField::new('id', 'ID Técnico (Código)')
-            ->setHelp('Ej: whatsapp_gupshup, beds24. No se puede cambiar una vez creado.')
+            ->setHelp('Ej: whatsapp_meta, beds24. No se puede cambiar una vez creado.')
             ->setFormTypeOption('disabled', $pageName !== Crud::PAGE_NEW)
             ->setColumns(6);
 
