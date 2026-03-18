@@ -60,6 +60,7 @@ class Beds24ReceivePersister
         $stats = ['imported' => 0, 'updated' => 0, 'skipped' => 0];
         $mercureBroadcasts = [];
 
+
         // =====================================================================
         // 1. PROCESAMIENTO E INSERCIÓN EN MEMORIA
         // =====================================================================
@@ -99,10 +100,44 @@ class Beds24ReceivePersister
             // Crear el mensaje nuevo (o potencial clon) en memoria
             $message = new Message();
             $message->setConversation($conversation);
-            $message->setContentExternal($dto->message ?? '');
             $message->setBeds24ExternalId($extId);
             $message->setChannel($channel);
             $message->setSenderType($source);
+
+            // 🔥 INTERCEPTOR DE IMÁGENES DE AIRBNB (Enlaces temporales AWS S3) 🔥
+            $rawContent = $dto->message ?? '';
+            $extractedImageContent = null;
+            $extractedImageMime = 'image/png';
+            $extractedImageName = 'airbnb_' . uniqid() . '.png';
+
+            if (str_contains($rawContent, 'muscache.com')) {
+                $cleanHtml = stripslashes($rawContent);
+
+                if (preg_match('/src="(https:\/\/a0\.muscache\.com[^"]+)"/i', $cleanHtml, $matches)) {
+                    $imageUrl = html_entity_decode($matches[1]);
+
+                    try {
+                        $context = stream_context_create(['http' => ['timeout' => 5]]);
+                        $imageStream = @file_get_contents($imageUrl, false, $context);
+
+                        // 1. Si la descarga fue exitosa (Link activo)
+                        if ($imageStream !== false) {
+                            $extractedImageContent = base64_encode($imageStream);
+                            $rawContent = '📷 Imagen recibida desde Airbnb';
+                        }
+                        // 2. Si falló (Ej: HTTP 403 porque ya expiró la hora)
+                        else {
+                            $this->logger->warning("Imagen de Airbnb expirada o bloqueada. URL: " . substr($imageUrl, 0, 100) . "...");
+                            $rawContent = '🚫 [La imagen compartida por el huésped ha expirado]';
+                        }
+                    } catch (Throwable $e) {
+                        $this->logger->warning("Error al descargar imagen de Airbnb: {$e->getMessage()}");
+                        $rawContent = '🚫 [Error al procesar la imagen de Airbnb]';
+                    }
+                }
+            }
+
+            $message->setContentExternal($rawContent);
 
             if ($source === Message::SENDER_HOST) {
                 $message->setDirection(Message::DIRECTION_OUTGOING);
@@ -123,24 +158,46 @@ class Beds24ReceivePersister
             }
 
             // Manejo de zonas horarias (UTC -> America/Lima)
+            // TODO: poner todo en UTC
             if ($dto->time !== null) {
                 $timeUtc = $dto->time instanceof DateTimeImmutable ? $dto->time : DateTimeImmutable::createFromInterface($dto->time);
                 $timeLima = $timeUtc->setTimezone(new DateTimeZone('America/Lima'));
                 $message->setCreatedAt($timeLima);
             }
 
-            // Adjuntos del Huésped
-            if (!empty($dto->attachment) && $source === Message::SENDER_GUEST) {
-                try {
-                    $attachment = $this->attachmentFactory->createFromBase64(
-                        $dto->attachment,
-                        $dto->attachmentName ?? 'adjunto_' . uniqid() . '.file',
-                        $dto->attachmentMimeType ?? 'application/octet-stream'
-                    );
-                    $message->addAttachment($attachment);
-                    $this->em->persist($attachment);
-                } catch (Throwable $e) {
-                    $this->logger->error("Fallo adjunto msg $extId: {$e->getMessage()}");
+            // =================================================================
+            // MANEJO DE ADJUNTOS (Base64 Nativos de Beds24 o Imágenes Extraídas)
+            // =================================================================
+            if ($source === Message::SENDER_GUEST) {
+                $targetBase64 = null;
+                $targetFileName = null;
+                $targetMime = null;
+
+                // Si logramos robar la imagen de Airbnb, usamos esa
+                if ($extractedImageContent !== null) {
+                    $targetBase64 = $extractedImageContent;
+                    $targetFileName = $extractedImageName;
+                    $targetMime = $extractedImageMime;
+                }
+                // Si no, miramos si Beds24 mandó un adjunto nativo (Booking.com a veces lo hace)
+                elseif (!empty($dto->attachment)) {
+                    $targetBase64 = $dto->attachment;
+                    $targetFileName = $dto->attachmentName ?? 'adjunto_' . uniqid() . '.file';
+                    $targetMime = $dto->attachmentMimeType ?? 'application/octet-stream';
+                }
+
+                if ($targetBase64 !== null) {
+                    try {
+                        $attachment = $this->attachmentFactory->createFromBase64(
+                            $targetBase64,
+                            $targetFileName,
+                            $targetMime
+                        );
+                        $message->addAttachment($attachment);
+                        $this->em->persist($attachment);
+                    } catch (Throwable $e) {
+                        $this->logger->error("Fallo adjunto msg $extId: {$e->getMessage()}");
+                    }
                 }
             }
 
@@ -149,6 +206,7 @@ class Beds24ReceivePersister
             $stats['imported']++;
             $mercureBroadcasts[] = $message;
         }
+
 
         // =====================================================================
         // 2. DEDUPLICACIÓN EN MEMORIA (Antes del Flush)

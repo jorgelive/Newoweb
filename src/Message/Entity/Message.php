@@ -210,7 +210,19 @@ class Message
     }
 
     public function getConversation(): ?MessageConversation { return $this->conversation; }
-    public function setConversation(?MessageConversation $conversation): self { $this->conversation = $conversation; return $this; }
+
+    public function setConversation(?MessageConversation $conversation): self
+    {
+        $this->conversation = $conversation;
+
+        // Le avisamos a la conversación para que ejecute su lógica (contadores, WhatsApp 24h, fechas)
+        // El contains() evita el bucle infinito con addMessage()
+        if ($conversation !== null && !$conversation->getMessages()->contains($this)) {
+            $conversation->addMessage($this);
+        }
+
+        return $this;
+    }
 
     public function getChannel(): ?MessageChannel { return $this->channel; }
     public function setChannel(?MessageChannel $channel): self { $this->channel = $channel; return $this; }
@@ -297,17 +309,54 @@ class Message
     }
 
     public function getStatus(): string { return $this->status; }
-    public function setStatus(string $status): self { $this->status = $status; return $this; }
+
+    // 🔥 MAGIA: Cuando el worker marque el mensaje como SENT, subimos la conversación
+    public function setStatus(string $status): self {
+        $oldStatus = $this->status;
+        $this->status = $status;
+
+        if ($oldStatus !== $status && in_array($status, [self::STATUS_SENT, self::STATUS_RECEIVED], true)) {
+            $this->touchConversation();
+        }
+
+        return $this;
+    }
 
     public function getSenderType(): string { return $this->senderType; }
     public function setSenderType(string $senderType): self { $this->senderType = $senderType; return $this; }
 
     public function getExternalIds(): array { return $this->externalIds ?? []; }
-    public function setExternalIds(?array $externalIds): self { $this->externalIds = $externalIds; return $this; }
+
+    // 🔥 MAGIA: Si el worker inyecta IDs externos brutos, subimos la conversación
+    public function setExternalIds(?array $externalIds): self {
+        $this->externalIds = $externalIds;
+        if (!empty($externalIds)) {
+            $this->touchConversation();
+        }
+        return $this;
+    }
+
     public function getBeds24ExternalId(): ?string { return $this->externalIds['beds24'] ?? null; }
-    public function setBeds24ExternalId(?string $id): self { $this->externalIds['beds24'] = $id; return $this; }
+
+    // 🔥 MAGIA: Cuando Beds24 responde con éxito
+    public function setBeds24ExternalId(?string $id): self {
+        $this->externalIds['beds24'] = $id;
+        if ($id !== null) {
+            $this->touchConversation();
+        }
+        return $this;
+    }
+
     public function getGupshupExternalId(): ?string { return $this->externalIds['gupshup'] ?? null; }
-    public function setGupshupExternalId(?string $id): self { $this->externalIds['gupshup'] = $id; return $this; }
+
+    // 🔥 MAGIA: Cuando Meta/Gupshup responde con éxito
+    public function setGupshupExternalId(?string $id): self {
+        $this->externalIds['gupshup'] = $id;
+        if ($id !== null) {
+            $this->touchConversation();
+        }
+        return $this;
+    }
 
     public function getWhatsappGupshupSendQueues(): Collection { return $this->whatsappGupshupSendQueues; }
 
@@ -336,5 +385,15 @@ class Message
             if ($attachment->getMessage() !== $this) $attachment->setMessage($this);
         }
         return $this;
+    }
+
+    /**
+     * Helper privado para forzar la actualización de fecha en la conversación padre
+     */
+    private function touchConversation(): void
+    {
+        if ($this->conversation !== null) {
+            $this->conversation->setLastMessageAt(new \DateTime());
+        }
     }
 }
