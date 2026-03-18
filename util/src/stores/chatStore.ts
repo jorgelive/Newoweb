@@ -218,16 +218,16 @@ export const useChatStore = defineStore('chatStore', () => {
                 if (data.type === 'conversation_updated' || data.type === 'conversation_created') {
                     const convData = data.conversation;
 
-                    // 🔥 FIX: Búsqueda estricta por @id
                     const index = conversations.value.findIndex(c => c['@id'] === convData['@id']);
 
                     if (index !== -1) {
-                        // Mutamos el objeto interno sin recrear el array para no perder referencias visuales
-                        Object.assign(conversations.value[index], convData);
+                        // ✅ Sintaxis Vue-nativa y reactiva con splice
+                        conversations.value.splice(index, 1, { ...conversations.value[index], ...convData });
                     } else {
                         conversations.value.unshift(convData);
                     }
 
+                    // Reordenamos para que los chats con mensajes recientes suban en la bandeja
                     conversations.value.sort((a, b) => {
                         const dateA = new Date(a.lastMessageAt || 0).getTime();
                         const dateB = new Date(b.lastMessageAt || 0).getTime();
