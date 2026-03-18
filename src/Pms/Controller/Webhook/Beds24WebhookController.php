@@ -25,22 +25,23 @@ final class Beds24WebhookController extends AbstractController
     #[Route('/endpoint', name: 'main_endpoint', methods: ['POST'])]
     public function __invoke(Request $request): JsonResponse
     {
-        // 1. Obtener el contenido original
-        $rawContent = (string) $request->getContent();
-
-        // 🔥 FIX DE CODIFICACIÓN PARA EMOJIS DE BEDS24 🔥
-        // Beds24 a veces envía el payload sin el charset estricto UTF-8.
-        // Si detectamos que no es UTF-8 nativo, lo convertimos para salvar los iconos (📍, 🏠, etc.)
-        $currentEncoding = mb_detect_encoding($rawContent, 'UTF-8, ISO-8859-1', true);
-        if ($currentEncoding !== 'UTF-8') {
-            $rawContent = mb_convert_encoding($rawContent, 'UTF-8', $currentEncoding ?: 'ISO-8859-1');
+        // 🔥 FIX EMOJIS: Forzamos el charset de la conexión ANTES de leer el contenido.
+        // Si Beds24 olvida mandar el charset en los headers, Symfony asume el por defecto.
+        // Aquí lo obligamos a tratar los bytes crudos como UTF-8 puro.
+        if (str_contains($request->headers->get('Content-Type', ''), 'application/json') && !str_contains($request->headers->get('Content-Type', ''), 'charset')) {
+            $request->headers->set('Content-Type', 'application/json; charset=UTF-8');
         }
 
-        // 2. Auditoría Inicial (Guardamos el contenido ya sanitizado a UTF-8)
+        // 1. Obtener el contenido original (Ahora garantizado como String UTF-8)
+        $rawContent = (string) $request->getContent();
+
+        // 2. Auditoría Inicial
         $audit = new PmsBeds24WebhookAudit();
         $audit->setReceivedAt(new DateTimeImmutable());
         $audit->setRemoteIp($request->getClientIp());
         $audit->setHeaders($request->headers->all());
+
+        // Guardamos el raw original por si algo falla
         $audit->setPayloadRaw($rawContent);
 
         $token = $request->headers->get('X-Beds24-Webhook-Token') ?? $request->query->get('token');
@@ -51,13 +52,20 @@ final class Beds24WebhookController extends AbstractController
         }
 
         try {
-            // Decodificamos el contenido ya forzado a UTF-8
-            $payload = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
+            // 🔥 FIX EMOJIS PARTE 2: Decodificamos permitiendo que PHP interprete libremente el Unicode
+            // Convertimos la cadena cruda a Array Asociativo. JSON_INVALID_UTF8_IGNORE ayuda a no romper si
+            // viene un byte corrupto en la ráfaga de red.
+            $payload = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE);
+
+            // Si el payload se decodificó bien, re-guardamos el Raw Content forzando los caracteres nativos
+            // Esto asegura que en tu base de datos (y luego en tu Vue) veas "🏠" y no "\ud83c\udfe0" o "???"
+            $audit->setPayloadRaw(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             $audit->setPayload($payload);
 
             if (is_array($payload)) {
                 $audit->setEventType($payload['type'] ?? $payload['eventType'] ?? 'unknown');
             }
+
             $this->persistAudit($audit);
 
             // =================================================================
@@ -135,8 +143,6 @@ final class Beds24WebhookController extends AbstractController
             return $this->prettyJson(['ok' => false, 'error' => $e->getMessage()], 200);
         }
     }
-
-    // ... el resto del controlador (handleBookings, handleMessages, etc.) se mantiene exactamente igual ...
 
     private function handleBookings(mixed $bookingData, string $token): array
     {
