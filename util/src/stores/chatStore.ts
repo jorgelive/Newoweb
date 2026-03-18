@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, shallowRef } from 'vue';
 import axios from 'axios';
 import { useAttachmentStore } from './attachmentStore';
 
@@ -103,8 +103,9 @@ export const useChatStore = defineStore('chatStore', () => {
     const hasMoreMessages = ref(true);
     const loadingMoreMessages = ref(false);
 
-    const eventSource = ref<EventSource | null>(null);
-    const globalEventSource = ref<EventSource | null>(null);
+    // 🔥 FIX: Usamos shallowRef para que Pinia no intente hacer reactiva la conexión nativa
+    const eventSource = shallowRef<EventSource | null>(null);
+    const globalEventSource = shallowRef<EventSource | null>(null);
 
     const filteredConversations = computed(() => {
         return conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase());
@@ -216,16 +217,17 @@ export const useChatStore = defineStore('chatStore', () => {
 
                 if (data.type === 'conversation_updated' || data.type === 'conversation_created') {
                     const convData = data.conversation;
-                    const index = conversations.value.findIndex(c => c.id === convData.id);
+
+                    // 🔥 FIX: Búsqueda estricta por @id
+                    const index = conversations.value.findIndex(c => c['@id'] === convData['@id']);
 
                     if (index !== -1) {
-                        conversations.value[index] = { ...conversations.value[index], ...convData };
+                        // Mutamos el objeto interno sin recrear el array para no perder referencias visuales
+                        Object.assign(conversations.value[index], convData);
                     } else {
                         conversations.value.unshift(convData);
                     }
 
-                    // Forzamos reactividad en la lista
-                    conversations.value = [...conversations.value];
                     conversations.value.sort((a, b) => {
                         const dateA = new Date(a.lastMessageAt || 0).getTime();
                         const dateB = new Date(b.lastMessageAt || 0).getTime();
@@ -266,16 +268,16 @@ export const useChatStore = defineStore('chatStore', () => {
             eventSource.value.onmessage = (event) => {
                 const incomingData = JSON.parse(event.data);
 
-                const index = messages.value.findIndex(m => m.id === incomingData.id);
+                // Búsqueda estricta por el identificador absoluto de API Platform
+                const index = messages.value.findIndex(m => m['@id'] === incomingData['@id']);
 
                 if (index !== -1) {
-                    messages.value[index] = { ...messages.value[index], ...incomingData };
+                    // splice es reactivo en Vue y actualiza solo esa posición fusionando los datos
+                    messages.value.splice(index, 1, { ...messages.value[index], ...incomingData });
                 } else {
+                    // Si no existe, lo agregamos a la lista
                     messages.value.push(incomingData);
                 }
-
-                // 🔥 TRUCO DE REACTIVIDAD: Reasignamos el array para obligar a Vue a re-renderizar
-                messages.value = [...messages.value];
             };
 
             eventSource.value.onerror = (err) => {
