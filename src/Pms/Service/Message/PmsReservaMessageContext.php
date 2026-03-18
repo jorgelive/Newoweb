@@ -85,14 +85,29 @@ class PmsReservaMessageContext implements MessageContextInterface
 
         // 🔹 CREATED (caso mixto)
         if ($this->reserva->getPrimeraFechaReservaCanal() !== null) {
-            // viene en UTC → convertir a Lima y dejar naive
-            $created = (clone $this->reserva->getPrimeraFechaReservaCanal())
-                ->setTimezone($tzLima);
+            $fechaCanal = $this->reserva->getPrimeraFechaReservaCanal();
 
-            $created = new DateTimeImmutable($created->format('Y-m-d H:i:s'));
+            // 1. Extraemos los números limpios y FORZAMOS a PHP a entender que son UTC absolutos
+            $createdUtc = new \DateTimeImmutable(
+                $fechaCanal->format('Y-m-d H:i:s'),
+                new \DateTimeZone('UTC')
+            );
+
+            // 2. Ahora SÍ hacemos la conversión matemática a Lima (esto restará las 5 horas)
+            $createdLima = $createdUtc->setTimezone($tzLima);
+
+            // 3. Lo convertimos de nuevo a un formato "naive" (sin zona atada)
+            $created = new \DateTimeImmutable($createdLima->format('Y-m-d H:i:s'));
         } else {
-            // ya está en naive (NO tocar)
-            $created = clone $this->reserva->getCreatedAt();
+            // Ya está en naive (NO tocar). Manejo estricto de tipos para evitar el error del IDE.
+            $createdAt = $this->reserva->getCreatedAt();
+
+            if ($createdAt instanceof \DateTime) {
+                $created = \DateTimeImmutable::createFromMutable($createdAt);
+            } else {
+                // Si ya es DateTimeImmutable, o si es null, lo pasamos directo
+                $created = $createdAt;
+            }
         }
 
         // 🔹 RESULTADO
