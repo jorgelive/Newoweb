@@ -54,7 +54,7 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
         // 4. Construir el Resultado de Ejecución para la auditoría JSON de la cola
         $summary = [
             'status' => 'success',
-            'remote_msg_id' => $remoteId,
+            'remote_beds24_id' => $remoteId,
             'timestamp' => (new DateTimeImmutable())->format('Y-m-d H:i:s')
         ];
 

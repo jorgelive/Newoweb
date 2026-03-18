@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
-use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -15,11 +15,11 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
-class WhatsappGupshupSendQueueCrudController extends BaseCrudController
+class WhatsappMetaSendQueueCrudController extends BaseCrudController
 {
     public static function getEntityFqcn(): string
     {
-        return WhatsappGupshupSendQueue::class;
+        return WhatsappMetaSendQueue::class;
     }
 
     public function configureActions(Actions $actions): Actions

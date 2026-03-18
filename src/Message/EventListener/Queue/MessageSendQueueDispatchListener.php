@@ -5,7 +5,7 @@ namespace App\Message\EventListener\Queue;
 
 use App\Exchange\Dispatch\RunExchangeTaskDispatch;
 use App\Message\Entity\Beds24SendQueue;
-use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Event\PostFlushEventArgs;
@@ -17,7 +17,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 final class MessageSendQueueDispatchListener
 {
     private array $beds24QueuedIds = [];
-    private array $gupshupQueuedIds = [];
+    private array $whatsapoMetaQueuedIds = [];
 
     public function __construct(private readonly MessageBusInterface $bus) {}
 
@@ -27,14 +27,14 @@ final class MessageSendQueueDispatchListener
 
         // 1. INSERCIONES: Toda cola nueva nace en estado PENDING, la capturamos directo.
         foreach ($uow->getScheduledEntityInsertions() as $entity) {
-            if ($entity instanceof Beds24SendQueue || $entity instanceof WhatsappGupshupSendQueue) {
+            if ($entity instanceof Beds24SendQueue || $entity instanceof WhatsappMetaSendQueue) {
                 $this->collectIfPending($entity);
             }
         }
 
         // 2. ACTUALIZACIONES: Ultra-eficiente. Solo miramos si el estado cambió a PENDING.
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
-            if ($entity instanceof Beds24SendQueue || $entity instanceof WhatsappGupshupSendQueue) {
+            if ($entity instanceof Beds24SendQueue || $entity instanceof WhatsappMetaSendQueue) {
 
                 // Pedimos a Doctrine exactamente qué campos cambiaron
                 $changeSet = $uow->getEntityChangeSet($entity);
@@ -57,12 +57,12 @@ final class MessageSendQueueDispatchListener
             $this->bus->dispatch(new RunExchangeTaskDispatch('beds24_message_send', $ids));
         }
 
-        if (!empty($this->gupshupQueuedIds)) {
-            $ids = array_unique($this->gupshupQueuedIds);
-            $this->gupshupQueuedIds = []; // Limpieza inmediata
+        if (!empty($this->whatsapoMetaQueuedIds)) {
+            $ids = array_unique($this->whatsapoMetaQueuedIds);
+            $this->whatsapoMetaQueuedIds = []; // Limpieza inmediata
 
             // Asegúrate de que el taskName coincida con tu Locator
-            $this->bus->dispatch(new RunExchangeTaskDispatch('whatsapp_gupshup_message_send', $ids));
+            $this->bus->dispatch(new RunExchangeTaskDispatch('whatsapp_meta_message_send', $ids));
         }
     }
 
@@ -79,8 +79,8 @@ final class MessageSendQueueDispatchListener
         if ($entity instanceof Beds24SendQueue) {
             // Casteo a string para compatibilidad con el Dispatcher genérico
             $this->beds24QueuedIds[] = (string) $entity->getId();
-        } elseif ($entity instanceof WhatsappGupshupSendQueue) {
-            $this->gupshupQueuedIds[] = (string) $entity->getId();
+        } elseif ($entity instanceof WhatsappMetaSendQueue) {
+            $this->whatsapoMetaQueuedIds[] = (string) $entity->getId();
         }
     }
 }

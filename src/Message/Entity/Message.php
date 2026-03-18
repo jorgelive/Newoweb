@@ -95,9 +95,9 @@ class Message
     #[Groups(['message:read', 'message:write'])]
     private ?MessageTemplate $template = null;
 
-    #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'message', targetEntity: WhatsappMetaSendQueue::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
-    private Collection $whatsappGupshupSendQueues;
+    private Collection $whatsappMetaSendQueues;
 
     #[ORM\OneToMany(mappedBy: 'message', targetEntity: Beds24SendQueue::class, cascade: ['persist', 'remove'])]
     #[Groups(['message:read'])]
@@ -129,7 +129,7 @@ class Message
 
     #[ORM\Column(type: 'json')]
     #[Groups(['message:read'])]
-    private array $metadata = ['beds24' => [], 'whatsappGupshup' => []];
+    private array $metadata = ['beds24' => [], 'whatsappMeta' => []];
 
     #[ORM\Column(length: 20, options: ['default' => self::DIRECTION_OUTGOING])]
     #[Groups(['message:read', 'message:write'])]
@@ -156,7 +156,7 @@ class Message
     public function __construct()
     {
         $this->id = Uuid::v7();
-        $this->whatsappGupshupSendQueues = new ArrayCollection();
+        $this->whatsappMetaSendQueues = new ArrayCollection();
         $this->beds24SendQueues  = new ArrayCollection();
         $this->attachments   = new ArrayCollection();
         $this->externalIds   = [];
@@ -268,7 +268,7 @@ class Message
     public function getTemplateContext(): array { return $this->templateContext; }
     public function setTemplateContext(array $templateContext): self { $this->templateContext = $templateContext; return $this; }
 
-    public function getMetadata(): array { return array_merge(['beds24' => [], 'whatsappGupshup' => []], $this->metadata); }
+    public function getMetadata(): array { return array_merge(['beds24' => [], 'whatsappMeta' => []], $this->metadata); }
     public function setMetadata(array $metadata): self { $this->metadata = $metadata; return $this; }
     public function addMetadata(string $key, mixed $value): self { $this->metadata[$key] = $value; return $this; }
 
@@ -284,23 +284,23 @@ class Message
     public function getBeds24ReadAt(): ?string { return $this->metadata['beds24']['read_at'] ?? null; }
     public function setBeds24ReadAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('read_at', $dateTimeIso8601); }
 
-    public function getGupshupMetadata(): array { return $this->metadata['whatsappGupshup'] ?? []; }
-    public function setGupshupMetadata(array $data): self { $this->metadata['whatsappGupshup'] = $data; return $this; }
-    public function addGupshupMetadata(string $key, mixed $value): self {
-        if (!isset($this->metadata['whatsappGupshup']) || !is_array($this->metadata['whatsappGupshup'])) $this->metadata['whatsappGupshup'] = [];
-        $this->metadata['whatsappGupshup'][$key] = $value;
+    public function getWhatsappMetaMetadata(): array { return $this->metadata['whatsappMeta'] ?? []; }
+    public function setWhatsappMetaMetadata(array $data): self { $this->metadata['whatsappMeta'] = $data; return $this; }
+    public function addWhatsappMetaMetadata(string $key, mixed $value): self {
+        if (!isset($this->metadata['whatsappMeta']) || !is_array($this->metadata['whatsappMeta'])) $this->metadata['whatsappMeta'] = [];
+        $this->metadata['whatsappMeta'][$key] = $value;
         return $this;
     }
-    public function getGupshupSentAt(): ?string { return $this->metadata['whatsappGupshup']['sent_at'] ?? null; }
-    public function setGupshupSentAt(string $dateTimeIso8601): self { return $this->addGupshupMetadata('sent_at', $dateTimeIso8601); }
-    public function getGupshupDeliveredAt(): ?string { return $this->metadata['whatsappGupshup']['delivered_at'] ?? null; }
-    public function setGupshupDeliveredAt(string $dateTimeIso8601): self { return $this->addGupshupMetadata('delivered_at', $dateTimeIso8601); }
-    public function getGupshupReadAt(): ?string { return $this->metadata['whatsappGupshup']['read_at'] ?? null; }
-    public function setGupshupReadAt(string $dateTimeIso8601): self { return $this->addGupshupMetadata('read_at', $dateTimeIso8601); }
-    public function getGupshupErrorCode(): ?string { return $this->metadata['whatsappGupshup']['error_code'] ?? null; }
-    public function setGupshupErrorCode(string $code): self { return $this->addGupshupMetadata('error_code', $code); }
-    public function getGupshupErrorReason(): ?string { return $this->metadata['whatsappGupshup']['error_reason'] ?? null; }
-    public function setGupshupErrorReason(string $reason): self { return $this->addGupshupMetadata('error_reason', $reason); }
+    public function getWhatsappMetaSentAt(): ?string { return $this->metadata['whatsappMeta']['sent_at'] ?? null; }
+    public function setWhatsappMetaSentAt(string $dateTimeIso8601): self { return $this->addWhatsappMetaMetadata('sent_at', $dateTimeIso8601); }
+    public function getWhatsappMetaDeliveredAt(): ?string { return $this->metadata['whatsappMeta']['delivered_at'] ?? null; }
+    public function setWhatsappMetaDeliveredAt(string $dateTimeIso8601): self { return $this->addWhatsappMetaMetadata('delivered_at', $dateTimeIso8601); }
+    public function getWhatsappMetaReadAt(): ?string { return $this->metadata['whatsappMeta']['read_at'] ?? null; }
+    public function setWhatsappMetaReadAt(string $dateTimeIso8601): self { return $this->addWhatsappMetaMetadata('read_at', $dateTimeIso8601); }
+    public function getWhatsappMetaErrorCode(): ?string { return $this->metadata['whatsappMeta']['error_code'] ?? null; }
+    public function setWhatsappMetaErrorCode(string $code): self { return $this->addWhatsappMetaMetadata('error_code', $code); }
+    public function getWhatsappMetaErrorReason(): ?string { return $this->metadata['whatsappMeta']['error_reason'] ?? null; }
+    public function setWhatsappMetaErrorReason(string $reason): self { return $this->addWhatsappMetaMetadata('error_reason', $reason); }
 
     public function getDirection(): string { return $this->direction; }
     public function setDirection(string $direction): self {
@@ -347,22 +347,22 @@ class Message
         return $this;
     }
 
-    public function getGupshupExternalId(): ?string { return $this->externalIds['gupshup'] ?? null; }
+    public function getWhatsappMetaExternalId(): ?string { return $this->externalIds['whatsapp_meta'] ?? null; }
 
-    // 🔥 MAGIA: Cuando Meta/Gupshup responde con éxito
-    public function setGupshupExternalId(?string $id): self {
-        $this->externalIds['gupshup'] = $id;
+    // 🔥 MAGIA: Cuando Meta responde con éxito
+    public function setWhatsappMetaExternalId(?string $id): self {
+        $this->externalIds['whatsapp_meta'] = $id;
         if ($id !== null) {
             $this->touchConversation();
         }
         return $this;
     }
 
-    public function getWhatsappGupshupSendQueues(): Collection { return $this->whatsappGupshupSendQueues; }
+    public function getWhatsappMetaSendQueues(): Collection { return $this->whatsappMetaSendQueues; }
 
-    public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self {
-        if (!$this->whatsappGupshupSendQueues->contains($queue)) {
-            $this->whatsappGupshupSendQueues->add($queue);
+    public function addWhatsappMetaSendQueue(WhatsappMetaSendQueue $queue): self {
+        if (!$this->whatsappMetaSendQueues->contains($queue)) {
+            $this->whatsappMetaSendQueues->add($queue);
             if ($queue->getMessage() !== $this) $queue->setMessage($this);
         }
         return $this;

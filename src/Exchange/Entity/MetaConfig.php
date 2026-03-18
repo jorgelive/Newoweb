@@ -7,7 +7,7 @@ namespace App\Exchange\Entity;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
-use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Pms\Entity\PmsEstablecimiento;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -16,9 +16,9 @@ use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'exchange_gupshup_config')]
+#[ORM\Table(name: 'exchange_meta_config')]
 #[ORM\HasLifecycleCallbacks]
-class GupshupConfig implements ChannelConfigInterface
+class MetaConfig implements ChannelConfigInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -29,37 +29,37 @@ class GupshupConfig implements ChannelConfigInterface
     #[ORM\Column(type: 'boolean', nullable: false, options: ['default' => true])]
     private bool $activo = true;
 
-    #[ORM\Column(type: 'string', length: 255, nullable: true, options: ['default' => 'https://api.gupshup.io/'])]
-    private ?string $baseUrl = 'https://api.gupshup.io/';
+    #[ORM\Column(type: 'string', length: 255, nullable: true, options: ['default' => 'https://graph.facebook.com'])]
+    private ?string $baseUrl = 'https://graph.facebook.com';
 
     #[ORM\Column(type: 'json')]
     private array $credentials = [];
 
     /**
-     * @var Collection<int, WhatsappGupshupSendQueue>
+     * @var Collection<int, WhatsappMetaSendQueue>
      */
-    #[ORM\OneToMany(mappedBy: 'config', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
-    private Collection $whatsappGupshupSendQueues;
+    #[ORM\OneToMany(mappedBy: 'config', targetEntity: WhatsappMetaSendQueue::class, cascade: ['persist', 'remove'])]
+    private Collection $whatsappMetaSendQueues;
 
     /**
-     * Colección de establecimientos PMS vinculados a esta configuración de Gupshup.
+     * Colección de establecimientos PMS vinculados a esta configuración de Meta.
      * Esta es la relación inversa (OneToMany) mapeada desde PmsEstablecimiento.
      *
      * @var Collection<int, PmsEstablecimiento>
      */
-    #[ORM\OneToMany(mappedBy: 'gupshupConfig', targetEntity: PmsEstablecimiento::class)]
+    #[ORM\OneToMany(mappedBy: 'metaConfig', targetEntity: PmsEstablecimiento::class)]
     private Collection $establecimientos;
 
     public function __construct()
     {
         $this->id = Uuid::v7();
-        $this->whatsappGupshupSendQueues = new ArrayCollection();
+        $this->whatsappMetaSendQueues = new ArrayCollection();
         $this->establecimientos = new ArrayCollection();
     }
 
     public function __toString(): string
     {
-        return $this->nombre ?? ('WhatsappGupshup Config ' . $this->getId());
+        return $this->nombre ?? ('WhatsappMeta Config ' . $this->getId());
     }
 
     // =========================================================================
@@ -69,11 +69,11 @@ class GupshupConfig implements ChannelConfigInterface
     /**
      * Retorna el alias del proveedor que debe procesar esta configuración
      * Se utiliza para seleccionar el cliente.
-     * Ejemplo: 'beds24', 'gupshup', 'booking'.
+     * Ejemplo: 'beds24', 'meta', 'booking'.
      */
     public function getProviderName(): string
     {
-        return 'gupshup';
+        return 'meta';
     }
 
     public function getBaseUrl(): string
@@ -145,17 +145,17 @@ class GupshupConfig implements ChannelConfigInterface
     // =========================================================================
 
     /**
-     * @return Collection<int, WhatsappGupshupSendQueue>
+     * @return Collection<int, WhatsappMetaSendQueue>
      */
-    public function getWhatsappGupshupSendQueues(): Collection
+    public function getWhatsappMetaSendQueues(): Collection
     {
-        return $this->whatsappGupshupSendQueues;
+        return $this->whatsappMetaSendQueues;
     }
 
-    public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $queue): self
+    public function addWhatsappMetaSendQueue(WhatsappMetaSendQueue $queue): self
     {
-        if (!$this->whatsappGupshupSendQueues->contains($queue)) {
-            $this->whatsappGupshupSendQueues->add($queue);
+        if (!$this->whatsappMetaSendQueues->contains($queue)) {
+            $this->whatsappMetaSendQueues->add($queue);
             // Lado propietario de la relación (owning side)
             if ($queue->getConfig() !== $this) {
                 $queue->setConfig($this);
@@ -165,9 +165,9 @@ class GupshupConfig implements ChannelConfigInterface
         return $this;
     }
 
-    public function removeGupshupSendQueue(WhatsappGupshupSendQueue $queue): self
+    public function removeMetaSendQueue(WhatsappMetaSendQueue $queue): self
     {
-        if ($this->whatsappGupshupSendQueues->removeElement($queue)) {
+        if ($this->whatsappMetaSendQueues->removeElement($queue)) {
             // Establecer el lado propietario a null (si no cambió ya)
             if ($queue->getConfig() === $this) {
                 $queue->setConfig(null);
@@ -188,7 +188,7 @@ class GupshupConfig implements ChannelConfigInterface
     }
 
     /**
-     * Asocia un establecimiento a esta configuración de Gupshup.
+     * Asocia un establecimiento a esta configuración de Meta.
      * Mantiene la consistencia bidireccional estableciendo esta configuración en el establecimiento.
      *
      * @param PmsEstablecimiento $establecimiento El establecimiento a vincular
@@ -198,14 +198,14 @@ class GupshupConfig implements ChannelConfigInterface
     {
         if (!$this->establecimientos->contains($establecimiento)) {
             $this->establecimientos->add($establecimiento);
-            $establecimiento->setGupshupConfig($this);
+            $establecimiento->setMetaConfig($this);
         }
 
         return $this;
     }
 
     /**
-     * Desvincula un establecimiento de esta configuración de Gupshup.
+     * Desvincula un establecimiento de esta configuración de Meta.
      * Mantiene la consistencia bidireccional anulando la configuración en el establecimiento si aún apunta a esta instancia.
      *
      * @param PmsEstablecimiento $establecimiento El establecimiento a desvincular
@@ -215,8 +215,8 @@ class GupshupConfig implements ChannelConfigInterface
     {
         if ($this->establecimientos->removeElement($establecimiento)) {
             // set the owning side to null (unless already changed)
-            if ($establecimiento->getGupshupConfig() === $this) {
-                $establecimiento->setGupshupConfig(null);
+            if ($establecimiento->getMetaConfig() === $this) {
+                $establecimiento->setMetaConfig(null);
             }
         }
 

@@ -7,7 +7,7 @@ namespace App\Message\Controller\Crud;
 use App\Message\Entity\MessageTemplate;
 use App\Message\Form\Type\Beds24TemplateType;
 use App\Message\Form\Type\EmailTemplateType;
-use App\Message\Form\Type\WhatsappGupshupTemplateType;
+use App\Message\Form\Type\WhatsappMetaTemplateType;
 use App\Message\Form\Type\WhatsappLinkTemplateType;
 use App\Message\Service\MessageSegmentationAggregator;
 use App\Panel\Controller\Crud\BaseCrudController;
@@ -136,12 +136,12 @@ class MessageTemplateCrudController extends BaseCrudController
             ->renderCollapsed()
             ->setHelp('💡 <b>Nota:</b> Meta utiliza formato numérico para las variables. Utiliza <code>{1}</code>, <code>{2}</code>.');
 
-        yield Field::new('whatsappGupshupTmpl', '')
-            ->setFormType(WhatsappGupshupTemplateType::class)
+        yield Field::new('whatsappMetaTmpl', '')
+            ->setFormType(WhatsappMetaTemplateType::class)
             ->onlyOnForms()
             ->setColumns(12);
 
-        yield CodeEditorField::new('whatsappGupshupTmpl', 'JSON Generado WhatsApp')
+        yield CodeEditorField::new('whatsappMetaTmpl', 'JSON Generado WhatsApp')
             ->setLanguage('js')->onlyOnDetail()
             ->formatValue(fn($val) => empty($val) ? '' : (is_array($val) ? json_encode($val, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) : $val));
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappMetaSend;
 
 use App\Exchange\Service\Context\SyncContext;
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;
@@ -10,22 +10,22 @@ use App\Exchange\Service\Contract\ExchangeQueueProviderInterface;
 use App\Exchange\Service\Contract\ExchangeTaskInterface;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
 
-final readonly class WhatsappGupshupSendTask implements ExchangeTaskInterface
+final readonly class WhatsappMetaSendTask implements ExchangeTaskInterface
 {
     public function __construct(
-        private WhatsappGupshupSendQueueProvider $provider,
-        private WhatsappGupshupSendHandler       $handler,
-        private WhatsappGupshupSendMappingStrategy $strategy
+        private WhatsappMetaSendQueueProvider      $provider,
+        private WhatsappMetaSendHandler            $handler,
+        private WhatsappMetaSendMappingStrategy $strategy
     ) {}
 
     public static function getTaskName(): string
     {
-        return 'whatsapp_gupshup_message_send';
+        return 'whatsapp_meta_message_send';
     }
 
     public function getMaxBatchSize(): int
     {
-        // Gupshup soporta batching, pero por seguridad y trazabilidad de IDs
+        // Meta soporta batching, pero por seguridad y trazabilidad de IDs
         // recomendamos lotes pequeños o incluso 1 a 1 si la API es síncrona.
         return 10;
     }
@@ -37,7 +37,7 @@ final readonly class WhatsappGupshupSendTask implements ExchangeTaskInterface
 
     public function getSyncProvider(): string
     {
-        return 'whatsapp_gupshup';
+        return 'whatsapp_meta';
     }
 
     public function getQueueProvider(): ExchangeQueueProviderInterface { return $this->provider; }

@@ -5,24 +5,24 @@ declare(strict_types=1);
 namespace App\Message\Repository;
 
 use App\Exchange\Repository\AbstractExchangeRepository;
-use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * Repositorio para la cola de envío de WhatsApp (Gupshup).
+ * Repositorio para la cola de envío de WhatsApp (Meta).
  */
-final class WhatsappGupshupSendQueueRepository extends AbstractExchangeRepository
+final class WhatsappMetaSendQueueRepository extends AbstractExchangeRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, WhatsappGupshupSendQueue::class);
+        parent::__construct($registry, WhatsappMetaSendQueue::class);
     }
 
     protected function getTableName(): string
     {
         // Nombre de la tabla física según tu mapeo
-        return 'msg_gupshup_send_queue';
+        return 'msg_whatsapp_meta_send_queue';
     }
 
     /**

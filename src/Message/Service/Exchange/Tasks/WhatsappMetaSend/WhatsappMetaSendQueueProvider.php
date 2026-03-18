@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappMetaSend;
 
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Contract\ExchangeQueueProviderInterface;
-use App\Message\Entity\WhatsappGupshupSendQueue;
-use App\Message\Repository\WhatsappGupshupSendQueueRepository;
+use App\Message\Entity\WhatsappMetaSendQueue;
+use App\Message\Repository\WhatsappMetaSendQueueRepository;
 use DateTimeImmutable;
 use RuntimeException;
 
-final readonly class WhatsappGupshupSendQueueProvider implements ExchangeQueueProviderInterface
+final readonly class WhatsappMetaSendQueueProvider implements ExchangeQueueProviderInterface
 {
     public function __construct(
-        private WhatsappGupshupSendQueueRepository $repository
+        private WhatsappMetaSendQueueRepository $repository
     ) {}
 
     public function claimBatch(int $limit, string $workerId, DateTimeImmutable $now): ?HomogeneousBatch
@@ -29,7 +29,7 @@ final readonly class WhatsappGupshupSendQueueProvider implements ExchangeQueuePr
         return $this->packItems($items, true);
     }
 
-    /** @param WhatsappGupshupSendQueue[] $items */
+    /** @param WhatsappMetaSendQueue[] $items */
     private function packItems(array $items, bool $strictCheck = false): ?HomogeneousBatch
     {
         if (empty($items)) return null;
@@ -39,7 +39,7 @@ final readonly class WhatsappGupshupSendQueueProvider implements ExchangeQueuePr
         $endpoint = $rep->getEndpoint();
 
         if (!$config || !$endpoint) {
-            throw new RuntimeException("Integridad violada: Cola Gupshup #{$rep->getId()} sin config.");
+            throw new RuntimeException("Integridad violada: Cola Whatsapp Meta #{$rep->getId()} sin config.");
         }
 
         if ($strictCheck && count($items) > 1) {
@@ -49,7 +49,7 @@ final readonly class WhatsappGupshupSendQueueProvider implements ExchangeQueuePr
             foreach ($items as $item) {
                 if ((string)$item->getConfig()->getId() !== $refCfg ||
                     (string)$item->getEndpoint()->getId() !== $refEp) {
-                    throw new RuntimeException("Violación de homogeneidad en Gupshup Batch Manual.");
+                    throw new RuntimeException("Violación de homogeneidad en Meta Whatsapp Batch Manual.");
                 }
             }
         }

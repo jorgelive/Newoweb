@@ -108,7 +108,7 @@ class MessageConversationCrudController extends BaseCrudController
                         if (str_contains($name, 'beds24') && !$msg->getBeds24SendQueues()->isEmpty()) {
                             $usedChannelIds[] = (string) $ch->getId();
                         }
-                        if (str_contains($name, 'whatsapp') && !$msg->getWhatsappGupshupSendQueues()->isEmpty()) {
+                        if (str_contains($name, 'whatsapp') && !$msg->getWhatsappMetaSendQueues()->isEmpty()) {
                             $usedChannelIds[] = (string) $ch->getId();
                         }
                     }

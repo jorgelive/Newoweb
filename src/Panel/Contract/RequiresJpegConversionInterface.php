@@ -10,7 +10,7 @@ namespace App\Panel\Contract;
  * y que implemente esta interfaz, forzará al VichWebpConversionListener a procesar
  * y guardar la imagen en formato JPEG (.jpg) en lugar del formato WebP predeterminado.
  * * ¿Por qué existe?
- * Es vital para mantener compatibilidad con canales externos o APIs legacy (como Beds24 o Gupshup)
+ * Es vital para mantener compatibilidad con canales externos o APIs legacy (como Beds24 o Meta)
  * que rechazan formatos modernos de imagen o tienen validaciones MIME estrictas.
  */
 interface RequiresJpegConversionInterface

@@ -13,17 +13,17 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-class WhatsappGupshupTemplateType extends AbstractType
+class WhatsappMetaTemplateType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
             ->add('is_active', CheckboxType::class, [
-                'label' => 'Activar envío por WhatsApp (Meta/Gupshup)',
+                'label' => 'Activar envío por WhatsApp (Meta)',
                 'required' => false,
                 'row_attr' => ['class' => 'col-md-12 mb-4'],
             ])
-            ->add('meta_template_name', TextType::class, [
+            ->add('whatsapp_meta_template_name', TextType::class, [
                 'label' => 'Nombre Base en Meta',
                 'attr' => ['placeholder' => 'Ej: welcome_confirmation'],
                 'row_attr' => ['class' => 'col-md-8 mb-3'],

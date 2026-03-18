@@ -11,7 +11,7 @@ use App\Exchange\Repository\ExchangeEndpointRepository;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Message\Entity\Beds24ReceiveQueue;
 use App\Message\Entity\Beds24SendQueue;
-use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsRatesPushQueue;
@@ -104,13 +104,13 @@ class ExchangeEndpoint implements EndpointInterface
     private Collection $bookingsPullQueues;
 
     /**
-     * Colección de colas de envío de WhatsApp Gupshup asociadas a este endpoint.
+     * Colección de colas de envío de WhatsApp Meta asociadas a este endpoint.
      * Permite acceder a todas las colas generadas por este punto de enlace.
      *
-     * @var Collection<int, WhatsappGupshupSendQueue>
+     * @var Collection<int, WhatsappMetaSendQueue>
      */
-    #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: WhatsappGupshupSendQueue::class, cascade: ['persist', 'remove'])]
-    private Collection $whatsappGupshupSendQueues;
+    #[ORM\OneToMany(mappedBy: 'endpoint', targetEntity: WhatsappMetaSendQueue::class, cascade: ['persist', 'remove'])]
+    private Collection $whatsappMetaSendQueues;
 
     /**
      * Colección de colas de envío de Beds24 asociadas a este endpoint.
@@ -135,7 +135,7 @@ class ExchangeEndpoint implements EndpointInterface
         $this->ratesPushQueues = new ArrayCollection();
         $this->bookingsPushQueues = new ArrayCollection();
         $this->bookingsPullQueues = new ArrayCollection();
-        $this->whatsappGupshupSendQueues = new ArrayCollection();
+        $this->whatsappMetaSendQueues = new ArrayCollection();
         $this->beds24SendQueues = new ArrayCollection();
         $this->beds24ReceiveQueues = new ArrayCollection();
 
@@ -291,27 +291,27 @@ class ExchangeEndpoint implements EndpointInterface
     }
 
     /**
-     * Obtiene la colección de colas de WhatsApp Gupshup asociadas.
+     * Obtiene la colección de colas de WhatsApp Meta asociadas.
      *
-     * @return Collection<int, WhatsappGupshupSendQueue>
+     * @return Collection<int, WhatsappMetaSendQueue>
      */
-    public function getWhatsappGupshupSendQueues(): Collection
+    public function getWhatsappMetaSendQueues(): Collection
     {
-        return $this->whatsappGupshupSendQueues;
+        return $this->whatsappMetaSendQueues;
     }
 
     /**
      * Añade una cola de envío de WhatsApp a este endpoint.
      * Asegura la consistencia de la relación bidireccional.
      *
-     * @param WhatsappGupshupSendQueue $whatsappGupshupSendQueue
+     * @param WhatsappMetaSendQueue $whatsappMetaSendQueue
      * @return static
      */
-    public function addWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $whatsappGupshupSendQueue): static
+    public function addWhatsappMetaSendQueue(WhatsappMetaSendQueue $whatsappMetaSendQueue): static
     {
-        if (!$this->whatsappGupshupSendQueues->contains($whatsappGupshupSendQueue)) {
-            $this->whatsappGupshupSendQueues->add($whatsappGupshupSendQueue);
-            $whatsappGupshupSendQueue->setEndpoint($this);
+        if (!$this->whatsappMetaSendQueues->contains($whatsappMetaSendQueue)) {
+            $this->whatsappMetaSendQueues->add($whatsappMetaSendQueue);
+            $whatsappMetaSendQueue->setEndpoint($this);
         }
 
         return $this;
@@ -320,15 +320,15 @@ class ExchangeEndpoint implements EndpointInterface
     /**
      * Elimina una cola de envío de WhatsApp de este endpoint.
      *
-     * @param WhatsappGupshupSendQueue $whatsappGupshupSendQueue
+     * @param WhatsappMetaSendQueue $whatsappMetaSendQueue
      * @return static
      */
-    public function removeWhatsappGupshupSendQueue(WhatsappGupshupSendQueue $whatsappGupshupSendQueue): static
+    public function removeWhatsappMetaSendQueue(WhatsappMetaSendQueue $whatsappMetaSendQueue): static
     {
-        if ($this->whatsappGupshupSendQueues->removeElement($whatsappGupshupSendQueue)) {
+        if ($this->whatsappMetaSendQueues->removeElement($whatsappMetaSendQueue)) {
             // set the owning side to null (unless already changed)
-            if ($whatsappGupshupSendQueue->getEndpoint() === $this) {
-                $whatsappGupshupSendQueue->setEndpoint(null);
+            if ($whatsappMetaSendQueue->getEndpoint() === $this) {
+                $whatsappMetaSendQueue->setEndpoint(null);
             }
         }
 

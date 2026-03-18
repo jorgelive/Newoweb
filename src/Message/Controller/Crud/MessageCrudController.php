@@ -253,7 +253,7 @@ class MessageCrudController extends BaseCrudController
             ->setFormTypeOption('disabled', true)
             ->setColumns(6);
 
-        yield CollectionField::new('whatsappGupshupSendQueues', 'Cola de Envío: WhatsApp')
+        yield CollectionField::new('whatsappMetaSendQueues', 'Cola de Envío: WhatsApp')
             ->hideWhenCreating()
             ->setFormTypeOption('disabled', true)
             ->setColumns(6);

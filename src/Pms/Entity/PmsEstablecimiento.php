@@ -8,7 +8,7 @@ use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Entity\Beds24Config;
-use App\Exchange\Entity\GupshupConfig;
+use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\ChannelConfigProviderInterface;
 use DateTimeInterface;
@@ -40,15 +40,15 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     #[Assert\NotNull(message: 'Debes seleccionar una configuración de Beds24.')]
     private ?Beds24Config $beds24Config = null;
 
-    #[ORM\ManyToOne(targetEntity: GupshupConfig::class, inversedBy: 'establecimientos')]
+    #[ORM\ManyToOne(targetEntity: MetaConfig::class, inversedBy: 'establecimientos')]
     #[ORM\JoinColumn(
-        name: 'gupshup_config_id',
+        name: 'meta_config_id',
         referencedColumnName: 'id',
         nullable: true,
         onDelete: 'SET NULL'
     )]
-    #[Assert\NotNull(message: 'Debes seleccionar una configuración de Gupshup.')]
-    private ?GupshupConfig $gupshupConfig = null;
+    #[Assert\NotNull(message: 'Debes seleccionar una configuración de Meta.')]
+    private ?MetaConfig $metaConfig = null;
 
 
     #[ORM\Column(type: 'string', length: 180, nullable: true)]
@@ -128,7 +128,7 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     {
         return match ($channelType) {
             'beds24'  => $this->beds24Config,
-            'gupshup' => $this->gupshupConfig,
+            'meta' => $this->metaConfig,
             default   => null,
         };
     }
@@ -140,8 +140,8 @@ class PmsEstablecimiento implements ChannelConfigProviderInterface
     public function setBeds24Config(?Beds24Config $beds24Config): self { $this->beds24Config = $beds24Config; return $this; }
 
 
-    public function getGupshupConfig(): ?GupshupConfig { return $this->gupshupConfig; }
-    public function setGupshupConfig(?GupshupConfig $gupshupConfig): self { $this->gupshupConfig = $gupshupConfig; return $this; }
+    public function getMetaConfig(): ?MetaConfig { return $this->metaConfig; }
+    public function setMetaConfig(?MetaConfig $metaConfig): self { $this->metaConfig = $metaConfig; return $this; }
 
     public function getNombreComercial(): ?string { return $this->nombreComercial; }
     public function setNombreComercial(?string $nombreComercial): self { $this->nombreComercial = $nombreComercial; return $this; }

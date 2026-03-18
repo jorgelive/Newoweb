@@ -36,7 +36,7 @@ class MessageTemplate
     // Constantes para mapeo en MessageChannel
     public const string FIELD_EMAIL = 'emailTmpl';
     public const string FIELD_BEDS24 = 'beds24Tmpl';
-    public const string FIELD_GUPSHUP = 'whatsappGupshupTmpl';
+    public const string FIELD_WHATSAPP_META = 'whatsappMetaTmpl';
     public const string FIELD_WHATSAPP_LINK = 'whatsappLinkTmpl';
 
     #[ORM\Column(length: 50, unique: true)]
@@ -80,7 +80,7 @@ class MessageTemplate
 
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['text_reference'])]
-    private ?array $whatsappGupshupTmpl = [];
+    private ?array $whatsappMetaTmpl = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])]
@@ -91,7 +91,7 @@ class MessageTemplate
         $this->id = Uuid::v7();
         $this->emailTmpl = [];
         $this->beds24Tmpl = [];
-        $this->whatsappGupshupTmpl = [];
+        $this->whatsappMetaTmpl = [];
         $this->whatsappLinkTmpl = [];
         $this->allowedSources = [];
         $this->allowedAgencies = [];
@@ -99,7 +99,7 @@ class MessageTemplate
 
     public static function getTemplateFields(): array
     {
-        return [self::FIELD_EMAIL, self::FIELD_BEDS24, self::FIELD_GUPSHUP, self::FIELD_WHATSAPP_LINK];
+        return [self::FIELD_EMAIL, self::FIELD_BEDS24, self::FIELD_WHATSAPP_META, self::FIELD_WHATSAPP_LINK];
     }
 
     public function __toString(): string
@@ -202,14 +202,14 @@ class MessageTemplate
         return $this;
     }
 
-    public function getWhatsappGupshupTmpl(): ?array
+    public function getWhatsappMetaTmpl(): ?array
     {
-        return $this->whatsappGupshupTmpl;
+        return $this->whatsappMetaTmpl;
     }
 
-    public function setWhatsappGupshupTmpl(?array $val): self
+    public function setWhatsappMetaTmpl(?array $val): self
     {
-        $this->whatsappGupshupTmpl = $val;
+        $this->whatsappMetaTmpl = $val;
         return $this;
     }
 
@@ -235,9 +235,9 @@ class MessageTemplate
         return ($this->beds24Tmpl['is_active'] ?? false) === true;
     }
 
-    public function isWhatsappGupshupActive(): bool
+    public function isWhatsappMetaActive(): bool
     {
-        return ($this->whatsappGupshupTmpl['is_active'] ?? false) === true;
+        return ($this->whatsappMetaTmpl['is_active'] ?? false) === true;
     }
 
     // --- GETTERS EMAIL ---
@@ -278,38 +278,38 @@ class MessageTemplate
         return $this->extract($this->emailTmpl['body'] ?? [], $lang, 'content');
     }
 
-    // --- GETTERS WHATSAPP GUPSHUP ---
-
     public function getBeds24Body(string $lang): ?string
     {
         return $this->extract($this->beds24Tmpl['body'] ?? [], $lang, 'content');
     }
 
-    public function getWhatsappGupshupMetaName(): ?string
+    // --- GETTERS WHATSAPP META ---
+
+    public function getWhatsappMetaName(): ?string
     {
-        return $this->whatsappGupshupTmpl['meta_template_name'] ?? null;
+        return $this->whatsappMetaTmpl['whatsapp_meta_template_name'] ?? null;
     }
 
-    public function getWhatsappGupshupCategory(): ?string
+    public function getWhatsappMetaCategory(): ?string
     {
-        return $this->whatsappGupshupTmpl['category'] ?? null;
+        return $this->whatsappMetaTmpl['category'] ?? null;
     }
 
-    public function getWhatsappGupshupParamsMap(): array
+    public function getWhatsappMetaParamsMap(): array
     {
-        return $this->whatsappGupshupTmpl['params_map'] ?? [];
+        return $this->whatsappMetaTmpl['params_map'] ?? [];
     }
 
-    public function getWhatsappGupshupTemplateId(string $lang): ?string
+    public function getWhatsappMetaTemplateId(string $lang): ?string
     {
-        return $this->extract($this->whatsappGupshupTmpl['language_mapping'] ?? [], $lang, 'meta_template_id');
+        return $this->extract($this->whatsappMetaTmpl['language_mapping'] ?? [], $lang, 'whatsapp_meta_template_id');
     }
 
     // --- GETTERS WHATSAPP LINK ---
 
-    public function getWhatsappGupshupTextReference(string $lang): ?string
+    public function getWhatsappMetaTextReference(string $lang): ?string
     {
-        return $this->extract($this->whatsappGupshupTmpl['text_reference'] ?? [], $lang, 'content');
+        return $this->extract($this->whatsappMetaTmpl['text_reference'] ?? [], $lang, 'content');
     }
 
     public function getWhatsappLinkBody(string $lang): ?string

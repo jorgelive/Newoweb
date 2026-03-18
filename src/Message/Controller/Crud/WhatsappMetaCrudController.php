@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Controller\Crud;
 
-use App\Exchange\Entity\GupshupConfig;
+use App\Exchange\Entity\MetaConfig;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -20,7 +20,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 
-class GupshupConfigCrudController extends BaseCrudController
+class WhatsappMetaCrudController extends BaseCrudController
 {
     public function __construct(
         protected AdminUrlGenerator $adminUrlGenerator,
@@ -31,7 +31,7 @@ class GupshupConfigCrudController extends BaseCrudController
 
     public static function getEntityFqcn(): string
     {
-        return GupshupConfig::class;
+        return MetaConfig::class;
     }
 
     public function configureActions(Actions $actions): Actions
@@ -53,8 +53,8 @@ class GupshupConfigCrudController extends BaseCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Configuración Gupshup')
-            ->setEntityLabelInPlural('Configuraciones Gupshup')
+            ->setEntityLabelInSingular('Configuración Meta')
+            ->setEntityLabelInPlural('Configuraciones Meta')
             ->setSearchFields(['nombre', 'baseUrl'])
             ->setDefaultSort(['createdAt' => 'DESC'])
             ->showEntityActionsInlined();
@@ -85,7 +85,7 @@ class GupshupConfigCrudController extends BaseCrudController
             ->collapsible();
 
         yield TextField::new('baseUrl', 'API Base URL')
-            ->setHelp('Por defecto: https://api.gupshup.io/')
+            ->setHelp('Por defecto: https://graph.facebook.com')
             ->setColumns(12);
 
         // 🔥 Usamos CodeEditorField con lenguaje 'js' para manejar el JSON

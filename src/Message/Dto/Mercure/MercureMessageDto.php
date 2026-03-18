@@ -32,7 +32,7 @@ class MercureMessageDto implements JsonSerializable
     private ?array $channel = null;
     private array $attachments = [];
     private array $beds24SendQueues = [];
-    private array $whatsappGupshupSendQueues = [];
+    private array $whatsappMetaSendQueues = [];
 
     /**
      * Construye el DTO a partir de una entidad Message de Doctrine.
@@ -80,8 +80,8 @@ class MercureMessageDto implements JsonSerializable
             $this->beds24SendQueues[] = ['status' => $queue->getStatus()];
         }
 
-        foreach ($message->getWhatsappGupshupSendQueues() as $queue) {
-            $this->whatsappGupshupSendQueues[] = [
+        foreach ($message->getWhatsappMetaSendQueues() as $queue) {
+            $this->whatsappMetaSendQueues[] = [
                 'status' => $queue->getStatus(),
                 'deliveryStatus' => $queue->getDeliveryStatus()
             ];
@@ -115,7 +115,7 @@ class MercureMessageDto implements JsonSerializable
             'channel' => $this->getChannel(),
             'attachments' => $this->getAttachments(),
             'beds24SendQueues' => $this->getBeds24SendQueues(),
-            'whatsappGupshupSendQueues' => $this->getWhatsappGupshupSendQueues(),
+            'whatsappMetaSendQueues' => $this->getWhatsappMetaSendQueues(),
         ];
     }
 
@@ -159,6 +159,6 @@ class MercureMessageDto implements JsonSerializable
     public function setAttachments(array $attachments): self { $this->attachments = $attachments; return $this; }
     public function getBeds24SendQueues(): array { return $this->beds24SendQueues; }
     public function setBeds24SendQueues(array $beds24SendQueues): self { $this->beds24SendQueues = $beds24SendQueues; return $this; }
-    public function getWhatsappGupshupSendQueues(): array { return $this->whatsappGupshupSendQueues; }
-    public function setWhatsappGupshupSendQueues(array $whatsappGupshupSendQueues): self { $this->whatsappGupshupSendQueues = $whatsappGupshupSendQueues; return $this; }
+    public function getWhatsappMetaSendQueues(): array { return $this->whatsappMetaSendQueues; }
+    public function setWhatsappMetaSendQueues(array $whatsappMetaSendQueues): self { $this->whatsappMetaSendQueues = $whatsappMetaSendQueues; return $this; }
 }

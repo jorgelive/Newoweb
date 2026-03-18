@@ -22,7 +22,7 @@ const showTemplateDropdown = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 // Hook Multicanal
-const selectedChannels = ref<string[]>(['whatsapp_gupshup']);
+const selectedChannels = ref<string[]>(['whatsapp_meta']);
 
 const handlePopState = (event: PopStateEvent) => {
   if (window.innerWidth >= 768) return;
@@ -108,9 +108,9 @@ watch(() => store.currentConversation, (chat) => {
   activeTab.value = 'history';
 
   if (chat?.contextOrigin && !['manual', 'web', 'directo'].includes(chat.contextOrigin.toLowerCase())) {
-    selectedChannels.value = ['beds24', 'whatsapp_gupshup'];
+    selectedChannels.value = ['beds24', 'whatsapp_meta'];
   } else {
-    selectedChannels.value = ['whatsapp_gupshup'];
+    selectedChannels.value = ['whatsapp_meta'];
   }
 });
 
@@ -181,11 +181,11 @@ const send = async () => {
 
 const getChannelIcons = (msg: ApiMessage) => {
   const icons = [];
-  if (msg.whatsappGupshupSendQueues?.length) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
+  if (msg.whatsappMetaSendQueues?.length) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
   if (msg.beds24SendQueues?.length) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
 
   if (icons.length === 0) {
-    const waMeta = msg.metadata?.whatsappGupshup || msg.metadata?.gupshup;
+    const waMeta = msg.metadata?.whatsappMeta;
     if (waMeta?.received_at || waMeta?.external_id) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
     if (msg.metadata?.beds24?.received_at) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
   }
@@ -204,8 +204,8 @@ const getTemplateName = (templateData: any) => {
 const getMessageTicks = (msg: ApiMessage) => {
   if (msg.status === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500', title: 'Error general' };
 
-  if (msg.whatsappGupshupSendQueues?.length) {
-    const q = msg.whatsappGupshupSendQueues[msg.whatsappGupshupSendQueues.length - 1];
+  if (msg.whatsappMetaSendQueues?.length) {
+    const q = msg.whatsappMetaSendQueues[msg.whatsappMetaSendQueues.length - 1];
     const delivery = typeof q === 'string' ? null : q.deliveryStatus;
     const qStatus = typeof q === 'string' ? null : q.status;
 
@@ -437,7 +437,7 @@ const getOriginClass = (origin?: string | null) => {
             <button @click="toggleChannel('beds24')" :class="selectedChannels.includes('beds24') ? 'text-[#003580] bg-[#003580]/10 border-[#003580]/30' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
               <i class="fas fa-bed"></i> Beds24
             </button>
-            <button @click="toggleChannel('whatsapp_gupshup')" :class="selectedChannels.includes('whatsapp_gupshup') ? 'text-green-600 bg-green-50 border-green-200' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
+            <button @click="toggleChannel('whatsapp_meta')" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-600 bg-green-50 border-green-200' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
               <i class="fab fa-whatsapp text-sm"></i> WhatsApp
             </button>
           </div>

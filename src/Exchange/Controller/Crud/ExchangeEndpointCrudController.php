@@ -24,7 +24,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * ExchangeEndpointCrudController.
- * Gestión de los puntos de acceso técnicos para las APIs externas (Beds24, Gupshup, etc).
+ * Gestión de los puntos de acceso técnicos para las APIs externas (Beds24, Meta, etc).
  */
 class ExchangeEndpointCrudController extends BaseCrudController
 {
@@ -92,7 +92,7 @@ class ExchangeEndpointCrudController extends BaseCrudController
         yield ChoiceField::new('provider', 'Proveedor')
             ->setChoices([
                 'Beds24'           => ConnectivityProvider::BEDS24,
-                'WhatsApp Gupshup' => ConnectivityProvider::GUPSHUP,
+                'Meta'             => ConnectivityProvider::META,
             ])
             ->setRequired(true)
             ->setHelp('Selecciona la plataforma a la que pertenece este endpoint.');

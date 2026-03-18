@@ -18,7 +18,7 @@ class MessageChannel
 {
     use TimestampTrait;
 
-    // ID NATURAL = PROVEEDOR (ej: 'whatsapp_gupshup', 'beds24', 'email_marketing')
+    // ID NATURAL = PROVEEDOR (ej: 'whatsapp_meta', 'beds24', 'email_marketing')
     #[ORM\Id]
     #[ORM\Column(type: 'string', length: 50)]
     #[Assert\NotBlank]

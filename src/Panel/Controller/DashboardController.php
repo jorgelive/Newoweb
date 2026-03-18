@@ -13,7 +13,7 @@ use App\Entity\User;
 use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Entity\ExchangeCronCursor;
 use App\Exchange\Entity\ExchangeEndpoint;
-use App\Exchange\Entity\GupshupConfig;
+use App\Exchange\Entity\MetaConfig;
 use App\Message\Entity\Beds24ReceiveQueue;
 use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
@@ -22,7 +22,7 @@ use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageRule;
 use App\Message\Entity\MessageTemplate;
-use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Pax\Entity\UiI18n;
 use App\Pms\Entity\PmsBeds24WebhookAudit;
 use App\Pms\Entity\PmsBookingsPullQueue;
@@ -195,7 +195,7 @@ class DashboardController extends AbstractDashboardController
             ->setSubItems([
                 MenuItem::linkToCrud('Endpoints (Hub)', 'fa fa-link', ExchangeEndpoint::class),
                 MenuItem::linkToCrud('Credenciales Beds24', 'fa fa-key', Beds24Config::class),
-                MenuItem::linkToCrud('Credenciales Gupshup', 'fab fa-whatsapp', GupshupConfig::class),
+                MenuItem::linkToCrud('Credenciales Meta', 'fab fa-whatsapp', MetaConfig::class),
             ])
             ->setPermission(Roles::ADMIN);
 
@@ -216,7 +216,7 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkToCrud('Pull Reservas', 'fa fa-download', PmsBookingsPullQueue::class),
                 MenuItem::linkToCrud('Push Reservas', 'fa fa-upload', PmsBookingsPushQueue::class),
                 MenuItem::linkToCrud('Push Tarifas', 'fa fa-tags', PmsRatesPushQueue::class),
-                MenuItem::linkToCrud('Salida WhatsApp', 'fa fa-paper-plane', WhatsappGupshupSendQueue::class),
+                MenuItem::linkToCrud('Salida WhatsApp', 'fa fa-paper-plane', WhatsappMetaSendQueue::class),
                 MenuItem::linkToCrud('Salida Beds24', 'fa fa-cloud-upload-alt', Beds24SendQueue::class),
                 MenuItem::linkToCrud('Entrada Beds24', 'fa fa-cloud-download-alt', Beds24ReceiveQueue::class),
             ])

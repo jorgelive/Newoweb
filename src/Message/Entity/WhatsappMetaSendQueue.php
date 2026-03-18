@@ -7,11 +7,11 @@ namespace App\Message\Entity;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Exchange\Entity\ExchangeEndpoint;
-use App\Exchange\Entity\GupshupConfig;
+use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Message\Contract\MessageQueueItemInterface;
-use App\Message\Repository\WhatsappGupshupSendQueueRepository;
+use App\Message\Repository\WhatsappMetaSendQueueRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
@@ -20,12 +20,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
-#[ORM\Entity(repositoryClass: WhatsappGupshupSendQueueRepository::class)]
-#[ORM\Table(name: 'msg_whatsapp_gupshup_queue')]
-#[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_whatsapp_gupshup_worker')]
-#[ORM\Index(columns: ['external_message_id'], name: 'idx_msg_whatsapp_gupshup_ext_id')]
+#[ORM\Entity(repositoryClass: WhatsappMetaSendQueueRepository::class)]
+#[ORM\Table(name: 'msg_whatsapp_meta_send_queue')]
+#[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_whatsapp_meta_worker')]
 #[ORM\HasLifecycleCallbacks]
-class WhatsappGupshupSendQueue implements MessageQueueItemInterface
+class WhatsappMetaSendQueue implements MessageQueueItemInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -37,19 +36,19 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     public const string STATUS_FAILED = 'failed';
     public const string STATUS_CANCELLED = 'cancelled';
 
-    // Status Negocio (Gupshup/WhatsApp)
+    // Status Negocio (Meta/WhatsApp)
     public const string DELIVERY_UNKNOWN = 'unknown';
     public const string DELIVERY_SUBMITTED = 'submitted';
     public const string DELIVERY_DELIVERED = 'delivered';
     public const string DELIVERY_READ = 'read';
 
-    #[ORM\ManyToOne(targetEntity: Message::class, inversedBy: 'whatsappGupshupSendQueues')]
+    #[ORM\ManyToOne(targetEntity: Message::class, inversedBy: 'whatsappMetaSendQueues')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Message $message = null;
 
-    #[ORM\ManyToOne(targetEntity: GupshupConfig::class)]
+    #[ORM\ManyToOne(targetEntity: MetaConfig::class)]
     #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
-    private ?GupshupConfig $config = null;
+    private ?MetaConfig $config = null;
 
     #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class)]
     #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
@@ -61,9 +60,6 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
 
     #[ORM\Column(length: 30, nullable: true)]
     private ?string $destinationPhone = null;
-
-    #[ORM\Column(length: 100, nullable: true)]
-    private ?string $externalMessageId = null;
 
     // 🔥 API PLATFORM
     #[ORM\Column(length: 20, options: ['default' => self::DELIVERY_UNKNOWN])]
@@ -145,7 +141,7 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         $this->lockedBy = null;
         $this->failedReason = null;
 
-        // Lógica de negocio específica de Gupshup:
+        // Lógica de negocio específica de Whatsapp Meta:
         // Si no sabemos nada del delivery, asumimos que al menos fue "enviado" a la API
         if ($this->deliveryStatus === self::DELIVERY_UNKNOWN) {
             $this->deliveryStatus = self::DELIVERY_SUBMITTED;
@@ -171,8 +167,8 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
     public function setDestinationPhone(?string $destinationPhone): self { $this->destinationPhone = $destinationPhone; return $this; }
     public function getConfig(): ?ChannelConfigInterface { return $this->config; }
     public function setConfig(?ChannelConfigInterface $config): self {
-        if ($config !== null && !$config instanceof GupshupConfig) {
-            throw new InvalidArgumentException(sprintf('Configuración inválida. Se esperaba %s', GupshupConfig::class));
+        if ($config !== null && !$config instanceof MetaConfig) {
+            throw new InvalidArgumentException(sprintf('Configuración inválida. Se esperaba %s', MetaConfig::class));
         }
         $this->config = $config; return $this;
     }
@@ -183,8 +179,7 @@ class WhatsappGupshupSendQueue implements MessageQueueItemInterface
         }
         $this->endpoint = $endpoint; return $this;
     }
-    public function getExternalMessageId(): ?string { return $this->externalMessageId; }
-    public function setExternalMessageId(?string $externalMessageId): self { $this->externalMessageId = $externalMessageId; return $this; }
+
     public function getDeliveryStatus(): string { return $this->deliveryStatus; }
     public function setDeliveryStatus(string $deliveryStatus): self { $this->deliveryStatus = $deliveryStatus; return $this; }
     public function getDeliveredAt(): ?DateTimeImmutable { return $this->deliveredAt; }

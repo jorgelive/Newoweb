@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappMetaSend;
 
 use App\Exchange\Service\Common\HomogeneousBatch;
 use App\Exchange\Service\Mapping\ItemResult;
 use App\Exchange\Service\Mapping\MappingResult;
 use App\Exchange\Service\Mapping\MappingStrategyInterface;
 use App\Message\Entity\MessageAttachment;
-use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\MessageDataResolverRegistry;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Vich\UploaderBundle\Storage\StorageInterface;
 
-final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrategyInterface
+final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyInterface
 {
     public function __construct(
         private MessageDataResolverRegistry $resolverRegistry,
@@ -39,7 +39,7 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
         $correlation = [];
 
         foreach ($batch->getItems() as $index => $item) {
-            /** @var WhatsappGupshupSendQueue $item */
+            /** @var WhatsappMetaSendQueue $item */
             $msg = $item->getMessage();
             $conversation = $msg->getConversation();
             $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
@@ -62,9 +62,9 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
 
             if ($template = $msg->getTemplate()) {
                 $lang = $conversation->getIdioma()->getId();
-                $templateId = $template->getWhatsappGupshupTemplateId($lang);
+                $templateId = $template->getWhatsappMetaTemplateId($lang);
 
-                $paramsMap = $template->getWhatsappGupshupParamsMap();
+                $paramsMap = $template->getWhatsappMetaParamsMap();
                 $resolvedParams = [];
 
                 if ($resolver && !empty($paramsMap)) {
@@ -80,7 +80,7 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
                 ], JSON_UNESCAPED_UNICODE);
 
                 if ($attachment) {
-                    $mediaType = $this->getGupshupMediaType($attachment);
+                    $mediaType = $this->getWhatsappMetaMediaType($attachment);
                     $mediaUrl = $this->getAbsoluteAttachmentUrl($attachment);
 
                     $messagePayload['message'] = json_encode([
@@ -102,7 +102,7 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
                 }
 
                 if ($attachment) {
-                    $mediaType = $this->getGupshupMediaType($attachment);
+                    $mediaType = $this->getWhatsappMetaMediaType($attachment);
                     $mediaUrl = $this->getAbsoluteAttachmentUrl($attachment);
 
                     $mediaData = [
@@ -161,7 +161,7 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
-                message: $success ? null : ($respData['message'] ?? 'Error Gupshup'),
+                message: $success ? null : ($respData['message'] ?? 'Error Whatsapp Meta'),
                 remoteId: $respData['messageId'] ?? null,
                 extraData: (array)$respData
             );
@@ -174,7 +174,7 @@ final readonly class WhatsappGupshupSendMappingStrategy implements MappingStrate
     // HELPERS PARA ARCHIVOS ADJUNTOS
     // =========================================================================
 
-    private function getGupshupMediaType(MessageAttachment $attachment): string
+    private function getWhatsappMetaMediaType(MessageAttachment $attachment): string
     {
         $mime = $attachment->getMimeType() ?? '';
 

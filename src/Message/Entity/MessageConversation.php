@@ -208,7 +208,7 @@ class MessageConversation
                     $this->incrementUnreadCount();
                     // 🔥 3. FILTRO ESTRICTO: Solo abrimos ventana de 24h si el origen es WhatsApp exacto
                     $channel = $message->getChannel();
-                    if ($channel !== null && $channel->getId() === 'whatsapp_gupshup') {
+                    if ($channel !== null && $channel->getId() === 'whatsapp_meta') {
                         $ventanaCierre = (clone $fechaMensaje)->modify('+24 hours');
                         $this->setWhatsappSessionValidUntil($ventanaCierre);
                     }

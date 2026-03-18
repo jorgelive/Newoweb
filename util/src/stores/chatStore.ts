@@ -28,9 +28,9 @@ export interface ApiMessage {
     scheduledAt?: string | null;
     effectiveDateTime?: string | null;
     isScheduledForFuture?: boolean;
-    metadata?: { beds24?: any; whatsappGupshup?: any; gupshup?: any };
+    metadata?: { beds24?: any; whatsappMeta?: any };
     channel?: { id: string; name: string } | string;
-    whatsappGupshupSendQueues?: ApiMessageQueue[] | string[];
+    whatsappMetaSendQueues?: ApiMessageQueue[] | string[];
     beds24SendQueues?: ApiMessageQueue[] | string[];
     template?: any;
     attachments?: ApiAttachment[] | string[];

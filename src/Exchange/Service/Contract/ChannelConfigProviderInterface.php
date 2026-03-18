@@ -13,7 +13,7 @@ interface ChannelConfigProviderInterface
 {
     /**
      * Retorna la configuración activa para el tipo de canal solicitado.
-     * * @param string $channelType Ej: 'beds24', 'gupshup', 'smtp'
+     * * @param string $channelType Ej: 'beds24', 'meta', 'smtp'
      */
     public function getChannelConfig(string $channelType): ?ChannelConfigInterface;
 }

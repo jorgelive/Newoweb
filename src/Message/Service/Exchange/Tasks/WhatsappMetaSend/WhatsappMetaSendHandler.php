@@ -2,61 +2,66 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service\Exchange\Tasks\WhatsappGupshupSend;
+namespace App\Message\Service\Exchange\Tasks\WhatsappMetaSend;
 
 use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Message\Entity\Message;
-use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use DateTimeImmutable;
 use Throwable;
 
-final class WhatsappGupshupSendHandler implements ExchangeHandlerInterface
+final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 {
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
     {
-        if (!$item instanceof WhatsappGupshupSendQueue) {
+        if (!$item instanceof WhatsappMetaSendQueue) {
             return ['status' => 'error'];
         }
 
         $item->setLastHttpCode(200);
 
-        // 1. Guardar el ID externo (CRÍTICO para Webhooks)
+        // 1. Obtenemos el Remote Id
         $remoteId = $data['messageId'] ?? null;
-        if ($remoteId) {
-            $item->setExternalMessageId((string)$remoteId);
-
-            // También lo guardamos en el mensaje padre para referencia rápida (y control de idempotencia)
-            if ($item->getMessage()) {
-                // 🔥 AQUÍ EL CAMBIO: Usamos el nuevo setter del campo JSON
-                $item->getMessage()->setGupshupExternalId((string)$remoteId);
-            }
-        }
 
         // 2. Actualizar Estado de Negocio
-        $item->setDeliveryStatus(WhatsappGupshupSendQueue::DELIVERY_SUBMITTED);
+        $item->setDeliveryStatus(WhatsappMetaSendQueue::DELIVERY_SUBMITTED);
 
         // 3. Actualizar Mensaje Padre
         $msg = $item->getMessage();
-        if ($msg && $msg->getStatus() !== Message::STATUS_READ) {
-            $msg->setStatus(Message::STATUS_SENT);
+        if ($msg) {
+
+            if ($remoteId) {
+                $msg->setWhatsappMetaExternalId((string) $remoteId);
+            }
+
+            if ($msg->getStatus() !== Message::STATUS_READ) {
+                $msg->setStatus(Message::STATUS_SENT);
+            }
         }
+
+        // 4. Construir el Resultado de Ejecución para la auditoría JSON de la cola
+        $summary = [
+            'status' => 'success',
+            'remote_whatsapp_meta_id' => $remoteId,
+            'timestamp' => (new DateTimeImmutable())->format('Y-m-d H:i:s')
+        ];
 
         $item->markSuccess(new DateTimeImmutable());
 
-        return ['status' => 'success', 'gupshup_id' => $remoteId];
+        return $summary;
     }
 
     public function handleFailure(Throwable $e, ExchangeQueueItemInterface $item): void
     {
-        if (!$item instanceof WhatsappGupshupSendQueue) return;
+        if (!$item instanceof WhatsappMetaSendQueue) return;
 
         $httpCode = (int)$e->getCode() ?: 500;
         $msgError = sprintf('[Code %s] %s', $httpCode, $e->getMessage());
 
         $item->setLastHttpCode($httpCode);
 
-        // Fallo en Gupshup -> Failed en Mensaje Padre
+        // Fallo en Meta -> Failed en Mensaje Padre
         if ($item->getMessage()) {
             $item->getMessage()->setStatus(Message::STATUS_FAILED);
         }

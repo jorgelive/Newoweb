@@ -20,7 +20,7 @@ interface ChannelConfigInterface
     /**
      * Retorna el alias del proveedor que debe procesar esta configuración
      * Se utiliza para seleccionar el cliente.
-     * Ejemplo: 'beds24', 'gupshup', 'booking'.
+     * Ejemplo: 'beds24', 'meta', 'booking'.
      */
     public function getProviderName(): string;
 

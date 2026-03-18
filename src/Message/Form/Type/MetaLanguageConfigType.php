@@ -41,7 +41,7 @@ class MetaLanguageConfigType extends AbstractType
                 'attr' => ['class' => 'form-select-sm'],
                 'row_attr' => ['class' => 'col-md-3 mb-2'],
             ])
-            ->add('meta_template_id', TextType::class, [
+            ->add('whatsapp_meta_template_id', TextType::class, [
                 'label' => 'ID exacto en Meta',
                 'attr' => ['placeholder' => 'Ej: welcome_en_v2'],
                 'row_attr' => ['class' => 'col-md-6 mb-2'],

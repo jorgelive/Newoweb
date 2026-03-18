@@ -88,9 +88,9 @@ class MessageDispatcher
             $allActiveChannels = $channelRepo->findBy(['isActive' => true]);
 
             foreach ($allActiveChannels as $channel) {
-                $column = $channel->getTemplateColumn(); // Ej: 'whatsappGupshupTmpl'
+                $column = $channel->getTemplateColumn(); // Ej: 'whatsappMetaTmpl'
 
-                // Magia dinámica: Llamamos a getWhatsappGupshupTmpl(), getBeds24Tmpl(), etc.
+                // Magia dinámica: Llamamos a getWhatsappMetaTmpl(), getBeds24Tmpl(), etc.
                 $getter = 'get' . ucfirst($column);
 
                 if (method_exists($template, $getter)) {

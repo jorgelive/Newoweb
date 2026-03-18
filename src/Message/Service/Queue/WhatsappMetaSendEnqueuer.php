@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace App\Message\Service\Queue;
 
 use App\Exchange\Entity\ExchangeEndpoint;
-use App\Exchange\Entity\GupshupConfig;
+use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Enum\ConnectivityProvider;
 use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
-use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\MessageDataResolverRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 
-class WhatsappGupshupSendEnqueuer implements ChannelEnqueuerInterface
+class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -24,7 +24,7 @@ class WhatsappGupshupSendEnqueuer implements ChannelEnqueuerInterface
 
     public function supports(MessageChannel $channel): bool
     {
-        return $channel->getId() === 'whatsapp_gupshup';
+        return $channel->getId() === 'whatsapp_meta';
     }
 
     public function createQueueEntity(Message $message, MessageChannel $channel, \DateTimeImmutable $runAt): ?MessageQueueItemInterface
@@ -48,17 +48,17 @@ class WhatsappGupshupSendEnqueuer implements ChannelEnqueuerInterface
         }
 
         // 2. Obtener la Configuración Global
-        $config = $this->em->getRepository(GupshupConfig::class)->findOneBy(['activo' => true]);
+        $config = $this->em->getRepository(MetaConfig::class)->findOneBy(['activo' => true]);
         if (!$config) {
             // 🔥 HACEMOS NOTORIO EL ERROR
-            throw new \RuntimeException('No hay ninguna configuración activa de Gupshup en el sistema.');
+            throw new \RuntimeException('No hay ninguna configuración activa de Meta en el sistema.');
         }
 
         // 3. Determinar el Endpoint
         $accion = $message->getTemplate() !== null ? 'SEND_WHATSAPP_TEMPLATE' : 'SEND_WHATSAPP_MESSAGE';
 
         $endpoint = $this->em->getRepository(ExchangeEndpoint::class)->findOneBy([
-            'provider' => ConnectivityProvider::GUPSHUP,
+            'provider' => ConnectivityProvider::META,
             'accion'   => $accion,
             'activo'   => true
         ]);
@@ -69,12 +69,12 @@ class WhatsappGupshupSendEnqueuer implements ChannelEnqueuerInterface
         }
 
         // 4. Ensamblar la Cola
-        $queue = new WhatsappGupshupSendQueue();
+        $queue = new WhatsappMetaSendQueue();
         $queue->setMessage($message);
         $queue->setConfig($config);
         $queue->setEndpoint($endpoint);
         $queue->setDestinationPhone($phone);
-        $queue->setStatus(WhatsappGupshupSendQueue::STATUS_PENDING);
+        $queue->setStatus(WhatsappMetaSendQueue::STATUS_PENDING);
         $queue->setRunAt($runAt);
         $queue->setRetryCount(0);
         $queue->setMaxAttempts(5);

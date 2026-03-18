@@ -9,7 +9,7 @@ use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageRule;
-use App\Message\Entity\WhatsappGupshupSendQueue;
+use App\Message\Entity\WhatsappMetaSendQueue;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
@@ -252,8 +252,8 @@ final readonly class MessageRuleEngine
             }
         }
 
-        foreach ($message->getWhatsappGupshupSendQueues() as $queue) {
-            if ($queue->getStatus() === WhatsappGupshupSendQueue::STATUS_PENDING && $queue->getRunAt() != $newRunAt) {
+        foreach ($message->getWhatsappMetaSendQueues() as $queue) {
+            if ($queue->getStatus() === WhatsappMetaSendQueue::STATUS_PENDING && $queue->getRunAt() != $newRunAt) {
                 $queue->setRunAt($newRunAt);
                 $updated = true;
             }
@@ -276,9 +276,9 @@ final readonly class MessageRuleEngine
             }
         }
 
-        foreach ($message->getWhatsappGupshupSendQueues() as $queue) {
-            if ($queue->getStatus() === WhatsappGupshupSendQueue::STATUS_PENDING) {
-                $queue->setStatus(WhatsappGupshupSendQueue::STATUS_CANCELLED);
+        foreach ($message->getWhatsappMetaSendQueues() as $queue) {
+            if ($queue->getStatus() === WhatsappMetaSendQueue::STATUS_PENDING) {
+                $queue->setStatus(WhatsappMetaSendQueue::STATUS_CANCELLED);
                 $queue->setRunAt(null);
             }
         }
