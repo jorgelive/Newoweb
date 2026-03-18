@@ -224,6 +224,8 @@ export const useChatStore = defineStore('chatStore', () => {
                         conversations.value.unshift(convData);
                     }
 
+                    // Forzamos reactividad en la lista
+                    conversations.value = [...conversations.value];
                     conversations.value.sort((a, b) => {
                         const dateA = new Date(a.lastMessageAt || 0).getTime();
                         const dateB = new Date(b.lastMessageAt || 0).getTime();
@@ -270,8 +272,10 @@ export const useChatStore = defineStore('chatStore', () => {
                     messages.value[index] = { ...messages.value[index], ...incomingData };
                 } else {
                     messages.value.push(incomingData);
-                    fetchConversations();
                 }
+
+                // 🔥 TRUCO DE REACTIVIDAD: Reasignamos el array para obligar a Vue a re-renderizar
+                messages.value = [...messages.value];
             };
 
             eventSource.value.onerror = (err) => {
@@ -362,16 +366,16 @@ export const useChatStore = defineStore('chatStore', () => {
                 form.append('file', attachmentStore.file);
             }
 
-            const response = await apiClient.post('/platform/user/util/msg/messages', form, {
+            // Hacemos el POST, pero NO hacemos .push()
+            // Mercure, al detectar la inserción en el backend, disparará el evento
+            // y el onmessage se encargará de agregarlo limpiamente a la UI.
+            await apiClient.post('/platform/user/util/msg/messages', form, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
             });
 
-            messages.value.push(response.data);
-
             attachmentStore.clear();
-            fetchConversations();
 
         } catch (err) {
             error.value = 'Fallo al enviar el mensaje. Verifica el tamaño del archivo.';
