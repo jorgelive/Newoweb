@@ -68,20 +68,20 @@ class RebuildConversationContextCommand extends Command
         // 2. PRE-CALCULAMOS lastMessageAt en una sola query — sin lazy-load
         // Con tipo 'uuid' de Symfony, IDENTITY() devuelve string canónico con guiones
         $lastMessageData = $this->entityManager->createQuery('
-            SELECT IDENTITY(m.conversation) AS convId,
-                   MAX(CASE WHEN m.scheduledAt IS NULL
-                                 OR m.status NOT IN (:pendingStatuses)
-                            THEN m.createdAt
-                            ELSE NULL END) AS lastReal,
-                   MAX(CASE WHEN (m.scheduledAt IS NULL
-                                  OR m.status NOT IN (:pendingStatuses))
-                                 AND m.direction = :outgoing
-                            THEN m.createdAt
-                            ELSE NULL END) AS lastOutgoing
-            FROM App\Message\Entity\Message m
-            WHERE m.conversation IN (:ids)
-            GROUP BY IDENTITY(m.conversation)
-        ')
+                SELECT IDENTITY(m.conversation) AS convId,
+                       MAX(CASE WHEN m.scheduledAt IS NULL
+                                     OR m.status NOT IN (:pendingStatuses)
+                                THEN m.createdAt
+                                END) AS lastReal,
+                       MAX(CASE WHEN (m.scheduledAt IS NULL
+                                      OR m.status NOT IN (:pendingStatuses))
+                                     AND m.direction = :outgoing
+                                THEN m.createdAt
+                                END) AS lastOutgoing
+                FROM App\Message\Entity\Message m
+                WHERE m.conversation IN (:ids)
+                GROUP BY IDENTITY(m.conversation)
+            ')
             ->setParameter('ids', $conversationIds)
             ->setParameter('pendingStatuses', [Message::STATUS_PENDING, Message::STATUS_QUEUED])
             ->setParameter('outgoing', Message::DIRECTION_OUTGOING)
