@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace App\Entity\Trait;
 
-use App\Doctrine\IdGenerator\UuidV7Generator;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
