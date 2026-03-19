@@ -67,25 +67,38 @@ class RebuildConversationContextCommand extends Command
 
         // 2. PRE-CALCULAMOS lastMessageAt en una sola query — sin lazy-load
         // Con tipo 'uuid' de Symfony, IDENTITY() devuelve string canónico con guiones
-        $lastMessageData = $this->entityManager->createQuery('
-                SELECT IDENTITY(m.conversation) AS convId,
-                       MAX(CASE WHEN m.scheduledAt IS NULL
-                                     OR m.status NOT IN (:pendingStatuses)
-                                THEN m.createdAt
-                                END) AS lastReal,
-                       MAX(CASE WHEN (m.scheduledAt IS NULL
-                                      OR m.status NOT IN (:pendingStatuses))
-                                     AND m.direction = :outgoing
-                                THEN m.createdAt
-                                END) AS lastOutgoing
-                FROM App\Message\Entity\Message m
-                WHERE m.conversation IN (:ids)
-                GROUP BY IDENTITY(m.conversation)
-            ')
-            ->setParameter('ids', $conversationIds)
-            ->setParameter('pendingStatuses', [Message::STATUS_PENDING, Message::STATUS_QUEUED])
-            ->setParameter('outgoing', Message::DIRECTION_OUTGOING)
-            ->getResult();
+        $lastMessageData = $this->entityManager->getConnection()->executeQuery('
+                SELECT 
+                    BIN_TO_UUID(m.conversation_id) AS convId,
+                    MAX(CASE WHEN m.scheduled_at IS NULL
+                                  OR m.status NOT IN (:pendingStatuses)
+                             THEN m.created_at
+                             ELSE NULL END) AS lastReal,
+                    MAX(CASE WHEN (m.scheduled_at IS NULL
+                                   OR m.status NOT IN (:pendingStatuses))
+                                  AND m.direction = :outgoing
+                             THEN m.created_at
+                             ELSE NULL END) AS lastOutgoing
+                FROM msg_message m
+                WHERE m.conversation_id IN (
+                    SELECT UUID_TO_BIN(u.id) FROM (
+                        SELECT BIN_TO_UUID(c.id) AS id
+                        FROM msg_conversation c
+                        WHERE c.id IN (:binaryIds)
+                    ) u
+                )
+                GROUP BY m.conversation_id
+            ',
+            [
+                'pendingStatuses' => [Message::STATUS_PENDING, Message::STATUS_QUEUED],
+                'outgoing'        => Message::DIRECTION_OUTGOING,
+                'binaryIds'       => array_map(fn($uuid) => $uuid->toBinary(), $conversationIds),
+            ],
+            [
+                'pendingStatuses' => \Doctrine\DBAL\ArrayParameterType::STRING,
+                'binaryIds'       => \Doctrine\DBAL\ArrayParameterType::BINARY,
+            ]
+        )->fetchAllAssociative();
 
         // Indexamos por string canónico para lookup O(1)
         // $row['convId'] ya viene como "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
