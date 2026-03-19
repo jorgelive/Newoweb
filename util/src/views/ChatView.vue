@@ -350,8 +350,9 @@ const getOriginClass = (origin?: string | null) => {
                 </h2>
                 <div class="flex items-center gap-3 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-400">
                   <span class="text-[#E07845]">{{ store.currentConversation?.contextItems?.length ? store.currentConversation.contextItems.join(' + ') : 'PMS' }}</span>
-                  <span class="hidden sm:inline text-slate-200">/</span>
+                  <span class="text-slate-200">/</span>
                   <span class="hidden sm:inline">{{ formatFullDate(store.currentConversation?.contextMilestones?.start) }} - {{ formatFullDate(store.currentConversation?.contextMilestones?.end) }}</span>
+                  <span class="inline sm:hidden truncate">{{ formatDate(store.currentConversation?.contextMilestones?.start) }} - {{ formatDate(store.currentConversation?.contextMilestones?.end) }}</span>
                 </div>
               </div>
             </div>
