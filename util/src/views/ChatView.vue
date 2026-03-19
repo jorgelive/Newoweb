@@ -245,7 +245,7 @@ const groupedMessages = computed(() => {
     const dateToUse = msg.effectiveDateTime || msg.createdAt;
     if(!dateToUse) return;
 
-    const d = new Date(dateToUse).toISOString().split('T')[0];
+    const d = dateToUse.split('T')[0];
     if (!groups[d]) groups[d] = [];
     groups[d].push(msg);
   });
@@ -437,7 +437,7 @@ const getOriginClass = (origin?: string | null) => {
             <button @click="toggleChannel('beds24')" :class="selectedChannels.includes('beds24') ? 'text-[#003580] bg-[#003580]/10 border-[#003580]/30' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
               <i class="fas fa-bed"></i> Beds24
             </button>
-            <button @click="toggleChannel('whatsapp_meta')" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-600 bg-green-50 border-green-200' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
+            <button @click="toggleChannel('whatsapp_')" :class="selectedChannels.includes('whatsapp_gupshup') ? 'text-green-600 bg-green-50 border-green-200' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
               <i class="fab fa-whatsapp text-sm"></i> WhatsApp
             </button>
           </div>
