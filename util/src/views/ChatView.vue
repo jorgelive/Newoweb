@@ -221,11 +221,11 @@ const getMessageTicks = (msg: ApiMessage) => {
   return { class: 'far fa-clock', color: 'text-slate-200' };
 };
 
-const formatTime = (iso?: string) => iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
 const formatDate = (iso?: string) => {
   if (!iso) return '';
-  const date = new Date(iso);
+  // Extraemos las partes directamente sin conversión de zona horaria
+  const [year, month, day] = iso.split('T')[0].split('-').map(Number);
+  const date = new Date(year, month - 1, day); // constructor local, no UTC
   const currentYear = new Date().getFullYear();
   return date.toLocaleDateString('es-ES', {
     day: '2-digit',
@@ -234,23 +234,23 @@ const formatDate = (iso?: string) => {
   });
 };
 
-const formatFullDate = (iso?: string) => iso ? new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) : '';
+const formatTime = (iso?: string) => {
+  if (!iso) return '';
+  // Si tiene hora, la extraemos directamente del string
+  const timePart = iso.split('T')[1];
+  if (!timePart) return '';
+  const [h, m] = timePart.split(':');
+  const date = new Date();
+  date.setHours(Number(h), Number(m));
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 
-const groupedMessages = computed(() => {
-  const groups: Record<string, any[]> = {};
-  const sourceList = activeTab.value === 'history' ? store.activeChatMessages : store.scheduledMessages;
-
-  sourceList.forEach(msg => {
-    // 🔥 USANDO LA NUEVA FECHA EFECTIVA DEL BACKEND
-    const dateToUse = msg.effectiveDateTime || msg.createdAt;
-    if(!dateToUse) return;
-
-    const d = dateToUse.split('T')[0];
-    if (!groups[d]) groups[d] = [];
-    groups[d].push(msg);
-  });
-  return groups;
-});
+const formatFullDate = (iso?: string) => {
+  if (!iso) return '';
+  const [year, month, day] = iso.split('T')[0].split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+};
 
 const getOriginClass = (origin?: string | null) => {
   const colors: Record<string, string> = { booking: 'bg-[#003580]', airbnb: 'bg-[#FF5A5F]', expedia: 'bg-[#00355F]' };
