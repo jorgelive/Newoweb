@@ -252,6 +252,22 @@ const formatFullDate = (iso?: string) => {
   return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
 };
 
+const groupedMessages = computed(() => {
+  const groups: Record<string, any[]> = {};
+  const sourceList = activeTab.value === 'history' ? store.activeChatMessages : store.scheduledMessages;
+
+  sourceList.forEach(msg => {
+    // 🔥 USANDO LA NUEVA FECHA EFECTIVA DEL BACKEND
+    const dateToUse = msg.effectiveDateTime || msg.createdAt;
+    if(!dateToUse) return;
+
+    const d = dateToUse.split('T')[0];
+    if (!groups[d]) groups[d] = [];
+    groups[d].push(msg);
+  });
+  return groups;
+});
+
 const getOriginClass = (origin?: string | null) => {
   const colors: Record<string, string> = { booking: 'bg-[#003580]', airbnb: 'bg-[#FF5A5F]', expedia: 'bg-[#00355F]' };
   return colors[origin?.toLowerCase() || ''] || 'bg-[#376875]';
