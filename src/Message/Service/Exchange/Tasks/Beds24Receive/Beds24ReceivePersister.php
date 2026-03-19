@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\Beds24Receive;
 
+use App\Message\Dispatch\DeduplicateConversationDispatch;
 use App\Message\Dto\Beds24MessageDto;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
-use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Factory\MessageConversationFactory;
 use App\Message\Service\MercureBroadcaster;
@@ -19,12 +19,14 @@ use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Throwable;
 
 /**
  * Encargado de persistir mensajes provenientes de Beds24 (Pull o Webhooks).
- * Utiliza Deduplicación en Memoria (Un solo flush) con algoritmo de "Pareja más cercana"
- * para máxima performance y seguridad ante ráfagas de mensajes (ida y vuelta).
+ * Opera en modo "Insert-Only" para máxima velocidad y evitar Race Conditions.
+ * Delega la deduplicación a un proceso asíncrono en cola (Messenger).
  */
 class Beds24ReceivePersister
 {
@@ -33,12 +35,12 @@ class Beds24ReceivePersister
         private readonly MessageConversationFactory $conversationFactory,
         private readonly MessageAttachmentFactory $attachmentFactory,
         private readonly LoggerInterface $logger,
-        private readonly MercureBroadcaster $mercureBroadcaster // 🔥 Inyectamos nuestro servicio
+        private readonly MercureBroadcaster $mercureBroadcaster,
+        private readonly MessageBusInterface $messageBus // 🔥 Inyectamos el Bus de Mensajes
     ) {}
 
     /**
      * Sincroniza los mensajes entrantes contra la base de datos local.
-     * Utiliza un algoritmo de deduplicación en memoria antes del flush.
      * @param string $targetBookId El ID de la reserva en Beds24
      * @param Beds24MessageDto[] $messages Array de DTOs fuertemente tipados
      * @return array<string, int> Estadísticas de la operación ['imported', 'updated', 'skipped']
@@ -60,19 +62,16 @@ class Beds24ReceivePersister
         $stats = ['imported' => 0, 'updated' => 0, 'skipped' => 0];
         $mercureBroadcasts = [];
 
-
         // =====================================================================
         // 1. PROCESAMIENTO E INSERCIÓN EN MEMORIA
         // =====================================================================
-        /** @var \App\Message\Dto\Beds24MessageDto $dto */
         foreach ($messages as $dto) {
-
             if (!$dto->id) continue;
 
             $extId = (string) $dto->id;
             $source = $dto->source ?? Message::SENDER_GUEST;
-
             $existing = null;
+
             // Búsqueda fuerte inicial por ID exacto
             foreach ($conversation->getMessages() as $m) {
                 if ($m->getBeds24ExternalId() === $extId) {
@@ -97,7 +96,7 @@ class Beds24ReceivePersister
                 continue;
             }
 
-            // Crear el mensaje nuevo (o potencial clon) en memoria
+            // Crear el mensaje nuevo en memoria
             $message = new Message();
             $message->setConversation($conversation);
             $message->setBeds24ExternalId($extId);
@@ -117,16 +116,13 @@ class Beds24ReceivePersister
                     $imageUrl = html_entity_decode($matches[1]);
 
                     try {
-                        $context = stream_context_create(['http' => ['timeout' => 5]]);
-                        $imageStream = @file_get_contents($imageUrl, false, $context);
+                        $contextStream = stream_context_create(['http' => ['timeout' => 5]]);
+                        $imageStream = @file_get_contents($imageUrl, false, $contextStream);
 
-                        // 1. Si la descarga fue exitosa (Link activo)
                         if ($imageStream !== false) {
                             $extractedImageContent = base64_encode($imageStream);
                             $rawContent = '📷 Imagen recibida desde Airbnb';
-                        }
-                        // 2. Si falló (Ej: HTTP 403 porque ya expiró la hora)
-                        else {
+                        } else {
                             $this->logger->warning("Imagen de Airbnb expirada o bloqueada. URL: " . substr($imageUrl, 0, 100) . "...");
                             $rawContent = '🚫 [La imagen compartida por el huésped ha expirado]';
                         }
@@ -158,7 +154,6 @@ class Beds24ReceivePersister
             }
 
             // Manejo de zonas horarias (UTC -> America/Lima)
-            // TODO: poner todo en UTC
             if ($dto->time !== null) {
                 $timeUtc = $dto->time instanceof DateTimeImmutable ? $dto->time : DateTimeImmutable::createFromInterface($dto->time);
                 $timeLima = $timeUtc->setTimezone(new DateTimeZone('America/Lima'));
@@ -173,14 +168,11 @@ class Beds24ReceivePersister
                 $targetFileName = null;
                 $targetMime = null;
 
-                // Si logramos robar la imagen de Airbnb, usamos esa
                 if ($extractedImageContent !== null) {
                     $targetBase64 = $extractedImageContent;
                     $targetFileName = $extractedImageName;
                     $targetMime = $extractedImageMime;
-                }
-                // Si no, miramos si Beds24 mandó un adjunto nativo (Booking.com a veces lo hace)
-                elseif (!empty($dto->attachment)) {
+                } elseif (!empty($dto->attachment)) {
                     $targetBase64 = $dto->attachment;
                     $targetFileName = $dto->attachmentName ?? 'adjunto_' . uniqid() . '.file';
                     $targetMime = $dto->attachmentMimeType ?? 'application/octet-stream';
@@ -207,22 +199,24 @@ class Beds24ReceivePersister
             $mercureBroadcasts[] = $message;
         }
 
-
         // =====================================================================
-        // 2. DEDUPLICACIÓN EN MEMORIA (Antes del Flush)
-        // =====================================================================
-        $deduplicatedCount = $this->deduplicateOutgoingMessages($conversation);
-
-        // Ajustamos las estadísticas de la operación
-        $stats['imported'] -= $deduplicatedCount;
-        $stats['updated'] += $deduplicatedCount;
-
-        // =====================================================================
-        // 3. 🔥 EL ÚNICO FLUSH 🔥
+        // 2. 🔥 EL ÚNICO FLUSH (Consolidación) 🔥
         // =====================================================================
         $this->em->flush();
 
-        // 🔥 Disparamos los eventos individuales
+        // =====================================================================
+        // 3. 🚀 DESPACHO ASÍNCRONO DE DEDUPLICACIÓN (Garbage Collector) 🚀
+        // =====================================================================
+        // Encolamos la revisión de esta conversación con un retraso de 30 segundos
+        // para dar tiempo a que las peticiones HTTP del Worker finalicen.
+        $this->messageBus->dispatch(
+            new DeduplicateConversationDispatch((string) $conversation->getId()),
+            [new DelayStamp(30000)] // 30,000 milisegundos = 30 segundos
+        );
+
+        // =====================================================================
+        // 4. EMISIÓN EN TIEMPO REAL (Mercure)
+        // =====================================================================
         foreach ($mercureBroadcasts as $msg) {
             if ($this->em->contains($msg)) {
                 $this->mercureBroadcaster->broadcastMessage($msg);
@@ -230,80 +224,5 @@ class Beds24ReceivePersister
         }
 
         return $stats;
-    }
-
-    /**
-     * Barre la memoria buscando huérfanos locales y los empareja con clones entrantes.
-     * Soporta ráfagas de mensajes mediante ordenamiento cronológico y búsqueda de "pareja más cercana".
-     * * @return int La cantidad de clones destruidos en memoria.
-     */
-    private function deduplicateOutgoingMessages(MessageConversation $conversation): int
-    {
-        $orphans = [];
-        $withIds = [];
-        $destroyedCount = 0;
-
-        // 1. Clasificamos los mensajes de SALIDA
-        foreach ($conversation->getMessages() as $message) {
-            if ($message->getDirection() === Message::DIRECTION_OUTGOING) {
-                if ($message->getBeds24ExternalId() === null) {
-                    $orphans[] = $message;
-                } else {
-                    $withIds[] = $message;
-                }
-            }
-        }
-
-        // 2. Ordenamos cronológicamente (Del más viejo al más nuevo)
-        // Usamos el operador Spaceship (<=>) para una comparación rápida.
-        $sortByDate = fn($a, $b) => ($a->getCreatedAt() <=> $b->getCreatedAt());
-        usort($orphans, $sortByDate);
-        usort($withIds, $sortByDate);
-
-        // 3. Buscamos la pareja ideal para cada huérfano
-        foreach ($orphans as $orphan) {
-            if ($orphan->getCreatedAt() === null) continue;
-
-            $bestMatchIndex = null;
-            $smallestDiff = 901;
-
-            foreach ($withIds as $index => $withId) {
-                if ($withId->getCreatedAt() === null) continue;
-
-                $diffSeconds = abs($orphan->getCreatedAt()->getTimestamp() - $withId->getCreatedAt()->getTimestamp());
-
-                // Buscamos el clon que tenga la MENOR diferencia de tiempo dentro de los 15 min
-                if ($diffSeconds < $smallestDiff) {
-                    $smallestDiff = $diffSeconds;
-                    $bestMatchIndex = $index;
-                }
-            }
-
-            // Si encontramos a la pareja ideal...
-            if ($bestMatchIndex !== null) {
-                $bestMatch = $withIds[$bestMatchIndex];
-
-                // A) Heredamos la data oficial de Beds24 al mensaje original
-                $orphan->setBeds24ExternalId($bestMatch->getBeds24ExternalId());
-                $orphan->setChannel($bestMatch->getChannel());
-
-                if (empty(trim($orphan->getContentExternal() ?? ''))) {
-                    $orphan->setContentExternal($bestMatch->getContentExternal());
-                }
-
-                // B) Eliminamos al clon de la conversación
-                $conversation->removeMessage($bestMatch);
-
-                // C) Eliminamos al clon de la memoria de Doctrine (Nunca tocará MySQL)
-                $this->em->remove($bestMatch);
-
-                // D) Sacamos al clon de la piscina de disponibles
-                unset($withIds[$bestMatchIndex]);
-
-                $destroyedCount++;
-            }
-        }
-
-        return $destroyedCount;
     }
 }
