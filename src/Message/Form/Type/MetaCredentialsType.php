@@ -55,5 +55,14 @@ class MetaCredentialsType extends AbstractType
         $resolver->setDefaults([
             'data_class' => null,
         ]);
+
+        // Evitamos que EasyAdmin rompa por configuraciones de colecciones
+        $resolver->setDefined([
+            'allow_add',
+            'allow_delete',
+            'delete_empty',
+            'entry_options',
+            'entry_type',
+        ]);
     }
 }
