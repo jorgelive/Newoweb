@@ -21,7 +21,8 @@ framework:
             Symfony\Component\Notifier\Message\SmsMessage: async
 
             App\Exchange\Dispatch\RunExchangeTaskDispatch: async
-            App\Message\Dispatch\DeduplicateConversationDispatch: async
+
+            App\Pms\Dispatch\ProcessBeds24WebhookDispatch: async
 
 
             # Route your messages to the transports

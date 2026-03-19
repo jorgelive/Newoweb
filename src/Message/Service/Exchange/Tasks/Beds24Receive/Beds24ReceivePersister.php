@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\Beds24Receive;
 
-use App\Message\Dispatch\DeduplicateConversationDispatch;
 use App\Message\Dto\Beds24MessageDto;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
@@ -19,14 +18,12 @@ use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
-use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Throwable;
 
 /**
  * Encargado de persistir mensajes provenientes de Beds24 (Pull o Webhooks).
- * Opera en modo "Insert-Only" para máxima velocidad y evitar Race Conditions.
- * Delega la deduplicación a un proceso asíncrono en cola (Messenger).
+ * Actúa únicamente buscando por ID externo y actualizando/insertando.
+ * Las condiciones de carrera se evitan asíncronamente en capas superiores.
  */
 class Beds24ReceivePersister
 {
@@ -35,8 +32,7 @@ class Beds24ReceivePersister
         private readonly MessageConversationFactory $conversationFactory,
         private readonly MessageAttachmentFactory $attachmentFactory,
         private readonly LoggerInterface $logger,
-        private readonly MercureBroadcaster $mercureBroadcaster,
-        private readonly MessageBusInterface $messageBus // 🔥 Inyectamos el Bus de Mensajes
+        private readonly MercureBroadcaster $mercureBroadcaster
     ) {}
 
     /**
@@ -62,9 +58,6 @@ class Beds24ReceivePersister
         $stats = ['imported' => 0, 'updated' => 0, 'skipped' => 0];
         $mercureBroadcasts = [];
 
-        // =====================================================================
-        // 1. PROCESAMIENTO E INSERCIÓN EN MEMORIA
-        // =====================================================================
         foreach ($messages as $dto) {
             if (!$dto->id) continue;
 
@@ -200,22 +193,12 @@ class Beds24ReceivePersister
         }
 
         // =====================================================================
-        // 2. 🔥 EL ÚNICO FLUSH (Consolidación) 🔥
+        // 🔥 EL ÚNICO FLUSH (Consolidación) 🔥
         // =====================================================================
         $this->em->flush();
 
         // =====================================================================
-        // 3. 🚀 DESPACHO ASÍNCRONO DE DEDUPLICACIÓN (Garbage Collector) 🚀
-        // =====================================================================
-        // Encolamos la revisión de esta conversación con un retraso de 30 segundos
-        // para dar tiempo a que las peticiones HTTP del Worker finalicen.
-        $this->messageBus->dispatch(
-            new DeduplicateConversationDispatch((string) $conversation->getId()),
-            [new DelayStamp(30000)] // 30,000 milisegundos = 30 segundos
-        );
-
-        // =====================================================================
-        // 4. EMISIÓN EN TIEMPO REAL (Mercure)
+        // EMISIÓN EN TIEMPO REAL (Mercure)
         // =====================================================================
         foreach ($mercureBroadcasts as $msg) {
             if ($this->em->contains($msg)) {

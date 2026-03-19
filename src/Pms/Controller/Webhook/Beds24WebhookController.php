@@ -1,220 +1,102 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Pms\Controller\Webhook;
 
+use App\Pms\Dispatch\ProcessBeds24WebhookDispatch;
 use App\Pms\Entity\PmsBeds24WebhookAudit;
-use App\Pms\Service\Beds24\Webhook\Beds24WebhookBookingFastTrackService;
-use App\Message\Service\Beds24\Webhook\Beds24WebhookMessageFastTrackService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Routing\Attribute\Route;
+use Throwable;
 
 #[Route('/pms/webhooks', name: 'webhook_beds24_')]
 final class Beds24WebhookController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly Beds24WebhookBookingFastTrackService $bookingService,
-        private readonly Beds24WebhookMessageFastTrackService $messageService,
+        private readonly MessageBusInterface $messageBus,
         #[Autowire('%kernel.logs_dir%')] private readonly string $logsDir,
     ) {}
 
     #[Route('/endpoint', name: 'main_endpoint', methods: ['POST'])]
     public function __invoke(Request $request): JsonResponse
     {
-        // 1. Captura absoluta del contenido crudo
         $rawContent = (string) $request->getContent();
+        $token = $request->headers->get('X-Beds24-Webhook-Token') ?? $request->query->get('token');
 
-        // 2. Escritura a disco para diagnóstico de emojis — quitar una vez confirmado el origen
-        file_put_contents(
-            $this->logsDir . '/beds24_debug.json',
-            $rawContent . PHP_EOL,
-            FILE_APPEND | LOCK_EX
-        );
-
-        // 3. Auditoría Inicial — guardamos el raw SIN TOCAR antes de cualquier procesamiento
+        // 1. Auditoría Inicial (Raw)
         $audit = new PmsBeds24WebhookAudit();
         $audit->setReceivedAt(new DateTimeImmutable());
         $audit->setRemoteIp($request->getClientIp());
         $audit->setHeaders($request->headers->all());
         $audit->setPayloadRaw($rawContent);
+        $audit->setStatus(PmsBeds24WebhookAudit::STATUS_QUEUED ?? 'queued');
+
         $this->persistAudit($audit);
 
-        $token = $request->headers->get('X-Beds24-Webhook-Token') ?? $request->query->get('token');
-
         if (empty($token)) {
-            $this->terminateWithError($audit, 'missing_token', 403);
+            $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
+            $audit->setErrorMessage('missing_token');
+            $this->persistAudit($audit);
             return $this->prettyJson(['ok' => false, 'error' => 'missing_token'], 403);
         }
 
         try {
-            // Decodificamos sin JSON_INVALID_UTF8_IGNORE para no descartar emojis
+            // 2. Parseo rápido solo para inspección de enrutamiento
             $payload = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
-
-            $audit->setPayload($payload);
-
-            if (is_array($payload)) {
-                $audit->setEventType($payload['type'] ?? $payload['eventType'] ?? 'unknown');
-            }
-
-            $this->persistAudit($audit);
+            $stamps = [];
 
             // =================================================================
-            // ENRUTAMIENTO (ROUTING)
+            // 🔥 LA MÁQUINA DEL TIEMPO INTELIGENTE (Ventana de 10 minutos) 🔥
             // =================================================================
+            if (isset($payload['messages']) && is_array($payload['messages']) && !empty($payload['messages'])) {
+                $lastMessage = end($payload['messages']);
 
-            $responseDetails = [];
-            $globalErrors = [];
-            $processedAny = false;
+                if (is_array($lastMessage) && ($lastMessage['source'] ?? '') === 'host' && !empty($lastMessage['time'])) {
+                    try {
+                        // PHP entiende automáticamente que la 'Z' final significa UTC
+                        $msgTime = (new DateTimeImmutable($lastMessage['time']))->getTimestamp();
+                        $now = time(); // time() siempre devuelve el timestamp universal actual
 
-            // 1. BOOKINGS
-            if (isset($payload['booking'])) {
-                $bookingResult = $this->handleBookings($payload['booking'], (string)$token);
-                $responseDetails['bookings'] = $bookingResult['processed'];
-                if (!empty($bookingResult['errors'])) {
-                    $globalErrors = array_merge($globalErrors, $bookingResult['errors']);
+                        // Si la diferencia es de 10 minutos (600 segundos) o menos.
+                        // abs() protege contra desincronización si el reloj de Beds24 está adelantado.
+                        if (abs($now - $msgTime) <= 600) {
+                            $stamps[] = new DelayStamp(15000); // 15s de ventaja a tu base de datos
+                        }
+                    } catch (Throwable) {
+                        // Si por algún motivo la fecha viene corrupta, no retrasamos nada.
+                    }
                 }
-                $processedAny = true;
             }
 
-            // 2. MESSAGES
-            if (isset($payload['messages'])) {
-                $messageResult = $this->handleMessages($payload['messages'], (string)$token);
-                $responseDetails['messages'] = $messageResult['processed'];
-                if (!empty($messageResult['errors'])) {
-                    $globalErrors = array_merge($globalErrors, $messageResult['errors']);
-                }
-                $processedAny = true;
-            }
+            // 3. ENCOLAMIENTO MAESTRO (Asíncrono total)
+            $this->messageBus->dispatch(
+                new ProcessBeds24WebhookDispatch((string) $audit->getId(), $rawContent, (string) $token),
+                $stamps
+            );
 
-            // 3. INVOICE ITEMS (Futuro)
-            if (isset($payload['invoiceItems'])) {
-                $responseDetails['invoices'] = 'pending_implementation';
-                $processedAny = true;
-            }
-
-            // =================================================================
-            // CIERRE DE AUDITORÍA
-            // =================================================================
-
-            if (!$processedAny) {
-                throw new \RuntimeException('Payload sin datos reconocibles (booking, messages, invoiceItems).');
-            }
-
-            $finalStatus = empty($globalErrors) ? PmsBeds24WebhookAudit::STATUS_PROCESSED : 'partial_error';
-
-            if (!empty($globalErrors) && empty($responseDetails['bookings']) && empty($responseDetails['messages'])) {
-                $finalStatus = PmsBeds24WebhookAudit::STATUS_ERROR;
-            }
-
-            $audit->setStatus($finalStatus);
-            $audit->setProcessingMeta([
-                'mode' => 'controller_router',
-                'details' => $responseDetails,
-                'errors' => $globalErrors
-            ]);
-
-            if (!empty($globalErrors)) {
-                $audit->setErrorMessage('Errores: ' . json_encode($globalErrors));
-            }
-
-            $this->persistAudit($audit);
-
+            // 4. RESPUESTA RELÁMPAGO (Cero bloqueos)
             return $this->prettyJson([
-                'ok' => empty($globalErrors),
-                'details' => $responseDetails,
-                'errors' => $globalErrors
+                'ok' => true,
+                'status' => 'queued_for_processing',
+                'audit_id' => $audit->getId(),
+                'delayed' => !empty($stamps) // Opcional: Para que veas en la respuesta si aplicó el delay
             ], 200);
 
-        } catch (\JsonException $e) {
-            $this->terminateWithError($audit, "JSON Inválido: " . $e->getMessage(), 400);
-            return $this->prettyJson(['ok' => false, 'error' => 'invalid_json'], 400);
-        } catch (\Throwable $e) {
-            $this->terminateWithError($audit, $e->getMessage(), 200);
-            return $this->prettyJson(['ok' => false, 'error' => $e->getMessage()], 200);
+        } catch (Throwable $e) {
+            $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
+            $audit->setErrorMessage("Error de Parseo/Encolamiento: " . $e->getMessage());
+            $this->persistAudit($audit);
+            return $this->prettyJson(['ok' => false, 'error' => $e->getMessage()], 400);
         }
-    }
-
-    private function handleBookings(mixed $bookingData, string $token): array
-    {
-        $bookingsToProcess = [];
-
-        if (is_array($bookingData)) {
-            if (array_is_list($bookingData)) {
-                $bookingsToProcess = $bookingData;
-            } else {
-                $bookingsToProcess = [$bookingData];
-            }
-        }
-
-        $processedIds = [];
-        $errors = [];
-
-        foreach ($bookingsToProcess as $index => $data) {
-            if (!is_array($data) || !isset($data['id'])) {
-                $errors[] = ['index' => $index, 'error' => 'Estructura inválida'];
-                continue;
-            }
-
-            try {
-                $res = $this->bookingService->process($token, $data);
-                $processedIds[] = $res['id'];
-            } catch (\Throwable $e) {
-                $errors[] = [
-                    'id' => $data['id'] ?? 'unknown',
-                    'error' => $e->getMessage()
-                ];
-            }
-        }
-
-        return ['processed' => $processedIds, 'errors' => $errors];
-    }
-
-    private function handleMessages(mixed $messagesData, string $token): array
-    {
-        $messagesToProcess = [];
-
-        if (is_array($messagesData)) {
-            if (array_is_list($messagesData)) {
-                $messagesToProcess = $messagesData;
-            } else {
-                $messagesToProcess = [$messagesData];
-            }
-        }
-
-        $processedIds = [];
-        $errors = [];
-
-        foreach ($messagesToProcess as $index => $data) {
-            if (!is_array($data) || !isset($data['id'])) {
-                $errors[] = ['index' => $index, 'error' => 'Estructura de mensaje inválida'];
-                continue;
-            }
-
-            try {
-                $res = $this->messageService->process($token, $data);
-                $processedIds[] = $res['id'];
-            } catch (\Throwable $e) {
-                $errors[] = [
-                    'message_id' => $data['id'] ?? 'unknown',
-                    'error' => $e->getMessage()
-                ];
-            }
-        }
-
-        return ['processed' => $processedIds, 'errors' => $errors];
-    }
-
-    private function terminateWithError(PmsBeds24WebhookAudit $audit, string $msg, int $httpCode): void
-    {
-        $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
-        $audit->setErrorMessage(mb_substr($msg, 0, 2000));
-        $this->persistAudit($audit);
     }
 
     private function prettyJson(array $data, int $status = 200): JsonResponse

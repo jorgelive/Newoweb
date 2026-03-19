@@ -37,6 +37,7 @@ class PmsBeds24WebhookAudit
      */
     use TimestampTrait;
 
+    public const STATUS_QUEUED = 'queued';
     public const STATUS_RECEIVED = 'received';
     public const STATUS_PROCESSED = 'processed';
     public const STATUS_ERROR = 'error';
