@@ -39,12 +39,12 @@ class Beds24SendQueue implements MessageQueueItemInterface
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Message $message = null;
 
-    #[ORM\ManyToOne(targetEntity: Beds24Config::class)]
-    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'beds24SendQueues')]
+    #[ORM\JoinColumn(name: 'config_id', nullable: false)]
     private ?Beds24Config $config = null;
 
-    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class)]
-    #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class, inversedBy: 'beds24SendQueues')]
+    #[ORM\JoinColumn(name: 'endpoint_id', nullable: false)]
     private ?ExchangeEndpoint $endpoint = null;
 
     // =========================================================================

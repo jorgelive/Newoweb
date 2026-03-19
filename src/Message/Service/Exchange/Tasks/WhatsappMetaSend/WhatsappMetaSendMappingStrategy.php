@@ -18,7 +18,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 {
     public function __construct(
         private MessageDataResolverRegistry $resolverRegistry,
-        private StorageInterface $vichStorage, // 🔥 Inyectamos Vich
+        private StorageInterface $vichStorage,
         #[Autowire('%env(PANEL_HOST_URL)%')]
         private string $siteUrl
     ) {}
@@ -58,70 +58,52 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             ];
 
             $attachment = $msg->getAttachments()->first() ?: null;
-            $content = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
+            $template = $msg->getTemplate();
 
-            if ($template = $msg->getTemplate()) {
+            if ($template !== null) {
                 $lang = $conversation->getIdioma()->getId();
-                $templateId = $template->getWhatsappMetaTemplateId($lang);
+                $isSessionActive = $conversation->isWhatsappSessionActive();
 
-                $paramsMap = $template->getWhatsappMetaParamsMap();
-                $resolvedParams = [];
+                if ($isSessionActive) {
+                    $bodyContent = (string) $template->getWhatsappMetaBody($lang);
+                    $content = $this->hydrateVariables($bodyContent, $resolver, $conversation->getContextId());
 
-                if ($resolver && !empty($paramsMap)) {
-                    $variables = $resolver->getMessageVariables($conversation->getContextId());
-                    foreach ($paramsMap as $paramKey) {
-                        $resolvedParams[] = (string) ($variables[$paramKey] ?? '');
+                    if ($attachment) {
+                        $this->attachMediaToPayload($messagePayload, $attachment, 'free_form', $content);
+                    } else {
+                        $messagePayload['message'] = json_encode([
+                            'type' => 'text',
+                            'text' => $content
+                        ], JSON_UNESCAPED_UNICODE);
+                    }
+
+                } else {
+                    $templateId = $template->getWhatsappMetaTemplateId($lang);
+                    $paramsMap = $template->getWhatsappMetaParamsMap();
+                    $resolvedParams = [];
+
+                    if ($resolver && !empty($paramsMap)) {
+                        $variables = $resolver->getMessageVariables($conversation->getContextId());
+                        foreach ($paramsMap as $paramKey) {
+                            $resolvedParams[] = (string) ($variables[$paramKey] ?? '');
+                        }
+                    }
+
+                    $messagePayload['template'] = json_encode([
+                        'id'     => $templateId,
+                        'params' => $resolvedParams
+                    ], JSON_UNESCAPED_UNICODE);
+
+                    if ($attachment) {
+                        $this->attachMediaToPayload($messagePayload, $attachment, 'template');
                     }
                 }
-
-                $messagePayload['template'] = json_encode([
-                    'id'     => $templateId,
-                    'params' => $resolvedParams
-                ], JSON_UNESCAPED_UNICODE);
-
-                if ($attachment) {
-                    $mediaType = $this->getWhatsappMetaMediaType($attachment);
-                    $mediaUrl = $this->getAbsoluteAttachmentUrl($attachment);
-
-                    $messagePayload['message'] = json_encode([
-                        'type'     => $mediaType,
-                        $mediaType => [
-                            'link'     => $mediaUrl,
-                            'filename' => $attachment->getOriginalName()
-                        ]
-                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                }
-
             } else {
-                if ($resolver && str_contains($content, '{{')) {
-                    $variables = $resolver->getMessageVariables($conversation->getContextId());
-                    foreach ($variables as $key => $value) {
-                        $content = str_replace('{{ ' . $key . ' }}', (string)$value, $content);
-                        $content = str_replace('{{' . $key . '}}', (string)$value, $content);
-                    }
-                }
+                $content = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
+                $content = $this->hydrateVariables($content, $resolver, $conversation->getContextId());
 
                 if ($attachment) {
-                    $mediaType = $this->getWhatsappMetaMediaType($attachment);
-                    $mediaUrl = $this->getAbsoluteAttachmentUrl($attachment);
-
-                    $mediaData = [
-                        'type'        => $mediaType,
-                        'originalUrl' => $mediaUrl,
-                        'previewUrl'  => $mediaUrl,
-                    ];
-
-                    if (!empty(trim($content))) {
-                        $mediaData['caption'] = $content;
-                    }
-
-                    if ($mediaType === 'file' || $mediaType === 'document') {
-                        $mediaData['filename'] = $attachment->getOriginalName();
-                        $mediaData['type'] = 'file';
-                    }
-
-                    $messagePayload['message'] = json_encode($mediaData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
+                    $this->attachMediaToPayload($messagePayload, $attachment, 'free_form', $content);
                 } else {
                     $messagePayload['message'] = json_encode([
                         'type' => 'text',
@@ -152,16 +134,18 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
         }
 
         foreach ($apiResponse as $index => $respData) {
-            if (!isset($mapping->correlationMap[$index])) continue;
+            if (!isset($mapping->correlationMap[$index])) {
+                continue;
+            }
 
             $queueId = $mapping->correlationMap[$index];
             $status = $respData['status'] ?? 'error';
-            $success = in_array($status, ['submitted', 'queued', 'sent', 'success']);
+            $success = in_array($status, ['submitted', 'queued', 'sent', 'success'], true);
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
-                message: $success ? null : ($respData['message'] ?? 'Error Whatsapp Meta'),
+                message: $success ? null : ($respData['message'] ?? 'Error desconocido de WhatsApp Meta'),
                 remoteId: $respData['messageId'] ?? null,
                 extraData: (array)$respData
             );
@@ -170,9 +154,51 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
         return $results;
     }
 
-    // =========================================================================
-    // HELPERS PARA ARCHIVOS ADJUNTOS
-    // =========================================================================
+    private function hydrateVariables(string $content, ?object $resolver, string $contextId): string
+    {
+        if ($resolver && str_contains($content, '{{')) {
+            $variables = $resolver->getMessageVariables($contextId);
+            foreach ($variables as $key => $value) {
+                $content = str_replace('{{ ' . $key . ' }}', (string)$value, $content);
+                $content = str_replace('{{' . $key . '}}', (string)$value, $content);
+            }
+        }
+        return $content;
+    }
+
+    private function attachMediaToPayload(array &$messagePayload, MessageAttachment $attachment, string $mode, string $caption = ''): void
+    {
+        $mediaType = $this->getWhatsappMetaMediaType($attachment);
+        $mediaUrl = $this->getAbsoluteAttachmentUrl($attachment);
+
+        if ($mode === 'template') {
+            $messagePayload['message'] = json_encode([
+                'type'     => $mediaType,
+                $mediaType => [
+                    'link'     => $mediaUrl,
+                    'filename' => $attachment->getOriginalName()
+                ]
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            return;
+        }
+
+        $mediaData = [
+            'type'        => $mediaType,
+            'originalUrl' => $mediaUrl,
+            'previewUrl'  => $mediaUrl,
+        ];
+
+        if (!empty(trim($caption))) {
+            $mediaData['caption'] = $caption;
+        }
+
+        if ($mediaType === 'file' || $mediaType === 'document') {
+            $mediaData['filename'] = $attachment->getOriginalName();
+            $mediaData['type'] = 'file';
+        }
+
+        $messagePayload['message'] = json_encode($mediaData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
 
     private function getWhatsappMetaMediaType(MessageAttachment $attachment): string
     {
@@ -182,7 +208,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
         if (str_starts_with($mime, 'video/')) return 'video';
         if (str_starts_with($mime, 'audio/')) return 'audio';
 
-        return 'file'; // PDF, DOCX, etc.
+        return 'file';
     }
 
     /**

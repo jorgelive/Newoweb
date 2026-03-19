@@ -46,12 +46,12 @@ class WhatsappMetaSendQueue implements MessageQueueItemInterface
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Message $message = null;
 
-    #[ORM\ManyToOne(targetEntity: MetaConfig::class)]
-    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\ManyToOne(targetEntity: MetaConfig::class, inversedBy: 'whatsappMetaSendQueues')]
+    #[ORM\JoinColumn(name: 'config_id', nullable: false)]
     private ?MetaConfig $config = null;
 
-    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class)]
-    #[ORM\JoinColumn(name: 'endpoint_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class, inversedBy: 'whatsappMetaSendQueues')]
+    #[ORM\JoinColumn(name: 'endpoint_id', nullable: false)]
     private ?ExchangeEndpoint $endpoint = null;
 
     // =========================================================================

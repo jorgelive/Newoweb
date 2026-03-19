@@ -13,8 +13,11 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Uid\UuidV7;
 
+/**
+ * Entidad MetaConfig.
+ * Gestiona la configuración de conexión con la Graph API de Meta (WhatsApp Cloud API).
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'exchange_meta_config')]
 #[ORM\HasLifecycleCallbacks]
@@ -32,6 +35,9 @@ class MetaConfig implements ChannelConfigInterface
     #[ORM\Column(type: 'string', length: 255, nullable: true, options: ['default' => 'https://graph.facebook.com'])]
     private ?string $baseUrl = 'https://graph.facebook.com';
 
+    /**
+     * Almacena credenciales sensibles: apiKey (token), wabaId, verifyToken, etc.
+     */
     #[ORM\Column(type: 'json')]
     private array $credentials = [];
 
@@ -62,15 +68,12 @@ class MetaConfig implements ChannelConfigInterface
         return $this->nombre ?? ('WhatsappMeta Config ' . $this->getId());
     }
 
-    // =========================================================================
-    // IMPLEMENTACIÓN DE ChannelConfigInterface
-    // =========================================================================
-
-    /**
-     * Retorna el alias del proveedor que debe procesar esta configuración
-     * Se utiliza para seleccionar el cliente.
-     * Ejemplo: 'beds24', 'meta', 'booking'.
+    /*
+     * -------------------------------------------------------------------------
+     * IMPLEMENTACIÓN ChannelConfigInterface
+     * -------------------------------------------------------------------------
      */
+
     public function getProviderName(): string
     {
         return 'meta';
@@ -78,7 +81,7 @@ class MetaConfig implements ChannelConfigInterface
 
     public function getBaseUrl(): string
     {
-        return $this->baseUrl ?? '';
+        return $this->baseUrl ?? 'https://graph.facebook.com';
     }
 
     public function isActivo(): bool
@@ -86,9 +89,34 @@ class MetaConfig implements ChannelConfigInterface
         return $this->activo;
     }
 
-    public function getCredentials(): array
+    /*
+     * -------------------------------------------------------------------------
+     * ACCESO DINÁMICO A CREDENCIALES (Tipado)
+     * -------------------------------------------------------------------------
+     */
+
+    /**
+     * Retorna el System User Access Token (Token Permanente).
+     */
+    public function getApiKey(): ?string
     {
-        return $this->credentials;
+        return $this->getCredential('apiKey');
+    }
+
+    /**
+     * Retorna el WhatsApp Business Account ID (Necesario para Sincronizar Plantillas).
+     */
+    public function getWabaId(): ?string
+    {
+        return $this->getCredential('wabaId');
+    }
+
+    /**
+     * Retorna el token secreto para la validación del Webhook (Handshake).
+     */
+    public function getVerifyToken(): ?string
+    {
+        return $this->getCredential('verifyToken');
     }
 
     public function getCredential(string $key): mixed
@@ -96,14 +124,11 @@ class MetaConfig implements ChannelConfigInterface
         return $this->credentials[$key] ?? null;
     }
 
-    // =========================================================================
-    // GETTERS Y SETTERS EXPLÍCITOS
-    // =========================================================================
-
-    public function getId(): UuidV7
-    {
-        return $this->id;
-    }
+    /*
+     * -------------------------------------------------------------------------
+     * GETTERS Y SETTERS EXPLÍCITOS
+     * -------------------------------------------------------------------------
+     */
 
     public function getNombre(): ?string
     {
@@ -122,10 +147,20 @@ class MetaConfig implements ChannelConfigInterface
         return $this;
     }
 
+    public function getBaseUrlRaw(): ?string
+    {
+        return $this->baseUrl;
+    }
+
     public function setBaseUrl(?string $baseUrl): self
     {
         $this->baseUrl = $baseUrl;
         return $this;
+    }
+
+    public function getCredentials(): array
+    {
+        return $this->credentials;
     }
 
     public function setCredentials(array $credentials): self
@@ -140,13 +175,13 @@ class MetaConfig implements ChannelConfigInterface
         return $this;
     }
 
-    // =========================================================================
-    // GESTIÓN DE LA COLECCIÓN (Relación OneToMany)
-    // =========================================================================
-
-    /**
-     * @return Collection<int, WhatsappMetaSendQueue>
+    /*
+     * -------------------------------------------------------------------------
+     * GESTIÓN DE COLECCIONES
+     * -------------------------------------------------------------------------
      */
+
+    /** @return Collection<int, WhatsappMetaSendQueue> */
     public function getWhatsappMetaSendQueues(): Collection
     {
         return $this->whatsappMetaSendQueues;
@@ -161,65 +196,41 @@ class MetaConfig implements ChannelConfigInterface
                 $queue->setConfig($this);
             }
         }
-
         return $this;
     }
 
-    public function removeMetaSendQueue(WhatsappMetaSendQueue $queue): self
+    public function removeWhatsappMetaSendQueue(WhatsappMetaSendQueue $queue): self
     {
         if ($this->whatsappMetaSendQueues->removeElement($queue)) {
-            // Establecer el lado propietario a null (si no cambió ya)
             if ($queue->getConfig() === $this) {
                 $queue->setConfig(null);
             }
         }
-
         return $this;
     }
 
-    /**
-     * Obtiene la colección de establecimientos asociados a esta configuración.
-     *
-     * @return Collection<int, PmsEstablecimiento>
-     */
+    /** @return Collection<int, PmsEstablecimiento> */
     public function getEstablecimientos(): Collection
     {
         return $this->establecimientos;
     }
 
-    /**
-     * Asocia un establecimiento a esta configuración de Meta.
-     * Mantiene la consistencia bidireccional estableciendo esta configuración en el establecimiento.
-     *
-     * @param PmsEstablecimiento $establecimiento El establecimiento a vincular
-     * @return static
-     */
-    public function addEstablecimiento(PmsEstablecimiento $establecimiento): static
+    public function addEstablecimiento(PmsEstablecimiento $establecimiento): self
     {
         if (!$this->establecimientos->contains($establecimiento)) {
             $this->establecimientos->add($establecimiento);
             $establecimiento->setMetaConfig($this);
         }
-
         return $this;
     }
 
-    /**
-     * Desvincula un establecimiento de esta configuración de Meta.
-     * Mantiene la consistencia bidireccional anulando la configuración en el establecimiento si aún apunta a esta instancia.
-     *
-     * @param PmsEstablecimiento $establecimiento El establecimiento a desvincular
-     * @return static
-     */
-    public function removeEstablecimiento(PmsEstablecimiento $establecimiento): static
+    public function removeEstablecimiento(PmsEstablecimiento $establecimiento): self
     {
         if ($this->establecimientos->removeElement($establecimiento)) {
-            // set the owning side to null (unless already changed)
             if ($establecimiento->getMetaConfig() === $this) {
                 $establecimiento->setMetaConfig(null);
             }
         }
-
         return $this;
     }
 }

@@ -31,9 +31,6 @@ class MessageTemplate
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    // 👈 Control de traducción automática y manual
-
-    // Constantes para mapeo en MessageChannel
     public const string FIELD_EMAIL = 'emailTmpl';
     public const string FIELD_BEDS24 = 'beds24Tmpl';
     public const string FIELD_WHATSAPP_META = 'whatsappMetaTmpl';
@@ -52,9 +49,6 @@ class MessageTemplate
     #[ORM\Column(type: 'json')]
     private array $parameters = [];
 
-    // =========================================================================
-    // 🔥 ALCANCE Y SEGREGACIÓN (SCOPE)
-    // =========================================================================
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     #[Groups(['template:read'])]
     private ?string $contextType = null;
@@ -67,9 +61,6 @@ class MessageTemplate
     #[Groups(['template:read'])]
     private ?array $allowedAgencies = [];
 
-    // =========================================================================
-    // CONFIGURACIONES POR CANAL (Campos JSON con Auto-Traducción)
-    // =========================================================================
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['subject', 'body'])]
     private ?array $emailTmpl = [];
@@ -79,7 +70,7 @@ class MessageTemplate
     private ?array $beds24Tmpl = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
-    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['text_reference'])]
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])]
     private ?array $whatsappMetaTmpl = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
@@ -108,170 +99,46 @@ class MessageTemplate
     }
 
     #[Groups(['template:read'])]
-    public function getId(): UuidV7
-    {
-        return $this->id;
-    }
+    public function getId(): UuidV7 { return $this->id; }
 
-    public function getCode(): ?string
-    {
-        return $this->code;
-    }
+    public function getCode(): ?string { return $this->code; }
+    public function setCode(string $code): self { $this->code = trim($code); return $this; }
 
-    public function setCode(string $code): self
-    {
-        $this->code = trim($code);
-        return $this;
-    }
+    public function getName(): ?string { return $this->name; }
+    public function setName(string $name): self { $this->name = $name; return $this; }
 
-    public function getName(): ?string
-    {
-        return $this->name;
-    }
+    public function getParameters(): array { return $this->parameters; }
+    public function setParameters(array $parameters): self { $this->parameters = $parameters; return $this; }
 
-    public function setName(string $name): self
-    {
-        $this->name = $name;
-        return $this;
-    }
+    public function getContextType(): ?string { return $this->contextType; }
+    public function setContextType(?string $contextType): self { $this->contextType = $contextType; return $this; }
 
-    public function getParameters(): array
-    {
-        return $this->parameters;
-    }
+    public function getAllowedSources(): array { return $this->allowedSources ?? []; }
+    public function setAllowedSources(?array $allowedSources): self { $this->allowedSources = $allowedSources; return $this; }
 
-    public function setParameters(array $parameters): self
-    {
-        $this->parameters = $parameters;
-        return $this;
-    }
+    public function getAllowedAgencies(): array { return $this->allowedAgencies ?? []; }
+    public function setAllowedAgencies(?array $allowedAgencies): self { $this->allowedAgencies = $allowedAgencies; return $this; }
 
-    // --- GETTERS / SETTERS SEGREGACIÓN ---
-    public function getContextType(): ?string
-    {
-        return $this->contextType;
-    }
+    public function getEmailTmpl(): ?array { return $this->emailTmpl; }
+    public function setEmailTmpl(?array $val): self { $this->emailTmpl = $val; return $this; }
 
-    public function setContextType(?string $contextType): self
-    {
-        $this->contextType = $contextType;
-        return $this;
-    }
+    public function getBeds24Tmpl(): ?array { return $this->beds24Tmpl; }
+    public function setBeds24Tmpl(?array $val): self { $this->beds24Tmpl = $val; return $this; }
 
-    public function getAllowedSources(): array
-    {
-        return $this->allowedSources ?? [];
-    }
+    public function getWhatsappMetaTmpl(): ?array { return $this->whatsappMetaTmpl; }
+    public function setWhatsappMetaTmpl(?array $val): self { $this->whatsappMetaTmpl = $val; return $this; }
 
-    public function setAllowedSources(?array $allowedSources): self
-    {
-        $this->allowedSources = $allowedSources;
-        return $this;
-    }
+    public function getWhatsappLinkTmpl(): ?array { return $this->whatsappLinkTmpl; }
+    public function setWhatsappLinkTmpl(?array $val): self { $this->whatsappLinkTmpl = $val; return $this; }
 
-    public function getAllowedAgencies(): array
-    {
-        return $this->allowedAgencies ?? [];
-    }
+    public function isEmailActive(): bool { return ($this->emailTmpl['is_active'] ?? false) === true; }
+    public function isBeds24Active(): bool { return ($this->beds24Tmpl['is_active'] ?? false) === true; }
+    public function isWhatsappMetaActive(): bool { return ($this->whatsappMetaTmpl['is_active'] ?? false) === true; }
 
-    public function setAllowedAgencies(?array $allowedAgencies): self
-    {
-        $this->allowedAgencies = $allowedAgencies;
-        return $this;
-    }
-
-    public function getEmailTmpl(): ?array
-    {
-        return $this->emailTmpl;
-    }
-
-    public function setEmailTmpl(?array $val): self
-    {
-        $this->emailTmpl = $val;
-        return $this;
-    }
-
-    public function getBeds24Tmpl(): ?array
-    {
-        return $this->beds24Tmpl;
-    }
-
-    public function setBeds24Tmpl(?array $val): self
-    {
-        $this->beds24Tmpl = $val;
-        return $this;
-    }
-
-    public function getWhatsappMetaTmpl(): ?array
-    {
-        return $this->whatsappMetaTmpl;
-    }
-
-    public function setWhatsappMetaTmpl(?array $val): self
-    {
-        $this->whatsappMetaTmpl = $val;
-        return $this;
-    }
-
-    public function getWhatsappLinkTmpl(): ?array
-    {
-        return $this->whatsappLinkTmpl;
-    }
-
-    public function setWhatsappLinkTmpl(?array $val): self
-    {
-        $this->whatsappLinkTmpl = $val;
-        return $this;
-    }
-
-    // --- INTERRUPTORES ---
-    public function isEmailActive(): bool
-    {
-        return ($this->emailTmpl['is_active'] ?? false) === true;
-    }
-
-    public function isBeds24Active(): bool
-    {
-        return ($this->beds24Tmpl['is_active'] ?? false) === true;
-    }
-
-    public function isWhatsappMetaActive(): bool
-    {
-        return ($this->whatsappMetaTmpl['is_active'] ?? false) === true;
-    }
-
-    // --- GETTERS EMAIL ---
     public function getEmailSubject(string $lang): ?string
     {
         return $this->extract($this->emailTmpl['subject'] ?? [], $lang, 'content');
     }
-
-    /**
-     * Motor de extracción segura para arrays de traducciones.
-     * Prioridad: 1. Idioma Exacto -> 2. Inglés ('en') -> 3. El primero de la lista.
-     */
-    private function extract(?array $list, string $lang, string $key = 'content'): ?string
-    {
-        if (empty($list) || !is_array($list)) return null;
-        $foundItem = null;
-        $englishItem = null;
-
-        foreach ($list as $item) {
-            $itemLang = $item['language'] ?? '';
-            if ($itemLang === $lang) {
-                $foundItem = $item;
-                break;
-            }
-            if ($itemLang === 'en') {
-                $englishItem = $item;
-            }
-        }
-
-        $finalItem = $foundItem ?? $englishItem ?? ($list[0] ?? null);
-        return $finalItem[$key] ?? null;
-    }
-
-    // --- GETTERS BEDS24 ---
 
     public function getEmailBody(string $lang): ?string
     {
@@ -282,8 +149,6 @@ class MessageTemplate
     {
         return $this->extract($this->beds24Tmpl['body'] ?? [], $lang, 'content');
     }
-
-    // --- GETTERS WHATSAPP META ---
 
     public function getWhatsappMetaName(): ?string
     {
@@ -305,15 +170,44 @@ class MessageTemplate
         return $this->extract($this->whatsappMetaTmpl['language_mapping'] ?? [], $lang, 'whatsapp_meta_template_id');
     }
 
-    // --- GETTERS WHATSAPP LINK ---
-
-    public function getWhatsappMetaTextReference(string $lang): ?string
+    public function hasWhatsappMetaOfficialData(string $lang): bool
     {
-        return $this->extract($this->whatsappMetaTmpl['text_reference'] ?? [], $lang, 'content');
+        return $this->getWhatsappMetaTemplateId($lang) !== null;
+    }
+
+    public function getWhatsappMetaBody(string $lang): ?string
+    {
+        return $this->extract($this->whatsappMetaTmpl['body'] ?? [], $lang, 'content');
     }
 
     public function getWhatsappLinkBody(string $lang): ?string
     {
         return $this->extract($this->whatsappLinkTmpl['body'] ?? [], $lang, 'content');
+    }
+
+    private function extract(?array $list, string $lang, string $key = 'content'): ?string
+    {
+        if (empty($list) || !is_array($list)) {
+            return null;
+        }
+
+        $foundItem = null;
+        $englishItem = null;
+
+        foreach ($list as $item) {
+            $itemLang = $item['language'] ?? '';
+
+            if ($itemLang === $lang) {
+                $foundItem = $item;
+                break;
+            }
+            if ($itemLang === 'en') {
+                $englishItem = $item;
+            }
+        }
+
+        $finalItem = $foundItem ?? $englishItem ?? ($list[0] ?? null);
+
+        return $finalItem[$key] ?? null;
     }
 }

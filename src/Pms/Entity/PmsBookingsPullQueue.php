@@ -49,11 +49,11 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
 
     // ✅ CORRECCIÓN: Usamos PmsBeds24Config para consistencia con el resto del módulo
     #[ORM\ManyToOne(targetEntity: Beds24Config::class, inversedBy: 'bookingsPullQueues')]
-    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'config_id', referencedColumnName: 'id', nullable: false)]
     private ?Beds24Config $config = null;
 
     #[ORM\ManyToOne(targetEntity: ExchangeEndpoint::class, inversedBy: 'bookingsPullQueues')]
-    #[ORM\JoinColumn(nullable: false, columnDefinition: 'BINARY(16)')]
+    #[ORM\JoinColumn(nullable: false)]
     private ?ExchangeEndpoint $endpoint = null;
 
     /** * @var Collection<int, PmsUnidad>

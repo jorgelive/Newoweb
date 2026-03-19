@@ -21,60 +21,56 @@ class WhatsappMetaTemplateType extends AbstractType
             ->add('is_active', CheckboxType::class, [
                 'label' => 'Activar envío por WhatsApp (Meta)',
                 'required' => false,
+                'row_attr' => ['class' => 'col-md-12 mb-3'],
+            ])
+            ->add('body', CollectionType::class, [
+                'entry_type' => TranslationLongTextType::class,
+                'label' => '1. Texto Libre (Para ventana de 24h abierta - GRATIS)',
+                'help' => 'Este texto se enviará si el huésped nos ha escrito en las últimas 24 horas. Soporta variables nativas: {{ guest_name }}.',
+                'allow_add' => true,
+                'allow_delete' => true,
+                'by_reference' => false,
+                'entry_options' => ['label' => 'Traducción'],
+                'attr' => ['class' => 'pms-flat-collection'],
                 'row_attr' => ['class' => 'col-md-12 mb-4'],
             ])
             ->add('whatsapp_meta_template_name', TextType::class, [
-                'label' => 'Nombre Base en Meta',
+                'label' => '2. Nombre Base de Plantilla Oficial (Para ventana cerrada - PAGO)',
+                'required' => false,
                 'attr' => ['placeholder' => 'Ej: welcome_confirmation'],
-                'row_attr' => ['class' => 'col-md-8 mb-3'],
+                'help' => 'Si la ventana de 24h está cerrada, el sistema usará esta configuración oficial de Meta.',
+                'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
             ->add('category', ChoiceType::class, [
-                'label' => 'Categoría',
+                'label' => 'Categoría (Solo Oficial)',
+                'required' => false,
                 'choices' => [
                     'Utility (Servicio)' => 'UTILITY',
                     'Marketing' => 'MARKETING',
                     'Authentication' => 'AUTHENTICATION',
                 ],
-                'row_attr' => ['class' => 'col-md-4 mb-3'],
+                'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
             ->add('params_map', CollectionType::class, [
                 'entry_type' => TextType::class,
-                'label' => 'Variables de la Plantilla (Orden: {{1}}, {{2}}...)',
+                'label' => 'Variables Oficiales (Orden: {{1}}, {{2}}...)',
                 'allow_add' => true,
                 'allow_delete' => true,
                 'entry_options' => [
                     'label' => 'Variable',
-                    'attr' => ['placeholder' => 'Ej: guest_name, locator, checkin_date...']
+                    'attr' => ['placeholder' => 'Ej: guest_name']
                 ],
-                // 🔥 Inyectamos la clase para que nuestro CSS la encuentre
-                'attr' => ['class' => 'pms-flat-collection'],
-                'row_attr' => ['class' => 'col-md-12 mb-4'],
-            ])
-            ->add('text_reference', CollectionType::class, [
-                'entry_type' => TranslationLongTextType::class,
-                'label' => 'Textos de Referencia (Previsualización Interna)',
-                'help' => 'Agrega las traducciones. Esto NO se envía a Meta, es para la vista del Panel.',
-                'allow_add' => true,
-                'allow_delete' => true,
-                'by_reference' => false,
-                'entry_options' => [
-                    'label' => 'Traducción'
-                ],
-                // 🔥 Inyectamos la clase
                 'attr' => ['class' => 'pms-flat-collection'],
                 'row_attr' => ['class' => 'col-md-12 mb-4'],
             ])
             ->add('language_mapping', CollectionType::class, [
                 'entry_type' => MetaLanguageConfigType::class,
-                'label' => 'Configuración Técnica en Meta por Idioma',
-                'help' => 'Mapeo estricto de los IDs y estados aprobados en Business Manager.',
+                'label' => 'IDs Oficiales en Meta por Idioma',
+                'help' => 'Mapeo estricto de los IDs aprobados en Business Manager.',
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,
-                'entry_options' => [
-                    'label' => 'Configuración de Idioma'
-                ],
-                // 🔥 Inyectamos la clase
+                'entry_options' => ['label' => 'Configuración de Idioma'],
                 'attr' => ['class' => 'pms-flat-collection'],
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ]);
@@ -83,7 +79,7 @@ class WhatsappMetaTemplateType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => null, // Crucial: maneja un Array (JSON) directamente
+            'data_class' => null,
         ]);
 
         // EL TRUCO MAESTRO PARA DOMAR A EASYADMIN
