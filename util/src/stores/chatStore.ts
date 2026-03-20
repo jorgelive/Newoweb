@@ -44,6 +44,7 @@ export interface ApiTemplate {
     contextType: string | null;
     allowedSources: string[];
     allowedAgencies: string[];
+    channels: string[];
 }
 
 export interface ApiConversation {
@@ -61,6 +62,7 @@ export interface ApiConversation {
     contextStatusTag: string | null;
     contextMilestones: { start?: string; end?: string; booked_at?: string; eta?: string; };
     contextItems: string[];
+    whatsappSessionActive?: boolean;
 }
 
 export const useChatStore = defineStore('chatStore', () => {
@@ -103,17 +105,13 @@ export const useChatStore = defineStore('chatStore', () => {
     const hasMoreMessages = ref(true);
     const loadingMoreMessages = ref(false);
 
-    // 🔥 FIX: Usamos shallowRef para que Pinia no intente hacer reactiva la conexión nativa
+    // Usamos shallowRef para que Pinia no intente hacer reactiva la conexión nativa
     const eventSource = shallowRef<EventSource | null>(null);
     const globalEventSource = shallowRef<EventSource | null>(null);
 
     const filteredConversations = computed(() => {
         return conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase());
     });
-
-    // ============================================================================
-    // 🔥 FILTROS COMPUTADOS PARA LA INTERFAZ DE CHAT Y PROGRAMADOS
-    // ============================================================================
 
     const activeChatMessages = computed(() => {
         return messages.value.filter(m => !m.isScheduledForFuture);

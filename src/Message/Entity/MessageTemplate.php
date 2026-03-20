@@ -135,6 +135,32 @@ class MessageTemplate
     public function isBeds24Active(): bool { return ($this->beds24Tmpl['is_active'] ?? false) === true; }
     public function isWhatsappMetaActive(): bool { return ($this->whatsappMetaTmpl['is_active'] ?? false) === true; }
 
+    /**
+     * Extrae los canales de comunicación activos configurados en la plantilla.
+     * Este método se expone en la API mediante el grupo de serialización para que el
+     * frontend pueda determinar dinámicamente qué canales seleccionar en el selector omnicanal.
+     * * @return array<string> Arreglo de identificadores de canal (ej. ['beds24', 'whatsapp_meta'])
+     */
+    #[Groups(['template:read'])]
+    public function getChannels(): array
+    {
+        $channels = [];
+
+        if ($this->isBeds24Active()) {
+            $channels[] = 'beds24';
+        }
+
+        if ($this->isWhatsappMetaActive()) {
+            $channels[] = 'whatsapp_meta';
+        }
+
+        if ($this->isEmailActive()) {
+            $channels[] = 'email';
+        }
+
+        return $channels;
+    }
+
     public function getEmailSubject(string $lang): ?string
     {
         return $this->extract($this->emailTmpl['subject'] ?? [], $lang, 'content');

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
-import { useChatStore, ApiMessage } from '@/stores/chatStore';
+import { useChatStore, ApiMessage, ApiTemplate } from '@/stores/chatStore';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 
 const store = useChatStore();
@@ -13,7 +13,7 @@ const newMessageText = ref('');
 const isMobileSidebarOpen = ref(true);
 const isTransitioning = ref(true);
 
-// 🔥 NUEVO: Estado de la pestaña activa (Historial vs Programados)
+// Estado de la pestaña activa (Historial vs Programados)
 const activeTab = ref<'history' | 'scheduled'>('history');
 
 // Estados del Composer
@@ -22,7 +22,7 @@ const showTemplateDropdown = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 // Hook Multicanal
-const selectedChannels = ref<string[]>(['whatsapp_meta']);
+const selectedChannels = ref<string[]>([]);
 
 // Estados para el Modal de Previsualización de Imágenes
 const isPreviewModalOpen = ref(false);
@@ -111,11 +111,17 @@ watch(() => store.currentConversation, (chat) => {
 
   activeTab.value = 'history';
 
+  const newChannels: string[] = [];
   if (chat?.contextOrigin && !['manual', 'web', 'directo'].includes(chat.contextOrigin.toLowerCase())) {
-    selectedChannels.value = ['beds24', 'whatsapp_meta'];
-  } else {
-    selectedChannels.value = ['whatsapp_meta'];
+    newChannels.push('beds24');
   }
+
+  // 🔥 Solo pre-seleccionar WhatsApp si la sesión está activa
+  if (chat?.whatsappSessionActive) {
+    newChannels.push('whatsapp_meta');
+  }
+
+  selectedChannels.value = newChannels;
 });
 
 const selectChat = async (id: string) => {
@@ -154,6 +160,42 @@ const toggleChannel = (channel: string) => {
   }
 };
 
+/**
+ * Selecciona una plantilla y marca automáticamente SÓLO los canales que esta soporte,
+ * basándose en la respuesta determinista del backend (tpl.channels).
+ * @param {ApiTemplate} tpl El objeto de la plantilla.
+ */
+const selectTemplate = (tpl: ApiTemplate) => {
+  selectedTemplateId.value = tpl['@id'];
+  showTemplateDropdown.value = false;
+
+  // Asignamos directamente los canales que vienen del backend
+  // Si no hay canales, se queda vacío. No adivinamos.
+  selectedChannels.value = tpl.channels || [];
+};
+
+/**
+ * Limpia la plantilla seleccionada y restaura los canales predeterminados
+ * según el estado de la conversación.
+ */
+const clearTemplate = () => {
+  selectedTemplateId.value = null;
+
+  const restoredChannels: string[] = [];
+  const chat = store.currentConversation;
+
+  if (chat) {
+    if (chat.contextOrigin && !['manual', 'web', 'directo'].includes(chat.contextOrigin.toLowerCase())) {
+      restoredChannels.push('beds24');
+    }
+    if (chat.whatsappSessionActive) {
+      restoredChannels.push('whatsapp_meta');
+    }
+  }
+
+  selectedChannels.value = restoredChannels;
+};
+
 const onFileSelected = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
@@ -177,9 +219,18 @@ const send = async () => {
     return;
   }
 
+  // Validación de seguridad (fallback)
+  const isWhatsappSelected = selectedChannels.value.includes('whatsapp_meta');
+  const isWhatsappSessionActive = !!store.currentConversation?.whatsappSessionActive;
+
+  if (isWhatsappSelected && !isWhatsappSessionActive && !selectedTemplateId.value) {
+    store.error = 'WhatsApp requiere plantilla (sesión inactiva).';
+    return;
+  }
+
   await store.sendMessage(newMessageText.value, selectedTemplateId.value, selectedChannels.value);
   newMessageText.value = '';
-  selectedTemplateId.value = null;
+  clearTemplate();
   showTemplateDropdown.value = false;
 };
 
@@ -229,7 +280,7 @@ const formatDate = (iso?: string) => {
   if (!iso) return '';
   // Extraemos las partes directamente sin conversión de zona horaria
   const [year, month, day] = iso.split('T')[0].split('-').map(Number);
-  const date = new Date(year, month - 1, day); // constructor local, no UTC
+  const date = new Date(year, month - 1, day);
   const currentYear = new Date().getFullYear();
   return date.toLocaleDateString('es-ES', {
     day: '2-digit',
@@ -279,10 +330,7 @@ const getOriginClass = (origin?: string | null) => {
 
 /**
  * Verifica si un adjunto es de tipo imagen.
- * * ¿Por qué existe? Es necesario para decidir si el archivo debe visualizarse
- * en un modal interno (imágenes) o descargarse/abrirse en nueva pestaña (documentos).
- * Analiza el mimeType si está disponible, o deduce por la extensión del archivo como respaldo.
- * * @param {any} att El objeto de adjunto a evaluar.
+ * @param {any} att El objeto de adjunto a evaluar.
  * @returns {boolean} True si es una imagen soportada.
  */
 const isImageAttachment = (att: any): boolean => {
@@ -294,10 +342,7 @@ const isImageAttachment = (att: any): boolean => {
 
 /**
  * Maneja el clic sobre un archivo adjunto dentro de un mensaje.
- * * ¿Por qué existe? Para proporcionar una experiencia de usuario fluida sin salir del PMS:
- * las imágenes se abren en un modal a pantalla completa para ver detalles rápidos,
- * mientras que archivos como PDFs se abren en una nueva pestaña forzando su visualizador nativo o descarga.
- * * @param {any} att El adjunto que fue clickeado.
+ * @param {any} att El adjunto que fue clickeado.
  */
 const handleAttachmentClick = (att: any) => {
   if (typeof att === 'string') {
@@ -504,11 +549,22 @@ const closePreviewModal = () => {
 
           <div class="flex items-center gap-2 px-1 max-w-4xl mx-auto w-full overflow-x-auto scrollbar-hide">
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"><i class="fas fa-satellite-dish mr-1"></i> Salida:</span>
+
             <button @click="toggleChannel('beds24')" :class="selectedChannels.includes('beds24') ? 'text-[#003580] bg-[#003580]/10 border-[#003580]/30' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
               <i class="fas fa-bed"></i> Beds24
             </button>
-            <button @click="toggleChannel('whatsapp_')" :class="selectedChannels.includes('whatsapp_gupshup') ? 'text-green-600 bg-green-50 border-green-200' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
+
+            <button
+                @click="toggleChannel('whatsapp_meta')"
+                :disabled="!store.currentConversation?.whatsappSessionActive && !selectedTemplateId"
+                :class="[
+                selectedChannels.includes('whatsapp_meta') ? 'text-green-600 bg-green-50 border-green-200' : 'text-slate-400 border-transparent hover:bg-slate-100',
+                (!store.currentConversation?.whatsappSessionActive && !selectedTemplateId) ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''
+              ]"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0 relative"
+            >
               <i class="fab fa-whatsapp text-sm"></i> WhatsApp
+              <i v-if="!store.currentConversation?.whatsappSessionActive" class="fas fa-lock text-[10px] ml-1" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-600/50' : 'text-slate-300'" title="Sesión de 24h inactiva"></i>
             </button>
           </div>
 
@@ -518,7 +574,12 @@ const closePreviewModal = () => {
                 <span>Plantillas Permitidas</span>
                 <button @click="showTemplateDropdown = false" class="text-slate-300 hover:text-red-400"><i class="fas fa-times"></i></button>
               </div>
-              <button v-for="tpl in store.validTemplates" :key="tpl.id" @click="selectedTemplateId = tpl['@id']; showTemplateDropdown = false" class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl transition-colors mb-1 group flex items-center justify-between">
+              <button
+                  v-for="tpl in store.validTemplates"
+                  :key="tpl.id"
+                  @click="selectTemplate(tpl)"
+                  class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl transition-colors mb-1 group flex items-center justify-between"
+              >
                 <span class="block min-w-0">
                   <span class="block text-sm font-bold text-slate-800 truncate">{{ tpl.name }}</span>
                   <span class="block text-[10px] font-mono text-slate-400 truncate">{{ tpl.code }}</span>
@@ -560,7 +621,7 @@ const closePreviewModal = () => {
                     <span class="block text-xs font-bold text-slate-800 truncate">{{ getTemplateName(selectedTemplateId) }}</span>
                   </div>
                 </div>
-                <button type="button" @click="selectedTemplateId = null" class="w-6 h-6 shrink-0 rounded-full hover:bg-red-50 text-red-400 flex items-center justify-center ml-2"><i class="fas fa-times text-xs"></i></button>
+                <button type="button" @click="clearTemplate()" class="w-6 h-6 shrink-0 rounded-full hover:bg-red-50 text-red-400 flex items-center justify-center ml-2"><i class="fas fa-times text-xs"></i></button>
               </div>
               <textarea v-else v-model="newMessageText" @keydown.enter.exact.prevent="send" placeholder="Escribe tu mensaje..." class="w-full bg-transparent border-0 focus:ring-0 resize-none py-2 px-2 text-sm font-semibold text-slate-800 scrollbar-hide" rows="1"></textarea>
             </div>
