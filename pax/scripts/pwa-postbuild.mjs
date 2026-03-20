@@ -7,8 +7,8 @@ const publicDir = path.resolve(root, '../public')
 const appPaxDir = path.resolve(publicDir, 'app_pax')
 
 // 1) Copiar manifest PWA a raíz
-const pwaManifestSrc = path.resolve(appPaxDir, 'manifest.webmanifest')
-const pwaManifestDst = path.resolve(publicDir, 'manifest.webmanifest')
+const pwaManifestSrc = path.resolve(appPaxDir, 'pax-manifest.webmanifest')
+const pwaManifestDst = path.resolve(publicDir, 'pax-manifest.webmanifest')
 
 if (!fs.existsSync(pwaManifestSrc)) {
     console.error('❌ No se encontró:', pwaManifestSrc)

@@ -31,7 +31,7 @@ export default defineConfig(({ command }) => {
                 filename: '../service-worker.js',
 
                 // ✅ Manifest PWA dentro de /public/app_pax/ (Vite lo deja ahí)
-                manifestFilename: 'manifest.webmanifest',
+                manifestFilename: 'pax-manifest.webmanifest',
 
                 manifest: {
                     name: 'Pax App OpenPeru',

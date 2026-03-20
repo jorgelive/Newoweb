@@ -32,7 +32,7 @@ export default defineConfig(({ command }) => {
                 filename: '../service-worker.js',
 
                 // ✅ Manifest PWA dentro de /public/app_util/
-                manifestFilename: 'manifest.webmanifest',
+                manifestFilename: 'util-manifest.webmanifest',
 
                 manifest: {
                     name: 'OpenPeru Utilidades',
