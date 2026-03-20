@@ -200,7 +200,7 @@ class Message
         }
 
         // 2. 🔥 ACEPTAMOS AMBOS ESTADOS: 'pending' (por si acaso) y 'queued' (el real)
-        if (!in_array($this->status, [self::STATUS_PENDING, self::STATUS_QUEUED], true)) {
+        if (!in_array($this->status, [self::STATUS_PENDING, self::STATUS_QUEUED, self::STATUS_FAILED], true)) {
             return false;
         }
 
