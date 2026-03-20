@@ -469,9 +469,10 @@ TXT;
             ->setHelp('Protege los datos contra sobrescritura por sincronización.');
 
         yield FormField::addPanel('Estancias')->setIcon('fa fa-calendar');
-        
+
         yield HiddenField::new('establecimiento')
-            ->setRequired(true);
+            ->setRequired(true)
+            ->onlyOnForms();
 
         yield CollectionField::new('eventosCalendario', 'Gestión de Eventos')
             ->useEntryCrudForm(PmsEventoCalendarioCrudController::class)
