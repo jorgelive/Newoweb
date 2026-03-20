@@ -24,6 +24,10 @@ const fileInput = ref<HTMLInputElement | null>(null);
 // Hook Multicanal
 const selectedChannels = ref<string[]>(['whatsapp_meta']);
 
+// Estados para el Modal de Previsualización de Imágenes
+const isPreviewModalOpen = ref(false);
+const previewImageUrl = ref<string | null>(null);
+
 const handlePopState = (event: PopStateEvent) => {
   if (window.innerWidth >= 768) return;
   isTransitioning.value = false;
@@ -272,6 +276,50 @@ const getOriginClass = (origin?: string | null) => {
   const colors: Record<string, string> = { booking: 'bg-[#003580]', airbnb: 'bg-[#FF5A5F]', expedia: 'bg-[#00355F]' };
   return colors[origin?.toLowerCase() || ''] || 'bg-[#376875]';
 };
+
+/**
+ * Verifica si un adjunto es de tipo imagen.
+ * * ¿Por qué existe? Es necesario para decidir si el archivo debe visualizarse
+ * en un modal interno (imágenes) o descargarse/abrirse en nueva pestaña (documentos).
+ * Analiza el mimeType si está disponible, o deduce por la extensión del archivo como respaldo.
+ * * @param {any} att El objeto de adjunto a evaluar.
+ * @returns {boolean} True si es una imagen soportada.
+ */
+const isImageAttachment = (att: any): boolean => {
+  if (typeof att === 'string') return false;
+  if (att.mimeType && att.mimeType.startsWith('image/')) return true;
+  const name = att.originalName || att.fileUrl || '';
+  return /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+};
+
+/**
+ * Maneja el clic sobre un archivo adjunto dentro de un mensaje.
+ * * ¿Por qué existe? Para proporcionar una experiencia de usuario fluida sin salir del PMS:
+ * las imágenes se abren en un modal a pantalla completa para ver detalles rápidos,
+ * mientras que archivos como PDFs se abren en una nueva pestaña forzando su visualizador nativo o descarga.
+ * * @param {any} att El adjunto que fue clickeado.
+ */
+const handleAttachmentClick = (att: any) => {
+  if (typeof att === 'string') {
+    window.open(att, '_blank');
+    return;
+  }
+
+  if (isImageAttachment(att) && att.fileUrl) {
+    previewImageUrl.value = att.fileUrl;
+    isPreviewModalOpen.value = true;
+  } else if (att.fileUrl) {
+    window.open(att.fileUrl, '_blank');
+  }
+};
+
+/**
+ * Cierra el modal de previsualización de imágenes y limpia la URL.
+ */
+const closePreviewModal = () => {
+  isPreviewModalOpen.value = false;
+  previewImageUrl.value = null;
+};
 </script>
 
 <template>
@@ -418,9 +466,14 @@ const getOriginClass = (origin?: string | null) => {
                     ]" class="rounded-3xl p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative w-full break-words">
 
                       <div v-if="msg.attachments?.length" class="mb-3 space-y-2">
-                        <div v-for="att in msg.attachments" :key="(typeof att === 'string') ? att : att.id" class="flex items-center gap-3 p-3 rounded-xl bg-black/10">
+                        <div
+                            v-for="att in msg.attachments"
+                            :key="(typeof att === 'string') ? att : att.id"
+                            @click="handleAttachmentClick(att)"
+                            class="flex items-center gap-3 p-3 rounded-xl bg-black/10 cursor-pointer hover:bg-black/20 transition-colors"
+                        >
                           <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                            <img v-if="typeof att !== 'string' && att.fileUrl" :src="att.fileUrl ?? undefined" class="w-full h-full object-cover" />
+                            <img v-if="typeof att !== 'string' && att.fileUrl && isImageAttachment(att)" :src="att.fileUrl ?? undefined" class="w-full h-full object-cover" />
                             <i v-else class="fas fa-file-alt text-lg"></i>
                           </div>
                           <div class="min-w-0">
@@ -519,6 +572,27 @@ const getOriginClass = (origin?: string | null) => {
         </footer>
       </template>
     </main>
+
+    <Transition name="fade-slide">
+      <div
+          v-if="isPreviewModalOpen"
+          class="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-pointer"
+          @click="closePreviewModal"
+      >
+        <button
+            @click="closePreviewModal"
+            class="absolute top-4 right-4 text-white hover:text-red-400 bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center transition-all shadow-lg"
+        >
+          <i class="fas fa-times text-xl"></i>
+        </button>
+        <img
+            v-if="previewImageUrl"
+            :src="previewImageUrl"
+            class="max-w-full max-h-full object-contain rounded-xl shadow-2xl cursor-default"
+            @click.stop
+        />
+      </div>
+    </Transition>
   </div>
 </template>
 
