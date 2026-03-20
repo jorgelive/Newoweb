@@ -340,6 +340,7 @@ class PmsReserva
     public function getEventosActivosGuia(): array
     {
         $estadosPermitidos = [
+            PmsEventoEstado::CODIGO_PENDIENTE,
             PmsEventoEstado::CODIGO_CONFIRMADA,
             PmsEventoEstado::CODIGO_REQUERIMIENTO,
         ];
