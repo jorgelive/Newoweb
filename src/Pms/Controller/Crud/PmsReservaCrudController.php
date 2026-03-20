@@ -7,6 +7,7 @@ namespace App\Pms\Controller\Crud;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Message\Entity\MessageTemplate;
 use App\Panel\Controller\Crud\BaseCrudController;
+use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
@@ -31,6 +32,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\HiddenField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -62,13 +64,39 @@ final class PmsReservaCrudController extends BaseCrudController
         return PmsReserva::class;
     }
 
+    /**
+     * Instancia y pre-configura una nueva entidad PmsReserva.
+     * * Este método inyecta las dependencias estáticas (idioma por defecto) y
+     * el contexto de negocio (establecimiento único) antes de montar el formulario.
+     * Esto garantiza que el HiddenField reciba una entidad válida y extraiga su ID
+     * sin romper el tipado estricto durante el flush de Doctrine.
+     *
+     * @param string $entityFqcn La clase de la entidad a instanciar.
+     * @return PmsReserva La instancia de reserva lista para el FormBuilder.
+     */
     public function createEntity(string $entityFqcn): PmsReserva
     {
         $reserva = new PmsReserva();
+
+        // 1. Asignación del Idioma por defecto (Lógica original intacta)
         $idiomaDefault = $this->entityManager->getReference(MaestroIdioma::class, MaestroIdioma::DEFAULT_IDIOMA);
         if ($idiomaDefault) {
             $reserva->setIdioma($idiomaDefault);
         }
+
+        // 2. Asignación del Establecimiento
+        /**
+         * TODO: LÓGICA DE ESTABLECIMIENTO ÚNICO.
+         * Se captura el primer registro disponible en la base de datos.
+         * Si el sistema escala a multi-propiedad (ej. gestión de múltiples casitas simultáneas),
+         * esta lógica deberá extraer el ID del contexto de seguridad o de la sesión del usuario.
+         */
+        $establecimiento = $this->entityManager->getRepository(PmsEstablecimiento::class)->findOneBy([]);
+
+        if ($establecimiento !== null) {
+            $reserva->setEstablecimiento($establecimiento);
+        }
+
         return $reserva;
     }
 
@@ -357,7 +385,7 @@ TXT;
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            ->add('establecimiento')
+            //->add('establecimiento')
             ->add('beds24MasterId')
             ->add('referenciaCanalAggregate')
             ->add('canalesAggregate')
@@ -441,9 +469,9 @@ TXT;
             ->setHelp('Protege los datos contra sobrescritura por sincronización.');
 
         yield FormField::addPanel('Estancias')->setIcon('fa fa-calendar');
-        yield AssociationField::new('establecimiento', 'Establecimiento')
-            ->setRequired(true)
-            ->setFormTypeOption('attr', ['required' => true]);
+        
+        yield HiddenField::new('establecimiento')
+            ->setRequired(true);
 
         yield CollectionField::new('eventosCalendario', 'Gestión de Eventos')
             ->useEntryCrudForm(PmsEventoCalendarioCrudController::class)
