@@ -3,6 +3,7 @@
 namespace App\Api\Controller\Pax\Trait;
 
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsUnidad;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -20,6 +21,12 @@ trait GuiaHelperResponseTrait
      * @param PmsEventoCalendario|null $evento El evento de reserva (null si es acceso público/demo).
      * @return JsonResponse Payload estructurado con textos fijos, traducibles, widgets y configuración.
      */
+    public const ESTADOS_PAGO_CONFIABLES = [
+        PmsEventoEstadoPago::ID_PAGO_PARCIAL,
+        PmsEventoEstadoPago::ID_PAGO_TOTAL
+    ];
+
+
     private function buildResponse(PmsUnidad $unidad, ?PmsEventoCalendario $evento): JsonResponse
     {
         $est = $unidad->getEstablecimiento();
@@ -123,9 +130,9 @@ trait GuiaHelperResponseTrait
             return ['status' => 'demo', 'authorized' => false, 'unlock_at' => null];
         }
 
-        // 1. Validamos primero el estado de la reserva
-        $estadoId = $evento->getEstado()?->getId();
-        if (!in_array($estadoId, PmsEventoCalendario::ESTADOS_CONFIRMADOS, true)) {
+        // 1. Validamos primero el estado de pago de la reserva
+        $estadoPagoId = $evento->getEstadoPago()?->getId();
+        if (!in_array($estadoPagoId, $this::ESTADOS_PAGO_CONFIABLES, true)) {
             return ['status' => 'unconfirmed', 'authorized' => false, 'unlock_at' => null];
         }
 
