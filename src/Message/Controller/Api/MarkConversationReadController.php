@@ -60,8 +60,8 @@ final class MarkConversationReadController extends AbstractController
 
                 } elseif ($platformId === 'whatsapp_meta') {
                     // Auditoría simétrica para Meta: Guardamos exactamente cuándo lo leyó tu equipo
-                    $msg->addMetadata('meta_read_at', $nowUtc);
-                    $msg->addMetadata('read_by_system', true);
+                    $msg->setWhatsappMetaReadAt($nowUtc);
+                    $msg->addWhatsappMetaMetadata('read_by_system', true);
                 }
 
                 // =========================================================================
