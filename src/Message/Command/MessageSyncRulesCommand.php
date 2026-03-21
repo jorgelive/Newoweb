@@ -15,7 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-/*
+/**
  * Uso:
  * php bin/console app:message:sync-rules 019cea14-bdd4-769e-bd63-8abac315738c
  * php bin/console app:message:sync-rules --all

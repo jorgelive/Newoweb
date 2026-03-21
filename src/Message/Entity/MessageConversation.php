@@ -32,7 +32,6 @@ use Symfony\Component\Uid\Uuid;
         new GetCollection(uriTemplate: '/user/util/msg/conversations'),
         new Get(uriTemplate: '/user/util/msg/conversations/{id}'),
 
-        // 🔥 ENDPOINT: Marca la conversación como leída y dispara los webhooks de salida
         new Post(
             uriTemplate: '/user/util/msg/conversations/{id}/read',
             controller: MarkConversationReadController::class,
@@ -41,7 +40,8 @@ use Symfony\Component\Uid\Uuid;
                 description: 'Marca todos los mensajes INCOMING de la conversación como leídos y notifica a las OTAs (Beds24/WhatsApp) mediante la cola de salida.'
             ),
             read: false,
-            deserialize: false)
+            deserialize: false
+        )
     ],
     normalizationContext: ['groups' => ['conversation:read']],
     order: ['lastMessageAt' => 'DESC']
@@ -52,8 +52,8 @@ class MessageConversation
     use IdTrait;
     use TimestampTrait;
 
-    public const string STATUS_OPEN = 'open';
-    public const string STATUS_CLOSED = 'closed';
+    public const string STATUS_OPEN     = 'open';
+    public const string STATUS_CLOSED   = 'closed';
     public const string STATUS_ARCHIVED = 'archived';
 
     #[ORM\Column(type: 'string', length: 20, options: ['default' => self::STATUS_OPEN])]
@@ -114,11 +114,15 @@ class MessageConversation
     public function __construct(string $contextType, string $contextId)
     {
         $this->contextType = $contextType;
-        $this->contextId = $contextId;
-        $this->messages = new ArrayCollection();
+        $this->contextId   = $contextId;
+        $this->messages    = new ArrayCollection();
         $this->contextData = [];
-        $this->id = Uuid::v7();
+        $this->id          = Uuid::v7();
     }
+
+    // =========================================================================
+    // GETTERS BÁSICOS
+    // =========================================================================
 
     #[Groups(['conversation:read'])]
     public function getId(): ?Uuid { return $this->id; }
@@ -143,6 +147,10 @@ class MessageConversation
 
     public function isIdiomaFijado(): bool { return $this->idiomaFijado; }
     public function setIdiomaFijado(bool $idiomaFijado): self { $this->idiomaFijado = $idiomaFijado; return $this; }
+
+    // =========================================================================
+    // FECHAS Y CONTADORES
+    // =========================================================================
 
     public function getLastMessageAt(): ?DateTimeInterface { return $this->lastMessageAt; }
     public function setLastMessageAt(?DateTimeInterface $lastMessageAt): self { $this->lastMessageAt = $lastMessageAt; return $this; }
@@ -178,6 +186,10 @@ class MessageConversation
     public function getContextData(): ?array { return $this->contextData; }
     public function setContextData(?array $contextData): self { $this->contextData = $contextData; return $this; }
 
+    // =========================================================================
+    // COLECCIÓN DE MENSAJES
+    // =========================================================================
+
     /**
      * @return Collection<int, Message>
      */
@@ -188,32 +200,14 @@ class MessageConversation
     }
 
     /**
-     * Añade un mensaje y actualiza metadatos (fecha y contadores).
-     * BARRERA: Solo altera los metadatos de la conversación si el mensaje NO es futuro.
+     * Añade un mensaje a la colección y establece la relación bidireccional.
+     * Los contadores y fechas se actualizan via PrePersist en Message.
      */
     public function addMessage(Message $message): self
     {
         if (!$this->messages->contains($message)) {
             $this->messages->add($message);
             $message->setConversation($this);
-
-            // 🔥 BARRERA CRONOLÓGICA: Un mensaje programado no debe hacer "ruido" en la lista de chats
-            if (!$message->getIsScheduledForFuture()) {
-                // 1. Clonamos la fecha de creación del mensaje para el puntero de "último mensaje"
-                $fechaMensaje = clone ($message->getCreatedAt() ?? new \DateTime());
-                $this->setLastMessageAt($fechaMensaje);
-                // 2. Si el mensaje es entrante (del huésped)
-                if ($message->getDirection() === Message::DIRECTION_INCOMING) {
-                    $this->setLastInboundAt($fechaMensaje);
-                    $this->incrementUnreadCount();
-                    // 🔥 3. FILTRO ESTRICTO: Solo abrimos ventana de 24h si el origen es WhatsApp exacto
-                    $channel = $message->getChannel();
-                    if ($channel !== null && $channel->getId() === 'whatsapp_meta') {
-                        $ventanaCierre = (clone $fechaMensaje)->modify('+24 hours');
-                        $this->setWhatsappSessionValidUntil($ventanaCierre);
-                    }
-                }
-            }
         }
         return $this;
     }
@@ -224,7 +218,6 @@ class MessageConversation
     public function removeMessage(Message $message): self
     {
         if ($this->messages->removeElement($message)) {
-            // Seteamos a null la relación en el lado del mensaje si apuntaba a esta conversación
             if ($message->getConversation() === $this) {
                 $message->setConversation(null);
             }
@@ -232,16 +225,16 @@ class MessageConversation
         return $this;
     }
 
+    // =========================================================================
+    // CONTEXT DATA
+    // =========================================================================
+
     private function initContextData(): void
     {
         if ($this->contextData === null) {
             $this->contextData = [];
         }
     }
-
-    // =========================================================================
-    // GETTERS Y SETTERS VIRTUALES (EL MOTOR DE METADATA)
-    // =========================================================================
 
     #[Groups(['conversation:read'])]
     public function getContextOrigin(): ?string { return $this->contextData['origin'] ?? null; }
@@ -271,8 +264,8 @@ class MessageConversation
         return $this;
     }
 
-    public function addContextMilestone(string $key, \DateTimeInterface|string|null $date): self {
-        // 🔥 BARRERA DE VALIDACIÓN ESTRICTA
+    public function addContextMilestone(string $key, \DateTimeInterface|string|null $date): self
+    {
         $validMilestones = [
             ConversationMilestoneInterface::CREATED,
             ConversationMilestoneInterface::START,
@@ -315,7 +308,9 @@ class MessageConversation
 
     #[Groups(['conversation:read'])]
     public function getContextFinancialTotal(): ?float {
-        return isset($this->contextData['financials']['total']) ? (float) $this->contextData['financials']['total'] : null;
+        return isset($this->contextData['financials']['total'])
+            ? (float) $this->contextData['financials']['total']
+            : null;
     }
 
     #[Groups(['conversation:read'])]
@@ -329,7 +324,8 @@ class MessageConversation
         return $this;
     }
 
-    public function __toString(): string {
+    public function __toString(): string
+    {
         return sprintf('%s (%s)', $this->guestName ?? 'Sin Nombre', $this->guestPhone ?? 'Sin Teléfono');
     }
 }

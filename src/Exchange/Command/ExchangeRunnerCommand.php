@@ -21,12 +21,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * 1. TimelineEnqueuerCommand: Encuentra cambios y los mete en la tabla '_queue'.
  * 2. ExchangeRunnerCommand (Este): Lee la tabla '_queue' y envía los datos.
  * * --- EJEMPLOS DE USO ---
- * @example php bin/console exchange:run bookings_pull           -> Ejecuta importación de reservas pendientes.
- * @example php bin/console exchange:run bookings_push           -> Envía cambios de reservas a Beds24.
- * @example php bin/console exchange:run rates_push              -> Envía actualizaciones de precios a Beds24.
- * @example php bin/console exchange:run rates_push --limit=100  -> Procesa un lote más grande.
- * @example php bin/console exchange:run beds24_message_send     -> Envía los mensajes a Beds24.
- * @example php bin/console exchange:run beds24_message_receive   -> Recibe los mensajes a Beds24.
+ * @example php bin/console exchange:run bookings_pull              -> Ejecuta importación de reservas pendientes.
+ * @example php bin/console exchange:run bookings_push              -> Envía cambios de reservas a Beds24.
+ * @example php bin/console exchange:run rates_push                 -> Envía actualizaciones de precios a Beds24.
+ * @example php bin/console exchange:run rates_push --limit=100     -> Procesa un lote más grande.
+ * @example php bin/console exchange:run beds24_message_send        -> Envía los mensajes a Beds24.
+ * @example php bin/console exchange:run beds24_message_receive     -> Recibe los mensajes a Beds24.
+ * @example php bin/console exchange:run whatsapp_meta_message_send -> Envia los mensajes a Whatsapp.
  */
 #[AsCommand(
     name: 'exchange:run', // Nombre semántico: Acción + Ejecución

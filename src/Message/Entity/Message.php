@@ -65,14 +65,13 @@ class Message
     use IdTrait;
     use TimestampTrait;
 
-    public const string STATUS_FAILED   = 'failed';
-
-    public const string STATUS_PENDING  = 'pending';
-    public const string STATUS_QUEUED   = 'queued';
-    public const string STATUS_SENT     = 'sent';
-    public const string STATUS_DELIVERED   = 'sent';
-    public const string STATUS_RECEIVED = 'received';
-    public const string STATUS_READ     = 'read';
+    public const string STATUS_FAILED    = 'failed';
+    public const string STATUS_PENDING   = 'pending';
+    public const string STATUS_QUEUED    = 'queued';
+    public const string STATUS_SENT      = 'sent';
+    public const string STATUS_DELIVERED = 'sent';
+    public const string STATUS_RECEIVED  = 'received';
+    public const string STATUS_READ      = 'read';
 
     public const string DIRECTION_INCOMING = 'incoming';
     public const string DIRECTION_OUTGOING = 'outgoing';
@@ -159,15 +158,62 @@ class Message
     {
         $this->id = Uuid::v7();
         $this->whatsappMetaSendQueues = new ArrayCollection();
-        $this->beds24SendQueues  = new ArrayCollection();
-        $this->attachments   = new ArrayCollection();
-        $this->externalIds   = [];
+        $this->beds24SendQueues       = new ArrayCollection();
+        $this->attachments            = new ArrayCollection();
+        $this->externalIds            = [];
     }
 
     public function __toString(): string
     {
         return $this->template ? ('Plantilla: ' . $this->template->getName()) : 'Mensaje Libre';
     }
+
+    // =========================================================================
+    // LIFECYCLE CALLBACKS
+    // =========================================================================
+
+    /**
+     * Al insertar un mensaje nuevo, actualiza los contadores y fechas de la conversación.
+     * Los mensajes programados para el futuro se insertan silenciosamente.
+     */
+    #[ORM\PrePersist]
+    public function onPrePersist(): void
+    {
+        if ($this->conversation === null || $this->getIsScheduledForFuture()) {
+            return;
+        }
+
+        $now = new \DateTime();
+        $this->conversation->setLastMessageAt($now);
+
+        if ($this->direction === self::DIRECTION_INCOMING) {
+            $this->conversation->setLastInboundAt($now);
+            $this->conversation->incrementUnreadCount();
+
+            if ($this->channel?->getId() === 'whatsapp_meta') {
+                $this->conversation->setWhatsappSessionValidUntil(
+                    (clone $now)->modify('+24 hours')
+                );
+            }
+        }
+    }
+
+    /**
+     * Al actualizar un mensaje, solo actualiza lastMessageAt cuando el worker
+     * confirma que fue enviado o recibido. No toca unreadCount.
+     */
+    #[ORM\PreUpdate]
+    public function onPreUpdate(): void
+    {
+        if ($this->conversation !== null &&
+            in_array($this->status, [self::STATUS_SENT, self::STATUS_RECEIVED], true)) {
+            $this->conversation->setLastMessageAt(new \DateTime());
+        }
+    }
+
+    // =========================================================================
+    // GETTERS BÁSICOS
+    // =========================================================================
 
     #[Groups(['message:read'])]
     public function getId(): UuidV7 { return $this->id; }
@@ -178,8 +224,6 @@ class Message
     /**
      * Obtiene la fecha efectiva del mensaje para el ordenamiento en el frontend.
      * Si está programado, devuelve la fecha de programación; si no, la de creación.
-     *
-     * @return DateTimeInterface|null La fecha más relevante del mensaje.
      */
     #[Groups(['message:read'])]
     public function getEffectiveDateTime(): ?DateTimeInterface
@@ -189,27 +233,25 @@ class Message
 
     /**
      * Determina de forma robusta si este mensaje es una programación futura.
-     * Evalúa estrictamente que el estado sea PENDING y que la fecha objetivo sea mayor a la actual.
-     *
-     * @return bool True si el mensaje debe considerarse en el pool de "Programados".
+     * Evalúa estrictamente que el estado sea PENDING/QUEUED/FAILED y que la fecha objetivo sea mayor a la actual.
      */
     #[Groups(['message:read'])]
     public function getIsScheduledForFuture(): bool
     {
-        // 1. Si no tiene fecha programada, es un mensaje inmediato
         if ($this->scheduledAt === null) {
             return false;
         }
 
-        // 2. 🔥 ACEPTAMOS AMBOS ESTADOS: 'pending' (por si acaso) y 'queued' (el real)
         if (!in_array($this->status, [self::STATUS_PENDING, self::STATUS_QUEUED, self::STATUS_FAILED], true)) {
             return false;
         }
 
-        // 3. Verificamos que la fecha objetivo aún no haya sido superada
-        $now = new DateTimeImmutable();
-        return $this->scheduledAt > $now;
+        return $this->scheduledAt > new DateTimeImmutable();
     }
+
+    // =========================================================================
+    // RELACIONES
+    // =========================================================================
 
     public function getConversation(): ?MessageConversation { return $this->conversation; }
 
@@ -217,8 +259,6 @@ class Message
     {
         $this->conversation = $conversation;
 
-        // Le avisamos a la conversación para que ejecute su lógica (contadores, WhatsApp 24h, fechas)
-        // El contains() evita el bucle infinito con addMessage()
         if ($conversation !== null && !$conversation->getMessages()->contains($this)) {
             $conversation->addMessage($this);
         }
@@ -238,6 +278,10 @@ class Message
     public function getScheduledAt(): ?DateTimeImmutable { return $this->scheduledAt; }
     public function setScheduledAt(?DateTimeImmutable $scheduledAt): self { $this->scheduledAt = $scheduledAt; return $this; }
 
+    // =========================================================================
+    // CAMPOS BÁSICOS
+    // =========================================================================
+
     public function getLanguageCode(): string { return $this->languageCode; }
     public function setLanguageCode(string $languageCode): self { $this->languageCode = $languageCode; return $this; }
 
@@ -253,14 +297,16 @@ class Message
     public function getSubjectExternal(): ?string { return $this->subjectExternal; }
     public function setSubjectExternal(?string $subjectExternal): self { $this->subjectExternal = $subjectExternal; return $this; }
 
-    public function getFullContentLocal(): string {
+    public function getFullContentLocal(): string
+    {
         $content = $this->contentLocal ?? $this->contentExternal ?? '';
         $subject = $this->subjectLocal ?? $this->subjectExternal ?? '';
         if (!empty($subject)) return sprintf("*%s*\n\n%s", trim($subject), trim($content));
         return $content;
     }
 
-    public function getFullContentExternal(): string {
+    public function getFullContentExternal(): string
+    {
         $content = $this->contentExternal ?? $this->contentLocal ?? '';
         $subject = $this->subjectExternal ?? $this->subjectLocal ?? '';
         if (!empty($subject)) return sprintf("*%s*\n\n%s", trim($subject), trim($content));
@@ -269,6 +315,10 @@ class Message
 
     public function getTemplateContext(): array { return $this->templateContext; }
     public function setTemplateContext(array $templateContext): self { $this->templateContext = $templateContext; return $this; }
+
+    // =========================================================================
+    // METADATA
+    // =========================================================================
 
     public function getMetadata(): array { return array_merge(['beds24' => [], 'whatsappMeta' => []], $this->metadata); }
     public function setMetadata(array $metadata): self { $this->metadata = $metadata; return $this; }
@@ -304,66 +354,62 @@ class Message
     public function getWhatsappMetaErrorReason(): ?string { return $this->metadata['whatsappMeta']['error_reason'] ?? null; }
     public function setWhatsappMetaErrorReason(string $reason): self { return $this->addWhatsappMetaMetadata('error_reason', $reason); }
 
+    // =========================================================================
+    // ESTADO Y DIRECCIÓN
+    // =========================================================================
+
     public function getDirection(): string { return $this->direction; }
     public function setDirection(string $direction): self {
-        if (!in_array($direction, [self::DIRECTION_INCOMING, self::DIRECTION_OUTGOING])) throw new InvalidArgumentException("Dirección inválida");
-        $this->direction = $direction; return $this;
+        if (!in_array($direction, [self::DIRECTION_INCOMING, self::DIRECTION_OUTGOING])) {
+            throw new InvalidArgumentException("Dirección inválida");
+        }
+        $this->direction = $direction;
+        return $this;
     }
 
     public function getStatus(): string { return $this->status; }
-
-    // 🔥 MAGIA: Cuando el worker marque el mensaje como SENT, subimos la conversación
-
-    public function setStatus(string $status): self {
-        $oldStatus = $this->status;
+    public function setStatus(string $status): self
+    {
         $this->status = $status;
-
-        if ($oldStatus !== $status && in_array($status, [self::STATUS_SENT, self::STATUS_RECEIVED], true)) {
-            $this->touchConversation();
-        }
-
         return $this;
     }
 
     public function getSenderType(): string { return $this->senderType; }
     public function setSenderType(string $senderType): self { $this->senderType = $senderType; return $this; }
 
-    public function getExternalIds(): array { return $this->externalIds ?? []; }
+    // =========================================================================
+    // IDS EXTERNOS
+    // =========================================================================
 
-    // 🔥 MAGIA: Si el worker inyecta IDs externos brutos, subimos la conversación
-    public function setExternalIds(?array $externalIds): self {
+    public function getExternalIds(): array { return $this->externalIds ?? []; }
+    public function setExternalIds(?array $externalIds): self
+    {
         $this->externalIds = $externalIds;
-        if (!empty($externalIds)) {
-            $this->touchConversation();
-        }
         return $this;
     }
 
     public function getBeds24ExternalId(): ?string { return $this->externalIds['beds24'] ?? null; }
-
-    // 🔥 MAGIA: Cuando Beds24 responde con éxito
-    public function setBeds24ExternalId(?string $id): self {
+    public function setBeds24ExternalId(?string $id): self
+    {
         $this->externalIds['beds24'] = $id;
-        if ($id !== null) {
-            $this->touchConversation();
-        }
         return $this;
     }
 
     public function getWhatsappMetaExternalId(): ?string { return $this->externalIds['whatsapp_meta'] ?? null; }
-
-    // 🔥 MAGIA: Cuando Meta responde con éxito
-    public function setWhatsappMetaExternalId(?string $id): self {
+    public function setWhatsappMetaExternalId(?string $id): self
+    {
         $this->externalIds['whatsapp_meta'] = $id;
-        if ($id !== null) {
-            $this->touchConversation();
-        }
         return $this;
     }
 
+    // =========================================================================
+    // COLECCIONES
+    // =========================================================================
+
     public function getWhatsappMetaSendQueues(): Collection { return $this->whatsappMetaSendQueues; }
 
-    public function addWhatsappMetaSendQueue(WhatsappMetaSendQueue $queue): self {
+    public function addWhatsappMetaSendQueue(WhatsappMetaSendQueue $queue): self
+    {
         if (!$this->whatsappMetaSendQueues->contains($queue)) {
             $this->whatsappMetaSendQueues->add($queue);
             if ($queue->getMessage() !== $this) $queue->setMessage($this);
@@ -372,7 +418,8 @@ class Message
     }
 
     public function getBeds24SendQueues(): Collection { return $this->beds24SendQueues; }
-    public function addBeds24SendQueue(Beds24SendQueue $queue): self {
+    public function addBeds24SendQueue(Beds24SendQueue $queue): self
+    {
         if (!$this->beds24SendQueues->contains($queue)) {
             $this->beds24SendQueues->add($queue);
             if ($queue->getMessage() !== $this) $queue->setMessage($this);
@@ -382,21 +429,12 @@ class Message
 
     public function getAttachments(): Collection { return $this->attachments; }
 
-    public function addAttachment(MessageAttachment $attachment): self {
+    public function addAttachment(MessageAttachment $attachment): self
+    {
         if (!$this->attachments->contains($attachment)) {
             $this->attachments->add($attachment);
             if ($attachment->getMessage() !== $this) $attachment->setMessage($this);
         }
         return $this;
-    }
-
-    /**
-     * Helper privado para forzar la actualización de fecha en la conversación padre
-     */
-    private function touchConversation(): void
-    {
-        if ($this->conversation !== null) {
-            $this->conversation->setLastMessageAt(new \DateTime());
-        }
     }
 }

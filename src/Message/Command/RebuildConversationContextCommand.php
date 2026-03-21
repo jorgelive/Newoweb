@@ -14,8 +14,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-/*
- * uso: php bin/console app:message:rebuild-context
+/**
+ * Uso: php bin/console app:message:rebuild-context
  */
 #[AsCommand(
     name: 'app:message:rebuild-context',
