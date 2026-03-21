@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service;
+namespace App\Message\Service\Mercure;
 
 use App\Message\Dto\Mercure\MercureConversationDto;
 use App\Message\Dto\Mercure\MercureMessageDto;

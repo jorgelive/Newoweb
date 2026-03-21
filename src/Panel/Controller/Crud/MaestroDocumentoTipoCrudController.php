@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Panel\Controller\Crud;
 
 // ✅ Restauramos la herencia de tu BaseCrudController
-use App\Panel\Controller\Crud\BaseCrudController;
 use App\Entity\Maestro\MaestroDocumentoTipo;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -15,7 +14,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
-use App\Pms\Controller\Crud\Beds24ConfigCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 

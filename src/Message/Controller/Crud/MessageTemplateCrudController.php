@@ -7,15 +7,17 @@ namespace App\Message\Controller\Crud;
 use App\Message\Entity\MessageTemplate;
 use App\Message\Form\Type\Beds24TemplateType;
 use App\Message\Form\Type\EmailTemplateType;
-use App\Message\Form\Type\WhatsappMetaTemplateType;
 use App\Message\Form\Type\WhatsappLinkTemplateType;
+use App\Message\Form\Type\WhatsappMetaTemplateType;
 use App\Message\Service\MessageSegmentationAggregator;
+use App\Message\Service\Meta\Template\WhatsappMetaTemplateSyncService;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
@@ -26,6 +28,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Throwable;
 
 class MessageTemplateCrudController extends BaseCrudController
 {
@@ -61,9 +66,15 @@ class MessageTemplateCrudController extends BaseCrudController
 
     public function configureActions(Actions $actions): Actions
     {
+        $syncMetaAction = Action::new('syncMetaTemplates', 'Sincronizar Meta', 'fa fa-cloud-download-alt')
+            ->linkToCrudAction('executeMetaSync') // Apunta al método de abajo
+            ->createAsGlobalAction()              // Lo coloca arriba a la derecha, junto a "Crear"
+            ->setCssClass('btn btn-info');
+
         $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->add(Crud::PAGE_EDIT, Action::DETAIL);
+            ->add(Crud::PAGE_EDIT, Action::DETAIL)
+            ->add(Crud::PAGE_INDEX, $syncMetaAction);;
 
         $actions = parent::configureActions($actions);
 
@@ -199,5 +210,51 @@ class MessageTemplateCrudController extends BaseCrudController
 
         yield DateTimeField::new('createdAt', 'Creado')->onlyOnDetail();
         yield DateTimeField::new('updatedAt', 'Actualizado')->onlyOnDetail();
+    }
+
+    /**
+     * Método que atrapa el clic del botón en EasyAdmin y ejecuta el servicio.
+     * ¿Por qué existe? Actúa como un mini-controlador para la acción personalizada.
+     */
+    public function executeMetaSync(
+        AdminContext $context,
+        WhatsappMetaTemplateSyncService $syncService,
+        HttpClientInterface $httpClient,
+        AdminUrlGenerator $adminUrlGenerator,
+        string $metaWabaId, // Parámetros desde services.yaml
+        string $metaAccessToken
+    ): Response {
+        try {
+            // Reutilizamos la misma llamada HTTP que el comando (O idealmente, mueves esta llamada dentro del servicio para no duplicarla)
+            $response = $httpClient->request(
+                'GET',
+                sprintf('https://graph.facebook.com/v18.0/%s/message_templates', $metaWabaId),
+                [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $metaAccessToken,
+                    ],
+                ]
+            );
+
+            $apiData = $response->toArray();
+            $updatedCount = $syncService->synchronizeTemplates($apiData);
+
+            if ($updatedCount > 0) {
+                $this->addFlash('success', sprintf('Sincronización exitosa. Se actualizaron %d plantillas de Meta.', $updatedCount));
+            } else {
+                $this->addFlash('info', 'Plantillas verificadas. Todo se encuentra al día.');
+            }
+
+        } catch (Throwable $e) {
+            $this->addFlash('danger', 'Error al sincronizar con Meta: ' . $e->getMessage());
+        }
+
+        // Redirigimos de vuelta a la lista del CRUD después de ejecutar
+        $targetUrl = $adminUrlGenerator
+            ->setController(self::class)
+            ->setAction(Action::INDEX)
+            ->generateUrl();
+
+        return $this->redirect($targetUrl);
     }
 }

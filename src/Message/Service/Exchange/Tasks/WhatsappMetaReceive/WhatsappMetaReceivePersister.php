@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\WhatsappMetaReceive;
 
+use App\Entity\Maestro\MaestroIdioma;
 use App\Exchange\Entity\MetaConfig;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
-use App\Message\Service\MercureBroadcaster;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -18,19 +18,22 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 /**
  * Motor central de persistencia para WhatsApp Meta.
  * Agnóstico al transporte: Llamado por el Fast-Track (Webhooks) o por Workers (Pull).
+ * * Este servicio se encarga de traducir los webhooks brutos de Meta en entidades locales,
+ * respetando estrictamente las reglas de negocio de MessageConversation (Walk-ins, idiomas,
+ * ventanas de 24h y contadores de mensajes no leídos).
  */
 class WhatsappMetaReceivePersister
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly MercureBroadcaster $mercureBroadcaster,
         private readonly MessageAttachmentFactory $attachmentFactory,
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger
     ) {}
 
     /**
-     * Procesa un mensaje entrante de un huésped.
+     * Procesa un mensaje entrante de un huésped, ya sea de una reserva activa
+     * o creando una nueva conversación de tipo Walk-in (Consulta Directa).
      */
     public function upsertInboundMessage(array $messageData, array $contactData): void
     {
@@ -45,15 +48,17 @@ class WhatsappMetaReceivePersister
         $guestPhone = $contactData['wa_id'] ?? null; // Formato internacional (ej: 51987654321)
         if (!$guestPhone) return;
 
-        $guestName = $contactData['profile']['name'] ?? 'Huésped WhatsApp';
+        $guestName = $contactData['profile']['name'] ?? 'Desconocido (WhatsApp)';
 
-        // 3. Resolución de Conversación (Match con PMS o Walk-in)
+        // 3. Resolución de Conversación (Match con PMS o creación de Walk-in)
         $conversation = $this->resolveConversation($guestPhone, $guestName);
+
+        // Es imperativo instanciar el canal antes de agregarlo, ya que la entidad
+        // MessageConversation evalúa el ID del canal para abrir la ventana de 24 horas.
         $channel = $this->em->getReference(MessageChannel::class, 'whatsapp_meta');
 
         // 4. Instanciar Mensaje
         $message = new Message();
-        $message->setConversation($conversation);
         $message->setChannel($channel);
         $message->setDirection(Message::DIRECTION_INCOMING);
         $message->setSenderType(Message::SENDER_GUEST);
@@ -127,79 +132,161 @@ class WhatsappMetaReceivePersister
         // =====================================================================
         // 6. GUARDAR Y NOTIFICAR (Real-time)
         // =====================================================================
+
+        // 🔥 MAGIA DE LA ENTIDAD: Al hacer addMessage, la entidad MessageConversation
+        // automáticamente incrementa los no leídos, actualiza el lastInboundAt y,
+        // al ser un mensaje de whatsapp_meta, activa la sesión de 24 horas.
         $conversation->addMessage($message);
+
         $this->em->persist($message);
         $this->em->flush();
-
-        // Broadcast a Vue.js
-        $this->mercureBroadcaster->broadcastMessage($message);
-        $this->mercureBroadcaster->broadcastConversationUpdate($conversation);
     }
 
     /**
-     * Actualiza el estado (Enviado, Entregado, Leído, Fallido) de un mensaje saliente.
+     * Actualiza la metadata (Enviado, Entregado, Leído, Fallido) de un mensaje saliente
+     * basado en el Webhook de Meta, y emite el evento en tiempo real hacia Vue.
      */
     public function updateMessageStatus(array $statusData): void
     {
         $metaMessageId = $statusData['id'] ?? null;
         $status = $statusData['status'] ?? null; // 'sent', 'delivered', 'read', 'failed'
+        $timestamp = $statusData['timestamp'] ?? null;
 
         if (!$metaMessageId || !$status) return;
 
+        // Buscamos el mensaje original en nuestra BD usando el ID de Meta
         $message = $this->findMessageByMetaId($metaMessageId);
         if (!$message) return;
 
         $requiresUpdate = false;
 
-        if ($status === 'read' && $message->getStatus() !== Message::STATUS_READ) {
-            $message->setStatus(Message::STATUS_READ);
-            $requiresUpdate = true;
+        // Convertimos el timestamp de Meta (Unix Epoch) a ISO8601 para la BD
+        $isoDate = $timestamp
+            ? (new \DateTimeImmutable("@$timestamp"))->format('Y-m-d\TH:i:s\Z')
+            : (new \DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
 
-        } elseif ($status === 'failed' && $message->getStatus() !== Message::STATUS_FAILED) {
-            $message->setStatus(Message::STATUS_FAILED);
-            $message->setWhatsappMetaErrorReason(json_encode($statusData['errors'] ?? [], JSON_UNESCAPED_UNICODE));
-            $requiresUpdate = true;
+        // Cascada de metadata: Solo actualizamos si no teníamos ya ese registro
+        // para evitar sobrescrituras y broadcasts duplicados si Meta reenvía webhooks.
+        if ($status === 'read') {
+            if (!$message->getWhatsappMetaReadAt()) {
+                $message->setWhatsappMetaReadAt($isoDate);
+                $requiresUpdate = true;
+            }
+        } elseif ($status === 'delivered') {
+            if (!$message->getWhatsappMetaDeliveredAt()) {
+                $message->setWhatsappMetaDeliveredAt($isoDate);
+                $requiresUpdate = true;
+            }
+        } elseif ($status === 'sent') {
+            if (!$message->getWhatsappMetaSentAt()) {
+                $message->setWhatsappMetaSentAt($isoDate);
+                $requiresUpdate = true;
+            }
+        } elseif ($status === 'failed') {
+            $errorInfo = $statusData['errors'][0] ?? [];
+            $message->setWhatsappMetaErrorCode((string)($errorInfo['code'] ?? 'unknown'));
+            $message->setWhatsappMetaErrorReason($errorInfo['message'] ?? json_encode($statusData['errors'] ?? [], JSON_UNESCAPED_UNICODE));
 
-        } elseif (in_array($status, ['sent', 'delivered']) && in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING])) {
-            $message->setStatus(Message::STATUS_SENT);
+            // Si falla, aquí sí es válido forzar el status global a FAILED
+            // para que visualmente resalte si no fue leído por el otro canal.
+            if ($message->getStatus() !== Message::STATUS_READ) {
+                $message->setStatus(Message::STATUS_FAILED);
+            }
+
             $requiresUpdate = true;
         }
 
+        // Si hubo un cambio real en la metadata, guardamos
         if ($requiresUpdate) {
             $this->em->flush();
-            $this->mercureBroadcaster->broadcastMessage($message);
         }
     }
 
     /**
+     * 🔥 NUEVO: Registra una llamada perdida como un mensaje de sistema.
+     */
+    public function processCall(array $callData, array $contactData): void
+    {
+        $guestPhone = $contactData['wa_id'] ?? null;
+        if (!$guestPhone) return;
+
+        $guestName = $contactData['profile']['name'] ?? 'Huésped';
+        $conversation = $this->resolveConversation($guestPhone, $guestName);
+
+        $message = new Message();
+        $message->setConversation($conversation);
+        $message->setDirection(Message::DIRECTION_INCOMING);
+        $message->setSenderType(Message::SENDER_SYSTEM); // Icono de robot/sistema en Vue
+        $message->setStatus(Message::STATUS_RECEIVED);
+        $message->setContentExternal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
+
+        $timestamp = $callData['timestamp'] ?? time();
+        $message->setCreatedAt((new DateTimeImmutable())->setTimestamp((int)$timestamp));
+
+        $this->em->persist($message);
+        // Doctrine + MercureListener harán la magia aquí.
+    }
+
+    /**
      * Busca una conversación abierta por teléfono, o crea una nueva genérica (Walk-in).
+     * Implementa un "Fuzzy Match" para sortear números sucios provenientes de OTAs (ej. doble código de país).
+     *
+     * @param string $phone El número de teléfono del remitente (wa_id exacto de Meta).
+     * @param string $guestName El nombre extraído del perfil de WhatsApp.
+     * @return MessageConversation
      */
     private function resolveConversation(string $phone, string $guestName): MessageConversation
     {
         $repo = $this->em->getRepository(MessageConversation::class);
 
-        // A. Buscar si el huésped ya tiene una conversación ABIERTA
-        // (Puede ser una reserva de Beds24 que ya mapeó este número)
+        // A. Búsqueda Exacta (El escenario ideal)
         $conversation = $repo->findOneBy([
             'guestPhone' => $phone,
             'status' => MessageConversation::STATUS_OPEN
         ]);
 
+        // B. Búsqueda Flexible (Fallback para basura de OTAs)
+        // Si no hay match exacto, extraemos el "corazón" del número (los últimos 8 dígitos)
+        // para ignorar prefijos duplicados como '4949' o signos '+' colados.
+        if (!$conversation && strlen($phone) >= 9) {
+            $coreNumber = substr($phone, -8);
+
+            $conversation = $repo->createQueryBuilder('c')
+                ->where('c.status = :status')
+                ->andWhere('c.guestPhone LIKE :phoneTail')
+                ->setParameter('status', MessageConversation::STATUS_OPEN)
+                ->setParameter('phoneTail', '%' . $coreNumber)
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
+        }
+
         if ($conversation) {
-            // Actualizamos el nombre si el de WhatsApp es más fresco o no teníamos uno
-            if (empty($conversation->getGuestName()) || $conversation->getGuestName() === 'Guest') {
+            // Actualizamos el nombre si el de WhatsApp es más fresco o si la OTA nos dejó "Guest"
+            $currentName = $conversation->getGuestName();
+            if (empty($currentName) || stripos($currentName, 'Guest') !== false || $currentName === 'Desconocido (WhatsApp)') {
                 $conversation->setGuestName($guestName);
             }
             return $conversation;
         }
 
-        // B. Si no hay reserva abierta, creamos un contexto manual (Walk-in / Consulta General)
-        // Usamos el número de teléfono como ID de contexto para agrupar su historial.
+        // C. Si no hay reserva abierta, CREAMOS UN WALK-IN (Contexto Manual)
+        // El constructor exige obligatoriamente contextType y contextId
         $conversation = new MessageConversation('manual', $phone);
-        $conversation->setGuestName($guestName);
+
+        $conversation->setContextOrigin('whatsapp');
         $conversation->setGuestPhone($phone);
-        $conversation->setContextOrigin('WhatsApp Directo');
+        $conversation->setGuestName($guestName);
         $conversation->setStatus(MessageConversation::STATUS_OPEN);
+
+        // Asignación de MaestroIdioma obligatoria por base de datos (nullable: false).
+        // Intentamos asignar español ('es') por defecto, o el primero que exista en la tabla.
+        $repoIdioma = $this->em->getRepository(MaestroIdioma::class);
+        $idiomaDefault = $repoIdioma->find('es') ?? $repoIdioma->findOneBy([]);
+
+        if ($idiomaDefault) {
+            $conversation->setIdioma($idiomaDefault);
+        }
 
         $this->em->persist($conversation);
 
@@ -207,15 +294,23 @@ class WhatsappMetaReceivePersister
     }
 
     /**
-     * Busca un mensaje en BD usando la función JSON_EXTRACT de MySQL.
-     */
+     * Busca un mensaje en BD usando SQL Nativo.
+    * Esto evita el Syntax Error de DQL con JSON_EXTRACT y permite que mensajes
+    * enviados fuera del PMS (como desde el portal de Meta) se descarten sin error.
+    */
     private function findMessageByMetaId(string $metaMessageId): ?Message
     {
-        return $this->em->getRepository(Message::class)->createQueryBuilder('m')
-            ->where('JSON_EXTRACT(m.externalIds, \'$."whatsapp_meta"\') = :metaId')
-            ->setParameter('metaId', $metaMessageId)
-            ->getQuery()
-            ->getOneOrNullResult();
+        $rsm = new \Doctrine\ORM\Query\ResultSetMappingBuilder($this->em);
+        $rsm->addRootEntityFromClassMetadata(Message::class, 'm');
+
+        // Usamos SQL puro para que MySQL maneje el JSON_EXTRACT directamente
+        $sql = 'SELECT * FROM msg_message m WHERE JSON_EXTRACT(m.external_ids, :path) = :metaId LIMIT 1';
+
+        $query = $this->em->createNativeQuery($sql, $rsm);
+        $query->setParameter('path', '$."whatsapp_meta"');
+        $query->setParameter('metaId', $metaMessageId);
+
+        return $query->getOneOrNullResult();
     }
 
     /**

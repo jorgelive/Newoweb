@@ -12,7 +12,7 @@ use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsReserva;
-use App\Pms\Service\Beds24\Queue\Beds24BookingsPushQueueCreator;
+use App\Pms\Service\Queue\Beds24BookingsPushQueueCreator;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;

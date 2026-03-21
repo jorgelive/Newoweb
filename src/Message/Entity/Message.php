@@ -65,10 +65,12 @@ class Message
     use IdTrait;
     use TimestampTrait;
 
+    public const string STATUS_FAILED   = 'failed';
+
     public const string STATUS_PENDING  = 'pending';
     public const string STATUS_QUEUED   = 'queued';
     public const string STATUS_SENT     = 'sent';
-    public const string STATUS_FAILED   = 'failed';
+    public const string STATUS_DELIVERED   = 'sent';
     public const string STATUS_RECEIVED = 'received';
     public const string STATUS_READ     = 'read';
 
@@ -311,6 +313,7 @@ class Message
     public function getStatus(): string { return $this->status; }
 
     // 🔥 MAGIA: Cuando el worker marque el mensaje como SENT, subimos la conversación
+
     public function setStatus(string $status): self {
         $oldStatus = $this->status;
         $this->status = $status;

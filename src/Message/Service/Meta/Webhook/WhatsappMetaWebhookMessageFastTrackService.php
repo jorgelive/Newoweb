@@ -34,12 +34,10 @@ final class WhatsappMetaWebhookMessageFastTrackService
         try {
             // Delegamos al Persister Agnóstico
             $this->persister->upsertInboundMessage($messageData, $contactData);
-
             $this->em->flush();
             $conn->commit();
 
             return ['success' => true, 'id' => $messageData['id'] ?? 'unknown'];
-
         } catch (Throwable $e) {
             $conn->rollBack();
             throw $e;
@@ -63,12 +61,36 @@ final class WhatsappMetaWebhookMessageFastTrackService
         try {
             // Delegamos al Persister Agnóstico
             $this->persister->updateMessageStatus($statusData);
-
             $this->em->flush();
             $conn->commit();
 
             return ['success' => true, 'id' => $statusData['id'] ?? 'unknown'];
+        } catch (Throwable $e) {
+            $conn->rollBack();
+            throw $e;
+        } finally {
+            $scope->restore();
+        }
+    }
 
+    /**
+     * 🔥 NUEVO: Procesa un intento de llamada (Call Event).
+     * @throws Throwable
+     */
+    public function processCall(array $callData, array $contactData): array
+    {
+        $this->validateConfig();
+
+        $scope = $this->syncContext->enter(SyncContext::MODE_PULL, 'meta');
+        $conn = $this->em->getConnection();
+        $conn->beginTransaction();
+
+        try {
+            $this->persister->processCall($callData, $contactData);
+            $this->em->flush();
+            $conn->commit();
+
+            return ['success' => true, 'id' => $callData['id'] ?? 'unknown'];
         } catch (Throwable $e) {
             $conn->rollBack();
             throw $e;
@@ -83,7 +105,6 @@ final class WhatsappMetaWebhookMessageFastTrackService
     private function validateConfig(): void
     {
         $config = $this->em->getRepository(MetaConfig::class)->findOneBy(['activo' => true]);
-
         if (!$config instanceof MetaConfig) {
             throw new RuntimeException("No se encontró una configuración activa de Meta WhatsApp.");
         }

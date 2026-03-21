@@ -36,9 +36,15 @@ calendar_controllers:
     type: attribute
     host: '%app.host.api%'
 
-# webhook (módulo nuevo)
-webhook_controllers:
+# webhook beds24 (módulo nuevo)
+beds24_webhook_controllers:
     resource: ../src/Pms/Controller/Webhook/
+    type: attribute
+    host: '%app.host.api%'
+
+# webhook whatsapp_meta (módulo nuevo)
+whatsapp_meta_webhook_controllers:
+    resource: ../src/Message/Controller/Webhook/
     type: attribute
     host: '%app.host.api%'
 

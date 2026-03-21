@@ -9,7 +9,6 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Factory\MessageConversationFactory;
-use App\Message\Service\MercureBroadcaster;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Repository\PmsReservaRepository;
 use App\Pms\Service\Message\PmsReservaMessageContext;
@@ -31,8 +30,7 @@ class Beds24ReceivePersister
         private readonly EntityManagerInterface $em,
         private readonly MessageConversationFactory $conversationFactory,
         private readonly MessageAttachmentFactory $attachmentFactory,
-        private readonly LoggerInterface $logger,
-        private readonly MercureBroadcaster $mercureBroadcaster
+        private readonly LoggerInterface $logger
     ) {}
 
     /**
@@ -196,15 +194,6 @@ class Beds24ReceivePersister
         // 🔥 EL ÚNICO FLUSH (Consolidación) 🔥
         // =====================================================================
         $this->em->flush();
-
-        // =====================================================================
-        // EMISIÓN EN TIEMPO REAL (Mercure)
-        // =====================================================================
-        foreach ($mercureBroadcasts as $msg) {
-            if ($this->em->contains($msg)) {
-                $this->mercureBroadcaster->broadcastMessage($msg);
-            }
-        }
 
         return $stats;
     }

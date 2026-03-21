@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/webhook/meta', name: 'webhook_meta_')]
+#[Route('/message/meta/webhook', name: 'message_meta_webhook_')]
 final class MetaWebhookController extends AbstractController
 {
     public function __construct(
@@ -110,6 +110,19 @@ final class MetaWebhookController extends AbstractController
                                         'id' => $messageData['id'] ?? 'unknown',
                                         'error' => $e->getMessage()
                                     ];
+                                }
+                            }
+                            $processedAny = true;
+                        }
+
+                        if (isset($value['calls'])) {
+                            foreach ($value['calls'] as $callData) {
+                                try {
+                                    // Pasamos la llamada al fastTrackService
+                                    $res = $this->fastTrackService->processCall($callData, $value['contacts'][0] ?? []);
+                                    $responseDetails['calls'][] = $res['id'];
+                                } catch (\Throwable $e) {
+                                    $globalErrors[] = ['type' => 'call', 'id' => $callData['id'] ?? 'unknown', 'error' => $e->getMessage()];
                                 }
                             }
                             $processedAny = true;

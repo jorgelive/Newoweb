@@ -73,7 +73,6 @@ class ExchangeEndpointCrudController extends BaseCrudController
             ->add('provider') // ✅ Filtro por nuevo Enum
             ->add('accion')
             ->add('metodo')
-            ->add('version')
             ->add('activo');
     }
 
@@ -113,37 +112,6 @@ class ExchangeEndpointCrudController extends BaseCrudController
                 'GET'    => 'GET',
                 'PUT'    => 'PUT',
                 'DELETE' => 'DELETE',
-            ])
-            ->setRequired(true);
-
-        yield ChoiceField::new('version', 'Versión API')
-            ->setChoices([
-                'v1' => 'v1',
-                'v2' => 'v2',
-                'v3' => 'v3',
-                'v4' => 'v4',
-                'v5' => 'v5',
-                'v6' => 'v6',
-                'v7' => 'v7',
-                'v8' => 'v8',
-                'v9' => 'v9',
-                'v10' => 'v10',
-                'v11' => 'v11',
-                'v12' => 'v12',
-                'v13' => 'v13',
-                'v14' => 'v14',
-                'v15' => 'v15',
-                'v16' => 'v16',
-                'v17' => 'v17',
-                'v18' => 'v18',
-                'v19' => 'v19',
-                'v20' => 'v20',
-                'v21' => 'v21',
-                'v22' => 'v22',
-                'v23' => 'v23',
-                'v24' => 'v24',
-                'v25' => 'v25',
-
             ])
             ->setRequired(true);
 

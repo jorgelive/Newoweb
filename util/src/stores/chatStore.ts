@@ -28,7 +28,23 @@ export interface ApiMessage {
     scheduledAt?: string | null;
     effectiveDateTime?: string | null;
     isScheduledForFuture?: boolean;
-    metadata?: { beds24?: any; whatsappMeta?: any };
+    metadata?: {
+        beds24?: {
+            sent_at?: string;
+            delivered_at?: string;
+            read_at?: string;
+            error?: string;
+            [key: string]: any;
+        };
+        whatsappMeta?: {
+            sent_at?: string;
+            delivered_at?: string;
+            read_at?: string;
+            error_code?: string;
+            error_reason?: string;
+            [key: string]: any;
+        };
+    };
     channel?: { id: string; name: string } | string;
     whatsappMetaSendQueues?: ApiMessageQueue[] | string[];
     beds24SendQueues?: ApiMessageQueue[] | string[];
@@ -219,13 +235,11 @@ export const useChatStore = defineStore('chatStore', () => {
                     const index = conversations.value.findIndex(c => c['@id'] === convData['@id']);
 
                     if (index !== -1) {
-                        // ✅ Sintaxis Vue-nativa y reactiva con splice
                         conversations.value.splice(index, 1, { ...conversations.value[index], ...convData });
                     } else {
                         conversations.value.unshift(convData);
                     }
 
-                    // Reordenamos para que los chats con mensajes recientes suban en la bandeja
                     conversations.value.sort((a, b) => {
                         const dateA = new Date(a.lastMessageAt || 0).getTime();
                         const dateB = new Date(b.lastMessageAt || 0).getTime();
@@ -266,14 +280,11 @@ export const useChatStore = defineStore('chatStore', () => {
             eventSource.value.onmessage = (event) => {
                 const incomingData = JSON.parse(event.data);
 
-                // Búsqueda estricta por el identificador absoluto de API Platform
                 const index = messages.value.findIndex(m => m['@id'] === incomingData['@id']);
 
                 if (index !== -1) {
-                    // splice es reactivo en Vue y actualiza solo esa posición fusionando los datos
                     messages.value.splice(index, 1, { ...messages.value[index], ...incomingData });
                 } else {
-                    // Si no existe, lo agregamos a la lista
                     messages.value.push(incomingData);
                 }
             };
@@ -366,9 +377,6 @@ export const useChatStore = defineStore('chatStore', () => {
                 form.append('file', attachmentStore.file);
             }
 
-            // Hacemos el POST, pero NO hacemos .push()
-            // Mercure, al detectar la inserción en el backend, disparará el evento
-            // y el onmessage se encargará de agregarlo limpiamente a la UI.
             await apiClient.post('/platform/user/util/msg/messages', form, {
                 headers: {
                     'Content-Type': 'multipart/form-data'

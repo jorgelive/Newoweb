@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Controller\Crud;
+namespace App\Exchange\Controller\Crud;
 
 use App\Exchange\Entity\MetaConfig;
 use App\Message\Form\Type\MetaCredentialsType;

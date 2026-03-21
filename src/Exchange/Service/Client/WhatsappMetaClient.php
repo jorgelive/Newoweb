@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Exchange\Service\Client;
 
+use App\Exchange\Entity\ExchangeEndpoint;
+use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Service\Common\ExchangeNetworkResult;
 use App\Exchange\Service\Contract\ExchangeClientInterface;
 use App\Exchange\Service\Mapping\MappingResult;
@@ -97,7 +99,53 @@ final class WhatsappMetaClient implements ExchangeClientInterface
 
         $finalRawContent = json_encode($rawBodies, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-        // Retornamos exactamente la estructura que espera tu interfaz y el DTO
         return new ExchangeNetworkResult($responses, $finalRawContent, $lastStatusCode);
+    }
+
+    /**
+     * Obtiene las plantillas aprobadas directamente desde la Graph API de Meta.
+     * Reemplaza dinámicamente el marcador {wabaId} en el path del endpoint configurado en la BD.
+     * * @param MetaConfig $config Configuración que contiene las credenciales.
+     * @param ExchangeEndpoint $endpoint El endpoint mapeado (ej: {wabaId}/message_templates).
+     * @return array El array asociativo con la clave 'data' que contiene las plantillas.
+     * @throws \RuntimeException Si faltan credenciales o la API responde con error.
+     */
+    public function fetchTemplates(MetaConfig $config, ExchangeEndpoint $endpoint): array
+    {
+        $apiKey = $config->getCredential('apiKey');
+        $wabaId = $config->getCredential('wabaId');
+
+        if (!$apiKey || !$wabaId) {
+            throw new \RuntimeException(sprintf('La configuración de Meta [%s] no tiene API Key o WABA ID.', $config->getNombre()));
+        }
+
+        // ESTRATEGIA PRO: URI Templating
+        $dynamicPath = str_replace('{wabaId}', (string)$wabaId, (string)$endpoint->getEndpoint());
+
+        // Construcción de la URL: Base(v22.0) + Path Dinámico
+        $url = sprintf(
+            '%s/%s',
+            rtrim((string)$config->getBaseUrlRaw(), '/'),
+            ltrim($dynamicPath, '/')
+        );
+
+        $response = $this->httpClient->request(strtoupper($endpoint->getMetodo()), $url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $apiKey,
+            ],
+            'query' => [
+                'limit' => 500 // Aseguramos traer la lista completa
+            ]
+        ]);
+
+        $content = $response->getContent(false);
+        $decoded = json_decode($content, true);
+
+        if ($response->getStatusCode() >= 400) {
+            $errorMsg = $decoded['error']['message'] ?? 'Error desconocido sincronizando plantillas de Meta.';
+            throw new \RuntimeException('Meta API Error: ' . $errorMsg);
+        }
+
+        return $decoded ?? [];
     }
 }

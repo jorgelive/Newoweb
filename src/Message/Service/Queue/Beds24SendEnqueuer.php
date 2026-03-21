@@ -12,7 +12,7 @@ use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Service\MessageDataResolverRegistry;
-use App\Pms\Entity\PmsChannel; // 🔥 IMPORTANTE
+use App\Pms\Entity\PmsChannel;
 use Doctrine\ORM\EntityManagerInterface;
 
 class Beds24SendEnqueuer implements ChannelEnqueuerInterface
@@ -31,12 +31,17 @@ class Beds24SendEnqueuer implements ChannelEnqueuerInterface
     {
         $conversation = $message->getConversation();
         if (!$conversation) {
-            return null;
+            // Reemplazamos el return null por excepción
+            throw new \RuntimeException('No se puede encolar en Beds24: El mensaje no tiene una conversación asociada.');
         }
 
         $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
         if (!$resolver) {
-            return null;
+            // 🔥 El error que pediste: Si es manual/walk-in y piden Beds24, explota y avisa.
+            throw new \RuntimeException(sprintf(
+                'No se puede enviar por Beds24: La conversación actual (Tipo: %s) no está vinculada a una reserva del PMS.',
+                $conversation->getContextType()
+            ));
         }
 
         // 1. Obtener la Metadata del PMS (Snapshot)
@@ -47,14 +52,15 @@ class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         $canalesDirectos = [PmsChannel::CODIGO_DIRECTO, 'manual', 'web', ''];
 
         if (in_array($source, $canalesDirectos, true)) {
-            throw new \RuntimeException("No se permite enviar mensajes por Beds24 a reservas de directas (Canal: $source).");
+            throw new \RuntimeException(sprintf('Operación denegada: No se permite enviar mensajes por la API de Beds24 a reservas directas (Canal: %s).', $source ?: 'Desconocido'));
         }
 
         $config = $metadata['beds24_config'] ?? null;
         $bookId = $metadata['beds24_book_id'] ?? null;
 
         if (!$config || !$bookId) {
-            return null;
+            // Reemplazamos el return null por excepción
+            throw new \RuntimeException('Faltan datos críticos: No se encontró la configuración de la propiedad o el ID de la reserva (bookId) en Beds24.');
         }
 
         // 2. Obtener el Endpoint Técnico
@@ -65,7 +71,8 @@ class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         ]);
 
         if (!$endpoint) {
-            return null;
+            // Reemplazamos el return null por excepción
+            throw new \RuntimeException('Error de sistema: No se encontró un Endpoint activo para SEND_MESSAGE de Beds24.');
         }
 
         // 3. Ensamblar la Cola

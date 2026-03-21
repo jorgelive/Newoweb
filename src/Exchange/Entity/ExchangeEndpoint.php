@@ -80,11 +80,6 @@ class ExchangeEndpoint implements EndpointInterface
     )]
     private string $metodo = 'POST';
 
-    #[ORM\Column(type: 'string', length: 10, options: ['default' => 'v2'])]
-    #[Assert\NotBlank(message: 'La versión de la API es obligatoria.')]
-    #[Assert\Length(max: 10)]
-    private string $version = 'v2';
-
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $descripcion = null;
 
@@ -206,17 +201,6 @@ class ExchangeEndpoint implements EndpointInterface
     public function setMetodo(string $metodo): self
     {
         $this->metodo = strtoupper($metodo);
-        return $this;
-    }
-
-    public function getVersion(): string
-    {
-        return $this->version;
-    }
-
-    public function setVersion(string $version): self
-    {
-        $this->version = $version;
         return $this;
     }
 

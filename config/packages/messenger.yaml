@@ -4,6 +4,10 @@ framework:
 
         transports:
             # https://symfony.com/doc/current/messenger.html#transport-configuration
+            # 1. Debes definir el transporte 'sync' aquí
+            # El DSN 'sync://' le dice a Symfony que ejecute el handler inmediatamente
+            sync: 'sync://'
+
             async:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:

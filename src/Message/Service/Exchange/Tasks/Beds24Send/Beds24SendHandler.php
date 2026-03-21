@@ -8,14 +8,12 @@ use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
-use App\Message\Service\MercureBroadcaster;
 use DateTimeImmutable;
 use Throwable;
 
 final class Beds24SendHandler implements ExchangeHandlerInterface
 {
     public function __construct(
-        private readonly MercureBroadcaster $mercureBroadcaster
     ) {}
 
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
@@ -36,19 +34,25 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
         $msg = $item->getMessage();
 
         if ($msg) {
-            // Pasamos a SENT si no estaba ya en READ
-            if ($msg->getStatus() !== Message::STATUS_READ) {
+            // 🔥 PROTECCIÓN OMNICANAL: Si estaba encolado, pendiente, o si el otro canal
+            // falló previamente, nosotros lo "rescatamos" subiéndolo a SENT globalmente.
+            $currentStatus = $msg->getStatus();
+            if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED, Message::STATUS_FAILED], true)) {
                 $msg->setStatus(Message::STATUS_SENT);
             }
+
+            // 🔥 OMNICANALIDAD: Guardamos la verdad absoluta del canal en la metadata
+            $isoDate = (new DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
+            $msg->addBeds24Metadata('sent_at', $isoDate);
+
+            // Si por algún motivo venía de un error previo, lo limpiamos
+            $msg->addBeds24Metadata('error', null);
 
             // 🔥 CRÍTICO: Guardamos el ID remoto en el mensaje para evitar
             // que el proceso de PULL/Webhooks lo vuelva a insertar como duplicado.
             if ($remoteId) {
                 $msg->setBeds24ExternalId((string) $remoteId);
             }
-
-            // 🔥 Avisamos a Vue que se envió
-            $this->mercureBroadcaster->broadcastMessage($msg);
         }
 
         // 4. Construir el Resultado de Ejecución para la auditoría JSON de la cola
@@ -80,9 +84,16 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
         $msg = $item->getMessage();
 
         if ($msg) {
-            $msg->setStatus(Message::STATUS_FAILED);
-            // 🔥 Avisamos a Vue que falló el envío
-            $this->mercureBroadcaster->broadcastMessage($msg);
+            // 🔥 PROTECCIÓN OMNICANAL: Solo lo pasamos a FAILED globalmente si ningún
+            // otro canal ha logrado enviarlo. Si el otro canal ya lo pasó a SENT o READ,
+            // respetamos ese éxito global (el frontend ya mostrará el error individual por la metadata).
+            $currentStatus = $msg->getStatus();
+            if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
+                $msg->setStatus(Message::STATUS_FAILED);
+            }
+
+            // 🔥 OMNICANALIDAD: Guardamos el error específico del canal
+            $msg->addBeds24Metadata('error', $msgError);
         }
 
         // Reintento: 2 minutos (mensajería requiere inmediatez o fallo rápido)

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\Controller\Crud;
+namespace App\Exchange\Controller\Crud;
 
 use App\Exchange\Entity\Beds24Config;
 use App\Panel\Controller\Crud\BaseCrudController;

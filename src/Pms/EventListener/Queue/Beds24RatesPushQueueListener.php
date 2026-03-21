@@ -7,7 +7,7 @@ namespace App\Pms\EventListener\Queue;
 use App\Exchange\Dispatch\RunExchangeTaskDispatch;
 use App\Pms\Entity\PmsTarifaRango;
 use App\Pms\Entity\PmsUnidad;
-use App\Pms\Service\Beds24\Queue\Beds24RatesPushQueueCreator;
+use App\Pms\Service\Queue\Beds24RatesPushQueueCreator;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;

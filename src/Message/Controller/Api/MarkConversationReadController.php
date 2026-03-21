@@ -42,12 +42,28 @@ final class MarkConversationReadController extends AbstractController
         foreach ($unreadMessages as $msg) {
             // 2. Cambiamos estado local y guardamos metadata de lectura
             $msg->setStatus(Message::STATUS_READ);
-            $msg->addBeds24Metadata('read', true);
-            $msg->setBeds24ReadAt($nowUtc);
 
             $channel = $msg->getChannel();
 
             if ($channel) {
+                // Extraemos el ID natural del canal ('beds24', 'whatsapp_meta', etc.)
+                $platformId = $channel->getId();
+
+                // =========================================================================
+                // LÓGICA ESPECÍFICA POR PLATAFORMA (Metadata Local)
+                // =========================================================================
+
+                if ($platformId === 'beds24') {
+                    // Protegemos la lógica original de Beds24
+                    $msg->addBeds24Metadata('read', true);
+                    $msg->setBeds24ReadAt($nowUtc);
+
+                } elseif ($platformId === 'whatsapp_meta') {
+                    // Auditoría simétrica para Meta: Guardamos exactamente cuándo lo leyó tu equipo
+                    $msg->addMetadata('meta_read_at', $nowUtc);
+                    $msg->addMetadata('read_by_system', true);
+                }
+
                 // =========================================================================
                 // 🔥 ARQUITECTURA: GENERACIÓN PROACTIVA DE COLAS (OUTBOX PATTERN)
                 // =========================================================================
@@ -61,7 +77,7 @@ final class MarkConversationReadController extends AbstractController
                 // obligar al sistema a crear un recibo de lectura hacia la OTA/Proveedor.
                 // =========================================================================
 
-                $msg->setTransientChannels([(string)$channel->getId()]);
+                $msg->setTransientChannels([(string)$platformId]);
 
                 $queues = $this->dispatcher->dispatch($msg);
 

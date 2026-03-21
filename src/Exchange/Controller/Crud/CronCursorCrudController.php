@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\Controller\Crud;
+namespace App\Exchange\Controller\Crud;
 
 // ✅ Restauramos la herencia de tu BaseCrudController
 use App\Exchange\Entity\ExchangeCronCursor;
@@ -19,11 +19,11 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * PmsCronCursorCrudController.
+ * CronCursorCrudController.
  * Monitoreo de punteros temporales para procesos en segundo plano.
  * Hereda de BaseCrudController y es de solo lectura.
  */
-class PmsCronCursorCrudController extends BaseCrudController
+class CronCursorCrudController extends BaseCrudController
 {
     /**
      * Mantenemos el constructor inyectando dependencias base.

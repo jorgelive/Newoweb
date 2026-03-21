@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import { useChatStore, ApiMessage, ApiTemplate } from '@/stores/chatStore';
 import { useAttachmentStore } from '@/stores/attachmentStore';
+import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 
 const store = useChatStore();
 const attachmentStore = useAttachmentStore();
@@ -27,6 +28,11 @@ const selectedChannels = ref<string[]>([]);
 // Estados para el Modal de Previsualización de Imágenes
 const isPreviewModalOpen = ref(false);
 const previewImageUrl = ref<string | null>(null);
+
+// ============================================================================
+// NUEVO: Estado para controlar qué mensajes muestran el Content External (Traducción)
+// ============================================================================
+const translatedMessages = ref<Record<string, boolean>>({});
 
 const handlePopState = (event: PopStateEvent) => {
   if (window.innerWidth >= 768) return;
@@ -104,19 +110,39 @@ watch(() => store.error, (v) => {
   if (v) setTimeout(() => store.error = null, 6000);
 });
 
+// ============================================================================
+// DOBLE CANDADO: Validación estricta para Beds24
+// ============================================================================
+const isBeds24Allowed = computed(() => {
+  const chat = store.currentConversation;
+  if (!chat) return false;
+
+  // Candado 1: El tipo de contexto debe ser explícitamente reserva de PMS
+  if (chat.contextType !== 'pms_reserva') return false;
+
+  // Candado 2: El origen no puede ser directo ni whatsapp
+  const origin = (chat.contextOrigin || '').toLowerCase();
+  const bannedOrigins = ['directo', 'whatsapp'];
+
+  return !bannedOrigins.includes(origin);
+});
+
 watch(() => store.currentConversation, (chat) => {
   selectedTemplateId.value = null;
   showTemplateDropdown.value = false;
   attachmentStore.clear();
+  // Limpiamos el estado de las traducciones al cambiar de chat
+  translatedMessages.value = {};
 
   activeTab.value = 'history';
 
   const newChannels: string[] = [];
-  if (chat?.contextOrigin && !['manual', 'web', 'directo'].includes(chat.contextOrigin.toLowerCase())) {
+
+  if (isBeds24Allowed.value) {
     newChannels.push('beds24');
   }
 
-  // 🔥 Solo pre-seleccionar WhatsApp si la sesión está activa
+  // Solo pre-seleccionar WhatsApp si la sesión está activa
   if (chat?.whatsappSessionActive) {
     newChannels.push('whatsapp_meta');
   }
@@ -152,32 +178,23 @@ const toggleChannel = (channel: string) => {
   if (selectedChannels.value.includes(channel)) {
     selectedChannels.value = selectedChannels.value.filter(c => c !== channel);
   } else {
-    if (channel === 'beds24' && attachmentStore.file && !attachmentStore.isImage) {
-      store.error = 'No puedes activar Beds24 porque has adjuntado un documento. Beds24 solo admite imágenes.';
-      return;
+    if (channel === 'beds24') {
+      if (!isBeds24Allowed.value) return; // Seguro adicional
+      if (attachmentStore.file && !attachmentStore.isImage) {
+        store.error = 'No puedes activar Beds24 porque has adjuntado un documento. Beds24 solo admite imágenes.';
+        return;
+      }
     }
     selectedChannels.value.push(channel);
   }
 };
 
-/**
- * Selecciona una plantilla y marca automáticamente SÓLO los canales que esta soporte,
- * basándose en la respuesta determinista del backend (tpl.channels).
- * @param {ApiTemplate} tpl El objeto de la plantilla.
- */
 const selectTemplate = (tpl: ApiTemplate) => {
   selectedTemplateId.value = tpl['@id'];
   showTemplateDropdown.value = false;
-
-  // Asignamos directamente los canales que vienen del backend
-  // Si no hay canales, se queda vacío. No adivinamos.
   selectedChannels.value = tpl.channels || [];
 };
 
-/**
- * Limpia la plantilla seleccionada y restaura los canales predeterminados
- * según el estado de la conversación.
- */
 const clearTemplate = () => {
   selectedTemplateId.value = null;
 
@@ -185,7 +202,7 @@ const clearTemplate = () => {
   const chat = store.currentConversation;
 
   if (chat) {
-    if (chat.contextOrigin && !['manual', 'web', 'directo'].includes(chat.contextOrigin.toLowerCase())) {
+    if (isBeds24Allowed.value) {
       restoredChannels.push('beds24');
     }
     if (chat.whatsappSessionActive) {
@@ -219,7 +236,6 @@ const send = async () => {
     return;
   }
 
-  // Validación de seguridad (fallback)
   const isWhatsappSelected = selectedChannels.value.includes('whatsapp_meta');
   const isWhatsappSessionActive = !!store.currentConversation?.whatsappSessionActive;
 
@@ -241,8 +257,9 @@ const getChannelIcons = (msg: ApiMessage) => {
 
   if (icons.length === 0) {
     const waMeta = msg.metadata?.whatsappMeta;
-    if (waMeta?.received_at || waMeta?.external_id) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
-    if (msg.metadata?.beds24?.received_at) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
+    if (waMeta?.received_at || waMeta?.sent_at) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
+    const bedsMeta = msg.metadata?.beds24;
+    if (bedsMeta?.received_at || bedsMeta?.sent_at) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
   }
   return icons.length ? icons : [{ class: 'fas fa-comment-dots', color: 'text-slate-400' }];
 };
@@ -256,29 +273,8 @@ const getTemplateName = (templateData: any) => {
   return templateData.name || 'Plantilla Automática';
 };
 
-const getMessageTicks = (msg: ApiMessage) => {
-  if (msg.status === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500', title: 'Error general' };
-
-  if (msg.whatsappMetaSendQueues?.length) {
-    const q = msg.whatsappMetaSendQueues[msg.whatsappMetaSendQueues.length - 1];
-    const delivery = typeof q === 'string' ? null : q.deliveryStatus;
-    const qStatus = typeof q === 'string' ? null : q.status;
-
-    if (delivery === 'read') return { class: 'fas fa-check-double', color: 'text-blue-500', title: 'Leído en WhatsApp' };
-    if (delivery === 'delivered') return { class: 'fas fa-check-double', color: 'text-slate-400', title: 'Entregado al teléfono' };
-    if (delivery === 'submitted') return { class: 'fas fa-check', color: 'text-slate-400', title: 'Enviado a Meta' };
-    if (qStatus === 'failed') return { class: 'fas fa-exclamation-circle', color: 'text-red-500', title: 'Error en WhatsApp' };
-  }
-  if (msg.status === 'read') return { class: 'fas fa-check-double', color: 'text-blue-500' };
-  if (msg.status === 'sent') return { class: 'fas fa-check', color: 'text-slate-400' };
-  if (msg.status === 'queued') return { class: 'far fa-clock', color: 'text-slate-300', title: 'Programado' };
-
-  return { class: 'far fa-clock', color: 'text-slate-200' };
-};
-
 const formatDate = (iso?: string) => {
   if (!iso) return '';
-  // Extraemos las partes directamente sin conversión de zona horaria
   const [year, month, day] = iso.split('T')[0].split('-').map(Number);
   const date = new Date(year, month - 1, day);
   const currentYear = new Date().getFullYear();
@@ -291,7 +287,6 @@ const formatDate = (iso?: string) => {
 
 const formatTime = (iso?: string) => {
   if (!iso) return '';
-  // Si tiene hora, la extraemos directamente del string
   const timePart = iso.split('T')[1];
   if (!timePart) return '';
   const [h, m] = timePart.split(':');
@@ -312,7 +307,6 @@ const groupedMessages = computed(() => {
   const sourceList = activeTab.value === 'history' ? store.activeChatMessages : store.scheduledMessages;
 
   sourceList.forEach(msg => {
-    // 🔥 USANDO LA NUEVA FECHA EFECTIVA DEL BACKEND
     const dateToUse = msg.effectiveDateTime || msg.createdAt;
     if(!dateToUse) return;
 
@@ -328,11 +322,6 @@ const getOriginClass = (origin?: string | null) => {
   return colors[origin?.toLowerCase() || ''] || 'bg-[#376875]';
 };
 
-/**
- * Verifica si un adjunto es de tipo imagen.
- * @param {any} att El objeto de adjunto a evaluar.
- * @returns {boolean} True si es una imagen soportada.
- */
 const isImageAttachment = (att: any): boolean => {
   if (typeof att === 'string') return false;
   if (att.mimeType && att.mimeType.startsWith('image/')) return true;
@@ -340,10 +329,6 @@ const isImageAttachment = (att: any): boolean => {
   return /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
 };
 
-/**
- * Maneja el clic sobre un archivo adjunto dentro de un mensaje.
- * @param {any} att El adjunto que fue clickeado.
- */
 const handleAttachmentClick = (att: any) => {
   if (typeof att === 'string') {
     window.open(att, '_blank');
@@ -358,12 +343,104 @@ const handleAttachmentClick = (att: any) => {
   }
 };
 
-/**
- * Cierra el modal de previsualización de imágenes y limpia la URL.
- */
 const closePreviewModal = () => {
   isPreviewModalOpen.value = false;
   previewImageUrl.value = null;
+};
+
+// ============================================================================
+// HELPERS PARA TRADUCCIÓN E INTERCAMBIO DE IDIOMA
+// ============================================================================
+
+/**
+ * Verifica si un mensaje tiene ambos contenidos (local y externo) y son diferentes.
+ */
+const hasTranslation = (msg: ApiMessage): boolean => {
+  if (!msg.contentLocal || !msg.contentExternal) return false;
+  return msg.contentLocal.trim() !== msg.contentExternal.trim();
+};
+
+/**
+ * Alterna el estado de visualización (Local vs Externo) para un mensaje específico.
+ */
+const toggleTranslation = (msg: ApiMessage) => {
+  if (!hasTranslation(msg)) return; // Solo permite el clic si realmente hay una traducción distinta
+  translatedMessages.value[msg.id] = !translatedMessages.value[msg.id];
+};
+
+/**
+ * Comprueba si un mensaje específico está mostrando actualmente su versión externa (Traducida).
+ */
+const isShowingTranslation = (msgId: string): boolean => {
+  return !!translatedMessages.value[msgId];
+};
+
+// ============================================================================
+// HELPERS PARA ESTADOS OMNICANAL Y METADATA
+// ============================================================================
+
+const getDispatchError = (msg: ApiMessage, channelKeyword: string): string | null => {
+  const meta = msg.metadata;
+  if (!meta) return null;
+
+  const searchKey = channelKeyword.toLowerCase();
+
+  if (meta.dispatch_errors) {
+    const error = meta.dispatch_errors.find((e: string) => e.toLowerCase().includes(searchKey));
+    if (error) return error;
+  }
+
+  if (meta.dispatch_warnings) {
+    const warning = meta.dispatch_warnings.find((e: string) => e.toLowerCase().includes(searchKey));
+    if (warning) return warning;
+  }
+
+  return null;
+};
+
+const getQueueStatus = (queues?: any[]) => {
+  if (!queues || queues.length === 0) return null;
+  const lastQueue = queues[queues.length - 1];
+
+  if (typeof lastQueue === 'string') return 'sent';
+
+  if (lastQueue.status === 'failed') return 'failed';
+  if (lastQueue.deliveryStatus === 'read') return 'read';
+  if (lastQueue.deliveryStatus === 'delivered') return 'delivered';
+
+  return lastQueue.status || 'sent';
+};
+
+const getWhatsappStatus = (msg: ApiMessage) => {
+  const waMeta = msg.metadata?.whatsappMeta;
+  if (waMeta) {
+    if (waMeta.error_code || waMeta.error_reason) return 'failed';
+    if (waMeta.read_at) return 'read';
+    if (waMeta.delivered_at) return 'delivered';
+    if (waMeta.sent_at) return 'sent';
+  }
+  return getQueueStatus(msg.whatsappMetaSendQueues) || 'queued';
+};
+
+const getBeds24Status = (msg: ApiMessage) => {
+  const bedsMeta = msg.metadata?.beds24;
+  if (bedsMeta) {
+    if (bedsMeta.error) return 'failed';
+    if (bedsMeta.read_at) return 'read';
+    if (bedsMeta.delivered_at) return 'delivered';
+    if (bedsMeta.sent_at) return 'sent';
+  }
+  return getQueueStatus(msg.beds24SendQueues) || 'queued';
+};
+
+const getDirectChannelId = (channel?: any): string | null => {
+  if (!channel) return null;
+  if (typeof channel === 'string') {
+    if (channel.includes('whatsapp')) return 'whatsapp_meta';
+    if (channel.includes('beds24')) return 'beds24';
+    return 'unknown';
+  }
+  return channel.id || null;
 };
 </script>
 
@@ -409,7 +486,9 @@ const closePreviewModal = () => {
               </span>
 
               <span class="flex flex-col sm:flex-row sm:items-center sm:gap-2 mb-1">
-                <span class="text-[10px] font-black truncate text-[#E07845] uppercase tracking-tight">{{ chat.contextItems?.length ? chat.contextItems.join(', ') : 'Reserva PMS' }}</span>
+                <span class="text-[10px] font-black truncate text-[#E07845] uppercase tracking-tight">
+                  {{ chat.contextItems?.length ? chat.contextItems.join(', ') : (chat.contextOrigin === 'whatsapp' ? 'Chat Directo' : 'Reserva PMS') }}
+                </span>
                 <span v-if="chat.contextMilestones?.start && chat.contextMilestones?.end" class="text-[10px] font-bold text-slate-400 mt-0.5 sm:mt-0 flex items-center gap-1">
                   <i class="far fa-calendar-alt opacity-70"></i>
                   {{ formatDate(chat.contextMilestones.start) }} - {{ formatDate(chat.contextMilestones.end) }}
@@ -442,7 +521,9 @@ const closePreviewModal = () => {
                   {{ store.currentConversation?.guestName || 'Huésped Sin Nombre' }}
                 </h2>
                 <div class="flex items-center gap-3 text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-400">
-                  <span class="text-[#E07845]">{{ store.currentConversation?.contextItems?.length ? store.currentConversation.contextItems.join(' + ') : 'PMS' }}</span>
+                  <span class="text-[#E07845]">
+                    {{ store.currentConversation?.contextItems?.length ? store.currentConversation.contextItems.join(' + ') : (store.currentConversation?.contextOrigin === 'whatsapp' ? 'CHAT DIRECTO' : 'PMS') }}
+                  </span>
                   <span class="text-slate-200">/</span>
                   <span class="hidden sm:inline">{{ formatFullDate(store.currentConversation?.contextMilestones?.start) }} - {{ formatFullDate(store.currentConversation?.contextMilestones?.end) }}</span>
                   <span class="inline sm:hidden truncate">{{ formatDate(store.currentConversation?.contextMilestones?.start) }} - {{ formatDate(store.currentConversation?.contextMilestones?.end) }}</span>
@@ -528,14 +609,80 @@ const closePreviewModal = () => {
                         </div>
                       </div>
 
-                      <span>{{ msg.contentLocal || msg.contentExternal || 'Mensaje enviado' }}</span>
+                      <div
+                          @click="toggleTranslation(msg)"
+                          class="transition-opacity select-none"
+                          :class="hasTranslation(msg) ? 'cursor-pointer hover:opacity-90' : ''"
+                          :title="hasTranslation(msg) ? 'Toca para alternar traducción' : ''"
+                      >
+                        <template v-if="isShowingTranslation(msg.id)">
+                          <i class="fas fa-globe text-[12px] opacity-70 mr-1.5"></i>
+                          <span>{{ msg.contentExternal }}</span>
+                        </template>
+                        <template v-else>
+                          <span>{{ msg.contentLocal || msg.contentExternal || 'Mensaje enviado' }}</span>
+                          <i v-if="hasTranslation(msg)" class="fas fa-language text-[12px] opacity-40 ml-1.5 hover:opacity-100 transition-opacity"></i>
+                        </template>
+                      </div>
+
                     </div>
 
-                    <div class="flex items-center gap-2 mt-1.5 px-2 text-[10px] font-black uppercase tracking-tighter" :class="[msg.direction === 'outgoing' ? 'flex-row-reverse' : 'flex-row', activeTab === 'scheduled' ? 'text-orange-400' : 'text-slate-400']">
+                    <div class="flex items-center gap-1.5 mt-1.5 px-2 text-[10px] font-black uppercase tracking-tighter" :class="[msg.direction === 'outgoing' ? 'flex-row-reverse' : 'flex-row', activeTab === 'scheduled' ? 'text-orange-400' : 'text-slate-400']">
+
                       <span>{{ formatTime(msg.effectiveDateTime || msg.createdAt) }}</span>
+
                       <template v-if="msg.direction === 'outgoing'">
-                        <i :class="[getMessageTicks(msg).class, getMessageTicks(msg).color]" :title="getMessageTicks(msg).title" class="text-[11px]"></i>
+
+                        <template v-if="msg.channel">
+                          <div class="flex items-center gap-1 text-slate-400" title="Mensaje enviado desde plataforma externa (Sincronizado)">
+                            <i class="fas fa-cloud-download-alt text-[9px] opacity-50 mr-0.5" title="Sincronizado externamente"></i>
+                            <i v-if="getDirectChannelId(msg.channel) === 'beds24'" class="fas fa-bed text-[#003580] opacity-60 text-[9px]"></i>
+                            <i v-else-if="getDirectChannelId(msg.channel) === 'whatsapp_meta'" class="fab fa-whatsapp text-green-500 opacity-70 text-[10px]"></i>
+                            <MessageStatusIcon :status="msg.status" />
+                          </div>
+                        </template>
+
+                        <template v-else>
+                          <div class="flex items-center gap-2">
+
+                            <span v-if="getDispatchError(msg, 'whatsapp') || msg.whatsappMetaSendQueues?.length > 0 || msg.metadata?.whatsappMeta?.sent_at || msg.metadata?.whatsappMeta?.error_code"
+                                  class="flex items-center gap-0.5 ml-2 cursor-help"
+                                  :title="getDispatchError(msg, 'whatsapp') || 'WhatsApp'">
+
+                              <i class="fab fa-whatsapp text-[10px]"
+                                 :class="getDispatchError(msg, 'whatsapp') ? 'text-red-500' : 'text-green-500 opacity-70'"></i>
+
+                              <i v-if="getDispatchError(msg, 'whatsapp')" class="fas fa-exclamation-circle text-red-500 text-[9px]"></i>
+                              <MessageStatusIcon v-else :status="getWhatsappStatus(msg)" />
+                            </span>
+
+                            <span v-if="getDispatchError(msg, 'beds24') || msg.beds24SendQueues?.length > 0 || msg.metadata?.beds24?.sent_at || msg.metadata?.beds24?.error"
+                                  class="flex items-center gap-0.5 ml-2 cursor-help"
+                                  :title="getDispatchError(msg, 'beds24') || 'Beds24'">
+
+                              <i class="fas fa-bed text-[9px]"
+                                 :class="getDispatchError(msg, 'beds24') ? 'text-red-500' : 'text-[#003580] opacity-60'"></i>
+
+                              <i v-if="getDispatchError(msg, 'beds24')" class="fas fa-exclamation-circle text-red-500 text-[9px]"></i>
+                              <MessageStatusIcon v-else :status="getBeds24Status(msg)" />
+                            </span>
+
+                            <span v-if="(!msg.whatsappMetaSendQueues?.length && !msg.metadata?.whatsappMeta?.sent_at && !getDispatchError(msg, 'whatsapp')) && (!msg.beds24SendQueues?.length && !msg.metadata?.beds24?.sent_at && !getDispatchError(msg, 'beds24'))">
+                               <MessageStatusIcon :status="msg.status" />
+                            </span>
+
+                          </div>
+                        </template>
+
                       </template>
+
+                      <template v-else>
+                        <span class="flex items-center gap-1 opacity-50" :title="'Recibido vía: ' + (getDirectChannelId(msg.channel) || 'Desconocido')">
+                          <i v-if="getDirectChannelId(msg.channel) === 'beds24'" class="fas fa-bed text-[#003580] text-[9px]"></i>
+                          <i v-else-if="getDirectChannelId(msg.channel) === 'whatsapp_meta'" class="fab fa-whatsapp text-green-600 text-[10px]"></i>
+                        </span>
+                      </template>
+
                     </div>
 
                   </div>
@@ -550,8 +697,18 @@ const closePreviewModal = () => {
           <div class="flex items-center gap-2 px-1 max-w-4xl mx-auto w-full overflow-x-auto scrollbar-hide">
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"><i class="fas fa-satellite-dish mr-1"></i> Salida:</span>
 
-            <button @click="toggleChannel('beds24')" :class="selectedChannels.includes('beds24') ? 'text-[#003580] bg-[#003580]/10 border-[#003580]/30' : 'text-slate-400 border-transparent hover:bg-slate-100'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0">
+            <button
+                @click="isBeds24Allowed ? toggleChannel('beds24') : null"
+                :disabled="!isBeds24Allowed"
+                :class="[
+                  selectedChannels.includes('beds24') ? 'text-[#003580] bg-[#003580]/10 border-[#003580]/30' : 'border-transparent',
+                  !isBeds24Allowed ? 'text-slate-300 bg-slate-50 opacity-50 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                ]"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0"
+                :title="!isBeds24Allowed ? 'Beds24 no está disponible para este tipo de reserva/chat' : ''"
+            >
               <i class="fas fa-bed"></i> Beds24
+              <i v-if="!isBeds24Allowed" class="fas fa-ban text-[9px] ml-0.5 opacity-50"></i>
             </button>
 
             <button

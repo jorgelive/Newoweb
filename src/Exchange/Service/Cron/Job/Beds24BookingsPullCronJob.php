@@ -8,7 +8,7 @@ use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
 use App\Exchange\Service\Cron\CronJobInterface;
 use App\Pms\Entity\PmsEstablecimiento;
-use App\Pms\Service\Beds24\Queue\Beds24BookingsPullQueueCreator;
+use App\Pms\Service\Queue\Beds24BookingsPullQueueCreator;
 use DateInterval;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;

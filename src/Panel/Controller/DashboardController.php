@@ -22,6 +22,7 @@ use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageRule;
 use App\Message\Entity\MessageTemplate;
+use App\Message\Entity\MetaWebhookAudit;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Pax\Entity\UiI18n;
 use App\Pms\Entity\PmsBeds24WebhookAudit;
@@ -224,7 +225,8 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::subMenu('Auditoría Técnica', 'fa fa-bug')
             ->setSubItems([
-                MenuItem::linkToCrud('Webhook Audit (Beds24)', 'fa fa-stethoscope', PmsBeds24WebhookAudit::class),
+                MenuItem::linkToCrud('Beds24 Webhook Audit', 'fa fa-stethoscope', PmsBeds24WebhookAudit::class),
+                MenuItem::linkToCrud('Meta Whatsapp Webhook Audit', 'fa fa-stethoscope', MetaWebhookAudit::class),
                 MenuItem::linkToCrud('Estado de Crons', 'fa fa-clock', ExchangeCronCursor::class),
             ])
             ->setPermission(Roles::ADMIN);

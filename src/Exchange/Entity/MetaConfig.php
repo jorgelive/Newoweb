@@ -36,7 +36,7 @@ class MetaConfig implements ChannelConfigInterface
     private ?string $baseUrl = 'https://graph.facebook.com';
 
     /**
-     * Almacena credenciales sensibles: apiKey (token), wabaId, verifyToken, etc.
+     * Almacena credenciales exclusivas de Meta: apiKey, wabaId, phoneId, verifyToken.
      */
     #[ORM\Column(type: 'json')]
     private array $credentials = [];
@@ -44,12 +44,11 @@ class MetaConfig implements ChannelConfigInterface
     /**
      * @var Collection<int, WhatsappMetaSendQueue>
      */
-    #[ORM\OneToMany(mappedBy: 'config', targetEntity: WhatsappMetaSendQueue::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'config', targetEntity: WhatsappMetaSendQueue::class)]
     private Collection $whatsappMetaSendQueues;
 
     /**
      * Colección de establecimientos PMS vinculados a esta configuración de Meta.
-     * Esta es la relación inversa (OneToMany) mapeada desde PmsEstablecimiento.
      *
      * @var Collection<int, PmsEstablecimiento>
      */
@@ -91,7 +90,7 @@ class MetaConfig implements ChannelConfigInterface
 
     /*
      * -------------------------------------------------------------------------
-     * ACCESO DINÁMICO A CREDENCIALES (Tipado)
+     * GETTERS Y SETTERS VIRTUALES PARA CREDENCIALES (JSON Mapeado)
      * -------------------------------------------------------------------------
      */
 
@@ -103,22 +102,53 @@ class MetaConfig implements ChannelConfigInterface
         return $this->getCredential('apiKey');
     }
 
+    public function setApiKey(?string $apiKey): self
+    {
+        return $this->addCredential('apiKey', $apiKey);
+    }
+
     /**
-     * Retorna el WhatsApp Business Account ID (Necesario para Sincronizar Plantillas).
+     * Retorna el WhatsApp Business Account ID (Para sincronizar plantillas).
      */
     public function getWabaId(): ?string
     {
         return $this->getCredential('wabaId');
     }
 
+    public function setWabaId(?string $wabaId): self
+    {
+        return $this->addCredential('wabaId', $wabaId);
+    }
+
     /**
-     * Retorna el token secreto para la validación del Webhook (Handshake).
+     * Retorna el Phone Number ID (Para envío de mensajes).
+     */
+    public function getPhoneId(): ?string
+    {
+        return $this->getCredential('phoneId');
+    }
+
+    public function setPhoneId(?string $phoneId): self
+    {
+        return $this->addCredential('phoneId', $phoneId);
+    }
+
+    /**
+     * Retorna el token secreto para la validación del Webhook.
      */
     public function getVerifyToken(): ?string
     {
         return $this->getCredential('verifyToken');
     }
 
+    public function setVerifyToken(?string $verifyToken): self
+    {
+        return $this->addCredential('verifyToken', $verifyToken);
+    }
+
+    /**
+     * Obtiene un valor específico del array JSON de credenciales.
+     */
     public function getCredential(string $key): mixed
     {
         return $this->credentials[$key] ?? null;
@@ -126,7 +156,7 @@ class MetaConfig implements ChannelConfigInterface
 
     /*
      * -------------------------------------------------------------------------
-     * GETTERS Y SETTERS EXPLÍCITOS
+     * GETTERS Y SETTERS EXPLÍCITOS NATIVOS
      * -------------------------------------------------------------------------
      */
 
@@ -219,7 +249,9 @@ class MetaConfig implements ChannelConfigInterface
     {
         if (!$this->establecimientos->contains($establecimiento)) {
             $this->establecimientos->add($establecimiento);
-            $establecimiento->setMetaConfig($this);
+            if ($establecimiento->getMetaConfig() !== $this) {
+                $establecimiento->setMetaConfig($this);
+            }
         }
         return $this;
     }

@@ -13,6 +13,10 @@ use Throwable;
 
 final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 {
+    // 🔥 Inyectamos Mercure para la reactividad en tiempo real
+    public function __construct(
+    ) {}
+
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
     {
         if (!$item instanceof WhatsappMetaSendQueue) {
@@ -24,7 +28,7 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
         // 1. Obtenemos el Remote Id
         $remoteId = $data['messageId'] ?? null;
 
-        // 2. Actualizar Estado de Negocio
+        // 2. Actualizar Estado de Negocio de la Cola
         $item->setDeliveryStatus(WhatsappMetaSendQueue::DELIVERY_SUBMITTED);
 
         // 3. Actualizar Mensaje Padre
@@ -35,9 +39,19 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
                 $msg->setWhatsappMetaExternalId((string) $remoteId);
             }
 
-            if ($msg->getStatus() !== Message::STATUS_READ) {
+            // 🔥 PROTECCIÓN OMNICANAL
+            $currentStatus = $msg->getStatus();
+            if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED, Message::STATUS_FAILED], true)) {
                 $msg->setStatus(Message::STATUS_SENT);
             }
+
+            // 🔥 OMNICANALIDAD: Guardamos la verdad absoluta del canal en la metadata
+            $isoDate = (new DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
+            $msg->setWhatsappMetaSentAt($isoDate);
+
+            // Limpiamos errores previos en caso de que esto sea un reintento exitoso
+            $msg->setWhatsappMetaErrorCode('');
+            $msg->setWhatsappMetaErrorReason('');
         }
 
         // 4. Construir el Resultado de Ejecución para la auditoría JSON de la cola
@@ -62,8 +76,17 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
         $item->setLastHttpCode($httpCode);
 
         // Fallo en Meta -> Failed en Mensaje Padre
-        if ($item->getMessage()) {
-            $item->getMessage()->setStatus(Message::STATUS_FAILED);
+        $msg = $item->getMessage();
+        if ($msg) {
+            // 🔥 PROTECCIÓN OMNICANAL
+            $currentStatus = $msg->getStatus();
+            if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
+                $msg->setStatus(Message::STATUS_FAILED);
+            }
+
+            // Guardamos el error específico del canal
+            $msg->setWhatsappMetaErrorCode((string)$httpCode);
+            $msg->setWhatsappMetaErrorReason($msgError);
         }
 
         // Reintento rápido (1 min)

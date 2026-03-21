@@ -13,6 +13,10 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
+/**
+ * Formulario maestro para gestionar el nodo JSON whatsappMetaTmpl.
+ * Trabaja devolviendo arreglos asociativos puros, sin instanciar clases de datos.
+ */
 class WhatsappMetaTemplateType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -23,26 +27,15 @@ class WhatsappMetaTemplateType extends AbstractType
                 'required' => false,
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
-            ->add('body', CollectionType::class, [
-                'entry_type' => TranslationLongTextType::class,
-                'label' => '1. Texto Libre (Para ventana de 24h abierta - GRATIS)',
-                'help' => 'Este texto se enviará si el huésped nos ha escrito en las últimas 24 horas. Soporta variables nativas: {{ guest_name }}.',
-                'allow_add' => true,
-                'allow_delete' => true,
-                'by_reference' => false,
-                'entry_options' => ['label' => 'Traducción'],
-                'attr' => ['class' => 'pms-flat-collection'],
-                'row_attr' => ['class' => 'col-md-12 mb-4'],
-            ])
-            ->add('whatsapp_meta_template_name', TextType::class, [
-                'label' => '2. Nombre Base de Plantilla Oficial (Para ventana cerrada - PAGO)',
+            ->add('meta_template_name', TextType::class, [
+                'label' => 'Nombre Base de Plantilla Oficial (Para ventana cerrada - PAGO)',
                 'required' => false,
                 'attr' => ['placeholder' => 'Ej: welcome_confirmation'],
-                'help' => 'Si la ventana de 24h está cerrada, el sistema usará esta configuración oficial de Meta.',
+                'help' => 'El nombre exacto aprobado en Facebook Business Manager.',
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
             ->add('category', ChoiceType::class, [
-                'label' => 'Categoría (Solo Oficial)',
+                'label' => 'Categoría de la Plantilla',
                 'required' => false,
                 'choices' => [
                     'Utility (Servicio)' => 'UTILITY',
@@ -52,13 +45,14 @@ class WhatsappMetaTemplateType extends AbstractType
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
             ->add('params_map', CollectionType::class, [
-                'entry_type' => TextType::class,
-                'label' => 'Variables Oficiales (Orden: {{1}}, {{2}}...)',
+                'entry_type' => MetaParamMappingType::class,
+                'label' => 'Mapeo de Variables Oficiales (Orden estricto de Meta)',
+                'help' => 'Asocia las variables posicionales de Meta (1, 2, 3) con los campos de tu sistema (guest_name, checkout_time).',
                 'allow_add' => true,
                 'allow_delete' => true,
+                'by_reference' => false,
                 'entry_options' => [
-                    'label' => 'Variable',
-                    'attr' => ['placeholder' => 'Ej: guest_name']
+                    'label' => false, // Ocultamos el label por defecto del índice para que el sub-formulario decida
                 ],
                 'attr' => ['class' => 'pms-flat-collection'],
                 'row_attr' => ['class' => 'col-md-12 mb-4'],
@@ -66,11 +60,22 @@ class WhatsappMetaTemplateType extends AbstractType
             ->add('language_mapping', CollectionType::class, [
                 'entry_type' => MetaLanguageConfigType::class,
                 'label' => 'IDs Oficiales en Meta por Idioma',
-                'help' => 'Mapeo estricto de los IDs aprobados en Business Manager.',
+                'help' => 'Mapeo estricto de los IDs aprobados en Business Manager por cada idioma traducido.',
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,
                 'entry_options' => ['label' => 'Configuración de Idioma'],
+                'attr' => ['class' => 'pms-flat-collection'],
+                'row_attr' => ['class' => 'col-md-12 mb-4'],
+            ])
+            ->add('body', CollectionType::class, [
+                'entry_type' => TranslationLongTextType::class,
+                'label' => 'Texto Decodificado (Vista previa en ventana abierta - GRATIS)',
+                'help' => 'Este texto se previsualizará en el panel si el huésped nos ha escrito en las últimas 24 horas. Soporta variables nativas: {{ guest_name }}.',
+                'allow_add' => true,
+                'allow_delete' => true,
+                'by_reference' => false,
+                'entry_options' => ['label' => 'Traducción'],
                 'attr' => ['class' => 'pms-flat-collection'],
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ]);
@@ -79,10 +84,11 @@ class WhatsappMetaTemplateType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
+            // data_class en null asegura que Symfony devuelva un arreglo asociativo y no intente mapear a un objeto
             'data_class' => null,
         ]);
 
-        // EL TRUCO MAESTRO PARA DOMAR A EASYADMIN
+        // Atributos definidos explícitamente para compatibilidad con EasyAdmin y colecciones anidadas
         $resolver->setDefined([
             'allow_add',
             'allow_delete',

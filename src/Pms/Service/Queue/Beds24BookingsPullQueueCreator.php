@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\Service\Beds24\Queue;
+namespace App\Pms\Service\Queue;
 
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Pms\Entity\PmsBookingsPullQueue;
