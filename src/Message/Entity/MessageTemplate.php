@@ -93,7 +93,7 @@ class MessageTemplate
      * ¿Por qué existe? Útil para iterar dinámicamente sobre los canales disponibles
      * en factorías o validadores sin quemar strings mágicos en la lógica.
      *
-     * @return array<string>
+     * @return array<int, string>
      */
     public static function getTemplateFields(): array
     {
