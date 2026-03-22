@@ -30,7 +30,7 @@ const isPreviewModalOpen = ref(false);
 const previewImageUrl = ref<string | null>(null);
 
 // ============================================================================
-// NUEVO: Estado para controlar qué mensajes muestran el Content External (Traducción)
+// Estado para controlar qué mensajes muestran el Content External (Traducción)
 // ============================================================================
 const translatedMessages = ref<Record<string, boolean>>({});
 
@@ -131,7 +131,6 @@ watch(() => store.currentConversation, (chat) => {
   selectedTemplateId.value = null;
   showTemplateDropdown.value = false;
   attachmentStore.clear();
-  // Limpiamos el estado de las traducciones al cambiar de chat
   translatedMessages.value = {};
 
   activeTab.value = 'history';
@@ -250,17 +249,38 @@ const send = async () => {
   showTemplateDropdown.value = false;
 };
 
+// ============================================================================
+// LÓGICA DE ICONO GRANDE REFACTORIZADA PARA MERCURE
+// ============================================================================
 const getChannelIcons = (msg: ApiMessage) => {
+  // 1. INCOMING: Solo nos importa el canal origen (Mercure-Safe)
+  if (msg.direction === 'incoming') {
+    const channelId = getDirectChannelId(msg.channel);
+    if (channelId === 'whatsapp_meta') return [{ class: 'fab fa-whatsapp', color: 'text-green-500' }];
+    if (channelId === 'beds24') return [{ class: 'fas fa-bed', color: 'text-[#003580]' }];
+
+    return [{ class: 'fas fa-comment-dots', color: 'text-slate-400' }];
+  }
+
+  // 2. OUTGOING: Multicanal (Evalúa canal explícito o infiere por metadata)
   const icons = [];
-  if (msg.whatsappMetaSendQueues?.length) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
-  if (msg.beds24SendQueues?.length) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
+  const channelId = getDirectChannelId(msg.channel);
+
+  if (channelId === 'whatsapp_meta') {
+    icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
+  } else if (channelId === 'beds24') {
+    icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
+  }
 
   if (icons.length === 0) {
-    const waMeta = msg.metadata?.whatsappMeta;
-    if (waMeta?.received_at || waMeta?.sent_at) icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
-    const bedsMeta = msg.metadata?.beds24;
-    if (bedsMeta?.received_at || bedsMeta?.sent_at) icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
+    if (msg.whatsappMetaSendQueues?.length || msg.metadata?.whatsappMeta?.received_at || msg.metadata?.whatsappMeta?.sent_at) {
+      icons.push({ class: 'fab fa-whatsapp', color: 'text-green-500' });
+    }
+    if (msg.beds24SendQueues?.length || msg.metadata?.beds24?.received_at || msg.metadata?.beds24?.sent_at) {
+      icons.push({ class: 'fas fa-bed', color: 'text-[#003580]' });
+    }
   }
+
   return icons.length ? icons : [{ class: 'fas fa-comment-dots', color: 'text-slate-400' }];
 };
 
@@ -351,26 +371,16 @@ const closePreviewModal = () => {
 // ============================================================================
 // HELPERS PARA TRADUCCIÓN E INTERCAMBIO DE IDIOMA
 // ============================================================================
-
-/**
- * Verifica si un mensaje tiene ambos contenidos (local y externo) y son diferentes.
- */
 const hasTranslation = (msg: ApiMessage): boolean => {
   if (!msg.contentLocal || !msg.contentExternal) return false;
   return msg.contentLocal.trim() !== msg.contentExternal.trim();
 };
 
-/**
- * Alterna el estado de visualización (Local vs Externo) para un mensaje específico.
- */
 const toggleTranslation = (msg: ApiMessage) => {
-  if (!hasTranslation(msg)) return; // Solo permite el clic si realmente hay una traducción distinta
+  if (!hasTranslation(msg)) return;
   translatedMessages.value[msg.id] = !translatedMessages.value[msg.id];
 };
 
-/**
- * Comprueba si un mensaje específico está mostrando actualmente su versión externa (Traducida).
- */
 const isShowingTranslation = (msgId: string): boolean => {
   return !!translatedMessages.value[msgId];
 };
@@ -378,7 +388,6 @@ const isShowingTranslation = (msgId: string): boolean => {
 // ============================================================================
 // HELPERS PARA ESTADOS OMNICANAL Y METADATA
 // ============================================================================
-
 const getDispatchError = (msg: ApiMessage, channelKeyword: string): string | null => {
   const meta = msg.metadata;
   if (!meta) return null;
@@ -811,6 +820,26 @@ const getDirectChannelId = (channel?: any): string | null => {
         />
       </div>
     </Transition>
+
+    <Transition name="fade-slide">
+      <div
+          v-if="store.newNotification"
+          @click="selectChat(store.newNotification.conversationId)"
+          class="fixed top-4 right-4 md:top-6 md:right-8 z-[150] bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-slate-50 hover:scale-105 transition-all max-w-sm w-full"
+      >
+        <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0 shadow-md">
+          <i class="fab fa-whatsapp text-lg"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[10px] font-black text-green-600 uppercase tracking-widest mb-0.5">Nuevo Mensaje</p>
+          <p class="text-sm font-bold text-slate-800 truncate">{{ store.newNotification.title }}</p>
+        </div>
+        <button @click.stop="store.newNotification = null" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </Transition>
+
   </div>
 </template>
 

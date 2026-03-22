@@ -44,6 +44,11 @@ export interface ApiMessage {
             error_reason?: string;
             [key: string]: any;
         };
+        // 🔥 Agrega estas dos líneas para arreglar el error TS2339
+        dispatch_errors?: string[];
+        dispatch_warnings?: string[];
+        // (Opcional) Si en el futuro quieres permitir cualquier otra llave dinámica en la raíz de metadata:
+        [key: string]: any;
     };
     channel?: { id: string; name: string } | string;
     whatsappMetaSendQueues?: ApiMessageQueue[] | string[];
@@ -120,6 +125,9 @@ export const useChatStore = defineStore('chatStore', () => {
     const messagesPage = ref(1);
     const hasMoreMessages = ref(true);
     const loadingMoreMessages = ref(false);
+
+    // NUEVO: Estado para la alerta de mensaje en otro chat
+    const newNotification = ref<{ show: boolean, title: string, conversationId: string } | null>(null);
 
     // Usamos shallowRef para que Pinia no intente hacer reactiva la conexión nativa
     const eventSource = shallowRef<EventSource | null>(null);
@@ -232,10 +240,22 @@ export const useChatStore = defineStore('chatStore', () => {
                 if (data.type === 'conversation_updated' || data.type === 'conversation_created') {
                     const convData = data.conversation;
 
-                    const index = conversations.value.findIndex(c => c['@id'] === convData['@id']);
+                    // Lógica para detectar si hay un mensaje nuevo y disparar la alerta
+                    const existingConv = conversations.value.find(c => c['@id'] === convData['@id']);
+                    const isNewUnread = convData.unreadCount > (existingConv?.unreadCount || 0);
 
-                    if (index !== -1) {
-                        conversations.value.splice(index, 1, { ...conversations.value[index], ...convData });
+                    if (isNewUnread && currentConversation.value?.['@id'] !== convData['@id']) {
+                        newNotification.value = {
+                            show: true,
+                            conversationId: convData.id,
+                            title: convData.guestName || 'Huésped',
+                        };
+                        // Auto-ocultar alerta después de 5 segundos
+                        setTimeout(() => { newNotification.value = null; }, 5000);
+                    }
+
+                    if (existingConv) {
+                        Object.assign(existingConv, convData);
                     } else {
                         conversations.value.unshift(convData);
                     }
@@ -279,13 +299,22 @@ export const useChatStore = defineStore('chatStore', () => {
 
             eventSource.value.onmessage = (event) => {
                 const incomingData = JSON.parse(event.data);
-
                 const index = messages.value.findIndex(m => m['@id'] === incomingData['@id']);
 
                 if (index !== -1) {
                     messages.value.splice(index, 1, { ...messages.value[index], ...incomingData });
                 } else {
                     messages.value.push(incomingData);
+
+                    // Auto-Read Inmediato si recibimos un mensaje nuevo en el chat activo
+                    if (incomingData.direction === 'incoming') {
+                        apiClient.post(`/platform/user/util/msg/conversations/${conversationId}/read`)
+                            .catch(e => console.error("Error auto-reading", e));
+
+                        if (currentConversation.value) {
+                            currentConversation.value.unreadCount = 0;
+                        }
+                    }
                 }
             };
 
@@ -306,6 +335,7 @@ export const useChatStore = defineStore('chatStore', () => {
         loadingMessages.value = true;
         messagesPage.value = 1;
         hasMoreMessages.value = true;
+        newNotification.value = null; // Ocultamos notificación si entramos al chat
 
         try {
             if (found.unreadCount > 0) {
@@ -398,6 +428,6 @@ export const useChatStore = defineStore('chatStore', () => {
         templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
         loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations,
         getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage,
-        initGlobalMercure, connectToMercure
+        initGlobalMercure, connectToMercure, newNotification
     };
 });
