@@ -7,4 +7,5 @@ interface EndpointInterface
 {
     public function getEndpoint(): ?string; // ej: '/inventory/calendar'
     public function getMetodo(): ?string;   // ej: 'POST'
+    public function getAccion(): ?string;   // ej: 'SEND_MESSAGE'
 }

@@ -61,9 +61,11 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             // =========================================================================
             // Validamos LA ACCIÓN DEL ENDPOINT como fuente principal de la verdad,
             // respaldado por la dirección y estado del mensaje.
+            // El encolador los puso en Message::STATUS_QUEUED,
+            // serán puestos nuevamente en Message::STATUS_READ por el persister
             if ($endpoint->getAccion() === 'MARK_WHATSAPP_MESSAGE_READ'
                 && $msg->getDirection() === Message::DIRECTION_INCOMING
-                && $msg->getStatus() === Message::STATUS_READ
+                && $msg->getStatus() === Message::STATUS_QUEUED
             ) {
                 $remoteIdToRead = $msg->getWhatsappMetaExternalId();
 

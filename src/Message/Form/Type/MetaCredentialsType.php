@@ -29,7 +29,7 @@ class MetaCredentialsType extends AbstractType
             ->add('phoneId', TextType::class, [ // <-- NUEVO CAMPO
                 'label' => 'Phone Number ID',
                 'help' => 'Identificador del número de teléfono desde el cual se envían los mensajes.',
-                'attr' => ['placeholder' => '1064111656781449'],
+                'attr' => ['placeholder' => '979596945245997'],
             ])
             ->add('verifyToken', TextType::class, [
                 'label' => 'Webhook Verify Token',

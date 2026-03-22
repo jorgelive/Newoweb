@@ -25,6 +25,7 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 
         $item->setLastHttpCode(200);
 
+
         // 1. Obtenemos el Remote Id
         $remoteId = $data['messageId'] ?? null;
 
@@ -42,7 +43,12 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
             // 🔥 PROTECCIÓN OMNICANAL
             $currentStatus = $msg->getStatus();
             if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED, Message::STATUS_FAILED], true)) {
-                $msg->setStatus(Message::STATUS_SENT);
+                if ($item->getEndpoint()->getAccion()  === 'MARK_WHATSAPP_MESSAGE_READ'){
+                    // 🔥Volvemos a poner Read a los mensajes que fueron puestos como queued por el encolador
+                    $msg->setStatus(Message::STATUS_READ);
+                }else{
+                    $msg->setStatus(Message::STATUS_SENT);
+                }
             }
 
             // 🔥 OMNICANALIDAD: Guardamos la verdad absoluta del canal en la metadata
