@@ -240,26 +240,29 @@ class WhatsappMetaReceivePersister
         $repo = $this->em->getRepository(MessageConversation::class);
 
         // A. Búsqueda Exacta (El escenario ideal)
-        $conversation = $repo->findOneBy([
-            'guestPhone' => $phone,
-            'status' => MessageConversation::STATUS_OPEN
-        ]);
+        // Búsqueda Unificada: Prioriza el número exacto o el "corazón" del número (fallback para OTAs).
+        // Se ordena por fecha de creación (DESC) para asegurar que siempre obtenemos la conversación más reciente.
+        $qb = $repo->createQueryBuilder('c')
+            ->where('c.status = :status')
+            ->setParameter('status', MessageConversation::STATUS_OPEN)
+            ->orderBy('c.createdAt', 'DESC')
+            ->setMaxResults(1);
 
-        // B. Búsqueda Flexible (Fallback para basura de OTAs)
-        // Si no hay match exacto, extraemos el "corazón" del número (los últimos 8 dígitos)
-        // para ignorar prefijos duplicados como '4949' o signos '+' colados.
-        if (!$conversation && strlen($phone) >= 9) {
+        if (strlen($phone) >= 9) {
+            // Extraemos los últimos 8 dígitos para ignorar prefijos internacionales duplicados o signos colados
             $coreNumber = substr($phone, -8);
 
-            $conversation = $repo->createQueryBuilder('c')
-                ->where('c.status = :status')
-                ->andWhere('c.guestPhone LIKE :phoneTail')
-                ->setParameter('status', MessageConversation::STATUS_OPEN)
-                ->setParameter('phoneTail', '%' . $coreNumber)
-                ->setMaxResults(1)
-                ->getQuery()
-                ->getOneOrNullResult();
+            $qb->andWhere('c.guestPhone = :exactPhone OR c.guestPhone LIKE :phoneTail')
+                ->setParameter('exactPhone', $phone)
+                ->setParameter('phoneTail', '%' . $coreNumber);
+        } else {
+            // Si el número es muy corto, forzamos solo la búsqueda exacta para evitar falsos positivos
+            $qb->andWhere('c.guestPhone = :exactPhone')
+                ->setParameter('exactPhone', $phone);
         }
+
+        /** @var MessageConversation|null $conversation */
+        $conversation = $qb->getQuery()->getOneOrNullResult();
 
         if ($conversation) {
             // Actualizamos el nombre si el de WhatsApp es más fresco o si la OTA nos dejó "Guest"
