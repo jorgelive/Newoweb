@@ -126,6 +126,8 @@ export const useChatStore = defineStore('chatStore', () => {
     const hasMoreMessages = ref(true);
     const loadingMoreMessages = ref(false);
 
+    const isChatVisible = ref(true);
+
     // NUEVO: Estado para la alerta de mensaje en otro chat
     const newNotification = ref<{ show: boolean, title: string, conversationId: string } | null>(null);
 
@@ -244,13 +246,12 @@ export const useChatStore = defineStore('chatStore', () => {
                     const existingConv = conversations.value.find(c => c['@id'] === convData['@id']);
                     const isNewUnread = convData.unreadCount > (existingConv?.unreadCount || 0);
 
-                    if (isNewUnread && currentConversation.value?.['@id'] !== convData['@id']) {
+                    if (isNewUnread && (currentConversation.value?.['@id'] !== convData['@id'] || !isChatVisible.value)) {
                         newNotification.value = {
                             show: true,
                             conversationId: convData.id,
                             title: convData.guestName || 'Huésped',
                         };
-                        // Auto-ocultar alerta después de 5 segundos
                         setTimeout(() => { newNotification.value = null; }, 5000);
                     }
 
@@ -306,13 +307,16 @@ export const useChatStore = defineStore('chatStore', () => {
                 } else {
                     messages.value.push(incomingData);
 
-                    // Auto-Read Inmediato si recibimos un mensaje nuevo en el chat activo
+                    // Auto-Read Inmediato SOLO si el chat es visible
                     if (incomingData.direction === 'incoming') {
-                        apiClient.post(`/platform/user/util/msg/conversations/${conversationId}/read`)
-                            .catch(e => console.error("Error auto-reading", e));
+                        if (isChatVisible.value) {
+                            apiClient.post(`/platform/user/util/msg/conversations/${conversationId}/read`)
+                                .catch(e => console.error("Error auto-reading", e));
 
-                        if (currentConversation.value) {
-                            currentConversation.value.unreadCount = 0;
+                            if (currentConversation.value) currentConversation.value.unreadCount = 0;
+                        } else {
+                            // Si el chat está colapsado, sumamos el contador visualmente
+                            if (currentConversation.value) currentConversation.value.unreadCount++;
                         }
                     }
                 }
@@ -428,6 +432,6 @@ export const useChatStore = defineStore('chatStore', () => {
         templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
         loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations,
         getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage,
-        initGlobalMercure, connectToMercure, newNotification
+        initGlobalMercure, connectToMercure, newNotification, isChatVisible
     };
 });

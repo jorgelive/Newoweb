@@ -14,6 +14,18 @@ const newMessageText = ref('');
 const isMobileSidebarOpen = ref(true);
 const isTransitioning = ref(true);
 
+// Función para sincronizar la visibilidad del chat con el Store
+const updateChatVisibility = () => {
+  // El chat es visible SI estamos en desktop (>=768px) O SI en móvil el sidebar está cerrado
+  store.isChatVisible = window.innerWidth >= 768 || !isMobileSidebarOpen.value;
+};
+
+// Escuchamos cuando abres/cierras el sidebar en móvil
+watch(isMobileSidebarOpen, updateChatVisibility);
+
+// Escuchamos si giras la pantalla o cambias el tamaño de la ventana
+const handleResize = () => updateChatVisibility();
+
 // Estado de la pestaña activa (Historial vs Programados)
 const activeTab = ref<'history' | 'scheduled'>('history');
 
@@ -55,6 +67,9 @@ onMounted(() => {
   store.fetchTemplates();
   store.initGlobalMercure();
 
+  window.addEventListener('resize', handleResize);
+  updateChatVisibility(); // Inicializamos el estado correcto
+
   if (window.innerWidth < 768) {
     history.replaceState({ view: 'sidebar' }, '');
   }
@@ -63,6 +78,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('popstate', handlePopState);
+  window.removeEventListener('resize', handleResize);
 });
 
 let isAdjustingMessageScroll = false;
