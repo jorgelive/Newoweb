@@ -135,7 +135,6 @@ class Beds24ReceiveQueue implements ExchangeQueueItemInterface
         $this->lockedBy = null;
         $this->lockedAt = null;
         $this->failedReason = null;
-        $this->retryCount = 0;
     }
 
     public function markFailure(string $reason, ?int $httpCode, DateTimeImmutable $nextRetry): void

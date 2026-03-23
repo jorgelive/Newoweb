@@ -40,13 +40,18 @@ final class PmsBookingsPushQueueCrudController extends BaseCrudController
         return PmsBookingsPushQueue::class;
     }
 
+    /**
+     * Configuración general del CRUD.
+     * Se establece el orden predeterminado por updatedAt DESC para facilitar
+     * el seguimiento de las últimas actualizaciones procesadas por el worker.
+     */
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
             ->setEntityLabelInSingular('Booking Push')
             ->setEntityLabelInPlural('Push Queue (Bookings)')
-            // ✅ UUID v7 permite orden cronológico natural
-            ->setDefaultSort(['runAt' => 'DESC'])
+            // ✅ Cambio solicitado: Orden por actualización más reciente
+            ->setDefaultSort(['updatedAt' => 'DESC'])
             ->setSearchFields(['id', 'status', 'failedReason', 'lockedBy', 'beds24BookIdOriginal'])
             ->showEntityActionsInlined();
     }
@@ -163,10 +168,9 @@ final class PmsBookingsPushQueueCrudController extends BaseCrudController
         yield DateTimeField::new('createdAt', 'Creado')
             ->hideOnIndex()
             ->setFormat('dd/MM/yyyy HH:mm')
-            ->setFormTypeOption('disabled', true); // Visible pero readonly en form
+            ->setFormTypeOption('disabled', true);
 
         yield DateTimeField::new('updatedAt', 'Actualizado')
-            ->hideOnIndex()
             ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
     }

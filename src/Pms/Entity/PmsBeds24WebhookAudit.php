@@ -48,7 +48,7 @@ class PmsBeds24WebhookAudit
     #[ORM\Column(name: 'received_at', type: 'datetime')]
     private ?DateTimeInterface $receivedAt = null;
 
-    #[ORM\Column(name: 'event_type', type: 'string', length: 80, nullable: true)]
+    #[ORM\Column(name: 'event_type', type: 'string', length: 256, nullable: true)]
     private ?string $eventType = null;
 
     #[ORM\Column(name: 'remote_ip', type: 'string', length: 64, nullable: true)]

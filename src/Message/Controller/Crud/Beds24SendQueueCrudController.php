@@ -21,6 +21,11 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * Beds24SendQueueCrudController.
+ * Gestión de la cola de salida de mensajes hacia Beds24.
+ * Ordenado por actualización para seguimiento de logs en tiempo real.
+ */
 class Beds24SendQueueCrudController extends BaseCrudController
 {
     public function __construct(
@@ -35,28 +40,34 @@ class Beds24SendQueueCrudController extends BaseCrudController
         return Beds24SendQueue::class;
     }
 
+    /**
+     * Configuración de acciones.
+     * Mantiene la restricción de no creación/edición manual para integridad de la cola.
+     */
     public function configureActions(Actions $actions): Actions
     {
-        // En la cola de salida no se permite crear ni editar manualmente
         $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->disable(Action::NEW, Action::EDIT);
 
-        $actions = parent::configureActions($actions);
-
-        return $actions
+        return parent::configureActions($actions)
             ->setPermission(Action::INDEX, Roles::MENSAJES_SHOW)
             ->setPermission(Action::DETAIL, Roles::MENSAJES_SHOW)
             ->setPermission(Action::DELETE, Roles::MENSAJES_DELETE);
     }
 
+    /**
+     * Configuración del CRUD.
+     * Se establece el orden por updatedAt DESC para ver lo último procesado arriba.
+     */
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
             ->setEntityLabelInSingular('Cola Beds24')
             ->setEntityLabelInPlural('Colas Beds24')
             ->setSearchFields(['targetBookId', 'status', 'failedReason'])
-            ->setDefaultSort(['runAt' => 'DESC'])
+            // ✅ Ordenado por actualización más reciente
+            ->setDefaultSort(['updatedAt' => 'DESC'])
             ->showEntityActionsInlined();
     }
 
@@ -90,7 +101,7 @@ class Beds24SendQueueCrudController extends BaseCrudController
             ->setColumns(6);
 
         yield DateTimeField::new('runAt', 'Programado para')
-            ->setFormat('yyyy/MM/dd HH:mm')
+            ->setFormat('dd/MM/yyyy HH:mm')
             ->setColumns(6);
 
         yield IntegerField::new('retryCount', 'Reintentos')
@@ -112,7 +123,6 @@ class Beds24SendQueueCrudController extends BaseCrudController
 
         yield TextField::new('failedReason', 'Razón del Fallo')->onlyOnDetail();
 
-        // 🔥 AQUÍ ESTÁ LA MAGIA: Convertimos el array a un string JSON formateado bonito
         yield CodeEditorField::new('executionResult', 'Resultado Ejecución (JSON)')
             ->setLanguage('js')
             ->onlyOnDetail()
@@ -125,5 +135,17 @@ class Beds24SendQueueCrudController extends BaseCrudController
         yield CodeEditorField::new('lastResponseRaw', 'Última Respuesta (Raw)')
             ->setLanguage('js')
             ->onlyOnDetail();
+
+        // --- PANEL DE AUDITORÍA DE SISTEMA ---
+        yield FormField::addPanel('Tiempos de Sistema')->setIcon('fa fa-clock')->renderCollapsed();
+
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->hideOnIndex()
+            ->setFormat('dd/MM/yyyy HH:mm')
+            ->setFormTypeOption('disabled', true);
+
+        yield DateTimeField::new('updatedAt', 'Actualizado')
+            ->setFormat('dd/MM/yyyy HH:mm')
+            ->setFormTypeOption('disabled', true);
     }
 }

@@ -115,7 +115,6 @@ class Beds24SendQueue implements MessageQueueItemInterface
     public function markSuccess(DateTimeImmutable $now): void
     {
         $this->status = self::STATUS_SUCCESS;
-        $this->runAt = null;
         $this->lockedAt = null;
         $this->lockedBy = null;
         $this->failedReason = null;

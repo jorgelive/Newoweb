@@ -129,7 +129,6 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
     {
         $this->status = self::STATUS_SUCCESS;
         $this->failedReason = null;
-        $this->runAt = null;
 
         $this->lockedAt = null;
         $this->lockedBy = null;

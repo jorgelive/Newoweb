@@ -49,7 +49,32 @@ final readonly class ProcessBeds24WebhookDispatchHandler
             $payload = json_decode($dispatch->rawPayload, true, 512, JSON_THROW_ON_ERROR);
 
             $audit->setPayload($payload);
-            $audit->setEventType($payload['type'] ?? $payload['eventType'] ?? 'unknown');
+
+
+            // 1. Extraemos los datos del objeto 'booking'
+            $booking = $payload['booking'] ?? [];
+            $bookingId = $booking['id'] ?? 'N/A';
+            $guestName = trim(($booking['firstName'] ?? '') . ' ' . ($booking['lastName'] ?? ''));
+            $channel = strtoupper($booking['referer'] ?? 'DIRECT');
+
+            // 2. Contadores de sub-nodos
+            $msgCount = count($payload['messages'] ?? []);
+            $invCount = count($payload['invoiceItems'] ?? []);
+
+            // 3. Construimos el string descriptivo
+            // Ejemplo: "B24 #83116820 | ANA CAÑABATE LOPEZ | [B.COM] | MSGS: 6 | INVS: 1"
+            $fullLabel = sprintf(
+                "B24 #%s | %s | [%s] | MSGS: %d | INVS: %d",
+                $bookingId,
+                $guestName ?: 'GUEST',
+                $channel,
+                $msgCount,
+                $invCount
+            );
+
+            // 4. Aplicamos substr de seguridad a 256 para el campo de la DB
+            // Usamos mb_substr para proteger la integridad de los caracteres UTF-8
+            $audit->setEventType(mb_substr($fullLabel, 0, 256));
 
             $responseDetails = [];
             $globalErrors = [];
