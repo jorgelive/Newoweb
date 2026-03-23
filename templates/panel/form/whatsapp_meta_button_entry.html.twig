@@ -1,0 +1,73 @@
+{# =====================================================================
+   BLOQUE B: DISEÑO INDIVIDUAL DE CADA BOTÓN (La Tarjeta)
+   ===================================================================== #}
+
+{# 1. EL ROW: Añadimos la clase 'field-collection-item' y la trampa JS #}
+{% block whatsapp_meta_button_entry_row %}
+    {# Ponemos 'accordion-item' y 'field-collection-item' para que EasyAdmin lo reconozca #}
+    <div class="field-collection-item accordion-item mb-4 border-0 bg-transparent">
+
+        {# --- TRAMPA PARA EL JAVASCRIPT DE EASYADMIN --- #}
+        {# Al añadir estos dos divs invisibles, el script de EasyAdmin encuentra las
+           clases que busca, ejecuta sus animaciones aquí (sin que se vea nada),
+           y no lanza el TypeError en consola. #}
+        <div class="accordion-button d-none"></div>
+        <div class="accordion-collapse d-none"></div>
+        {# ---------------------------------------------- #}
+
+        {{ form_widget(form) }}
+        {{ form_errors(form) }}
+    </div>
+{% endblock %}
+
+{# 2. EL WIDGET: La tarjeta blanca #}
+{% block whatsapp_meta_button_entry_widget %}
+    <div class="pms-button-card border rounded shadow-sm bg-white position-relative p-3">
+
+        {# Botón eliminar: Actualizamos el selector del closest() #}
+        <button type="button"
+                class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 m-1"
+                onclick="this.closest('.field-collection-item').remove();"
+                title="Eliminar Botón">
+            <i class="fa fa-trash-can"></i>
+        </button>
+
+        <h6 class="text-primary fw-bold mb-3">
+            <i class="fa fa-link me-1"></i> Configuración de Botón <span class="badge bg-light text-dark border ms-1">#{{ form.vars.name }}</span>
+        </h6>
+
+        {# Campos nativos del botón #}
+        <div class="row g-2 mb-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label fw-bold text-muted small mb-1">{{ form.index.vars.label }}</label>
+                {{ form_widget(form.index) }}
+                {{ form_errors(form.index) }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold text-muted small mb-1">{{ form.type.vars.label }}</label>
+                {{ form_widget(form.type) }}
+                {{ form_errors(form.type) }}
+            </div>
+            <div class="col-md-7">
+                <label class="form-label fw-bold text-muted small mb-1">{{ form.content.vars.label }}</label>
+                {{ form_widget(form.content) }}
+                {{ form_errors(form.content) }}
+            </div>
+        </div>
+
+        <hr class="text-muted opacity-25">
+
+        {# COLECCIÓN DE TRADUCCIONES ANIDADAS #}
+        <div class="pms-button-translations">
+            <label class="form-label fw-bold text-secondary small mb-2">
+                <i class="fa fa-language me-1"></i> Traducciones de la Etiqueta (Acordeón)
+            </label>
+
+            <div class="ps-3 border-start border-3 border-info">
+                {{ form_row(form.button_text) }}
+            </div>
+        </div>
+
+        {{ form_rest(form) }}
+    </div>
+{% endblock %}

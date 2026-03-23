@@ -95,6 +95,8 @@ class DashboardController extends AbstractDashboardController
         return parent::configureCrud()
             ->overrideTemplate('layout', 'panel/layout.html.twig')
             ->addFormTheme('panel/form/translation_entry.html.twig')
+            ->addFormTheme('panel/form/whatsapp_meta_button_entry.html.twig')
+            ->addFormTheme('panel/form/whatsapp_meta_body_entry.html.twig')
             ->addFormTheme('panel/field/gallery_helper.html.twig');
     }
 

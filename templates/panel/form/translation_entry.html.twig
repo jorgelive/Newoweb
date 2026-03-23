@@ -1,6 +1,7 @@
 {# BLOQUE 1: ROW (Sobrescribe al nativo para quitar el label "0", "1"...) #}
 {% block pms_translation_entry_row %}
-    <div class="pms-item-row mb-2">
+    {# VITAL: Agregamos field-collection-item para el JS de EasyAdmin #}
+    <div class="field-collection-item pms-item-row mb-2">
         {{ form_widget(form) }}
         {{ form_errors(form) }}
     </div>

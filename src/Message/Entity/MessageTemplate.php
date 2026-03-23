@@ -11,6 +11,7 @@ use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
@@ -19,6 +20,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 #[ORM\Table(name: 'msg_template')]
 #[ORM\HasLifecycleCallbacks]
+#[UniqueEntity(fields: ['code'], message: 'Este código de plantilla ya existe. El código debe ser único.')]
 #[ApiResource(
     operations: [
         new GetCollection(uriTemplate: '/user/util/msg/templates')
@@ -37,43 +39,62 @@ class MessageTemplate
     public const string FIELD_WHATSAPP_LINK = 'whatsappLinkTmpl';
 
     #[ORM\Column(length: 50, unique: true)]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: 'El código de la plantilla es obligatorio.')]
+    #[Assert\Length(
+        max: 50,
+        maxMessage: 'El código no puede superar los {{ limit }} caracteres.'
+    )]
     #[Groups(['template:read'])]
     private ?string $code = null;
 
     #[ORM\Column(length: 150)]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: 'El nombre de la plantilla es obligatorio.')]
+    #[Assert\Length(
+        max: 150,
+        maxMessage: 'El nombre no puede superar los {{ limit }} caracteres.'
+    )]
     #[Groups(['template:read'])]
     private ?string $name = null;
 
     #[ORM\Column(type: 'json')]
+    #[Assert\Type(type: 'array')]
     private array $parameters = [];
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    #[Assert\Length(
+        max: 50,
+        maxMessage: 'El tipo de contexto no puede superar los {{ limit }} caracteres.'
+    )]
     #[Groups(['template:read'])]
     private ?string $contextType = null;
 
     #[ORM\Column(type: 'json', nullable: true)]
+    #[Assert\Type(type: 'array')]
     #[Groups(['template:read'])]
     private ?array $allowedSources = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
+    #[Assert\Type(type: 'array')]
     #[Groups(['template:read'])]
     private ?array $allowedAgencies = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
+    #[Assert\Type(type: 'array', message: 'La configuración de Email debe ser un arreglo o estructura JSON válida.')]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['subject', 'body'])]
     private ?array $emailTmpl = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
+    #[Assert\Type(type: 'array', message: 'La configuración de Beds24 debe ser un arreglo o estructura JSON válida.')]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])]
     private ?array $beds24Tmpl = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
-    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])]
+    #[Assert\Type(type: 'array', message: 'La configuración de WhatsApp Meta debe ser un arreglo o estructura JSON válida.')]
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['buttons_map->button_text'])] //body ya no se autotraduce ya que llega de la sincronización
     private ?array $whatsappMetaTmpl = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
+    #[Assert\Type(type: 'array', message: 'La configuración de WhatsApp Link debe ser un arreglo o estructura JSON válida.')]
     #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body'])]
     private ?array $whatsappLinkTmpl = [];
 
@@ -93,7 +114,9 @@ class MessageTemplate
      * ¿Por qué existe? Útil para iterar dinámicamente sobre los canales disponibles
      * en factorías o validadores sin quemar strings mágicos en la lógica.
      *
-     * @return array<int, string>
+     * Ejemplo de uso: foreach (MessageTemplate::getTemplateFields() as $field) { ... }
+     *
+     * @return array<int, string> Arreglo con las constantes de los canales.
      */
     public static function getTemplateFields(): array
     {
@@ -241,7 +264,8 @@ class MessageTemplate
      * ¿Por qué existe? Este método se expone en la API mediante el grupo de serialización para que el
      * frontend (PWA o Panel) pueda determinar dinámicamente qué canales ofrecer en el selector
      * omnicanal al momento de enviar un mensaje al huésped.
-     * * @return array<string> Arreglo de identificadores de canal (ej. ['beds24', 'whatsapp_meta'])
+     *
+     * @return array<int, string> Arreglo de identificadores de canal (ej. ['beds24', 'whatsapp_meta'])
      */
     #[Groups(['template:read'])]
     public function getChannels(): array
@@ -264,105 +288,72 @@ class MessageTemplate
     }
 
     // =========================================================================
-    // METODOS DE EXTRACCION DE DATOS POR IDIOMA (Lógica de Negocio Original)
+    // MÉTODOS DE EXTRACCIÓN DE DATOS POR IDIOMA (Lógica de Negocio)
     // =========================================================================
 
-    /**
-     * Extrae el asunto del correo en el idioma solicitado.
-     *
-     * @param string $lang Código de idioma (ej. 'es', 'en').
-     * @return string|null Retorna el asunto, el fallback en inglés, o null si no existe.
-     */
     public function getEmailSubject(string $lang): ?string
     {
         return $this->extract($this->emailTmpl['subject'] ?? [], $lang, 'content');
     }
 
-    /**
-     * Extrae el cuerpo HTML/Texto del correo en el idioma solicitado.
-     *
-     * @param string $lang Código de idioma (ej. 'es', 'en').
-     * @return string|null
-     */
     public function getEmailBody(string $lang): ?string
     {
         return $this->extract($this->emailTmpl['body'] ?? [], $lang, 'content');
     }
 
-    /**
-     * Extrae el contenido del mensaje para Beds24 según el idioma.
-     *
-     * @param string $lang Código de idioma.
-     * @return string|null
-     */
     public function getBeds24Body(string $lang): ?string
     {
         return $this->extract($this->beds24Tmpl['body'] ?? [], $lang, 'content');
     }
 
     /**
-     * Obtiene el nombre interno de la plantilla en Meta (ej. 'despedida_booking_v2').
-     * ¿Por qué existe? La API de WhatsApp requiere el nombre exacto de la plantilla
-     * aprobada para poder disparar el mensaje de inicio de conversación.
+     * Obtiene el nombre maestro de la plantilla en Meta (ej. 'welcome_booking').
+     * ¿Por qué existe? La API de WhatsApp requiere este nombre base nativo
+     * combinado con el código ISO-2 de idioma para enviar la plantilla oficial.
      *
      * @return string|null
      */
     public function getWhatsappMetaName(): ?string
     {
-        return $this->whatsappMetaTmpl['meta_template_name'] ?? $this->whatsappMetaTmpl['whatsapp_meta_template_name'] ?? null;
+        return $this->whatsappMetaTmpl['meta_template_name'] ?? null;
     }
 
-    /**
-     * Obtiene la categoría de la plantilla de Meta.
-     *
-     * @return string|null (ej. 'UTILITY', 'MARKETING')
-     */
     public function getWhatsappMetaCategory(): ?string
     {
         return $this->whatsappMetaTmpl['category'] ?? null;
     }
 
     /**
-     * Obtiene el mapeo de parámetros para inyectar variables en la plantilla de Meta.
-     * ¿Por qué existe? Utilizado por los servicios de envío (Builders) para extraer
-     * la configuración cruda y reemplazar {{1}}, {{2}} por los valores de la entidad.
-     *
-     * @return array
-     */
-    public function getWhatsappMetaParamsMap(): array
-    {
-        return $this->whatsappMetaTmpl['params_map'] ?? [];
-    }
-
-    /**
-     * Obtiene el ID numérico de la plantilla en Meta correspondiente al idioma.
-     * ¿Por qué existe? Al igual que Beds24 tiene cuerpos por idioma, Meta asume
-     * que cada traducción es un "template_id" distinto. Este ID es vital para el webhook.
+     * Obtiene el estado de aprobación de Meta para un idioma específico.
+     * ¿Por qué existe? Meta aprueba traducciones de forma individual. Este método
+     * lee el array 'body' para confirmar si ese idioma exacto está 'APPROVED', 'PENDING', etc.
      *
      * @param string $lang Código del idioma.
-     * @return string|null
+     * @return string|null Retorna el estado (ej. 'APPROVED') o null si no se encuentra.
      */
-    public function getWhatsappMetaTemplateId(string $lang): ?string
+    public function getWhatsappMetaStatus(string $lang): ?string
     {
-        return $this->extract($this->whatsappMetaTmpl['language_mapping'] ?? [], $lang, 'whatsapp_meta_template_id');
+        return $this->extract($this->whatsappMetaTmpl['body'] ?? [], $lang, 'status');
     }
 
     /**
-     * Verifica si existe configuración válida de Meta para el idioma dado.
+     * Verifica si existe configuración válida y aprobada de Meta para el idioma dado.
+     * Dependencia crítica: La estrategia de mapeo usa esto para decidir si puede
+     * enviar la plantilla por la API oficial o debe hacer un fallback a texto libre.
      *
      * @param string $lang Código del idioma.
      * @return bool
      */
     public function hasWhatsappMetaOfficialData(string $lang): bool
     {
-        return $this->getWhatsappMetaTemplateId($lang) !== null;
+        $status = $this->getWhatsappMetaStatus($lang);
+        return $status === 'APPROVED';
     }
 
     /**
-     * Obtiene el cuerpo decodificado de WhatsApp Meta para mostrar en la interfaz.
-     * ¿Por qué existe? Aunque Meta se envía por template_name y parámetros, en el frontend
-     * necesitamos mostrarle al usuario (ventana) cómo se verá exactamente el mensaje
-     * final decodificado en el idioma del huésped.
+     * Obtiene el cuerpo decodificado de WhatsApp Meta.
+     * ¿Por qué existe? Extrae el texto principal que servirá para hidratar variables
+     * nominales (en envío oficial) o concatenar texto (en periodo de ventana de 24h).
      *
      * @param string $lang Código del idioma.
      * @return string|null
@@ -373,55 +364,46 @@ class MessageTemplate
     }
 
     /**
-     * Obtiene el cuerpo del mensaje para WhatsApp Link (apertura manual de chat).
+     * Extrae y ensambla los botones configurados para un idioma específico.
+     * ¿Por qué existe? El Mapeador de Meta necesita diferenciar las URLs de los botones (Posicionales)
+     * del texto del body (Nominales). Este método aísla el índice, la variable URL y su etiqueta traducida.
      *
-     * @param string $lang Código del idioma.
-     * @return string|null
+     * @param string $lang Código del idioma (ej. 'es').
+     * @return array<int, array<string, mixed>> Lista de botones con formato:
+     * ['index' => 0, 'type' => 'url', 'content' => '{{url}}', 'button_text' => 'Ver Check-in']
      */
+    public function getWhatsappMetaButtons(string $lang): array
+    {
+        $buttonsMap = $this->whatsappMetaTmpl['buttons_map'] ?? [];
+        $resolvedButtons = [];
+
+        foreach ($buttonsMap as $btnConfig) {
+            // Extraemos la traducción específica de la etiqueta del botón para anexarla en la ventana 24h
+            $translatedLabel = $this->extract($btnConfig['button_text'] ?? [], $lang, 'content');
+
+            $resolvedButtons[] = [
+                'index'       => $btnConfig['index'] ?? 0,
+                'type'        => $btnConfig['type'] ?? 'url',
+                'content'     => $btnConfig['content'] ?? '',
+                'button_text' => $translatedLabel,
+            ];
+        }
+
+        return $resolvedButtons;
+    }
+
     public function getWhatsappLinkBody(string $lang): ?string
     {
         return $this->extract($this->whatsappLinkTmpl['body'] ?? [], $lang, 'content');
     }
 
     /**
-     * Asigna o actualiza el ID de la plantilla de Meta WhatsApp para un idioma específico.
-     *
-     * ¿Por qué existe? Facilita el mapeo programático desde controladores o comandos
-     * sin tener que manipular manualmente los arrays profundos del JSON.
-     *
-     * @param string $lang Código del idioma (ej. 'es', 'en').
-     * @param string $templateId El ID devuelto por la API de Meta.
-     * @return self
-     */
-    public function setWhatsappMetaLanguageMapping(string $lang, string $templateId): self
-    {
-        $mapping = $this->whatsappMetaTmpl['language_mapping'] ?? [];
-        $found = false;
-
-        foreach ($mapping as &$item) {
-            if (($item['language'] ?? '') === $lang) {
-                $item['whatsapp_meta_template_id'] = $templateId;
-                $found = true;
-                break;
-            }
-        }
-
-        if (!$found) {
-            $mapping[] = ['language' => $lang, 'whatsapp_meta_template_id' => $templateId];
-        }
-
-        $this->whatsappMetaTmpl['language_mapping'] = $mapping;
-        return $this;
-    }
-
-    /**
      * Asigna o actualiza el texto decodificado (body) de la plantilla de WhatsApp para un idioma.
-     *
-     * ¿Por qué existe? Para mantener sincronizado el texto que se muestra "en ventana"
-     * con los idiomas configurados de manera programática.
+     * ¿Por qué existe? Permite actualizar programáticamente el contenido de la base
+     * sin tener que reconstruir manualmente el array, conservando el estado.
      *
      * @param string $lang Código del idioma (ej. 'es').
-     * @param string $content El texto con las variables listas para previsualizar.
+     * @param string $content El texto con las variables.
      * @return self
      */
     public function setWhatsappMetaBodyForLanguage(string $lang, string $content): self
@@ -438,7 +420,8 @@ class MessageTemplate
         }
 
         if (!$found) {
-            $body[] = ['language' => $lang, 'content' => $content];
+            // Se asume estado PENDING por defecto al crear programáticamente
+            $body[] = ['language' => $lang, 'status' => 'PENDING', 'content' => $content];
         }
 
         $this->whatsappMetaTmpl['body'] = $body;
@@ -446,75 +429,19 @@ class MessageTemplate
     }
 
     // =========================================================================
-    // GETTERS Y SETTERS ESPECIFICOS PARA FORMULARIOS (Casting a Objetos \stdClass)
+    // GETTERS Y SETTERS ESPECÍFICOS PARA FORMULARIOS (Casting a \stdClass)
     // =========================================================================
 
     /**
-     * Obtiene el mapeo de variables de Meta (índice posicional a propiedad de entidad) como objetos.
-     * ¿Por qué existe? Meta exige el uso de variables como {{1}}, {{2}}. Este método permite a
-     * EasyAdmin renderizar una colección donde el usuario pueda asociar '1' -> 'guest_name'.
+     * Obtiene los cuerpos de WhatsApp Meta como objetos para el formulario de EasyAdmin.
      *
-     * @return object[]
-     */
-    public function getWhatsappMetaParamsMappings(): array
-    {
-        return array_map(fn($item) => (object) $item, $this->whatsappMetaTmpl['params_map'] ?? []);
-    }
-
-    /**
-     * Recibe el mapeo de variables desde el formulario y lo convierte a arreglo puro.
-     *
-     * @param array $mappings
-     * @return self
-     */
-    public function setWhatsappMetaParamsMappings(array $mappings): self
-    {
-        $this->whatsappMetaTmpl['params_map'] = array_map(fn($item) => (array) $item, $mappings);
-        return $this;
-    }
-
-    /**
-     * Obtiene el mapeo de lenguajes como un arreglo de objetos.
-     * ¿Por qué existe? El componente Form de Symfony (específicamente CollectionField en EasyAdmin)
-     * necesita trabajar con un arreglo de objetos para que PropertyAccessor pueda resolver
-     * las propiedades (ej. $item->language en lugar de $item['language']).
-     *
-     * @return object[]
-     */
-    public function getWhatsappMetaLanguageMappings(): array
-    {
-        return array_map(fn($item) => (object) $item, $this->whatsappMetaTmpl['language_mapping'] ?? []);
-    }
-
-    /**
-     * Recibe los mapeos desde el formulario y los convierte de vuelta a arreglo asociativo.
-     * ¿Por qué existe? Evita guardar estructuras no deseadas en el JSON de Doctrine.
-     *
-     * @param array $mappings
-     * @return self
-     */
-    public function setWhatsappMetaLanguageMappings(array $mappings): self
-    {
-        $this->whatsappMetaTmpl['language_mapping'] = array_map(fn($item) => (array) $item, $mappings);
-        return $this;
-    }
-
-    /**
-     * Obtiene los cuerpos de WhatsApp Meta como objetos para el formulario.
-     *
-     * @return object[]
+     * @return object[] Arreglo de objetos stdClass.
      */
     public function getWhatsappMetaBodies(): array
     {
         return array_map(fn($item) => (object) $item, $this->whatsappMetaTmpl['body'] ?? []);
     }
 
-    /**
-     * Recibe los cuerpos desde el formulario y los convierte a arreglo.
-     *
-     * @param array $bodies
-     * @return self
-     */
     public function setWhatsappMetaBodies(array $bodies): self
     {
         $this->whatsappMetaTmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
@@ -522,87 +449,67 @@ class MessageTemplate
     }
 
     /**
-     * Obtiene los cuerpos de Beds24 como objetos para el formulario.
+     * Obtiene la estructura de botones de Meta como objetos para manipulación en formulario.
+     * ¿Por qué existe? Similar a los bodies, EasyAdmin (CollectionField) requiere objetos en la raíz
+     * del array para que el PropertyAccessor funcione correctamente.
      *
-     * @return object[]
+     * @return object[] Arreglo de objetos stdClass representando el map de botones.
      */
+    public function getWhatsappMetaButtonsMap(): array
+    {
+        return array_map(fn($item) => (object) $item, $this->whatsappMetaTmpl['buttons_map'] ?? []);
+    }
+
+    /**
+     * Recibe los botones desde el formulario y los convierte de vuelta a array.
+     *
+     * @param array $buttons
+     * @return self
+     */
+    public function setWhatsappMetaButtonsMap(array $buttons): self
+    {
+        $this->whatsappMetaTmpl['buttons_map'] = array_map(fn($item) => (array) $item, $buttons);
+        return $this;
+    }
+
     public function getBeds24Bodies(): array
     {
         return array_map(fn($item) => (object) $item, $this->beds24Tmpl['body'] ?? []);
     }
 
-    /**
-     * Recibe los cuerpos de Beds24 desde el formulario y los convierte a arreglo.
-     *
-     * @param array $bodies
-     * @return self
-     */
     public function setBeds24Bodies(array $bodies): self
     {
         $this->beds24Tmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
         return $this;
     }
 
-    /**
-     * Obtiene los asuntos de Email como objetos para el formulario.
-     *
-     * @return object[]
-     */
     public function getEmailSubjects(): array
     {
         return array_map(fn($item) => (object) $item, $this->emailTmpl['subject'] ?? []);
     }
 
-    /**
-     * Recibe los asuntos de Email desde el formulario y los convierte a arreglo.
-     *
-     * @param array $subjects
-     * @return self
-     */
     public function setEmailSubjects(array $subjects): self
     {
         $this->emailTmpl['subject'] = array_map(fn($item) => (array) $item, $subjects);
         return $this;
     }
 
-    /**
-     * Obtiene los cuerpos de Email como objetos para el formulario.
-     *
-     * @return object[]
-     */
     public function getEmailBodies(): array
     {
         return array_map(fn($item) => (object) $item, $this->emailTmpl['body'] ?? []);
     }
 
-    /**
-     * Recibe los cuerpos de Email desde el formulario y los convierte a arreglo.
-     *
-     * @param array $bodies
-     * @return self
-     */
     public function setEmailBodies(array $bodies): self
     {
         $this->emailTmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
         return $this;
     }
 
-    /**
-     * Obtiene los cuerpos de Whatsapp Link como objetos para el formulario.
-     *
-     * @return object[]
-     */
     public function getWhatsappLinkBodies(): array
     {
         return array_map(fn($item) => (object) $item, $this->whatsappLinkTmpl['body'] ?? []);
     }
 
-    /**
-     * Recibe los cuerpos de Whatsapp Link desde el formulario y los convierte a arreglo.
-     *
-     * @param array $bodies
-     * @return self
-     */
     public function setWhatsappLinkBodies(array $bodies): self
     {
         $this->whatsappLinkTmpl['body'] = array_map(fn($item) => (array) $item, $bodies);
@@ -610,7 +517,7 @@ class MessageTemplate
     }
 
     // =========================================================================
-    // LOGICA INTERNA PRIVADA
+    // LÓGICA INTERNA PRIVADA
     // =========================================================================
 
     /**

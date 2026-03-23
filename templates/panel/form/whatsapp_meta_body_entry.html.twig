@@ -1,0 +1,107 @@
+{# BLOQUE 1: ROW #}
+{% block whatsapp_meta_body_entry_row %}
+    <div class="field-collection-item pms-item-row mb-2">
+
+        {{ form_widget(form) }}
+        {{ form_errors(form) }}
+    </div>
+{% endblock %}
+
+{# BLOQUE 2: WIDGET (El clon exacto de tu acordeón, adaptado para Meta) #}
+{% block whatsapp_meta_body_entry_widget %}
+    {# Detectamos si es el primero por el índice '0' #}
+    {% set is_first = form.vars.name == '0' %}
+
+    {# Extraemos los valores. En sub-formularios anidados a veces la data viene en form.vars.value #}
+    {% set val_lang = form.vars.value.language|default('') %}
+    {% set val_content = form.vars.value.content|default('') %}
+    {% set val_status = form.vars.value.status|default('PENDING') %}
+
+    {% set db_config = form.vars.idiomas_config|default({}) %}
+    {% set info = db_config[val_lang] ?? { 'flag': '✨', 'name': val_lang ? val_lang|upper : 'Nuevo' } %}
+
+    {# Lógica visual para el Badge de Estado #}
+    {% set status_badge_color = 'bg-secondary' %}
+    {% set status_badge_text = 'Desconocido' %}
+
+    {% if val_status == 'APPROVED' %}
+        {% set status_badge_color = 'bg-success' %}
+        {% set status_badge_text = 'Aprobada' %}
+    {% elseif val_status == 'PENDING' %}
+        {% set status_badge_color = 'bg-warning text-dark' %}
+        {% set status_badge_text = 'Pendiente' %}
+    {% elseif val_status == 'REJECTED' %}
+        {% set status_badge_color = 'bg-danger' %}
+        {% set status_badge_text = 'Rechazada' %}
+    {% endif %}
+
+    <div class="accordion-item border shadow-sm">
+        <h2 class="accordion-header d-flex align-items-stretch m-0 p-0" id="heading-meta-{{ id }}">
+
+            {# BOTÓN DEL ACORDEÓN #}
+            <button class="accordion-button py-1 flex-grow-1 {{ not is_first ? 'collapsed' }}"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapse-meta-{{ id }}"
+                    aria-expanded="{{ is_first ? 'true' : 'false' }}"
+                    style="font-size: 0.8rem; background-color: #fcfcfc; border-top-right-radius: 0; border-bottom-right-radius: 0;">
+
+                <span class="me-2 fs-5">{{ info.flag }}</span>
+                <span class="fw-bold me-2 text-dark">{{ info.name }}</span>
+
+                {# NUEVO: Badge de estado inyectado en el título #}
+                <span class="badge {{ status_badge_color }} ms-1 me-2" style="font-size: 0.7em">
+                    {{ status_badge_text }}
+                </span>
+
+                {% if val_content %}
+                    <span class="text-muted small border-start ps-2 text-truncate fst-italic d-none d-sm-inline-block" style="max-width: 300px;">
+                        {{ val_content|striptags }}
+                    </span>
+                {% else %}
+                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7em">Vacío</span>
+                {% endif %}
+            </button>
+
+            {# BOTÓN ELIMINAR (Reutiliza tus estilos de .pms-delete-translation-btn) #}
+            <button type="button"
+                    class="pms-delete-translation-btn"
+                    onclick="this.closest('.pms-item-row').remove();"
+                    title="Eliminar">
+                <i class="fa fa-trash-can"></i>
+            </button>
+        </h2>
+
+        {# CUERPO DEL ACORDEÓN #}
+        <div id="collapse-meta-{{ id }}"
+             class="accordion-collapse collapse {{ is_first ? 'show' }}"
+             data-bs-parent="#{{ id|split('_')[0] }}_accordion">
+
+            <div class="accordion-body bg-white p-3 border-top">
+
+                {# Selectores de Idioma y Estado #}
+                <div class="row g-2 mb-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted small mb-1">Idioma</label>
+                        {{ form_widget(form.language) }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted small mb-1">Estado en Meta</label>
+                        {{ form_widget(form.status) }}
+                    </div>
+                </div>
+
+                {# Caja de contenido principal #}
+                <div class="row g-2">
+                    <div class="col-12">
+                        {{ form_widget(form.content) }}
+                        {{ form_errors(form.content) }}
+                    </div>
+                </div>
+
+                {# Renderizamos tokens ocultos #}
+                {{ form_rest(form) }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

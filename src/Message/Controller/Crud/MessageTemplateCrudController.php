@@ -145,8 +145,7 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setIcon('fab fa-whatsapp')
             ->collapsible()
             ->renderCollapsed()
-            ->setHelp('💡 <b>Nota:</b> Meta utiliza formato numérico para las variables. Utiliza <code>{1}</code>, <code>{2}</code>.');
-
+            ->setHelp('💡 <b>¡Importante!</b> Utiliza llaves dobles y nombres descriptivos para tus variables (ej. <code>{{guest_name}}</code> o <code>{{url_checkin}}</code>). El sistema las detectará y convertirá automáticamente al formato posicional que exige Meta.');
         yield Field::new('whatsappMetaTmpl', '')
             ->setFormType(WhatsappMetaTemplateType::class)
             ->onlyOnForms()

@@ -86,13 +86,17 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 $content = trim($subject) . "\n\n" . trim($content);
             }
 
-            // 2. INTERPOLACIÓN DE VARIABLES (ej. {{ guest_name }})
+            // 2. INTERPOLACIÓN DE VARIABLES (Soporta {{ var }} y {{var}})
             if ($resolver !== null && str_contains($content, '{{')) {
                 $variables = $resolver->getMessageVariables($conversation->getContextId());
-                foreach ($variables as $key => $value) {
-                    $content = str_replace('{{ ' . $key . ' }}', (string)$value, $content);
-                    $content = str_replace('{{' . $key . '}}', (string)$value, $content);
-                }
+
+                // Usamos una expresión regular para encontrar cualquier contenido entre {{ }}
+                // \s* permite espacios opcionales
+                $content = preg_replace_callback('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', function ($matches) use ($variables) {
+                    $key = trim($matches[1]);
+                    // Si la variable existe en nuestro resolver, la ponemos; si no, dejamos el tag original
+                    return array_key_exists($key, $variables) ? (string)$variables[$key] : $matches[0];
+                }, $content);
             }
 
             // 3. EXTRACCIÓN DEL ADJUNTO (Vich Uploader)

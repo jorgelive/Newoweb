@@ -66,7 +66,6 @@ final class AutoTranslationEventListener
 
             $originalValue = $entity->$getter();
 
-            // REGLA 1: Si está completamente vacío, lo ignoramos de forma segura.
             if (empty($originalValue)) {
                 continue;
             }
@@ -75,9 +74,7 @@ final class AutoTranslationEventListener
             $nestedFields = $attr->nestedFields;
             $mimeType = $attr->getFormat();
 
-            // ==========================================================
             // CASO 1: CON NESTED FIELDS
-            // ==========================================================
             if (!empty($nestedFields)) {
                 if (!is_array($originalValue)) {
                     throw new RuntimeException(sprintf('El campo "%s" tiene nestedFields, por lo que debe ser un array (lista o mapa).', $propertyName));
@@ -92,9 +89,7 @@ final class AutoTranslationEventListener
                 continue;
             }
 
-            // ==========================================================
-            // CASO 2: SIN NESTED FIELDS (La base DEBE ser lista válida)
-            // ==========================================================
+            // CASO 2: SIN NESTED FIELDS
             if (!is_array($originalValue) || !array_is_list($originalValue)) {
                 throw new RuntimeException(sprintf(
                     'El campo "%s" sin nestedFields debe ser una lista plana de traducciones [{language, content}]. Tipo encontrado: %s',
@@ -102,7 +97,6 @@ final class AutoTranslationEventListener
                 ));
             }
 
-            // Validamos y procesamos
             $valuesMap = $this->listToMapRows($originalValue, $propertyName);
             $translatedMap = $this->translateAndCloneRows($valuesMap, $sourceLang, $mimeType, $overwrite);
             $finalValue = $this->mapRowsToList($translatedMap);
@@ -120,42 +114,79 @@ final class AutoTranslationEventListener
         }
     }
 
+    /**
+     * Inicia la travesía de los nested fields leyendo la notación de flecha (->)
+     */
     private function processNestedStructure(array $data, array $targetKeys, string $sourceLang, string $mimeType, bool $overwrite, string $propName): array
     {
-        // Si es una lista de elementos (ej: wifiNetworks -> [{ssid: "A"}, {ssid: "B"}])
-        if (array_is_list($data)) {
-            foreach ($data as $index => $item) {
-                if (!is_array($item)) {
-                    throw new RuntimeException(sprintf('El elemento en el índice %d de "%s" debe ser un objeto (array).', $index, $propName));
-                }
+        foreach ($targetKeys as $keyPath) {
+            // Convertimos "buttons_map->button_text" en ['buttons_map', 'button_text']
+            // Si es simple "subject", queda como ['subject'] manteniendo retrocompatibilidad.
+            $pathParts = explode('->', $keyPath);
+            $data = $this->traverseAndTranslate($data, $pathParts, $sourceLang, $mimeType, $overwrite, $propName);
+        }
 
-                foreach ($targetKeys as $key) {
-                    if (!empty($item[$key])) {
-                        $fieldMap = $this->normalizeNestedFieldToRowMap($item[$key], $sourceLang, $propName . '.' . $key);
+        return $data;
+    }
+
+    /**
+     * Función recursiva mágica: bucea en el array hasta encontrar la llave final a traducir.
+     */
+    private function traverseAndTranslate(array $data, array $pathParts, string $sourceLang, string $mimeType, bool $overwrite, string $fullPath): array
+    {
+        if (empty($pathParts)) {
+            return $data;
+        }
+
+        // Sacamos el nivel actual que estamos buscando (Ej: 'buttons_map')
+        $currentKey = array_shift($pathParts);
+
+        // ==========================================================
+        // CASO A: El nivel actual es una Lista de Objetos (Array Numérico)
+        // Ejemplo: Si $data son los botones, iteramos cada uno.
+        // ==========================================================
+        if (array_is_list($data) && !empty($data)) {
+            foreach ($data as $index => $item) {
+                // Verificamos si el ítem de la lista tiene la llave que buscamos (ej: 'button_text')
+                if (is_array($item) && !empty($item[$currentKey])) {
+                    if (empty($pathParts)) {
+                        // ¡Llegamos al final del camino! Traducimos esta propiedad.
+                        $fieldMap = $this->normalizeNestedFieldToRowMap($item[$currentKey], $sourceLang, $fullPath . '.' . $currentKey);
                         $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $overwrite);
-                        $data[$index][$key] = $this->mapRowsToList($translatedMap);
+                        $data[$index][$currentKey] = $this->mapRowsToList($translatedMap);
+                    } else {
+                        // Todavía hay más niveles, aplicamos recursividad hacia abajo.
+                        $data[$index][$currentKey] = $this->traverseAndTranslate($item[$currentKey], $pathParts, $sourceLang, $mimeType, $overwrite, $fullPath . '.' . $currentKey);
                     }
                 }
             }
+            return $data;
         }
-        // Si es un objeto de configuración único (ej: emailTmpl -> {is_active: true, subject: [...]})
-        else {
-            foreach ($targetKeys as $key) {
-                // Si la llave está vacía o no existe, la ignoramos. ¡Pero si hay algo, lo validamos!
-                if (!empty($data[$key])) {
-                    $fieldMap = $this->normalizeNestedFieldToRowMap($data[$key], $sourceLang, $propName . '.' . $key);
-                    $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $overwrite);
-                    $data[$key] = $this->mapRowsToList($translatedMap);
-                }
+
+        // ==========================================================
+        // CASO B: El nivel actual es un Objeto (Array Asociativo)
+        // ==========================================================
+        if (isset($data[$currentKey]) && !empty($data[$currentKey])) {
+            if (empty($pathParts)) {
+                // ¡Llegamos al final del camino! Traducimos esta propiedad.
+                $fieldMap = $this->normalizeNestedFieldToRowMap($data[$currentKey], $sourceLang, $fullPath . '.' . $currentKey);
+                $translatedMap = $this->translateAndCloneRows($fieldMap, $sourceLang, $mimeType, $overwrite);
+                $data[$currentKey] = $this->mapRowsToList($translatedMap);
+            } else {
+                // Todavía hay más niveles, aplicamos recursividad.
+                $data[$currentKey] = $this->traverseAndTranslate($data[$currentKey], $pathParts, $sourceLang, $mimeType, $overwrite, $fullPath . '.' . $currentKey);
             }
         }
 
         return $data;
     }
 
+    // =========================================================================
+    // Funciones Helper Privadas (Sin cambios, pura retrocompatibilidad)
+    // =========================================================================
+
     private function translateAndCloneRows(array $valuesMap, string $sourceLang, string $mimeType, bool $overwrite): array
     {
-        // (Lógica de Google Translate intacta...)
         $sourceLangNorm = strtolower($sourceLang);
         $cleanMap = [];
 
@@ -197,9 +228,6 @@ final class AutoTranslationEventListener
         return $hasChanged ? $valuesMap : $valuesMap;
     }
 
-    /**
-     * REGLA ESTRICTA: Transforma la lista asegurándose de que tenga language y content.
-     */
     private function listToMapRows(mixed $values, string $propName): array
     {
         if (!is_array($values)) {
@@ -224,24 +252,18 @@ final class AutoTranslationEventListener
         return array_values($map);
     }
 
-    /**
-     * REGLA ESTRICTA: Verifica que el contenido anidado tenga sentido.
-     */
     private function normalizeNestedFieldToRowMap(mixed $value, string $sourceLang, string $propName): array
     {
         $sourceLangNorm = strtolower($sourceLang);
 
-        // Si mandaron texto plano (ej. por código), lo autoconvertimos
         if (is_string($value)) {
             return [$sourceLangNorm => ['language' => $sourceLangNorm, 'content'  => $value]];
         }
 
-        // Si mandaron lista, delegamos la validación estricta a listToMapRows
         if (is_array($value) && array_is_list($value)) {
             return $this->listToMapRows($value, $propName);
         }
 
-        // Si llegó hasta aquí, hay datos pero no es ni texto ni una lista válida. EXCEPCIÓN.
         throw new RuntimeException(sprintf(
             'El valor en "%s" tiene un formato no válido. Debe ser texto plano o una lista de traducciones [{language, content}].',
             $propName
@@ -250,7 +272,6 @@ final class AutoTranslationEventListener
 
     private function loadValidLanguages(): void
     {
-        // (Carga de idiomas intacta...)
         $idiomas = $this->entityManager->getRepository(MaestroIdioma::class)
             ->createQueryBuilder('i')
             ->where('i.prioridad > 0')
