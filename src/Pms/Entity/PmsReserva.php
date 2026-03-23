@@ -339,12 +339,8 @@ class PmsReserva
     #[Groups(['pax_reserva:read'])]
     public function getEventosActivosGuia(): array
     {
-        $estadosPermitidos = [
-            PmsEventoEstado::CODIGO_PENDIENTE,
-            PmsEventoEstado::CODIGO_CONFIRMADA,
-            PmsEventoEstado::CODIGO_REQUERIMIENTO,
-        ];
-
+        $estadosPermitidos = PmsEventoEstado::MOSTRAR_EVENTO_GUIA;
+        
         $filtrados = $this->eventosCalendario->filter(function(PmsEventoCalendario $evento) use ($estadosPermitidos) {
             // Validamos estado
             $estadoOk = in_array($evento->getEstado()?->getId(), $estadosPermitidos, true);

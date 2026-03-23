@@ -25,12 +25,19 @@ class PmsEventoEstado
      * CONSTANTES DE ID (Valores originales restaurados)
      * ====================================================== */
 
-    public const CODIGO_PENDIENTE      = 'pendiente';
-    public const CODIGO_CONFIRMADA     = 'confirmada';
-    public const CODIGO_CANCELADA      = 'cancelada';
-    public const CODIGO_ABIERTO        = 'abierto';
-    public const CODIGO_REQUERIMIENTO  = 'requerimiento';
-    public const CODIGO_BLOQUEO        = 'bloqueo';
+    public const string CODIGO_PENDIENTE      = 'pendiente';
+    public const string CODIGO_CONFIRMADA     = 'confirmada';
+    public const string CODIGO_CANCELADA      = 'cancelada';
+    public const string CODIGO_ABIERTO        = 'abierto';
+    public const string CODIGO_REQUERIMIENTO  = 'requerimiento';
+    public const string CODIGO_BLOQUEO        = 'bloqueo';
+
+    public const array MOSTRAR_EVENTO_GUIA = [
+        PmsEventoEstado::CODIGO_PENDIENTE,
+        PmsEventoEstado::CODIGO_CONFIRMADA,
+        PmsEventoEstado::CODIGO_REQUERIMIENTO,
+        PmsEventoEstado::CODIGO_ABIERTO
+    ];
 
     /**
      * El ID es el código string del estado.
