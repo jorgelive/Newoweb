@@ -236,7 +236,7 @@ export const useChatStore = defineStore('chatStore', () => {
      */
     const renewSession = async (credentials: { _username: string, _password: string }) => {
         try {
-            await apiClient.post('/ajex_login', credentials);
+            await apiClient.post('/ajax_login', credentials);
 
             isSessionExpired.value = false;
             error.value = null;
