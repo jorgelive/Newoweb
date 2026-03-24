@@ -3,28 +3,19 @@ security:
         ROLE_USER: []
 
         # --- 1. Lógica de Cascada (CRUD) ---
-        # Esto permite que tus Voters sean sencillos.
-        # Si preguntas is_granted('ROLE_..._SHOW'), responderá TRUE incluso si el usuario tiene WRITE o DELETE.
-
-        # Maestros
         ROLE_MAESTROS_WRITE: [ ROLE_MAESTROS_SHOW ]
         ROLE_MAESTROS_DELETE: [ ROLE_MAESTROS_WRITE ]
 
-        # Operaciones
         ROLE_OPERACIONES_WRITE:     [ROLE_OPERACIONES_SHOW]
         ROLE_OPERACIONES_DELETE:    [ROLE_OPERACIONES_WRITE]
 
-        # Reservas
         ROLE_RESERVAS_WRITE:        [ROLE_RESERVAS_SHOW]
         ROLE_RESERVAS_DELETE:       [ROLE_RESERVAS_WRITE]
 
-        # Mensajes
         ROLE_MENSAJES_WRITE:        [ROLE_MENSAJES_SHOW]
         ROLE_MENSAJES_DELETE:       [ROLE_MENSAJES_WRITE]
 
         # --- 2. Roles Operativos (Personal de Campo) ---
-        # Estos roles suelen heredar solo de ROLE_USER porque su acceso es específico vía Voters.
-
         ROLE_LIMPIEZA:           [ROLE_USER]
         ROLE_MANTENIMIENTO:      [ROLE_USER]
         ROLE_CONDUCTOR:          [ROLE_USER]
@@ -32,14 +23,12 @@ security:
         ROLE_GUIA:               [ROLE_USER]
 
         # Admin: Control total de los módulos de negocio
-        # Al heredar los _DELETE, automáticamente hereda _WRITE y _SHOW de todos.
         ROLE_ADMIN:
             - ROLE_USER
             - ROLE_MAESTROS_DELETE
             - ROLE_OPERACIONES_DELETE
             - ROLE_RESERVAS_DELETE
             - ROLE_MENSAJES_DELETE
-            # El Admin también puede actuar como personal de campo si es necesario
             - ROLE_LIMPIEZA
             - ROLE_MANTENIMIENTO
             - ROLE_CONDUCTOR
@@ -65,25 +54,30 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        # Firewall para la API Pública (Sin estado, sin sesiones)
         api:
-            pattern: ^/api
+            pattern: ^/api_stateless
             stateless: true
-            # Si usas algún autenticador, añádelo aquí.
-            # Si es pública por ahora, déjala sin seguridad o con 'security: false'
             security: false
-            #host: '%app.host.api%'
 
+        # Firewall Principal (Maneja sesiones, cookies y el panel)
         main:
             lazy: true
             provider: app_user_provider
 
+            # 1. Entrada clásica (Formulario HTML de EasyAdmin)
             form_login:
                 login_path: app_login
                 check_path: app_login
                 default_target_path: /
                 always_use_default_target_path: false
-                #use_referer: true
                 enable_csrf: true
+
+            # 2. Entrada silenciosa (JSON desde la PWA en Vue)
+            json_login:
+                check_path: ajax_login_check # Apunta a tu ruta #[Route('/ajax_login')]
+                username_path: _username
+                password_path: _password
 
             logout:
                 path: app_logout
@@ -91,19 +85,17 @@ security:
                 invalidate_session: true
 
             remember_me:
-                # Se utiliza kernel.secret en lugar de env(APP_SECRET) para mayor estabilidad de las firmas de cookies
                 secret: '%kernel.secret%'
                 name: REMEMBERME
                 lifetime: 2629746
                 path: /
                 domain: '%env(FRAMEWORK_SESION_COOKIE_DOMAIN)%'
-                # Vincula de forma estricta el checkbox del form_login con el componente interno
                 remember_me_parameter: _remember_me
                 always_remember_me: false
 
     access_control:
-        # Login/logout públicos
-        - { path: '^/api/login_check$',  roles: PUBLIC_ACCESS }
+        # Login/logout públicos (Incluyendo la nueva ruta AJAX)
+        - { path: '^/ajax_login$', roles: PUBLIC_ACCESS }
         - { path: '^/login$',  roles: PUBLIC_ACCESS }
         - { path: '^/logout$', roles: PUBLIC_ACCESS }
 
@@ -127,7 +119,7 @@ security:
         # PANEL: todos requiere login (por host)
         - { host: '%app.host.panel%', path: '^/', roles: ROLE_USER }
 
-        - { host: '%app.host.util%',  path: '^/', roles: ROLE_USER } #
+        - { host: '%app.host.util%',  path: '^/', roles: ROLE_USER }
 
         # OWEB legacy (si quieres, también por host)
         - { host: '%app.host.oweb%',  path: '^/', roles: ROLE_USER }
