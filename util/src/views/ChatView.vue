@@ -15,18 +15,18 @@ const isMobileSidebarOpen = ref(true);
 const isTransitioning = ref(true);
 
 // ============================================================================
-// LÓGICA DE LOGIN PARA RENOVACIÓN DE SESIÓN
+// LÓGICA DE LOGIN PARA RENOVACIÓN DE SESIÓN (MODIFICADA A USERNAME)
 // ============================================================================
-const loginEmail = ref('');
+const loginUsername = ref('');
 const loginPassword = ref('');
 const isLoggingIn = ref(false);
 
 const handleSessionRenewal = async () => {
-  if (!loginEmail.value || !loginPassword.value) return;
+  if (!loginUsername.value || !loginPassword.value) return;
   isLoggingIn.value = true;
 
   const success = await store.renewSession({
-    _username: loginEmail.value,
+    _username: loginUsername.value,
     _password: loginPassword.value
   });
 
@@ -460,10 +460,10 @@ const getDirectChannelId = (channel?: any): string | null => {
 
             <div class="space-y-4">
               <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Email</label>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Usuario</label>
                 <div class="relative">
-                  <i class="fas fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                  <input v-model="loginEmail" type="email" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#376875]/50 focus:border-[#376875] transition-all text-sm font-medium" placeholder="tu@email.com">
+                  <i class="fas fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                  <input v-model="loginUsername" type="text" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#376875]/50 focus:border-[#376875] transition-all text-sm font-medium" placeholder="tu_usuario">
                 </div>
               </div>
 
@@ -485,7 +485,7 @@ const getDirectChannelId = (channel?: any): string | null => {
               <button type="button" @click="store.cancelRenewal()" class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-xl text-sm transition-colors">
                 Cancelar
               </button>
-              <button type="submit" :disabled="isLoggingIn || !loginEmail || !loginPassword" class="flex-1 px-4 py-2.5 bg-[#376875] text-white hover:bg-[#2c535d] font-bold rounded-xl text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-md">
+              <button type="submit" :disabled="isLoggingIn || !loginUsername || !loginPassword" class="flex-1 px-4 py-2.5 bg-[#376875] text-white hover:bg-[#2c535d] font-bold rounded-xl text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-md">
                 <i v-if="isLoggingIn" class="fas fa-circle-notch fa-spin"></i>
                 <span v-else>Entrar</span>
               </button>
