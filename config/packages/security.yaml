@@ -76,7 +76,7 @@ security:
 
             # 2. Entrada silenciosa (JSON desde la PWA en Vue)
             json_login:
-                check_path: ajax_login_check # Apunta a tu ruta #[Route('/ajax_login')]
+                check_path: ajax_login # Apunta a tu ruta #[Route('/ajax_login')]
                 username_path: _username
                 password_path: _password
 

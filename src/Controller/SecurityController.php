@@ -73,7 +73,7 @@ class SecurityController extends AbstractController
      * Nuevo endpoint para el Chat (Vue/Pinia).
      * Symfony interceptará el JSON enviado y autenticará al usuario.
      */
-    #[Route('/ajax_login', name: 'api_login_check', methods: ['POST'])]
+    #[Route('/ajax_login', name: 'ajax_login', methods: ['POST'])]
     public function jsonLogin(#[CurrentUser] ?User $user): JsonResponse
     {
         if (!$user) {
