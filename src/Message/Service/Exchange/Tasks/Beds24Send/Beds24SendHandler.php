@@ -38,7 +38,13 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
             // falló previamente, nosotros lo "rescatamos" subiéndolo a SENT globalmente.
             $currentStatus = $msg->getStatus();
             if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED, Message::STATUS_FAILED], true)) {
-                $msg->setStatus(Message::STATUS_SENT);
+                //Este gue un flujo de confirmación de lectura
+                if ($msg->getDirection() === Message::DIRECTION_INCOMING){
+                    // 🔥Volvemos a poner Read a los mensajes que fueron puestos como queued por el encolador
+                    $msg->setStatus(Message::STATUS_READ);
+                }else{
+                    $msg->setStatus(Message::STATUS_SENT);
+                }
             }
 
             // 🔥 OMNICANALIDAD: Guardamos la verdad absoluta del canal en la metadata

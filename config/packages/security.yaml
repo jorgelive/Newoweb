@@ -103,6 +103,7 @@ security:
 
     access_control:
         # Login/logout públicos
+        - { path: '^/api/login_check$',  roles: PUBLIC_ACCESS }
         - { path: '^/login$',  roles: PUBLIC_ACCESS }
         - { path: '^/logout$', roles: PUBLIC_ACCESS }
 
