@@ -16,6 +16,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Controller\Api\MarkConversationReadController;
+use App\Security\Roles;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -30,6 +31,8 @@ use Symfony\Component\Uid\Uuid;
     shortName: 'Conversation',
     operations: [
         new GetCollection(uriTemplate: '/user/util/msg/conversations'),
+
+        // Hereda el escudo global de lectura
         new Get(uriTemplate: '/user/util/msg/conversations/{id}'),
 
         new Post(
@@ -37,14 +40,20 @@ use Symfony\Component\Uid\Uuid;
             controller: MarkConversationReadController::class,
             openapi: new Operation(
                 summary: 'Marca el chat como leído',
-                description: 'Marca todos los mensajes INCOMING de la conversación como leídos y notifica a las OTAs (Beds24/WhatsApp) mediante la cola de salida.'
+                description: 'Marca todos los mensajes INCOMING de la conversación como leídos y notifica a las OTAs.'
             ),
-            read: false,
+            // 🔥 Verificamos ÚNICAMENTE el rol explícito de escritura
+            security: "is_granted('" . Roles::MENSAJES_WRITE . "')",
+            securityMessage: 'No tienes permisos para alterar el estado de las conversaciones.',
             deserialize: false
         )
     ],
     normalizationContext: ['groups' => ['conversation:read']],
-    order: ['lastMessageAt' => 'DESC']
+    order: ['lastMessageAt' => 'DESC'],
+
+    // 🔥 Escudo global: Solo usuarios con permiso de ver conversaciones entran aquí
+    security: "is_granted('" . Roles::MENSAJES_SHOW . "')",
+    securityMessage: 'Acceso denegado a las conversaciones.'
 )]
 #[ApiFilter(OrderFilter::class, properties: ['lastMessageAt' => 'DESC', 'createdAt' => 'DESC'])]
 class MessageConversation

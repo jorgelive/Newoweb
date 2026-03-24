@@ -13,6 +13,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Message\ApiPlatform\State\MessageMultipartProcessor;
 use App\Message\Validator\ValidTemplateScope;
+use App\Security\Roles;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -46,6 +47,8 @@ use Symfony\Component\Uid\UuidV7;
             order: ['createdAt' => 'DESC']
         ),
         new GetCollection(uriTemplate: '/user/util/msg/messages'),
+
+        // Al quitar la seguridad local, hereda el escudo global (MENSAJES_SHOW)
         new Get(uriTemplate: '/user/util/msg/messages/{id}'),
 
         new Post(
@@ -54,11 +57,18 @@ use Symfony\Component\Uid\UuidV7;
                 'jsonld' => ['application/ld+json'],
                 'multipart' => ['multipart/form-data']
             ],
+            // 🔥 Verificamos ÚNICAMENTE el rol explícito de escritura
+            securityPostDenormalize: "is_granted('" . Roles::MENSAJES_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para enviar mensajes.',
             processor: MessageMultipartProcessor::class
         )
     ],
     normalizationContext: ['groups' => ['message:read']],
-    denormalizationContext: ['groups' => ['message:write']]
+    denormalizationContext: ['groups' => ['message:write']],
+
+    // 🔥 Escudo global: Solo usuarios con permiso de ver mensajes entran aquí
+    security: "is_granted('" . Roles::MENSAJES_SHOW . "')",
+    securityMessage: 'Acceso denegado al módulo de mensajería.'
 )]
 class Message
 {

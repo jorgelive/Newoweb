@@ -340,7 +340,7 @@ class PmsReserva
     public function getEventosActivosGuia(): array
     {
         $estadosPermitidos = PmsEventoEstado::MOSTRAR_EVENTO_GUIA;
-        
+
         $filtrados = $this->eventosCalendario->filter(function(PmsEventoCalendario $evento) use ($estadosPermitidos) {
             // Validamos estado
             $estadoOk = in_array($evento->getEstado()?->getId(), $estadosPermitidos, true);

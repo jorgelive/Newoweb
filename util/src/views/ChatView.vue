@@ -14,36 +14,49 @@ const newMessageText = ref('');
 const isMobileSidebarOpen = ref(true);
 const isTransitioning = ref(true);
 
-// Función para sincronizar la visibilidad del chat con el Store
+// ============================================================================
+// LÓGICA DE LOGIN PARA RENOVACIÓN DE SESIÓN
+// ============================================================================
+const loginEmail = ref('');
+const loginPassword = ref('');
+const isLoggingIn = ref(false);
+
+const handleSessionRenewal = async () => {
+  if (!loginEmail.value || !loginPassword.value) return;
+  isLoggingIn.value = true;
+
+  const success = await store.renewSession({
+    _username: loginEmail.value,
+    _password: loginPassword.value
+  });
+
+  if (success) {
+    loginPassword.value = ''; // Limpiar por seguridad
+  }
+
+  isLoggingIn.value = false;
+};
+
+// ============================================================================
+// LÓGICA ORIGINAL DE UI Y CHAT
+// ============================================================================
 const updateChatVisibility = () => {
-  // El chat es visible SI estamos en desktop (>=768px) O SI en móvil el sidebar está cerrado
   store.isChatVisible = window.innerWidth >= 768 || !isMobileSidebarOpen.value;
 };
 
-// Escuchamos cuando abres/cierras el sidebar en móvil
 watch(isMobileSidebarOpen, updateChatVisibility);
-
-// Escuchamos si giras la pantalla o cambias el tamaño de la ventana
 const handleResize = () => updateChatVisibility();
 
-// Estado de la pestaña activa (Historial vs Programados)
 const activeTab = ref<'history' | 'scheduled'>('history');
 
-// Estados del Composer
 const selectedTemplateId = ref<string | null>(null);
 const showTemplateDropdown = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
-
-// Hook Multicanal
 const selectedChannels = ref<string[]>([]);
 
-// Estados para el Modal de Previsualización de Imágenes
 const isPreviewModalOpen = ref(false);
 const previewImageUrl = ref<string | null>(null);
 
-// ============================================================================
-// Estado para controlar qué mensajes muestran el Content External (Traducción)
-// ============================================================================
 const translatedMessages = ref<Record<string, boolean>>({});
 
 const handlePopState = (event: PopStateEvent) => {
@@ -68,7 +81,7 @@ onMounted(() => {
   store.initGlobalMercure();
 
   window.addEventListener('resize', handleResize);
-  updateChatVisibility(); // Inicializamos el estado correcto
+  updateChatVisibility();
 
   if (window.innerWidth < 768) {
     history.replaceState({ view: 'sidebar' }, '');
@@ -126,20 +139,12 @@ watch(() => store.error, (v) => {
   if (v) setTimeout(() => store.error = null, 6000);
 });
 
-// ============================================================================
-// DOBLE CANDADO: Validación estricta para Beds24
-// ============================================================================
 const isBeds24Allowed = computed(() => {
   const chat = store.currentConversation;
   if (!chat) return false;
-
-  // Candado 1: El tipo de contexto debe ser explícitamente reserva de PMS
   if (chat.contextType !== 'pms_reserva') return false;
-
-  // Candado 2: El origen no puede ser directo ni whatsapp
   const origin = (chat.contextOrigin || '').toLowerCase();
   const bannedOrigins = ['directo', 'whatsapp'];
-
   return !bannedOrigins.includes(origin);
 });
 
@@ -152,15 +157,8 @@ watch(() => store.currentConversation, (chat) => {
   activeTab.value = 'history';
 
   const newChannels: string[] = [];
-
-  if (isBeds24Allowed.value) {
-    newChannels.push('beds24');
-  }
-
-  // Solo pre-seleccionar WhatsApp si la sesión está activa
-  if (chat?.whatsappSessionActive) {
-    newChannels.push('whatsapp_meta');
-  }
+  if (isBeds24Allowed.value) newChannels.push('beds24');
+  if (chat?.whatsappSessionActive) newChannels.push('whatsapp_meta');
 
   selectedChannels.value = newChannels;
 });
@@ -194,7 +192,7 @@ const toggleChannel = (channel: string) => {
     selectedChannels.value = selectedChannels.value.filter(c => c !== channel);
   } else {
     if (channel === 'beds24') {
-      if (!isBeds24Allowed.value) return; // Seguro adicional
+      if (!isBeds24Allowed.value) return;
       if (attachmentStore.file && !attachmentStore.isImage) {
         store.error = 'No puedes activar Beds24 porque has adjuntado un documento. Beds24 solo admite imágenes.';
         return;
@@ -212,19 +210,12 @@ const selectTemplate = (tpl: ApiTemplate) => {
 
 const clearTemplate = () => {
   selectedTemplateId.value = null;
-
   const restoredChannels: string[] = [];
   const chat = store.currentConversation;
-
   if (chat) {
-    if (isBeds24Allowed.value) {
-      restoredChannels.push('beds24');
-    }
-    if (chat.whatsappSessionActive) {
-      restoredChannels.push('whatsapp_meta');
-    }
+    if (isBeds24Allowed.value) restoredChannels.push('beds24');
+    if (chat.whatsappSessionActive) restoredChannels.push('whatsapp_meta');
   }
-
   selectedChannels.value = restoredChannels;
 };
 
@@ -265,20 +256,14 @@ const send = async () => {
   showTemplateDropdown.value = false;
 };
 
-// ============================================================================
-// LÓGICA DE ICONO GRANDE REFACTORIZADA PARA MERCURE
-// ============================================================================
 const getChannelIcons = (msg: ApiMessage) => {
-  // 1. INCOMING: Solo nos importa el canal origen (Mercure-Safe)
   if (msg.direction === 'incoming') {
     const channelId = getDirectChannelId(msg.channel);
     if (channelId === 'whatsapp_meta') return [{ class: 'fab fa-whatsapp', color: 'text-green-500' }];
     if (channelId === 'beds24') return [{ class: 'fas fa-bed', color: 'text-[#003580]' }];
-
     return [{ class: 'fas fa-comment-dots', color: 'text-slate-400' }];
   }
 
-  // 2. OUTGOING: Multicanal (Evalúa canal explícito o infiere por metadata)
   const icons = [];
   const channelId = getDirectChannelId(msg.channel);
 
@@ -384,9 +369,6 @@ const closePreviewModal = () => {
   previewImageUrl.value = null;
 };
 
-// ============================================================================
-// HELPERS PARA TRADUCCIÓN E INTERCAMBIO DE IDIOMA
-// ============================================================================
 const hasTranslation = (msg: ApiMessage): boolean => {
   if (!msg.contentLocal || !msg.contentExternal) return false;
   return msg.contentLocal.trim() !== msg.contentExternal.trim();
@@ -397,42 +379,30 @@ const toggleTranslation = (msg: ApiMessage) => {
   translatedMessages.value[msg.id] = !translatedMessages.value[msg.id];
 };
 
-const isShowingTranslation = (msgId: string): boolean => {
-  return !!translatedMessages.value[msgId];
-};
+const isShowingTranslation = (msgId: string): boolean => !!translatedMessages.value[msgId];
 
-// ============================================================================
-// HELPERS PARA ESTADOS OMNICANAL Y METADATA
-// ============================================================================
 const getDispatchError = (msg: ApiMessage, channelKeyword: string): string | null => {
   const meta = msg.metadata;
   if (!meta) return null;
-
   const searchKey = channelKeyword.toLowerCase();
-
   if (meta.dispatch_errors) {
     const error = meta.dispatch_errors.find((e: string) => e.toLowerCase().includes(searchKey));
     if (error) return error;
   }
-
   if (meta.dispatch_warnings) {
     const warning = meta.dispatch_warnings.find((e: string) => e.toLowerCase().includes(searchKey));
     if (warning) return warning;
   }
-
   return null;
 };
 
 const getQueueStatus = (queues?: any[]) => {
   if (!queues || queues.length === 0) return null;
   const lastQueue = queues[queues.length - 1];
-
   if (typeof lastQueue === 'string') return 'sent';
-
   if (lastQueue.status === 'failed') return 'failed';
   if (lastQueue.deliveryStatus === 'read') return 'read';
   if (lastQueue.deliveryStatus === 'delivered') return 'delivered';
-
   return lastQueue.status || 'sent';
 };
 
@@ -473,7 +443,60 @@ const getDirectChannelId = (channel?: any): string | null => {
   <div class="flex h-[100dvh] w-full bg-[#F8FAFC] font-sans overflow-hidden relative text-slate-900 antialiased">
 
     <Transition name="fade-slide">
-      <div v-if="store.error" class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-xl border border-white/10 max-w-[90vw] text-center">
+      <div v-if="store.isSessionExpired" class="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200">
+          <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+              <i class="fas fa-lock text-[#E07845]"></i> Sesión Expirada
+            </h3>
+            <button @click="store.cancelRenewal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <form @submit.prevent="handleSessionRenewal" class="p-6">
+            <p class="text-sm text-slate-500 mb-6 leading-relaxed">
+              Por seguridad, tu sesión ha caducado. Ingresa tus credenciales para continuar donde te quedaste.
+            </p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Email</label>
+                <div class="relative">
+                  <i class="fas fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                  <input v-model="loginEmail" type="email" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#376875]/50 focus:border-[#376875] transition-all text-sm font-medium" placeholder="tu@email.com">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Contraseña</label>
+                <div class="relative">
+                  <i class="fas fa-key absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                  <input v-model="loginPassword" type="password" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#376875]/50 focus:border-[#376875] transition-all text-sm font-medium" placeholder="••••••••">
+                </div>
+              </div>
+            </div>
+
+            <div v-if="store.error && store.isSessionExpired" class="mt-4 text-xs font-bold text-red-500 bg-red-50 p-3 rounded-lg flex items-center gap-2">
+              <i class="fas fa-exclamation-circle shrink-0"></i>
+              <span>{{ store.error }}</span>
+            </div>
+
+            <div class="mt-8 flex gap-3">
+              <button type="button" @click="store.cancelRenewal()" class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-xl text-sm transition-colors">
+                Cancelar
+              </button>
+              <button type="submit" :disabled="isLoggingIn || !loginEmail || !loginPassword" class="flex-1 px-4 py-2.5 bg-[#376875] text-white hover:bg-[#2c535d] font-bold rounded-xl text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-md">
+                <i v-if="isLoggingIn" class="fas fa-circle-notch fa-spin"></i>
+                <span v-else>Entrar</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="fade-slide">
+      <div v-if="store.error && !store.isSessionExpired" class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 backdrop-blur-xl border border-white/10 max-w-[90vw] text-center">
         <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0"></div>
         <span class="text-xs font-black uppercase tracking-wide leading-tight">{{ store.error }}</span>
       </div>

@@ -2,12 +2,15 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request; // Necesario para la sesión
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
-use Symfony\Component\Security\Http\Util\TargetPathTrait; // 👇 Importante
+use Symfony\Component\Security\Http\Util\TargetPathTrait;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 /**
  * Controlador encargado de gestionar la seguridad de la aplicación.
@@ -63,6 +66,25 @@ class SecurityController extends AbstractController
             // La mayoría de plantillas de login (incluida EasyAdmin) detectan esta variable
             // y crean un input hidden name="_target_path" automáticamente.
             'target_path' => $targetPath,
+        ]);
+    }
+
+    /**
+     * Nuevo endpoint para el Chat (Vue/Pinia).
+     * Symfony interceptará el JSON enviado y autenticará al usuario.
+     */
+    #[Route('/api/login_check', name: 'api_login_check', methods: ['POST'])]
+    public function jsonLogin(#[CurrentUser] ?User $user): JsonResponse
+    {
+        if (!$user) {
+            return $this->json(['message' => 'Credenciales inválidas'], 401);
+        }
+
+        // Si llega aquí, Symfony ya validó la password y creó la PHPSESSID
+        return $this->json([
+            'user' => $user->getUserIdentifier(),
+            'roles' => $user->getRoles(),
+            'status' => 'success'
         ]);
     }
 

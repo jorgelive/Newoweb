@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef } from 'vue';
-import axios from 'axios';
+import axios, { InternalAxiosRequestConfig } from 'axios';
 import { useAttachmentStore } from './attachmentStore';
 
 export interface ApiMessageQueue {
@@ -102,11 +102,56 @@ export const useChatStore = defineStore('chatStore', () => {
         headers: { 'Accept': 'application/ld+json' }
     });
 
+    // ============================================================================
+    // ESTADOS Y LÓGICA DE SESIÓN (NUEVO)
+    // ============================================================================
+    const isSessionExpired = ref(false);
+    let failedQueue: { resolve: Function, reject: Function, config: InternalAxiosRequestConfig }[] = [];
+
+    /**
+     * Procesa la cola de peticiones pausadas tras un intento de login.
+     * Si hay error, rechaza las promesas. Si fue exitoso, reintenta las peticiones originales.
+     */
+    const processQueue = (error: any = null) => {
+        failedQueue.forEach(prom => {
+            if (error) {
+                prom.reject(error);
+            } else {
+                prom.resolve(apiClient(prom.config));
+            }
+        });
+        failedQueue = [];
+    };
+
     apiClient.interceptors.request.use((config) => {
         config.baseURL = getUrls().api;
         return config;
     });
 
+    /**
+     * Interceptor global para capturar errores 401 (No autorizado).
+     * Pausa la ejecución, levanta la bandera de sesión expirada y encola la petición.
+     */
+    apiClient.interceptors.response.use(
+        response => response,
+        async (error) => {
+            const originalRequest = error.config;
+
+            if (error.response?.status === 401 && !originalRequest._retry) {
+                isSessionExpired.value = true;
+                originalRequest._retry = true;
+
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject, config: originalRequest });
+                });
+            }
+            return Promise.reject(error);
+        }
+    );
+
+    // ============================================================================
+    // ESTADOS DEL CHAT (ORIGINALES)
+    // ============================================================================
     const conversations = ref<ApiConversation[]>([]);
     const currentConversation = ref<ApiConversation | null>(null);
     const messages = ref<ApiMessage[]>([]);
@@ -181,6 +226,51 @@ export const useChatStore = defineStore('chatStore', () => {
         return !!(view && (view['hydra:next'] || view['next']));
     };
 
+    // ============================================================================
+    // ACCIONES DE AUTENTICACIÓN (NUEVO)
+    // ============================================================================
+
+    /**
+     * Intenta renovar la sesión atacando el endpoint JSON del backend de Symfony.
+     * Si es exitoso, libera la cola de mensajes y reinicia los túneles Mercure.
+     */
+    const renewSession = async (credentials: { _username: string, _password: string }) => {
+        try {
+            await apiClient.post('/api/login_check', credentials);
+
+            isSessionExpired.value = false;
+            error.value = null;
+
+            // 1. Liberamos cualquier petición pendiente (ej. el envío de un mensaje)
+            processQueue(null);
+
+            // 2. Renovar túneles Mercure (vital para obtener el nuevo JWT de Mercure)
+            await initGlobalMercure();
+            if (currentConversation.value) {
+                await connectToMercure(currentConversation.value.id);
+            }
+
+            return true;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Error de autenticación. Verifica tus credenciales.';
+            processQueue(err); // Si falla por completo, matamos las peticiones pendientes
+            return false;
+        }
+    };
+
+    /**
+     * Cancela explícitamente el proceso de renovación de sesión.
+     */
+    const cancelRenewal = () => {
+        isSessionExpired.value = false;
+        processQueue(new Error('Renovación de sesión cancelada por el usuario.'));
+    };
+
+
+    // ============================================================================
+    // ACCIONES ORIGINALES
+    // ============================================================================
+
     const fetchTemplates = async () => {
         try {
             const response = await apiClient.get('/platform/user/util/msg/templates');
@@ -214,7 +304,10 @@ export const useChatStore = defineStore('chatStore', () => {
             hasMoreConversations.value = hasNextPage(response);
             conversationsPage.value = pageToFetch;
         } catch (err: any) {
-            error.value = 'Error al sincronizar chats';
+            // Solo mostramos error general si no es un 401 (que ya maneja el modal)
+            if (err.response?.status !== 401) {
+                error.value = 'Error al sincronizar chats';
+            }
         } finally {
             loadingConversations.value = false;
             loadingMoreConversations.value = false;
@@ -222,7 +315,10 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     const initGlobalMercure = async () => {
-        if (globalEventSource.value) return;
+        if (globalEventSource.value) {
+            globalEventSource.value.close();
+            globalEventSource.value = null;
+        }
 
         try {
             const authResponse = await apiClient.get('/message/mercure/auth');
@@ -274,7 +370,7 @@ export const useChatStore = defineStore('chatStore', () => {
             };
 
         } catch (err) {
-            console.error('❌ Fallo al inicializar Global Mercure:', err);
+            console.error('❌ Fallo al inicializar Global Mercure (posible sesión expirada)');
         }
     };
 
@@ -327,7 +423,7 @@ export const useChatStore = defineStore('chatStore', () => {
             };
 
         } catch (err) {
-            console.error('❌ Fallo al inicializar Mercure:', err);
+            console.error('❌ Fallo al inicializar Mercure (posible sesión expirada)');
         }
     };
 
@@ -420,7 +516,7 @@ export const useChatStore = defineStore('chatStore', () => {
             attachmentStore.clear();
 
         } catch (err) {
-            error.value = 'Fallo al enviar el mensaje. Verifica el tamaño del archivo.';
+            error.value = 'Fallo al enviar el mensaje. Verifica el tamaño del archivo o tu conexión.';
             console.error('Error enviando mensaje Multipart:', err);
         } finally {
             sendingMessage.value = false;
@@ -431,6 +527,7 @@ export const useChatStore = defineStore('chatStore', () => {
         conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages,
         templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
         loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations,
+        isSessionExpired, renewSession, cancelRenewal, // Exportados nuevos
         getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage,
         initGlobalMercure, connectToMercure, newNotification, isChatVisible
     };
