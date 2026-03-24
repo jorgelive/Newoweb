@@ -32,6 +32,21 @@ const handleSessionRenewal = async () => {
 
   if (success) {
     loginPassword.value = ''; // Limpiar por seguridad
+
+    // 🔥 LA MAGIA AQUÍ: Forzamos la recarga para sincronizar la realidad
+
+    // 1. Recargamos la lista de conversaciones (por si hay chats nuevos)
+    await store.fetchConversations();
+
+    // 2. Si el usuario estaba viendo un chat específico, lo recargamos
+    // para traer cualquier mensaje que haya llegado mientras la sesión estaba caída.
+    if (store.currentConversation) {
+      await store.selectConversation(store.currentConversation.id);
+
+      // Hacemos scroll hacia abajo suavemente para ver los mensajes nuevos
+      await nextTick();
+      scrollToBottom();
+    }
   }
 
   isLoggingIn.value = false;
