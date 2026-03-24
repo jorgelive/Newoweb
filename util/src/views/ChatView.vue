@@ -15,7 +15,7 @@ const isMobileSidebarOpen = ref(true);
 const isTransitioning = ref(true);
 
 // ============================================================================
-// LÓGICA DE LOGIN PARA RENOVACIÓN DE SESIÓN (MODIFICADA A USERNAME)
+// LÓGICA DE LOGIN PARA RENOVACIÓN DE SESIÓN
 // ============================================================================
 const loginUsername = ref('');
 const loginPassword = ref('');
@@ -369,17 +369,55 @@ const closePreviewModal = () => {
   previewImageUrl.value = null;
 };
 
+// ============================================================================
+// LÓGICA DE TRADUCCIÓN Y FORMATEO DE ENLACES
+// ============================================================================
 const hasTranslation = (msg: ApiMessage): boolean => {
   if (!msg.contentLocal || !msg.contentExternal) return false;
   return msg.contentLocal.trim() !== msg.contentExternal.trim();
 };
 
-const toggleTranslation = (msg: ApiMessage) => {
+/**
+ * Alterna entre el idioma original y la traducción.
+ * Si el usuario hizo clic en un enlace (etiqueta A), se cancela el toggle
+ * para que el navegador pueda abrir la pestaña de forma natural sin interrumpir.
+ */
+const toggleTranslation = (msg: ApiMessage, event?: Event) => {
+  if (event && (event.target as HTMLElement).tagName === 'A') {
+    return; // Ignora el clic si se pinchó un enlace
+  }
+
   if (!hasTranslation(msg)) return;
   translatedMessages.value[msg.id] = !translatedMessages.value[msg.id];
 };
 
 const isShowingTranslation = (msgId: string): boolean => !!translatedMessages.value[msgId];
+
+/**
+ * Transforma el texto plano en HTML.
+ * Primero escapa caracteres peligrosos (XSS) y luego convierte URLs en enlaces <a> clicables.
+ */
+const formatMessageText = (text: string | null | undefined): string => {
+  if (!text) return '';
+
+  // 1. Escapar HTML por seguridad (evita inyección de scripts)
+  const escapeHtml = (unsafe: string) => {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+  };
+
+  const safeText = escapeHtml(text);
+
+  // 2. Convertir enlaces usando regex
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return safeText.replace(urlRegex, (url) => {
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline font-bold hover:opacity-70 transition-opacity">${url}</a>`;
+  });
+};
 
 const getDispatchError = (msg: ApiMessage, channelKeyword: string): string | null => {
   const meta = msg.metadata;
@@ -658,17 +696,17 @@ const getDirectChannelId = (channel?: any): string | null => {
                       </div>
 
                       <div
-                          @click="toggleTranslation(msg)"
+                          @click="toggleTranslation(msg, $event)"
                           class="transition-opacity select-none"
                           :class="hasTranslation(msg) ? 'cursor-pointer hover:opacity-90' : ''"
                           :title="hasTranslation(msg) ? 'Toca para alternar traducción' : ''"
                       >
                         <template v-if="isShowingTranslation(msg.id)">
                           <i class="fas fa-globe text-[12px] opacity-70 mr-1.5"></i>
-                          <span>{{ msg.contentExternal }}</span>
+                          <span v-html="formatMessageText(msg.contentExternal)"></span>
                         </template>
                         <template v-else>
-                          <span>{{ msg.contentLocal || msg.contentExternal || 'Mensaje enviado' }}</span>
+                          <span v-html="formatMessageText(msg.contentLocal || msg.contentExternal || 'Mensaje enviado')"></span>
                           <i v-if="hasTranslation(msg)" class="fas fa-language text-[12px] opacity-40 ml-1.5 hover:opacity-100 transition-opacity"></i>
                         </template>
                       </div>
@@ -889,4 +927,7 @@ const getDirectChannelId = (channel?: any): string | null => {
 .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 textarea { outline: none; }
+
+/* Permite que los saltos de línea \n se respeten con v-html en el span */
+.whitespace-pre-wrap span { white-space: pre-wrap; word-break: break-word; }
 </style>
