@@ -55,10 +55,11 @@ security:
             security: false
 
         # Firewall para la API Pública (Sin estado, sin sesiones)
-        api:
-            pattern: ^/api_stateless
+        api_stateless:
+            pattern: ^/platform/api_stateless
             stateless: true
             security: false
+            host: '%app.host.api%'
 
         # Firewall Principal (Maneja sesiones, cookies y el panel)
         main:
