@@ -478,8 +478,7 @@ const getDirectChannelId = (channel?: any): string | null => {
 </script>
 
 <template>
-  <div class="flex h-[100dvh] w-full bg-[#F8FAFC] font-sans overflow-hidden relative text-slate-900 antialiased">
-
+  <div class="fixed inset-0 flex bg-[#F8FAFC] font-sans overflow-hidden text-slate-900 antialiased">
     <Transition name="fade-slide">
       <div v-if="store.isSessionExpired" class="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200">
@@ -778,7 +777,7 @@ const getDirectChannelId = (channel?: any): string | null => {
           </div>
         </div>
 
-        <footer v-show="activeTab === 'history'" class="bg-white border-t border-slate-100 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6 shrink-0 relative flex flex-col gap-3 min-w-0">
+        <footer v-show="activeTab === 'history'" class="bg-white border-t border-slate-100 p-3 md:p-6 shrink-0 relative flex flex-col gap-3 min-w-0 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
 
           <div class="flex items-center gap-2 px-1 max-w-4xl mx-auto w-full overflow-x-auto scrollbar-hide">
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"><i class="fas fa-satellite-dish mr-1"></i> Salida:</span>
