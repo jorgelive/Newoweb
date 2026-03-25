@@ -13,7 +13,6 @@ use App\Message\Factory\MessageAttachmentFactory;
 use DateTimeImmutable;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -260,7 +259,6 @@ class WhatsappMetaReceivePersister
         if (strlen($phone) >= 9) {
             // Extraemos los últimos 8 dígitos para ignorar prefijos internacionales duplicados o signos colados
             $coreNumber = substr($phone, -8);
-
             $qb->andWhere('c.guestPhone = :exactPhone OR c.guestPhone LIKE :phoneTail')
                 ->setParameter('exactPhone', $phone)
                 ->setParameter('phoneTail', '%' . $coreNumber);
@@ -285,7 +283,6 @@ class WhatsappMetaReceivePersister
         // C. Si no hay reserva abierta, CREAMOS UN WALK-IN (Contexto Manual)
         // El constructor exige obligatoriamente contextType y contextId
         $conversation = new MessageConversation('manual', $phone);
-
         $conversation->setContextOrigin('whatsapp');
         $conversation->setGuestPhone($phone);
         $conversation->setGuestName($guestName);
@@ -312,7 +309,7 @@ class WhatsappMetaReceivePersister
     */
     private function findMessageByMetaId(string $metaMessageId): ?Message
     {
-        $rsm = new ResultSetMappingBuilder($this->em);
+        $rsm = new \Doctrine\ORM\Query\ResultSetMappingBuilder($this->em);
         $rsm->addRootEntityFromClassMetadata(Message::class, 'm');
 
         // Usamos SQL puro para que MySQL maneje el JSON_EXTRACT directamente
@@ -341,6 +338,7 @@ class WhatsappMetaReceivePersister
         }
 
         try {
+            // Paso 1: Obtener la URL temporal del CDN de Meta usando el Media ID
             $response = $this->httpClient->request('GET', "{$baseUrl}/{$mediaId}", [
                 'headers' => ['Authorization' => 'Bearer ' . $apiKey]
             ]);

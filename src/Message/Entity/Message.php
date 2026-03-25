@@ -140,7 +140,7 @@ class Message
 
     #[ORM\Column(type: 'json')]
     #[Groups(['message:read'])]
-    private array $metadata = ['beds24' => [], 'whatsappMeta' => []];
+    private array $metadata = [];
 
     #[ORM\Column(length: 20, options: ['default' => self::DIRECTION_OUTGOING])]
     #[Groups(['message:read', 'message:write'])]
@@ -171,6 +171,7 @@ class Message
         $this->beds24SendQueues       = new ArrayCollection();
         $this->attachments            = new ArrayCollection();
         $this->externalIds            = [];
+        $this->metadata               = ['beds24' => [], 'whatsappMeta' => []];
     }
 
     public function __toString(): string
@@ -327,32 +328,77 @@ class Message
     public function setTemplateContext(array $templateContext): self { $this->templateContext = $templateContext; return $this; }
 
     // =========================================================================
-    // METADATA
+    // METADATA (🔥 ACTUALIZADOS CON REASIGNACIÓN FORZADA Y AUDITORÍA)
     // =========================================================================
 
     public function getMetadata(): array { return array_merge(['beds24' => [], 'whatsappMeta' => []], $this->metadata); }
-    public function setMetadata(array $metadata): self { $this->metadata = $metadata; return $this; }
-    public function addMetadata(string $key, mixed $value): self { $this->metadata[$key] = $value; return $this; }
 
-    public function getBeds24Metadata(): array { return $this->metadata['beds24'] ?? []; }
-    public function setBeds24Metadata(array $data): self { $this->metadata['beds24'] = $data; return $this; }
-    public function addBeds24Metadata(string $key, mixed $value): self {
-        if (!isset($this->metadata['beds24']) || !is_array($this->metadata['beds24'])) $this->metadata['beds24'] = [];
-        $this->metadata['beds24'][$key] = $value;
+    public function setMetadata(array $metadata): self
+    {
+        $this->metadata = $metadata;
         return $this;
     }
+
+    public function addMetadata(string $key, mixed $value): self
+    {
+        $meta = $this->metadata;
+        $meta[$key] = $value;
+        $this->metadata = $meta;
+        $this->appendDebugTrace('global', "set_$key", $value);
+        return $this;
+    }
+
+    public function getBeds24Metadata(): array { return $this->metadata['beds24'] ?? []; }
+
+    public function setBeds24Metadata(array $data): self
+    {
+        $meta = $this->metadata;
+        $meta['beds24'] = $data;
+        $this->metadata = $meta;
+        return $this;
+    }
+
+    public function addBeds24Metadata(string $key, mixed $value): self
+    {
+        $meta = $this->metadata;
+        if (!isset($meta['beds24']) || !is_array($meta['beds24'])) {
+            $meta['beds24'] = [];
+        }
+        $meta['beds24'][$key] = $value;
+
+        $this->metadata = $meta; // 🔥 Reasignación crítica
+        $this->appendDebugTrace('beds24', "set_$key", $value); // 🔥 Rastro
+        return $this;
+    }
+
     public function getBeds24ReceivedAt(): ?string { return $this->metadata['beds24']['received_at'] ?? null; }
     public function setBeds24ReceivedAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('received_at', $dateTimeIso8601); }
     public function getBeds24ReadAt(): ?string { return $this->metadata['beds24']['read_at'] ?? null; }
     public function setBeds24ReadAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('read_at', $dateTimeIso8601); }
 
     public function getWhatsappMetaMetadata(): array { return $this->metadata['whatsappMeta'] ?? []; }
-    public function setWhatsappMetaMetadata(array $data): self { $this->metadata['whatsappMeta'] = $data; return $this; }
-    public function addWhatsappMetaMetadata(string $key, mixed $value): self {
-        if (!isset($this->metadata['whatsappMeta']) || !is_array($this->metadata['whatsappMeta'])) $this->metadata['whatsappMeta'] = [];
-        $this->metadata['whatsappMeta'][$key] = $value;
+
+    public function setWhatsappMetaMetadata(array $data): self
+    {
+        $meta = $this->metadata;
+        $meta['whatsappMeta'] = $data;
+        $this->metadata = $meta;
         return $this;
     }
+
+    public function addWhatsappMetaMetadata(string $key, mixed $value): self
+    {
+        $meta = $this->metadata;
+        if (!isset($meta['whatsappMeta']) || !is_array($meta['whatsappMeta'])) {
+            $meta['whatsappMeta'] = [];
+        }
+        $meta['whatsappMeta'][$key] = $value;
+
+        $this->metadata = $meta; // 🔥 Reasignación crítica
+        $this->appendDebugTrace('whatsappMeta', "set_$key", $value); // 🔥 Rastro
+        return $this;
+    }
+
     public function getWhatsappMetaSentAt(): ?string { return $this->metadata['whatsappMeta']['sent_at'] ?? null; }
     public function setWhatsappMetaSentAt(string $dateTimeIso8601): self { return $this->addWhatsappMetaMetadata('sent_at', $dateTimeIso8601); }
     public function getWhatsappMetaDeliveredAt(): ?string { return $this->metadata['whatsappMeta']['delivered_at'] ?? null; }
@@ -388,10 +434,11 @@ class Message
     public function setSenderType(string $senderType): self { $this->senderType = $senderType; return $this; }
 
     // =========================================================================
-    // IDS EXTERNOS
+    // IDS EXTERNOS (🔥 ACTUALIZADOS CON REASIGNACIÓN FORZADA)
     // =========================================================================
 
     public function getExternalIds(): array { return $this->externalIds ?? []; }
+
     public function setExternalIds(?array $externalIds): self
     {
         $this->externalIds = $externalIds;
@@ -399,16 +446,22 @@ class Message
     }
 
     public function getBeds24ExternalId(): ?string { return $this->externalIds['beds24'] ?? null; }
+
     public function setBeds24ExternalId(?string $id): self
     {
-        $this->externalIds['beds24'] = $id;
+        $ext = $this->externalIds ?? [];
+        $ext['beds24'] = $id;
+        $this->externalIds = $ext;
         return $this;
     }
 
     public function getWhatsappMetaExternalId(): ?string { return $this->externalIds['whatsapp_meta'] ?? null; }
+
     public function setWhatsappMetaExternalId(?string $id): self
     {
-        $this->externalIds['whatsapp_meta'] = $id;
+        $ext = $this->externalIds ?? [];
+        $ext['whatsapp_meta'] = $id;
+        $this->externalIds = $ext;
         return $this;
     }
 
@@ -446,5 +499,38 @@ class Message
             if ($attachment->getMessage() !== $this) $attachment->setMessage($this);
         }
         return $this;
+    }
+
+    // =========================================================================
+    // AUDITORÍA INTERNA
+    // =========================================================================
+
+    /**
+     * HACK DE AUDITORÍA: Rastrea quién y cuándo modifica el JSON.
+     * Esto dejará una huella en el JSON de la base de datos para cazar sobreescrituras.
+     */
+    private function appendDebugTrace(string $channel, string $action, $value): void
+    {
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+
+        $callerClass = $trace[1]['class'] ?? 'Función global/Closure';
+        $callerMethod = $trace[1]['function'] ?? 'Unknown';
+
+        $meta = $this->metadata;
+        if (!isset($meta['_debug_trace'])) {
+            $meta['_debug_trace'] = [];
+        }
+
+        $meta['_debug_trace'][] = [
+            'timestamp' => (new DateTimeImmutable())->format('Y-m-d H:i:s.v'),
+            'sapi'      => php_sapi_name(),
+            'pid'       => getmypid(),
+            'channel'   => $channel,
+            'action'    => $action,
+            'value'     => $value,
+            'caller'    => $callerClass . '::' . $callerMethod,
+        ];
+
+        $this->metadata = $meta;
     }
 }
