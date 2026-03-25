@@ -11,7 +11,9 @@ use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
 use DateTimeImmutable;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -45,12 +47,12 @@ class WhatsappMetaReceivePersister
         if ($existingMessage) return;
 
         // 2. Extraer Remitente
-        $guestPhone = $contactData['wa_id'] ?? null; // Formato internacional (ej: 51987654321)
+        $guestPhone = $contactData['wa_id'] ?? null;
         if (!$guestPhone) return;
 
         $guestName = $contactData['profile']['name'] ?? 'Desconocido (WhatsApp)';
 
-        // 3. Resolución de Conversación (Match con PMS o creación de Walk-in)
+        // 3. Resolución de Conversación
         $conversation = $this->resolveConversation($guestPhone, $guestName);
 
         // Es imperativo instanciar el canal antes de agregarlo, ya que la entidad
@@ -70,7 +72,7 @@ class WhatsappMetaReceivePersister
         $message->setCreatedAt((new DateTimeImmutable())->setTimestamp((int)$timestamp));
 
         // =====================================================================
-        // 5. PROCESAMIENTO DE CONTENIDO (Texto, Botones y Multimedia)
+        // 5. PROCESAMIENTO DE CONTENIDO
         // =====================================================================
         $type = $messageData['type'] ?? 'text';
 
@@ -130,7 +132,7 @@ class WhatsappMetaReceivePersister
         }
 
         // =====================================================================
-        // 6. GUARDAR Y NOTIFICAR (Real-time)
+        // 6. GUARDAR Y NOTIFICAR
         // =====================================================================
 
         // 🔥 MAGIA DE LA ENTIDAD: Al hacer addMessage, la entidad MessageConversation
@@ -139,17 +141,19 @@ class WhatsappMetaReceivePersister
         $conversation->addMessage($message);
 
         $this->em->persist($message);
+
+        // El flush() local se mantiene, pero el commit() lo hará el FastTrackService
         $this->em->flush();
     }
 
     /**
-     * Actualiza la metadata (Enviado, Entregado, Leído, Fallido) de un mensaje saliente
-     * basado en el Webhook de Meta, y emite el evento en tiempo real hacia Vue.
+     * Actualiza la metadata (Enviado, Entregado, Leído, Fallido) de un mensaje saliente.
+     * * PROTECCIÓN ACTIVA: Usa bloqueo pesimista. Se apoya en la transacción del FastTrackService.
      */
     public function updateMessageStatus(array $statusData): void
     {
         $metaMessageId = $statusData['id'] ?? null;
-        $status = $statusData['status'] ?? null; // 'sent', 'delivered', 'read', 'failed'
+        $status = $statusData['status'] ?? null;
         $timestamp = $statusData['timestamp'] ?? null;
 
         if (!$metaMessageId || !$status) return;
@@ -158,6 +162,12 @@ class WhatsappMetaReceivePersister
         $message = $this->findMessageByMetaId($metaMessageId);
         if (!$message) return;
 
+        // 🔥 BLINDAJE CONTRA CONDICIONES DE CARRERA
+        // El FastTrackService ya abrió la transacción. Solo aplicamos el candado a la fila
+        // de MySQL y refrescamos los datos para no aplastar JSONs de procesos concurrentes.
+        $this->em->lock($message, LockMode::PESSIMISTIC_WRITE);
+        $this->em->refresh($message);
+
         $requiresUpdate = false;
 
         // Convertimos el timestamp de Meta (Unix Epoch) a ISO8601 para la BD
@@ -165,8 +175,7 @@ class WhatsappMetaReceivePersister
             ? (new \DateTimeImmutable("@$timestamp"))->format('Y-m-d\TH:i:s\Z')
             : (new \DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
 
-        // Cascada de metadata: Solo actualizamos si no teníamos ya ese registro
-        // para evitar sobrescrituras y broadcasts duplicados si Meta reenvía webhooks.
+        // Cascada de metadata
         if ($status === 'read') {
             if (!$message->getWhatsappMetaReadAt()) {
                 $message->setWhatsappMetaReadAt($isoDate);
@@ -203,7 +212,7 @@ class WhatsappMetaReceivePersister
     }
 
     /**
-     * 🔥 NUEVO: Registra una llamada perdida como un mensaje de sistema.
+     * Registra una llamada perdida.
      */
     public function processCall(array $callData, array $contactData): void
     {
@@ -216,7 +225,7 @@ class WhatsappMetaReceivePersister
         $message = new Message();
         $message->setConversation($conversation);
         $message->setDirection(Message::DIRECTION_INCOMING);
-        $message->setSenderType(Message::SENDER_SYSTEM); // Icono de robot/sistema en Vue
+        $message->setSenderType(Message::SENDER_SYSTEM);
         $message->setStatus(Message::STATUS_RECEIVED);
         $message->setContentExternal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
 
@@ -303,7 +312,7 @@ class WhatsappMetaReceivePersister
     */
     private function findMessageByMetaId(string $metaMessageId): ?Message
     {
-        $rsm = new \Doctrine\ORM\Query\ResultSetMappingBuilder($this->em);
+        $rsm = new ResultSetMappingBuilder($this->em);
         $rsm->addRootEntityFromClassMetadata(Message::class, 'm');
 
         // Usamos SQL puro para que MySQL maneje el JSON_EXTRACT directamente
@@ -332,7 +341,6 @@ class WhatsappMetaReceivePersister
         }
 
         try {
-            // Paso 1: Obtener la URL temporal del CDN de Meta usando el Media ID
             $response = $this->httpClient->request('GET', "{$baseUrl}/{$mediaId}", [
                 'headers' => ['Authorization' => 'Bearer ' . $apiKey]
             ]);
@@ -353,7 +361,7 @@ class WhatsappMetaReceivePersister
             $content = $fileResponse->getContent(false);
 
             if ($fileResponse->getStatusCode() !== 200 || empty($content)) {
-                $this->logger->warning("Fallo al descargar el contenido del CDN de Meta. HTTP Code: " . $fileResponse->getStatusCode());
+                $this->logger->warning("Fallo al descargar el contenido del CDN. HTTP Code: " . $fileResponse->getStatusCode());
                 return null;
             }
 
