@@ -19,7 +19,13 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         #[Autowire('%pax_book_guide_url%')]
-        private readonly string $paxBookGuideUrl
+        private readonly string $paxBookGuideUrl,
+        #[Autowire('%pax_book_guide_url_nd%')]
+        private readonly string $paxBookGuideUrlNd,
+        #[Autowire('%pax_catalog_url%')]
+        private readonly string $paxCatalogUrl,
+        #[Autowire('%pax_catalog_url_nd%')]
+        private readonly string $paxCatalogUrlNd
     ) {}
 
     public function supports(string $contextType): bool
@@ -104,6 +110,9 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'channel_name'    => $canal ? $canal->getNombre() : 'Directo',
             'guest_country'   => $pais ? $pais->getNombre() : '',
             'url_guide'       => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador,
+            'url_guide_nd'    => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador,
+            'url_catalog'     => rtrim($this->paxCatalogUrl, '/'),
+            'url_catalog_nd'  => rtrim($this->paxCatalogUrlNd, '/'),
         ];
     }
 }

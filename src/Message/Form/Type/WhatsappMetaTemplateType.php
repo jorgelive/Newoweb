@@ -25,8 +25,14 @@ class WhatsappMetaTemplateType extends AbstractType
     {
         $builder
             ->add('is_active', CheckboxType::class, [
-                'label' => 'Activar envío por WhatsApp (Meta)',
+                'label' => 'Activar canal WhatsApp (Meta)',
                 'required' => false,
+                'row_attr' => ['class' => 'col-md-12 mb-3'],
+            ])
+            ->add('is_official_meta', CheckboxType::class, [
+                'label' => 'Es plantilla oficial de Meta',
+                'required' => false,
+                'help' => 'Desmárcalo si es un "Quick Reply" interno del PMS. Las plantillas no oficiales solo pueden enviarse dentro de la ventana de 24 horas.',
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
             ->add('meta_template_name', TextType::class, [
@@ -51,13 +57,13 @@ class WhatsappMetaTemplateType extends AbstractType
             // 1. EL CUERPO (Texto Base + Variables + Estado de Aprobación)
             // =========================================================================
             ->add('body', CollectionType::class, [
-                'entry_type' => WhatsappMetaBodyType::class, // ← Usa el nuevo form type que creamos
+                'entry_type' => WhatsappMetaBodyType::class,
                 'label' => 'Textos Base, Variables y Estado',
-                'help' => '¡IMPORTANTE! El sistema escanea este texto automáticamente para extraer variables como {{ guest_name }} y enviarlas a Meta. El estado indica si la traducción está aprobada.',
+                'help' => 'El estado indica si la traducción está aprobada por Meta. Las variables se extraen automáticamente.',
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,
-                'entry_options' => ['label' => false], // Ocultamos el label individual para un diseño más limpio
+                'entry_options' => ['label' => false],
                 'attr' => ['class' => 'pms-flat-collection'],
                 'row_attr' => ['class' => 'col-md-12 mb-4'],
             ])
@@ -66,9 +72,9 @@ class WhatsappMetaTemplateType extends AbstractType
             // 2. LOS BOTONES (Variables de URL + Traducción de Etiquetas para 24h)
             // =========================================================================
             ->add('buttons_map', CollectionType::class, [
-                'entry_type' => WhatsappMetaButtonType::class, // ← Usa el form type de botones
+                'entry_type' => WhatsappMetaButtonType::class,
                 'label' => 'Botones Dinámicos de la Plantilla',
-                'help' => 'Configura las variables (ej: {{url_checkin}}) de los botones de Meta. Los textos traducidos se usarán para emular el botón si el mensaje se envía como texto libre (ventana 24h).',
+                'help' => 'Configura las variables de enlace. El "Valor Nativo (Meta)" es intocable, debes definir la "Variable del Sistema" para que el PMS sepa qué dato inyectar.',
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,

@@ -16,6 +16,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 /**
  * Formulario para los ítems del array 'buttons_map' de WhatsApp Meta.
  * Configura la variable de la URL y reutiliza TranslationTextType para los textos.
+ * * * OPTIMIZACIÓN: Se ha bloqueado la edición de campos nativos de Meta (index, type, content)
+ * que son gestionados por el sincronizador, y se expone 'resolver_key' para la lógica interna.
  */
 class WhatsappMetaButtonType extends AbstractType
 {
@@ -24,6 +26,7 @@ class WhatsappMetaButtonType extends AbstractType
         $builder
             ->add('index', IntegerType::class, [
                 'label' => 'Índice (Posición)',
+                'attr' => ['readonly' => true], // Bloqueado: Lo controla Meta
                 'help' => '0 = Primer botón, 1 = Segundo...',
                 'row_attr' => ['class' => 'col-md-2 mb-3'],
             ])
@@ -32,18 +35,29 @@ class WhatsappMetaButtonType extends AbstractType
                 'choices' => [
                     'Enlace (URL)' => 'url',
                     'Respuesta Rápida' => 'quick_reply',
+                    'Llamar' => 'phone_number',
                 ],
-                'row_attr' => ['class' => 'col-md-3 mb-3'],
+                'attr' => ['readonly' => true], // Bloqueado: Lo controla Meta
+                'row_attr' => ['class' => 'col-md-2 mb-3'],
             ])
             ->add('content', TextType::class, [
-                'label' => 'Variable Dinámica / URL',
-                'attr' => ['placeholder' => 'Ej: {{url_checkin}}'],
-                'help' => 'Usa variables {{var}} para URLs dinámicas o escribe el link fijo.',
-                'row_attr' => ['class' => 'col-md-7 mb-3'],
+                'label' => 'Valor Nativo (Meta)',
+                'required' => false,
+                'attr' => ['readonly' => true], // Bloqueado: Aquí escribe el Sync Service
+                'help' => 'URL oficial aprobada (ej: https://.../{{1}}).',
+                'row_attr' => ['class' => 'col-md-5 mb-3'],
+            ])
+            // NUEVO CAMPO: Aquí es donde tu equipo ingresará 'url_guide_nd'
+            ->add('resolver_key', TextType::class, [
+                'label' => 'Variable del PMS',
+                'required' => false,
+                'attr' => ['placeholder' => 'Ej: url_guide_nd'],
+                'help' => 'Dato real a inyectar.',
+                'row_attr' => ['class' => 'col-md-3 mb-3'],
             ])
             ->add('button_text', CollectionType::class, [
-                'entry_type' => TranslationTextType::class,
-                'label' => 'Traducciones de la Etiqueta del Botón (Visible para el huésped)',
+                'entry_type' => TranslationTextType::class, // Mantenemos tu clase personalizada
+                'label' => 'Traducciones de la Etiqueta (Visible en texto libre)',
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,
@@ -58,7 +72,7 @@ class WhatsappMetaButtonType extends AbstractType
             // CRÍTICO: null para devolver un array asociativo limpio al JSON general
             'data_class' => null,
 
-            // CONEXIÓN TWIG: Este prefijo conecta la clase con el bloque {% block whatsapp_meta_button_widget %}
+            // CONEXIÓN TWIG: Este prefijo conecta la clase con el bloque {% block whatsapp_meta_button_entry_widget %}
             'block_prefix' => 'whatsapp_meta_button_entry',
 
             // Oculta la etiqueta genérica (ej: "0", "1") que Symfony pone por defecto en las colecciones

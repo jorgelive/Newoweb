@@ -17,7 +17,8 @@ final class AutoTranslate
     public function __construct(
         public string $sourceLanguage = 'es',
         public array $nestedFields = [],
-        private string $format = 'text'
+        private string $format = 'text',
+        public ?string $preventOverwriteIf = null
     ) {}
 
     public function getFormat(): string

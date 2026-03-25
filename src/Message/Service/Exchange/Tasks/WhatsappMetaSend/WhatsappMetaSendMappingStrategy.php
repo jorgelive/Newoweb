@@ -19,9 +19,10 @@ use Vich\UploaderBundle\Storage\StorageInterface;
  * Estrategia de mapeo unificada para WhatsApp Meta.
  * Construye el payload JSON para enviar mensajes (texto/multimedia/plantillas)
  * y también para notificar a Meta cuando un mensaje fue leído (status: read).
- * * OPTIMIZACIÓN GREENFIELD: Extrae dinámicamente las variables nombradas
- * del cuerpo usando parameter_name (soportado por Meta) y variables posicionales
- * para los botones dinámicos directamente desde el JSON.
+ *
+ * * REGLAS DE SEGURIDAD INTEGRADAS:
+ * Implementa Zero-Trust sobre plantillas no oficiales (Quick Replies) bloqueando su envío
+ * fuera de la ventana de 24 horas y usa `resolver_key` para extraer URLs dinámicas.
  */
 final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyInterface
 {
@@ -37,7 +38,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
      *
      * @param HomogeneousBatch $batch Lote de elementos a procesar.
      * @return MappingResult El resultado del mapeo con el payload final y el mapa de correlación.
-     * @throws \RuntimeException Si falta la configuración crítica como el Phone ID.
+     * @throws \RuntimeException Si falta la configuración crítica o se viola una política de Meta.
      */
     public function map(HomogeneousBatch $batch): MappingResult
     {
@@ -88,7 +89,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             }
 
             // =========================================================================
-            // 🔥 ESCENARIO B: ENVÍO DE MENSAJE (Plantilla o Libre)
+            // 🔥 ESCENARIO B: ENVÍO DE MENSAJE (Plantilla Oficial o Libre)
             // =========================================================================
 
             $conversation = $msg->getConversation();
@@ -115,15 +116,25 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
             // Obtenemos el nuevo JSON Greenfield completo
             $metaJson = $template !== null ? $template->getWhatsappMetaTmpl() : [];
+            $isOfficialMeta = $metaJson['is_official_meta'] ?? true; // Asumimos true por defecto histórico
 
             // =========================================================================
-            // 🛡️ BARRERA DE SEGURIDAD (ZERO TRUST)
+            // 🛡️ BARRERA DE SEGURIDAD (ZERO TRUST & QUICK REPLIES)
             // =========================================================================
             if (!$isSessionActive && empty($metaJson)) {
                 throw new \RuntimeException(sprintf(
                     'Violación de política de Meta: Intento de envío de mensaje libre al número %s fuera de la ventana de 24 horas. El mensaje [ID: %s] requiere una plantilla oficial asociada.',
                     $destination,
                     $msg->getId()
+                ));
+            }
+
+            // Si hay plantilla, PERO no es oficial (Quick Reply), bloqueamos si estamos fuera de sesión
+            if (!empty($metaJson) && !$isOfficialMeta && !$isSessionActive) {
+                throw new \RuntimeException(sprintf(
+                    'Violación de política de Meta: Intento de enviar una plantilla NO oficial ("%s") como inicio de conversación al número %s. Solo se permiten plantillas validadas por Meta fuera de la ventana de 24 horas.',
+                    $template->getCode(),
+                    $destination
                 ));
             }
 
@@ -155,7 +166,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
                 $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
 
-                // 2. EXTRAER VARIABLES DEL CUERPO (USANDO PARAMETER_NAME)
+                // EXTRAER VARIABLES DEL CUERPO (USANDO PARAMETER_NAME)
                 $resolvedBodyParams = [];
                 if ($templateContent && preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $templateContent, $matches)) {
                     // Meta acepta variables nombradas en el body, usamos array_unique para no duplicar el parameter_name
@@ -166,7 +177,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         $resolvedBodyParams[] = [
                             'type' => 'text',
                             'parameter_name' => $paramName,
-                            'text' => $value !== '' ? $value : ' ' // Meta requiere un espacio si está vacío
+                            'text' => $value !== '' ? $value : ' '
                         ];
                     }
                 }
@@ -178,12 +189,18 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     ];
                 }
 
-                // 3. PROCESAR BOTONES DINÁMICOS (POSICIONAL ESTRICTO)
+                // PROCESAR BOTONES DINÁMICOS (USANDO EL NUEVO RESOLVER_KEY)
                 foreach ($metaJson['buttons_map'] ?? [] as $btn) {
                     if (($btn['type'] ?? '') === 'url') {
-                        // Limpiamos la variable (ej: "{{url_checkin}}" -> "url_checkin")
-                        $varName = str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
-                        $urlValue = (string) ($variables[$varName] ?? '');
+
+                        // Extraemos la llave dedicada para el resolver.
+                        // El fallback str_replace se mantiene solo por compatibilidad temporal si alguna plantilla no se ha editado aún.
+                        $resolverKey = $btn['resolver_key'] ?? null;
+                        if (!$resolverKey) {
+                            $resolverKey = str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
+                        }
+
+                        $urlValue = (string) ($variables[$resolverKey] ?? '');
 
                         if ($urlValue !== '') {
                             $messagePayload['template']['components'][] = [
@@ -199,7 +216,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     }
                 }
 
-                // 4. PROCESAR ADJUNTOS EN EL HEADER
+                // PROCESAR ADJUNTOS EN EL HEADER
                 if ($attachment) {
                     $mediaType = $this->getWhatsappMetaMediaType($attachment);
                     $messagePayload['template']['components'][] = [
@@ -217,7 +234,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
             } else {
                 // -----------------------------------------------------------------
-                // ENVÍO DE MENSAJE LIBRE (DENTRO DE 24H)
+                // ENVÍO DE MENSAJE LIBRE O QUICK REPLY INTERNO (DENTRO DE 24H)
                 // -----------------------------------------------------------------
 
                 // 1. Extraemos el contenido. Priorizamos la plantilla si existe
@@ -239,18 +256,17 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // 3. Hidratamos las variables (Soporta {{ guest_name }})
                 $content = $this->hydrateVariables($content, $resolver, $conversation->getContextId());
 
-                // 4. EMULAR BOTONES EN TEXTO LIBRE
-                // Como es texto libre, los botones UI de Meta no existen. Los anexamos como links de texto.
+                // EMULAR BOTONES EN TEXTO LIBRE USANDO EL RESOLVER_KEY
                 if (!empty($metaJson['buttons_map'])) {
                     $content .= "\n\n";
                     $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
 
                     foreach ($metaJson['buttons_map'] as $btn) {
                         if (($btn['type'] ?? '') === 'url') {
-                            $varName = str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
-                            $urlValue = (string) ($variables[$varName] ?? '');
 
-                            // Buscar la traducción de la etiqueta del botón
+                            $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
+                            $urlValue = (string) ($variables[$resolverKey] ?? '');
+
                             $btnText = 'Enlace';
                             foreach ($btn['button_text'] ?? [] as $tr) {
                                 if (strtolower($tr['language']) === $lang) {

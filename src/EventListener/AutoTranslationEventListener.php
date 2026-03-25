@@ -15,6 +15,13 @@ use ReflectionClass;
 use ReflectionProperty;
 use RuntimeException;
 
+/**
+ * Listener encargado de interceptar entidades antes de ser guardadas para auto-traducir
+ * campos marcados con el atributo #[AutoTranslate].
+ * * * OPTIMIZACIÓN GREENFIELD: Integración de barrera de seguridad Zero-Trust para
+ * proteger los datos nativos de Meta WhatsApp (whatsappMetaTmpl) evitando que el flag
+ * de sobrescritura destruya las sincronizaciones oficiales.
+ */
 #[AsDoctrineListener(event: Events::prePersist)]
 #[AsDoctrineListener(event: Events::preUpdate)]
 final class AutoTranslationEventListener
@@ -39,6 +46,7 @@ final class AutoTranslationEventListener
 
     private function process(object $entity, ?PreUpdateEventArgs $updateArgs): void
     {
+        // Respetamos el control maestro de ejecución
         if (method_exists($entity, 'getEjecutarTraduccion') && !$entity->getEjecutarTraduccion()) {
             return;
         }
@@ -47,7 +55,7 @@ final class AutoTranslationEventListener
             $this->loadValidLanguages();
         }
 
-        $overwrite = method_exists($entity, 'getSobreescribirTraduccion')
+        $globalOverwrite = method_exists($entity, 'getSobreescribirTraduccion')
             ? (bool) $entity->getSobreescribirTraduccion()
             : false;
 
@@ -72,7 +80,23 @@ final class AutoTranslationEventListener
 
             $sourceLang = strtolower($attr->sourceLanguage);
             $nestedFields = $attr->nestedFields;
-            $mimeType = $attr->getFormat();
+            // Soporte seguro usando el getter clásico (Evitando problemas de Reflection/Proxies de Doctrine)
+            $mimeType = method_exists($attr, 'getFormat') ? $attr->getFormat() : 'text/html';
+
+            // =========================================================================
+            // 🛡️ BARRERA DE SEGURIDAD DINÁMICA (El Veto Declarativo)
+            // =========================================================================
+            $currentOverwrite = $globalOverwrite;
+
+            // Verificamos si el atributo tiene la configuración de prevención
+            if ($currentOverwrite && property_exists($attr, 'preventOverwriteIf') && $attr->preventOverwriteIf !== null) {
+                $vetoMethod = $attr->preventOverwriteIf;
+
+                // Si el método existe en la entidad y devuelve true, apagamos la sobrescritura para ESTE campo.
+                if (method_exists($entity, $vetoMethod) && $entity->$vetoMethod() === true) {
+                    $currentOverwrite = false;
+                }
+            }
 
             // CASO 1: CON NESTED FIELDS
             if (!empty($nestedFields)) {
@@ -80,7 +104,8 @@ final class AutoTranslationEventListener
                     throw new RuntimeException(sprintf('El campo "%s" tiene nestedFields, por lo que debe ser un array (lista o mapa).', $propertyName));
                 }
 
-                $newValue = $this->processNestedStructure($originalValue, $nestedFields, $sourceLang, $mimeType, $overwrite, $propertyName);
+                // Pasamos $currentOverwrite en lugar del global
+                $newValue = $this->processNestedStructure($originalValue, $nestedFields, $sourceLang, $mimeType, $currentOverwrite, $propertyName);
 
                 if ($newValue !== $originalValue) {
                     $entity->$setter($newValue);
@@ -98,7 +123,8 @@ final class AutoTranslationEventListener
             }
 
             $valuesMap = $this->listToMapRows($originalValue, $propertyName);
-            $translatedMap = $this->translateAndCloneRows($valuesMap, $sourceLang, $mimeType, $overwrite);
+            // Pasamos $currentOverwrite en lugar del global
+            $translatedMap = $this->translateAndCloneRows($valuesMap, $sourceLang, $mimeType, $currentOverwrite);
             $finalValue = $this->mapRowsToList($translatedMap);
 
             if ($finalValue !== $originalValue) {
@@ -182,7 +208,7 @@ final class AutoTranslationEventListener
     }
 
     // =========================================================================
-    // Funciones Helper Privadas (Sin cambios, pura retrocompatibilidad)
+    // Funciones Helper Privadas
     // =========================================================================
 
     private function translateAndCloneRows(array $valuesMap, string $sourceLang, string $mimeType, bool $overwrite): array
@@ -208,13 +234,20 @@ final class AutoTranslationEventListener
 
         foreach ($this->validLanguageCodes as $targetCode) {
             if ($targetCode === $sourceLangNorm) continue;
-            if (!$overwrite && isset($valuesMap[$targetCode])) continue;
+
+            $existingRow = $valuesMap[$targetCode] ?? null;
+
+            if (!$overwrite && $existingRow !== null) continue;
 
             try {
                 $res = $this->translator->translate($sourceText, $targetCode, $sourceLangNorm, $mimeType);
 
                 if (!empty($res[0]) && is_string($res[0])) {
-                    $valuesMap[$targetCode] = array_merge($sourceRow, [
+                    // 🛡️ OPTIMIZACIÓN DE DATOS: Preservamos llaves hermanas (ej: status, resolver_key)
+                    // si la fila ya existía y está siendo sobrescrita. Si es nueva, copiamos el sourceRow.
+                    $baseRow = $existingRow !== null ? $existingRow : $sourceRow;
+
+                    $valuesMap[$targetCode] = array_merge($baseRow, [
                         'language' => $targetCode,
                         'content'  => $res[0],
                     ]);

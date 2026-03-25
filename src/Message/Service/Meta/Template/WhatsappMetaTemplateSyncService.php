@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Meta\Template;
 
+use App\Entity\Maestro\MaestroIdioma;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Service\Client\WhatsappMetaClient;
@@ -15,9 +16,9 @@ use Psr\Log\LoggerInterface;
  * Servicio encargado de sincronizar las plantillas (Templates) desde WhatsApp Meta Cloud API
  * hacia la base de datos local del PMS.
  *
- * * OPTIMIZACIÓN GREENFIELD: Compatible con la nueva estructura JSON centralizada (`whatsappMetaTmpl`).
- * Lee el cuerpo de Meta y los botones, guardando el estado de aprobación nativo directamente
- * en el nodo `body` y agrupando las URLs dinámicas en `buttons_map`.
+ * * REGLA DE NEGOCIO: Meta es la fuente de la verdad para textos y URLs. Sin embargo,
+ * se preservan llaves internas de integración (como resolver_key) para mantener el funcionamiento
+ * del sistema de variables local sin que Meta lo destruya.
  */
 final readonly class WhatsappMetaTemplateSyncService
 {
@@ -43,16 +44,25 @@ final readonly class WhatsappMetaTemplateSyncService
 
         // Buscamos el endpoint configurado en BD para leer plantillas
         $endpoint = $this->em->getRepository(ExchangeEndpoint::class)->findOneBy([
-            'config' => $config,
-            'accion' => 'FETCH_META_TEMPLATES' // Asegúrate de tener este endpoint configurado en BD
+            'accion' => 'FETCH_META_TEMPLATES'
         ]);
 
         if (!$endpoint) {
             throw new \RuntimeException('No se encontró el endpoint con acción FETCH_META_TEMPLATES asociado a la configuración de Meta.');
         }
 
+        $allowedLanguages = $this->getAllowedLanguages();
+
+        if (empty($allowedLanguages)) {
+            $this->logger->warning('Sincronización de Meta abortada: No hay idiomas activos (prioridad > 0) en MaestroIdioma.');
+            return ['created' => 0, 'updated' => 0];
+        }
+
         $createdCount = 0;
         $updatedCount = 0;
+
+        /** @var array<string, MessageTemplate> $templateCache */
+        $templateCache = [];
 
         try {
             // El cliente ya maneja la URL dinámica, los tokens y lanza excepciones si hay error HTTP
@@ -60,13 +70,14 @@ final readonly class WhatsappMetaTemplateSyncService
             $templates = $response['data'] ?? [];
 
             foreach ($templates as $templateData) {
-                // Solo sincronizamos plantillas válidas, ignoramos borradores incompletos
-                $status = strtoupper($templateData['status'] ?? '');
-                if (in_array($status, ['APPROVED', 'PENDING', 'REJECTED'])) {
-                    $isNew = $this->processTemplateRecord($templateData);
-                    if ($isNew) {
+                $status = strtoupper((string)($templateData['status'] ?? ''));
+
+                if (in_array($status, ['APPROVED', 'PENDING', 'REJECTED']) && ($templateData['name'] ?? '') !== 'hello_world') {
+                    $isNew = $this->processTemplateRecord($templateData, $templateCache, $allowedLanguages);
+
+                    if ($isNew === true) {
                         $createdCount++;
-                    } else {
+                    } elseif ($isNew === false) {
                         $updatedCount++;
                     }
                 }
@@ -85,51 +96,65 @@ final readonly class WhatsappMetaTemplateSyncService
         ];
     }
 
-    /**
-     * Procesa y persiste una plantilla individual inyectándola en el JSON estructurado `whatsappMetaTmpl`.
-     */
-    private function processTemplateRecord(array $data): bool
+    private function processTemplateRecord(array $data, array &$templateCache, array $allowedLanguages): ?bool
     {
-        $metaName = $data['name'] ?? null;
-        $language = $data['language'] ?? null;
-        $status = $data['status'] ?? 'UNKNOWN';
+        $metaName = (string)($data['name'] ?? '');
+        $rawLanguage = (string)($data['language'] ?? '');
+        $status = (string)($data['status'] ?? 'UNKNOWN');
 
-        if (!$metaName || !$language) {
-            return false;
+        if ($metaName === '' || $rawLanguage === '') {
+            return null;
         }
 
-        $repo = $this->em->getRepository(MessageTemplate::class);
+        $languageParts = explode('_', $rawLanguage);
+        $language = strtolower($languageParts[0]);
 
-        // 1. Buscar si la plantilla base ya existe por su nombre oficial en Meta
-        $allTemplates = $repo->findAll();
-        $targetTemplate = null;
-
-        foreach ($allTemplates as $tpl) {
-            if ($tpl->getWhatsappMetaName() === $metaName) {
-                $targetTemplate = $tpl;
-                break;
-            }
+        if (!in_array($language, $allowedLanguages, true)) {
+            return null;
         }
 
         $isNew = false;
+        $targetTemplate = null;
 
-        // 2. Si no existe la plantilla base, la creamos desde cero
-        if (!$targetTemplate) {
-            $targetTemplate = new MessageTemplate();
-            $targetTemplate->setName(ucwords(str_replace('_', ' ', $metaName)));
-            $targetTemplate->setCode(sprintf('%s_META', strtoupper($metaName)));
+        if (isset($templateCache[$metaName])) {
+            $targetTemplate = $templateCache[$metaName];
+        } else {
+            $repo = $this->em->getRepository(MessageTemplate::class);
+            $allTemplates = $repo->findAll();
 
-            $this->em->persist($targetTemplate);
-            $isNew = true;
+            foreach ($allTemplates as $tpl) {
+                if ($tpl->getWhatsappMetaName() === $metaName) {
+                    $targetTemplate = $tpl;
+                    break;
+                }
+            }
+
+            if (!$targetTemplate) {
+                $targetTemplate = new MessageTemplate();
+                $targetTemplate->setName(ucwords(str_replace('_', ' ', $metaName)));
+
+                $generatedCode = sprintf('%s_meta', ($metaName));
+                if (strlen($generatedCode) > 50) {
+                    $generatedCode = substr($generatedCode, 0, 50);
+                }
+                $targetTemplate->setCode($generatedCode);
+
+                $this->em->persist($targetTemplate);
+                $isNew = true;
+            }
+
+            $templateCache[$metaName] = $targetTemplate;
         }
 
-        // Obtenemos la configuración JSON actual para actualizarla sin perder otros idiomas
         $metaTmpl = $targetTemplate->getWhatsappMetaTmpl() ?? [];
-        $metaTmpl['is_active'] = true;
-        $metaTmpl['meta_template_name'] = $metaName;
-        $metaTmpl['category'] = $data['category'] ?? $metaTmpl['category'] ?? 'UTILITY';
 
-        // 3. Procesamiento del BODY (Sincroniza Texto y Estado)
+        $metaTmpl['is_active'] = true;
+        // MARCADO CRÍTICO: Todo lo que viene de la API es oficial de Meta.
+        $metaTmpl['is_official_meta'] = true;
+        $metaTmpl['meta_template_name'] = $metaName;
+        $metaTmpl['category'] = $data['category'] ?? ($metaTmpl['category'] ?? 'UTILITY');
+
+        // 4. Procesamiento del BODY
         $bodyText = $this->extractBodyText($data['components'] ?? []);
         $bodyArray = $metaTmpl['body'] ?? [];
         $foundLangBody = false;
@@ -142,7 +167,7 @@ final readonly class WhatsappMetaTemplateSyncService
                 break;
             }
         }
-        unset($b); // CRÍTICO: Destruimos la referencia para evitar corrupción de memoria
+        unset($b);
 
         if (!$foundLangBody) {
             $bodyArray[] = [
@@ -153,7 +178,7 @@ final readonly class WhatsappMetaTemplateSyncService
         }
         $metaTmpl['body'] = $bodyArray;
 
-        // 4. Procesamiento de BOTONES (buttons_map)
+        // 5. Procesamiento de BOTONES (buttons_map) - Preservamos resolver_key
         $metaButtons = $this->extractButtons($data['components'] ?? []);
         $buttonsMap = $metaTmpl['buttons_map'] ?? [];
 
@@ -174,31 +199,35 @@ final readonly class WhatsappMetaTemplateSyncService
                             break;
                         }
                     }
-                    unset($txt); // CRÍTICO: Limpiamos la referencia interna
+                    unset($txt);
 
                     if (!$foundText) {
                         $btnTextArray[] = ['language' => $language, 'content' => $btn['text'] ?? ''];
                     }
                     $bMap['button_text'] = $btnTextArray;
 
-                    // Preservamos la variable personalizada si existe
-                    if (empty($bMap['content']) && isset($btn['url'])) {
+                    if (isset($btn['url'])) {
                         $bMap['content'] = $btn['url'];
                     }
+
+                    $bMap['type'] = strtolower((string)($btn['type'] ?? 'url'));
+
+                    // IMPORTANTE: NO tocamos la llave 'resolver_key' aquí para preservarla
 
                     $foundBtn = true;
                     break;
                 }
             }
-            unset($bMap); // CRÍTICO: Limpiamos la referencia del nivel superior
+            unset($bMap);
 
             // Si el botón no existía, lo creamos
             if (!$foundBtn) {
                 $buttonsMap[] = [
-                    'index'       => $index,
-                    'type'        => strtolower((string)($btn['type'] ?? 'url')),
-                    'content'     => $btn['url'] ?? '',
-                    'button_text' => [
+                    'index'        => $index,
+                    'type'         => strtolower((string)($btn['type'] ?? 'url')),
+                    'content'      => $btn['url'] ?? '',
+                    'resolver_key' => null, // Lo inicializamos en null para que se llene vía EasyAdmin
+                    'button_text'  => [
                         ['language' => $language, 'content' => $btn['text'] ?? '']
                     ]
                 ];
@@ -212,19 +241,31 @@ final readonly class WhatsappMetaTemplateSyncService
         return $isNew;
     }
 
-    /**
-     * Extrae el texto del componente BODY.
-     * Ya no necesitamos contar variables ni extraerlas manualmente gracias a la arquitectura dinámica.
-     * Solo queremos el texto en crudo para mostrarlo en el panel y usarlo en el envío.
-     *
-     * @param array $components Arreglo de componentes (HEADER, BODY, FOOTER, BUTTONS).
-     * @return string El texto del cuerpo de la plantilla.
-     */
+    private function getAllowedLanguages(): array
+    {
+        $idiomas = $this->em->getRepository(MaestroIdioma::class)
+            ->createQueryBuilder('m')
+            ->where('m.prioridad > 0')
+            ->getQuery()
+            ->getResult();
+
+        $allowed = [];
+        /** @var MaestroIdioma $idioma */
+        foreach ($idiomas as $idioma) {
+            $id = $idioma->getId();
+            if ($id !== null) {
+                $allowed[] = strtolower($id);
+            }
+        }
+
+        return $allowed;
+    }
+
     private function extractBodyText(array $components): string
     {
         foreach ($components as $component) {
             if (strtoupper((string)($component['type'] ?? '')) === 'BODY') {
-                return $component['text'] ?? '';
+                return (string)($component['text'] ?? '');
             }
         }
         return '';

@@ -90,7 +90,7 @@ class MessageTemplate
 
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array', message: 'La configuración de WhatsApp Meta debe ser un arreglo o estructura JSON válida.')]
-    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['buttons_map->button_text'])] //body ya no se autotraduce ya que llega de la sincronización
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body', 'buttons_map->button_text'], preventOverwriteIf: 'isWhatsappMetaOfficial')]
     private ?array $whatsappMetaTmpl = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
@@ -103,7 +103,9 @@ class MessageTemplate
         $this->id = Uuid::v7();
         $this->emailTmpl = [];
         $this->beds24Tmpl = [];
-        $this->whatsappMetaTmpl = [];
+        $this->whatsappMetaTmpl = [
+            'is_official_meta' => true // Por defecto asumimos que es oficial, el usuario en EasyAdmin puede cambiarlo a false.
+        ];
         $this->whatsappLinkTmpl = [];
         $this->allowedSources = [];
         $this->allowedAgencies = [];
@@ -260,6 +262,29 @@ class MessageTemplate
     }
 
     /**
+     * Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS.
+     * ¿Por qué existe? Meta es estricto: no podemos enviar plantillas "no oficiales" fuera de la ventana de 24h.
+     * El Mapper usa esto como barrera de seguridad para bloquear intentos inválidos.
+     *
+     * @return bool True si es oficial y sincronizada, False si es interna/quick reply.
+     */
+    public function isWhatsappMetaOfficial(): bool
+    {
+        return ($this->whatsappMetaTmpl['is_official_meta'] ?? true) === true;
+    }
+
+    /**
+     * Define si la plantilla es oficial o interna.
+     * * @param bool $isOfficial
+     * @return self
+     */
+    public function setWhatsappMetaOfficial(bool $isOfficial): self
+    {
+        $this->whatsappMetaTmpl['is_official_meta'] = $isOfficial;
+        return $this;
+    }
+
+    /**
      * Extrae los canales de comunicación activos configurados en la plantilla.
      * ¿Por qué existe? Este método se expone en la API mediante el grupo de serialización para que el
      * frontend (PWA o Panel) pueda determinar dinámicamente qué canales ofrecer en el selector
@@ -350,14 +375,6 @@ class MessageTemplate
         return $status === 'APPROVED';
     }
 
-    /**
-     * Obtiene el cuerpo decodificado de WhatsApp Meta.
-     * ¿Por qué existe? Extrae el texto principal que servirá para hidratar variables
-     * nominales (en envío oficial) o concatenar texto (en periodo de ventana de 24h).
-     *
-     * @param string $lang Código del idioma.
-     * @return string|null
-     */
     public function getWhatsappMetaBody(string $lang): ?string
     {
         return $this->extract($this->whatsappMetaTmpl['body'] ?? [], $lang, 'content');
@@ -365,12 +382,10 @@ class MessageTemplate
 
     /**
      * Extrae y ensambla los botones configurados para un idioma específico.
-     * ¿Por qué existe? El Mapeador de Meta necesita diferenciar las URLs de los botones (Posicionales)
-     * del texto del body (Nominales). Este método aísla el índice, la variable URL y su etiqueta traducida.
+     * Modificado para incluir el 'resolver_key' necesario para hidratar URLs dinámicas.
      *
      * @param string $lang Código del idioma (ej. 'es').
-     * @return array<int, array<string, mixed>> Lista de botones con formato:
-     * ['index' => 0, 'type' => 'url', 'content' => '{{url}}', 'button_text' => 'Ver Check-in']
+     * @return array<int, array<string, mixed>> Lista de botones.
      */
     public function getWhatsappMetaButtons(string $lang): array
     {
@@ -378,14 +393,14 @@ class MessageTemplate
         $resolvedButtons = [];
 
         foreach ($buttonsMap as $btnConfig) {
-            // Extraemos la traducción específica de la etiqueta del botón para anexarla en la ventana 24h
             $translatedLabel = $this->extract($btnConfig['button_text'] ?? [], $lang, 'content');
 
             $resolvedButtons[] = [
-                'index'       => $btnConfig['index'] ?? 0,
-                'type'        => $btnConfig['type'] ?? 'url',
-                'content'     => $btnConfig['content'] ?? '',
-                'button_text' => $translatedLabel,
+                'index'        => $btnConfig['index'] ?? 0,
+                'type'         => $btnConfig['type'] ?? 'url',
+                'content'      => $btnConfig['content'] ?? '',
+                'resolver_key' => $btnConfig['resolver_key'] ?? null,
+                'button_text'  => $translatedLabel,
             ];
         }
 
