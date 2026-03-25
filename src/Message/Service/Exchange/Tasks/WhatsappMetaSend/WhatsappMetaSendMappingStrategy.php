@@ -170,9 +170,12 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                                 if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
                                     throw new \RuntimeException(sprintf('Error de seguridad (Header): La variable requerida "{{%s}}" está vacía en el contexto actual.', $paramName));
                                 }
-                                // NOTA: Meta API requiere solo 'text' para variables de Header (no usan parameter_name)
+                                // NOTA ACTUALIZADA: Cuando se usan variables nombradas (ej. {{guest_name}}) en lugar de
+                                // posicionales (ej. {{1}}), Meta Cloud API exige estrictamente el 'parameter_name'
+                                // en todos los componentes, incluido el Header, para resolver el mapeo correctamente.
                                 $headerComponent['parameters'][] = [
                                     'type' => 'text',
+                                    'parameter_name' => $paramName,
                                     'text' => (string) $variables[$paramName]
                                 ];
                             }
