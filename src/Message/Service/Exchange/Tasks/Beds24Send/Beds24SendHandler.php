@@ -9,11 +9,18 @@ use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use DateTimeImmutable;
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use Throwable;
 
 final class Beds24SendHandler implements ExchangeHandlerInterface
 {
+    /**
+     * @param EntityManagerInterface $em Inyectado para aplicar bloqueo pesimista
+     * y evitar sobrescritura de campos JSON concurrentes.
+     */
     public function __construct(
+        private readonly EntityManagerInterface $em
     ) {}
 
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
@@ -34,11 +41,18 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
         $msg = $item->getMessage();
 
         if ($msg) {
+            // 🔥 PROTECCIÓN DE METADATA CONCURRENTE
+            // Como ya estamos dentro de una transacción gestionada por el worker padre,
+            // aplicamos un candado a la fila en MySQL y refrescamos los datos en memoria
+            // para no aplastar el JSON que pudo haber guardado el worker de Meta.
+            $this->em->lock($msg, LockMode::PESSIMISTIC_WRITE);
+            $this->em->refresh($msg);
+
             // 🔥 PROTECCIÓN OMNICANAL: Si estaba encolado, pendiente, o si el otro canal
             // falló previamente, nosotros lo "rescatamos" subiéndolo a SENT globalmente.
             $currentStatus = $msg->getStatus();
             if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED, Message::STATUS_FAILED], true)) {
-                //Este gue un flujo de confirmación de lectura
+                //Este fue un flujo de confirmación de lectura
                 if ($msg->getDirection() === Message::DIRECTION_INCOMING){
                     // 🔥Volvemos a poner Read a los mensajes que fueron puestos como queued por el encolador
                     $msg->setStatus(Message::STATUS_READ);
@@ -54,21 +68,23 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
             // Si por algún motivo venía de un error previo, lo limpiamos
             $msg->addBeds24Metadata('error', null);
 
-            // 🔥 CRÍTICO: Guardamos el ID remoto en el mensaje para evitar
-            // que el proceso de PULL/Webhooks lo vuelva a insertar como duplicado.
+            // 🔥 CRÍTICO: Guardamos el ID remoto en el mensaje
             if ($remoteId) {
                 $msg->setBeds24ExternalId((string) $remoteId);
             }
+
+            // Hacemos flush del mensaje modificado (el commit lo hará el proceso padre)
+            $this->em->flush();
         }
 
-        // 4. Construir el Resultado de Ejecución para la auditoría JSON de la cola
+        // 4. Construir el Resultado de Ejecución
         $summary = [
             'status' => 'success',
             'remote_beds24_id' => $remoteId,
             'timestamp' => (new DateTimeImmutable())->format('Y-m-d H:i:s')
         ];
 
-        // 5. Marcar la cola como Éxito (limpia bloqueos y quita de la lista de pendientes)
+        // 5. Marcar la cola como Éxito
         $item->markSuccess(new DateTimeImmutable());
 
         return $summary;
@@ -90,6 +106,10 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
         $msg = $item->getMessage();
 
         if ($msg) {
+            // 🔥 PROTECCIÓN DE METADATA CONCURRENTE
+            $this->em->lock($msg, LockMode::PESSIMISTIC_WRITE);
+            $this->em->refresh($msg);
+
             // 🔥 PROTECCIÓN OMNICANAL: Solo lo pasamos a FAILED globalmente si ningún
             // otro canal ha logrado enviarlo. Si el otro canal ya lo pasó a SENT o READ,
             // respetamos ese éxito global (el frontend ya mostrará el error individual por la metadata).
@@ -100,9 +120,11 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
 
             // 🔥 OMNICANALIDAD: Guardamos el error específico del canal
             $msg->addBeds24Metadata('error', $msgError);
+
+            $this->em->flush();
         }
 
-        // Reintento: 2 minutos (mensajería requiere inmediatez o fallo rápido)
+        // Reintento: 2 minutos
         $nextRetry = new DateTimeImmutable('+2 minutes');
 
         $item->markFailure($msgError, $auditCode, $nextRetry);

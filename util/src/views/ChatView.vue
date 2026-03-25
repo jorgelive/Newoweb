@@ -33,17 +33,10 @@ const handleSessionRenewal = async () => {
   if (success) {
     loginPassword.value = ''; // Limpiar por seguridad
 
-    // 🔥 LA MAGIA AQUÍ: Forzamos la recarga para sincronizar la realidad
-
-    // 1. Recargamos la lista de conversaciones (por si hay chats nuevos)
     await store.fetchConversations();
 
-    // 2. Si el usuario estaba viendo un chat específico, lo recargamos
-    // para traer cualquier mensaje que haya llegado mientras la sesión estaba caída.
     if (store.currentConversation) {
       await store.selectConversation(store.currentConversation.id);
-
-      // Hacemos scroll hacia abajo suavemente para ver los mensajes nuevos
       await nextTick();
       scrollToBottom();
     }
@@ -154,13 +147,48 @@ watch(() => store.error, (v) => {
   if (v) setTimeout(() => store.error = null, 6000);
 });
 
+// 🔥 ACTUALIZADO: Beds24 comprueba reglas base + configuración de la plantilla seleccionada
 const isBeds24Allowed = computed(() => {
   const chat = store.currentConversation;
   if (!chat) return false;
+
   if (chat.contextType !== 'pms_reserva') return false;
   const origin = (chat.contextOrigin || '').toLowerCase();
   const bannedOrigins = ['directo', 'whatsapp'];
-  return !bannedOrigins.includes(origin);
+  if (bannedOrigins.includes(origin)) return false;
+
+  // Si hay una plantilla seleccionada, debe tener Beds24 activo
+  if (selectedTemplateId.value) {
+    const tpl = store.templates.find(t => t['@id'] === selectedTemplateId.value);
+    if (tpl && !tpl.isBeds24Active) return false;
+  }
+
+  return true;
+});
+
+// 🔥 ACTUALIZADO: WhatsApp comprueba sesión 24h + configuración activa en la plantilla + oficialidad
+const isWhatsappAllowed = computed(() => {
+  const chat = store.currentConversation;
+  if (!chat) return false;
+
+  const sessionActive = chat.whatsappSessionActive;
+
+  // Si hay plantilla seleccionada
+  if (selectedTemplateId.value) {
+    const tpl = store.templates.find(t => t['@id'] === selectedTemplateId.value);
+    if (!tpl) return false;
+
+    // 1. La plantilla debe tener el canal de WhatsApp activado
+    if (!tpl.isWhatsappMetaActive) return false;
+
+    // 2. Si NO hay sesión activa, la plantilla debe ser oficial
+    if (!sessionActive && !tpl.isWhatsappMetaOfficial) return false;
+
+    return true;
+  }
+
+  // Sin plantilla, todo depende de la sesión de 24h
+  return sessionActive;
 });
 
 watch(() => store.currentConversation, (chat) => {
@@ -220,7 +248,16 @@ const toggleChannel = (channel: string) => {
 const selectTemplate = (tpl: ApiTemplate) => {
   selectedTemplateId.value = tpl['@id'];
   showTemplateDropdown.value = false;
-  selectedChannels.value = tpl.channels || [];
+
+  let newChannels = tpl.channels || [];
+
+  // Filtro de seguridad adicional al seleccionar por si acaso
+  const sessionActive = store.currentConversation?.whatsappSessionActive;
+  if (!sessionActive && tpl.isWhatsappMetaOfficial === false) {
+    newChannels = newChannels.filter(c => c !== 'whatsapp_meta');
+  }
+
+  selectedChannels.value = newChannels;
 };
 
 const clearTemplate = () => {
@@ -258,10 +295,10 @@ const send = async () => {
   }
 
   const isWhatsappSelected = selectedChannels.value.includes('whatsapp_meta');
-  const isWhatsappSessionActive = !!store.currentConversation?.whatsappSessionActive;
 
-  if (isWhatsappSelected && !isWhatsappSessionActive && !selectedTemplateId.value) {
-    store.error = 'WhatsApp requiere plantilla (sesión inactiva).';
+  // Refuerzo de seguridad antes de disparar el request
+  if (isWhatsappSelected && !isWhatsappAllowed.value) {
+    store.error = 'WhatsApp no permitido (Revisa la sesión o la configuración de la plantilla).';
     return;
   }
 
@@ -392,30 +429,19 @@ const hasTranslation = (msg: ApiMessage): boolean => {
   return msg.contentLocal.trim() !== msg.contentExternal.trim();
 };
 
-/**
- * Alterna entre el idioma original y la traducción.
- * Si el usuario hizo clic en un enlace (etiqueta A), se cancela el toggle
- * para que el navegador pueda abrir la pestaña de forma natural sin interrumpir.
- */
 const toggleTranslation = (msg: ApiMessage, event?: Event) => {
   if (event && (event.target as HTMLElement).tagName === 'A') {
-    return; // Ignora el clic si se pinchó un enlace
+    return;
   }
-
   if (!hasTranslation(msg)) return;
   translatedMessages.value[msg.id] = !translatedMessages.value[msg.id];
 };
 
 const isShowingTranslation = (msgId: string): boolean => !!translatedMessages.value[msgId];
 
-/**
- * Transforma el texto plano en HTML.
- * Primero escapa caracteres peligrosos (XSS) y luego convierte URLs en enlaces <a> clicables.
- */
 const formatMessageText = (text: string | null | undefined): string => {
   if (!text) return '';
 
-  // 1. Escapar HTML por seguridad (evita inyección de scripts)
   const escapeHtml = (unsafe: string) => {
     return unsafe
         .replace(/&/g, "&amp;")
@@ -427,7 +453,6 @@ const formatMessageText = (text: string | null | undefined): string => {
 
   const safeText = escapeHtml(text);
 
-  // 2. Convertir enlaces usando regex
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   return safeText.replace(urlRegex, (url) => {
     return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline font-bold hover:opacity-70 transition-opacity">${url}</a>`;
@@ -801,27 +826,34 @@ const getDirectChannelId = (channel?: any): string | null => {
                 @click="isBeds24Allowed ? toggleChannel('beds24') : null"
                 :disabled="!isBeds24Allowed"
                 :class="[
-                  selectedChannels.includes('beds24') ? 'text-[#003580] bg-[#003580]/10 border-[#003580]/30' : 'border-transparent',
-                  !isBeds24Allowed ? 'text-slate-300 bg-slate-50 opacity-50 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                  !isBeds24Allowed
+                    ? 'bg-slate-50 text-slate-300 border-slate-100 opacity-60 cursor-not-allowed'
+                    : selectedChannels.includes('beds24')
+                      ? 'bg-[#003580]/10 text-[#003580] border-[#003580]/30 shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-800 shadow-sm'
                 ]"
                 class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0"
-                :title="!isBeds24Allowed ? 'Beds24 no está disponible para este tipo de reserva/chat' : ''"
+                :title="!isBeds24Allowed ? 'Beds24 no está disponible o la plantilla lo tiene inactivo' : ''"
             >
               <i class="fas fa-bed"></i> Beds24
               <i v-if="!isBeds24Allowed" class="fas fa-ban text-[9px] ml-0.5 opacity-50"></i>
             </button>
 
             <button
-                @click="toggleChannel('whatsapp_meta')"
-                :disabled="!store.currentConversation?.whatsappSessionActive && !selectedTemplateId"
+                @click="isWhatsappAllowed ? toggleChannel('whatsapp_meta') : null"
+                :disabled="!isWhatsappAllowed"
                 :class="[
-                selectedChannels.includes('whatsapp_meta') ? 'text-green-600 bg-green-50 border-green-200' : 'text-slate-400 border-transparent hover:bg-slate-100',
-                (!store.currentConversation?.whatsappSessionActive && !selectedTemplateId) ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''
-              ]"
+                  !isWhatsappAllowed
+                    ? 'bg-slate-50 text-slate-300 border-slate-100 opacity-60 cursor-not-allowed'
+                    : selectedChannels.includes('whatsapp_meta')
+                      ? 'bg-green-50 text-green-700 border-green-200 shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-800 shadow-sm'
+                ]"
                 class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0 relative"
+                :title="!isWhatsappAllowed ? 'Requiere sesión de 24h activa o una plantilla oficial con WhatsApp habilitado' : ''"
             >
               <i class="fab fa-whatsapp text-sm"></i> WhatsApp
-              <i v-if="!store.currentConversation?.whatsappSessionActive" class="fas fa-lock text-[10px] ml-1" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-600/50' : 'text-slate-300'" title="Sesión de 24h inactiva"></i>
+              <i v-if="!store.currentConversation?.whatsappSessionActive" class="fas fa-lock text-[10px] ml-1" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-700/50' : 'text-slate-400'" title="Sesión de 24h inactiva"></i>
             </button>
           </div>
 
@@ -942,6 +974,5 @@ const getDirectChannelId = (channel?: any): string | null => {
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 textarea { outline: none; }
 
-/* Permite que los saltos de línea \n se respeten con v-html en el span */
 .whitespace-pre-wrap span { white-space: pre-wrap; word-break: break-word; }
 </style>

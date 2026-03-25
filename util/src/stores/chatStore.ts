@@ -1,3 +1,4 @@
+// Separado para la declaración de Pinia store
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef } from 'vue';
 import axios, { InternalAxiosRequestConfig } from 'axios';
@@ -66,6 +67,10 @@ export interface ApiTemplate {
     allowedSources: string[];
     allowedAgencies: string[];
     channels: string[];
+    isWhatsappMetaOfficial: boolean; // 🔥 Banderas agregadas
+    isBeds24Active: boolean;
+    isWhatsappMetaActive: boolean;
+    isEmailActive: boolean;
 }
 
 export interface ApiConversation {
@@ -103,7 +108,7 @@ export const useChatStore = defineStore('chatStore', () => {
     });
 
     // ============================================================================
-    // ESTADOS Y LÓGICA DE SESIÓN (NUEVO)
+    // ESTADOS Y LÓGICA DE SESIÓN
     // ============================================================================
     const isSessionExpired = ref(false);
     let failedQueue: { resolve: Function, reject: Function, config: InternalAxiosRequestConfig }[] = [];
@@ -150,7 +155,7 @@ export const useChatStore = defineStore('chatStore', () => {
     );
 
     // ============================================================================
-    // ESTADOS DEL CHAT (ORIGINALES)
+    // ESTADOS DEL CHAT
     // ============================================================================
     const conversations = ref<ApiConversation[]>([]);
     const currentConversation = ref<ApiConversation | null>(null);
@@ -227,7 +232,7 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     // ============================================================================
-    // ACCIONES DE AUTENTICACIÓN (NUEVO)
+    // ACCIONES DE AUTENTICACIÓN
     // ============================================================================
 
     /**
@@ -253,7 +258,7 @@ export const useChatStore = defineStore('chatStore', () => {
             return true;
         } catch (err: any) {
             error.value = err.response?.data?.message || 'Error de autenticación. Verifica tus credenciales.';
-            processQueue(err); // Si falla por completo, matamos las peticiones pendientes
+            processQueue(err);
             return false;
         }
     };
@@ -266,11 +271,9 @@ export const useChatStore = defineStore('chatStore', () => {
         processQueue(new Error('Renovación de sesión cancelada por el usuario.'));
     };
 
-
     // ============================================================================
     // ACCIONES ORIGINALES
     // ============================================================================
-
     const fetchTemplates = async () => {
         try {
             const response = await apiClient.get('/platform/user/util/msg/templates');
@@ -435,7 +438,7 @@ export const useChatStore = defineStore('chatStore', () => {
         loadingMessages.value = true;
         messagesPage.value = 1;
         hasMoreMessages.value = true;
-        newNotification.value = null; // Ocultamos notificación si entramos al chat
+        newNotification.value = null;
 
         try {
             if (found.unreadCount > 0) {
@@ -527,7 +530,7 @@ export const useChatStore = defineStore('chatStore', () => {
         conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages,
         templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
         loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations,
-        isSessionExpired, renewSession, cancelRenewal, // Exportados nuevos
+        isSessionExpired, renewSession, cancelRenewal,
         getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage,
         initGlobalMercure, connectToMercure, newNotification, isChatVisible
     };

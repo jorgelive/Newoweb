@@ -9,12 +9,18 @@ use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use DateTimeImmutable;
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use Throwable;
 
 final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 {
-    // 🔥 Inyectamos Mercure para la reactividad en tiempo real
+    /**
+     * @param EntityManagerInterface $em Inyectado para aplicar bloqueo pesimista
+     * y evitar sobrescritura de campos JSON concurrentes.
+     */
     public function __construct(
+        private readonly EntityManagerInterface $em
     ) {}
 
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
@@ -25,7 +31,6 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 
         $item->setLastHttpCode(200);
 
-
         // 1. Obtenemos el Remote Id
         $remoteId = $data['messageId'] ?? null;
 
@@ -35,6 +40,11 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
         // 3. Actualizar Mensaje Padre
         $msg = $item->getMessage();
         if ($msg) {
+            // 🔥 PROTECCIÓN DE METADATA CONCURRENTE
+            // Como ya estamos dentro de una transacción gestionada por el worker padre,
+            // aplicamos candado a la fila en MySQL y refrescamos los datos en memoria.
+            $this->em->lock($msg, LockMode::PESSIMISTIC_WRITE);
+            $this->em->refresh($msg);
 
             if ($remoteId) {
                 $msg->setWhatsappMetaExternalId((string) $remoteId);
@@ -58,9 +68,12 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
             // Limpiamos errores previos en caso de que esto sea un reintento exitoso
             $msg->setWhatsappMetaErrorCode('');
             $msg->setWhatsappMetaErrorReason('');
+
+            // Hacemos flush del mensaje modificado (el commit lo hará el proceso padre)
+            $this->em->flush();
         }
 
-        // 4. Construir el Resultado de Ejecución para la auditoría JSON de la cola
+        // 4. Construir el Resultado de Ejecución
         $summary = [
             'status' => 'success',
             'remote_whatsapp_meta_id' => $remoteId,
@@ -84,6 +97,10 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
         // Fallo en Meta -> Failed en Mensaje Padre
         $msg = $item->getMessage();
         if ($msg) {
+            // 🔥 PROTECCIÓN DE METADATA CONCURRENTE
+            $this->em->lock($msg, LockMode::PESSIMISTIC_WRITE);
+            $this->em->refresh($msg);
+
             // 🔥 PROTECCIÓN OMNICANAL
             $currentStatus = $msg->getStatus();
             if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
@@ -93,6 +110,8 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
             // Guardamos el error específico del canal
             $msg->setWhatsappMetaErrorCode((string)$httpCode);
             $msg->setWhatsappMetaErrorReason($msgError);
+
+            $this->em->flush();
         }
 
         // Reintento rápido (1 min)

@@ -246,17 +246,19 @@ class MessageTemplate
         $this->whatsappLinkTmpl = $val;
         return $this;
     }
-
+    #[Groups(['template:read'])]
     public function isEmailActive(): bool
     {
         return ($this->emailTmpl['is_active'] ?? false) === true;
     }
 
+    #[Groups(['template:read'])]
     public function isBeds24Active(): bool
     {
         return ($this->beds24Tmpl['is_active'] ?? false) === true;
     }
 
+    #[Groups(['template:read'])]
     public function isWhatsappMetaActive(): bool
     {
         return ($this->whatsappMetaTmpl['is_active'] ?? false) === true;
@@ -269,6 +271,7 @@ class MessageTemplate
      *
      * @return bool True si es oficial y sincronizada, False si es interna/quick reply.
      */
+    #[Groups(['template:read'])]
     public function isWhatsappMetaOfficial(): bool
     {
         return ($this->whatsappMetaTmpl['is_official_meta'] ?? true) === true;

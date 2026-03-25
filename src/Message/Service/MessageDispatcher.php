@@ -31,7 +31,7 @@ class MessageDispatcher
     public function dispatch(Message $message): array
     {
         $queues = [];
-        $errors = []; // 🔥 Guardaremos los motivos de fallo
+        $errors = [];
         $channels = $this->resolveChannels($message);
 
         // 🔥 MAGIA DEL SCHEDULER: Leemos la fecha programada en memoria, o usamos "ahora"
@@ -73,24 +73,24 @@ class MessageDispatcher
 
     /**
      * Aplica las reglas de negocio para determinar los canales destino.
-     * * @return MessageChannel[]
+     * @return MessageChannel[]
      */
     private function resolveChannels(Message $message): array
     {
         $channelRepo = $this->em->getRepository(MessageChannel::class);
+        $transientIds = $message->getTransientChannels();
         $resolvedChannels = [];
 
         // =====================================================================
-        // REGLA 1 (MÁXIMA JERARQUÍA): REGLAS DE LA PLANTILLA
+        // REGLA 1: PLANTILLA ACTÚA COMO EL "MÁXIMO PERMITIDO"
         // =====================================================================
         if ($template = $message->getTemplate()) {
             // Buscamos todos los canales activos en el sistema
             $allActiveChannels = $channelRepo->findBy(['isActive' => true]);
 
+            // 1A. Identificamos qué canales permite la plantilla
             foreach ($allActiveChannels as $channel) {
-                $column = $channel->getTemplateColumn(); // Ej: 'whatsappMetaTmpl'
-
-                // Magia dinámica: Llamamos a getWhatsappMetaTmpl(), getBeds24Tmpl(), etc.
+                $column = $channel->getTemplateColumn();
                 $getter = 'get' . ucfirst($column);
 
                 if (method_exists($template, $getter)) {
@@ -103,22 +103,30 @@ class MessageDispatcher
                 }
             }
 
-            return $resolvedChannels; // Retornamos inmediatamente, ignorando transientChannels
+            // 1B. 🔥 INTERSECCIÓN CON LA DECISIÓN DEL OPERADOR
+            // Si el request trajo canales explícitos (la UI envió sus checkboxes),
+            // filtramos para respetar si el operador desmarcó voluntariamente alguno.
+            if (!empty($transientIds)) {
+                $resolvedChannels = array_filter($resolvedChannels, function (MessageChannel $c) use ($transientIds) {
+                    return in_array($c->getId(), $transientIds, true);
+                });
+            }
+
+            return array_values($resolvedChannels);
         }
 
         // =====================================================================
-        // REGLA 2: SELECCIÓN MANUAL DEL OPERADOR (EasyAdmin checkboxes / Vue UI)
+        // REGLA 2: SELECCIÓN MANUAL DEL OPERADOR (Texto Libre)
         // =====================================================================
-        $transientIds = $message->getTransientChannels();
         if (!empty($transientIds)) {
             return $channelRepo->findBy([
                 'id' => $transientIds,
-                'isActive' => true // Seguro extra: Solo canales que sigan activos globalmente
+                'isActive' => true
             ]);
         }
 
         // =====================================================================
-        // REGLA 3: FALLBACK (Por si acaso)
+        // REGLA 3: FALLBACK
         // =====================================================================
         if ($message->getChannel() && $message->getChannel()->isActive()) {
             return [$message->getChannel()];
