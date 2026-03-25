@@ -22,8 +22,9 @@ use Vich\UploaderBundle\Storage\StorageInterface;
  *
  * * REGLAS DE SEGURIDAD INTEGRADAS:
  * Implementa Zero-Trust sobre plantillas no oficiales, bloqueando su envío fuera de 24h.
- * * ACTUALIZACIÓN: Implementa lógica concatenada (Header + Body + Footer) para mensajes libres
- * y estructuración estricta para envío oficial de plantillas.
+ * * ACTUALIZACIÓN: Implementa lógica concatenada (Header + Body + Footer) para mensajes libres.
+ * * HACK IDIOMAS: Normaliza códigos genéricos (como 'pt') a 'pt_BR' para compatibilidad con Meta Cloud API.
+ * La normalización se aplica tanto al código enviado a Meta como a la búsqueda de nodos en el JSON local.
  */
 final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyInterface
 {
@@ -89,7 +90,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             }
 
             // =========================================================================
-            // 🔥 ESCENARIO B: ENVÍO DE MENSAJE (Plantilla Oficial o Libre)
+            // 🔥 ESCENARIO B: ENVÍO DE MENSAJE
             // =========================================================================
 
             $conversation = $msg->getConversation();
@@ -145,20 +146,20 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 $templateName = $metaJson['meta_template_name'] ?? null;
 
                 if (!$templateName) {
-                    throw new \RuntimeException(sprintf('La plantilla local "%s" no tiene un Nombre de Plantilla Meta configurado.', $template->getCode()));
+                    throw new \RuntimeException(sprintf('La plantilla local "%s" no tiene un Nombre de Plantilla Meta.', $template->getCode()));
                 }
 
                 $messagePayload['type'] = 'template';
                 $messagePayload['template'] = [
                     'name' => $templateName,
-                    'language' => ['code' => $lang],
+                    'language' => ['code' => $metaLang],
                     'components' => []
                 ];
 
                 $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
 
-                // 1. PROCESAR HEADER (Variables de texto o Adjuntos)
-                $headerData = $template->getWhatsappMetaHeader($lang);
+                // 1. PROCESAR HEADER
+                $headerData = $template->getWhatsappMetaHeader($internalLang);
                 if ($headerData) {
                     $format = $headerData['format'];
                     $headerComponent = ['type' => 'header', 'parameters' => []];
@@ -168,7 +169,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         if (preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $headerText, $matches)) {
                             foreach (array_unique($matches[1]) as $paramName) {
                                 if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
-                                    throw new \RuntimeException(sprintf('Error de seguridad (Header): La variable requerida "{{%s}}" está vacía en el contexto actual.', $paramName));
+                                    throw new \RuntimeException(sprintf('Error (Header): Variable "%s" vacía.', $paramName));
                                 }
                                 // NOTA ACTUALIZADA: Cuando se usan variables nombradas (ej. {{guest_name}}) en lugar de
                                 // posicionales (ej. {{1}}), Meta Cloud API exige estrictamente el 'parameter_name'
@@ -182,7 +183,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         }
                     } elseif (in_array($format, ['IMAGE', 'VIDEO', 'DOCUMENT'])) {
                         if (!$attachment) {
-                            throw new \RuntimeException(sprintf('Error de seguridad: La plantilla "%s" requiere un adjunto de tipo %s en el Header, pero no se envió ninguno.', $template->getCode(), $format));
+                            throw new \RuntimeException(sprintf('La plantilla "%s" requiere adjunto %s en el Header.', $template->getCode(), $format));
                         }
                         $mediaType = strtolower($format);
                         $headerComponent['parameters'][] = [
@@ -197,10 +198,10 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     }
                 }
 
-                // 2. PROCESAR BODY
+                // 2. PROCESAR BODY (Búsqueda normalizada para evitar fallos por pt vs pt_BR)
                 $templateContent = '';
                 foreach ($metaJson['body'] ?? [] as $bodyNode) {
-                    if (strtolower($bodyNode['language']) === $lang) {
+                    if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'])) === $metaLang) {
                         $templateContent = $bodyNode['content'] ?? '';
                         break;
                     }
@@ -210,11 +211,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 if ($templateContent && preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $templateContent, $matches)) {
                     foreach (array_unique($matches[1]) as $paramName) {
                         if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
-                            throw new \RuntimeException(sprintf(
-                                'Error de seguridad al enviar plantilla "%s": La variable requerida "{{%s}}" está vacía o no existe en el contexto actual.',
-                                $template->getCode(),
-                                $paramName
-                            ));
+                            throw new \RuntimeException(sprintf('Error (Body): Variable "%s" vacía en plantilla "%s".', $paramName, $template->getCode()));
                         }
 
                         $resolvedBodyParams[] = [
@@ -232,27 +229,12 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     ];
                 }
 
-                // 3. PROCESAR FOOTER
-                // (REGLA DE META: El footer JAMÁS tiene variables, por lo tanto NO SE ENVÍA como componente
-                // en el payload de la plantilla oficial. Meta lo inyecta automáticamente de su lado.)
-
-                // 4. PROCESAR BOTONES DINÁMICOS
+                // 4. PROCESAR BOTONES
                 foreach ($metaJson['buttons_map'] ?? [] as $btn) {
                     if (($btn['type'] ?? '') === 'url') {
-
-                        // Extraemos la llave dedicada para el resolver.
-                        // El fallback str_replace se mantiene solo por compatibilidad temporal si alguna plantilla no se ha editado aún.
-                        $resolverKey = $btn['resolver_key'] ?? null;
-                        if (!$resolverKey) {
-                            $resolverKey = str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
-                        }
-
+                        $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
                         if (!isset($variables[$resolverKey]) || (string)$variables[$resolverKey] === '') {
-                            throw new \RuntimeException(sprintf(
-                                'Error de seguridad al enviar plantilla "%s": La variable de botón requerida "%s" está vacía o no existe en el contexto actual.',
-                                $template->getCode(),
-                                $resolverKey
-                            ));
+                            throw new \RuntimeException(sprintf('Error (Botón): Variable "%s" vacía.', $resolverKey));
                         }
 
                         $urlValue = (string) $variables[$resolverKey];
@@ -261,25 +243,22 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                             'type' => 'button',
                             'sub_type' => 'url',
                             'index' => (string) ($btn['index'] ?? '0'),
-                            'parameters' => [
-                                ['type' => 'text', 'text' => $urlValue]
-                            ]
+                            'parameters' => [['type' => 'text', 'text' => (string) $variables[$resolverKey]]]
                         ];
                     }
                 }
 
             } else {
                 // -----------------------------------------------------------------
-                // ENVÍO DE MENSAJE LIBRE O QUICK REPLY INTERNO (DENTRO DE 24H)
+                // ENVÍO DE MENSAJE LIBRE O QUICK REPLY (DENTRO DE 24H)
                 // -----------------------------------------------------------------
-
-                $headerData = $template ? $template->getWhatsappMetaHeader($lang) : null;
-                $footerText = $template ? $template->getWhatsappMetaFooter($lang) : null;
+                $headerData = $template ? $template->getWhatsappMetaHeader($internalLang) : null;
+                $footerText = $template ? $template->getWhatsappMetaFooter($internalLang) : null;
                 $bodyText = '';
 
                 if (!empty($metaJson['body'])) {
                     foreach ($metaJson['body'] as $bodyNode) {
-                        if (strtolower($bodyNode['language']) === $lang) {
+                        if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'])) === $metaLang) {
                             $bodyText = $bodyNode['content'] ?? '';
                             break;
                         }
@@ -321,7 +300,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
                             $btnText = 'Enlace';
                             foreach ($btn['button_text'] ?? [] as $tr) {
-                                if (strtolower($tr['language']) === $lang) {
+                                if ($this->normalizeLanguageForMeta(strtolower($tr['language'])) === $metaLang) {
                                     $btnText = $tr['content'];
                                     break;
                                 }
@@ -338,19 +317,13 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 if ($attachment) {
                     $mediaType = $this->getWhatsappMetaMediaType($attachment);
                     $messagePayload['type'] = $mediaType;
-                    $messagePayload[$mediaType] = [
-                        'link' => $this->getAbsoluteAttachmentUrl($attachment)
-                    ];
-
+                    $messagePayload[$mediaType] = ['link' => $this->getAbsoluteAttachmentUrl($attachment)];
                     if (!empty(trim($finalContent)) && in_array($mediaType, ['image', 'video', 'document'])) {
                         $messagePayload[$mediaType]['caption'] = $finalContent;
                     }
                 } else {
                     $messagePayload['type'] = 'text';
-                    $messagePayload['text'] = [
-                        'preview_url' => true,
-                        'body' => trim($finalContent)
-                    ];
+                    $messagePayload['text'] = ['preview_url' => true, 'body' => trim($finalContent)];
                 }
             }
 
@@ -358,18 +331,19 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             $correlation[$index] = (string) $item->getId();
         }
 
-        return new MappingResult(
-            method: $method,
-            fullUrl: $fullUrl,
-            payload: $payload,
-            config: $config,
-            correlationMap: $correlation
-        );
+        return new MappingResult($method, $fullUrl, $payload, $config, $correlation);
     }
 
     /**
-     * Analiza la respuesta de la API Cloud de Meta para determinar el éxito del envío o lectura.
+     * Normaliza el código de idioma para la API de Meta.
+     * Mapea 'pt' a 'pt_BR' para evitar el rechazo de la API Cloud.
      */
+    private function normalizeLanguageForMeta(string $lang): string
+    {
+        $map = ['pt' => 'pt_BR'];
+        return $map[$lang] ?? $lang;
+    }
+
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
         $results = [];
@@ -379,26 +353,16 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
         }
 
         foreach ($apiResponse as $index => $respData) {
-            if (!isset($mapping->correlationMap[$index])) {
-                continue;
-            }
-
+            if (!isset($mapping->correlationMap[$index])) continue;
             $queueId = $mapping->correlationMap[$index];
             $isError = isset($respData['error']);
-
             $success = !$isError;
-            $remoteId = null;
-
-            if ($success && isset($respData['messages'][0]['id'])) {
-                $remoteId = $respData['messages'][0]['id'];
-            }
-
-            $errorMessage = $isError ? ($respData['error']['message'] ?? 'Error desconocido de Meta') : null;
+            $remoteId = $success && isset($respData['messages'][0]['id']) ? $respData['messages'][0]['id'] : null;
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
-                message: $errorMessage,
+                message: $isError ? ($respData['error']['message'] ?? 'Error Meta') : null,
                 remoteId: $remoteId,
                 extraData: (array)$respData
             );
@@ -414,15 +378,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
     {
         if ($resolver && str_contains($content, '{{')) {
             $variables = $resolver->getMessageVariables($contextId);
-
-            $content = preg_replace_callback(
-                '/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/',
-                function (array $matches) use ($variables): string {
-                    $key = $matches[1];
-                    return (string) ($variables[$key] ?? $matches[0]);
-                },
-                $content
-            );
+            return preg_replace_callback('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', fn($m) => (string)($variables[$m[1]] ?? $m[0]), $content);
         }
         return $content;
     }
@@ -446,9 +402,6 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
      */
     private function getAbsoluteAttachmentUrl(MessageAttachment $attachment): string
     {
-        $base = rtrim($this->pmsMetaPublicUrl, '/');
-        $uri = $this->vichStorage->resolveUri($attachment, 'file');
-
-        return $base . $uri;
+        return rtrim($this->pmsMetaPublicUrl, '/') . $this->vichStorage->resolveUri($attachment, 'file');
     }
 }
