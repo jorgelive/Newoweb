@@ -90,7 +90,8 @@ class MessageTemplate
 
     #[ORM\Column(type: 'json', nullable: true)]
     #[Assert\Type(type: 'array', message: 'La configuración de WhatsApp Meta debe ser un arreglo o estructura JSON válida.')]
-    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body', 'buttons_map->button_text'], preventOverwriteIf: 'isWhatsappMetaOfficial')]
+    // OPTIMIZACIÓN: Se añaden header y footer a los campos auto-traducibles
+    #[AutoTranslate(sourceLanguage: 'es', nestedFields: ['body', 'header', 'footer', 'buttons_map->button_text'], preventOverwriteIf: 'isWhatsappMetaOfficial')]
     private ?array $whatsappMetaTmpl = [];
 
     #[ORM\Column(type: 'json', nullable: true)]
@@ -104,7 +105,7 @@ class MessageTemplate
         $this->emailTmpl = [];
         $this->beds24Tmpl = [];
         $this->whatsappMetaTmpl = [
-            'is_official_meta' => true // Por defecto asumimos que es oficial, el usuario en EasyAdmin puede cambiarlo a false.
+            'is_official_meta' => true
         ];
         $this->whatsappLinkTmpl = [];
         $this->allowedSources = [];
@@ -413,14 +414,31 @@ class MessageTemplate
     }
 
     /**
-     * Asigna o actualiza el texto decodificado (body) de la plantilla de WhatsApp para un idioma.
-     * ¿Por qué existe? Permite actualizar programáticamente el contenido de la base
-     * sin tener que reconstruir manualmente el array, conservando el estado.
-     *
-     * @param string $lang Código del idioma (ej. 'es').
-     * @param string $content El texto con las variables.
-     * @return self
+     * Obtiene la configuración del Header para un idioma específico.
+     * @return array{format: string, content: string|null}|null
      */
+    public function getWhatsappMetaHeader(string $lang): ?array
+    {
+        $headers = $this->whatsappMetaTmpl['header'] ?? [];
+        foreach ($headers as $h) {
+            if (($h['language'] ?? '') === $lang) {
+                return [
+                    'format'  => strtoupper($h['format'] ?? 'TEXT'),
+                    'content' => $h['content'] ?? null
+                ];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Obtiene el texto del pie de página para un idioma específico.
+     */
+    public function getWhatsappMetaFooter(string $lang): ?string
+    {
+        return $this->extract($this->whatsappMetaTmpl['footer'] ?? [], $lang, 'content');
+    }
+
     public function setWhatsappMetaBodyForLanguage(string $lang, string $content): self
     {
         $body = $this->whatsappMetaTmpl['body'] ?? [];
@@ -484,6 +502,28 @@ class MessageTemplate
     public function setWhatsappMetaButtonsMap(array $buttons): self
     {
         $this->whatsappMetaTmpl['buttons_map'] = array_map(fn($item) => (array) $item, $buttons);
+        return $this;
+    }
+
+    public function getWhatsappMetaHeaders(): array
+    {
+        return array_map(fn($item) => (object) $item, $this->whatsappMetaTmpl['header'] ?? []);
+    }
+
+    public function setWhatsappMetaHeaders(array $headers): self
+    {
+        $this->whatsappMetaTmpl['header'] = array_map(fn($item) => (array) $item, $headers);
+        return $this;
+    }
+
+    public function getWhatsappMetaFooters(): array
+    {
+        return array_map(fn($item) => (object) $item, $this->whatsappMetaTmpl['footer'] ?? []);
+    }
+
+    public function setWhatsappMetaFooters(array $footers): self
+    {
+        $this->whatsappMetaTmpl['footer'] = array_map(fn($item) => (array) $item, $footers);
         return $this;
     }
 

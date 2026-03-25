@@ -212,43 +212,44 @@ class MessageTemplateCrudController extends BaseCrudController
     }
 
     /**
-     * Método que atrapa el clic del botón en EasyAdmin y ejecuta el servicio.
-     * ¿Por qué existe? Actúa como un mini-controlador para la acción personalizada.
+     * Ejecuta la sincronización manual de plantillas oficiales desde WhatsApp Meta Cloud API.
+     * * ¿Por qué existe? Permite al operador forzar la actualización de plantillas (nuevas o cambios de estado)
+     * directamente desde la interfaz de EasyAdmin sin esperar a procesos en segundo plano.
+     * Delega toda la responsabilidad de conexión, extracción de credenciales y mapeo de componentes
+     * (Header, Body, Footer, Buttons) al servicio especializado.
+     *
+     * @param AdminContext $context Contexto actual de la petición en EasyAdmin.
+     * @param WhatsappMetaTemplateSyncService $syncService Orquestador unificado de sincronización de Meta.
+     * @param AdminUrlGenerator $adminUrlGenerator Generador de URLs para la redirección post-ejecución.
+     * @return Response Redirección al listado principal del CRUD.
      */
     public function executeMetaSync(
         AdminContext $context,
         WhatsappMetaTemplateSyncService $syncService,
-        HttpClientInterface $httpClient,
-        AdminUrlGenerator $adminUrlGenerator,
-        string $metaWabaId, // Parámetros desde services.yaml
-        string $metaAccessToken
+        AdminUrlGenerator $adminUrlGenerator
     ): Response {
         try {
-            // Reutilizamos la misma llamada HTTP que el comando (O idealmente, mueves esta llamada dentro del servicio para no duplicarla)
-            $response = $httpClient->request(
-                'GET',
-                sprintf('https://graph.facebook.com/v18.0/%s/message_templates', $metaWabaId),
-                [
-                    'headers' => [
-                        'Authorization' => 'Bearer ' . $metaAccessToken,
-                    ],
-                ]
-            );
+            // El servicio ahora encapsula toda la lógica HTTP y de base de datos internamente.
+            $result = $syncService->sync();
 
-            $apiData = $response->toArray();
-            $updatedCount = $syncService->synchronizeTemplates($apiData);
+            $created = $result['created'] ?? 0;
+            $updated = $result['updated'] ?? 0;
+            $total = $created + $updated;
 
-            if ($updatedCount > 0) {
-                $this->addFlash('success', sprintf('Sincronización exitosa. Se actualizaron %d plantillas de Meta.', $updatedCount));
+            if ($total > 0) {
+                $this->addFlash(
+                    'success',
+                    sprintf('Sincronización exitosa. Se crearon %d y se actualizaron %d plantillas oficiales de Meta.', $created, $updated)
+                );
             } else {
-                $this->addFlash('info', 'Plantillas verificadas. Todo se encuentra al día.');
+                $this->addFlash('info', 'Plantillas verificadas. Todo se encuentra sincronizado y al día con Meta.');
             }
 
-        } catch (Throwable $e) {
-            $this->addFlash('danger', 'Error al sincronizar con Meta: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            $this->addFlash('danger', 'Error crítico al sincronizar plantillas con Meta: ' . $e->getMessage());
         }
 
-        // Redirigimos de vuelta a la lista del CRUD después de ejecutar
+        // Redirigimos de vuelta a la lista del CRUD después de ejecutar la acción
         $targetUrl = $adminUrlGenerator
             ->setController(self::class)
             ->setAction(Action::INDEX)

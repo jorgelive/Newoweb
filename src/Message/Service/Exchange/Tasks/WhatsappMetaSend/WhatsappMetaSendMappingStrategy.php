@@ -21,8 +21,9 @@ use Vich\UploaderBundle\Storage\StorageInterface;
  * y también para notificar a Meta cuando un mensaje fue leído (status: read).
  *
  * * REGLAS DE SEGURIDAD INTEGRADAS:
- * Implementa Zero-Trust sobre plantillas no oficiales (Quick Replies) bloqueando su envío
- * fuera de la ventana de 24 horas y usa `resolver_key` para extraer URLs dinámicas.
+ * Implementa Zero-Trust sobre plantillas no oficiales, bloqueando su envío fuera de 24h.
+ * * ACTUALIZACIÓN: Implementa lógica concatenada (Header + Body + Footer) para mensajes libres
+ * y estructuración estricta para envío oficial de plantillas.
  */
 final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyInterface
 {
@@ -57,7 +58,6 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
         // 3. Armado de la URL final (Base + Path Dinámico)
         $fullUrl = rtrim($config->getBaseUrl(), '/') . '/' . ltrim($dynamicPath, '/');
-
         $method = strtoupper((string)$endpoint->getMetodo());
 
         $payload = [];
@@ -116,7 +116,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
             // Obtenemos el nuevo JSON Greenfield completo
             $metaJson = $template !== null ? $template->getWhatsappMetaTmpl() : [];
-            $isOfficialMeta = $metaJson['is_official_meta'] ?? true; // Asumimos true por defecto histórico
+            $isOfficialMeta = $metaJson['is_official_meta'] ?? true;
 
             // =========================================================================
             // 🛡️ BARRERA DE SEGURIDAD (ZERO TRUST & QUICK REPLIES)
@@ -155,7 +155,46 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     'components' => []
                 ];
 
-                // 1. BUSCAR EL TEXTO EN EL IDIOMA CORRECTO DENTRO DEL BODY
+                $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
+
+                // 1. PROCESAR HEADER (Variables de texto o Adjuntos)
+                $headerData = $template->getWhatsappMetaHeader($lang);
+                if ($headerData) {
+                    $format = $headerData['format'];
+                    $headerComponent = ['type' => 'header', 'parameters' => []];
+
+                    if ($format === 'TEXT' && !empty($headerData['content'])) {
+                        $headerText = $headerData['content'];
+                        if (preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $headerText, $matches)) {
+                            foreach (array_unique($matches[1]) as $paramName) {
+                                if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
+                                    throw new \RuntimeException(sprintf('Error de seguridad (Header): La variable requerida "{{%s}}" está vacía en el contexto actual.', $paramName));
+                                }
+                                // NOTA: Meta API requiere solo 'text' para variables de Header (no usan parameter_name)
+                                $headerComponent['parameters'][] = [
+                                    'type' => 'text',
+                                    'text' => (string) $variables[$paramName]
+                                ];
+                            }
+                        }
+                    } elseif (in_array($format, ['IMAGE', 'VIDEO', 'DOCUMENT'])) {
+                        if (!$attachment) {
+                            throw new \RuntimeException(sprintf('Error de seguridad: La plantilla "%s" requiere un adjunto de tipo %s en el Header, pero no se envió ninguno.', $template->getCode(), $format));
+                        }
+                        $mediaType = strtolower($format);
+                        $headerComponent['parameters'][] = [
+                            'type' => $mediaType,
+                            $mediaType => ['link' => $this->getAbsoluteAttachmentUrl($attachment)]
+                        ];
+                    }
+
+                    // REGLA DE META: Solo se añade el componente si hay variables/adjuntos reales que procesar
+                    if (!empty($headerComponent['parameters'])) {
+                        $messagePayload['template']['components'][] = $headerComponent;
+                    }
+                }
+
+                // 2. PROCESAR BODY
                 $templateContent = '';
                 foreach ($metaJson['body'] ?? [] as $bodyNode) {
                     if (strtolower($bodyNode['language']) === $lang) {
@@ -164,20 +203,21 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     }
                 }
 
-                $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
-
-                // EXTRAER VARIABLES DEL CUERPO (USANDO PARAMETER_NAME)
                 $resolvedBodyParams = [];
                 if ($templateContent && preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $templateContent, $matches)) {
-                    // Meta acepta variables nombradas en el body, usamos array_unique para no duplicar el parameter_name
-                    $uniqueParamNames = array_unique($matches[1]);
+                    foreach (array_unique($matches[1]) as $paramName) {
+                        if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
+                            throw new \RuntimeException(sprintf(
+                                'Error de seguridad al enviar plantilla "%s": La variable requerida "{{%s}}" está vacía o no existe en el contexto actual.',
+                                $template->getCode(),
+                                $paramName
+                            ));
+                        }
 
-                    foreach ($uniqueParamNames as $paramName) {
-                        $value = (string) ($variables[$paramName] ?? '');
                         $resolvedBodyParams[] = [
                             'type' => 'text',
                             'parameter_name' => $paramName,
-                            'text' => $value !== '' ? $value : ' '
+                            'text' => (string) $variables[$paramName]
                         ];
                     }
                 }
@@ -189,7 +229,11 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     ];
                 }
 
-                // PROCESAR BOTONES DINÁMICOS (USANDO EL NUEVO RESOLVER_KEY)
+                // 3. PROCESAR FOOTER
+                // (REGLA DE META: El footer JAMÁS tiene variables, por lo tanto NO SE ENVÍA como componente
+                // en el payload de la plantilla oficial. Meta lo inyecta automáticamente de su lado.)
+
+                // 4. PROCESAR BOTONES DINÁMICOS
                 foreach ($metaJson['buttons_map'] ?? [] as $btn) {
                     if (($btn['type'] ?? '') === 'url') {
 
@@ -200,36 +244,25 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                             $resolverKey = str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
                         }
 
-                        $urlValue = (string) ($variables[$resolverKey] ?? '');
-
-                        if ($urlValue !== '') {
-                            $messagePayload['template']['components'][] = [
-                                'type' => 'button',
-                                'sub_type' => 'url',
-                                'index' => (string) ($btn['index'] ?? '0'),
-                                'parameters' => [
-                                    // Los botones en Meta NO aceptan parameter_name, solo el type y text
-                                    ['type' => 'text', 'text' => $urlValue]
-                                ]
-                            ];
+                        if (!isset($variables[$resolverKey]) || (string)$variables[$resolverKey] === '') {
+                            throw new \RuntimeException(sprintf(
+                                'Error de seguridad al enviar plantilla "%s": La variable de botón requerida "%s" está vacía o no existe en el contexto actual.',
+                                $template->getCode(),
+                                $resolverKey
+                            ));
                         }
-                    }
-                }
 
-                // PROCESAR ADJUNTOS EN EL HEADER
-                if ($attachment) {
-                    $mediaType = $this->getWhatsappMetaMediaType($attachment);
-                    $messagePayload['template']['components'][] = [
-                        'type' => 'header',
-                        'parameters' => [
-                            [
-                                'type' => $mediaType,
-                                $mediaType => [
-                                    'link' => $this->getAbsoluteAttachmentUrl($attachment)
-                                ]
+                        $urlValue = (string) $variables[$resolverKey];
+
+                        $messagePayload['template']['components'][] = [
+                            'type' => 'button',
+                            'sub_type' => 'url',
+                            'index' => (string) ($btn['index'] ?? '0'),
+                            'parameters' => [
+                                ['type' => 'text', 'text' => $urlValue]
                             ]
-                        ]
-                    ];
+                        ];
+                    }
                 }
 
             } else {
@@ -237,33 +270,49 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // ENVÍO DE MENSAJE LIBRE O QUICK REPLY INTERNO (DENTRO DE 24H)
                 // -----------------------------------------------------------------
 
-                // 1. Extraemos el contenido. Priorizamos la plantilla si existe
-                $content = '';
+                $headerData = $template ? $template->getWhatsappMetaHeader($lang) : null;
+                $footerText = $template ? $template->getWhatsappMetaFooter($lang) : null;
+                $bodyText = '';
+
                 if (!empty($metaJson['body'])) {
                     foreach ($metaJson['body'] as $bodyNode) {
                         if (strtolower($bodyNode['language']) === $lang) {
-                            $content = $bodyNode['content'] ?? '';
+                            $bodyText = $bodyNode['content'] ?? '';
                             break;
                         }
                     }
                 }
 
-                // 2. Si no había plantilla, usamos el texto libre tipeado por el usuario
-                if (empty(trim($content))) {
-                    $content = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
+                if (empty(trim($bodyText))) {
+                    $bodyText = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
                 }
 
-                // 3. Hidratamos las variables (Soporta {{ guest_name }})
-                $content = $this->hydrateVariables($content, $resolver, $conversation->getContextId());
+                // CONCATENACIÓN VIRTUAL (Simulando la UI de Meta)
+                $finalContent = "";
 
-                // EMULAR BOTONES EN TEXTO LIBRE USANDO EL RESOLVER_KEY
+                // 1. Header (Solo si es de texto)
+                if ($headerData && ($headerData['format'] ?? 'TEXT') === 'TEXT' && !empty($headerData['content'])) {
+                    $finalContent .= "*" . trim($headerData['content']) . "*\n\n";
+                }
+
+                // 2. Body
+                $finalContent .= trim($bodyText);
+
+                // 3. Footer
+                if (!empty($footerText)) {
+                    $finalContent .= "\n\n_" . trim($footerText) . "_";
+                }
+
+                // Hidratamos todas las variables del bloque concatenado
+                $finalContent = $this->hydrateVariables($finalContent, $resolver, $conversation->getContextId());
+
+                // EMULAR BOTONES EN TEXTO LIBRE
                 if (!empty($metaJson['buttons_map'])) {
-                    $content .= "\n\n";
+                    $finalContent .= "\n\n";
                     $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
 
                     foreach ($metaJson['buttons_map'] as $btn) {
                         if (($btn['type'] ?? '') === 'url') {
-
                             $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
                             $urlValue = (string) ($variables[$resolverKey] ?? '');
 
@@ -276,12 +325,13 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                             }
 
                             if ($urlValue !== '') {
-                                $content .= "🔗 *" . $btnText . "*: " . $urlValue . "\n";
+                                $finalContent .= "🔗 *" . $btnText . "*: " . $urlValue . "\n";
                             }
                         }
                     }
                 }
 
+                // Construcción del Payload Libre
                 if ($attachment) {
                     $mediaType = $this->getWhatsappMetaMediaType($attachment);
                     $messagePayload['type'] = $mediaType;
@@ -289,14 +339,14 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         'link' => $this->getAbsoluteAttachmentUrl($attachment)
                     ];
 
-                    if (!empty(trim($content)) && in_array($mediaType, ['image', 'video', 'document'])) {
-                        $messagePayload[$mediaType]['caption'] = $content;
+                    if (!empty(trim($finalContent)) && in_array($mediaType, ['image', 'video', 'document'])) {
+                        $messagePayload[$mediaType]['caption'] = $finalContent;
                     }
                 } else {
                     $messagePayload['type'] = 'text';
                     $messagePayload['text'] = [
                         'preview_url' => true,
-                        'body' => trim($content)
+                        'body' => trim($finalContent)
                     ];
                 }
             }

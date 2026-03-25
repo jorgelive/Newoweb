@@ -19,6 +19,8 @@ use Psr\Log\LoggerInterface;
  * * REGLA DE NEGOCIO: Meta es la fuente de la verdad para textos y URLs. Sin embargo,
  * se preservan llaves internas de integración (como resolver_key) para mantener el funcionamiento
  * del sistema de variables local sin que Meta lo destruya.
+ * * OPTIMIZACIÓN GREENFIELD: Ahora sincroniza componentes HEADER y FOOTER para descargar peso
+ * del BODY y evitar romper el límite de 1024 caracteres de Meta.
  */
 final readonly class WhatsappMetaTemplateSyncService
 {
@@ -96,6 +98,9 @@ final readonly class WhatsappMetaTemplateSyncService
         ];
     }
 
+    /**
+     * Procesa y persiste una plantilla individual inyectándola en el JSON estructurado `whatsappMetaTmpl`.
+     */
     private function processTemplateRecord(array $data, array &$templateCache, array $allowedLanguages): ?bool
     {
         $metaName = (string)($data['name'] ?? '');
@@ -133,7 +138,7 @@ final readonly class WhatsappMetaTemplateSyncService
                 $targetTemplate = new MessageTemplate();
                 $targetTemplate->setName(ucwords(str_replace('_', ' ', $metaName)));
 
-                $generatedCode = sprintf('%s_meta', ($metaName));
+                $generatedCode = sprintf('%s_META', strtoupper($metaName));
                 if (strlen($generatedCode) > 50) {
                     $generatedCode = substr($generatedCode, 0, 50);
                 }
@@ -235,7 +240,53 @@ final readonly class WhatsappMetaTemplateSyncService
         }
         $metaTmpl['buttons_map'] = $buttonsMap;
 
-        // Guardamos el JSON completo en la entidad
+        // 6. Procesamiento del FOOTER (Nuevo)
+        $footerText = $this->extractFooterText($data['components'] ?? []);
+        $footerArray = $metaTmpl['footer'] ?? [];
+        $foundLangFooter = false;
+
+        foreach ($footerArray as &$f) {
+            if (($f['language'] ?? '') === $language) {
+                $f['content'] = $footerText;
+                $foundLangFooter = true;
+                break;
+            }
+        }
+        unset($f);
+
+        // Si no existía y hay texto válido en Meta, lo agregamos
+        if (!$foundLangFooter && $footerText !== '') {
+            $footerArray[] = ['language' => $language, 'content' => $footerText];
+        }
+        $metaTmpl['footer'] = $footerArray;
+
+        // 7. Procesamiento del HEADER (Nuevo)
+        $headerData = $this->extractHeaderData($data['components'] ?? []);
+        if (!empty($headerData)) {
+            $headerArray = $metaTmpl['header'] ?? [];
+            $foundLangHeader = false;
+
+            foreach ($headerArray as &$h) {
+                if (($h['language'] ?? '') === $language) {
+                    $h['format'] = $headerData['format'];
+                    $h['content'] = $headerData['content'];
+                    $foundLangHeader = true;
+                    break;
+                }
+            }
+            unset($h);
+
+            // Si no existía, agregamos el formato y el texto/variable del encabezado
+            if (!$foundLangHeader) {
+                $headerArray[] = [
+                    'language' => $language,
+                    'format'   => $headerData['format'],
+                    'content'  => $headerData['content']
+                ];
+            }
+            $metaTmpl['header'] = $headerArray;
+        }
+
         $targetTemplate->setWhatsappMetaTmpl($metaTmpl);
 
         return $isNew;
@@ -284,6 +335,45 @@ final readonly class WhatsappMetaTemplateSyncService
         foreach ($components as $component) {
             if (strtoupper((string)($component['type'] ?? '')) === 'BUTTONS') {
                 return $component['buttons'] ?? [];
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Extrae el texto del componente FOOTER de Meta.
+     * ¿Por qué existe? Meta maneja el footer como un componente independiente con un límite de 60 caracteres.
+     * Sincronizarlo ayuda a descargar peso del body principal para no exceder los 1024 caracteres.
+     *
+     * @param array $components Arreglo de componentes.
+     * @return string El texto del footer o cadena vacía si no existe.
+     */
+    private function extractFooterText(array $components): string
+    {
+        foreach ($components as $component) {
+            if (strtoupper((string)($component['type'] ?? '')) === 'FOOTER') {
+                return (string)($component['text'] ?? '');
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Extrae los datos del componente HEADER de Meta.
+     * ¿Por qué existe? El header puede ser de tipo TEXT, IMAGE, VIDEO o DOCUMENT.
+     * Si es TEXT, puede contener texto plano (hasta 60 chars) y variables.
+     *
+     * @param array $components Arreglo de componentes.
+     * @return array<string, string> Retorna el formato y el contenido del header.
+     */
+    private function extractHeaderData(array $components): array
+    {
+        foreach ($components as $component) {
+            if (strtoupper((string)($component['type'] ?? '')) === 'HEADER') {
+                return [
+                    'format'  => strtoupper((string)($component['format'] ?? 'TEXT')),
+                    'content' => (string)($component['text'] ?? '') // Puede incluir "Hola {{1}}" o {{guest_name}}
+                ];
             }
         }
         return [];

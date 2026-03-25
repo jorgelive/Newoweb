@@ -1,0 +1,119 @@
+{# BLOQUE 1: ROW PARA HEADER #}
+{% block whatsapp_meta_header_entry_row %}
+    <div class="field-collection-item pms-item-row mb-2">
+        {{ form_widget(form) }}
+        {{ form_errors(form) }}
+    </div>
+{% endblock %}
+
+{# BLOQUE 2: WIDGET PARA HEADER #}
+{% block whatsapp_meta_header_entry_widget %}
+    {% set is_first = form.vars.name == '0' %}
+
+    {# Extraemos los valores #}
+    {% set val_lang = form.vars.value.language|default('') %}
+    {% set val_content = form.vars.value.content|default('') %}
+    {% set val_format = form.vars.value.format|default('TEXT') %}
+
+    {% set db_config = form.vars.idiomas_config|default({}) %}
+    {% set info = db_config[val_lang] ?? { 'flag': '✨', 'name': val_lang ? val_lang|upper : 'Nuevo' } %}
+
+    {# Lógica visual para el Badge de Formato #}
+    {% set format_badge_color = 'bg-info text-dark' %}
+    {% set format_badge_text = 'Texto' %}
+    {% set format_icon = 'fa-font' %}
+
+    {% if val_format == 'IMAGE' %}
+        {% set format_badge_color = 'bg-primary' %}
+        {% set format_badge_text = 'Imagen' %}
+        {% set format_icon = 'fa-image' %}
+    {% elseif val_format == 'VIDEO' %}
+        {% set format_badge_color = 'bg-danger' %}
+        {% set format_badge_text = 'Video' %}
+        {% set format_icon = 'fa-video' %}
+    {% elseif val_format == 'DOCUMENT' %}
+        {% set format_badge_color = 'bg-secondary' %}
+        {% set format_badge_text = 'Documento' %}
+        {% set format_icon = 'fa-file-pdf' %}
+    {% endif %}
+
+    <div class="accordion-item border shadow-sm">
+        <h2 class="accordion-header d-flex align-items-stretch m-0 p-0" id="heading-header-{{ id }}">
+
+            <button class="accordion-button py-1 flex-grow-1 {{ not is_first ? 'collapsed' }}"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapse-header-{{ id }}"
+                    aria-expanded="{{ is_first ? 'true' : 'false' }}"
+                    style="font-size: 0.8rem; background-color: #fcfcfc; border-top-right-radius: 0; border-bottom-right-radius: 0;">
+
+                <span class="me-2 fs-5">{{ info.flag }}</span>
+                <span class="fw-bold me-2 text-dark">{{ info.name }}</span>
+
+                {# Badge de Formato en el título #}
+                <span class="badge {{ format_badge_color }} ms-1 me-2" style="font-size: 0.7em">
+                    <i class="fa {{ format_icon }} me-1"></i>{{ format_badge_text }}
+                </span>
+
+                {# Previsualización de contenido (solo si es texto) #}
+                {% if val_format == 'TEXT' and val_content %}
+                    <span class="text-muted small border-start ps-2 text-truncate fst-italic d-none d-sm-inline-block" style="max-width: 300px;">
+                        {{ val_content|striptags }}
+                    </span>
+                {% elseif val_format != 'TEXT' %}
+                    <span class="text-muted small border-start ps-2 fst-italic d-none d-sm-inline-block">
+                        (Requiere adjunto al enviar)
+                    </span>
+                {% endif %}
+            </button>
+
+            <button type="button"
+                    class="pms-delete-translation-btn"
+                    onclick="this.closest('.pms-item-row').remove();"
+                    title="Eliminar">
+                <i class="fa fa-trash-can"></i>
+            </button>
+        </h2>
+
+        <div id="collapse-header-{{ id }}"
+             class="accordion-collapse collapse {{ is_first ? 'show' }}"
+             data-bs-parent="#{{ id|split('_')[0] }}_accordion">
+
+            <div class="accordion-body bg-white p-3 border-top">
+
+                <div class="row g-2 mb-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted small mb-1">Idioma</label>
+                        {{ form_widget(form.language) }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted small mb-1">Formato en Meta</label>
+                        {{ form_widget(form.format) }}
+                        <div class="form-text" style="font-size: 0.7em">Solo lectura</div>
+                    </div>
+                </div>
+
+                {# Si es TEXTO, mostramos el campo. Si es MULTIMEDIA, advertimos que el archivo se adjunta en el chat #}
+                <div class="row g-2">
+                    <div class="col-12">
+                        {% if val_format == 'TEXT' or val_format == '' %}
+                            <label class="form-label fw-bold text-muted small mb-1">Texto del Encabezado (Opcional)</label>
+                            {{ form_widget(form.content) }}
+                            {{ form_errors(form.content) }}
+                        {% else %}
+                            {# Ocultamos el campo input si es imagen/video para no confundir al usuario #}
+                            <div class="d-none">
+                                {{ form_widget(form.content) }}
+                            </div>
+                            <div class="alert alert-info py-2 px-3 mb-0" style="font-size: 0.85em;">
+                                <i class="fa fa-info-circle me-1"></i> Este encabezado requiere un archivo de tipo <strong>{{ format_badge_text }}</strong>. El usuario deberá adjuntar el archivo directamente en la ventana de chat al momento de enviar esta plantilla.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {{ form_rest(form) }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -97,22 +97,22 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         $localizador = $reserva->getLocalizador();
 
         return [
-            'guest_name'      => $reserva->getNombreCliente(),
-            'guest_full_name' => trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()),
-            'locator'         => $localizador,
-            'checkin_date'    => $reserva->getFechaLlegada()?->format('d/m/Y') ?? '',
-            'checkout_date'   => $reserva->getFechaSalida()?->format('d/m/Y') ?? '',
-            'nights'          => $reserva->getNoches(),
-            'pax_total'       => $reserva->getPaxTotal(),
-            'total_amount'    => $reserva->getMontoTotal() ?? '0.00',
-            'property_name'   => $reserva->getNombreHotel(),
-            'room_name'       => $reserva->getNombreHabitacion(),
-            'channel_name'    => $canal ? $canal->getNombre() : 'Directo',
-            'guest_country'   => $pais ? $pais->getNombre() : '',
-            'url_guide'       => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador,
-            'url_guide_nd'    => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador,
-            'url_catalog'     => rtrim($this->paxCatalogUrl, '/'),
-            'url_catalog_nd'  => rtrim($this->paxCatalogUrlNd, '/'),
+            'guest_name'            => $reserva->getNombreCliente(),
+            'guest_full_name'       => trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()),
+            'locator'               => $localizador,
+            'checkin_date'          => $reserva->getFechaLlegada()?->format('d/m/Y') ?? '',
+            'checkout_date'         => $reserva->getFechaSalida()?->format('d/m/Y') ?? '',
+            'nights'                => $reserva->getNoches(),
+            'pax_total'             => $reserva->getPaxTotal(),
+            'total_amount'          => $reserva->getMontoTotal() ?? '0.00',
+            'property_name'         => $reserva->getNombreHotel(),
+            'room_name'             => $reserva->getNombreHabitacion(),
+            'channel_name'          => $canal ? $canal->getNombre() : 'Directo',
+            'guest_country'         => $pais ? $pais->getNombre() : '',
+            'url_guide'             => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador,
+            'url_guide_nd'          => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador,
+            'url_tours_catalog'     => rtrim($this->paxCatalogUrl, '/'),
+            'url_tours_catalog_nd'  => rtrim($this->paxCatalogUrlNd, '/'),
         ];
     }
 }

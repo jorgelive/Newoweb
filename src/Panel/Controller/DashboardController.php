@@ -97,6 +97,7 @@ class DashboardController extends AbstractDashboardController
             ->addFormTheme('panel/form/translation_entry.html.twig')
             ->addFormTheme('panel/form/whatsapp_meta_button_entry.html.twig')
             ->addFormTheme('panel/form/whatsapp_meta_body_entry.html.twig')
+            ->addFormTheme('panel/form/whatsapp_meta_header_entry.html.twig')
             ->addFormTheme('panel/field/gallery_helper.html.twig');
     }
 
