@@ -11,6 +11,7 @@ use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
+use App\Exchange\Service\Contract\MemoryCleanableInterface;
 use App\Message\Repository\Beds24ReceiveQueueRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -22,7 +23,7 @@ use Symfony\Component\Uid\UuidV7;
 #[ORM\Table(name: 'msg_beds24_receive_queue')]
 #[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_receive_worker')]
 #[ORM\HasLifecycleCallbacks]
-class Beds24ReceiveQueue implements ExchangeQueueItemInterface
+class Beds24ReceiveQueue implements ExchangeQueueItemInterface, MemoryCleanableInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -81,6 +82,11 @@ class Beds24ReceiveQueue implements ExchangeQueueItemInterface
     {
         $this->id = Uuid::v7();
         $this->targetBookId = $targetBookId;
+    }
+
+    public function getRelatedEntitiesToDetach(): array
+    {
+        return []; // No tiene relaciones pesadas que limpiar
     }
 
     #[ORM\PrePersist]

@@ -11,6 +11,7 @@ use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
+use App\Exchange\Service\Contract\MemoryCleanableInterface;
 use App\Pms\Repository\PmsBookingsPullQueueRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -26,7 +27,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity(repositoryClass: PmsBookingsPullQueueRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: 'pms_bookings_pull_queue')]
-class PmsBookingsPullQueue implements ExchangeQueueItemInterface
+class PmsBookingsPullQueue implements ExchangeQueueItemInterface, MemoryCleanableInterface
 {
     /**
      * Gestión de Identificador UUID (BINARY 16).
@@ -107,6 +108,12 @@ class PmsBookingsPullQueue implements ExchangeQueueItemInterface
         $this->unidades = new ArrayCollection();
 
         $this->id = Uuid::v7();
+    }
+
+    public function getRelatedEntitiesToDetach(): array
+    {
+        // Limpiamos la colección de Unidades que se hayan consultado para este Pull
+        return $this->unidades ? $this->unidades->toArray() : [];
     }
 
     /**

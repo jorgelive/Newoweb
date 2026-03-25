@@ -10,6 +10,7 @@ use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Entity\MetaConfig;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
+use App\Exchange\Service\Contract\MemoryCleanableInterface;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Repository\WhatsappMetaSendQueueRepository;
 use DateTimeImmutable;
@@ -24,7 +25,7 @@ use Symfony\Component\Uid\UuidV7;
 #[ORM\Table(name: 'msg_whatsapp_meta_send_queue')]
 #[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_whatsapp_meta_worker')]
 #[ORM\HasLifecycleCallbacks]
-class WhatsappMetaSendQueue implements MessageQueueItemInterface
+class WhatsappMetaSendQueue implements MessageQueueItemInterface, MemoryCleanableInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -120,6 +121,15 @@ class WhatsappMetaSendQueue implements MessageQueueItemInterface
     {
         $this->id = Uuid::v7();
         $this->runAt = new DateTimeImmutable();
+    }
+
+    public function getRelatedEntitiesToDetach(): array
+    {
+        return [
+            $this->message,
+            $this->message ? $this->message->getConversation() : null,
+            $this->message ? $this->message->getTemplate() : null
+        ];
     }
 
     // =========================================================================

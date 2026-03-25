@@ -11,6 +11,7 @@ use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
+use App\Exchange\Service\Contract\MemoryCleanableInterface;
 use App\Pms\Repository\PmsBookingsPushQueueRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -27,7 +28,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Index(columns: ['status', 'run_at'], name: 'idx_pms_b24_queue_worker')]
 #[ORM\Index(columns: ['dedupe_key'], name: 'idx_pms_b24_queue_dedupe')]
 #[ORM\HasLifecycleCallbacks]
-class PmsBookingsPushQueue implements ExchangeQueueItemInterface
+class PmsBookingsPushQueue implements ExchangeQueueItemInterface, MemoryCleanableInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -109,6 +110,15 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface
         $this->runAt = new DateTimeImmutable();
 
         $this->id = Uuid::v7();
+    }
+
+    public function getRelatedEntitiesToDetach(): array
+    {
+        return [
+            $this->link,
+            $this->link ? $this->link->getEvento() : null,
+            $this->link && $this->link->getEvento() ? $this->link->getEvento()->getReserva() : null
+        ];
     }
 
     // =========================================================================

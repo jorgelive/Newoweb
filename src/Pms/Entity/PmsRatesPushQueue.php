@@ -12,6 +12,7 @@ use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
+use App\Exchange\Service\Contract\MemoryCleanableInterface;
 use App\Pms\Repository\PmsRatesPushQueueRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -35,7 +36,7 @@ use Symfony\Component\Uid\Uuid;
     ]
 )]
 #[ORM\HasLifecycleCallbacks]
-class PmsRatesPushQueue implements ExchangeQueueItemInterface
+class PmsRatesPushQueue implements ExchangeQueueItemInterface, MemoryCleanableInterface
 {
     /** Identificador UUID (BINARY 16) */
     use IdTrait;
@@ -147,6 +148,16 @@ class PmsRatesPushQueue implements ExchangeQueueItemInterface
 
     #[ORM\Column(name: 'failed_reason', type: 'string', length: 255, nullable: true)]
     private ?string $failedReason = null;
+
+    public function getRelatedEntitiesToDetach(): array
+    {
+        return [
+            $this->unidad,
+            $this->unidadBeds24Map,
+            $this->tarifaRango,
+            $this->moneda
+        ];
+    }
 
     /* ======================================================
      * IMPLEMENTACIÓN ExchangeQueueItemInterface

@@ -10,6 +10,7 @@ use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Service\Contract\ChannelConfigInterface;
 use App\Exchange\Service\Contract\EndpointInterface;
+use App\Exchange\Service\Contract\MemoryCleanableInterface;
 use App\Message\Contract\MessageQueueItemInterface;
 use App\Message\Repository\Beds24SendQueueRepository;
 use DateTimeImmutable;
@@ -24,7 +25,7 @@ use Symfony\Component\Uid\UuidV7;
 #[ORM\Table(name: 'msg_beds24_send_queue')]
 #[ORM\Index(columns: ['status', 'run_at'], name: 'idx_msg_b24_worker')]
 #[ORM\HasLifecycleCallbacks]
-class Beds24SendQueue implements MessageQueueItemInterface
+class Beds24SendQueue implements MessageQueueItemInterface, MemoryCleanableInterface
 {
     use IdTrait;
     use TimestampTrait;
@@ -99,6 +100,15 @@ class Beds24SendQueue implements MessageQueueItemInterface
     {
         $this->id = Uuid::v7();
         $this->runAt = new DateTimeImmutable();
+    }
+
+    public function getRelatedEntitiesToDetach(): array
+    {
+        return [
+            $this->message,
+            $this->message ? $this->message->getConversation() : null,
+            $this->message ? $this->message->getTemplate() : null
+        ];
     }
 
     // =========================================================================
