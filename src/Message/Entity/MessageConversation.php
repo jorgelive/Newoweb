@@ -178,21 +178,13 @@ class MessageConversation
      * Si devuelve true, se pueden enviar mensajes libres.
      * Si devuelve false, SOLO se pueden enviar plantillas pre-aprobadas.
      */
+    #[Groups(['conversation:read'])]
     public function isWhatsappSessionActive(): bool
     {
         if ($this->whatsappSessionValidUntil === null) {
             return false;
         }
         return $this->whatsappSessionValidUntil > new \DateTime();
-    }
-
-    /**
-     * para apiPlatform
-     */
-    #[Groups(['conversation:read'])]
-    public function getWhatsappSessionActive(): bool
-    {
-        return $this->isWhatsappSessionActive();
     }
 
     public function getUnreadCount(): int { return $this->unreadCount; }
