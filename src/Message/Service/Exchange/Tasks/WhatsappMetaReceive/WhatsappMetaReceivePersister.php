@@ -10,8 +10,8 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
+use App\Message\Service\MessageJsonMerger;
 use DateTimeImmutable;
-use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -29,7 +29,8 @@ class WhatsappMetaReceivePersister
         private readonly EntityManagerInterface $em,
         private readonly MessageAttachmentFactory $attachmentFactory,
         private readonly HttpClientInterface $httpClient,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly MessageJsonMerger $merger
     ) {}
 
     /**
@@ -77,12 +78,10 @@ class WhatsappMetaReceivePersister
 
         if ($type === 'text') {
             $message->setContentExternal($messageData['text']['body'] ?? '');
-
         } elseif ($type === 'button') {
             // Respuestas a botones de plantillas antiguas (Quick Replies)
             $btnText = $messageData['button']['text'] ?? 'Botón seleccionado';
             $message->setContentExternal("🔘 [Respuesta rápida]: " . $btnText);
-
         } elseif ($type === 'interactive') {
             // Respuestas a botones nuevos o listas de opciones
             $intType = $messageData['interactive']['type'] ?? '';
@@ -95,7 +94,6 @@ class WhatsappMetaReceivePersister
             } else {
                 $message->setContentExternal('🤖 [Interacción no soportada]');
             }
-
         } elseif (in_array($type, ['image', 'document', 'audio', 'video', 'sticker'])) {
             // Manejo de Archivos Multimedia
             $mediaId = $messageData[$type]['id'] ?? null;
@@ -138,7 +136,6 @@ class WhatsappMetaReceivePersister
         // automáticamente incrementa los no leídos, actualiza el lastInboundAt y,
         // al ser un mensaje de whatsapp_meta, activa la sesión de 24 horas.
         $conversation->addMessage($message);
-
         $this->em->persist($message);
 
         // El flush() local se mantiene, pero el commit() lo hará el FastTrackService
@@ -161,52 +158,53 @@ class WhatsappMetaReceivePersister
         $message = $this->findMessageByMetaId($metaMessageId);
         if (!$message) return;
 
-        // 🔥 BLINDAJE CONTRA CONDICIONES DE CARRERA
-        // El FastTrackService ya abrió la transacción. Solo aplicamos el candado a la fila
-        // de MySQL y refrescamos los datos para no aplastar JSONs de procesos concurrentes.
-        $this->em->lock($message, LockMode::PESSIMISTIC_WRITE);
-        $this->em->refresh($message);
-
-        $requiresUpdate = false;
-
-        // Convertimos el timestamp de Meta (Unix Epoch) a ISO8601 para la BD
         $isoDate = $timestamp
             ? (new \DateTimeImmutable("@$timestamp"))->format('Y-m-d\TH:i:s\Z')
             : (new \DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
 
-        // Cascada de metadata
+        $metaDataToMerge = [];
+        $requiresStatusUpdate = false;
+
         if ($status === 'read') {
             if (!$message->getWhatsappMetaReadAt()) {
-                $message->setWhatsappMetaReadAt($isoDate);
-                $requiresUpdate = true;
+                $metaDataToMerge['read_at'] = $isoDate;
+                $message->setStatus(Message::STATUS_READ);
+                $requiresStatusUpdate = true;
             }
         } elseif ($status === 'delivered') {
             if (!$message->getWhatsappMetaDeliveredAt()) {
-                $message->setWhatsappMetaDeliveredAt($isoDate);
-                $requiresUpdate = true;
+                $metaDataToMerge['delivered_at'] = $isoDate;
             }
         } elseif ($status === 'sent') {
             if (!$message->getWhatsappMetaSentAt()) {
-                $message->setWhatsappMetaSentAt($isoDate);
-                $requiresUpdate = true;
+                $metaDataToMerge['sent_at'] = $isoDate;
             }
         } elseif ($status === 'failed') {
             $errorInfo = $statusData['errors'][0] ?? [];
-            $message->setWhatsappMetaErrorCode((string)($errorInfo['code'] ?? 'unknown'));
-            $message->setWhatsappMetaErrorReason($errorInfo['message'] ?? json_encode($statusData['errors'] ?? [], JSON_UNESCAPED_UNICODE));
+            $metaDataToMerge['error_code'] = (string)($errorInfo['code'] ?? 'unknown');
+            $metaDataToMerge['error_reason'] = $errorInfo['message'] ?? json_encode($statusData['errors'] ?? [], JSON_UNESCAPED_UNICODE);
 
             // Si falla, aquí sí es válido forzar el status global a FAILED
             // para que visualmente resalte si no fue leído por el otro canal.
             if ($message->getStatus() !== Message::STATUS_READ) {
                 $message->setStatus(Message::STATUS_FAILED);
+                $requiresStatusUpdate = true;
             }
-
-            $requiresUpdate = true;
         }
 
-        // Si hubo un cambio real en la metadata, guardamos
-        if ($requiresUpdate) {
+        if ($requiresStatusUpdate) {
             $this->em->flush();
+        }
+
+        if (!empty($metaDataToMerge)) {
+            // Operación Atómica para fusionar los datos de Webhook sin borrar lo de Beds24
+            $this->merger->merge(
+                $message,
+                'whatsappMeta',
+                $metaDataToMerge,
+                'whatsapp_meta',
+                $metaMessageId
+            );
         }
     }
 
@@ -232,7 +230,7 @@ class WhatsappMetaReceivePersister
         $message->setCreatedAt((new DateTimeImmutable())->setTimestamp((int)$timestamp));
 
         $this->em->persist($message);
-        // Doctrine + MercureListener harán la magia aquí.
+        $this->em->flush();
     }
 
     /**

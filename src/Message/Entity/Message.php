@@ -170,8 +170,10 @@ class Message
         $this->whatsappMetaSendQueues = new ArrayCollection();
         $this->beds24SendQueues       = new ArrayCollection();
         $this->attachments            = new ArrayCollection();
-        $this->externalIds            = [];
-        $this->metadata               = ['beds24' => [], 'whatsappMeta' => []];
+
+        // 🔥 INICIALIZACIÓN CRÍTICA PARA EL JSON_MERGE_PATCH
+        $this->externalIds = [];
+        $this->metadata    = [];
     }
 
     public function __toString(): string
@@ -328,7 +330,7 @@ class Message
     public function setTemplateContext(array $templateContext): self { $this->templateContext = $templateContext; return $this; }
 
     // =========================================================================
-    // METADATA (🔥 ACTUALIZADOS CON REASIGNACIÓN FORZADA Y AUDITORÍA)
+    // METADATA
     // =========================================================================
 
     public function getMetadata(): array { return array_merge(['beds24' => [], 'whatsappMeta' => []], $this->metadata); }
@@ -366,8 +368,8 @@ class Message
         }
         $meta['beds24'][$key] = $value;
 
-        $this->metadata = $meta; // 🔥 Reasignación crítica
-        $this->appendDebugTrace('beds24', "set_$key", $value); // 🔥 Rastro
+        $this->metadata = $meta;
+        $this->appendDebugTrace('beds24', "set_$key", $value);
         return $this;
     }
 
@@ -394,8 +396,8 @@ class Message
         }
         $meta['whatsappMeta'][$key] = $value;
 
-        $this->metadata = $meta; // 🔥 Reasignación crítica
-        $this->appendDebugTrace('whatsappMeta', "set_$key", $value); // 🔥 Rastro
+        $this->metadata = $meta;
+        $this->appendDebugTrace('whatsappMeta', "set_$key", $value);
         return $this;
     }
 
@@ -434,7 +436,7 @@ class Message
     public function setSenderType(string $senderType): self { $this->senderType = $senderType; return $this; }
 
     // =========================================================================
-    // IDS EXTERNOS (🔥 ACTUALIZADOS CON REASIGNACIÓN FORZADA)
+    // IDS EXTERNOS
     // =========================================================================
 
     public function getExternalIds(): array { return $this->externalIds ?? []; }

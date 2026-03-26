@@ -9,6 +9,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Factory\MessageConversationFactory;
+use App\Message\Service\MessageJsonMerger;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Repository\PmsReservaRepository;
 use App\Pms\Service\Message\PmsReservaMessageContext;
@@ -30,7 +31,8 @@ class Beds24ReceivePersister
         private readonly EntityManagerInterface $em,
         private readonly MessageConversationFactory $conversationFactory,
         private readonly MessageAttachmentFactory $attachmentFactory,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly MessageJsonMerger $merger
     ) {}
 
     /**
@@ -72,15 +74,29 @@ class Beds24ReceivePersister
             }
 
             // Si ya existe y está identificado, actualizamos lectura y saltamos
+            // Si ya existe y está identificado, actualizamos lectura y saltamos
             if ($existing) {
                 if ($existing->getDirection() === Message::DIRECTION_INCOMING && $dto->read === true && $existing->getStatus() !== Message::STATUS_READ) {
-                    $existing->setStatus(Message::STATUS_READ);
-                    $existing->addBeds24Metadata('read', true);
-                    $nowUtc = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
-                    $existing->setBeds24ReadAt($nowUtc);
-                    $stats['updated']++;
 
+                    // 1. 🔥 MAGIA ATÓMICA PRIMERO: Hacemos el merge del JSON.
+                    // El Merger actualiza la BD y hace un $em->refresh($existing) internamente.
+                    $nowUtc = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
+                    $this->merger->merge(
+                        $existing,
+                        'beds24',
+                        ['read' => true, 'read_at' => $nowUtc]
+                    );
+
+                    // 2. CAMBIO DE ESTADO DESPUÉS: Como la entidad ya fue refrescada,
+                    // ahora le cambiamos el status en la memoria de PHP de forma segura.
+                    $existing->setStatus(Message::STATUS_READ);
+
+                    $stats['updated']++;
                     $mercureBroadcasts[] = $existing;
+
+                    // ❌ NO hacemos flush aquí.
+                    // El $this->em->flush() global al final de la función guardará todos
+                    // los cambios de status juntos al terminar el bucle.
                 } else {
                     $stats['skipped']++;
                 }
