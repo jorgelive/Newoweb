@@ -112,7 +112,13 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
             $attachment = $msg->getAttachments()->first() ?: null;
             $template = $msg->getTemplate();
-            $lang = strtolower($conversation->getIdioma()->getId());
+
+            // -------------------------------------------------------------------------
+            // 🌐 RESOLUCIÓN DE IDIOMAS (Local vs Meta API)
+            // -------------------------------------------------------------------------
+            $internalLang = strtolower($conversation->getIdioma()->getId());
+            $metaLang = $this->normalizeLanguageForMeta($internalLang);
+
             $isSessionActive = $conversation->isWhatsappSessionActive();
 
             // Obtenemos el nuevo JSON Greenfield completo
@@ -152,13 +158,13 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 $messagePayload['type'] = 'template';
                 $messagePayload['template'] = [
                     'name' => $templateName,
-                    'language' => ['code' => $metaLang],
+                    'language' => ['code' => $metaLang], // Se inyecta el código homologado para Meta
                     'components' => []
                 ];
 
                 $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
 
-                // 1. PROCESAR HEADER
+                // 1. PROCESAR HEADER (Usa el internalLang para buscar en tus entidades Doctrine locales)
                 $headerData = $template->getWhatsappMetaHeader($internalLang);
                 if ($headerData) {
                     $format = $headerData['format'];
@@ -171,9 +177,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                                 if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
                                     throw new \RuntimeException(sprintf('Error (Header): Variable "%s" vacía.', $paramName));
                                 }
-                                // NOTA ACTUALIZADA: Cuando se usan variables nombradas (ej. {{guest_name}}) en lugar de
-                                // posicionales (ej. {{1}}), Meta Cloud API exige estrictamente el 'parameter_name'
-                                // en todos los componentes, incluido el Header, para resolver el mapeo correctamente.
+                                // NOTA ACTUALIZADA: Cuando se usan variables nombradas, Meta exige 'parameter_name'
                                 $headerComponent['parameters'][] = [
                                     'type' => 'text',
                                     'parameter_name' => $paramName,
@@ -201,6 +205,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // 2. PROCESAR BODY (Búsqueda normalizada para evitar fallos por pt vs pt_BR)
                 $templateContent = '';
                 foreach ($metaJson['body'] ?? [] as $bodyNode) {
+                    // Normalizamos ambos lados de la ecuación por seguridad
                     if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'])) === $metaLang) {
                         $templateContent = $bodyNode['content'] ?? '';
                         break;
@@ -252,12 +257,15 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // -----------------------------------------------------------------
                 // ENVÍO DE MENSAJE LIBRE O QUICK REPLY (DENTRO DE 24H)
                 // -----------------------------------------------------------------
+
+                // Usamos internalLang para consultar la base de datos local
                 $headerData = $template ? $template->getWhatsappMetaHeader($internalLang) : null;
                 $footerText = $template ? $template->getWhatsappMetaFooter($internalLang) : null;
                 $bodyText = '';
 
                 if (!empty($metaJson['body'])) {
                     foreach ($metaJson['body'] as $bodyNode) {
+                        // Comparamos normalizado contra normalizado
                         if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'])) === $metaLang) {
                             $bodyText = $bodyNode['content'] ?? '';
                             break;
@@ -335,15 +343,24 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
     }
 
     /**
-     * Normaliza el código de idioma para la API de Meta.
-     * Mapea 'pt' a 'pt_BR' para evitar el rechazo de la API Cloud.
+     * Normaliza el código de idioma interno hacia los códigos estrictos de la API de Meta.
+     * Si Meta exige una opción regional (ej. pt_BR en lugar de pt), se mapea aquí.
+     * * @param string $lang Código de idioma en minúsculas (ej. 'pt', 'es', 'en').
+     * @return string Código homologado para Meta.
      */
     private function normalizeLanguageForMeta(string $lang): string
     {
-        $map = ['pt' => 'pt_BR'];
+        $map = [
+            'pt' => 'pt_BR',
+            // Puedes agregar más mapeos si a futuro tienes problemas con 'zh' -> 'zh_CN', etc.
+        ];
+
         return $map[$lang] ?? $lang;
     }
 
+    /**
+     * Analiza la respuesta de la API Cloud de Meta para determinar el éxito del envío o lectura.
+     */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
         $results = [];
@@ -354,6 +371,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
         foreach ($apiResponse as $index => $respData) {
             if (!isset($mapping->correlationMap[$index])) continue;
+
             $queueId = $mapping->correlationMap[$index];
             $isError = isset($respData['error']);
             $success = !$isError;
