@@ -42,19 +42,7 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
         $msg = $item->getMessage();
 
         if ($msg) {
-            // 1. Guardar el estado global de Doctrine
-            $currentStatus = $msg->getStatus();
-            if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED, Message::STATUS_FAILED], true)) {
-                if ($item->getEndpoint()->getAccion() === 'MARK_WHATSAPP_MESSAGE_READ') {
-                    // 🔥Volvemos a poner Read a los mensajes que fueron puestos como queued por el encolador
-                    $msg->setStatus(Message::STATUS_READ);
-                } else {
-                    $msg->setStatus(Message::STATUS_SENT);
-                }
-            }
-            $this->em->flush();
-
-            // 2. Operación Atómica de JSON (Metadata + External ID)
+            // 1. Operación Atómica PRIMERO
             $isoDate = (new DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
 
             $this->merger->merge(
@@ -64,6 +52,19 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
                 'whatsapp_meta',
                 $remoteId ? (string)$remoteId : null
             );
+
+            // 2. Transiciones de Estado PHP + Touch para Mercure
+            $currentStatus = $msg->getStatus();
+            if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED, Message::STATUS_FAILED], true)) {
+                if ($item->getEndpoint()->getAccion() === 'MARK_WHATSAPP_MESSAGE_READ') {
+                    $msg->setStatus(Message::STATUS_READ);
+                } else {
+                    $msg->setStatus(Message::STATUS_SENT);
+                }
+            } else {
+                // Touch explícito para que Doctrine dispare postUpdate
+                $msg->setUpdatedAt(new DateTimeImmutable());
+            }
         }
 
         // 4. Construir el Resultado de Ejecución
@@ -89,18 +90,19 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
         $msg = $item->getMessage();
 
         if ($msg) {
-            // 1. Guardar el estado global de Doctrine
-            $currentStatus = $msg->getStatus();
-            if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
-                $msg->setStatus(Message::STATUS_FAILED);
-            }
-            $this->em->flush();
-
-            // 2. Operación Atómica de JSON para registrar el error
+            // 1. Operación Atómica para registrar el error
             $this->merger->merge($msg, 'whatsappMeta', [
                 'error_code'   => (string)$httpCode,
                 'error_reason' => $msgError
             ]);
+
+            // 2. Transiciones PHP + Touch
+            $currentStatus = $msg->getStatus();
+            if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
+                $msg->setStatus(Message::STATUS_FAILED);
+            } else {
+                $msg->setUpdatedAt(new DateTimeImmutable());
+            }
         }
 
         // Reintento rápido (1 min)

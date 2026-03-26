@@ -38,22 +38,8 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
         $msg = $item->getMessage();
 
         if ($msg) {
-            // 1. Guardar el estado global de Doctrine
-            $currentStatus = $msg->getStatus();
-            if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED, Message::STATUS_FAILED], true)) {
-                //Este fue un flujo de confirmación de lectura
-                if ($msg->getDirection() === Message::DIRECTION_INCOMING) {
-                    // 🔥Volvemos a poner Read a los mensajes que fueron puestos como queued por el encolador
-                    $msg->setStatus(Message::STATUS_READ);
-                } else {
-                    $msg->setStatus(Message::STATUS_SENT);
-                }
-            }
-            $this->em->flush();
-
-            // 2. Operación Atómica de JSON (Metadata + External ID)
+            // 1. Operación Atómica de JSON PRIMERO
             $isoDate = (new DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
-
             $this->merger->merge(
                 $msg,
                 'beds24',
@@ -61,16 +47,28 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
                 'beds24',
                 $remoteId ? (string)$remoteId : null
             );
+
+            // 2. Transiciones PHP + Touch
+            $currentStatus = $msg->getStatus();
+            if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED, Message::STATUS_FAILED], true)) {
+                if ($msg->getDirection() === Message::DIRECTION_INCOMING) {
+                    $msg->setStatus(Message::STATUS_READ);
+                } else {
+                    $msg->setStatus(Message::STATUS_SENT);
+                }
+            } else {
+                $msg->setUpdatedAt(new DateTimeImmutable());
+            }
         }
 
-        // 4. Construir el Resultado de Ejecución
+        // Construir el Resultado de Ejecución
         $summary = [
             'status' => 'success',
             'remote_beds24_id' => $remoteId,
             'timestamp' => (new DateTimeImmutable())->format('Y-m-d H:i:s')
         ];
 
-        // 5. Marcar la cola como Éxito
+        // 4. Marcar la cola como Éxito
         $item->markSuccess(new DateTimeImmutable());
 
         return $summary;
@@ -92,15 +90,16 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
         $msg = $item->getMessage();
 
         if ($msg) {
-            // 1. Guardar el estado global de Doctrine
+            // 1. Operación Atómica
+            $this->merger->merge($msg, 'beds24', ['error' => $msgError]);
+
+            // 2. Transiciones PHP + Touch
             $currentStatus = $msg->getStatus();
             if (in_array($currentStatus, [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
                 $msg->setStatus(Message::STATUS_FAILED);
+            } else {
+                $msg->setUpdatedAt(new DateTimeImmutable());
             }
-            $this->em->flush();
-
-            // 2. Operación Atómica de JSON para registrar el error
-            $this->merger->merge($msg, 'beds24', ['error' => $msgError]);
         }
 
         // Reintento: 2 minutos

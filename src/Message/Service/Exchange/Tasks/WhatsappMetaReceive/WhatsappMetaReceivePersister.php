@@ -159,17 +159,19 @@ class WhatsappMetaReceivePersister
         if (!$message) return;
 
         $isoDate = $timestamp
-            ? (new \DateTimeImmutable("@$timestamp"))->format('Y-m-d\TH:i:s\Z')
-            : (new \DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
+                ? (new \DateTimeImmutable("@$timestamp"))->format('Y-m-d\TH:i:s\Z')
+                : (new \DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
 
         $metaDataToMerge = [];
-        $requiresStatusUpdate = false;
+        $newStatus = null;
 
+        // Preparar Datos
         if ($status === 'read') {
             if (!$message->getWhatsappMetaReadAt()) {
                 $metaDataToMerge['read_at'] = $isoDate;
-                $message->setStatus(Message::STATUS_READ);
-                $requiresStatusUpdate = true;
+                if ($message->getStatus() !== Message::STATUS_READ) {
+                    $newStatus = Message::STATUS_READ;
+                }
             }
         } elseif ($status === 'delivered') {
             if (!$message->getWhatsappMetaDeliveredAt()) {
@@ -187,24 +189,28 @@ class WhatsappMetaReceivePersister
             // Si falla, aquí sí es válido forzar el status global a FAILED
             // para que visualmente resalte si no fue leído por el otro canal.
             if ($message->getStatus() !== Message::STATUS_READ) {
-                $message->setStatus(Message::STATUS_FAILED);
-                $requiresStatusUpdate = true;
+                $newStatus = Message::STATUS_FAILED;
             }
         }
 
-        if ($requiresStatusUpdate) {
-            $this->em->flush();
-        }
-
+        // 1. 🔥 Operación Atómica de Webhook
         if (!empty($metaDataToMerge)) {
             // Operación Atómica para fusionar los datos de Webhook sin borrar lo de Beds24
             $this->merger->merge(
-                $message,
-                'whatsappMeta',
-                $metaDataToMerge,
-                'whatsapp_meta',
-                $metaMessageId
+                    $message,
+                    'whatsappMeta',
+                    $metaDataToMerge,
+                    'whatsapp_meta',
+                    $metaMessageId
             );
+        }
+
+        // 2. Transiciones PHP + Touch
+        if ($newStatus) {
+            $message->setStatus($newStatus);
+        } elseif (!empty($metaDataToMerge)) {
+            // Touch explícito si hubo un merge pero no cambió el Status (ej. Delivered)
+            $message->setUpdatedAt(new \DateTimeImmutable());
         }
     }
 
