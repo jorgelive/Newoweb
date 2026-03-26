@@ -37,6 +37,11 @@ class MercureMessageDto implements JsonSerializable
     private array $whatsappMetaSendQueues = [];
 
     /**
+     * @var string|array|null Puede contener el IRI de la plantilla o un array con sus datos.
+     */
+    private string|array|null $template = null;
+
+    /**
      * Construye el DTO a partir de una entidad Message de Doctrine.
      * Mapea manualmente las relaciones para evitar referencias circulares
      * y controla la inyección del dominio absoluto para los archivos adjuntos.
@@ -68,6 +73,11 @@ class MercureMessageDto implements JsonSerializable
                 '@id' => '/platform/.well-known/genid/' . uniqid(),
                 'id' => (string) $message->getChannel()->getId()
             ];
+        }
+
+        // Mapeo de la plantilla como IRI para mantener compatibilidad con Vue
+        if ($message->getTemplate()) {
+            $this->template = '/platform/message_templates/' . $message->getTemplate()->getId();
         }
 
         // Definimos el dominio base una sola vez para concatenarlo a las rutas relativas
@@ -132,6 +142,7 @@ class MercureMessageDto implements JsonSerializable
             'attachments' => $this->getAttachments(),
             'beds24SendQueues' => $this->getBeds24SendQueues(),
             'whatsappMetaSendQueues' => $this->getWhatsappMetaSendQueues(),
+            'template' => $this->getTemplate(), // Se expone la propiedad recién agregada
         ];
     }
 
@@ -328,4 +339,19 @@ class MercureMessageDto implements JsonSerializable
      * Define el estado en las colas de WhatsApp Meta.
      */
     public function setWhatsappMetaSendQueues(array $whatsappMetaSendQueues): self { $this->whatsappMetaSendQueues = $whatsappMetaSendQueues; return $this; }
+
+    /**
+     * Obtiene la plantilla asociada al mensaje, si existe.
+     *
+     * @return string|array|null
+     */
+    public function getTemplate(): string|array|null { return $this->template; }
+
+    /**
+     * Define la plantilla asociada al mensaje.
+     *
+     * @param string|array|null $template
+     * @return self
+     */
+    public function setTemplate(string|array|null $template): self { $this->template = $template; return $this; }
 }

@@ -109,10 +109,10 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'room_name'             => $reserva->getNombreHabitacion(),
             'channel_name'          => $canal ? $canal->getNombre() : 'Directo',
             'guest_country'         => $pais ? $pais->getNombre() : '',
-            'url_guide'             => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador,
-            'url_guide_nd'          => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador,
-            'url_tours_catalog'     => rtrim($this->paxCatalogUrl, '/'),
-            'url_tours_catalog_nd'  => rtrim($this->paxCatalogUrlNd, '/'),
+            'guide_url'             => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador,
+            'guide_path'            => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador,
+            'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
+            'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
         ];
     }
 }

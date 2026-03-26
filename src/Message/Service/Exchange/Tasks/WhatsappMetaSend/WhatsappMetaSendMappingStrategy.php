@@ -22,9 +22,11 @@ use Vich\UploaderBundle\Storage\StorageInterface;
  *
  * * REGLAS DE SEGURIDAD INTEGRADAS:
  * Implementa Zero-Trust sobre plantillas no oficiales, bloqueando su envío fuera de 24h.
- * * ACTUALIZACIÓN: Implementa lógica concatenada (Header + Body + Footer) para mensajes libres.
- * * HACK IDIOMAS: Normaliza códigos genéricos (como 'pt') a 'pt_BR' para compatibilidad con Meta Cloud API.
- * La normalización se aplica tanto al código enviado a Meta como a la búsqueda de nodos en el JSON local.
+ *
+ * * ACTUALIZACIÓN OMNICANAL Y CONVENCIONES:
+ * 1. Idiomas: Normaliza códigos genéricos ('pt' -> 'pt_BR') para evitar rechazos de la API.
+ * 2. Enrutamiento: Adopta el estándar de sufijos (_path para botones nativos, _url para texto libre).
+ * 3. Fallbacks: Emula botones en texto libre resolviendo dinámicamente las URLs absolutas.
  */
 final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyInterface
 {
@@ -69,7 +71,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             $msg = $item->getMessage();
 
             // =========================================================================
-            // 🔥 ESCENARIO A: RECIBO DE LECTURA
+            // 🔥 ESCENARIO A: RECIBO DE LECTURA (Mark as Read)
             // =========================================================================
             if ($endpoint->getAccion() === 'MARK_WHATSAPP_MESSAGE_READ'
                 && $msg->getDirection() === Message::DIRECTION_INCOMING
@@ -90,7 +92,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             }
 
             // =========================================================================
-            // 🔥 ESCENARIO B: ENVÍO DE MENSAJE
+            // 🔥 ESCENARIO B: ENVÍO DE MENSAJE (Plantillas Oficiales o Libre)
             // =========================================================================
 
             $conversation = $msg->getConversation();
@@ -152,19 +154,19 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 $templateName = $metaJson['meta_template_name'] ?? null;
 
                 if (!$templateName) {
-                    throw new \RuntimeException(sprintf('La plantilla local "%s" no tiene un Nombre de Plantilla Meta.', $template->getCode()));
+                    throw new \RuntimeException(sprintf('La plantilla local "%s" no tiene un Nombre de Plantilla Meta configurado.', $template->getCode()));
                 }
 
                 $messagePayload['type'] = 'template';
                 $messagePayload['template'] = [
                     'name' => $templateName,
-                    'language' => ['code' => $metaLang], // Se inyecta el código homologado para Meta
+                    'language' => ['code' => $metaLang], // Inyección del código homologado para Meta
                     'components' => []
                 ];
 
                 $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
 
-                // 1. PROCESAR HEADER (Usa el internalLang para buscar en tus entidades Doctrine locales)
+                // 1. PROCESAR HEADER
                 $headerData = $template->getWhatsappMetaHeader($internalLang);
                 if ($headerData) {
                     $format = $headerData['format'];
@@ -177,7 +179,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                                 if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
                                     throw new \RuntimeException(sprintf('Error (Header): Variable "%s" vacía.', $paramName));
                                 }
-                                // NOTA ACTUALIZADA: Cuando se usan variables nombradas, Meta exige 'parameter_name'
+                                // Meta exige 'parameter_name' en todos los componentes cuando se usan variables nombradas
                                 $headerComponent['parameters'][] = [
                                     'type' => 'text',
                                     'parameter_name' => $paramName,
@@ -196,16 +198,14 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         ];
                     }
 
-                    // REGLA DE META: Solo se añade el componente si hay variables/adjuntos reales que procesar
                     if (!empty($headerComponent['parameters'])) {
                         $messagePayload['template']['components'][] = $headerComponent;
                     }
                 }
 
-                // 2. PROCESAR BODY (Búsqueda normalizada para evitar fallos por pt vs pt_BR)
+                // 2. PROCESAR BODY (Búsqueda normalizada pt vs pt_BR)
                 $templateContent = '';
                 foreach ($metaJson['body'] ?? [] as $bodyNode) {
-                    // Normalizamos ambos lados de la ecuación por seguridad
                     if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'])) === $metaLang) {
                         $templateContent = $bodyNode['content'] ?? '';
                         break;
@@ -234,38 +234,40 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     ];
                 }
 
-                // 4. PROCESAR BOTONES
+                // 3. PROCESAR BOTONES DINÁMICOS
                 foreach ($metaJson['buttons_map'] ?? [] as $btn) {
                     if (($btn['type'] ?? '') === 'url') {
                         $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
+
                         if (!isset($variables[$resolverKey]) || (string)$variables[$resolverKey] === '') {
-                            throw new \RuntimeException(sprintf('Error (Botón): Variable "%s" vacía.', $resolverKey));
+                            throw new \RuntimeException(sprintf('Error (Botón): La variable de enlace "%s" está vacía.', $resolverKey));
                         }
 
+                        // Al ser plantilla oficial de Meta, enviamos exactamente lo que el resolver mandó
+                        // (Esperamos que sea el _path relativo según nuestra convención)
                         $urlValue = (string) $variables[$resolverKey];
 
                         $messagePayload['template']['components'][] = [
                             'type' => 'button',
                             'sub_type' => 'url',
                             'index' => (string) ($btn['index'] ?? '0'),
-                            'parameters' => [['type' => 'text', 'text' => (string) $variables[$resolverKey]]]
+                            'parameters' => [['type' => 'text', 'text' => $urlValue]]
                         ];
                     }
                 }
 
             } else {
                 // -----------------------------------------------------------------
-                // ENVÍO DE MENSAJE LIBRE O QUICK REPLY (DENTRO DE 24H)
+                // ENVÍO DE MENSAJE LIBRE O QUICK REPLY INTERNO (DENTRO DE 24H)
                 // -----------------------------------------------------------------
 
-                // Usamos internalLang para consultar la base de datos local
+                // Usamos internalLang para consultar las entidades locales de Doctrine
                 $headerData = $template ? $template->getWhatsappMetaHeader($internalLang) : null;
                 $footerText = $template ? $template->getWhatsappMetaFooter($internalLang) : null;
                 $bodyText = '';
 
                 if (!empty($metaJson['body'])) {
                     foreach ($metaJson['body'] as $bodyNode) {
-                        // Comparamos normalizado contra normalizado
                         if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'])) === $metaLang) {
                             $bodyText = $bodyNode['content'] ?? '';
                             break;
@@ -277,7 +279,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     $bodyText = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
                 }
 
-                // CONCATENACIÓN VIRTUAL (Simulando la UI de Meta)
+                // CONCATENACIÓN VIRTUAL (Simulando visualmente la UI de Meta)
                 $finalContent = "";
 
                 // 1. Header (Solo si es de texto)
@@ -293,10 +295,10 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     $finalContent .= "\n\n_" . trim($footerText) . "_";
                 }
 
-                // Hidratamos todas las variables del bloque concatenado
+                // Hidratamos todas las variables del bloque de texto principal
                 $finalContent = $this->hydrateVariables($finalContent, $resolver, $conversation->getContextId());
 
-                // EMULAR BOTONES EN TEXTO LIBRE
+                // EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE
                 if (!empty($metaJson['buttons_map'])) {
                     $finalContent .= "\n\n";
                     $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
@@ -304,7 +306,15 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     foreach ($metaJson['buttons_map'] as $btn) {
                         if (($btn['type'] ?? '') === 'url') {
                             $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
-                            $urlValue = (string) ($variables[$resolverKey] ?? '');
+
+                            // CONVENCIÓN DE ENRUTAMIENTO (Path vs URL)
+                            // Si la plantilla oficial usa un "_path" para el botón nativo, al emularlo en texto libre
+                            // intentamos buscar su contraparte "_url" absoluta para asegurar que el enlace sea clickeable.
+                            $fallbackKey = str_ends_with($resolverKey, '_path')
+                                ? str_replace('_path', '_url', $resolverKey)
+                                : $resolverKey;
+
+                            $urlValue = (string) ($variables[$fallbackKey] ?? $variables[$resolverKey] ?? '');
 
                             $btnText = 'Enlace';
                             foreach ($btn['button_text'] ?? [] as $tr) {
@@ -321,11 +331,12 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     }
                 }
 
-                // Construcción del Payload Libre
+                // Construcción del Payload de Texto Libre o Multimedia
                 if ($attachment) {
                     $mediaType = $this->getWhatsappMetaMediaType($attachment);
                     $messagePayload['type'] = $mediaType;
                     $messagePayload[$mediaType] = ['link' => $this->getAbsoluteAttachmentUrl($attachment)];
+
                     if (!empty(trim($finalContent)) && in_array($mediaType, ['image', 'video', 'document'])) {
                         $messagePayload[$mediaType]['caption'] = $finalContent;
                     }
@@ -344,15 +355,15 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
     /**
      * Normaliza el código de idioma interno hacia los códigos estrictos de la API de Meta.
-     * Si Meta exige una opción regional (ej. pt_BR en lugar de pt), se mapea aquí.
-     * * @param string $lang Código de idioma en minúsculas (ej. 'pt', 'es', 'en').
+     * Mapea genéricos como 'pt' hacia la opción regional 'pt_BR' exigida por Meta Cloud.
+     *
+     * @param string $lang Código de idioma en minúsculas (ej. 'pt', 'es').
      * @return string Código homologado para Meta.
      */
     private function normalizeLanguageForMeta(string $lang): string
     {
         $map = [
             'pt' => 'pt_BR',
-            // Puedes agregar más mapeos si a futuro tienes problemas con 'zh' -> 'zh_CN', etc.
         ];
 
         return $map[$lang] ?? $lang;
@@ -375,12 +386,14 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             $queueId = $mapping->correlationMap[$index];
             $isError = isset($respData['error']);
             $success = !$isError;
+
+            // Meta devuelve el identificador 'wamid...' en el nodo messages[0][id]
             $remoteId = $success && isset($respData['messages'][0]['id']) ? $respData['messages'][0]['id'] : null;
 
             $results[$queueId] = new ItemResult(
                 queueItemId: $queueId,
                 success: $success,
-                message: $isError ? ($respData['error']['message'] ?? 'Error Meta') : null,
+                message: $isError ? ($respData['error']['message'] ?? 'Error desconocido de Meta') : null,
                 remoteId: $remoteId,
                 extraData: (array)$respData
             );
@@ -402,7 +415,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
     }
 
     /**
-     * Determina el tipo de medio nativo de Meta.
+     * Determina el tipo de medio nativo de Meta basado en el MimeType del archivo.
      */
     private function getWhatsappMetaMediaType(MessageAttachment $attachment): string
     {
@@ -416,7 +429,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
     }
 
     /**
-     * Construye la URL absoluta pública del archivo.
+     * Construye la URL absoluta pública del archivo para que el CDN de Meta pueda descargarlo.
      */
     private function getAbsoluteAttachmentUrl(MessageAttachment $attachment): string
     {
