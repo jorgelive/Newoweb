@@ -192,7 +192,7 @@ class Message
     #[ORM\PrePersist]
     public function onPrePersist(): void
     {
-        if ($this->conversation === null || $this->getIsScheduledForFuture()) {
+        if ($this->conversation === null || $this->isScheduledForFuture()) {
             return;
         }
 
@@ -249,7 +249,7 @@ class Message
      * Evalúa estrictamente que el estado sea PENDING/QUEUED/FAILED y que la fecha objetivo sea mayor a la actual.
      */
     #[Groups(['message:read'])]
-    public function getIsScheduledForFuture(): bool
+    public function isScheduledForFuture(): bool
     {
         if ($this->scheduledAt === null) {
             return false;

@@ -57,7 +57,7 @@ class MercureMessageDto implements JsonSerializable
         $this->effectiveDateTime = $message->getEffectiveDateTime() ? $message->getEffectiveDateTime()->format(DateTimeInterface::ATOM) : null;
 
         // Asignamos el flag virtual
-        $this->isScheduledForFuture = $message->getIsScheduledForFuture();
+        $this->isScheduledForFuture = $message->isScheduledForFuture();
 
         $this->conversation = '/platform/user/util/msg/conversations/' . $message->getConversation()->getId();
         $this->metadata = $message->getMetadata();

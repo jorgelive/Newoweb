@@ -147,7 +147,7 @@ watch(() => store.error, (v) => {
   if (v) setTimeout(() => store.error = null, 6000);
 });
 
-// 🔥 ACTUALIZADO: Beds24 comprueba reglas base + configuración de la plantilla seleccionada
+// 🔥 ACTUALIZADO: Beds24 comprueba reglas base + configuración de la plantilla seleccionada (sin 'is')
 const isBeds24Allowed = computed(() => {
   const chat = store.currentConversation;
   if (!chat) return false;
@@ -160,13 +160,13 @@ const isBeds24Allowed = computed(() => {
   // Si hay una plantilla seleccionada, debe tener Beds24 activo
   if (selectedTemplateId.value) {
     const tpl = store.templates.find(t => t['@id'] === selectedTemplateId.value);
-    if (tpl && !tpl.isBeds24Active) return false;
+    if (tpl && !tpl.beds24Active) return false;
   }
 
   return true;
 });
 
-// 🔥 ACTUALIZADO: WhatsApp comprueba sesión 24h + configuración activa en la plantilla + oficialidad
+// 🔥 ACTUALIZADO: WhatsApp comprueba sesión 24h + configuración activa en la plantilla + oficialidad (sin 'is')
 const isWhatsappAllowed = computed(() => {
   const chat = store.currentConversation;
   if (!chat) return false;
@@ -179,10 +179,10 @@ const isWhatsappAllowed = computed(() => {
     if (!tpl) return false;
 
     // 1. La plantilla debe tener el canal de WhatsApp activado
-    if (!tpl.isWhatsappMetaActive) return false;
+    if (!tpl.whatsappMetaActive) return false;
 
     // 2. Si NO hay sesión activa, la plantilla debe ser oficial
-    if (!sessionActive && !tpl.isWhatsappMetaOfficial) return false;
+    if (!sessionActive && !tpl.whatsappMetaOfficial) return false;
 
     return true;
   }
@@ -251,9 +251,9 @@ const selectTemplate = (tpl: ApiTemplate) => {
 
   let newChannels = tpl.channels || [];
 
-  // Filtro de seguridad adicional al seleccionar por si acaso
+  // Filtro de seguridad adicional al seleccionar por si acaso (sin 'is')
   const sessionActive = store.currentConversation?.whatsappSessionActive;
-  if (!sessionActive && tpl.isWhatsappMetaOfficial === false) {
+  if (!sessionActive && tpl.whatsappMetaOfficial === false) {
     newChannels = newChannels.filter(c => c !== 'whatsapp_meta');
   }
 

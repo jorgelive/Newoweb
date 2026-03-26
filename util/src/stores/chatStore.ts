@@ -28,7 +28,7 @@ export interface ApiMessage {
     createdAt: string;
     scheduledAt?: string | null;
     effectiveDateTime?: string | null;
-    isScheduledForFuture?: boolean;
+    scheduledForFuture?: boolean;
     metadata?: {
         beds24?: {
             sent_at?: string;
@@ -45,7 +45,6 @@ export interface ApiMessage {
             error_reason?: string;
             [key: string]: any;
         };
-        // 🔥 Agrega estas dos líneas para arreglar el error TS2339
         dispatch_errors?: string[];
         dispatch_warnings?: string[];
         // (Opcional) Si en el futuro quieres permitir cualquier otra llave dinámica en la raíz de metadata:
@@ -67,10 +66,10 @@ export interface ApiTemplate {
     allowedSources: string[];
     allowedAgencies: string[];
     channels: string[];
-    isWhatsappMetaOfficial: boolean; // 🔥 Banderas agregadas
-    isBeds24Active: boolean;
-    isWhatsappMetaActive: boolean;
-    isEmailActive: boolean;
+    whatsappMetaOfficial: boolean;
+    beds24Active: boolean;
+    whatsappMetaActive: boolean;
+    emailActive: boolean;
 }
 
 export interface ApiConversation {
@@ -190,12 +189,12 @@ export const useChatStore = defineStore('chatStore', () => {
     });
 
     const activeChatMessages = computed(() => {
-        return messages.value.filter(m => !m.isScheduledForFuture);
+        return messages.value.filter(m => !m.scheduledForFuture);
     });
 
     const scheduledMessages = computed(() => {
         return messages.value
-            .filter(m => m.isScheduledForFuture)
+            .filter(m => m.scheduledForFuture)
             .sort((a, b) => {
                 const dateA = new Date(a.effectiveDateTime || a.createdAt).getTime();
                 const dateB = new Date(b.effectiveDateTime || b.createdAt).getTime();
