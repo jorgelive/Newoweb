@@ -282,37 +282,33 @@ final readonly class MessageRuleEngine
     }
 
     /**
-     * Sincroniza la nueva fecha de ejecución y gestiona dinámicamente las colas (canales)
-     * en caso de que la regla haya sido editada y se requieran más o menos canales.
-     * * 🔥 CORTAFUEGOS: Si el mensaje ya fue enviado, bajo ninguna circunstancia se toca.
-     */
+    * Sincroniza la nueva fecha de ejecución y gestiona dinámicamente las colas (canales).
+    * * 🔥 CORTAFUEGOS CORREGIDO: Nunca duplica canales si ya existen en cualquier estado.
+    */
     private function syncPendingMessage(Message $message, MessageRule $rule, DateTimeImmutable $newRunAt): void
     {
         // ⛔ CORTAFUEGOS DE ESTADOS TERMINALES (Inmutabilidad estricta)
-        if (in_array($message->getStatus(), [Message::STATUS_SENT, Message::STATUS_DELIVERED, Message::STATUS_READ], true)) {
-            return;
-        }
-
-        // Si falló, tampoco lo intentamos resucitar desde aquí (requeriría intervención manual).
-        if ($message->getStatus() === Message::STATUS_FAILED) {
+        if (in_array($message->getStatus(), [Message::STATUS_SENT, Message::STATUS_DELIVERED, Message::STATUS_READ, Message::STATUS_FAILED], true)) {
             return;
         }
 
         $targetChannelIds = $rule->getTargetCommunicationChannels()->map(fn($c) => $c->getId())->toArray();
-        $existingPendingChannels = [];
+        $existingChannels = [];
         $updated = false;
 
         // 1. Sincronizar colas de Beds24
         foreach ($message->getBeds24SendQueues() as $queue) {
+            // REGISTRO SEGURO: Anotamos que el canal ya existe en este mensaje, sin importar su estado.
+            $existingChannels[] = 'beds24';
+
             if ($queue->getStatus() === Beds24SendQueue::STATUS_PENDING) {
                 if (in_array('beds24', $targetChannelIds, true)) {
                     if ($queue->getRunAt() != $newRunAt) {
                         $queue->setRunAt($newRunAt);
                         $updated = true;
                     }
-                    $existingPendingChannels[] = 'beds24';
                 } else {
-                    // El canal ya no está en la regla, cancelamos su cola sin borrarla
+                    // El canal ya no está en la regla, lo cancelamos
                     $queue->setStatus(Beds24SendQueue::STATUS_CANCELLED);
                     $queue->setRunAt(null);
                     $updated = true;
@@ -322,13 +318,15 @@ final readonly class MessageRuleEngine
 
         // 2. Sincronizar colas de WhatsApp Meta
         foreach ($message->getWhatsappMetaSendQueues() as $queue) {
+            // REGISTRO SEGURO
+            $existingChannels[] = 'whatsapp_meta';
+
             if ($queue->getStatus() === WhatsappMetaSendQueue::STATUS_PENDING) {
                 if (in_array('whatsapp_meta', $targetChannelIds, true)) {
                     if ($queue->getRunAt() != $newRunAt) {
                         $queue->setRunAt($newRunAt);
                         $updated = true;
                     }
-                    $existingPendingChannels[] = 'whatsapp_meta';
                 } else {
                     $queue->setStatus(WhatsappMetaSendQueue::STATUS_CANCELLED);
                     $queue->setRunAt(null);
@@ -337,8 +335,9 @@ final readonly class MessageRuleEngine
             }
         }
 
-        // 3. Identificar canales faltantes (se agregaron a la regla y el mensaje carece de cola PENDING para ellos)
-        $missingChannels = array_diff($targetChannelIds, $existingPendingChannels);
+        // 3. Identificar canales faltantes REALES
+        $existingChannels = array_unique($existingChannels);
+        $missingChannels = array_diff($targetChannelIds, $existingChannels);
 
         if (!empty($missingChannels)) {
             $originalChannels = $message->getTransientChannels();
@@ -368,11 +367,9 @@ final readonly class MessageRuleEngine
             $message->setStatus(Message::STATUS_CANCELLED);
             $message->setScheduledAt(null);
         } elseif ($message->getStatus() === Message::STATUS_CANCELLED && $hasPendingQueues) {
-            // Revivir el mensaje si estaba cancelado pero una regla le devolvió la vida con un nuevo canal
             $message->setStatus(Message::STATUS_QUEUED);
             $message->setScheduledAt($newRunAt);
         } else {
-            // Aseguramos que la fecha principal del mensaje sea idéntica a la de las colas actualizadas
             $message->setScheduledAt($newRunAt);
         }
 

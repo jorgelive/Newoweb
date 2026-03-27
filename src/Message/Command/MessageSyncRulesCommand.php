@@ -14,12 +14,12 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Throwable;
 
 /**
  * Uso:
  * php bin/console app:message:sync-rules 019cea14-bdd4-769e-bd63-8abac315738c
  * php bin/console app:message:sync-rules --all
+ * php bin/console app:message:sync-rules --closed
  */
 #[AsCommand(
     name: 'app:message:sync-rules',
@@ -38,7 +38,8 @@ class MessageSyncRulesCommand extends Command
     {
         $this
             ->addArgument('conversation_id', InputArgument::OPTIONAL, 'UUID de una conversación específica a sincronizar')
-            ->addOption('all', null, InputOption::VALUE_NONE, 'Sincroniza todas las conversaciones con estado OPEN');
+            ->addOption('all', null, InputOption::VALUE_NONE, 'Sincroniza todas las conversaciones con estado OPEN')
+            ->addOption('closed', null, InputOption::VALUE_NONE, 'Barredora: Sincroniza conversaciones con estado CLOSED o ARCHIVED para cancelar colas pendientes');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -46,9 +47,10 @@ class MessageSyncRulesCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $conversationId = $input->getArgument('conversation_id');
         $syncAll = $input->getOption('all');
+        $syncClosed = $input->getOption('closed');
 
-        if (!$conversationId && !$syncAll) {
-            $io->error('Debes proporcionar un UUID de conversación o usar la opción --all');
+        if (!$conversationId && !$syncAll && !$syncClosed) {
+            $io->error('Debes proporcionar un UUID de conversación, usar la opción --all, o usar la opción --closed');
             return Command::FAILURE;
         }
 
@@ -58,16 +60,22 @@ class MessageSyncRulesCommand extends Command
         // 🔥 CORRECCIÓN: Solo extraemos los IDs (strings) de la base de datos, no los objetos completos
         if ($conversationId) {
             $conversationIds[] = $conversationId;
-        } elseif ($syncAll) {
-            $results = $repository->createQueryBuilder('c')
-                ->select('c.id')
-                ->where('c.status = :status')
-                ->setParameter('status', MessageConversation::STATUS_OPEN)
-                ->getQuery()
-                ->getArrayResult();
+        } elseif ($syncAll || $syncClosed) {
+            $qb = $repository->createQueryBuilder('c')->select('c.id');
 
+            if ($syncAll) {
+                $qb->where('c.status = :status')
+                    ->setParameter('status', MessageConversation::STATUS_OPEN);
+            } else {
+                $qb->where('c.status IN (:statuses)')
+                    ->setParameter('statuses', [MessageConversation::STATUS_CLOSED, MessageConversation::STATUS_ARCHIVED]);
+            }
+
+            $results = $qb->getQuery()->getArrayResult();
             $conversationIds = array_column($results, 'id');
-            $io->info(sprintf('Se encontraron %d conversaciones abiertas para evaluar.', count($conversationIds)));
+
+            $tipo = $syncAll ? 'ABIERTAS (OPEN)' : 'CERRADAS/ARCHIVADAS';
+            $io->info(sprintf('Se encontraron %d conversaciones %s para evaluar.', count($conversationIds), $tipo));
         }
 
         $io->progressStart(count($conversationIds));
@@ -82,14 +90,14 @@ class MessageSyncRulesCommand extends Command
                     $this->ruleEngine->syncConversationRules($conversation);
                     $countSynced++;
                 }
-            } catch (Throwable $e) {
+            } catch (\Throwable $e) {
                 $io->warning(sprintf('Error al procesar la conversación %s: %s', $id, $e->getMessage()));
             }
 
             $io->progressAdvance();
 
             // Liberar memoria de forma segura sin romper los objetos pendientes
-            if ($syncAll && $countSynced % 50 === 0) {
+            if (($syncAll || $syncClosed) && $countSynced % 50 === 0) {
                 $this->em->clear();
             }
         }
