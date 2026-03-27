@@ -14,6 +14,7 @@ use App\Entity\Trait\TimestampTrait;
 use App\Message\ApiPlatform\State\MessageMultipartProcessor;
 use App\Message\Validator\ValidTemplateScope;
 use App\Security\Roles;
+use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -82,6 +83,7 @@ class Message
     public const string STATUS_DELIVERED = 'sent';
     public const string STATUS_RECEIVED  = 'received';
     public const string STATUS_READ      = 'read';
+    public const string STATUS_CANCELLED = 'cancelled';
 
     public const string DIRECTION_INCOMING = 'incoming';
     public const string DIRECTION_OUTGOING = 'outgoing';
@@ -196,7 +198,7 @@ class Message
             return;
         }
 
-        $now = new \DateTime();
+        $now = new DateTime();
         $this->conversation->setLastMessageAt($now);
 
         if ($this->direction === self::DIRECTION_INCOMING) {
@@ -220,7 +222,7 @@ class Message
     {
         if ($this->conversation !== null &&
             in_array($this->status, [self::STATUS_SENT, self::STATUS_RECEIVED], true)) {
-            $this->conversation->setLastMessageAt(new \DateTime());
+            $this->conversation->setLastMessageAt(new DateTime());
         }
     }
 
@@ -524,7 +526,7 @@ class Message
         }
 
         $meta['_debug_trace'][] = [
-            'timestamp' => (new DateTimeImmutable())->format('Y-m-d H:i:s.v'),
+            'timestamp' => new DateTimeImmutable()->format('Y-m-d H:i:s.v'),
             'sapi'      => php_sapi_name(),
             'pid'       => getmypid(),
             'channel'   => $channel,

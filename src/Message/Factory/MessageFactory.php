@@ -11,11 +11,11 @@ use App\Message\Service\MessageDataResolverRegistry;
 use App\Pms\Entity\PmsChannel; // 🔥 IMPORTANTE
 use Doctrine\ORM\EntityManagerInterface;
 
-class MessageFactory
+readonly class MessageFactory
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly MessageDataResolverRegistry $resolverRegistry // 🔥 Inyectado
+        private EntityManagerInterface      $em,
+        private MessageDataResolverRegistry $resolverRegistry // 🔥 Inyectado
     ) {}
 
     public function createForUiNew(?MessageConversation $conversation = null): Message

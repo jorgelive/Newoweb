@@ -6,7 +6,7 @@ namespace App\Message\Controller\Api;
 
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
-use App\Message\Service\MessageDispatcher;
+use App\Message\Service\Queue\MessageDispatcher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -36,7 +36,7 @@ final class MarkConversationReadController extends AbstractController
             'status'       => Message::STATUS_RECEIVED
         ]);
 
-        $nowUtc = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
+        $nowUtc = new \DateTimeImmutable('now', new \DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
         $notifiedCount = 0;
 
         foreach ($unreadMessages as $msg) {
@@ -68,7 +68,7 @@ final class MarkConversationReadController extends AbstractController
                 // 🔥 ARQUITECTURA: GENERACIÓN PROACTIVA DE COLAS (OUTBOX PATTERN)
                 // =========================================================================
                 // Nota de Diseño: La generación de colas de envío normalmente es Reactiva
-                // (manejada por MessageEntityListener en el prePersist de mensajes nuevos).
+                // (manejada por MessageEnqueuerEntityListener en el prePersist de mensajes nuevos).
                 // Sin embargo, como aquí estamos haciendo un UPDATE a un mensaje INCOMING
                 // existente, el Listener ignorará el cambio para envío.
                 //

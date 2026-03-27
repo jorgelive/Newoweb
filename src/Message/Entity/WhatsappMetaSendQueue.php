@@ -127,8 +127,8 @@ class WhatsappMetaSendQueue implements MessageQueueItemInterface, MemoryCleanabl
     {
         return [
             $this->message,
-            $this->message ? $this->message->getConversation() : null,
-            $this->message ? $this->message->getTemplate() : null
+            $this->message?->getConversation(),
+            $this->message?->getTemplate()
         ];
     }
 

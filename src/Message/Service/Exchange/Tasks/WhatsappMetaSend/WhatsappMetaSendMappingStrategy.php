@@ -12,6 +12,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageAttachment;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\MessageDataResolverRegistry;
+use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Vich\UploaderBundle\Storage\StorageInterface;
 
@@ -42,7 +43,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
      *
      * @param HomogeneousBatch $batch Lote de elementos a procesar.
      * @return MappingResult El resultado del mapeo con el payload final y el mapa de correlación.
-     * @throws \RuntimeException Si falta la configuración crítica o se viola una política de Meta.
+     * @throws RuntimeException Si falta la configuración crítica o se viola una política de Meta.
      */
     public function map(HomogeneousBatch $batch): MappingResult
     {
@@ -53,7 +54,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
         $phoneId = $config->getCredential('phoneId');
 
         if (!$phoneId) {
-            throw new \RuntimeException(sprintf('La configuración de Meta [%s] no tiene el Phone ID configurado.', $config->getNombre()));
+            throw new RuntimeException(sprintf('La configuración de Meta [%s] no tiene el Phone ID configurado.', $config->getNombre()));
         }
 
         // 2. URI Templating: Reemplazamos el comodín por el ID real
@@ -98,7 +99,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             $conversation = $msg->getConversation();
             $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
 
-            $livePhone = $resolver ? $resolver->getPhoneNumber($conversation->getContextId()) : null;
+            $livePhone = $resolver?->getPhoneNumber($conversation->getContextId());
             $destination = $livePhone ?: $item->getDestinationPhone();
 
             if ($livePhone && $livePhone !== $item->getDestinationPhone()) {
@@ -131,7 +132,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             // 🛡️ BARRERA DE SEGURIDAD (ZERO TRUST & QUICK REPLIES)
             // =========================================================================
             if (!$isSessionActive && empty($metaJson)) {
-                throw new \RuntimeException(sprintf(
+                throw new RuntimeException(sprintf(
                     'Violación de política de Meta: Intento de envío de mensaje libre al número %s fuera de la ventana de 24 horas. El mensaje [ID: %s] requiere una plantilla oficial asociada.',
                     $destination,
                     $msg->getId()
@@ -140,7 +141,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
             // Si hay plantilla, PERO no es oficial (Quick Reply), bloqueamos si estamos fuera de sesión
             if (!empty($metaJson) && !$isOfficialMeta && !$isSessionActive) {
-                throw new \RuntimeException(sprintf(
+                throw new RuntimeException(sprintf(
                     'Violación de política de Meta: Intento de enviar una plantilla NO oficial ("%s") como inicio de conversación al número %s. Solo se permiten plantillas validadas por Meta fuera de la ventana de 24 horas.',
                     $template->getCode(),
                     $destination
@@ -154,7 +155,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 $templateName = $metaJson['meta_template_name'] ?? null;
 
                 if (!$templateName) {
-                    throw new \RuntimeException(sprintf('La plantilla local "%s" no tiene un Nombre de Plantilla Meta configurado.', $template->getCode()));
+                    throw new RuntimeException(sprintf('La plantilla local "%s" no tiene un Nombre de Plantilla Meta configurado.', $template->getCode()));
                 }
 
                 $messagePayload['type'] = 'template';
@@ -177,7 +178,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         if (preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $headerText, $matches)) {
                             foreach (array_unique($matches[1]) as $paramName) {
                                 if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
-                                    throw new \RuntimeException(sprintf('Error (Header): Variable "%s" vacía.', $paramName));
+                                    throw new RuntimeException(sprintf('Error (Header): Variable "%s" vacía.', $paramName));
                                 }
                                 // Meta exige 'parameter_name' en todos los componentes cuando se usan variables nombradas
                                 $headerComponent['parameters'][] = [
@@ -189,7 +190,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         }
                     } elseif (in_array($format, ['IMAGE', 'VIDEO', 'DOCUMENT'])) {
                         if (!$attachment) {
-                            throw new \RuntimeException(sprintf('La plantilla "%s" requiere adjunto %s en el Header.', $template->getCode(), $format));
+                            throw new RuntimeException(sprintf('La plantilla "%s" requiere adjunto %s en el Header.', $template->getCode(), $format));
                         }
                         $mediaType = strtolower($format);
                         $headerComponent['parameters'][] = [
@@ -216,7 +217,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 if ($templateContent && preg_match_all('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', $templateContent, $matches)) {
                     foreach (array_unique($matches[1]) as $paramName) {
                         if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
-                            throw new \RuntimeException(sprintf('Error (Body): Variable "%s" vacía en plantilla "%s".', $paramName, $template->getCode()));
+                            throw new RuntimeException(sprintf('Error (Body): Variable "%s" vacía en plantilla "%s".', $paramName, $template->getCode()));
                         }
 
                         $resolvedBodyParams[] = [
@@ -240,7 +241,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
 
                         if (!isset($variables[$resolverKey]) || (string)$variables[$resolverKey] === '') {
-                            throw new \RuntimeException(sprintf('Error (Botón): La variable de enlace "%s" está vacía.', $resolverKey));
+                            throw new RuntimeException(sprintf('Error (Botón): La variable de enlace "%s" está vacía.', $resolverKey));
                         }
 
                         // Al ser plantilla oficial de Meta, enviamos exactamente lo que el resolver mandó
@@ -262,8 +263,8 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // -----------------------------------------------------------------
 
                 // Usamos internalLang para consultar las entidades locales de Doctrine
-                $headerData = $template ? $template->getWhatsappMetaHeader($internalLang) : null;
-                $footerText = $template ? $template->getWhatsappMetaFooter($internalLang) : null;
+                $headerData = $template?->getWhatsappMetaHeader($internalLang);
+                $footerText = $template?->getWhatsappMetaFooter($internalLang);
                 $bodyText = '';
 
                 if (!empty($metaJson['body'])) {

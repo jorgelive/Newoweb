@@ -11,6 +11,8 @@ use App\Exchange\Service\Client\WhatsappMetaClient;
 use App\Message\Entity\MessageTemplate;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
+use Throwable;
 
 /**
  * Servicio encargado de sincronizar las plantillas (Templates) desde WhatsApp Meta Cloud API
@@ -34,14 +36,14 @@ final readonly class WhatsappMetaTemplateSyncService
      * Ejecuta la sincronización de plantillas utilizando el cliente de Exchange.
      *
      * @return array<string, int> Resumen de la operación con contadores.
-     * @throws \RuntimeException Si no hay configuración o endpoint activo.
+     * @throws RuntimeException Si no hay configuración o endpoint activo.
      */
     public function sync(): array
     {
         $config = $this->em->getRepository(MetaConfig::class)->findOneBy(['activo' => true]);
 
         if (!$config) {
-            throw new \RuntimeException('No hay ninguna configuración activa de Meta WhatsApp en el sistema.');
+            throw new RuntimeException('No hay ninguna configuración activa de Meta WhatsApp en el sistema.');
         }
 
         // Buscamos el endpoint configurado en BD para leer plantillas
@@ -50,7 +52,7 @@ final readonly class WhatsappMetaTemplateSyncService
         ]);
 
         if (!$endpoint) {
-            throw new \RuntimeException('No se encontró el endpoint con acción FETCH_META_TEMPLATES asociado a la configuración de Meta.');
+            throw new RuntimeException('No se encontró el endpoint con acción FETCH_META_TEMPLATES asociado a la configuración de Meta.');
         }
 
         $allowedLanguages = $this->getAllowedLanguages();
@@ -87,9 +89,9 @@ final readonly class WhatsappMetaTemplateSyncService
 
             $this->em->flush();
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->error('Error fatal sincronizando plantillas de Meta: ' . $e->getMessage());
-            throw new \RuntimeException('Falló la sincronización de plantillas de Meta. Revisa los logs.', 0, $e);
+            throw new RuntimeException('Falló la sincronización de plantillas de Meta. Revisa los logs.', 0, $e);
         }
 
         return [

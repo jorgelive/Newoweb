@@ -14,6 +14,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Throwable;
 
 /**
  * Uso:
@@ -81,7 +82,7 @@ class MessageSyncRulesCommand extends Command
                     $this->ruleEngine->syncConversationRules($conversation);
                     $countSynced++;
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $io->warning(sprintf('Error al procesar la conversación %s: %s', $id, $e->getMessage()));
             }
 

@@ -44,9 +44,6 @@ final readonly class MessageMultipartProcessor implements ProcessorInterface
         }
 
         // 1. Guardamos en BD
-        $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
-
-
-        return $result;
+        return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
     }
 }

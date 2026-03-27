@@ -43,7 +43,7 @@ class MessageCrudController extends BaseCrudController
         return Message::class;
     }
 
-    public function createEntity(string $entityFqcn)
+    public function createEntity(string $entityFqcn): Message
     {
         $message = new Message();
         $message->setDirection(Message::DIRECTION_OUTGOING);

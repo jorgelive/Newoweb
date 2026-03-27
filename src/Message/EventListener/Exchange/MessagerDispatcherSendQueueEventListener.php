@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Message\EventListener\Queue;
+namespace App\Message\EventListener\Exchange;
 
 use App\Exchange\Dispatch\RunExchangeTaskDispatch;
 use App\Message\Entity\Beds24SendQueue;
@@ -14,7 +14,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsDoctrineListener(event: Events::onFlush, priority: 200)]
 #[AsDoctrineListener(event: Events::postFlush, priority: 200)]
-final class MessageSendQueueDispatchListener
+final class MessagerDispatcherSendQueueEventListener
 {
     private array $beds24QueuedIds = [];
     private array $whatsapoMetaQueuedIds = [];

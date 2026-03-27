@@ -13,11 +13,11 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Throwable;
 
-final class Beds24SendHandler implements ExchangeHandlerInterface
+final readonly class Beds24SendHandler implements ExchangeHandlerInterface
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly MessageJsonMerger $merger
+        private EntityManagerInterface $em,
+        private MessageJsonMerger      $merger
     ) {}
 
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
@@ -39,7 +39,7 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
 
         if ($msg) {
             // 1. Operación Atómica de JSON PRIMERO
-            $isoDate = (new DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
+            $isoDate = new DateTimeImmutable()->format('Y-m-d\TH:i:s\Z');
             $this->merger->merge(
                 $msg,
                 'beds24',
@@ -65,7 +65,7 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
         $summary = [
             'status' => 'success',
             'remote_beds24_id' => $remoteId,
-            'timestamp' => (new DateTimeImmutable())->format('Y-m-d H:i:s')
+            'timestamp' => new DateTimeImmutable()->format('Y-m-d H:i:s')
         ];
 
         // 4. Marcar la cola como Éxito
@@ -80,7 +80,7 @@ final class Beds24SendHandler implements ExchangeHandlerInterface
             return;
         }
 
-        $httpCode = (int) $e->getCode();
+        $httpCode = $e->getCode();
         $auditCode = $httpCode === 0 ? 500 : $httpCode;
         $msgError = sprintf('[Code %s] %s', $httpCode, $e->getMessage());
 

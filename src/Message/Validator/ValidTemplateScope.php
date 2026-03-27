@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Message\Validator;
 
+use Attribute;
 use Symfony\Component\Validator\Constraint;
 
-#[\Attribute(\Attribute::TARGET_CLASS)]
+#[Attribute(Attribute::TARGET_CLASS)]
 class ValidTemplateScope extends Constraint
 {
     public string $messageTypeMismatch = 'Esta plantilla es exclusiva para el módulo: {{ type }}.';

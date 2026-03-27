@@ -11,12 +11,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 use Throwable;
 
-final class Beds24WebhookMessageFastTrackService
+final readonly class Beds24WebhookMessageFastTrackService
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly Beds24ReceivePersister $persister,
-        private readonly SyncContext            $syncContext,
+        private EntityManagerInterface $em,
+        private Beds24ReceivePersister $persister,
+        private SyncContext            $syncContext,
     ) {}
 
     /**

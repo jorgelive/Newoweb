@@ -7,10 +7,10 @@ namespace App\Message\Service;
 use App\Message\Entity\Message;
 use Doctrine\ORM\EntityManagerInterface;
 
-class MessageJsonMerger
+readonly class MessageJsonMerger
 {
     public function __construct(
-        private readonly EntityManagerInterface $em
+        private EntityManagerInterface $em
     ) {}
 
     /**

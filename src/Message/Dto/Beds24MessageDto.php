@@ -6,23 +6,24 @@ namespace App\Message\Dto;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Throwable;
 
-final class Beds24MessageDto
+final readonly class Beds24MessageDto
 {
     public function __construct(
-            public readonly ?string $id,
-            public readonly ?string $authorOwnerId,
-            public readonly ?string $bookingId,
-            public readonly ?string $roomId,
-            public readonly ?string $propertyId,
-            public readonly ?DateTimeInterface $time,
-            public readonly bool $read,
-            public readonly ?string $message,
-            public readonly ?string $source,
+            public ?string            $id,
+            public ?string            $authorOwnerId,
+            public ?string            $bookingId,
+            public ?string            $roomId,
+            public ?string            $propertyId,
+            public ?DateTimeInterface $time,
+            public bool               $read,
+            public ?string            $message,
+            public ?string            $source,
             // Nuevos campos para adjuntos
-            public readonly ?string $attachment,
-            public readonly ?string $attachmentName,
-            public readonly ?string $attachmentMimeType
+            public ?string            $attachment,
+            public ?string            $attachmentName,
+            public ?string            $attachmentMimeType
     ) {}
 
     public static function fromArray(array $data): self
@@ -59,7 +60,7 @@ final class Beds24MessageDto
 
         try {
             return new DateTimeImmutable($s);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }

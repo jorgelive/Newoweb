@@ -2,27 +2,29 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service;
+namespace App\Message\Service\Queue;
 
 use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
+use Throwable;
 
 /**
  * Orquesta la creación de ítems en las colas (Outbox) usando el patrón Strategy.
  * Delega la creación física a los Encoladores Específicos según los canales activos.
  */
-class MessageDispatcher
+readonly class MessageDispatcher
 {
     /**
      * @param iterable<ChannelEnqueuerInterface> $enqueuers
      */
     public function __construct(
         #[TaggedIterator('app.message.enqueuer')]
-        private readonly iterable $enqueuers,
-        private readonly EntityManagerInterface $em
+        private iterable               $enqueuers,
+        private EntityManagerInterface $em
     ) {}
 
     /**
@@ -35,7 +37,7 @@ class MessageDispatcher
         $channels = $this->resolveChannels($message);
 
         // 🔥 MAGIA DEL SCHEDULER: Leemos la fecha programada en memoria, o usamos "ahora"
-        $runAt = $message->getScheduledAt() ?? new \DateTimeImmutable();
+        $runAt = $message->getScheduledAt() ?? new DateTimeImmutable();
 
         foreach ($channels as $channel) {
             foreach ($this->enqueuers as $enqueuer) {
@@ -47,7 +49,7 @@ class MessageDispatcher
                         if ($queue !== null) {
                             $queues[] = $queue;
                         }
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         // 🔥 CAPTURAMOS EL ERROR Y LO GUARDAMOS
                         $errors[] = sprintf('[%s] %s', $channel->getName(), $e->getMessage());
                     }

@@ -11,10 +11,10 @@ use App\Message\Entity\Beds24ReceiveQueue;
 use DateTimeImmutable;
 use Throwable;
 
-final class Beds24ReceiveHandler implements ExchangeHandlerInterface
+final readonly class Beds24ReceiveHandler implements ExchangeHandlerInterface
 {
     public function __construct(
-        private readonly Beds24ReceivePersister $persister
+        private Beds24ReceivePersister $persister
     ) {}
 
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
@@ -26,7 +26,7 @@ final class Beds24ReceiveHandler implements ExchangeHandlerInterface
         try {
             $rawResponse = json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
             $item->setLastResponseRaw($rawResponse);
-        } catch (\Throwable) {}
+        } catch (Throwable) {}
 
         $item->setLastHttpCode(200);
 
@@ -60,7 +60,7 @@ final class Beds24ReceiveHandler implements ExchangeHandlerInterface
             return;
         }
 
-        $httpCode = (int)$e->getCode() ?: 500;
+        $httpCode = $e->getCode() ?: 500;
         // Reintento estándar a los 5 minutos en caso de caída de red
         $item->markFailure($e->getMessage(), $httpCode, new DateTimeImmutable('+5 minutes'));
     }

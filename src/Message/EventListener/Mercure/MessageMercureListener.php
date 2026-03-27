@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\EventListener;
+namespace App\Message\EventListener\Mercure;
 
 use App\Message\Entity\Message;
 use App\Message\Service\Mercure\MercureBroadcaster;
@@ -17,10 +17,10 @@ use Doctrine\ORM\Events;
  */
 #[AsEntityListener(event: Events::postPersist, method: 'postPersist', entity: Message::class)]
 #[AsEntityListener(event: Events::postUpdate, method: 'postUpdate', entity: Message::class)]
-class MessageMercureListener
+readonly class MessageMercureListener
 {
     public function __construct(
-        private readonly MercureBroadcaster $mercureBroadcaster
+        private MercureBroadcaster $mercureBroadcaster
     ) {}
 
     /**

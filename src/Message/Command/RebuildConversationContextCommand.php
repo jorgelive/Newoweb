@@ -7,6 +7,8 @@ namespace App\Message\Command;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\Message;
 use App\Pms\Service\Reserva\PmsReservaRecalculoService;
+use DateTime;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -95,8 +97,8 @@ class RebuildConversationContextCommand extends Command
                 'binaryIds'       => array_map(fn($uuid) => $uuid->toBinary(), $conversationIds),
             ],
             [
-                'pendingStatuses' => \Doctrine\DBAL\ArrayParameterType::STRING,
-                'binaryIds'       => \Doctrine\DBAL\ArrayParameterType::BINARY,
+                'pendingStatuses' => ArrayParameterType::STRING,
+                'binaryIds'       => ArrayParameterType::BINARY,
             ]
         )->fetchAllAssociative();
 
@@ -108,7 +110,7 @@ class RebuildConversationContextCommand extends Command
         }
 
         $io->progressStart($total);
-        $now         = new \DateTime();
+        $now         = new DateTime();
         $countSynced = 0;
 
         // 3. LOOP DE SANIDAD
@@ -124,7 +126,7 @@ class RebuildConversationContextCommand extends Command
             $key = (string) $uuid;
 
             if (isset($lastMessageMap[$key]) && $lastMessageMap[$key]['lastReal'] !== null) {
-                $conversation->setLastMessageAt(new \DateTime($lastMessageMap[$key]['lastReal']));
+                $conversation->setLastMessageAt(new DateTime($lastMessageMap[$key]['lastReal']));
 
                 // Si el último mensaje real fue saliente, reseteamos no leídos
                 if ($lastMessageMap[$key]['lastOutgoing'] === $lastMessageMap[$key]['lastReal']) {
@@ -138,7 +140,7 @@ class RebuildConversationContextCommand extends Command
             // ARCHIVADO AUTOMÁTICO
             $milestones = $conversation->getContextMilestones();
             if (isset($milestones['end'])) {
-                $endDate = new \DateTime($milestones['end']);
+                $endDate = new DateTime($milestones['end']);
 
                 if ($endDate < $now
                     && $now->diff($endDate)->days > 7

@@ -13,15 +13,15 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Throwable;
 
-final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
+final readonly class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 {
     /**
      * @param EntityManagerInterface $em Inyectado para aplicar bloqueo pesimista
      * y evitar sobrescritura de campos JSON concurrentes.
      */
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly MessageJsonMerger $merger
+        private EntityManagerInterface $em,
+        private MessageJsonMerger      $merger
     ) {}
 
     public function handleSuccess(array $data, ExchangeQueueItemInterface $item): array
@@ -43,7 +43,7 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
 
         if ($msg) {
             // 1. Operación Atómica PRIMERO
-            $isoDate = (new DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
+            $isoDate = new DateTimeImmutable()->format('Y-m-d\TH:i:s\Z');
 
             $this->merger->merge(
                 $msg,
@@ -71,7 +71,7 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
         $summary = [
             'status' => 'success',
             'remote_whatsapp_meta_id' => $remoteId,
-            'timestamp' => (new DateTimeImmutable())->format('Y-m-d H:i:s')
+            'timestamp' => new DateTimeImmutable()->format('Y-m-d H:i:s')
         ];
 
         $item->markSuccess(new DateTimeImmutable());
@@ -83,7 +83,7 @@ final class WhatsappMetaSendHandler implements ExchangeHandlerInterface
     {
         if (!$item instanceof WhatsappMetaSendQueue) return;
 
-        $httpCode = (int)$e->getCode() ?: 500;
+        $httpCode = $e->getCode() ?: 500;
         $msgError = sprintf('[Code %s] %s', $httpCode, $e->getMessage());
 
         $item->setLastHttpCode($httpCode);

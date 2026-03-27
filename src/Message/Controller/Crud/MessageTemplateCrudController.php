@@ -74,7 +74,7 @@ class MessageTemplateCrudController extends BaseCrudController
         $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DETAIL)
-            ->add(Crud::PAGE_INDEX, $syncMetaAction);;
+            ->add(Crud::PAGE_INDEX, $syncMetaAction);
 
         $actions = parent::configureActions($actions);
 
@@ -245,7 +245,7 @@ class MessageTemplateCrudController extends BaseCrudController
                 $this->addFlash('info', 'Plantillas verificadas. Todo se encuentra sincronizado y al día con Meta.');
             }
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->addFlash('danger', 'Error crítico al sincronizar plantillas con Meta: ' . $e->getMessage());
         }
 

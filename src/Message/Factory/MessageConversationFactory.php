@@ -15,10 +15,10 @@ use Doctrine\ORM\EntityManagerInterface;
  * Se encarga de crear o actualizar (Upsert) una conversación basándose en su Contexto.
  * Mantiene actualizado el Snapshot (Nombre y Teléfono) para listados rápidos.
  */
-class MessageConversationFactory
+readonly class MessageConversationFactory
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager
     ) {}
 
     public function upsertFromContext(MessageContextInterface $context, bool $flush = false): MessageConversation

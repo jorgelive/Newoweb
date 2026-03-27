@@ -11,6 +11,7 @@ use App\Message\Entity\MessageConversation;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
+use Throwable;
 
 /**
  * Servicio centralizado para emitir eventos de Mercure.
@@ -39,7 +40,7 @@ class MercureBroadcaster
             $payload = json_encode($dto, JSON_THROW_ON_ERROR);
 
             $this->hub->publish(new Update($topic, $payload));
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->error('Error publicando Mensaje en Mercure: ' . $e->getMessage());
         }
     }
@@ -55,7 +56,7 @@ class MercureBroadcaster
             $payload = json_encode($dto, JSON_THROW_ON_ERROR);
 
             $this->hub->publish(new Update(self::TOPIC_GLOBAL_RADAR, $payload));
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->error('Error publicando Conversación en Mercure: ' . $e->getMessage());
         }
     }

@@ -8,6 +8,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Panel\Contract\RequiresJpegConversionInterface; // 🔥 Importamos el contrato
 use App\Panel\Entity\Trait\MediaTrait;
+use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
@@ -179,7 +180,7 @@ class MessageAttachment implements RequiresJpegConversionInterface
      */
     public function setFileUpdatedAt(?DateTimeInterface $fileUpdatedAt): self
     {
-        if ($fileUpdatedAt instanceof \DateTime) {
+        if ($fileUpdatedAt instanceof DateTime) {
             $this->fileUpdatedAt = DateTimeImmutable::createFromMutable($fileUpdatedAt);
         } else {
             $this->fileUpdatedAt = $fileUpdatedAt;

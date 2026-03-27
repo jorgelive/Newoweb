@@ -106,8 +106,8 @@ class Beds24SendQueue implements MessageQueueItemInterface, MemoryCleanableInter
     {
         return [
             $this->message,
-            $this->message ? $this->message->getConversation() : null,
-            $this->message ? $this->message->getTemplate() : null
+            $this->message?->getConversation(),
+            $this->message?->getTemplate()
         ];
     }
 

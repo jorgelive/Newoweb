@@ -13,6 +13,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\WhatsappMetaSendQueue;
 use App\Message\Service\MessageDataResolverRegistry;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 
@@ -21,11 +22,11 @@ use RuntimeException;
  * Construye la entidad de cola tanto para enviar nuevos mensajes (OUTGOING)
  * como para notificar el estado de lectura de mensajes recibidos (INCOMING).
  */
-class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
+readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly MessageDataResolverRegistry $resolverRegistry
+        private EntityManagerInterface      $em,
+        private MessageDataResolverRegistry $resolverRegistry
     ) {}
 
     public function supports(MessageChannel $channel): bool
@@ -33,7 +34,7 @@ class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
         return $channel->getId() === 'whatsapp_meta';
     }
 
-    public function createQueueEntity(Message $message, MessageChannel $channel, \DateTimeImmutable $runAt): ?MessageQueueItemInterface
+    public function createQueueEntity(Message $message, MessageChannel $channel, DateTimeImmutable $runAt): ?MessageQueueItemInterface
     {
         $conversation = $message->getConversation();
         if (!$conversation) {

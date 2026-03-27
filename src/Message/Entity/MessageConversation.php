@@ -17,6 +17,7 @@ use App\Entity\Trait\TimestampTrait;
 use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Controller\Api\MarkConversationReadController;
 use App\Security\Roles;
+use DateTime;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -184,7 +185,7 @@ class MessageConversation
         if ($this->whatsappSessionValidUntil === null) {
             return false;
         }
-        return $this->whatsappSessionValidUntil > new \DateTime();
+        return $this->whatsappSessionValidUntil > new DateTime();
     }
 
     public function getUnreadCount(): int { return $this->unreadCount; }
@@ -273,7 +274,7 @@ class MessageConversation
         return $this;
     }
 
-    public function addContextMilestone(string $key, \DateTimeInterface|string|null $date): self
+    public function addContextMilestone(string $key, DateTimeInterface|string|null $date): self
     {
         $validMilestones = [
             ConversationMilestoneInterface::CREATED,
@@ -300,7 +301,7 @@ class MessageConversation
             return $this;
         }
 
-        $this->contextData['milestones'][$key] = $date instanceof \DateTimeInterface
+        $this->contextData['milestones'][$key] = $date instanceof DateTimeInterface
             ? $date->format('Y-m-d\TH:i:s')
             : $date;
 

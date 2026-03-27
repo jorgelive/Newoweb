@@ -6,6 +6,7 @@ namespace App\Message\Contract;
 
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
+use DateTimeImmutable;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 #[AutoconfigureTag('app.message.enqueuer')]
@@ -19,12 +20,12 @@ interface ChannelEnqueuerInterface
      *
      * @param Message $message El mensaje a encolar.
      * @param MessageChannel $channel El canal por donde saldrá.
-     * @param \DateTimeImmutable $runAt La fecha/hora exacta en la que debe ejecutarse.
+     * @param DateTimeImmutable $runAt La fecha/hora exacta en la que debe ejecutarse.
      * @return MessageQueueItemInterface|null
      */
     public function createQueueEntity(
         Message $message,
         MessageChannel $channel,
-        \DateTimeImmutable $runAt
+        DateTimeImmutable $runAt
     ): ?MessageQueueItemInterface;
 }

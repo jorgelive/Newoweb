@@ -38,9 +38,9 @@ class MetaWebhookAudit
      */
     use TimestampTrait;
 
-    public const STATUS_RECEIVED = 'received';
-    public const STATUS_PROCESSED = 'processed';
-    public const STATUS_ERROR = 'error';
+    public const string STATUS_RECEIVED = 'received';
+    public const string STATUS_PROCESSED = 'processed';
+    public const string STATUS_ERROR = 'error';
 
     /**
      * Momento exacto de la recepción física del request.

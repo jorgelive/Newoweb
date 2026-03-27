@@ -13,13 +13,15 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Service\MessageDataResolverRegistry;
 use App\Pms\Entity\PmsChannel;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use RuntimeException;
 
-class Beds24SendEnqueuer implements ChannelEnqueuerInterface
+readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly MessageDataResolverRegistry $resolverRegistry
+        private EntityManagerInterface      $em,
+        private MessageDataResolverRegistry $resolverRegistry
     ) {}
 
     public function supports(MessageChannel $channel): bool
@@ -27,18 +29,18 @@ class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         return $channel->getId() === 'beds24';
     }
 
-    public function createQueueEntity(Message $message, MessageChannel $channel, \DateTimeImmutable $runAt): ?MessageQueueItemInterface
+    public function createQueueEntity(Message $message, MessageChannel $channel, DateTimeImmutable $runAt): ?MessageQueueItemInterface
     {
         $conversation = $message->getConversation();
         if (!$conversation) {
             // Reemplazamos el return null por excepción
-            throw new \RuntimeException('No se puede encolar en Beds24: El mensaje no tiene una conversación asociada.');
+            throw new RuntimeException('No se puede encolar en Beds24: El mensaje no tiene una conversación asociada.');
         }
 
         $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
         if (!$resolver) {
             // 🔥 El error que pediste: Si es manual/walk-in y piden Beds24, explota y avisa.
-            throw new \RuntimeException(sprintf(
+            throw new RuntimeException(sprintf(
                 'No se puede enviar por Beds24: La conversación actual (Tipo: %s) no está vinculada a una reserva del PMS.',
                 $conversation->getContextType()
             ));
@@ -52,7 +54,7 @@ class Beds24SendEnqueuer implements ChannelEnqueuerInterface
         $canalesDirectos = [PmsChannel::CODIGO_DIRECTO, 'manual', 'web', ''];
 
         if (in_array($source, $canalesDirectos, true)) {
-            throw new \RuntimeException(sprintf('Operación denegada: No se permite enviar mensajes por la API de Beds24 a reservas directas (Canal: %s).', $source ?: 'Desconocido'));
+            throw new RuntimeException(sprintf('Operación denegada: No se permite enviar mensajes por la API de Beds24 a reservas directas (Canal: %s).', $source ?: 'Desconocido'));
         }
 
         $config = $metadata['beds24_config'] ?? null;
@@ -60,7 +62,7 @@ class Beds24SendEnqueuer implements ChannelEnqueuerInterface
 
         if (!$config || !$bookId) {
             // Reemplazamos el return null por excepción
-            throw new \RuntimeException('Faltan datos críticos: No se encontró la configuración de la propiedad o el ID de la reserva (bookId) en Beds24.');
+            throw new RuntimeException('Faltan datos críticos: No se encontró la configuración de la propiedad o el ID de la reserva (bookId) en Beds24.');
         }
 
         // 2. Obtener el Endpoint Técnico
@@ -72,7 +74,7 @@ class Beds24SendEnqueuer implements ChannelEnqueuerInterface
 
         if (!$endpoint) {
             // Reemplazamos el return null por excepción
-            throw new \RuntimeException('Error de sistema: No se encontró un Endpoint activo para SEND_MESSAGE de Beds24.');
+            throw new RuntimeException('Error de sistema: No se encontró un Endpoint activo para SEND_MESSAGE de Beds24.');
         }
 
         // 3. Ensamblar la Cola

@@ -25,14 +25,14 @@ use Throwable;
  * Actúa únicamente buscando por ID externo y actualizando/insertando.
  * Las condiciones de carrera se evitan asíncronamente en capas superiores.
  */
-class Beds24ReceivePersister
+readonly class Beds24ReceivePersister
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly MessageConversationFactory $conversationFactory,
-        private readonly MessageAttachmentFactory $attachmentFactory,
-        private readonly LoggerInterface $logger,
-        private readonly MessageJsonMerger $merger
+        private EntityManagerInterface     $em,
+        private MessageConversationFactory $conversationFactory,
+        private MessageAttachmentFactory   $attachmentFactory,
+        private LoggerInterface            $logger,
+        private MessageJsonMerger          $merger
     ) {}
 
     /**
@@ -80,7 +80,7 @@ class Beds24ReceivePersister
 
                     // 1. 🔥 MAGIA ATÓMICA PRIMERO: Hacemos el merge del JSON.
                     // El Merger actualiza la BD y hace un $em->refresh($existing) internamente.
-                    $nowUtc = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
+                    $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
                     $this->merger->merge(
                         $existing,
                         'beds24',
@@ -147,7 +147,7 @@ class Beds24ReceivePersister
                 $message->setStatus(Message::STATUS_SENT);
             } else {
                 $message->setDirection(Message::DIRECTION_INCOMING);
-                $nowUtc = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
+                $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
                 $message->setBeds24ReceivedAt($nowUtc);
 
                 if ($dto->read === true) {

@@ -8,6 +8,7 @@ use App\Message\Entity\Message;
 use App\Service\GoogleTranslateService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Throwable;
 
 class MessageTranslator
 {
@@ -75,7 +76,7 @@ class MessageTranslator
             if (isset($results[1])) {
                 $message->setSubjectExternal($results[1]);
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->error('Error traduciendo a External: ' . $e->getMessage());
             // Fallback
             $message->setContentExternal($message->getContentLocal());
@@ -98,7 +99,7 @@ class MessageTranslator
             if (isset($results[1])) {
                 $message->setSubjectLocal($results[1]);
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->error('Error traduciendo a Local: ' . $e->getMessage());
             // Fallback
             $message->setContentLocal($message->getContentExternal());

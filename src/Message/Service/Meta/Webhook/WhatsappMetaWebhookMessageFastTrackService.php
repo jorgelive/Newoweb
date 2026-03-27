@@ -12,12 +12,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 use Throwable;
 
-final class WhatsappMetaWebhookMessageFastTrackService
+final readonly class WhatsappMetaWebhookMessageFastTrackService
 {
     public function __construct(
-        private readonly EntityManagerInterface       $em,
-        private readonly WhatsappMetaReceivePersister $persister,
-        private readonly SyncContext                  $syncContext
+        private EntityManagerInterface       $em,
+        private WhatsappMetaReceivePersister $persister,
+        private SyncContext                  $syncContext
     )
     {
     }

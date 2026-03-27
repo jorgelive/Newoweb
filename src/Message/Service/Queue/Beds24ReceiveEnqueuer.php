@@ -12,7 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 final class Beds24ReceiveEnqueuer
 {
-    /** @var array<string, bool> Cache en memoria para deduplicar en el mismo lote */
+    /** @var array<string, bool> Caché en memoria para deduplicar en el mismo lote */
     private array $runtimeDedupe = [];
 
     public function __construct(

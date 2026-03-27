@@ -7,6 +7,7 @@ namespace App\Message\Factory;
 use App\Message\Entity\MessageAttachment;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use const DIRECTORY_SEPARATOR;
 
 class MessageAttachmentFactory
 {
@@ -29,7 +30,7 @@ class MessageAttachmentFactory
 
         // 3. Crear un archivo temporal físico en el sistema
         $tmpFileName = uniqid('chat_attach_', true) . '_' . preg_replace('/[^a-zA-Z0-9_.-]/', '_', $originalName);
-        $tmpFilePath = sys_get_temp_dir() . \DIRECTORY_SEPARATOR . $tmpFileName;
+        $tmpFilePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $tmpFileName;
 
         if (file_put_contents($tmpFilePath, $decodedData) === false) {
             throw new RuntimeException('No se pudo escribir el archivo adjunto temporal.');

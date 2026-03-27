@@ -9,6 +9,7 @@ use App\Message\Entity\MetaWebhookAudit;
 use App\Message\Service\Meta\Webhook\WhatsappMetaWebhookMessageFastTrackService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use JsonException;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -16,6 +17,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Throwable;
 
 #[Route('/message/meta/webhook', name: 'message_meta_webhook_')]
 final class MetaWebhookController extends AbstractController
@@ -104,7 +106,7 @@ final class MetaWebhookController extends AbstractController
                                 try {
                                     $res = $this->fastTrackService->processMessage($messageData, $contactData);
                                     $responseDetails['messages'][] = $res['id'];
-                                } catch (\Throwable $e) {
+                                } catch (Throwable $e) {
                                     $globalErrors[] = [
                                         'type' => 'message',
                                         'id' => $messageData['id'] ?? 'unknown',
@@ -121,7 +123,7 @@ final class MetaWebhookController extends AbstractController
                                     // Pasamos la llamada al fastTrackService
                                     $res = $this->fastTrackService->processCall($callData, $value['contacts'][0] ?? []);
                                     $responseDetails['calls'][] = $res['id'];
-                                } catch (\Throwable $e) {
+                                } catch (Throwable $e) {
                                     $globalErrors[] = ['type' => 'call', 'id' => $callData['id'] ?? 'unknown', 'error' => $e->getMessage()];
                                 }
                             }
@@ -134,7 +136,7 @@ final class MetaWebhookController extends AbstractController
                                 try {
                                     $res = $this->fastTrackService->processStatus($statusData);
                                     $responseDetails['statuses'][] = $res['id'];
-                                } catch (\Throwable $e) {
+                                } catch (Throwable $e) {
                                     $globalErrors[] = [
                                         'type' => 'status',
                                         'id' => $statusData['id'] ?? 'unknown',
@@ -183,10 +185,10 @@ final class MetaWebhookController extends AbstractController
                 'errors' => $globalErrors
             ], 200);
 
-        } catch (\JsonException $e) {
+        } catch (JsonException $e) {
             $this->terminateWithError($audit, "JSON Inválido en Meta Webhook: " . $e->getMessage(), 200);
             return $this->prettyJson(['ok' => false, 'error' => 'invalid_json'], 200);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->terminateWithError($audit, "Error crítico: " . $e->getMessage(), 200);
             return $this->prettyJson(['ok' => false, 'error' => $e->getMessage()], 200);
         }
@@ -205,7 +207,7 @@ final class MetaWebhookController extends AbstractController
 
     private function prettyJson(array $data, int $status = 200): JsonResponse
     {
-        return (new JsonResponse($data, $status))
+        return new JsonResponse($data, $status)
             ->setEncodingOptions(JsonResponse::DEFAULT_ENCODING_OPTIONS | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 

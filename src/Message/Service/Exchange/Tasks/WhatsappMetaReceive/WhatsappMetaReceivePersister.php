@@ -13,8 +13,10 @@ use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Service\MessageJsonMerger;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Throwable;
 
 /**
  * Motor central de persistencia para WhatsApp Meta.
@@ -23,14 +25,14 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * respetando estrictamente las reglas de negocio de MessageConversation (Walk-ins, idiomas,
  * ventanas de 24h y contadores de mensajes no leídos).
  */
-class WhatsappMetaReceivePersister
+readonly class WhatsappMetaReceivePersister
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly MessageAttachmentFactory $attachmentFactory,
-        private readonly HttpClientInterface $httpClient,
-        private readonly LoggerInterface $logger,
-        private readonly MessageJsonMerger $merger
+        private EntityManagerInterface   $em,
+        private MessageAttachmentFactory $attachmentFactory,
+        private HttpClientInterface      $httpClient,
+        private LoggerInterface          $logger,
+        private MessageJsonMerger        $merger
     ) {}
 
     /**
@@ -69,7 +71,7 @@ class WhatsappMetaReceivePersister
 
         // Fecha original en la que el usuario envió el mensaje
         $timestamp = $messageData['timestamp'] ?? time();
-        $message->setCreatedAt((new DateTimeImmutable())->setTimestamp((int)$timestamp));
+        $message->setCreatedAt(new DateTimeImmutable()->setTimestamp((int)$timestamp));
 
         // =====================================================================
         // 5. PROCESAMIENTO DE CONTENIDO
@@ -110,7 +112,7 @@ class WhatsappMetaReceivePersister
                         $message->addAttachment($attachment);
                         $this->em->persist($attachment);
                         $message->setContentExternal("📦 [" . ucfirst($type) . " recibido]");
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         $this->logger->error("Error creando adjunto WA: " . $e->getMessage());
                         $message->setContentExternal("🚫 [Error procesando archivo multimedia]");
                     }
@@ -159,8 +161,8 @@ class WhatsappMetaReceivePersister
         if (!$message) return;
 
         $isoDate = $timestamp
-                ? (new \DateTimeImmutable("@$timestamp"))->format('Y-m-d\TH:i:s\Z')
-                : (new \DateTimeImmutable())->format('Y-m-d\TH:i:s\Z');
+                ? new DateTimeImmutable("@$timestamp")->format('Y-m-d\TH:i:s\Z')
+                : new DateTimeImmutable()->format('Y-m-d\TH:i:s\Z');
 
         $metaDataToMerge = [];
         $newStatus = null;
@@ -210,7 +212,7 @@ class WhatsappMetaReceivePersister
             $message->setStatus($newStatus);
         } elseif (!empty($metaDataToMerge)) {
             // Touch explícito si hubo un merge pero no cambió el Status (ej. Delivered)
-            $message->setUpdatedAt(new \DateTimeImmutable());
+            $message->setUpdatedAt(new DateTimeImmutable());
         }
     }
 
@@ -233,7 +235,7 @@ class WhatsappMetaReceivePersister
         $message->setContentExternal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
 
         $timestamp = $callData['timestamp'] ?? time();
-        $message->setCreatedAt((new DateTimeImmutable())->setTimestamp((int)$timestamp));
+        $message->setCreatedAt(new DateTimeImmutable()->setTimestamp((int)$timestamp));
 
         $this->em->persist($message);
         $this->em->flush();
@@ -313,7 +315,7 @@ class WhatsappMetaReceivePersister
     */
     private function findMessageByMetaId(string $metaMessageId): ?Message
     {
-        $rsm = new \Doctrine\ORM\Query\ResultSetMappingBuilder($this->em);
+        $rsm = new ResultSetMappingBuilder($this->em);
         $rsm->addRootEntityFromClassMetadata(Message::class, 'm');
 
         // Usamos SQL puro para que MySQL maneje el JSON_EXTRACT directamente
@@ -369,7 +371,7 @@ class WhatsappMetaReceivePersister
 
             return base64_encode($content);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->error("Excepción al descargar Media de Meta ({$mediaId}): " . $e->getMessage());
             return null;
         }
