@@ -31,7 +31,7 @@ const handleSessionRenewal = async () => {
   });
 
   if (success) {
-    loginPassword.value = ''; // Limpiar por seguridad
+    loginPassword.value = '';
 
     await store.fetchConversations();
 
@@ -147,7 +147,29 @@ watch(() => store.error, (v) => {
   if (v) setTimeout(() => store.error = null, 6000);
 });
 
-// 🔥 ACTUALIZADO: Beds24 comprueba reglas base + configuración de la plantilla seleccionada (sin 'is')
+// ============================================================================
+// NUEVO: Normaliza el status visual de un mensaje considerando sus queues.
+// Si todas las queues están canceladas, el mensaje se muestra como cancelado
+// aunque el campo `status` del Message diga otra cosa.
+// ============================================================================
+const getMessageDisplayStatus = (msg: ApiMessage): string => {
+  if (msg.status === 'cancelled') return 'cancelled';
+
+  const allQueues = [
+    ...(msg.whatsappMetaSendQueues ?? []),
+    ...(msg.beds24SendQueues ?? [])
+  ].filter((q): q is { status: string } => typeof q === 'object' && q !== null && 'status' in q);
+
+  if (allQueues.length > 0 && allQueues.every(q => q.status === 'cancelled')) {
+    return 'cancelled';
+  }
+
+  return msg.status;
+};
+
+// ============================================================================
+// COMPUTED DE CANALES
+// ============================================================================
 const isBeds24Allowed = computed(() => {
   const chat = store.currentConversation;
   if (!chat) return false;
@@ -157,7 +179,6 @@ const isBeds24Allowed = computed(() => {
   const bannedOrigins = ['directo', 'whatsapp'];
   if (bannedOrigins.includes(origin)) return false;
 
-  // Si hay una plantilla seleccionada, debe tener Beds24 activo
   if (selectedTemplateId.value) {
     const tpl = store.templates.find(t => t['@id'] === selectedTemplateId.value);
     if (tpl && !tpl.beds24Active) return false;
@@ -166,28 +187,23 @@ const isBeds24Allowed = computed(() => {
   return true;
 });
 
-// 🔥 ACTUALIZADO: WhatsApp comprueba sesión 24h + configuración activa en la plantilla + oficialidad (sin 'is')
 const isWhatsappAllowed = computed(() => {
   const chat = store.currentConversation;
   if (!chat) return false;
 
   const sessionActive = chat.whatsappSessionActive;
 
-  // Si hay plantilla seleccionada
   if (selectedTemplateId.value) {
     const tpl = store.templates.find(t => t['@id'] === selectedTemplateId.value);
     if (!tpl) return false;
 
-    // 1. La plantilla debe tener el canal de WhatsApp activado
     if (!tpl.whatsappMetaActive) return false;
 
-    // 2. Si NO hay sesión activa, la plantilla debe ser oficial
     if (!sessionActive && !tpl.whatsappMetaOfficial) return false;
 
     return true;
   }
 
-  // Sin plantilla, todo depende de la sesión de 24h
   return sessionActive;
 });
 
@@ -251,7 +267,6 @@ const selectTemplate = (tpl: ApiTemplate) => {
 
   let newChannels = tpl.channels || [];
 
-  // Filtro de seguridad adicional al seleccionar por si acaso (sin 'is')
   const sessionActive = store.currentConversation?.whatsappSessionActive;
   if (!sessionActive && tpl.whatsappMetaOfficial === false) {
     newChannels = newChannels.filter(c => c !== 'whatsapp_meta');
@@ -296,7 +311,6 @@ const send = async () => {
 
   const isWhatsappSelected = selectedChannels.value.includes('whatsapp_meta');
 
-  // Refuerzo de seguridad antes de disparar el request
   if (isWhatsappSelected && !isWhatsappAllowed.value) {
     store.error = 'WhatsApp no permitido (Revisa la sesión o la configuración de la plantilla).';
     return;
@@ -479,6 +493,7 @@ const getQueueStatus = (queues?: any[]) => {
   const lastQueue = queues[queues.length - 1];
   if (typeof lastQueue === 'string') return 'sent';
   if (lastQueue.status === 'failed') return 'failed';
+  if (lastQueue.status === 'cancelled') return 'cancelled';
   if (lastQueue.deliveryStatus === 'read') return 'read';
   if (lastQueue.deliveryStatus === 'delivered') return 'delivered';
   return lastQueue.status || 'sent';
@@ -486,7 +501,7 @@ const getQueueStatus = (queues?: any[]) => {
 
 const getWhatsappStatus = (msg: ApiMessage) => {
   const waMeta = msg.metadata?.whatsappMeta;
-  if (waMeta) {
+  if (waMeta && !Array.isArray(waMeta)) {
     if (waMeta.error_code || waMeta.error_reason) return 'failed';
     if (waMeta.read_at) return 'read';
     if (waMeta.delivered_at) return 'delivered';
@@ -497,7 +512,7 @@ const getWhatsappStatus = (msg: ApiMessage) => {
 
 const getBeds24Status = (msg: ApiMessage) => {
   const bedsMeta = msg.metadata?.beds24;
-  if (bedsMeta) {
+  if (bedsMeta && !Array.isArray(bedsMeta)) {
     if (bedsMeta.error) return 'failed';
     if (bedsMeta.read_at) return 'read';
     if (bedsMeta.delivered_at) return 'delivered';
@@ -696,7 +711,18 @@ const getDirectChannelId = (channel?: any): string | null => {
 
               <div class="space-y-6 flex flex-col mb-8">
                 <div v-for="msg in group" :key="msg.id" class="flex w-full" :class="msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'">
-                  <div class="relative max-w-[85%] md:max-w-[70%] flex flex-col" :class="msg.direction === 'outgoing' ? 'items-end pl-10' : 'items-start pr-10'">
+
+                  <!--
+                    CAMBIO: añadimos la clase `msg-cancelled` cuando el status
+                    efectivo es cancelled. Aplica opacidad reducida a toda la burbuja.
+                  -->
+                  <div
+                      class="relative max-w-[85%] md:max-w-[70%] flex flex-col"
+                      :class="[
+                      msg.direction === 'outgoing' ? 'items-end pl-10' : 'items-start pr-10',
+                      getMessageDisplayStatus(msg) === 'cancelled' ? 'msg-cancelled' : ''
+                    ]"
+                  >
 
                     <div class="absolute top-1 flex flex-col gap-1.5" :class="msg.direction === 'outgoing' ? 'left-0' : 'right-0'">
                       <div v-for="icon in getChannelIcons(msg)" :key="icon.class" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-100">
@@ -763,7 +789,8 @@ const getDirectChannelId = (channel?: any): string | null => {
                             <i class="fas fa-cloud-download-alt text-[9px] opacity-50 mr-0.5" title="Sincronizado externamente"></i>
                             <i v-if="getDirectChannelId(msg.channel) === 'beds24'" class="fas fa-bed text-[#003580] opacity-60 text-[9px]"></i>
                             <i v-else-if="getDirectChannelId(msg.channel) === 'whatsapp_meta'" class="fab fa-whatsapp text-green-500 opacity-70 text-[10px]"></i>
-                            <MessageStatusIcon :status="msg.status" />
+                            <!-- CAMBIO: usamos getMessageDisplayStatus para el status global -->
+                            <MessageStatusIcon :status="getMessageDisplayStatus(msg)" />
                           </div>
                         </template>
 
@@ -778,6 +805,7 @@ const getDirectChannelId = (channel?: any): string | null => {
                                  :class="getDispatchError(msg, 'whatsapp') ? 'text-red-500' : 'text-green-500 opacity-70'"></i>
 
                               <i v-if="getDispatchError(msg, 'whatsapp')" class="fas fa-exclamation-circle text-red-500 text-[9px]"></i>
+                              <!-- CAMBIO: getWhatsappStatus ya detecta cancelled desde la queue -->
                               <MessageStatusIcon v-else :status="getWhatsappStatus(msg)" />
                             </span>
 
@@ -789,11 +817,13 @@ const getDirectChannelId = (channel?: any): string | null => {
                                  :class="getDispatchError(msg, 'beds24') ? 'text-red-500' : 'text-[#003580] opacity-60'"></i>
 
                               <i v-if="getDispatchError(msg, 'beds24')" class="fas fa-exclamation-circle text-red-500 text-[9px]"></i>
+                              <!-- CAMBIO: getBeds24Status ya detecta cancelled desde la queue -->
                               <MessageStatusIcon v-else :status="getBeds24Status(msg)" />
                             </span>
 
                             <span v-if="(!msg.whatsappMetaSendQueues?.length && !msg.metadata?.whatsappMeta?.sent_at && !getDispatchError(msg, 'whatsapp')) && (!msg.beds24SendQueues?.length && !msg.metadata?.beds24?.sent_at && !getDispatchError(msg, 'beds24'))">
-                               <MessageStatusIcon :status="msg.status" />
+                              <!-- CAMBIO: status normalizado -->
+                              <MessageStatusIcon :status="getMessageDisplayStatus(msg)" />
                             </span>
 
                           </div>
@@ -973,6 +1003,14 @@ const getDirectChannelId = (channel?: any): string | null => {
 .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 textarea { outline: none; }
-
 .whitespace-pre-wrap span { white-space: pre-wrap; word-break: break-word; }
+
+/* NUEVO: opacidad reducida para mensajes cancelados */
+.msg-cancelled {
+  opacity: 0.45;
+  transition: opacity 0.2s ease;
+}
+.msg-cancelled:hover {
+  opacity: 0.65;
+}
 </style>

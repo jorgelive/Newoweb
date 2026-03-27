@@ -92,6 +92,21 @@ export interface ApiConversation {
 
 export const useChatStore = defineStore('chatStore', () => {
 
+    const getMessageDisplayStatus = (msg: ApiMessage): string => {
+        if (msg.status === 'cancelled') return 'cancelled';
+
+        // Si todas las queues están canceladas, lo tratamos como cancelado visualmente
+        const allQueues = [
+            ...(msg.whatsappMetaSendQueues || []),
+            ...(msg.beds24SendQueues || [])
+        ].filter(q => typeof q === 'object') as ApiMessageQueue[];
+
+        if (allQueues.length > 0 && allQueues.every(q => q.status === 'cancelled')) {
+            return 'cancelled';
+        }
+
+        return msg.status;
+    };
     const getUrls = () => {
         // @ts-ignore
         const config = window.OPENPERU_CONFIG || {};
@@ -531,6 +546,6 @@ export const useChatStore = defineStore('chatStore', () => {
         loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations,
         isSessionExpired, renewSession, cancelRenewal,
         getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage,
-        initGlobalMercure, connectToMercure, newNotification, isChatVisible
+        initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus
     };
 });
