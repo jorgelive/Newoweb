@@ -51,8 +51,8 @@ class WhatsappMetaButtonType extends AbstractType
             ->add('resolver_key', TextType::class, [
                 'label' => 'Variable del PMS',
                 'required' => false,
-                'attr' => ['placeholder' => 'Ej: url_guide_nd'],
-                'help' => 'Dato real a inyectar.',
+                'attr' => ['placeholder' => 'Ej: guide_path'],
+                'help' => 'Dato real a inyectar Ej: "guide_path", "tours_catalog_path".',
                 'row_attr' => ['class' => 'col-md-3 mb-3'],
             ])
             ->add('button_text', CollectionType::class, [

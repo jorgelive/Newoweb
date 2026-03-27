@@ -162,22 +162,34 @@ final class ExchangeOrchestrator
         $meta = $this->em->getClassMetadata(get_class($item));
         $table = $meta->getTableName();
 
-        $this->em->getConnection()->executeStatement(
+        $binaryId = \Symfony\Component\Uid\Uuid::fromString((string) $item->getId())->toBinary();
+
+        $affected = $this->em->getConnection()->executeStatement(
             "UPDATE {$table} SET 
-                status = 'failed', 
-                failed_reason = :reason, 
-                last_http_code = :code,
-                run_at = :retryAt, 
-                locked_at = NULL, 
-                locked_by = NULL,
-                retry_count = retry_count + 1
-             WHERE id = :id",
+            status = 'failed', 
+            failed_reason = :reason, 
+            last_http_code = :code,
+            run_at = :retryAt, 
+            locked_at = NULL, 
+            locked_by = NULL,
+            retry_count = retry_count + 1
+         WHERE id = :id",
             [
                 'reason'  => $reason,
                 'code'    => $code,
                 'retryAt' => $retryAt->format('Y-m-d H:i:s'),
-                'id'      => $item->getId()
+                'id'      => $binaryId,
+            ],
+            [
+                'id' => \Doctrine\DBAL\ParameterType::BINARY,
             ]
         );
+
+        if ($affected === 0) {
+            $this->logger->error('saveDirectSqlFailure afectó 0 filas', [
+                'id'    => (string) $item->getId(),
+                'table' => $table,
+            ]);
+        }
     }
 }
