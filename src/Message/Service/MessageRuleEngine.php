@@ -47,7 +47,7 @@ final readonly class MessageRuleEngine
         string $trigger = self::TRIGGER_UPDATE,
         bool $force = false
     ): void {
-        // 🔥 1. Curación Automática: Detectar y sanar mensajes zombie antes de evaluar reglas.
+        // 1. Curación Automática: Detectar y sanar mensajes zombie antes de evaluar reglas.
         $this->healZombieMessages($conversation);
 
         $rules = $this->em->getRepository(MessageRule::class)->findBy([
@@ -74,7 +74,7 @@ final readonly class MessageRuleEngine
                 } else {
                     // No existe: Evaluamos si debemos programarlo por primera vez
 
-                    // 🔥 @TODO: RESTAURAR BLINDAJE LUEGO DEL CATCH-UP.
+                    // @TODO: RESTAURAR BLINDAJE LUEGO DEL CATCH-UP.
                     // Evita que un simple UPDATE en una reserva vieja dispare correos de Bienvenida.
                     /*
                     if (
@@ -128,7 +128,7 @@ final readonly class MessageRuleEngine
      */
     private function ruleAppliesToConversation(MessageRule $rule, MessageConversation $conversation): bool
     {
-        // ⛔ BARRERA: No procesar reglas en chats que ya terminaron su ciclo (cerrados) o fueron cancelados (archivados)
+        // BARRERA: No procesar reglas en chats que ya terminaron su ciclo (cerrados) o fueron cancelados (archivados)
         if (in_array($conversation->getStatus(), [MessageConversation::STATUS_ARCHIVED, MessageConversation::STATUS_CLOSED], true)) {
             return false;
         }
@@ -190,7 +190,7 @@ final readonly class MessageRuleEngine
                 $startDate = new DateTimeImmutable($startStr)->setTime(0, 0, 0);
                 $createdDate = $createdStr ? new DateTimeImmutable($createdStr)->setTime(0, 0, 0) : clone $today;
 
-                // 🔥 @TODO: ELIMINAR ESTA HEURÍSTICA LUEGO DEL CATCH-UP.
+                // @TODO: ELIMINAR ESTA HEURÍSTICA LUEGO DEL CATCH-UP.
                 // Restringe correos de bienvenida en reservas antiguas a menos que falten +21 días para la llegada.
                 if ($createdDate < clone $today->modify('-1 day')) {
                     $threeWeeksFromNow = clone $today->modify('+21 days');
@@ -227,36 +227,18 @@ final readonly class MessageRuleEngine
 
     /**
      * Curación de Mensajes Zombie.
-     * Escanea todos los mensajes de la conversación y, si encuentra uno en estado "pendiente" o "encolado"
-     * pero que no tiene ninguna cola hija activa, lo fuerza a STATUS_CANCELLED.
-     * Esto evita que el cron o el motor intenten revivir mensajes que perdieron su ciclo de vida.
+     * Escanea todos los mensajes de la conversación y actualiza su estado real en base a sus colas.
+     * NUNCA elimina la fecha scheduledAt para preservar la línea de tiempo visual del frontend.
      */
     private function healZombieMessages(MessageConversation $conversation): void
     {
         foreach ($conversation->getMessages() as $msg) {
-            if (in_array($msg->getStatus(), [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
-                $hasActiveQueue = false;
+            if (in_array($msg->getStatus(), [Message::STATUS_PENDING, Message::STATUS_QUEUED, Message::STATUS_CANCELLED], true)) {
+                $oldStatus = $msg->getStatus();
+                $this->resolveMessageStatus($msg);
 
-                foreach ($msg->getBeds24SendQueues() as $q) {
-                    if ($q->getStatus() === Beds24SendQueue::STATUS_PENDING) {
-                        $hasActiveQueue = true;
-                        break;
-                    }
-                }
-
-                if (!$hasActiveQueue) {
-                    foreach ($msg->getWhatsappMetaSendQueues() as $q) {
-                        if ($q->getStatus() === WhatsappMetaSendQueue::STATUS_PENDING) {
-                            $hasActiveQueue = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!$hasActiveQueue) {
-                    $msg->setStatus(Message::STATUS_CANCELLED);
-                    $msg->setScheduledAt(null);
-                    $this->logger->info("Sanidad: Mensaje zombie {$msg->getId()} curado y pasado a CANCELLED (sin colas activas).");
+                if ($oldStatus !== $msg->getStatus()) {
+                    $this->logger->info("Sanidad: Mensaje {$msg->getId()} corregido de {$oldStatus} a {$msg->getStatus()}.");
                 }
             }
         }
@@ -282,13 +264,13 @@ final readonly class MessageRuleEngine
     }
 
     /**
-    * Sincroniza la nueva fecha de ejecución y gestiona dinámicamente las colas (canales).
-    * * 🔥 CORTAFUEGOS CORREGIDO: Nunca duplica canales si ya existen en cualquier estado.
-    */
+     * Sincroniza la nueva fecha de ejecución y gestiona dinámicamente las colas (canales).
+     * CORTAFUEGOS CORREGIDO: Nunca duplica canales si ya existen en cualquier estado.
+     */
     private function syncPendingMessage(Message $message, MessageRule $rule, DateTimeImmutable $newRunAt): void
     {
-        // ⛔ CORTAFUEGOS DE ESTADOS TERMINALES (Inmutabilidad estricta)
-        if (in_array($message->getStatus(), [Message::STATUS_SENT, Message::STATUS_DELIVERED, Message::STATUS_READ, Message::STATUS_FAILED], true)) {
+        // CORTAFUEGOS DE ESTADOS TERMINALES (Inmutabilidad estricta)
+        if (in_array($message->getStatus(), [Message::STATUS_SENT, Message::STATUS_DELIVERED, Message::STATUS_READ], true)) {
             return;
         }
 
@@ -308,9 +290,7 @@ final readonly class MessageRuleEngine
                         $updated = true;
                     }
                 } else {
-                    // El canal ya no está en la regla, lo cancelamos
                     $queue->setStatus(Beds24SendQueue::STATUS_CANCELLED);
-                    $queue->setRunAt(null);
                     $updated = true;
                 }
             }
@@ -329,7 +309,6 @@ final readonly class MessageRuleEngine
                     }
                 } else {
                     $queue->setStatus(WhatsappMetaSendQueue::STATUS_CANCELLED);
-                    $queue->setRunAt(null);
                     $updated = true;
                 }
             }
@@ -359,28 +338,21 @@ final readonly class MessageRuleEngine
         }
 
         // 4. Evaluar el estado integral del Mensaje
-        $hasPendingQueues = false;
-        foreach ($message->getBeds24SendQueues() as $q) { if ($q->getStatus() === Beds24SendQueue::STATUS_PENDING) $hasPendingQueues = true; }
-        foreach ($message->getWhatsappMetaSendQueues() as $q) { if ($q->getStatus() === WhatsappMetaSendQueue::STATUS_PENDING) $hasPendingQueues = true; }
+        $this->resolveMessageStatus($message);
 
-        if (!$hasPendingQueues) {
-            $message->setStatus(Message::STATUS_CANCELLED);
-            $message->setScheduledAt(null);
-        } elseif ($message->getStatus() === Message::STATUS_CANCELLED && $hasPendingQueues) {
-            $message->setStatus(Message::STATUS_QUEUED);
-            $message->setScheduledAt($newRunAt);
-        } else {
+        // Solo actualizamos el ScheduledAt si el mensaje sigue vivo en la cola
+        if (in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING], true)) {
             $message->setScheduledAt($newRunAt);
         }
 
         if ($updated) {
-            $this->logger->info("Sincronizado mensaje {$message->getId()}: Reprogramado para {$newRunAt->format('Y-m-d H:i')}, estado actual: {$message->getStatus()}");
+            $this->logger->info("Sincronizado mensaje {$message->getId()}: estado actual consolidado: {$message->getStatus()}");
         }
     }
 
     /**
      * Cancela e invalida todas las tareas de envío pendientes asociadas al mensaje,
-     * y altera el estado del mensaje principal a STATUS_CANCELLED.
+     * y evalúa el estado final del mensaje principal. No borra fechas.
      */
     private function cancelPendingQueues(Message $message): void
     {
@@ -389,7 +361,6 @@ final readonly class MessageRuleEngine
         foreach ($message->getBeds24SendQueues() as $queue) {
             if ($queue->getStatus() === Beds24SendQueue::STATUS_PENDING) {
                 $queue->setStatus(Beds24SendQueue::STATUS_CANCELLED);
-                $queue->setRunAt(null);
                 $cancelledAny = true;
             }
         }
@@ -397,21 +368,13 @@ final readonly class MessageRuleEngine
         foreach ($message->getWhatsappMetaSendQueues() as $queue) {
             if ($queue->getStatus() === WhatsappMetaSendQueue::STATUS_PENDING) {
                 $queue->setStatus(WhatsappMetaSendQueue::STATUS_CANCELLED);
-                $queue->setRunAt(null);
                 $cancelledAny = true;
             }
         }
 
-        // Si el mensaje estaba en proceso, asumimos el rol de marcarlo como cancelado
-        // Esto previene tocar un mensaje que ya haya sido SENT o FAILED.
-        if (in_array($message->getStatus(), [Message::STATUS_PENDING, Message::STATUS_QUEUED], true)) {
-            $message->setStatus(Message::STATUS_CANCELLED);
-            $message->setScheduledAt(null);
-            $cancelledAny = true;
-        }
-
         if ($cancelledAny) {
-            $this->logger->info("Canceladas todas las colas pendientes y el estado general para el mensaje {$message->getId()}");
+            $this->resolveMessageStatus($message);
+            $this->logger->info("Canceladas colas pendientes. Estado final del mensaje {$message->getId()}: {$message->getStatus()}");
         }
     }
 
@@ -425,9 +388,8 @@ final readonly class MessageRuleEngine
         $message->setTemplate($rule->getTemplate());
         $message->setDirection(Message::DIRECTION_OUTGOING);
         $message->setSenderType(Message::SENDER_SYSTEM);
-        $message->setStatus(Message::STATUS_PENDING);
+        $message->setStatus(Message::STATUS_QUEUED);
 
-        // Puntero temporal en memoria para informar al MessageDispatcher
         $message->setScheduledAt($runAt);
 
         // Mapeo de canales destino configurados en la regla
@@ -438,5 +400,54 @@ final readonly class MessageRuleEngine
         $this->em->persist($message);
 
         $this->logger->info("Programado nuevo mensaje automático para {$conversation->getGuestName()} a las {$runAt->format('Y-m-d H:i')}");
+    }
+
+    /**
+     * Evalúa la realidad física de las colas para dictaminar el estado real del mensaje raíz.
+     * Evita que un mensaje exitoso por un canal se marque como cancelado solo porque el otro falló.
+     * Protege el UI evitando anular campos vitales.
+     */
+    private function resolveMessageStatus(Message $message): void
+    {
+        $hasPending = false;
+        $hasSuccess = false;
+        $hasFailed = false;
+
+        foreach ($message->getBeds24SendQueues() as $q) {
+            $status = $q->getStatus();
+            if ($status === Beds24SendQueue::STATUS_PENDING) $hasPending = true;
+            if (in_array($status, [Beds24SendQueue::STATUS_SUCCESS, 'sent', 'delivered'], true)) $hasSuccess = true;
+            if ($status === Beds24SendQueue::STATUS_FAILED) $hasFailed = true;
+        }
+
+        foreach ($message->getWhatsappMetaSendQueues() as $q) {
+            $status = $q->getStatus();
+            if ($status === WhatsappMetaSendQueue::STATUS_PENDING) $hasPending = true;
+            if (in_array($status, [WhatsappMetaSendQueue::STATUS_SUCCESS, 'sent', 'delivered'], true)) $hasSuccess = true;
+            if ($status === WhatsappMetaSendQueue::STATUS_FAILED) $hasFailed = true;
+        }
+
+        // Jerarquía de estados:
+        // 1. Si algo está pendiente, el mensaje sigue vivo en la cola.
+        if ($hasPending) {
+            $message->setStatus(Message::STATUS_QUEUED);
+            return;
+        }
+
+        // 2. Si ya no hay pendientes, pero al menos un canal tuvo éxito, el mensaje fue enviado.
+        if ($hasSuccess) {
+            $message->setStatus(Message::STATUS_SENT);
+            return;
+        }
+
+        // 3. Si no hay éxito, pero hubo intentos fallidos, el mensaje falló.
+        if ($hasFailed) {
+            $message->setStatus(Message::STATUS_FAILED);
+            return;
+        }
+
+        // 4. Si llegamos aquí: no hay pendientes, ni éxitos, ni fallos.
+        // Significa que o no se crearon colas o todas fueron expresamente canceladas.
+        $message->setStatus(Message::STATUS_CANCELLED);
     }
 }

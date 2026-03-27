@@ -18,6 +18,7 @@ use App\Pms\Factory\PmsEventoCalendarioFactory;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Persister para PULL/Webhooks de Beds24.
@@ -28,8 +29,9 @@ use RuntimeException;
  * * ✅ Normalización estricta de IDs al inicio.
  * * ✅ Validación fuerte de Maestros (Pais/Idioma) para evitar nulls silenciosos.
  * * ✅ Inyección obligatoria de PmsEstablecimiento para evitar reservas huérfanas.
+ * * ✅ Implementación de ResetInterface para vaciado automático de memoria en Workers asíncronos.
  */
-final class BookingPullPersister
+final class BookingPullPersister implements ResetInterface
 {
     /** @var array<string, PmsReserva|false> Cache local por ciclo de ejecución */
     private array $reservaByMasterId = [];
@@ -49,9 +51,15 @@ final class BookingPullPersister
     ) {}
 
     /**
-     * Limpia la memoria interna. Debe llamarse al inicio de cada Job.
+     * Limpia la memoria interna de la clase.
+     * * ¿Por qué existe? Al ejecutarse en Workers asíncronos de larga duración (Messenger),
+     * el EntityManager se limpia (clear) periódicamente. Si no vaciamos esta caché local,
+     * la clase intentará persistir entidades que Doctrine considera "nuevas/desvinculadas",
+     * provocando errores fatales de "cascade persist".
+     * * Al implementar ResetInterface, Symfony Messenger llama a este método automáticamente
+     * entre la ejecución de cada mensaje.
      */
-    public function resetCache(): void
+    public function reset(): void
     {
         $this->reservaByMasterId = [];
         $this->cacheLinks = [];
@@ -63,10 +71,17 @@ final class BookingPullPersister
     }
 
     /**
-     * Procesa un DTO de Beds24 y actualiza/crea las entidades correspondientes.
+     * Procesa un DTO proveniente de Beds24, encargándose de orquestar la creación o actualización
+     * de la Reserva madre y los eventos de calendario individuales (hijas) asociados.
+     * * ¿Por qué existe? Centraliza la lógica de negocio de cómo una reserva de canal OTA o Directa
+     * se traduce a la estructura jerárquica de la base de datos (Reserva -> Eventos -> Links),
+     * resolviendo dependencias complejas como el establecimiento, país, idioma y mapeos de unidades.
+     * * @param Beds24Config $config Configuración del canal actual.
+     * @param Beds24BookingDto $booking Los datos crudos normalizados en un DTO.
      * * @return array{status: string, action: string, message: string}
      * status: 'success' | 'skipped'
      * action: 'created' | 'updated' | 'ignored'
+     * * @throws RuntimeException Si los datos críticos como el mapeo de unidad o maestros son inválidos.
      */
     public function upsert(Beds24Config $config, Beds24BookingDto $booking): array
     {
