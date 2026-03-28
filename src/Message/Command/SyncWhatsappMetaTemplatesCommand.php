@@ -14,6 +14,7 @@ use Throwable;
 
 /**
  * Uso: php bin/console app:whatsapp:sync-templates
+ *
  * Comando para ejecutar la sincronización de plantillas de WhatsApp Meta desde la CLI.
  * * ¿Por qué existe? Permite automatizar la descarga de plantillas aprobadas mediante un Cronjob
  * nocturno, asegurando que el PMS siempre tenga los IDs oficiales sin intervención manual.

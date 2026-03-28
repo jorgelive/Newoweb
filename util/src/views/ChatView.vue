@@ -391,16 +391,39 @@ const formatFullDate = (iso?: string) => {
 
 const groupedMessages = computed(() => {
   const groups: Record<string, any[]> = {};
-  const sourceList = activeTab.value === 'history' ? store.activeChatMessages : store.scheduledMessages;
 
-  sourceList.forEach(msg => {
-    const dateToUse = msg.effectiveDateTime || msg.createdAt;
-    if(!dateToUse) return;
+  // 1. Copiamos el array para no mutar el estado original del store
+  const sourceList = [...(activeTab.value === 'history' ? store.activeChatMessages : store.scheduledMessages)];
 
-    const d = dateToUse.split('T')[0];
-    if (!groups[d]) groups[d] = [];
-    groups[d].push(msg);
+  // 2. LA MAGIA ESTÁ AQUÍ: Ordenamos estrictamente de más antiguo a más nuevo.
+  // Esto garantiza que la posición visual sea siempre perfecta sin importar
+  // en qué orden los mandó la API o Mercure.
+  sourceList.sort((a, b) => {
+    const dateA = new Date(a.effectiveDateTime || a.createdAt).getTime();
+    const dateB = new Date(b.effectiveDateTime || b.createdAt).getTime();
+    return dateA - dateB;
   });
+
+  // 3. Agrupamos por fecha
+  sourceList.forEach(msg => {
+    const dateStr = msg.effectiveDateTime || msg.createdAt;
+    if(!dateStr) return;
+
+    // Usamos el Date del navegador para evitar que la zona horaria UTC
+    // mueva los mensajes a un día incorrecto
+    const dObj = new Date(dateStr);
+    const year = dObj.getFullYear();
+    const month = String(dObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dObj.getDate()).padStart(2, '0');
+
+    const localDateKey = `${year}-${month}-${day}`;
+
+    if (!groups[localDateKey]) {
+      groups[localDateKey] = [];
+    }
+    groups[localDateKey].push(msg);
+  });
+
   return groups;
 });
 
@@ -614,28 +637,40 @@ const getDirectChannelId = (channel?: any): string | null => {
         <div v-else-if="store.filteredConversations.length === 0" class="p-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">Bandeja Vacía</div>
 
         <div v-for="chat in store.filteredConversations" :key="chat?.id" class="mb-1">
-          <button @click="selectChat(chat.id)" class="w-full text-left p-4 rounded-2xl transition-all flex gap-4 relative group border border-transparent" :class="store.currentConversation?.id === chat.id ? 'bg-white border-slate-200 shadow-xl translate-x-1' : 'hover:bg-slate-50'">
-            <span v-if="store.currentConversation?.id === chat.id" class="absolute left-0 top-4 bottom-4 w-1.5 bg-[#376875] rounded-r-full block"></span>
-            <span class="w-12 h-12 rounded-xl text-white flex items-center justify-center shrink-0 font-black text-lg shadow-sm" :class="getOriginClass(chat.contextOrigin)">
+          <button @click="selectChat(chat.id)"
+                  class="w-full text-left p-3 rounded-2xl transition-all flex gap-3 relative group border border-transparent items-center"
+                  :class="store.currentConversation?.id === chat.id ? 'bg-white border-slate-200 shadow-xl translate-x-1' : 'hover:bg-slate-50'">
+
+            <span v-if="store.currentConversation?.id === chat.id" class="absolute left-0 top-3 bottom-3 w-1.5 bg-[#376875] rounded-r-full block"></span>
+
+            <span class="w-11 h-11 rounded-xl text-white flex items-center justify-center shrink-0 font-black text-lg shadow-sm" :class="getOriginClass(chat.contextOrigin)">
               {{ chat.guestName?.charAt(0).toUpperCase() || '?' }}
             </span>
-            <span class="flex-1 min-w-0 block">
-              <span class="flex justify-between items-baseline mb-0.5">
-                <span class="font-bold truncate text-sm block" :class="store.currentConversation?.id === chat.id ? 'text-[#376875]' : 'text-slate-800'">{{ chat.guestName || 'Huésped' }}</span>
-                <span class="text-[9px] font-black uppercase text-slate-400 ml-2 block">{{ formatDate(chat.lastMessageAt || chat.createdAt) }}</span>
+
+            <span class="flex-1 min-w-0 flex flex-col justify-center">
+              <span class="font-bold truncate text-sm leading-tight mb-1" :class="store.currentConversation?.id === chat.id ? 'text-[#376875]' : 'text-slate-800'">
+                {{ chat.guestName || 'Huésped' }}
               </span>
 
-              <span class="flex flex-col sm:flex-row sm:items-center sm:gap-2 mb-1">
-                <span class="text-[10px] font-black truncate text-[#E07845] uppercase tracking-tight">
+              <span class="flex flex-col gap-[5px]">
+                <span class="text-[10px] font-black truncate text-[#E07845] uppercase tracking-tight leading-none">
                   {{ chat.contextItems?.length ? chat.contextItems.join(', ') : (chat.contextOrigin === 'whatsapp' ? 'Chat Directo' : 'Reserva PMS') }}
                 </span>
-                <span v-if="chat.contextMilestones?.start && chat.contextMilestones?.end" class="text-[10px] font-bold text-slate-400 mt-0.5 sm:mt-0 flex items-center gap-1">
-                  <i class="far fa-calendar-alt opacity-70"></i>
+                <span v-if="chat.contextMilestones?.start && chat.contextMilestones?.end" class="text-[10px] font-bold text-slate-400 flex items-center gap-1 truncate leading-none">
+                  <i class="far fa-calendar-alt opacity-70 text-[8px]"></i>
                   {{ formatDate(chat.contextMilestones.start) }} - {{ formatDate(chat.contextMilestones.end) }}
                 </span>
               </span>
             </span>
-            <span v-if="chat.unreadCount > 0" class="absolute -right-1 -top-1 w-5 h-5 bg-[#E07845] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-md">{{ chat.unreadCount }}</span>
+
+            <span class="flex flex-col items-end text-slate-400 shrink-0 gap-0.5 self-start pt-0.5">
+              <span class="text-[11px] font-black uppercase leading-none">{{ formatDate(chat.lastMessageAt || chat.createdAt) }}</span>
+              <span class="text-[10px] font-bold opacity-70 tracking-tighter leading-none">{{ formatTime(chat.lastMessageAt || chat.createdAt) }}</span>
+            </span>
+
+            <span v-if="chat.unreadCount > 0" class="absolute -right-1 -top-1 w-5 h-5 bg-[#E07845] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-md">
+              {{ chat.unreadCount }}
+            </span>
           </button>
         </div>
 
@@ -705,10 +740,13 @@ const getDirectChannelId = (channel?: any): string | null => {
             <div v-for="(group, date) in groupedMessages" :key="date" class="flex flex-col">
               <div class="flex justify-center my-6 sticky top-2 z-10">
                 <span :class="activeTab === 'scheduled' ? 'bg-[#E07845] text-white' : 'bg-white/90 text-slate-800'" class="px-4 py-1.5 backdrop-blur-md border border-slate-200 shadow-sm rounded-full text-[10px] font-black uppercase tracking-widest">
-                  {{ activeTab === 'history' && date === new Date().toISOString().split('T')[0] ? 'Hoy' : formatDate(date) }}
+                  {{
+                    activeTab === 'history' && date === `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+                        ? 'Hoy'
+                        : formatDate(date + 'T00:00:00')
+                  }}
                 </span>
               </div>
-
               <div class="space-y-6 flex flex-col mb-8">
                 <div v-for="msg in group" :key="msg.id" class="flex w-full" :class="msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'">
 

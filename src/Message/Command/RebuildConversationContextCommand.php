@@ -68,19 +68,29 @@ class RebuildConversationContextCommand extends Command
         );
 
         // 2. PRE-CALCULAMOS lastMessageAt en una sola query — sin lazy-load
-        // Con tipo 'uuid' de Symfony, IDENTITY() devuelve string canónico con guiones
         $lastMessageData = $this->entityManager->getConnection()->executeQuery('
                 SELECT 
                     BIN_TO_UUID(m.conversation_id) AS convId,
-                    MAX(CASE WHEN m.scheduled_at IS NULL
-                                  OR m.status NOT IN (:pendingStatuses)
-                             THEN m.created_at
-                             ELSE NULL END) AS lastReal,
-                    MAX(CASE WHEN (m.scheduled_at IS NULL
-                                   OR m.status NOT IN (:pendingStatuses))
-                                  AND m.direction = :outgoing
-                             THEN m.created_at
-                             ELSE NULL END) AS lastOutgoing
+                    MAX(
+                        CASE 
+                            -- 1. Ignorar explícitamente los mensajes cancelados
+                            WHEN m.status = :statusCancelled THEN NULL
+                            
+                            -- 2. Ignorar los que están programados para el FUTURO
+                            WHEN COALESCE(m.scheduled_at, m.created_at) > NOW() THEN NULL
+                            
+                            -- 3. ACEPTAR TODOS LOS DEMÁS (sent, received, read, y también queued/pending/failed actuales)
+                            ELSE COALESCE(m.scheduled_at, m.created_at)
+                        END
+                    ) AS lastReal,
+                    MAX(
+                        CASE 
+                            WHEN m.status = :statusCancelled THEN NULL
+                            WHEN COALESCE(m.scheduled_at, m.created_at) > NOW() THEN NULL
+                            WHEN m.direction = :outgoing THEN COALESCE(m.scheduled_at, m.created_at)
+                            ELSE NULL 
+                        END
+                    ) AS lastOutgoing
                 FROM msg_message m
                 WHERE m.conversation_id IN (
                     SELECT UUID_TO_BIN(u.id) FROM (
@@ -92,12 +102,11 @@ class RebuildConversationContextCommand extends Command
                 GROUP BY m.conversation_id
             ',
             [
-                'pendingStatuses' => [Message::STATUS_PENDING, Message::STATUS_QUEUED],
+                'statusCancelled' => Message::STATUS_CANCELLED,
                 'outgoing'        => Message::DIRECTION_OUTGOING,
                 'binaryIds'       => array_map(fn($uuid) => $uuid->toBinary(), $conversationIds),
             ],
             [
-                'pendingStatuses' => ArrayParameterType::STRING,
                 'binaryIds'       => ArrayParameterType::BINARY,
             ]
         )->fetchAllAssociative();

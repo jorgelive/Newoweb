@@ -45,7 +45,7 @@ use Symfony\Component\Uid\UuidV7;
                     fromClass: MessageConversation::class
                 )
             ],
-            order: ['createdAt' => 'DESC']
+            order: ['scheduledAt' => 'DESC', 'createdAt' => 'DESC']
         ),
         new GetCollection(uriTemplate: '/user/util/msg/messages'),
 
@@ -198,16 +198,24 @@ class Message
             return;
         }
 
-        $now = new DateTime();
-        $this->conversation->setLastMessageAt($now);
+        $msgDate = $this->getEffectiveDateTime() ?: new DateTimeImmutable();
+
+        $currentLast = $this->conversation->getLastMessageAt();
+        // Solo actualiza la conversación si el mensaje es realmente MÁS NUEVO
+        if ($currentLast === null || $msgDate > $currentLast) {
+            $this->conversation->setLastMessageAt($msgDate);
+        }
 
         if ($this->direction === self::DIRECTION_INCOMING) {
-            $this->conversation->setLastInboundAt($now);
+            $currentInbound = $this->conversation->getLastInboundAt();
+            if ($currentInbound === null || $msgDate > $currentInbound) {
+                $this->conversation->setLastInboundAt($msgDate);
+            }
             $this->conversation->incrementUnreadCount();
 
             if ($this->channel?->getId() === 'whatsapp_meta') {
                 $this->conversation->setWhatsappSessionValidUntil(
-                    (clone $now)->modify('+24 hours')
+                    (clone $msgDate)->modify('+24 hours')
                 );
             }
         }
@@ -221,8 +229,21 @@ class Message
     public function onPreUpdate(): void
     {
         if ($this->conversation !== null &&
-            in_array($this->status, [self::STATUS_SENT, self::STATUS_RECEIVED], true)) {
-            $this->conversation->setLastMessageAt(new DateTime());
+            in_array($this->status, [self::STATUS_SENT, self::STATUS_RECEIVED, self::STATUS_READ], true)) {
+
+            $msgDate = $this->getEffectiveDateTime() ?: new DateTimeImmutable();
+            $now = new DateTimeImmutable();
+
+            // CORTAFUEGOS: Si el worker actualiza el mensaje, solo subimos el chat
+            // si la fecha efectiva del mensaje es <= a HOY.
+            if ($msgDate <= $now) {
+                $currentLast = $this->conversation->getLastMessageAt();
+
+                // Si el mensaje tiene una fecha más reciente que la conversación, la subimos
+                if ($currentLast === null || $msgDate > $currentLast) {
+                    $this->conversation->setLastMessageAt($msgDate);
+                }
+            }
         }
     }
 
@@ -375,6 +396,8 @@ class Message
         return $this;
     }
 
+    public function getBeds24SentAt(): ?string { return $this->metadata['beds24']['sent_at'] ?? null; }
+    public function setBeds24SentAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('sent_at', $dateTimeIso8601); }
     public function getBeds24ReceivedAt(): ?string { return $this->metadata['beds24']['received_at'] ?? null; }
     public function setBeds24ReceivedAt(string $dateTimeIso8601): self { return $this->addBeds24Metadata('received_at', $dateTimeIso8601); }
     public function getBeds24ReadAt(): ?string { return $this->metadata['beds24']['read_at'] ?? null; }
