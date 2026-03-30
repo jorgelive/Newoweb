@@ -16,12 +16,18 @@ use RuntimeException;
 /**
  * Estrategia de Mapeo para Subida de Reservas a Beds24 (PUSH).
  * * Maneja la dualidad de la API: DELETE vía Query Params vs UPSERT vía JSON Body.
- * * Incluye lógica para reservas espejo, master IDs y limpieza de arrays para PHP.
+ * * Incluye lógica para reservas espejo, master IDs y protección de datos OTA (Fuente de la verdad).
  */
 final readonly class BookingsPushMappingStrategy implements MappingStrategyInterface
 {
     /**
      * Transforma el lote de la cola al formato de transporte HTTP.
+     * * Interviene en el empaquetado de datos diferenciando entre eliminaciones físicas
+     * (DELETE) y creaciones/actualizaciones (POST/PUT emulado), asegurando que los
+     * payloads cumplan con los requerimientos específicos de la API v2 de Beds24.
+     *
+     * @param HomogeneousBatch $batch Lote de tareas de sincronización.
+     * @return MappingResult Resultado del mapeo con la configuración de la petición.
      */
     public function map(HomogeneousBatch $batch): MappingResult
     {
@@ -90,6 +96,12 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
 
     /**
      * Procesa la respuesta de la API usando correlación posicional.
+     * * Asocia cada resultado devuelto por Beds24 con su respectivo ID en la cola
+     * de base de datos, determinando el éxito o fracaso y extrayendo los nuevos IDs remotos.
+     *
+     * @param array $apiResponse Respuesta cruda decodificada desde la API.
+     * @param MappingResult $mapping Objeto de mapeo original que contiene la correlación.
+     * @return array<string, ItemResult> Resultados indexados por el ID de la cola.
      */
     public function parseResponse(array $apiResponse, MappingResult $mapping): array
     {
@@ -137,7 +149,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     {
         $link = $queue->getLink();
 
-        // Validación estricta de integridad
+        // Validación estricta de integridad (Cláusula de Guarda)
         if (!$link || !$link->getEvento() || !$link->getUnidadBeds24Map()) {
             throw new RuntimeException('Estructura de Link incompleta/corrupta.');
         }
@@ -145,19 +157,15 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         $evento = $link->getEvento();
         $map = $link->getUnidadBeds24Map();
         $isMirror = $link->isMirror();
+        $isOta = $evento->isOta();
         $reserva = $evento->getReserva();
 
-        // 1. Campos Base (Siempre requeridos)
+        // 1. ANCLA DE UBICACIÓN (Siempre requerido)
         $payload = [
-            'roomId'    => (int) $map->getBeds24RoomId(),
-            'status'    => $this->resolveBeds24Status($queue),
-            'arrival'   => $evento->getInicio()?->format('Y-m-d'),
-            'departure' => $evento->getFin()?->format('Y-m-d'),
-            'numAdult'  => (int) ($evento->getCantidadAdultos() ?? 0),
-            'numChild'  => (int) ($evento->getCantidadNinos() ?? 0),
+            'roomId' => (int) $map->getBeds24RoomId(),
         ];
 
-        // 2. ID de Beds24 (Para modificaciones)
+        // 2. ANCLA DE IDENTIDAD (Para modificaciones, evita duplicados)
         $bookId = $this->toIntOrNull($link->getBeds24BookId())
             ?? $this->toIntOrNull($queue->getBeds24BookIdOriginal());
 
@@ -165,17 +173,35 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             $payload['id'] = $bookId;
         }
 
-        // 3. Datos del Huésped vs Sintéticos (Bloqueos)
+        // 3. FECHAS Y OCUPACIÓN
+        // Solo las enviamos si es una reserva directa (donde somos dueños) o si es
+        // un mirror (necesario para bloquear el calendario fantasma). Protege OTAs.
+        if (!$isOta || $isMirror) {
+            $payload['arrival']   = $evento->getInicio()?->format('Y-m-d');
+            $payload['departure'] = $evento->getFin()?->format('Y-m-d');
+            $payload['numAdult']  = (int) ($evento->getCantidadAdultos() ?? 0);
+            $payload['numChild']  = (int) ($evento->getCantidadNinos() ?? 0);
+        }
+
+        // 4. ESTADO
+        // Solo enviamos status si no es OTA o es espejo, para no reescribir cancelaciones
+        // externas con datos desactualizados del PMS.
+        if (!$isOta || $isMirror) {
+            $payload['status'] = $this->resolveBeds24Status($queue);
+        }
+
+        // 5. DATOS DEL HUÉSPED Y FINANZAS
         if ($reserva instanceof PmsReserva) {
             $this->mapGuestData(
                 payload: $payload,
                 reserva: $reserva,
                 evento: $evento,
-                isMirror: $isMirror
+                isMirror: $isMirror,
+                isOta: $isOta
             );
 
-            // Si NO es espejo, enviamos datos financieros y Master ID
-            if (!$isMirror) {
+            // Si NO es espejo Y NO es OTA, somos dueños absolutos: enviamos finanzas y grupos.
+            if (!$isMirror && !$isOta) {
                 $this->applyMasterIdLogic($payload, $reserva, $bookId);
                 $this->mapFinancials($payload, $evento);
             }
@@ -183,7 +209,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             $this->mapSyntheticData($payload, $evento);
         }
 
-        // 4. Marcador visual para Espejos
+        // 6. MARCADORES Y AUDITORÍA
         if ($isMirror && isset($payload['firstName'])) {
             $payload['firstName'] = '(M) ' . $payload['firstName'];
         }
@@ -193,20 +219,26 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         return $payload;
     }
 
-    private function mapGuestData(array &$payload, PmsReserva $reserva, PmsEventoCalendario $evento, bool $isMirror): void
+    private function mapGuestData(array &$payload, PmsReserva $reserva, PmsEventoCalendario $evento, bool $isMirror, bool $isOta): void
     {
+        // Datos seguros (Nombres e info interna)
         $this->setIf($payload, 'firstName', $reserva->getNombreCliente());
         $this->setIf($payload, 'lastName',  $reserva->getApellidoCliente());
-        $this->setIf($payload, 'email',     $reserva->getEmailCliente());
-        $this->setIf($payload, 'phone',     $reserva->getTelefono());
-        $this->setIf($payload, 'mobile',    $reserva->getTelefono2());
         $this->setIf($payload, 'notes',     $reserva->getNota());
         $this->setIf($payload, 'comments',  $evento->getComentariosHuesped());
         $this->setIf($payload, 'lang',      $reserva->getIdioma()?->getId());
         $this->setIf($payload, 'country2',  $reserva->getPais()?->getId());
 
-        // Referencias de Canal (Solo si no es espejo, para no confundir al Channel Manager)
-        if (!$isMirror) {
+        // Contacto Sensible: Proteger correos proxy y teléfonos originales de la OTA
+        if (!$isOta) {
+            $this->setIf($payload, 'email',  $reserva->getEmailCliente());
+            $this->setIf($payload, 'phone',  $reserva->getTelefono());
+            $this->setIf($payload, 'mobile', $reserva->getTelefono2());
+        }
+
+        // Referencias de Canal: Solo se envían en reservas directas reales.
+        // Un mirror no debe cruzar IDs de canal, y una reserva OTA no necesita que se le reenvíe su propio ID.
+        if (!$isMirror && !$isOta) {
             $this->setIf($payload, 'apiReference', $evento->getReferenciaCanal());
             $this->setIf($payload, 'channel', $evento->getChannel()?->getBeds24ChannelId());
         }
@@ -231,8 +263,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             return 'cancelled';
         }
 
-        $link = $queue->getLink();
-        $codigo = $link?->getEvento()?->getEstado()?->getCodigoBeds24();
+        // Las validaciones de integridad superiores garantizan que estos objetos existen.
+        // Se remueve el nullsafe operator (?->) para cumplir con el rigor de la estructura esperada.
+        $codigo = $queue->getLink()->getEvento()->getEstado()?->getCodigoBeds24();
 
         return $codigo ?: 'confirmed';
     }
@@ -249,7 +282,6 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
      */
     private function applyMasterIdLogic(array &$payload, PmsReserva $reserva, ?int $currentId): void
     {
-
         $mId = $this->toIntOrNull($reserva->getBeds24MasterId());
 
         // Solo enviamos masterId si es diferente al ID de la reserva actual
