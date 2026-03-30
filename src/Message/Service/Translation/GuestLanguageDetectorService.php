@@ -34,13 +34,12 @@ class GuestLanguageDetectorService
             return $fallback;
         }
 
-        $result = $this->detector->detect($cleanText)->bestResults()->first();
+        // El método detect() devuelve un objeto LanguageResult.
+        // Al castearlo a (string), la librería devuelve automáticamente
+        // el código ISO del idioma con mayor puntuación (ej. 'es').
+        $detectedCode = (string) $this->detector->detect($cleanText);
 
-        // Pedimos un nivel de confianza estricto (80%) para evitar falsos positivos
-        if ($result && $result->getScore() > 0.8) {
-            return (string) $result->getLanguage();
-        }
-
-        return $fallback;
+        // Si por alguna razón no logra detectar nada, devolvemos el fallback
+        return $detectedCode ?: $fallback;
     }
 }
