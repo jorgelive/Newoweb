@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Message\EventListener;
 
 use App\Message\Entity\Message;
-use App\Message\Service\MessageTranslator;
+use App\Message\Service\Translation\MessageTranslator;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;

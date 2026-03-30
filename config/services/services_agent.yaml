@@ -1,0 +1,24 @@
+# config/services/services_agent.yaml
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\Agent\:
+        resource: '../../src/Agent/'
+        exclude:
+            - '../../src/Agent/Dto/'
+            - '../../src/Agent/Entity/'
+
+    # =========================
+    # controllers del módulo Pms
+    # (fuera de src/Controller/)
+    # =========================
+    App\Agent\Controller\:
+        resource: '../../src/Agent/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+            - 'controller.service_arguments'
+

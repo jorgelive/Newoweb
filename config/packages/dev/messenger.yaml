@@ -1,6 +1,7 @@
 framework:
     messenger:
         routing:
-            # 🔥 2. Redirigimos solo este mensaje al transporte síncrono en dev.
-            # Los demás (como RunExchangeTaskDispatch) seguirán en async.
+            #este es peligroso solo usar para mensajes y deshabilitar
+            App\Exchange\Dispatch\RunExchangeTaskDispatch: sync
+
             App\Pms\Dispatch\ProcessBeds24WebhookDispatch: sync

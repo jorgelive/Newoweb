@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller;
 
+use App\Agent\Entity\AutoResponderRule;
 use App\Entity\Maestro\MaestroDocumentoTipo;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Entity\Maestro\MaestroMoneda;
@@ -168,6 +169,13 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkToCrud('Tareas / Actividades', 'fa fa-clipboard-list', PmsEventAssignmentActivity::class),
                 MenuItem::linkToCrud('Estados de Evento', 'fa fa-tag', PmsEventoEstado::class),
                 MenuItem::linkToCrud('Estados de Pago', 'fa fa-credit-card', PmsEventoEstadoPago::class),
+            ])
+            ->setPermission(Roles::MAESTROS_SHOW);
+
+        yield MenuItem::subMenu('Bot & IA (AutoResponder)', 'fa fa-brain')
+            ->setSubItems([
+                MenuItem::linkToCrud('Reglas Deterministas', 'fa fa-bolt', AutoResponderRule::class),
+                // Aquí en el futuro puedes agregar: MenuItem::linkToCrud('Prompts de IA', 'fa fa-comment-dots', AiPrompt::class)
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 

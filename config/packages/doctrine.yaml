@@ -32,6 +32,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Oweb/Entity'
                 prefix: 'App\Oweb\Entity'
                 alias: oweb
+            Agent:
+                is_bundle: false
+                type: attribute
+                dir: '%kernel.project_dir%/src/Agent/Entity'
+                prefix: 'App\Agent\Entity'
+                alias: agent
             Pms:
                 is_bundle: false
                 type: attribute

@@ -1,4 +1,3 @@
-// Separado para la declaración de Pinia store
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef } from 'vue';
 import axios, { InternalAxiosRequestConfig } from 'axios';
@@ -47,7 +46,6 @@ export interface ApiMessage {
         };
         dispatch_errors?: string[];
         dispatch_warnings?: string[];
-        // (Opcional) Si en el futuro quieres permitir cualquier otra llave dinámica en la raíz de metadata:
         [key: string]: any;
     };
     channel?: { id: string; name: string } | string;
@@ -88,6 +86,8 @@ export interface ApiConversation {
     contextMilestones: { start?: string; end?: string; booked_at?: string; eta?: string; };
     contextItems: string[];
     whatsappSessionActive?: boolean;
+    whatsappDisabled?: boolean;
+    whatsappDisabledReason?: string | null;
 }
 
 export const useChatStore = defineStore('chatStore', () => {

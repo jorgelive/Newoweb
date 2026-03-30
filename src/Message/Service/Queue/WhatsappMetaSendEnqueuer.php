@@ -41,6 +41,14 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
             throw new RuntimeException('El mensaje no tiene una conversación asociada.');
         }
 
+        // 🔥 VALIDACIÓN DE CANAL HABILITADO
+        if ($conversation->isWhatsappDisabled()) {
+            throw new RuntimeException(sprintf(
+                'Envío cancelado: El canal WhatsApp para esta conversación está DESHABILITADO. Motivo: %s',
+                $conversation->getWhatsappDisabledReason() ?? 'Desconocido'
+            ));
+        }
+
         // =========================================================================
         // 1. CONFIGURACIÓN BASE COMPARTIDA
         // =========================================================================

@@ -146,6 +146,13 @@ class MessageConversationCrudController extends BaseCrudController
         yield TextField::new('guestName', 'Nombre Completo')->setColumns(4);
         yield TextField::new('guestPhone', 'Teléfono / WhatsApp')->setColumns(4);
 
+        yield FormField::addPanel('Control de Canales')->setIcon('fa fa-shield-alt');
+        yield BooleanField::new('whatsappDisabled', 'WhatsApp Deshabilitado')
+            ->renderAsSwitch(true)
+            ->setColumns(3);
+        yield TextField::new('whatsappDisabledReason', 'Motivo del Bloqueo')
+            ->setColumns(9);
+
         yield AssociationField::new('idioma', 'Idioma')
             ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->andWhere('entity.prioridad > 0')->orderBy('entity.prioridad', 'DESC'))
             ->setRequired(true)

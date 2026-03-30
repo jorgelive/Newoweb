@@ -60,6 +60,7 @@ const activeTab = ref<'history' | 'scheduled'>('history');
 const selectedTemplateId = ref<string | null>(null);
 const showTemplateDropdown = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
+const messageTextarea = ref<HTMLTextAreaElement | null>(null);
 const selectedChannels = ref<string[]>([]);
 
 const isPreviewModalOpen = ref(false);
@@ -148,9 +149,7 @@ watch(() => store.error, (v) => {
 });
 
 // ============================================================================
-// NUEVO: Normaliza el status visual de un mensaje considerando sus queues.
-// Si todas las queues están canceladas, el mensaje se muestra como cancelado
-// aunque el campo `status` del Message diga otra cosa.
+// NORMALIZACIÓN DE STATUS
 // ============================================================================
 const getMessageDisplayStatus = (msg: ApiMessage): string => {
   if (msg.status === 'cancelled') return 'cancelled';
@@ -191,6 +190,9 @@ const isWhatsappAllowed = computed(() => {
   const chat = store.currentConversation;
   if (!chat) return false;
 
+  // 🛑 Bloqueo total si el canal fue marcado como deshabilitado
+  if (chat.whatsappDisabled) return false;
+
   const sessionActive = chat.whatsappSessionActive;
 
   if (selectedTemplateId.value) {
@@ -217,7 +219,7 @@ watch(() => store.currentConversation, (chat) => {
 
   const newChannels: string[] = [];
   if (isBeds24Allowed.value) newChannels.push('beds24');
-  if (chat?.whatsappSessionActive) newChannels.push('whatsapp_meta');
+  if (chat?.whatsappSessionActive && !chat?.whatsappDisabled) newChannels.push('whatsapp_meta');
 
   selectedChannels.value = newChannels;
 });
@@ -257,6 +259,9 @@ const toggleChannel = (channel: string) => {
         return;
       }
     }
+    if (channel === 'whatsapp_meta') {
+      if (!isWhatsappAllowed.value) return;
+    }
     selectedChannels.value.push(channel);
   }
 };
@@ -267,8 +272,11 @@ const selectTemplate = (tpl: ApiTemplate) => {
 
   let newChannels = tpl.channels || [];
 
-  const sessionActive = store.currentConversation?.whatsappSessionActive;
-  if (!sessionActive && tpl.whatsappMetaOfficial === false) {
+  const chat = store.currentConversation;
+  const sessionActive = chat?.whatsappSessionActive;
+
+  // Excluimos whatsapp si está deshabilitado permanentemente o no hay sesión
+  if (chat?.whatsappDisabled || (!sessionActive && tpl.whatsappMetaOfficial === false)) {
     newChannels = newChannels.filter(c => c !== 'whatsapp_meta');
   }
 
@@ -281,7 +289,7 @@ const clearTemplate = () => {
   const chat = store.currentConversation;
   if (chat) {
     if (isBeds24Allowed.value) restoredChannels.push('beds24');
-    if (chat.whatsappSessionActive) restoredChannels.push('whatsapp_meta');
+    if (chat.whatsappSessionActive && !chat.whatsappDisabled) restoredChannels.push('whatsapp_meta');
   }
   selectedChannels.value = restoredChannels;
 };
@@ -302,6 +310,13 @@ const onFileSelected = (event: Event) => {
   if (fileInput.value) fileInput.value.value = '';
 };
 
+const adjustTextareaHeight = () => {
+  if (!messageTextarea.value) return;
+  messageTextarea.value.style.height = 'auto';
+  const newHeight = Math.min(messageTextarea.value.scrollHeight, 150);
+  messageTextarea.value.style.height = `${newHeight}px`;
+};
+
 const send = async () => {
   if (!newMessageText.value.trim() && !selectedTemplateId.value && !attachmentStore.file) return;
   if (selectedChannels.value.length === 0 && !selectedTemplateId.value) {
@@ -312,7 +327,7 @@ const send = async () => {
   const isWhatsappSelected = selectedChannels.value.includes('whatsapp_meta');
 
   if (isWhatsappSelected && !isWhatsappAllowed.value) {
-    store.error = 'WhatsApp no permitido (Revisa la sesión o la configuración de la plantilla).';
+    store.error = 'WhatsApp no permitido (Revisa la sesión, la configuración de la plantilla o si el número fue bloqueado).';
     return;
   }
 
@@ -320,6 +335,11 @@ const send = async () => {
   newMessageText.value = '';
   clearTemplate();
   showTemplateDropdown.value = false;
+
+  await nextTick();
+  if (messageTextarea.value) {
+    messageTextarea.value.style.height = 'auto';
+  }
 };
 
 const getChannelIcons = (msg: ApiMessage) => {
@@ -392,25 +412,18 @@ const formatFullDate = (iso?: string) => {
 const groupedMessages = computed(() => {
   const groups: Record<string, any[]> = {};
 
-  // 1. Copiamos el array para no mutar el estado original del store
   const sourceList = [...(activeTab.value === 'history' ? store.activeChatMessages : store.scheduledMessages)];
 
-  // 2. LA MAGIA ESTÁ AQUÍ: Ordenamos estrictamente de más antiguo a más nuevo.
-  // Esto garantiza que la posición visual sea siempre perfecta sin importar
-  // en qué orden los mandó la API o Mercure.
   sourceList.sort((a, b) => {
     const dateA = new Date(a.effectiveDateTime || a.createdAt).getTime();
     const dateB = new Date(b.effectiveDateTime || b.createdAt).getTime();
     return dateA - dateB;
   });
 
-  // 3. Agrupamos por fecha
   sourceList.forEach(msg => {
     const dateStr = msg.effectiveDateTime || msg.createdAt;
     if(!dateStr) return;
 
-    // Usamos el Date del navegador para evitar que la zona horaria UTC
-    // mueva los mensajes a un día incorrecto
     const dObj = new Date(dateStr);
     const year = dObj.getFullYear();
     const month = String(dObj.getMonth() + 1).padStart(2, '0');
@@ -643,8 +656,11 @@ const getDirectChannelId = (channel?: any): string | null => {
 
             <span v-if="store.currentConversation?.id === chat.id" class="absolute left-0 top-3 bottom-3 w-1.5 bg-[#376875] rounded-r-full block"></span>
 
-            <span class="w-11 h-11 rounded-xl text-white flex items-center justify-center shrink-0 font-black text-lg shadow-sm" :class="getOriginClass(chat.contextOrigin)">
+            <span class="w-11 h-11 rounded-xl text-white flex items-center justify-center shrink-0 font-black text-lg shadow-sm relative" :class="getOriginClass(chat.contextOrigin)">
               {{ chat.guestName?.charAt(0).toUpperCase() || '?' }}
+              <span v-if="chat.whatsappDisabled" class="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                 <i class="fas fa-exclamation-triangle text-red-500 text-[10px]" title="WhatsApp bloqueado/inválido"></i>
+              </span>
             </span>
 
             <span class="flex-1 min-w-0 flex flex-col justify-center">
@@ -750,10 +766,6 @@ const getDirectChannelId = (channel?: any): string | null => {
               <div class="space-y-6 flex flex-col mb-8">
                 <div v-for="msg in group" :key="msg.id" class="flex w-full" :class="msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'">
 
-                  <!--
-                    CAMBIO: añadimos la clase `msg-cancelled` cuando el status
-                    efectivo es cancelled. Aplica opacidad reducida a toda la burbuja.
-                  -->
                   <div
                       class="relative max-w-[85%] md:max-w-[70%] flex flex-col"
                       :class="[
@@ -827,7 +839,6 @@ const getDirectChannelId = (channel?: any): string | null => {
                             <i class="fas fa-cloud-download-alt text-[9px] opacity-50 mr-0.5" title="Sincronizado externamente"></i>
                             <i v-if="getDirectChannelId(msg.channel) === 'beds24'" class="fas fa-bed text-[#003580] opacity-60 text-[9px]"></i>
                             <i v-else-if="getDirectChannelId(msg.channel) === 'whatsapp_meta'" class="fab fa-whatsapp text-green-500 opacity-70 text-[10px]"></i>
-                            <!-- CAMBIO: usamos getMessageDisplayStatus para el status global -->
                             <MessageStatusIcon :status="getMessageDisplayStatus(msg)" />
                           </div>
                         </template>
@@ -843,7 +854,6 @@ const getDirectChannelId = (channel?: any): string | null => {
                                  :class="getDispatchError(msg, 'whatsapp') ? 'text-red-500' : 'text-green-500 opacity-70'"></i>
 
                               <i v-if="getDispatchError(msg, 'whatsapp')" class="fas fa-exclamation-circle text-red-500 text-[9px]"></i>
-                              <!-- CAMBIO: getWhatsappStatus ya detecta cancelled desde la queue -->
                               <MessageStatusIcon v-else :status="getWhatsappStatus(msg)" />
                             </span>
 
@@ -855,12 +865,10 @@ const getDirectChannelId = (channel?: any): string | null => {
                                  :class="getDispatchError(msg, 'beds24') ? 'text-red-500' : 'text-[#003580] opacity-60'"></i>
 
                               <i v-if="getDispatchError(msg, 'beds24')" class="fas fa-exclamation-circle text-red-500 text-[9px]"></i>
-                              <!-- CAMBIO: getBeds24Status ya detecta cancelled desde la queue -->
                               <MessageStatusIcon v-else :status="getBeds24Status(msg)" />
                             </span>
 
                             <span v-if="(!msg.whatsappMetaSendQueues?.length && !msg.metadata?.whatsappMeta?.sent_at && !getDispatchError(msg, 'whatsapp')) && (!msg.beds24SendQueues?.length && !msg.metadata?.beds24?.sent_at && !getDispatchError(msg, 'beds24'))">
-                              <!-- CAMBIO: status normalizado -->
                               <MessageStatusIcon :status="getMessageDisplayStatus(msg)" />
                             </span>
 
@@ -907,22 +915,32 @@ const getDirectChannelId = (channel?: any): string | null => {
               <i v-if="!isBeds24Allowed" class="fas fa-ban text-[9px] ml-0.5 opacity-50"></i>
             </button>
 
-            <button
-                @click="isWhatsappAllowed ? toggleChannel('whatsapp_meta') : null"
-                :disabled="!isWhatsappAllowed"
-                :class="[
-                  !isWhatsappAllowed
-                    ? 'bg-slate-50 text-slate-300 border-slate-100 opacity-60 cursor-not-allowed'
-                    : selectedChannels.includes('whatsapp_meta')
-                      ? 'bg-green-50 text-green-700 border-green-200 shadow-sm'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-800 shadow-sm'
-                ]"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0 relative"
-                :title="!isWhatsappAllowed ? 'Requiere sesión de 24h activa o una plantilla oficial con WhatsApp habilitado' : ''"
-            >
-              <i class="fab fa-whatsapp text-sm"></i> WhatsApp
-              <i v-if="!store.currentConversation?.whatsappSessionActive" class="fas fa-lock text-[10px] ml-1" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-700/50' : 'text-slate-400'" title="Sesión de 24h inactiva"></i>
-            </button>
+            <div class="relative group">
+              <button
+                  @click="isWhatsappAllowed ? toggleChannel('whatsapp_meta') : null"
+                  :disabled="!isWhatsappAllowed"
+                  :class="[
+                    store.currentConversation?.whatsappDisabled
+                      ? 'bg-red-50 text-red-400 border-red-100 opacity-60 cursor-not-allowed'
+                      : !isWhatsappAllowed
+                        ? 'bg-slate-50 text-slate-300 border-slate-100 opacity-60 cursor-not-allowed'
+                        : selectedChannels.includes('whatsapp_meta')
+                          ? 'bg-green-50 text-green-700 border-green-200 shadow-sm'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-800 shadow-sm'
+                  ]"
+                  class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 shrink-0 relative"
+              >
+                <i class="fab fa-whatsapp text-sm"></i> WhatsApp
+
+                <i v-if="store.currentConversation?.whatsappDisabled" class="fas fa-exclamation-triangle text-red-500 animate-pulse ml-1 text-[10px]" title="Canal Bloqueado"></i>
+                <i v-else-if="!store.currentConversation?.whatsappSessionActive" class="fas fa-lock text-[10px] ml-1" :class="selectedChannels.includes('whatsapp_meta') ? 'text-green-700/50' : 'text-slate-400'" title="Sesión de 24h inactiva"></i>
+              </button>
+
+              <div v-if="store.currentConversation?.whatsappDisabled" class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-red-600 text-white text-[9px] p-2 rounded shadow-lg z-[100] w-48 text-center font-black uppercase tracking-tighter whitespace-normal">
+                {{ store.currentConversation?.whatsappDisabledReason || 'Canal bloqueado por error de Meta' }}
+              </div>
+            </div>
+
           </div>
 
           <Transition name="fade-slide">
@@ -980,7 +998,15 @@ const getDirectChannelId = (channel?: any): string | null => {
                 </div>
                 <button type="button" @click="clearTemplate()" class="w-6 h-6 shrink-0 rounded-full hover:bg-red-50 text-red-400 flex items-center justify-center ml-2"><i class="fas fa-times text-xs"></i></button>
               </div>
-              <textarea v-else v-model="newMessageText" @keydown.enter.exact.prevent="send" placeholder="Escribe tu mensaje..." class="w-full bg-transparent border-0 focus:ring-0 resize-none py-2 px-2 text-sm font-semibold text-slate-800 scrollbar-hide" rows="1"></textarea>
+              <textarea
+                  v-else
+                  ref="messageTextarea"
+                  v-model="newMessageText"
+                  @input="adjustTextareaHeight"
+                  placeholder="Escribe tu mensaje..."
+                  class="w-full bg-transparent border-0 focus:ring-0 resize-none py-2 px-2 text-sm font-semibold text-slate-800 scrollbar-hide overflow-y-auto"
+                  rows="1"
+              ></textarea>
             </div>
 
             <button type="submit" :disabled="(!newMessageText.trim() && !selectedTemplateId && !attachmentStore.file) || store.sendingMessage" class="w-10 h-10 shrink-0 bg-[#E07845] text-white rounded-full flex items-center justify-center shadow-md hover:scale-105 transition-all disabled:opacity-30 mb-0.5">
@@ -1043,7 +1069,6 @@ const getDirectChannelId = (channel?: any): string | null => {
 textarea { outline: none; }
 .whitespace-pre-wrap span { white-space: pre-wrap; word-break: break-word; }
 
-/* NUEVO: opacidad reducida para mensajes cancelados */
 .msg-cancelled {
   opacity: 0.45;
   transition: opacity 0.2s ease;

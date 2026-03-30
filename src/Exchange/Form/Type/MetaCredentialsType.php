@@ -1,8 +1,7 @@
 <?php
-
 declare(strict_types=1);
 
-namespace App\Message\Form\Type;
+namespace App\Exchange\Form\Type;
 
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
@@ -15,24 +14,27 @@ class MetaCredentialsType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('apiKey', PasswordType::class, [
+            ->add('apiKey', TextType::class, [
                 'label' => 'System User Access Token (API Key)',
+                'label_attr' => ['style' => 'display: block !important;'],
                 'help' => 'El Token permanente generado desde el Business Manager.',
-                'attr' => ['placeholder' => 'EAAl7O2...'],
-                'always_empty' => false,
+                'attr' => ['placeholder' => 'EAAl7O2...']
             ])
             ->add('wabaId', TextType::class, [
                 'label' => 'WhatsApp Business Account ID (WABA ID)',
-                'help' => 'ID único de la cuenta comercial.',
+                'label_attr' => ['style' => 'display: block !important;'],
+                'help' => 'ID único de la cuenta comercial',
                 'attr' => ['placeholder' => '1278660194188157'],
             ])
             ->add('phoneId', TextType::class, [ // <-- NUEVO CAMPO
                 'label' => 'Phone Number ID',
-                'help' => 'Identificador del número de teléfono desde el cual se envían los mensajes.',
+                'label_attr' => ['style' => 'display: block !important;'],
+                'help' => 'Phone Number ID Identificador del número de teléfono desde el cual se envían los mensajes.',
                 'attr' => ['placeholder' => '979596945245997'],
             ])
             ->add('verifyToken', TextType::class, [
                 'label' => 'Webhook Verify Token',
+                'label_attr' => ['style' => 'display: block !important;'],
                 'help' => 'String aleatorio para validar el handshake del Webhook.',
                 'attr' => ['placeholder' => 'Cusco_Secure_2026'],
             ]);

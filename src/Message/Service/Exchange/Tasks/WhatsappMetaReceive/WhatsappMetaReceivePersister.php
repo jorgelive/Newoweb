@@ -11,6 +11,7 @@ use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Service\MessageJsonMerger;
+use App\Message\Service\Translation\GuestLanguageDetectorService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
@@ -20,19 +21,17 @@ use Throwable;
 
 /**
  * Motor central de persistencia para WhatsApp Meta.
- * Agnóstico al transporte: Llamado por el Fast-Track (Webhooks) o por Workers (Pull).
- * * Este servicio se encarga de traducir los webhooks brutos de Meta en entidades locales,
- * respetando estrictamente las reglas de negocio de MessageConversation (Walk-ins, idiomas,
- * ventanas de 24h y contadores de mensajes no leídos).
+ * SRP: Recibe, detecta idioma localmente, enruta intención, bloquea canal si hay rebote duro y persiste rápido.
  */
 readonly class WhatsappMetaReceivePersister
 {
     public function __construct(
-        private EntityManagerInterface   $em,
-        private MessageAttachmentFactory $attachmentFactory,
-        private HttpClientInterface      $httpClient,
-        private LoggerInterface          $logger,
-        private MessageJsonMerger        $merger
+        private EntityManagerInterface       $em,
+        private MessageAttachmentFactory     $attachmentFactory,
+        private HttpClientInterface          $httpClient,
+        private LoggerInterface              $logger,
+        private MessageJsonMerger            $merger,
+        private GuestLanguageDetectorService $languageDetector
     ) {}
 
     /**
@@ -77,57 +76,159 @@ readonly class WhatsappMetaReceivePersister
         // 5. PROCESAMIENTO DE CONTENIDO
         // =====================================================================
         $type = $messageData['type'] ?? 'text';
+        $currentConversationLang = $conversation->getIdioma()?->getId() ?? 'es';
+
+        $baseIntent = [
+            'context_type'   => $conversation->getContextType(),
+            'context_id'     => $conversation->getContextId(),
+            'source_channel' => 'whatsapp_meta',
+            'source_ota'     => $conversation->getContextOrigin(),
+            'resolved'       => false
+        ];
 
         if ($type === 'text') {
-            $message->setContentExternal($messageData['text']['body'] ?? '');
+            $textoRecibido = trim($messageData['text']['body'] ?? '');
+
+            $message->setContentExternal($textoRecibido);
+            $message->setContentLocal($textoRecibido);
+
+            $detectedLangCode = 'es';
+            if (!empty($textoRecibido)) {
+                $detectedLangCode = $this->languageDetector->detectLanguageCode($textoRecibido, $currentConversationLang);
+            }
+
+            $message->setLanguageCode($detectedLangCode);
+
+            if ($detectedLangCode !== $currentConversationLang) {
+                $newIdiomaEntity = $this->em->getRepository(MaestroIdioma::class)->find($detectedLangCode);
+                if ($newIdiomaEntity) {
+                    $conversation->setIdioma($newIdiomaEntity);
+                }
+            }
+
+            $intent = array_merge($baseIntent, [
+                'category'    => 'free_text',
+                'action_code' => 'TXT_FREE'
+            ]);
+
+            // 🎯 INTERCEPTOR DE MENÚS (Basado estrictamente en el último estado absoluto)
+            if (strlen($textoRecibido) <= 20) {
+                if (preg_match('/^(?:opci[oó]n|opc|opt|option|n[uú]mero|num|#)?\s*(\d{1,2})$/i', $textoRecibido, $matches)) {
+                    $opcionElegida = (int) $matches[1];
+
+                    // Buscamos el ABSOLUTO ÚLTIMO mensaje (sin importar dirección ni tipo)
+                    $lastMessage = $this->em->getRepository(Message::class)->findOneBy(
+                        ['conversation' => $conversation],
+                        ['createdAt' => 'DESC']
+                    );
+
+                    // Solo procesamos si el mensaje INMEDIATAMENTE ANTERIOR fue la plantilla
+                    if ($lastMessage && $lastMessage->getTemplate() !== null) {
+                        $metaJson = $lastMessage->getTemplate()->getWhatsappMetaTmpl();
+                        $quickReplies = array_filter(
+                            $metaJson['buttons_map'] ?? [],
+                            fn($b) => strtolower($b['type'] ?? '') === 'quick_reply'
+                        );
+                        $quickRepliesList = array_values($quickReplies);
+
+                        if (isset($quickRepliesList[$opcionElegida - 1])) {
+                            $matchedButton = $quickRepliesList[$opcionElegida - 1];
+                            $payloadOriginal = $matchedButton['payload'] ?? $matchedButton['resolver_key'] ?? null;
+
+                            if ($payloadOriginal) {
+                                $intent['category'] = 'deterministic';
+                                $intent['action_code'] = $payloadOriginal;
+                            }
+                        }
+                    }
+                }
+            }
+            $message->setInboundIntent($intent);
+
         } elseif ($type === 'button') {
-            // Respuestas a botones de plantillas antiguas (Quick Replies)
-            $btnText = $messageData['button']['text'] ?? 'Botón seleccionado';
-            $message->setContentExternal("🔘 [Respuesta rápida]: " . $btnText);
+            $payload = $messageData['button']['payload'] ?? 'BTN_UNKNOWN';
+            $btnText = $messageData['button']['text'] ?? 'Botón';
+            $textoBoton = "🔘 [Respuesta rápida]: " . $btnText;
+
+            $message->setContentExternal($textoBoton);
+            $message->setContentLocal($textoBoton);
+            $message->setLanguageCode($currentConversationLang);
+
+            $message->setInboundIntent(array_merge($baseIntent, [
+                'category'    => 'deterministic',
+                'action_code' => $payload
+            ]));
+
         } elseif ($type === 'interactive') {
             // Respuestas a botones nuevos o listas de opciones
             $intType = $messageData['interactive']['type'] ?? '';
+            $textoInt = '🤖 [Interacción no soportada]';
+            $payload = 'UNKNOWN';
+
             if ($intType === 'button_reply') {
-                $btnText = $messageData['interactive']['button_reply']['title'] ?? 'Botón';
-                $message->setContentExternal("🔘 [Botón interactivo]: " . $btnText);
+                $payload = $messageData['interactive']['button_reply']['id'] ?? 'BTN_UNKNOWN';
+                $textoInt = "🔘 [Botón interactivo]: " . ($messageData['interactive']['button_reply']['title'] ?? 'Botón');
             } elseif ($intType === 'list_reply') {
-                $listText = $messageData['interactive']['list_reply']['title'] ?? 'Opción';
-                $message->setContentExternal("📋 [Opción de lista]: " . $listText);
-            } else {
-                $message->setContentExternal('🤖 [Interacción no soportada]');
+                $payload = $messageData['interactive']['list_reply']['id'] ?? 'LST_UNKNOWN';
+                $textoInt = "📋 [Opción de lista]: " . ($messageData['interactive']['list_reply']['title'] ?? 'Opción');
             }
+
+            $message->setContentExternal($textoInt);
+            $message->setContentLocal($textoInt);
+            $message->setLanguageCode($currentConversationLang);
+
+            $message->setInboundIntent(array_merge($baseIntent, [
+                'category'    => 'deterministic',
+                'action_code' => $payload
+            ]));
+
         } elseif (in_array($type, ['image', 'document', 'audio', 'video', 'sticker'])) {
             // Manejo de Archivos Multimedia
             $mediaId = $messageData[$type]['id'] ?? null;
             $mimeType = $messageData[$type]['mime_type'] ?? 'application/octet-stream';
             $fileName = $messageData[$type]['filename'] ?? ($type . '_' . uniqid() . '.file');
+            $textoMedia = "🚫 [Archivo multimedia sin ID válido]";
 
             if ($mediaId) {
                 // Descargamos el binario de los servidores de Meta
                 $base64Data = $this->downloadMediaFromMeta($mediaId);
-
                 if ($base64Data) {
                     try {
                         $attachment = $this->attachmentFactory->createFromBase64($base64Data, $fileName, $mimeType);
                         $message->addAttachment($attachment);
                         $this->em->persist($attachment);
-                        $message->setContentExternal("📦 [" . ucfirst($type) . " recibido]");
+                        $textoMedia = "📦 [" . ucfirst($type) . " recibido]";
+
+                        $message->setInboundIntent(array_merge($baseIntent, [
+                            'category'    => 'free_text',
+                            'action_code' => 'MULTIMEDIA'
+                        ]));
                     } catch (Throwable $e) {
                         $this->logger->error("Error creando adjunto WA: " . $e->getMessage());
-                        $message->setContentExternal("🚫 [Error procesando archivo multimedia]");
+                        $textoMedia = "🚫 [Error procesando archivo multimedia]";
                     }
                 } else {
-                    $message->setContentExternal("🚫 [Archivo multimedia expirado o inaccesible]");
+                    $textoMedia = "🚫 [Archivo multimedia expirado o inaccesible]";
                 }
-            } else {
-                $message->setContentExternal("🚫 [Archivo multimedia sin ID válido]");
             }
+
+            $message->setContentExternal($textoMedia);
+            $message->setContentLocal($textoMedia);
+            $message->setLanguageCode($currentConversationLang);
+
         } elseif ($type === 'location') {
             $lat = $messageData['location']['latitude'] ?? '';
             $lng = $messageData['location']['longitude'] ?? '';
-            $message->setContentExternal("📍 [Ubicación compartida]: https://maps.google.com/?q={$lat},{$lng}");
+            $textoLoc = "📍 [Ubicación compartida]: https://maps.google.com/?q={$lat},{$lng}";
+
+            $message->setContentExternal($textoLoc);
+            $message->setContentLocal($textoLoc);
+            $message->setLanguageCode($currentConversationLang);
         } else {
-            $message->setContentExternal("🤖 [Tipo de mensaje no soportado: {$type}]");
+            $textoFail = "🤖 [Tipo de mensaje no soportado: {$type}]";
+            $message->setContentExternal($textoFail);
+            $message->setContentLocal($textoFail);
+            $message->setLanguageCode($currentConversationLang);
         }
 
         // =====================================================================
@@ -161,8 +262,8 @@ readonly class WhatsappMetaReceivePersister
         if (!$message) return;
 
         $isoDate = $timestamp
-                ? new DateTimeImmutable("@$timestamp")->format('Y-m-d\TH:i:s\Z')
-                : new DateTimeImmutable()->format('Y-m-d\TH:i:s\Z');
+            ? new DateTimeImmutable("@$timestamp")->format('Y-m-d\TH:i:s\Z')
+            : new DateTimeImmutable()->format('Y-m-d\TH:i:s\Z');
 
         $metaDataToMerge = [];
         $newStatus = null;
@@ -185,7 +286,9 @@ readonly class WhatsappMetaReceivePersister
             }
         } elseif ($status === 'failed') {
             $errorInfo = $statusData['errors'][0] ?? [];
-            $metaDataToMerge['error_code'] = (string)($errorInfo['code'] ?? 'unknown');
+            $errorCode = (string)($errorInfo['code'] ?? 'unknown');
+
+            $metaDataToMerge['error_code'] = $errorCode;
             $metaDataToMerge['error_reason'] = $errorInfo['message'] ?? json_encode($statusData['errors'] ?? [], JSON_UNESCAPED_UNICODE);
 
             // Si falla, aquí sí es válido forzar el status global a FAILED
@@ -193,17 +296,52 @@ readonly class WhatsappMetaReceivePersister
             if ($message->getStatus() !== Message::STATUS_READ) {
                 $newStatus = Message::STATUS_FAILED;
             }
+
+            // 🚩 ALERTAS DE ENRUTAMIENTO Y BLOQUEO CRÍTICO
+            $criticalErrors = [
+                '131026', // El número no existe (No perder más tiempo aquí)
+                '131051', // Bloqueo por Salud del Ecosistema (Peligro de baneo)
+                '131049', // Ventana cerrada (Obligatorio usar plantilla)
+                '131056', // Sandbox / No verificado
+                '131030', // Recipiente inválido
+            ];
+
+            if (in_array($errorCode, $criticalErrors, true)) {
+                $metaDataToMerge['inbound_intent'] = [
+                    'category'       => 'system_alert',
+                    'action_code'    => 'ERR_' . $errorCode,
+                    'source_channel' => 'whatsapp_meta',
+                    'context_id'     => $message->getConversation()->getContextId(),
+                    'resolved'       => false,
+                    'payload'        => [
+                        'error_message' => $metaDataToMerge['error_reason'] ?? 'Error desconocido'
+                    ]
+                ];
+            }
+
+            // 🛑 BLOQUEO PERMANENTE DEL CANAL EN LA CONVERSACIÓN
+            $permanentErrors = ['131026', '131051', '131030'];
+            if (in_array($errorCode, $permanentErrors, true)) {
+                $conversation = $message->getConversation();
+                if ($conversation !== null) {
+                    // Solo actualizamos si no estaba ya deshabilitado para no sobreescribir el primer motivo original
+                    if (!$conversation->isWhatsappDisabled()) {
+                        $conversation->setWhatsappDisabled(true);
+                        $conversation->setWhatsappDisabledReason(sprintf('Meta Error %s: %s', $errorCode, $metaDataToMerge['error_reason'] ?? 'Número inválido'));
+                        $this->em->persist($conversation);
+                    }
+                }
+            }
         }
 
-        // 1. 🔥 Operación Atómica de Webhook
         if (!empty($metaDataToMerge)) {
             // Operación Atómica para fusionar los datos de Webhook sin borrar lo de Beds24
             $this->merger->merge(
-                    $message,
-                    'whatsappMeta',
-                    $metaDataToMerge,
-                    'whatsapp_meta',
-                    $metaMessageId
+                $message,
+                'whatsappMeta',
+                $metaDataToMerge,
+                'whatsapp_meta',
+                $metaMessageId
             );
         }
 
@@ -233,6 +371,8 @@ readonly class WhatsappMetaReceivePersister
         $message->setSenderType(Message::SENDER_SYSTEM);
         $message->setStatus(Message::STATUS_RECEIVED);
         $message->setContentExternal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
+        $message->setContentLocal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
+        $message->setLanguageCode($conversation->getIdioma()?->getId() ?? 'es');
 
         $timestamp = $callData['timestamp'] ?? time();
         $message->setCreatedAt(new DateTimeImmutable()->setTimestamp((int)$timestamp));

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Pms\MessageHandler;
+namespace App\Pms\DispatchHandler;
 
 use App\Exchange\Entity\Beds24Config;
 use App\Exchange\Service\Context\SyncContext;

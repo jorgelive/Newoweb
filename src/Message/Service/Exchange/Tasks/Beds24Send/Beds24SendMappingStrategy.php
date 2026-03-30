@@ -58,7 +58,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                     ];
                     $correlation[$index] = (string)$item->getId();
                 }
-                continue; // Saltamos la lógica de generación de texto y adjuntos
+                continue;
             }
 
 
@@ -67,14 +67,14 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             // =================================================================
             $conversation = $msg->getConversation();
             $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
+            $internalLang = strtolower($conversation->getIdioma()?->getId() ?? 'es');
 
             // 1. EXTRACCIÓN DE CONTENIDO Y PLANTILLA
             $content = '';
             $template = $msg->getTemplate();
 
             if ($template !== null) {
-                $language = $msg->getConversation()->getIdioma()?->getId() ?? 'es';
-                $content = (string) $template->getBeds24Body($language);
+                $content = (string) $template->getBeds24Body($internalLang);
             }
 
             if (empty(trim($content))) {
@@ -86,12 +86,11 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 $content = trim($subject) . "\n\n" . trim($content);
             }
 
-            // 2. INTERPOLACIÓN DE VARIABLES (Soporta {{ var }} y {{var}})
-            if ($resolver !== null && str_contains($content, '{{')) {
-                $variables = $resolver->getMessageVariables($conversation->getContextId());
+            // Extraemos las variables una sola vez para usarlas en texto y botones
+            $variables = $resolver !== null ? $resolver->getMessageVariables($conversation->getContextId()) : [];
 
-                // Usamos una expresión regular para encontrar cualquier contenido entre {{ }}
-                // \s* permite espacios opcionales
+            // 2. INTERPOLACIÓN DE VARIABLES (Soporta {{ var }} y {{var}})
+            if (!empty($variables) && str_contains($content, '{{')) {
                 $content = preg_replace_callback('/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/', function ($matches) use ($variables) {
                     $key = trim($matches[1]);
                     // Si la variable existe en nuestro resolver, la ponemos; si no, dejamos el tag original
@@ -99,7 +98,51 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 }, $content);
             }
 
-            // 3. EXTRACCIÓN DEL ADJUNTO (Vich Uploader)
+            // 3. 🎯 RENDERIZADO OMNICANAL DE BOTONES (FUENTE: META)
+            if ($template !== null) {
+                $metaJson = $template->getWhatsappMetaTmpl();
+
+                if (!empty($metaJson['buttons_map'])) {
+                    $menuTexts = $this->getMenuTranslations($internalLang);
+                    $metaLang = $this->normalizeLanguageForMeta($internalLang);
+
+                    $content .= "\n\n" . $menuTexts['header'] . "\n\n";
+                    $quickReplyIndex = 1;
+
+                    foreach ($metaJson['buttons_map'] as $btn) {
+                        $btnType = strtolower($btn['type'] ?? '');
+
+                        $btnText = $menuTexts['default_btn'];
+                        foreach ($btn['button_text'] ?? [] as $tr) {
+                            if ($this->normalizeLanguageForMeta(strtolower($tr['language'])) === $metaLang) {
+                                $btnText = $tr['content'];
+                                break;
+                            }
+                        }
+
+                        if ($btnType === 'url') {
+                            $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
+                            $fallbackKey = str_ends_with($resolverKey, '_path') ? str_replace('_path', '_url', $resolverKey) : $resolverKey;
+                            $urlValue = (string) ($variables[$fallbackKey] ?? $variables[$resolverKey] ?? '');
+
+                            if ($urlValue !== '') {
+                                $content .= "🔗 *" . trim($btnText) . "*:\n" . $urlValue . "\n\n";
+                            }
+                        } elseif ($btnType === 'quick_reply') {
+                            $content .= $quickReplyIndex . "️⃣ *" . trim($btnText) . "*\n\n";
+                            $quickReplyIndex++;
+                        }
+                    }
+
+                    if ($quickReplyIndex > 1) {
+                        $content = rtrim($content) . "\n\n" . $menuTexts['footer'];
+                    } else {
+                        $content = rtrim($content);
+                    }
+                }
+            }
+
+            // 4. EXTRACCIÓN DEL ADJUNTO (Vich Uploader)
             $attachment = $msg->getAttachments()->first() ?: null;
 
             // FIX: Prevención de rechazo por mensaje vacío en Beds24
@@ -111,7 +154,7 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 $content = '(Mensaje sin texto)';
             }
 
-            // 4. CONSTRUCCIÓN DEL PAYLOAD FINAL
+            // 5. CONSTRUCCIÓN DEL PAYLOAD FINAL
             $messagePayload = [
                 'bookingId' => (int) $item->getTargetBookId(),
                 'message'   => trim($content),
@@ -173,5 +216,55 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
         }
 
         return $results;
+    }
+
+    /**
+     * Diccionario rápido para los textos de la interfaz emulada.
+     */
+    private function getMenuTranslations(string $lang): array
+    {
+        $translations = [
+            'es' => [
+                'header' => '*— Opciones —*',
+                'footer' => '_👉 Responde con el número de tu opción._',
+                'default_btn' => 'Opción'
+            ],
+            'en' => [
+                'header' => '*— Options —*',
+                'footer' => '_👉 Reply with the number of your option._',
+                'default_btn' => 'Option'
+            ],
+            'pt' => [
+                'header' => '*— Opções —*',
+                'footer' => '_👉 Responda com o número da sua opção._',
+                'default_btn' => 'Opção'
+            ],
+            'fr' => [
+                'header' => '*— Options —*',
+                'footer' => '_👉 Répondez avec le numéro de votre option._',
+                'default_btn' => 'Option'
+            ],
+            'it' => [
+                'header' => '*— Opzioni —*',
+                'footer' => '_👉 Rispondi con il numero della tua opzione._',
+                'default_btn' => 'Opzione'
+            ],
+            'de' => [
+                'header' => '*— Optionen —*',
+                'footer' => '_👉 Antworten Sie mit der Nummer Ihrer Option._',
+                'default_btn' => 'Option'
+            ]
+        ];
+
+        return $translations[$lang] ?? $translations['en'];
+    }
+
+    /**
+     * Normaliza el idioma local al estándar de Meta Cloud API.
+     */
+    private function normalizeLanguageForMeta(string $lang): string
+    {
+        $map = ['pt' => 'pt_BR'];
+        return $map[$lang] ?? $lang;
     }
 }

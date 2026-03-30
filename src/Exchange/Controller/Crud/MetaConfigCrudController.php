@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Exchange\Controller\Crud;
 
 use App\Exchange\Entity\MetaConfig;
-use App\Message\Form\Type\MetaCredentialsType;
+use App\Exchange\Form\Type\MetaCredentialsType;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -105,7 +105,7 @@ class MetaConfigCrudController extends BaseCrudController
             ->setHelp('Ej: WhatsApp Producción Hotel')
             ->setColumns(8);
 
-        yield BooleanField::new('activo', '¿En Producción?')
+        yield BooleanField::new('activo', 'Activo')
             ->renderAsSwitch(true)
             ->setColumns(4);
 

@@ -25,6 +25,10 @@ class MercureConversationDto implements JsonSerializable
     private int $unreadCount;
     private ?string $createdAt;
     private bool $whatsappSessionActive;
+
+    private bool $whatsappDisabled;
+    private ?string $whatsappDisabledReason;
+
     private ?string $contextOrigin;
     private ?string $contextStatusTag;
     private array $contextMilestones = [];
@@ -48,6 +52,10 @@ class MercureConversationDto implements JsonSerializable
         $this->unreadCount = $conversation->getUnreadCount();
         $this->createdAt = $conversation->getCreatedAt() ? $conversation->getCreatedAt()->format(DateTimeInterface::ATOM) : null;
         $this->whatsappSessionActive = $conversation->isWhatsappSessionActive();
+
+        $this->whatsappDisabled = $conversation->isWhatsappDisabled();
+        $this->whatsappDisabledReason = $conversation->getWhatsappDisabledReason();
+
         $this->contextOrigin = $conversation->getContextOrigin();
         $this->contextStatusTag = $conversation->getContextStatusTag();
         $this->contextMilestones = $conversation->getContextMilestones();
@@ -75,6 +83,10 @@ class MercureConversationDto implements JsonSerializable
                 'unreadCount' => $this->getUnreadCount(),
                 'createdAt' => $this->getCreatedAt(),
                 'whatsappSessionActive' => $this->isWhatsappSessionActive(),
+
+                'whatsappDisabled' => $this->isWhatsappDisabled(),
+                'whatsappDisabledReason' => $this->getWhatsappDisabledReason(),
+
                 'contextOrigin' => $this->getContextOrigin(),
                 'contextStatusTag' => $this->getContextStatusTag(),
                 'contextMilestones' => $this->getContextMilestones(),
@@ -133,6 +145,12 @@ class MercureConversationDto implements JsonSerializable
 
     public function isWhatsappSessionActive(): bool { return $this->whatsappSessionActive; }
     public function setWhatsappSessionActive(bool $whatsappSessionActive): self { $this->whatsappSessionActive = $whatsappSessionActive; return $this; }
+
+    public function isWhatsappDisabled(): bool { return $this->whatsappDisabled; }
+    public function setWhatsappDisabled(bool $whatsappDisabled): self { $this->whatsappDisabled = $whatsappDisabled; return $this; }
+
+    public function getWhatsappDisabledReason(): ?string { return $this->whatsappDisabledReason; }
+    public function setWhatsappDisabledReason(?string $whatsappDisabledReason): self { $this->whatsappDisabledReason = $whatsappDisabledReason; return $this; }
 
     public function getContextOrigin(): ?string { return $this->contextOrigin; }
     public function setContextOrigin(?string $contextOrigin): self { $this->contextOrigin = $contextOrigin; return $this; }

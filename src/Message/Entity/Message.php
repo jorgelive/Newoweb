@@ -138,9 +138,6 @@ class Message
     private ?string $subjectExternal = null;
 
     #[ORM\Column(type: 'json')]
-    private array $templateContext = [];
-
-    #[ORM\Column(type: 'json')]
     #[Groups(['message:read'])]
     private array $metadata = [];
 
@@ -349,9 +346,6 @@ class Message
         return $content;
     }
 
-    public function getTemplateContext(): array { return $this->templateContext; }
-    public function setTemplateContext(array $templateContext): self { $this->templateContext = $templateContext; return $this; }
-
     // =========================================================================
     // METADATA
     // =========================================================================
@@ -526,6 +520,32 @@ class Message
             if ($attachment->getMessage() !== $this) $attachment->setMessage($this);
         }
         return $this;
+    }
+
+    // =========================================================================
+    // AUTO-RESPONDER / INTENT ROUTER HELPERS
+    // =========================================================================
+
+    /**
+     * Recupera la intención inyectada por los Webhooks para el motor de Inteligencia Artificial
+     * o el enrutador determinista.
+     *
+     * @return array|null
+     */
+    public function getInboundIntent(): ?array
+    {
+        return $this->metadata['inbound_intent'] ?? null;
+    }
+
+    /**
+     * Define la intención de entrada para ser evaluada asíncronamente por el AutoResponder.
+     *
+     * @param array $intentData
+     * @return $this
+     */
+    public function setInboundIntent(array $intentData): self
+    {
+        return $this->addMetadata('inbound_intent', $intentData);
     }
 
     // =========================================================================

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Exchange\Tasks\Beds24Receive;
 
+use App\Entity\Maestro\MaestroIdioma;
 use App\Message\Dto\Beds24MessageDto;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Factory\MessageConversationFactory;
 use App\Message\Service\MessageJsonMerger;
+use App\Message\Service\Translation\GuestLanguageDetectorService;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Repository\PmsReservaRepository;
 use App\Pms\Service\Message\PmsReservaMessageContext;
@@ -22,17 +24,17 @@ use Throwable;
 
 /**
  * Encargado de persistir mensajes provenientes de Beds24 (Pull o Webhooks).
- * Actúa únicamente buscando por ID externo y actualizando/insertando.
- * Las condiciones de carrera se evitan asíncronamente en capas superiores.
+ * SRP: Recibe, limpia, detecta idioma localmente, enruta intención y persiste.
  */
 readonly class Beds24ReceivePersister
 {
     public function __construct(
-        private EntityManagerInterface     $em,
-        private MessageConversationFactory $conversationFactory,
-        private MessageAttachmentFactory   $attachmentFactory,
-        private LoggerInterface            $logger,
-        private MessageJsonMerger          $merger
+        private EntityManagerInterface       $em,
+        private MessageConversationFactory   $conversationFactory,
+        private MessageAttachmentFactory     $attachmentFactory,
+        private LoggerInterface              $logger,
+        private MessageJsonMerger            $merger,
+        private GuestLanguageDetectorService $languageDetector
     ) {}
 
     /**
@@ -56,7 +58,6 @@ readonly class Beds24ReceivePersister
         $channel = $this->em->getReference(MessageChannel::class, 'beds24');
 
         $stats = ['imported' => 0, 'updated' => 0, 'skipped' => 0];
-        $mercureBroadcasts = [];
 
         foreach ($messages as $dto) {
             if (!$dto->id) continue;
@@ -65,7 +66,7 @@ readonly class Beds24ReceivePersister
             $source = $dto->source ?? Message::SENDER_GUEST;
             $existing = null;
 
-            // Búsqueda fuerte inicial por ID exacto
+            // Búsqueda de duplicados y actualización de lectura
             foreach ($conversation->getMessages() as $m) {
                 if ($m->getBeds24ExternalId() === $extId) {
                     $existing = $m;
@@ -74,25 +75,16 @@ readonly class Beds24ReceivePersister
             }
 
             // Si ya existe y está identificado, actualizamos lectura y saltamos
-            // Si ya existe y está identificado, actualizamos lectura y saltamos
             if ($existing) {
                 if ($existing->getDirection() === Message::DIRECTION_INCOMING && $dto->read === true && $existing->getStatus() !== Message::STATUS_READ) {
 
                     // 1. 🔥 MAGIA ATÓMICA PRIMERO: Hacemos el merge del JSON.
                     // El Merger actualiza la BD y hace un $em->refresh($existing) internamente.
                     $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
-                    $this->merger->merge(
-                        $existing,
-                        'beds24',
-                        ['read' => true, 'read_at' => $nowUtc]
-                    );
-
-                    // 2. CAMBIO DE ESTADO DESPUÉS: Como la entidad ya fue refrescada,
-                    // ahora le cambiamos el status en la memoria de PHP de forma segura.
+                    $this->merger->merge($existing, 'beds24', ['read' => true, 'read_at' => $nowUtc]);
                     $existing->setStatus(Message::STATUS_READ);
 
                     $stats['updated']++;
-                    $mercureBroadcasts[] = $existing;
 
                     // ❌ NO hacemos flush aquí.
                     // El $this->em->flush() global al final de la función guardará todos
@@ -103,14 +95,16 @@ readonly class Beds24ReceivePersister
                 continue;
             }
 
-            // Crear el mensaje nuevo en memoria
+            // =================================================================
+            // NUEVO MENSAJE
+            // =================================================================
             $message = new Message();
             $message->setConversation($conversation);
             $message->setBeds24ExternalId($extId);
             $message->setChannel($channel);
             $message->setSenderType($source);
 
-            // 🔥 INTERCEPTOR DE IMÁGENES DE AIRBNB (Enlaces temporales AWS S3) 🔥
+            // 1. Limpieza de HTML de Airbnb y extracción de imágenes temporales
             $rawContent = $dto->message ?? '';
             $extractedImageContent = null;
             $extractedImageMime = 'image/png';
@@ -140,12 +134,14 @@ readonly class Beds24ReceivePersister
                 }
             }
 
+            // 2. Verdad histórica: Guardamos exactamente lo que llegó
             $message->setContentExternal($rawContent);
+            $message->setContentLocal($rawContent); // Sin traducción en esta capa
 
-            if ($source === Message::SENDER_HOST) {
-                $message->setDirection(Message::DIRECTION_OUTGOING);
-                $message->setStatus(Message::STATUS_SENT);
-            } else {
+            $textoRecibido = trim(strip_tags($rawContent));
+            $currentConversationLang = $conversation->getIdioma()?->getId() ?? 'es';
+
+            if ($source === Message::SENDER_GUEST) {
                 $message->setDirection(Message::DIRECTION_INCOMING);
                 $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
                 $message->setBeds24ReceivedAt($nowUtc);
@@ -158,18 +154,88 @@ readonly class Beds24ReceivePersister
                     $message->setStatus(Message::STATUS_RECEIVED);
                     $message->addBeds24Metadata('read', false);
                 }
+
+                // =================================================================
+                // 🧠 DETECCIÓN DINÁMICA DE IDIOMA (Local y Costo Cero)
+                // =================================================================
+                $detectedLangCode = 'es';
+                if (!empty($textoRecibido)) {
+                    $detectedLangCode = $this->languageDetector->detectLanguageCode($textoRecibido, $currentConversationLang);
+                }
+
+                $message->setLanguageCode($detectedLangCode);
+
+                // Auto-corrección de la conversación
+                if ($detectedLangCode !== $currentConversationLang) {
+                    $newIdiomaEntity = $this->em->getRepository(MaestroIdioma::class)->find($detectedLangCode);
+                    if ($newIdiomaEntity) {
+                        $conversation->setIdioma($newIdiomaEntity);
+                    }
+                }
+
+                // =================================================================
+                // 🎯 INTERCEPTOR DE MENÚS E INTENCIONES (Menu Fallback)
+                // =================================================================
+                $intent = [
+                    'category'       => 'free_text',
+                    'action_code'    => 'TXT_FREE',
+                    'source_channel' => 'beds24',
+                    'source_ota'     => $conversation->getContextOrigin(),
+                    'context_type'   => $conversation->getContextType(),
+                    'context_id'     => $conversation->getContextId(),
+                    'resolved'       => false
+                ];
+
+                // 🎯 INTERCEPTOR DE MENÚS (Basado estrictamente en el último estado absoluto)
+                if (strlen($textoRecibido) <= 20) {
+                    if (preg_match('/^(?:opci[oó]n|opc|opt|option|n[uú]mero|num|#)?\s*(\d{1,2})$/i', $textoRecibido, $matches)) {
+                        $opcionElegida = (int) $matches[1];
+
+                        // Buscamos el ABSOLUTO ÚLTIMO mensaje de la conversación (sin importar dirección ni tipo)
+                        $lastMessage = $this->em->getRepository(Message::class)->findOneBy(
+                            ['conversation' => $conversation],
+                            ['createdAt' => 'DESC']
+                        );
+
+                        // Solo procesamos si el mensaje INMEDIATAMENTE ANTERIOR fue la plantilla
+                        if ($lastMessage && $lastMessage->getTemplate() !== null) {
+                            $metaJson = $lastMessage->getTemplate()->getWhatsappMetaTmpl();
+                            $quickReplies = array_filter(
+                                $metaJson['buttons_map'] ?? [],
+                                fn($b) => strtolower($b['type'] ?? '') === 'quick_reply'
+                            );
+                            $quickRepliesList = array_values($quickReplies);
+
+                            if (isset($quickRepliesList[$opcionElegida - 1])) {
+                                $matchedButton = $quickRepliesList[$opcionElegida - 1];
+                                $payloadOriginal = $matchedButton['payload'] ?? $matchedButton['resolver_key'] ?? null;
+
+                                if ($payloadOriginal) {
+                                    $intent['category'] = 'deterministic';
+                                    $intent['action_code'] = $payloadOriginal;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                $message->setInboundIntent($intent);
+
+            } else {
+                // Mensaje saliente (Host)
+                $message->setDirection(Message::DIRECTION_OUTGOING);
+                $message->setStatus(Message::STATUS_SENT);
+                $message->setLanguageCode($currentConversationLang);
             }
 
-            // Manejo de zonas horarias (UTC -> America/Lima)
+            // Fechas y Zonas Horarias
             if ($dto->time !== null) {
                 $timeUtc = $dto->time instanceof DateTimeImmutable ? $dto->time : DateTimeImmutable::createFromInterface($dto->time);
                 $timeLima = $timeUtc->setTimezone(new DateTimeZone('America/Lima'));
                 $message->setCreatedAt($timeLima);
             }
 
-            // =================================================================
-            // MANEJO DE ADJUNTOS (Base64 Nativos de Beds24 o Imágenes Extraídas)
-            // =================================================================
+            // Adjuntos
             if ($source === Message::SENDER_GUEST) {
                 $targetBase64 = null;
                 $targetFileName = null;
@@ -187,11 +253,7 @@ readonly class Beds24ReceivePersister
 
                 if ($targetBase64 !== null) {
                     try {
-                        $attachment = $this->attachmentFactory->createFromBase64(
-                            $targetBase64,
-                            $targetFileName,
-                            $targetMime
-                        );
+                        $attachment = $this->attachmentFactory->createFromBase64($targetBase64, $targetFileName, $targetMime);
                         $message->addAttachment($attachment);
                         $this->em->persist($attachment);
                     } catch (Throwable $e) {
@@ -203,7 +265,6 @@ readonly class Beds24ReceivePersister
             $conversation->addMessage($message);
             $this->em->persist($message);
             $stats['imported']++;
-            $mercureBroadcasts[] = $message;
         }
 
         // =====================================================================

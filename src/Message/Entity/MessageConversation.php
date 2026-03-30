@@ -86,6 +86,14 @@ class MessageConversation
     #[Groups(['conversation:read'])]
     private ?string $guestPhone = null;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    #[Groups(['conversation:read'])]
+    private bool $whatsappDisabled = false;
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[Groups(['conversation:read'])]
+    private ?string $whatsappDisabledReason = null;
+
     #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
     #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: false)]
     #[Groups(['conversation:read'])]
@@ -151,6 +159,13 @@ class MessageConversation
 
     public function getGuestPhone(): ?string { return $this->guestPhone; }
     public function setGuestPhone(?string $guestPhone): self { $this->guestPhone = $guestPhone; return $this; }
+
+    // Getters y Setters
+    public function isWhatsappDisabled(): bool { return $this->whatsappDisabled; }
+    public function setWhatsappDisabled(bool $disabled): self { $this->whatsappDisabled = $disabled; return $this; }
+
+    public function getWhatsappDisabledReason(): ?string { return $this->whatsappDisabledReason; }
+    public function setWhatsappDisabledReason(?string $reason): self { $this->whatsappDisabledReason = $reason; return $this; }
 
     public function getIdioma(): MaestroIdioma { return $this->idioma; }
     public function setIdioma(MaestroIdioma $idioma): self { $this->idioma = $idioma; return $this; }

@@ -3,14 +3,14 @@
 
 declare(strict_types=1);
 
-namespace App\Exchange\MessageHandler;
+namespace App\Exchange\DispatchHandler;
 
 use App\Exchange\Dispatch\RunExchangeTaskDispatch;
-
-// ✅ Importamos el Dispatch
 use App\Exchange\Service\Common\ExchangeTaskLocator;
 use App\Exchange\Service\Engine\ExchangeOrchestrator;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+// ✅ Importamos el Dispatch
 
 /**
  * Maneja la orden de despacho recibida desde el Listener.

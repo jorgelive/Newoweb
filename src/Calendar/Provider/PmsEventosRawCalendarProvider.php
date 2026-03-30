@@ -57,10 +57,10 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
                 start: $inicio,
                 end: $fin,
                 resourceId: $unidad->getId(),
-                tooltip: $this->buildTooltip($evento, $reserva),
+                backgroundColor: $this->resolveColor($estado, $estadoPago),
                 urledit: $urledit,
                 urlshow: $urlshow,
-                backgroundColor: $this->resolveColor($estado, $estadoPago)
+                tooltip: $this->buildTooltip($evento, $reserva)
             );
         }
 
@@ -162,6 +162,7 @@ final class PmsEventosRawCalendarProvider implements CalendarProviderInterface
     {
         $lines = [
             (string) $evento->getPmsUnidad(),
+            'Pax: ' . $reserva?->getNombreApellido(),
             'Estado: ' . ($evento->getEstado()?->getNombre() ?? '-'),
             'Pago: ' . ($evento->getEstadoPago()?->getNombre() ?? '-')
         ];

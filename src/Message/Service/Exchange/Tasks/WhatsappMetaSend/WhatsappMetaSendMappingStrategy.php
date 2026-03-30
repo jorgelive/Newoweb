@@ -71,9 +71,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             /** @var WhatsappMetaSendQueue $item */
             $msg = $item->getMessage();
 
-            // =========================================================================
-            // 🔥 ESCENARIO A: RECIBO DE LECTURA (Mark as Read)
-            // =========================================================================
+            // 🔥 ESCENARIO A: RECIBO DE LECTURA
             if ($endpoint->getAccion() === 'MARK_WHATSAPP_MESSAGE_READ'
                 && $msg->getDirection() === Message::DIRECTION_INCOMING
                 && $msg->getStatus() === Message::STATUS_QUEUED
@@ -92,10 +90,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 continue;
             }
 
-            // =========================================================================
-            // 🔥 ESCENARIO B: ENVÍO DE MENSAJE (Plantillas Oficiales o Libre)
-            // =========================================================================
-
+            // 🔥 ESCENARIO B: ENVÍO DE MENSAJE
             $conversation = $msg->getConversation();
             $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
 
@@ -128,24 +123,14 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             $metaJson = $template !== null ? $template->getWhatsappMetaTmpl() : [];
             $isOfficialMeta = $metaJson['is_official_meta'] ?? true;
 
-            // =========================================================================
-            // 🛡️ BARRERA DE SEGURIDAD (ZERO TRUST & QUICK REPLIES)
-            // =========================================================================
+            // 🛡️ BARRERA DE SEGURIDAD
             if (!$isSessionActive && empty($metaJson)) {
-                throw new RuntimeException(sprintf(
-                    'Violación de política de Meta: Intento de envío de mensaje libre al número %s fuera de la ventana de 24 horas. El mensaje [ID: %s] requiere una plantilla oficial asociada.',
-                    $destination,
-                    $msg->getId()
-                ));
+                throw new RuntimeException(sprintf('Violación de política: Intento de envío libre fuera de ventana a %s.', $destination));
             }
 
             // Si hay plantilla, PERO no es oficial (Quick Reply), bloqueamos si estamos fuera de sesión
             if (!empty($metaJson) && !$isOfficialMeta && !$isSessionActive) {
-                throw new RuntimeException(sprintf(
-                    'Violación de política de Meta: Intento de enviar una plantilla NO oficial ("%s") como inicio de conversación al número %s. Solo se permiten plantillas validadas por Meta fuera de la ventana de 24 horas.',
-                    $template->getCode(),
-                    $destination
-                ));
+                throw new RuntimeException(sprintf('Violación de política: Plantilla NO oficial "%s" fuera de ventana.', $template->getCode()));
             }
 
             if (!empty($metaJson) && !$isSessionActive) {
@@ -155,19 +140,19 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 $templateName = $metaJson['meta_template_name'] ?? null;
 
                 if (!$templateName) {
-                    throw new RuntimeException(sprintf('La plantilla local "%s" no tiene un Nombre de Plantilla Meta configurado.', $template->getCode()));
+                    throw new RuntimeException(sprintf('Plantilla "%s" sin Nombre Meta.', $template->getCode()));
                 }
 
                 $messagePayload['type'] = 'template';
                 $messagePayload['template'] = [
                     'name' => $templateName,
-                    'language' => ['code' => $metaLang], // Inyección del código homologado para Meta
+                    'language' => ['code' => $metaLang],
                     'components' => []
                 ];
 
                 $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
 
-                // 1. PROCESAR HEADER
+                // 1. HEADER
                 $headerData = $template->getWhatsappMetaHeader($internalLang);
                 if ($headerData) {
                     $format = $headerData['format'];
@@ -184,7 +169,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                                 $headerComponent['parameters'][] = [
                                     'type' => 'text',
                                     'parameter_name' => $paramName,
-                                    'text' => (string) $variables[$paramName]
+                                    'text' => (string) ($variables[$paramName] ?? '')
                                 ];
                             }
                         }
@@ -198,13 +183,10 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                             $mediaType => ['link' => $this->getAbsoluteAttachmentUrl($attachment)]
                         ];
                     }
-
-                    if (!empty($headerComponent['parameters'])) {
-                        $messagePayload['template']['components'][] = $headerComponent;
-                    }
+                    if (!empty($headerComponent['parameters'])) $messagePayload['template']['components'][] = $headerComponent;
                 }
 
-                // 2. PROCESAR BODY (Búsqueda normalizada pt vs pt_BR)
+                // 2. BODY
                 $templateContent = '';
                 foreach ($metaJson['body'] ?? [] as $bodyNode) {
                     if ($this->normalizeLanguageForMeta(strtolower($bodyNode['language'])) === $metaLang) {
@@ -223,30 +205,20 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         $resolvedBodyParams[] = [
                             'type' => 'text',
                             'parameter_name' => $paramName,
-                            'text' => (string) $variables[$paramName]
+                            'text' => (string) ($variables[$paramName] ?? '')
                         ];
                     }
                 }
 
                 if (!empty($resolvedBodyParams)) {
-                    $messagePayload['template']['components'][] = [
-                        'type' => 'body',
-                        'parameters' => $resolvedBodyParams
-                    ];
+                    $messagePayload['template']['components'][] = ['type' => 'body', 'parameters' => $resolvedBodyParams];
                 }
 
-                // 3. PROCESAR BOTONES DINÁMICOS
+                // 3. BOTONES NATIVOS
                 foreach ($metaJson['buttons_map'] ?? [] as $btn) {
                     if (($btn['type'] ?? '') === 'url') {
                         $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
-
-                        if (!isset($variables[$resolverKey]) || (string)$variables[$resolverKey] === '') {
-                            throw new RuntimeException(sprintf('Error (Botón): La variable de enlace "%s" está vacía.', $resolverKey));
-                        }
-
-                        // Al ser plantilla oficial de Meta, enviamos exactamente lo que el resolver mandó
-                        // (Esperamos que sea el _path relativo según nuestra convención)
-                        $urlValue = (string) $variables[$resolverKey];
+                        $urlValue = (string) ($variables[$resolverKey] ?? '');
 
                         $messagePayload['template']['components'][] = [
                             'type' => 'button',
@@ -299,36 +271,48 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // Hidratamos todas las variables del bloque de texto principal
                 $finalContent = $this->hydrateVariables($finalContent, $resolver, $conversation->getContextId());
 
-                // EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE
+                // 🎯 EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE (REFACTORIZADO)
                 if (!empty($metaJson['buttons_map'])) {
-                    $finalContent .= "\n\n";
+                    // 1. Obtenemos las traducciones según el idioma de la conversación
+                    $menuTexts = $this->getMenuTranslations($internalLang);
+
+                    // 2. Inyectamos el título dinámico
+                    $finalContent .= "\n\n" . $menuTexts['header'] . "\n\n";
+
                     $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
+                    $quickReplyIndex = 1;
 
                     foreach ($metaJson['buttons_map'] as $btn) {
-                        if (($btn['type'] ?? '') === 'url') {
-                            $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
+                        $btnType = strtolower($btn['type'] ?? '');
 
-                            // CONVENCIÓN DE ENRUTAMIENTO (Path vs URL)
-                            // Si la plantilla oficial usa un "_path" para el botón nativo, al emularlo en texto libre
-                            // intentamos buscar su contraparte "_url" absoluta para asegurar que el enlace sea clickeable.
-                            $fallbackKey = str_ends_with($resolverKey, '_path')
-                                ? str_replace('_path', '_url', $resolverKey)
-                                : $resolverKey;
-
-                            $urlValue = (string) ($variables[$fallbackKey] ?? $variables[$resolverKey] ?? '');
-
-                            $btnText = 'Enlace';
-                            foreach ($btn['button_text'] ?? [] as $tr) {
-                                if ($this->normalizeLanguageForMeta(strtolower($tr['language'])) === $metaLang) {
-                                    $btnText = $tr['content'];
-                                    break;
-                                }
-                            }
-
-                            if ($urlValue !== '') {
-                                $finalContent .= "🔗 *" . $btnText . "*: " . $urlValue . "\n";
+                        // 3. Usamos el botón dinámico con fallback traducido
+                        $btnText = $menuTexts['default_btn'];
+                        foreach ($btn['button_text'] ?? [] as $tr) {
+                            if ($this->normalizeLanguageForMeta(strtolower($tr['language'])) === $metaLang) {
+                                $btnText = $tr['content'];
+                                break;
                             }
                         }
+
+                        if ($btnType === 'url') {
+                            $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
+                            $fallbackKey = str_ends_with($resolverKey, '_path') ? str_replace('_path', '_url', $resolverKey) : $resolverKey;
+                            $urlValue = (string) ($variables[$fallbackKey] ?? $variables[$resolverKey] ?? '');
+
+                            if ($urlValue !== '') {
+                                $finalContent .= "🔗 *" . trim($btnText) . "*:\n" . $urlValue . "\n\n";
+                            }
+                        } elseif ($btnType === 'quick_reply') {
+                            $finalContent .= $quickReplyIndex . "️⃣ *" . trim($btnText) . "*\n\n";
+                            $quickReplyIndex++;
+                        }
+                    }
+
+                    // 4. Inyectamos el footer dinámico
+                    if ($quickReplyIndex > 1) {
+                        $finalContent = rtrim($finalContent) . "\n\n" . $menuTexts['footer'];
+                    } else {
+                        $finalContent = rtrim($finalContent);
                     }
                 }
 
@@ -363,10 +347,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
      */
     private function normalizeLanguageForMeta(string $lang): string
     {
-        $map = [
-            'pt' => 'pt_BR',
-        ];
-
+        $map = ['pt' => 'pt_BR'];
         return $map[$lang] ?? $lang;
     }
 
@@ -435,5 +416,48 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
     private function getAbsoluteAttachmentUrl(MessageAttachment $attachment): string
     {
         return rtrim($this->pmsMetaPublicUrl, '/') . $this->vichStorage->resolveUri($attachment, 'file');
+    }
+
+    /**
+     * Diccionario rápido para los textos de la interfaz emulada.
+     * Soporta los idiomas principales y hace fallback a Inglés.
+     */
+    private function getMenuTranslations(string $lang): array
+    {
+        $translations = [
+            'es' => [
+                'header' => '*— Opciones —*',
+                'footer' => '_👉 Responde con el número de tu opción._',
+                'default_btn' => 'Opción'
+            ],
+            'en' => [
+                'header' => '*— Options —*',
+                'footer' => '_👉 Reply with the number of your option._',
+                'default_btn' => 'Option'
+            ],
+            'pt' => [
+                'header' => '*— Opções —*',
+                'footer' => '_👉 Responda com o número da sua opção._',
+                'default_btn' => 'Opção'
+            ],
+            'fr' => [
+                'header' => '*— Options —*',
+                'footer' => '_👉 Répondez avec le numéro de votre option._',
+                'default_btn' => 'Option'
+            ],
+            'it' => [
+                'header' => '*— Opzioni —*',
+                'footer' => '_👉 Rispondi con il numero della tua opzione._',
+                'default_btn' => 'Opzione'
+            ],
+            'de' => [
+                'header' => '*— Optionen —*',
+                'footer' => '_👉 Antworten Sie mit der Nummer Ihrer Option._',
+                'default_btn' => 'Option'
+            ]
+        ];
+
+        // Retorna el idioma solicitado o hace fallback a inglés
+        return $translations[$lang] ?? $translations['en'];
     }
 }

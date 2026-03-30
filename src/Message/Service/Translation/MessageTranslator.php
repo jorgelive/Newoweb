@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service;
+namespace App\Message\Service\Translation;
 
 use App\Message\Entity\Message;
 use App\Service\GoogleTranslateService;
