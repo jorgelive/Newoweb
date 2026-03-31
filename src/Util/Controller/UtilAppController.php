@@ -12,44 +12,22 @@ use Symfony\Component\HttpKernel\KernelInterface;
 
 class UtilAppController extends AbstractController
 {
-
     /**
-     * Controlador para la página de inicio (Landing Page).
-     * Sirve como punto de entrada principal para la aplicación en la raíz del dominio (/),
-     * proporcionando un acceso visual y amigable hacia las herramientas internas (como el Chat PWA).
-     *
-     * @return Response Documento HTML con la Landing Page renderizada en Twig.
+     * Punto de entrada único para la SPA (Single Page Application) en Vue.
+     * * Explicación del Regex en 'requirements':
+     * ^(?!api|platform|ajax_login|_profiler|_wdt).* * Esto significa: "Atrapa cualquier URL, EXCEPTO si empieza con /api, /platform,
+     * /ajax_login, o las herramientas de desarrollo de Symfony".
+     * La prioridad -1 asegura que si creas una ruta específica en Symfony, esa tenga prioridad.
      */
-    #[Route('/', name: 'app_home', methods: ['GET'])]
-    public function home(): Response
-    {
-        return $this->render('util/home.html.twig');
-    }
-
-    /**
-     * Controlador principal para la aplicación SPA de utilidades internas (Chat, etc.).
-     * * Esta ruta atrapa /chat y cualquier subruta generada por Vue Router (prioridad -1 para no pisar rutas de API).
-     * Su objetivo es servir el "App Shell" HTML. Delega la seguridad inicial al firewall de Symfony
-     * y la carga de módulos a Vite dependiendo del entorno (HMR en dev, compilado en prod).
-     *
-     * @param Request $request La petición HTTP actual, usada para forzar modo build en dev.
-     * @param KernelInterface $kernel Interfaz para acceder a parámetros del núcleo (entorno y rutas físicas).
-     * * @return Response Documento HTML con los assets (CSS/JS) inyectados para inicializar la SPA.
-     */
-    #[Route('/chat/{route}', name: 'util_chat_entry', requirements: ['route' => '.*'], defaults: ['route' => ''], priority: -1)]
+    #[Route('/{route}', name: 'app_entry', requirements: ['route' => '^(?!api|platform|ajax_login|_profiler|_wdt).*'], defaults: ['route' => ''], priority: -1)]
     public function index(Request $request, KernelInterface $kernel): Response
     {
-        // Seguridad: Asegura que solo usuarios autenticados (staff/host) puedan cargar la herramienta interna.
-        // Si el usuario no tiene sesión activa válida por el firewall, será redirigido al login.
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
-
+        // 1. Detección del entorno
         $env = $kernel->getEnvironment();
-
-        // Permite probar el build compilado en local añadiendo ?mode=build a la URL
         $forceBuild = $request->query->get('mode') === 'build';
 
-        // 1) MODO DESARROLLO (Vite HMR)
-        // Carga la plantilla Twig instruyéndole que levante el cliente Vite local.
+        // 2. MODO DESARROLLO (Vite HMR Server)
+        // Si estamos en dev, le decimos a Twig que cargue el script directamente desde el servidor local de Vite
         if ($env === 'dev' && !$forceBuild) {
             return $this->render('util/app.html.twig', [
                 'is_dev' => true,
@@ -57,45 +35,41 @@ class UtilAppController extends AbstractController
             ]);
         }
 
-        // 2) MODO PRODUCCIÓN / BUILD
+        // 3. MODO PRODUCCIÓN (Lectura del manifest.json)
         $projectDir = $kernel->getProjectDir();
 
-        // Vite 5/6 suele generar el manifest dentro de la carpeta .vite en el directorio de salida
+        // Vite 5+ guarda el manifest dentro de la carpeta .vite/ por defecto
         $manifestPath = $projectDir . '/public/app_util/.vite/manifest.json';
 
-        // Fallback estructural para setups de Vite más antiguos
+        // Fallback para versiones anteriores de Vite
         if (!file_exists($manifestPath)) {
             $manifestPath = $projectDir . '/public/app_util/manifest.json';
         }
 
-        // Validamos la existencia para evitar errores silenciosos en despliegues automatizados
+        // Si no hay manifest, significa que olvidaste correr `npm run build`
         if (!file_exists($manifestPath)) {
             return new Response(
                 '<body>
                     <h1>Error Crítico: Build no encontrado</h1>
                     <p>No se encuentra el archivo <code>manifest.json</code> en <code>public/app_util</code>.</p>
-                    <p>Asegúrate de compilar los assets ejecutando: <code>npm run build</code> en el directorio de util.</p>
+                    <p>Asegúrate de compilar los assets ejecutando: <code>npm run build</code></p>
                 </body>',
                 500
             );
         }
 
+        // 4. Decodificar el manifest y buscar los assets cacheados
         $manifest = json_decode((string) file_get_contents($manifestPath), true);
 
-        // Punto de entrada principal esperado por Vite
+        // Definimos el punto de entrada principal
         $entryPoint = 'src/main.ts';
 
-        // Prevención de errores si el entry point cambió de extensión (ej. a .js)
+        // Prevención de errores si el entry point cambió de extensión (.js en lugar de .ts)
         if (!isset($manifest[$entryPoint])) {
-            if (isset($manifest['src/main.js'])) {
-                $entryPoint = 'src/main.js';
-            } else {
-                $keys = implode(', ', array_keys($manifest));
-                throw $this->createNotFoundException("Entrada '$entryPoint' no encontrada en manifest.json. Claves disponibles: [$keys]");
-            }
+            $entryPoint = isset($manifest['src/main.js']) ? 'src/main.js' : array_key_first($manifest);
         }
 
-        // Renderiza el App Shell enviando los chunks y CSS ya hasheados y cacheados
+        // 5. Renderizar la plantilla inyectando el JS y CSS ya compilados
         return $this->render('util/app.html.twig', [
             'is_dev' => false,
             'js_file' => $manifest[$entryPoint]['file'],

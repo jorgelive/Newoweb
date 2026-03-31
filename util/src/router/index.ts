@@ -4,6 +4,11 @@ const router = createRouter({
     history: createWebHistory('/'),
     routes: [
         {
+            path: '/',
+            name: 'home',
+            component: () => import('../views/HomeView.vue')
+        },
+        {
             path: '/chat',
             name: 'chat_home',
             component: () => import('../views/ChatView.vue')
@@ -17,7 +22,7 @@ const router = createRouter({
         {
             path: '/:pathMatch(.*)*',
             name: 'fallback',
-            redirect: '/chat'
+            redirect: '/' // Redirigir a la raíz en vez de chat directamente
         }
     ]
 })

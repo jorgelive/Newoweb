@@ -15,12 +15,17 @@ const isMobileSidebarOpen = ref(true);
 const isTransitioning = ref(true);
 
 // ============================================================================
-// LÓGICA DE LOGIN PARA RENOVACIÓN DE SESIÓN
+// LÓGICA DE LOGIN PARA RENOVACIÓN DE SESIÓN (Intervención de modal flotante)
 // ============================================================================
 const loginUsername = ref('');
 const loginPassword = ref('');
 const isLoggingIn = ref(false);
 
+/**
+ * Maneja el envío del formulario del modal cuando la sesión expira (401).
+ * Delega la validación al store, que reanudará las peticiones pausadas.
+ * @returns {Promise<void>}
+ */
 const handleSessionRenewal = async () => {
   if (!loginUsername.value || !loginPassword.value) return;
   isLoggingIn.value = true;
@@ -33,6 +38,7 @@ const handleSessionRenewal = async () => {
   if (success) {
     loginPassword.value = '';
 
+    // Si había peticiones, el interceptor las soltará, pero reforzamos la UI
     await store.fetchConversations();
 
     if (store.currentConversation) {
@@ -85,6 +91,8 @@ const handlePopState = (event: PopStateEvent) => {
 };
 
 onMounted(() => {
+  // Al ejecutarse, si no hay sesión, el interceptor capturará el 401
+  // y activará store.isSessionExpired = true sin recargar la página.
   store.fetchConversations();
   store.fetchTemplates();
   store.initGlobalMercure();
@@ -190,7 +198,6 @@ const isWhatsappAllowed = computed(() => {
   const chat = store.currentConversation;
   if (!chat) return false;
 
-  // 🛑 Bloqueo total si el canal fue marcado como deshabilitado
   if (chat.whatsappDisabled) return false;
 
   const sessionActive = chat.whatsappSessionActive;
@@ -275,7 +282,6 @@ const selectTemplate = (tpl: ApiTemplate) => {
   const chat = store.currentConversation;
   const sessionActive = chat?.whatsappSessionActive;
 
-  // Excluimos whatsapp si está deshabilitado permanentemente o no hay sesión
   if (chat?.whatsappDisabled || (!sessionActive && tpl.whatsappMetaOfficial === false)) {
     newChannels = newChannels.filter(c => c !== 'whatsapp_meta');
   }
@@ -570,6 +576,7 @@ const getDirectChannelId = (channel?: any): string | null => {
 
 <template>
   <div class="fixed inset-0 flex bg-[#F8FAFC] font-sans overflow-hidden text-slate-900 antialiased">
+
     <Transition name="fade-slide">
       <div v-if="store.isSessionExpired" class="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200">
@@ -583,7 +590,7 @@ const getDirectChannelId = (channel?: any): string | null => {
           </div>
           <form @submit.prevent="handleSessionRenewal" class="p-6">
             <p class="text-sm text-slate-500 mb-6 leading-relaxed">
-              Por seguridad, tu sesión ha caducado. Ingresa tus credenciales para continuar donde te quedaste.
+              Por seguridad, tu sesión ha caducado. Ingresa tus credenciales para reanudar el trabajo exactamente donde te quedaste.
             </p>
 
             <div class="space-y-4">

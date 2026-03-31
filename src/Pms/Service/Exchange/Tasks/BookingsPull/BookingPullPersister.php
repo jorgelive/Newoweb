@@ -15,6 +15,7 @@ use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidadBeds24Map;
 use App\Pms\Factory\PmsEventoCalendarioFactory;
+use App\Pms\Service\Phone\PhoneSanitizer;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
@@ -30,6 +31,7 @@ use Symfony\Contracts\Service\ResetInterface;
  * * ✅ Validación fuerte de Maestros (Pais/Idioma) para evitar nulls silenciosos.
  * * ✅ Inyección obligatoria de PmsEstablecimiento para evitar reservas huérfanas.
  * * ✅ Implementación de ResetInterface para vaciado automático de memoria en Workers asíncronos.
+ * * ✅ Inyección de PhoneSanitizer para limpiar datos antes del UoW de Doctrine.
  */
 final class BookingPullPersister implements ResetInterface
 {
@@ -47,7 +49,8 @@ final class BookingPullPersister implements ResetInterface
 
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly PmsEventoCalendarioFactory $eventoFactory
+        private readonly PmsEventoCalendarioFactory $eventoFactory,
+        private readonly PhoneSanitizer $phoneSanitizer
     ) {}
 
     /**
@@ -325,15 +328,23 @@ final class BookingPullPersister implements ResetInterface
             trim((string) $booking->phone) !== '';
 
         // (Obs #10) Bloqueo de datos solo si tenemos datos significativos
-        // Mejora: Podríamos añadir validación de "no contiene 'booking.com'" en el email para asegurar calidad
         if (!$reserva->isDatosLocked() && $hasRealData && $isPrincipal) {
             $reserva->setNombreCliente($booking->firstName);
             $reserva->setApellidoCliente($booking->lastName);
             $reserva->setEmailCliente($booking->email);
-            $reserva->setTelefono($booking->phone);
-            $reserva->setTelefono2($booking->mobile);
-            $reserva->setPais($this->resolvePais($booking));
+
+            // 💡 FIX: Resolvemos el país primero para poder pasarle el ISO al PhoneSanitizer de inmediato
+            $pais = $this->resolvePais($booking);
+            $reserva->setPais($pais);
             $reserva->setIdioma($this->resolveIdioma($booking));
+
+            // 💡 FIX: Sanitizamos los teléfonos en el acto delegando la lógica.
+            $rawPhone = trim((string) $booking->phone);
+            $reserva->setTelefono($rawPhone !== '' ? $this->phoneSanitizer->cleanPhoneNumber($rawPhone, $pais->getId()) : null);
+
+            $rawMobile = trim((string) $booking->mobile);
+            $reserva->setTelefono2($rawMobile !== '' ? $this->phoneSanitizer->cleanPhoneNumber($rawMobile, $pais->getId()) : null);
+
             $reserva->setDatosLocked(true);
         }
 
