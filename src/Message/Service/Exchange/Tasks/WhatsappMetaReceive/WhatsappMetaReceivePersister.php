@@ -35,8 +35,17 @@ readonly class WhatsappMetaReceivePersister
     ) {}
 
     /**
-     * Procesa un mensaje entrante de un huésped, ya sea de una reserva activa
-     * o creando una nueva conversación de tipo Walk-in (Consulta Directa).
+     * Procesa un evento entrante (mensaje de texto, multimedia, botones o reacciones) de un huésped.
+     * * ¿Por qué existe este método?
+     * Es el punto de entrada único para los webhooks de Meta. Se encarga de la deduplicación,
+     * resolución de la conversación (ya sea asociándola a una reserva activa o creando un Walk-in),
+     * y de la persistencia inicial del mensaje en la base de datos para que la UI pueda reaccionar.
+     * * Efectos secundarios:
+     * - Puede crear una nueva entidad MessageConversation si el remitente no existe.
+     * - Puede actualizar el idioma de la conversación si detecta un cambio.
+     * - Activa la ventana de sesión de 24 horas de WhatsApp Meta al persistir un mensaje nuevo.
+     * * @param array $messageData El nodo 'messages[0]' del payload del webhook de Meta.
+     * @param array $contactData El nodo 'contacts[0]' del payload del webhook de Meta.
      */
     public function upsertInboundMessage(array $messageData, array $contactData): void
     {
@@ -46,6 +55,16 @@ readonly class WhatsappMetaReceivePersister
         // 1. Deduplicación en BD (Evita duplicados si Meta reenvía el Webhook por delays)
         $existingMessage = $this->findMessageByMetaId($metaMessageId);
         if ($existingMessage) return;
+
+        $type = $messageData['type'] ?? 'text';
+
+        // =====================================================================
+        // CASO ESPECIAL: REACCIONES (Mutación atómica, no crea mensaje nuevo)
+        // =====================================================================
+        if ($type === 'reaction') {
+            $this->handleReaction($messageData, $contactData);
+            return;
+        }
 
         // 2. Extraer Remitente
         $guestPhone = $contactData['wa_id'] ?? null;
@@ -75,7 +94,6 @@ readonly class WhatsappMetaReceivePersister
         // =====================================================================
         // 5. PROCESAMIENTO DE CONTENIDO
         // =====================================================================
-        $type = $messageData['type'] ?? 'text';
         $currentConversationLang = $conversation->getIdioma()?->getId() ?? 'es';
 
         $baseIntent = [
@@ -246,8 +264,69 @@ readonly class WhatsappMetaReceivePersister
     }
 
     /**
+     * Procesa y persiste una reacción a un mensaje existente utilizando un merge atómico.
+     * * ¿Por qué existe este método?
+     * Para evitar crear filas basura en la base de datos por cada "👍". Este método
+     * inyecta la reacción directamente en el JSON de metadatos del mensaje original.
+     * Utiliza el número de teléfono como clave para soportar múltiples reacciones
+     * y permitir deduplicación/eliminación natural mediante JSON_MERGE_PATCH.
+     * * Ejemplo de JSON resultante en BD:
+     * {"reactions": {"51970393305": "👍", "51999888777": "❤️"}}
+     * Si el valor recibido es vacío (''), JSON_MERGE_PATCH recibirá un null y eliminará la clave.
+     * * @param array $messageData Datos de la reacción provenientes de Meta.
+     * @param array $contactData Datos del remitente para extraer el wa_id.
+     */
+    private function handleReaction(array $messageData, array $contactData): void
+    {
+        $targetMetaId = $messageData['reaction']['message_id'] ?? null;
+        $emoji = $messageData['reaction']['emoji'] ?? null;
+        $reactorPhone = $contactData['wa_id'] ?? 'unknown';
+
+        if (!$targetMetaId) return;
+
+        // Buscamos el mensaje al que se reaccionó
+        $originalMessage = $this->findMessageByMetaId($targetMetaId);
+
+        if ($originalMessage) {
+            // Si el emoji viene vacío, Meta indica que el usuario removió la reacción.
+            // Al pasar null, JSON_MERGE_PATCH borrará físicamente esa clave del JSON.
+            $reactionValue = $emoji !== '' ? $emoji : null;
+
+            $metaDataToMerge = [
+                'reactions' => [
+                    $reactorPhone => $reactionValue
+                ]
+            ];
+
+            // Mutación Atómica en BD delegada al motor de base de datos
+            $this->merger->merge(
+                $originalMessage,
+                'whatsappMeta',
+                $metaDataToMerge
+            );
+
+            // 🔥 SOLUCIÓN: Hacemos un "touch" al mensaje para forzar el UoW de Doctrine.
+            // Esto marca la entidad como "sucia" (dirty) y obligará a Doctrine a disparar
+            // el evento postUpdate, lo que a su vez detonará tu MercureBroadcaster.
+            $originalMessage->setUpdatedAt(new DateTimeImmutable());
+
+            // Actualizamos la conversación para que suba en el listado visual (Touch)
+            $conversation = $originalMessage->getConversation();
+            if ($conversation !== null) {
+                $conversation->setLastInboundAt(new DateTimeImmutable());
+                $this->em->flush();
+            }
+        }
+    }
+
+    /**
      * Actualiza la metadata (Enviado, Entregado, Leído, Fallido) de un mensaje saliente.
-     * * PROTECCIÓN ACTIVA: Usa bloqueo pesimista. Se apoya en la transacción del FastTrackService.
+     * * ¿Por qué existe este método?
+     * Los webhooks de estado de Meta son asíncronos. Este método recibe el status
+     * y actualiza el estado global del mensaje, gestionando además alertas críticas
+     * (como baneos o ventanas cerradas) y bloqueando el canal si el error es permanente.
+     * * PROTECCIÓN ACTIVA: Usa bloqueo pesimista o merge atómico dependiendo de la implementación.
+     * Se apoya en la transacción del FastTrackService.
      */
     public function updateMessageStatus(array $statusData): void
     {
@@ -340,8 +419,8 @@ readonly class WhatsappMetaReceivePersister
                 $message,
                 'whatsappMeta',
                 $metaDataToMerge,
-                'whatsapp_meta',
-                $metaMessageId
+                'whatsapp_meta', // Se asume que externalIdKey es 'whatsapp_meta'
+                $metaMessageId   // Se asume que externalIdValue es el ID de Meta
             );
         }
 
@@ -356,6 +435,11 @@ readonly class WhatsappMetaReceivePersister
 
     /**
      * Registra una llamada perdida.
+     * * ¿Por qué existe este método?
+     * La API Cloud de WhatsApp no soporta audio/video llamadas. Cuando un usuario
+     * intenta llamar, Meta envía un evento de tipo 'call' (o un mensaje de sistema
+     * indicando llamada perdida). Este método materializa ese evento como un mensaje
+     * informativo en la UI para alertar al anfitrión.
      */
     public function processCall(array $callData, array $contactData): void
     {
@@ -450,9 +534,9 @@ readonly class WhatsappMetaReceivePersister
 
     /**
      * Busca un mensaje en BD usando SQL Nativo.
-    * Esto evita el Syntax Error de DQL con JSON_EXTRACT y permite que mensajes
-    * enviados fuera del PMS (como desde el portal de Meta) se descarten sin error.
-    */
+     * Esto evita el Syntax Error de DQL con JSON_EXTRACT y permite que mensajes
+     * enviados fuera del PMS (como desde el portal de Meta) se descarten sin error.
+     */
     private function findMessageByMetaId(string $metaMessageId): ?Message
     {
         $rsm = new ResultSetMappingBuilder($this->em);

@@ -52,6 +52,119 @@ const handleSessionRenewal = async () => {
 };
 
 // ============================================================================
+// LÓGICA DE MENÚ CONTEXTUAL Y LONG PRESS (NUEVO)
+// ============================================================================
+const isContextMenuOpen = ref(false);
+const contextMenuPos = ref({ x: 0, y: 0 });
+const contextMenuMessage = ref<ApiMessage | null>(null);
+
+let pressTimer: number | null = null;
+let isPressAction = false; // Flag para evitar que el long press dispare el click de traducción
+
+/**
+ * Inicia el temporizador para detectar un toque prolongado (Long Press)
+ */
+const startLongPress = (msg: ApiMessage, event: TouchEvent | MouseEvent) => {
+  isPressAction = false; // Reseteamos el flag
+  pressTimer = window.setTimeout(() => {
+    isPressAction = true; // Confirmamos que fue un long press
+    openContextMenu(msg, event);
+  }, 500); // 500ms para considerar long press
+};
+
+/**
+ * Cancela el temporizador si el usuario mueve el dedo o suelta antes de tiempo
+ */
+const cancelLongPress = () => {
+  if (pressTimer) {
+    clearTimeout(pressTimer);
+    pressTimer = null;
+  }
+};
+
+/**
+ * Abre el menú contextual calculando la posición del ratón o del dedo
+ */
+const openContextMenu = (msg: ApiMessage, event: MouseEvent | TouchEvent) => {
+  // event.preventDefault(); no lo usamos globalmente aquí porque en mobile rompe el scroll a veces,
+  // pero el @contextmenu.prevent de vue ya lo hace para PC.
+  contextMenuMessage.value = msg;
+
+  let clientX = 0;
+  let clientY = 0;
+
+  if ('touches' in event) {
+    clientX = event.touches[0].clientX;
+    clientY = event.touches[0].clientY;
+  } else {
+    clientX = (event as MouseEvent).clientX;
+    clientY = (event as MouseEvent).clientY;
+  }
+
+  // Ajuste para que el menú no se salga de la pantalla si se presiona muy al borde
+  const screenW = window.innerWidth;
+  const screenH = window.innerHeight;
+  const menuW = 180; // Ancho aproximado del menú
+  const menuH = 80;  // Alto aproximado del menú
+
+  contextMenuPos.value = {
+    x: clientX + menuW > screenW ? screenW - menuW - 10 : clientX,
+    y: clientY + menuH > screenH ? screenH - menuH - 10 : clientY
+  };
+  isContextMenuOpen.value = true;
+};
+
+const closeContextMenu = () => {
+  isContextMenuOpen.value = false;
+  contextMenuMessage.value = null;
+};
+
+const copyMessageText = async () => {
+  if (!contextMenuMessage.value) return;
+  const textToCopy = contextMenuMessage.value.contentLocal || contextMenuMessage.value.contentExternal || '';
+  try {
+    await navigator.clipboard.writeText(textToCopy);
+  } catch (err) {
+    console.error('Error al copiar:', err);
+  }
+  closeContextMenu();
+};
+
+/**
+ * Interceptor del click original. Si venimos de un long press, ignora el click
+ * para no traducir accidentalmente el mensaje al abrir el menú.
+ */
+const handleMessageClick = (msg: ApiMessage, event: Event) => {
+  if (isPressAction) {
+    isPressAction = false;
+    return;
+  }
+  toggleTranslation(msg, event);
+};
+
+// ============================================================================
+// LÓGICA DE REACCIONES (NUEVO)
+// ============================================================================
+/**
+ * Extrae y agrupa las reacciones del metadata del mensaje.
+ * Retorna un array de objetos con el emoji y la cantidad de veces que se repite.
+ */
+const getReactions = (msg: ApiMessage): { emoji: string; count: number }[] => {
+  const reactionsMap = msg.metadata?.whatsappMeta?.reactions;
+  if (!reactionsMap) return [];
+
+  const counts: Record<string, number> = {};
+  for (const key in reactionsMap) {
+    const emoji = reactionsMap[key];
+    if (emoji) {
+      counts[emoji] = (counts[emoji] || 0) + 1;
+    }
+  }
+
+  return Object.entries(counts).map(([emoji, count]) => ({ emoji, count }));
+};
+
+// ============================================================================
 // LÓGICA ORIGINAL DE UI Y CHAT
 // ============================================================================
 const updateChatVisibility = () => {
@@ -91,8 +204,6 @@ const handlePopState = (event: PopStateEvent) => {
 };
 
 onMounted(() => {
-  // Al ejecutarse, si no hay sesión, el interceptor capturará el 401
-  // y activará store.isSessionExpired = true sin recargar la página.
   store.fetchConversations();
   store.fetchTemplates();
   store.initGlobalMercure();
@@ -156,9 +267,6 @@ watch(() => store.error, (v) => {
   if (v) setTimeout(() => store.error = null, 6000);
 });
 
-// ============================================================================
-// NORMALIZACIÓN DE STATUS
-// ============================================================================
 const getMessageDisplayStatus = (msg: ApiMessage): string => {
   if (msg.status === 'cancelled') return 'cancelled';
 
@@ -174,9 +282,6 @@ const getMessageDisplayStatus = (msg: ApiMessage): string => {
   return msg.status;
 };
 
-// ============================================================================
-// COMPUTED DE CANALES
-// ============================================================================
 const isBeds24Allowed = computed(() => {
   const chat = store.currentConversation;
   if (!chat) return false;
@@ -575,7 +680,18 @@ const getDirectChannelId = (channel?: any): string | null => {
 </script>
 
 <template>
-  <div class="fixed inset-0 flex bg-[#F8FAFC] font-sans overflow-hidden text-slate-900 antialiased">
+  <div class="fixed inset-0 flex bg-[#F8FAFC] font-sans overflow-hidden text-slate-900 antialiased" @contextmenu="isContextMenuOpen ? closeContextMenu() : null">
+
+    <div v-if="isContextMenuOpen" class="fixed inset-0 z-[400]" @click="closeContextMenu"></div>
+    <Transition name="fade-scale">
+      <div v-if="isContextMenuOpen"
+           :style="{ top: contextMenuPos.y + 'px', left: contextMenuPos.x + 'px' }"
+           class="fixed z-[500] bg-white border border-slate-200 shadow-xl rounded-xl py-1 w-48 overflow-hidden transform origin-top-left">
+        <button @click="copyMessageText" class="w-full text-left px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-[#376875] flex items-center gap-3 transition-colors">
+          <i class="far fa-copy opacity-70"></i> Copiar texto
+        </button>
+      </div>
+    </Transition>
 
     <Transition name="fade-slide">
       <div v-if="store.isSessionExpired" class="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
@@ -749,12 +865,12 @@ const getDirectChannelId = (channel?: any): string | null => {
           </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 md:px-12 md:py-8" ref="messagesContainer" @scroll="onMessageScroll">
+        <div class="flex-1 overflow-y-auto p-4 md:px-12 md:py-8 relative" ref="messagesContainer" @scroll="onMessageScroll">
           <div v-if="store.loadingMoreMessages" class="flex justify-center py-4">
             <i class="fas fa-circle-notch fa-spin text-slate-300"></i>
           </div>
 
-          <div class="max-w-4xl mx-auto flex flex-col">
+          <div class="max-w-4xl mx-auto flex flex-col pb-6">
             <div v-if="activeTab === 'scheduled' && store.scheduledMessages.length === 0" class="text-center py-10 opacity-50">
               <i class="far fa-check-circle text-4xl mb-3 block"></i>
               <p class="text-sm font-bold uppercase tracking-widest">No hay envíos pendientes</p>
@@ -787,55 +903,73 @@ const getDirectChannelId = (channel?: any): string | null => {
                       </div>
                     </div>
 
-                    <div v-if="msg.template && msg.direction === 'outgoing'" :class="activeTab === 'scheduled' ? 'bg-orange-50 border-orange-200' : 'bg-slate-100 border-slate-200 text-slate-600'" class="rounded-2xl p-4 border text-sm font-medium leading-relaxed relative w-full shadow-sm text-center">
-                      <i class="fas fa-robot text-lg mb-2 block opacity-50"></i>
-                      <span class="block text-[10px] font-black uppercase tracking-widest opacity-80 mb-2">{{ getTemplateName(msg.template) }}</span>
-                      <span class="opacity-90 italic">"{{ msg.contentLocal || msg.contentExternal }}"</span>
-                    </div>
+                    <div class="relative w-full">
+                      <div
+                          @touchstart="startLongPress(msg, $event)"
+                          @touchend="cancelLongPress"
+                          @touchmove="cancelLongPress"
+                          @contextmenu.prevent="openContextMenu(msg, $event)"
+                      >
+                        <div v-if="msg.template && msg.direction === 'outgoing'" :class="activeTab === 'scheduled' ? 'bg-orange-50 border-orange-200' : 'bg-slate-100 border-slate-200 text-slate-600'" class="rounded-2xl p-4 border text-sm font-medium leading-relaxed relative shadow-sm text-center">
+                          <i class="fas fa-robot text-lg mb-2 block opacity-50"></i>
+                          <span class="block text-[10px] font-black uppercase tracking-widest opacity-80 mb-2">{{ getTemplateName(msg.template) }}</span>
+                          <span class="opacity-90 italic">"{{ msg.contentLocal || msg.contentExternal }}"</span>
+                        </div>
 
-                    <div v-else :class="[
-                      msg.direction === 'outgoing' ? 'rounded-tr-none' : 'rounded-tl-none',
-                      activeTab === 'scheduled' ? 'bg-orange-50 border-2 border-orange-200 text-slate-800 shadow-sm' :
-                      (msg.direction === 'outgoing' ? 'bg-[#376875] text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')
-                    ]" class="rounded-3xl p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative w-full break-words">
+                        <div v-else :class="[
+                          msg.direction === 'outgoing' ? 'rounded-tr-none' : 'rounded-tl-none',
+                          activeTab === 'scheduled' ? 'bg-orange-50 border-2 border-orange-200 text-slate-800 shadow-sm' :
+                          (msg.direction === 'outgoing' ? 'bg-[#376875] text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')
+                        ]" class="rounded-3xl p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative break-words select-none">
 
-                      <div v-if="msg.attachments?.length" class="mb-3 space-y-2">
-                        <div
-                            v-for="att in msg.attachments"
-                            :key="(typeof att === 'string') ? att : att.id"
-                            @click="handleAttachmentClick(att)"
-                            class="flex items-center gap-3 p-3 rounded-xl bg-black/10 cursor-pointer hover:bg-black/20 transition-colors"
-                        >
-                          <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                            <img v-if="typeof att !== 'string' && att.fileUrl && isImageAttachment(att)" :src="att.fileUrl ?? undefined" class="w-full h-full object-cover" />
-                            <i v-else class="fas fa-file-alt text-lg"></i>
+                          <div v-if="msg.attachments?.length" class="mb-3 space-y-2">
+                            <div
+                                v-for="att in msg.attachments"
+                                :key="(typeof att === 'string') ? att : att.id"
+                                @click.stop="handleAttachmentClick(att)"
+                                class="flex items-center gap-3 p-3 rounded-xl bg-black/10 cursor-pointer hover:bg-black/20 transition-colors"
+                            >
+                              <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                                <img v-if="typeof att !== 'string' && att.fileUrl && isImageAttachment(att)" :src="att.fileUrl ?? undefined" class="w-full h-full object-cover" />
+                                <i v-else class="fas fa-file-alt text-lg"></i>
+                              </div>
+                              <div class="min-w-0">
+                                <p class="text-xs font-bold truncate">{{ (typeof att === 'string') ? 'Archivo Adjunto' : att.originalName || 'Archivo Adjunto' }}</p>
+                                <p class="text-[9px] font-mono opacity-70">{{ (typeof att === 'string') ? 'Documento' : att.mimeType || 'Documento' }}</p>
+                              </div>
+                            </div>
                           </div>
-                          <div class="min-w-0">
-                            <p class="text-xs font-bold truncate">{{ (typeof att === 'string') ? 'Archivo Adjunto' : att.originalName || 'Archivo Adjunto' }}</p>
-                            <p class="text-[9px] font-mono opacity-70">{{ (typeof att === 'string') ? 'Documento' : att.mimeType || 'Documento' }}</p>
+
+                          <div
+                              @click="handleMessageClick(msg, $event)"
+                              class="transition-opacity"
+                              :class="hasTranslation(msg) ? 'cursor-pointer hover:opacity-90' : ''"
+                              :title="hasTranslation(msg) ? 'Toca para alternar traducción' : ''"
+                          >
+                            <template v-if="isShowingTranslation(msg.id)">
+                              <i class="fas fa-globe text-[12px] opacity-70 mr-1.5"></i>
+                              <span v-html="formatMessageText(msg.contentExternal)"></span>
+                            </template>
+                            <template v-else>
+                              <span v-html="formatMessageText(msg.contentLocal || msg.contentExternal || 'Mensaje enviado')"></span>
+                              <i v-if="hasTranslation(msg)" class="fas fa-language text-[12px] opacity-40 ml-1.5 hover:opacity-100 transition-opacity"></i>
+                            </template>
                           </div>
                         </div>
                       </div>
 
-                      <div
-                          @click="toggleTranslation(msg, $event)"
-                          class="transition-opacity select-none"
-                          :class="hasTranslation(msg) ? 'cursor-pointer hover:opacity-90' : ''"
-                          :title="hasTranslation(msg) ? 'Toca para alternar traducción' : ''"
-                      >
-                        <template v-if="isShowingTranslation(msg.id)">
-                          <i class="fas fa-globe text-[12px] opacity-70 mr-1.5"></i>
-                          <span v-html="formatMessageText(msg.contentExternal)"></span>
-                        </template>
-                        <template v-else>
-                          <span v-html="formatMessageText(msg.contentLocal || msg.contentExternal || 'Mensaje enviado')"></span>
-                          <i v-if="hasTranslation(msg)" class="fas fa-language text-[12px] opacity-40 ml-1.5 hover:opacity-100 transition-opacity"></i>
-                        </template>
+                      <div v-if="getReactions(msg).length > 0"
+                           class="absolute -bottom-3 flex items-center gap-1 bg-white shadow-md border border-slate-200 rounded-full px-1.5 py-0.5 z-10 text-[12px] transform transition-transform"
+                           :class="msg.direction === 'outgoing' ? 'right-4' : 'left-4'">
+                        <span v-for="reaction in getReactions(msg)" :key="reaction.emoji" class="flex items-center">
+                          <span>{{ reaction.emoji }}</span>
+                          <span v-if="reaction.count > 1" class="text-slate-400 font-bold ml-1 text-[10px]">{{ reaction.count }}</span>
+                        </span>
                       </div>
 
                     </div>
 
-                    <div class="flex items-center gap-1.5 mt-1.5 px-2 text-[10px] font-black uppercase tracking-tighter" :class="[msg.direction === 'outgoing' ? 'flex-row-reverse' : 'flex-row', activeTab === 'scheduled' ? 'text-orange-400' : 'text-slate-400']">
+                    <div class="flex items-center gap-1.5 mt-2.5 px-2 text-[10px] font-black uppercase tracking-tighter" :class="[msg.direction === 'outgoing' ? 'flex-row-reverse' : 'flex-row', activeTab === 'scheduled' ? 'text-orange-400' : 'text-slate-400']">
 
                       <span>{{ formatTime(msg.effectiveDateTime || msg.createdAt) }}</span>
 
@@ -1071,6 +1205,10 @@ const getDirectChannelId = (channel?: any): string | null => {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateY(10px) scale(0.98); }
+
+.fade-scale-enter-active, .fade-scale-leave-active { transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
+.fade-scale-enter-from, .fade-scale-leave-to { opacity: 0; transform: scale(0.95); }
+
 .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 textarea { outline: none; }
