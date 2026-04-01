@@ -42,9 +42,13 @@ readonly class MessageConversationMercureListener
         // 1. Siempre transmitimos a Mercure primero
         $this->mercureBroadcaster->broadcastConversationUpdate($conversation, 'conversation_updated');
 
-        // 2. Verificamos si cambió el unreadCount
+        // 2. Extraemos el ChangeSet
         $unitOfWork = $event->getObjectManager()->getUnitOfWork();
         $changeSet = $unitOfWork->getEntityChangeSet($conversation);
+
+        // 🚨 LOG RADAR: Imprimirá TODOS los nombres de las columnas que cambiaron
+        $camposCambiados = implode(', ', array_keys($changeSet));
+        $this->logger->info("🔄 [Radar] postUpdate en Conversación {$conversation->getId()}. Campos modificados: [{$camposCambiados}]");
 
         if (isset($changeSet['unreadCount'])) {
             $oldUnread = (int) $changeSet['unreadCount'][0];
@@ -54,6 +58,9 @@ readonly class MessageConversationMercureListener
             if ($newUnread > $oldUnread) {
                 $this->safeDispatchPushNotifications($conversation);
             }
+        } else {
+            // 🚨 LOG DE ADVERTENCIA: Nos avisa que el unreadCount no vino en este paquete de cambios
+            $this->logger->warning("⚠️ [Radar] El campo 'unreadCount' NO está en el ChangeSet. Ignorando Push.");
         }
     }
 
