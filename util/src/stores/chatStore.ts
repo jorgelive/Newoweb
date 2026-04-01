@@ -1,10 +1,8 @@
-// util/src/stores/chatStore.ts
 import { defineStore } from 'pinia';
-import { ref, computed, shallowRef } from 'vue';
+import { ref, computed, shallowRef, watch } from 'vue';
 import axios, { InternalAxiosRequestConfig } from 'axios';
 import { useAttachmentStore } from './attachmentStore';
 import { useNotificationStore } from './notificationStore';
-import { watch } from 'vue'; // Asegúrate de tener watch importado arriba en vue
 
 // Interfaz extendida para manejar estados personalizados en las peticiones Axios
 export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -405,13 +403,15 @@ export const useChatStore = defineStore('chatStore', () => {
                         };
                         setTimeout(() => { newNotification.value = null; }, 5000);
 
+                        // 1. Extraemos el ID seguro por si no viene la propiedad "id" limpia
                         const safeId = convData.id || convData['@id'].split('/').pop();
 
+                        // ✅ Despacho oficial al nuevo Store Global usando actionUrl corregido
                         notificationStore.addNotification({
                             title: `Mensaje de ${convData.guestName || 'Huésped'}`,
                             body: 'Tienes un nuevo mensaje sin leer.',
                             type: 'info',
-                            actionUrl: `/chat?id=${safeId}` // <-- USAMOS EL ID SEGURO
+                            actionUrl: `/chat?id=${safeId}`
                         });
                     }
 
@@ -609,16 +609,33 @@ export const useChatStore = defineStore('chatStore', () => {
         }
     };
 
-    // LÓGICA DE APP BADGE (ICONO DEL SISTEMA OPERATIVO)
+    /**
+     * MODO STALKER: Trae los últimos mensajes de una conversación sin disparar el webhook de lectura
+     * @param {string} conversationId ID de la conversación
+     * @returns {Promise<ApiMessage[]>} Lista de los últimos mensajes
+     */
+    const fetchLatestMessagesForStalk = async (conversationId: string): Promise<ApiMessage[]> => {
+        try {
+            const response = await apiClient.get(`/platform/user/util/msg/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
+            const data = extractData(response);
+            // Retornamos máximo los últimos 5 para la previsualización
+            return data.slice(0, 5);
+        } catch (err) {
+            console.error('Error en Modo Stalker:', err);
+            return [];
+        }
+    };
+
+    // ============================================================================
+    // LÓGICA DE APP BADGE Y LIMPIEZA DE NOTIFICACIONES NATIVAS
     // ============================================================================
     const totalUnreadConversations = computed(() => {
         // Cuenta cuántas conversaciones tienen al menos 1 mensaje sin leer
         return conversations.value.filter(c => c.unreadCount > 0).length;
     });
 
-
-
     watch(totalUnreadConversations, (unreadCount) => {
+        // 1. Actualizar el Badge del icono (El globo rojo en macOS/Android)
         if ('setAppBadge' in navigator && 'clearAppBadge' in navigator) {
             if (unreadCount > 0) {
                 // Le pone el número exacto al icono
@@ -628,7 +645,16 @@ export const useChatStore = defineStore('chatStore', () => {
                 navigator.clearAppBadge().catch(() => {});
             }
         }
+
+        // 2. Control inteligente de la barra de estado de Android
+        // Si el usuario ya leyó todo (contador llega a 0), le ordenamos al SW limpiar la barra.
+        if (unreadCount === 0) {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
+            }
+        }
     });
+
 
     return {
         conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages,
@@ -636,6 +662,7 @@ export const useChatStore = defineStore('chatStore', () => {
         loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations,
         isSessionExpired, checkSession, renewSession, cancelRenewal,
         getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage,
-        initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, totalUnreadConversations
+        initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus,
+        fetchLatestMessagesForStalk
     };
 });

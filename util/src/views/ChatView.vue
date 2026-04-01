@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
-import { useChatStore, ApiMessage, ApiTemplate } from '@/stores/chatStore';
+import { useChatStore, ApiMessage, ApiTemplate, ApiConversation } from '@/stores/chatStore';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
@@ -177,6 +177,79 @@ const getReactions = (msg: ApiMessage): { emoji: string; count: number }[] => {
   return Object.entries(counts).map(([emoji, count]) => ({ emoji, count }));
 };
 
+
+// ============================================================================
+// NUEVO: MODO STALKER (LONG PRESS EN CONVERSACIONES DE LA LISTA)
+// ============================================================================
+const isStalkMenuOpen = ref(false);
+const stalkMenuPos = ref({ x: 0, y: 0 });
+const stalkConversation = ref<ApiConversation | null>(null);
+const stalkMessages = ref<ApiMessage[]>([]);
+const isLoadingStalk = ref(false);
+
+let stalkPressTimer: number | null = null;
+const isStalkPressAction = ref(false);
+
+const startStalkLongPress = (chat: ApiConversation, event: TouchEvent | MouseEvent) => {
+  isStalkPressAction.value = false;
+  stalkPressTimer = window.setTimeout(() => {
+    isStalkPressAction.value = true;
+    openStalkMenu(chat, event);
+  }, 500);
+};
+
+const cancelStalkLongPress = () => {
+  if (stalkPressTimer) {
+    clearTimeout(stalkPressTimer);
+    stalkPressTimer = null;
+  }
+  // Pequeño delay para que el click normal no se dispare justo después de soltar
+  setTimeout(() => {
+    isStalkPressAction.value = false;
+  }, 100);
+};
+
+const openStalkMenu = async (chat: ApiConversation, event: MouseEvent | TouchEvent) => {
+  stalkConversation.value = chat;
+
+  let clientX = 0;
+  let clientY = 0;
+
+  if ('touches' in event) {
+    clientX = event.touches[0].clientX;
+    clientY = event.touches[0].clientY;
+  } else {
+    clientX = (event as MouseEvent).clientX;
+    clientY = (event as MouseEvent).clientY;
+  }
+
+  const screenW = window.innerWidth;
+  const screenH = window.innerHeight;
+  const menuW = 300;
+  const menuH = 250;
+
+  stalkMenuPos.value = {
+    x: clientX + menuW > screenW ? screenW - menuW - 10 : clientX,
+    y: clientY + menuH > screenH ? screenH - menuH - 10 : clientY
+  };
+
+  isStalkMenuOpen.value = true;
+  isLoadingStalk.value = true;
+  stalkMessages.value = [];
+
+  try {
+    stalkMessages.value = await store.fetchLatestMessagesForStalk(chat.id);
+  } finally {
+    isLoadingStalk.value = false;
+  }
+};
+
+const closeStalkMenu = () => {
+  isStalkMenuOpen.value = false;
+  stalkConversation.value = null;
+};
+
+
 // ============================================================================
 // LÓGICA ORIGINAL DE UI Y CHAT
 // ============================================================================
@@ -203,6 +276,15 @@ const translatedMessages = ref<Record<string, boolean>>({});
 const route = useRoute();
 const router = useRouter(); // <-- NUEVO
 
+// 🔥 OBSERVADOR DE RUTA RAÍZ (NO QUEDA ATRAPADO EN EL MOUNT) 🔥
+watch(() => route.query.id, async (newId) => {
+  if (newId) {
+    await selectChat(newId as string);
+    // Limpiamos la URL para que quede bonita en la barra de direcciones
+    router.replace({ path: '/chat', query: {} });
+  }
+});
+
 const handlePopState = (event: PopStateEvent) => {
   if (window.innerWidth >= 768) return;
   isTransitioning.value = false;
@@ -218,14 +300,6 @@ const handlePopState = (event: PopStateEvent) => {
     setTimeout(() => { isTransitioning.value = true; }, 50);
   });
 };
-
-watch(() => route.query.id, async (newId) => {
-  if (newId) {
-    await selectChat(newId as string);
-    // Limpiamos la URL para que quede bonita en la barra de direcciones
-    router.replace({ path: '/chat', query: {} });
-  }
-});
 
 onMounted(async () => {
   store.fetchConversations(); // Ya no necesita await porque selectConversation es autosuficiente ahora
@@ -248,7 +322,6 @@ onMounted(async () => {
     history.replaceState({ view: 'sidebar' }, '');
   }
   window.addEventListener('popstate', handlePopState);
-
 });
 
 onUnmounted(() => {
@@ -714,7 +787,7 @@ const getDirectChannelId = (channel?: any): string | null => {
 </script>
 
 <template>
-  <div class="fixed inset-0 flex bg-[#F8FAFC] font-sans overflow-hidden text-slate-900 antialiased" @contextmenu="isContextMenuOpen ? closeContextMenu() : null">
+  <div class="fixed inset-0 flex bg-[#F8FAFC] font-sans overflow-hidden text-slate-900 antialiased" @contextmenu="isContextMenuOpen ? closeContextMenu() : (isStalkMenuOpen ? closeStalkMenu() : null)">
 
     <div v-if="isContextMenuOpen" class="fixed inset-0 z-[400]" @click="closeContextMenu"></div>
     <Transition name="fade-scale">
@@ -723,6 +796,41 @@ const getDirectChannelId = (channel?: any): string | null => {
            class="fixed z-[500] bg-white border border-slate-200 shadow-xl rounded-xl py-1 w-48 overflow-hidden transform origin-top-left">
         <button @click="copyMessageText" class="w-full text-left px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-[#376875] flex items-center gap-3 transition-colors">
           <i class="far fa-copy opacity-70"></i> Copiar texto
+        </button>
+      </div>
+    </Transition>
+
+    <div v-if="isStalkMenuOpen" class="fixed inset-0 z-[400]" @click="closeStalkMenu"></div>
+    <Transition name="fade-scale">
+      <div v-if="isStalkMenuOpen"
+           :style="{ top: stalkMenuPos.y + 'px', left: stalkMenuPos.x + 'px' }"
+           class="fixed z-[500] bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 w-72 md:w-80 overflow-hidden transform origin-top-left flex flex-col gap-3 max-h-[350px]">
+
+        <h3 class="text-xs font-black uppercase text-slate-500 border-b border-slate-100 pb-2 flex justify-between items-center">
+          <span class="flex items-center gap-2"><i class="fas fa-eye text-[#376875]"></i> Vista Previa</span>
+          <span class="text-[#E07845] bg-orange-50 px-2 py-0.5 rounded-md" v-if="stalkConversation?.unreadCount">
+            {{ stalkConversation.unreadCount }} sin leer
+          </span>
+        </h3>
+
+        <div v-if="isLoadingStalk" class="flex justify-center py-6"><i class="fas fa-circle-notch fa-spin text-slate-300 text-2xl"></i></div>
+        <div v-else-if="stalkMessages.length === 0" class="text-xs text-slate-400 text-center py-4 italic">No hay historial reciente.</div>
+
+        <div v-else class="overflow-y-auto flex flex-col-reverse gap-3 scrollbar-hide py-1">
+          <div v-for="m in stalkMessages" :key="m.id" class="text-[12px] p-2.5 rounded-xl border shadow-sm leading-relaxed"
+               :class="m.direction === 'outgoing' ? 'bg-[#376875]/5 border-[#376875]/10 text-slate-700 ml-6 rounded-tr-sm' : 'bg-white border-slate-200 text-slate-800 mr-6 rounded-tl-sm'">
+            <div class="font-black mb-1 flex justify-between text-[9px] uppercase tracking-wider" :class="m.direction === 'outgoing' ? 'text-[#376875]' : 'text-slate-400'">
+              <span>{{ m.direction === 'incoming' ? stalkConversation?.guestName || 'Huésped' : 'Tú' }}</span>
+              <span>{{ formatTime(m.createdAt) }}</span>
+            </div>
+            <div class="whitespace-pre-wrap break-words opacity-90 font-medium">
+              {{ m.contentLocal || m.contentExternal || (m.template ? '🤖 [Plantilla]' : '📎 [Archivo Adjunto]') }}
+            </div>
+          </div>
+        </div>
+
+        <button @click="closeStalkMenu" class="mt-1 w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors">
+          Cerrar
         </button>
       </div>
     </Transition>
@@ -812,7 +920,11 @@ const getDirectChannelId = (channel?: any): string | null => {
         <div v-else-if="store.filteredConversations.length === 0" class="p-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">Bandeja Vacía</div>
 
         <div v-for="chat in store.filteredConversations" :key="chat?.id" class="mb-1">
-          <button @click="selectChat(chat.id)"
+          <button @click="!isStalkPressAction ? selectChat(chat.id) : null"
+                  @touchstart="startStalkLongPress(chat, $event)"
+                  @touchend="cancelStalkLongPress"
+                  @touchmove="cancelStalkLongPress"
+                  @contextmenu.prevent="openStalkMenu(chat, $event)"
                   class="w-full text-left p-3 rounded-2xl transition-all flex gap-3 relative group border border-transparent items-center"
                   :class="store.currentConversation?.id === chat.id ? 'bg-white border-slate-200 shadow-xl translate-x-1' : 'hover:bg-slate-50'">
 

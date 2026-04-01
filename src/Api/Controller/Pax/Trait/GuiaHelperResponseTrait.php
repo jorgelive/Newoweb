@@ -21,11 +21,6 @@ trait GuiaHelperResponseTrait
      * @param PmsEventoCalendario|null $evento El evento de reserva (null si es acceso público/demo).
      * @return JsonResponse Payload estructurado con textos fijos, traducibles, widgets y configuración.
      */
-    public const ESTADOS_PAGO_CONFIABLES = [
-        PmsEventoEstadoPago::ID_PAGO_PARCIAL,
-        PmsEventoEstadoPago::ID_PAGO_TOTAL
-    ];
-
 
     private function buildResponse(PmsUnidad $unidad, ?PmsEventoCalendario $evento): JsonResponse
     {
@@ -132,7 +127,7 @@ trait GuiaHelperResponseTrait
 
         // 1. Validamos primero el estado de pago de la reserva
         $estadoPagoId = $evento->getEstadoPago()?->getId();
-        if (!in_array($estadoPagoId, $this::ESTADOS_PAGO_CONFIABLES, true)) {
+        if (!in_array($estadoPagoId, PmsEventoEstadoPago::ESTADOS_PAGO_CONFIABLES, true)) {
             return ['status' => 'unconfirmed', 'authorized' => false, 'unlock_at' => null];
         }
 

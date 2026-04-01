@@ -1,4 +1,3 @@
-// util/src/stores/notificationStore.ts
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
@@ -11,12 +10,6 @@ export interface AppNotification {
     actionUrl?: string;
 }
 
-/**
- * Función utilitaria para convertir la clave VAPID de Base64 segura para URL a un Uint8Array.
- * Esto es requerido por la API del navegador (PushManager).
- * @param {string} base64String Clave VAPID pública.
- * @returns {Uint8Array} Arreglo de bytes.
- */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -28,17 +21,8 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     return outputArray;
 }
 
-/**
- * Store global para gestionar el estado de las notificaciones visuales (Toasts) en toda la aplicación,
- * y para gestionar la suscripción del navegador a las notificaciones Push (VAPID).
- */
 export const useNotificationStore = defineStore('notificationStore', () => {
 
-    /**
-     * Obtiene las URLs base de la API desde la configuración global o variables de entorno.
-     * Mantiene la consistencia dinámica con el resto de la aplicación (ej. chatStore).
-     * @returns {{api: string}} Objeto con la URL de la API.
-     */
     const getUrls = () => {
         // @ts-ignore
         const config = window.OPENPERU_CONFIG || {};
@@ -47,71 +31,42 @@ export const useNotificationStore = defineStore('notificationStore', () => {
         };
     };
 
-    /**
-     * Instancia configurada de Axios exclusiva para este store.
-     * Garantiza que las peticiones apunten al dominio correcto y envíen las cookies de sesión.
-     */
     const apiClient = axios.create({
         baseURL: getUrls().api,
         withCredentials: true,
         headers: { 'Accept': 'application/json' }
     });
 
-    /**
-     * @type {import('vue').Ref<AppNotification[]>} Arreglo interno reactivo que mantiene la cola de notificaciones.
-     */
     const notifications = ref<AppNotification[]>([]);
 
-    /**
-     * Obtiene explícitamente la lista de notificaciones activas.
-     * @returns {AppNotification[]} Arreglo de notificaciones encoladas.
-     */
     const getNotifications = computed((): AppNotification[] => notifications.value);
 
-    /**
-     * Establece explícitamente el estado completo de notificaciones.
-     * @param {AppNotification[]} newNotifications Nuevo arreglo de notificaciones a establecer.
-     */
     const setNotifications = (newNotifications: AppNotification[]): void => {
         notifications.value = newNotifications;
     };
 
-    /**
-     * Añade una nueva notificación a la cola visual y programa su eliminación automática.
-     * @param {Omit<AppNotification, 'id'>} payload Los datos de la notificación sin requerir un ID manual.
-     */
     const addNotification = (payload: Omit<AppNotification, 'id'>): void => {
         const id = Date.now();
         notifications.value.push({ ...payload, id });
         setTimeout(() => removeNotification(id), 5000);
     };
 
-    /**
-     * Elimina explícitamente una notificación específica de la cola mediante su identificador.
-     * @param {number} id El identificador único (timestamp) de la notificación a remover.
-     */
     const removeNotification = (id: number): void => {
         notifications.value = notifications.value.filter(n => n.id !== id);
     };
 
-    /**
-     * Solicita permisos al navegador y registra la suscripción Push en el backend de Symfony.
-     * ¿Por qué existe?: Es el puente necesario para que el Service Worker reciba notificaciones en segundo plano.
-     */
     const subscribeToPushNotifications = async (): Promise<boolean> => {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
             console.warn('Push messaging no es soportado.');
-            return false; // <-- RETORNA FALSE
+            return false;
         }
 
         try {
-            // 1. Pedir permiso al usuario explícitamente
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
-                return false; // <-- RETORNA FALSE
+                return false;
             }
 
-            // 2. Obtener el Service Worker activo
             const registration = await navigator.serviceWorker.ready;
             const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
@@ -122,35 +77,27 @@ export const useNotificationStore = defineStore('notificationStore', () => {
 
             const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
-            // 3. Suscribir el navegador usando la clave pública
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: convertedVapidKey as BufferSource
             });
 
-            // 4. Extraer los datos brutos de la suscripción
             const subscriptionData = subscription.toJSON();
 
-            // 5. Enviar a tu backend Symfony usando el apiClient dinámico
             await apiClient.post('/user/push-subscription', {
                 endpoint: subscriptionData.endpoint,
                 p256dh: subscriptionData.keys?.p256dh,
                 auth: subscriptionData.keys?.auth
             });
 
-            return true; // <-- RETORNA TRUE SI FUE UN ÉXITO
+            return true;
 
         } catch (error) {
             console.error('Error al intentar suscribirse:', error);
-            return false; // <-- RETORNA FALSE
+            return false;
         }
     };
 
-    /**
-     * Cancela la suscripción Push local del navegador y elimina el registro en el backend.
-     * ¿Por qué existe?: Para garantizar la privacidad del usuario al cerrar sesión, evitando
-     * que sus notificaciones sigan llegando a una computadora compartida.
-     */
     const unsubscribeFromPushNotifications = async (): Promise<void> => {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
             return;
@@ -162,17 +109,11 @@ export const useNotificationStore = defineStore('notificationStore', () => {
 
             if (subscription) {
                 const endpoint = subscription.endpoint;
-
-                // 1. Desuscribir a nivel de navegador (Chrome/Safari)
                 await subscription.unsubscribe();
-
-                // 2. Avisarle a Symfony que elimine este endpoint de la BD
                 await apiClient.post('/user/push-unsubscribe', { endpoint });
-
-                console.log('Suscripción Push eliminada exitosamente.');
             }
         } catch (error) {
-            console.error('Error al intentar desuscribirse de las notificaciones Push:', error);
+            console.error('Error al desuscribirse:', error);
         }
     };
 
@@ -184,6 +125,4 @@ export const useNotificationStore = defineStore('notificationStore', () => {
         subscribeToPushNotifications,
         unsubscribeFromPushNotifications
     };
-
-
 });

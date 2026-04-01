@@ -7,22 +7,12 @@ import { useNotificationStore } from '@/stores/notificationStore';
 const notificationStore = useNotificationStore();
 const showManualSubscriptionButton = ref(false);
 
-const handleVisibilityChange = async () => {
-  if (document.visibilityState === 'visible') {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      // Solo le decimos al SW que cierre las notificaciones flotantes,
-      // ¡Ya NO borramos el badge aquí! El chatStore se encarga del badge.
-      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
-    }
-  }
-};
-
 const triggerSubscription = async () => {
-  // 1. Ocultar el botón inmediatamente para que no se quede pegado
+  // Ocultamos de inmediato para mejorar UX
   showManualSubscriptionButton.value = false;
   try {
     const success = await notificationStore.subscribeToPushNotifications();
-    // Si falló (porque iOS exige otro tap) y no está bloqueado, lo volvemos a mostrar
+    // Si la plataforma exige otro clic nativo, lo volvemos a mostrar
     if (!success && Notification.permission !== 'denied') {
       showManualSubscriptionButton.value = true;
     }
@@ -32,8 +22,6 @@ const triggerSubscription = async () => {
 };
 
 onMounted(() => {
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'PUSH_TO_STORE') {
@@ -49,10 +37,6 @@ onMounted(() => {
       await triggerSubscription();
     }
   }, 3000);
-});
-
-onUnmounted(() => {
-  document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
 
@@ -72,16 +56,10 @@ onUnmounted(() => {
         </div>
       </div>
       <div class="flex justify-end gap-2 mt-1">
-        <button
-            @click="showManualSubscriptionButton = false"
-            class="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
-        >
+        <button @click="showManualSubscriptionButton = false" class="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
           Ahora no
         </button>
-        <button
-            @click="triggerSubscription"
-            class="px-4 py-1.5 text-xs font-bold bg-[#376875] hover:bg-[#2c535d] text-white rounded-lg transition-colors"
-        >
+        <button @click="triggerSubscription" class="px-4 py-1.5 text-xs font-bold bg-[#376875] hover:bg-[#2c535d] text-white rounded-lg transition-colors">
           Permitir
         </button>
       </div>
@@ -92,13 +70,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.fade-slide-enter-from,
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(20px) scale(0.95);
-}
+.fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateY(20px) scale(0.95); }
 </style>

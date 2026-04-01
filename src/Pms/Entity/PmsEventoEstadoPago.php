@@ -24,8 +24,15 @@ class PmsEventoEstadoPago
      * CONSTANTES DE ID (Identificadores naturales con guion)
      * ====================================================== */
     public const ID_SIN_PAGO     = 'no-pagado';
+    public const ID_PAGO_ALOJAMIENTO = 'pago-alojamiento';
     public const ID_PAGO_PARCIAL = 'pago-parcial';
     public const ID_PAGO_TOTAL   = 'pago-total';
+
+    public const ESTADOS_PAGO_CONFIABLES = [
+        self::ID_PAGO_PARCIAL,
+        self::ID_PAGO_TOTAL,
+        self::ID_PAGO_ALOJAMIENTO
+    ];
 
     /**
      * Clave primaria basada en código natural.

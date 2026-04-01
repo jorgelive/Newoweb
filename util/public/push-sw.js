@@ -1,5 +1,3 @@
-// util/public/push-sw.js
-
 console.log('[push-sw.js] ✅ Script cargado');
 
 self.addEventListener('push', (event) => {
@@ -23,7 +21,7 @@ self.addEventListener('push', (event) => {
             const isAppFocused = clientList.some((client) => client.focused);
 
             if (isAppFocused) {
-                // Si la app está abierta, se lo pasamos a Pinia (Vue) para que muestre el Toast
+                // Si la app está abierta en pantalla, se lo pasamos a Pinia para el Toast verde
                 clientList.forEach((client) => {
                     client.postMessage({
                         type: 'PUSH_TO_STORE',
@@ -31,8 +29,7 @@ self.addEventListener('push', (event) => {
                     });
                 });
             } else {
-                // Si la app está cerrada, mostramos la notificación nativa del celular/mac
-                // NOTA: Ya no usamos setAppBadge aquí, Pinia se encarga de eso.
+                // Si la app está cerrada, mostramos la notificación nativa
                 return self.registration.showNotification(notificationData.title, {
                     body: notificationData.body,
                     icon: '/app_util/pwa-192x192.png',
@@ -58,7 +55,7 @@ self.addEventListener('notificationclick', (event) => {
             for (let i = 0; i < windowClients.length; i++) {
                 let client = windowClients[i];
                 if (client.url && 'focus' in client) {
-                    client.navigate(urlToOpen); // Navegamos al chat específico
+                    client.navigate(urlToOpen); // Navegamos al chat específico leyendo el ?id=
                     return client.focus();      // Traemos la app al primer plano
                 }
             }
@@ -71,15 +68,14 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Cuando Vue (App.vue) se abre y nos dice que limpiemos la basura:
+// Cuando Vue detecta que los mensajes sin leer llegaron a CERO, nos pide limpiar la barra:
 self.addEventListener('message', (event) => {
     if (event.data?.type === 'CLEAR_NOTIFICATIONS') {
-        // Cerramos todas las notificaciones de la barra superior de Android
         self.registration.getNotifications().then((notifications) => {
             notifications.forEach((notification) => {
                 notification.close();
             });
         });
-        // ¡OJO! Ya no ejecutamos clearAppBadge(). Dejamos que el chatStore.ts controle los números del icono.
+        // IMPORTANTE: NO usamos clearAppBadge aquí. El chatStore (Pinia) maneja el número.
     }
 });
