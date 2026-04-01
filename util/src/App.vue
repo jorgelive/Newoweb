@@ -23,9 +23,15 @@ const clearPwaBadge = () => {
 /**
  * Event Listener: Detecta cuando el usuario regresa a la pestaña o abre la PWA.
  */
-const handleVisibilityChange = () => {
+const handleVisibilityChange = async () => {
   if (document.visibilityState === 'visible') {
-    clearPwaBadge();
+    // Limpiar desde la página (por si acaso)
+    await clearPwaBadge();
+
+    // ✅ Limpiar desde el SW (el que realmente funciona)
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_BADGE' });
+    }
   }
 };
 
