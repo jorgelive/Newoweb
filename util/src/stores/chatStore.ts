@@ -1,7 +1,9 @@
+// util/src/stores/chatStore.ts
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef } from 'vue';
 import axios, { InternalAxiosRequestConfig } from 'axios';
 import { useAttachmentStore } from './attachmentStore';
+import { useNotificationStore } from './notificationStore'; // ✅ NUEVO IMPORT
 
 // Interfaz extendida para manejar estados personalizados en las peticiones Axios
 export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -381,6 +383,9 @@ export const useChatStore = defineStore('chatStore', () => {
 
             globalEventSource.value = new EventSource(url.toString(), { withCredentials: true });
 
+            // ✅ Instanciamos el store global
+            const notificationStore = useNotificationStore();
+
             globalEventSource.value.onmessage = (event) => {
                 const data = JSON.parse(event.data);
 
@@ -390,12 +395,22 @@ export const useChatStore = defineStore('chatStore', () => {
                     const isNewUnread = convData.unreadCount > (existingConv?.unreadCount || 0);
 
                     if (isNewUnread && (currentConversation.value?.['@id'] !== convData['@id'] || !isChatVisible.value)) {
+
+                        // Propiedad original mantenida intacta (ya no se usa en ChatView, pero existe)
                         newNotification.value = {
                             show: true,
                             conversationId: convData.id,
                             title: convData.guestName || 'Huésped',
                         };
                         setTimeout(() => { newNotification.value = null; }, 5000);
+
+                        // ✅ Despacho oficial al nuevo Store Global
+                        notificationStore.addNotification({
+                            title: `Mensaje de ${convData.guestName || 'Huésped'}`,
+                            body: 'Tienes un nuevo mensaje sin leer.',
+                            type: 'info',
+                            actionUrl: `/app_util/chat/${convData.id}`
+                        });
                     }
 
                     if (existingConv) {

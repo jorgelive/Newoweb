@@ -3,9 +3,15 @@ import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import { useChatStore, ApiMessage, ApiTemplate } from '@/stores/chatStore';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
+import { useNotificationStore } from '@/stores/notificationStore';
+
+
 
 const store = useChatStore();
 const attachmentStore = useAttachmentStore();
+const notificationStore = useNotificationStore();
+
+
 
 const messagesContainer = ref<HTMLElement | null>(null);
 const conversationsContainer = ref<HTMLElement | null>(null);
@@ -49,6 +55,16 @@ const handleSessionRenewal = async () => {
   }
 
   isLoggingIn.value = false;
+};
+
+const isLoggingOut = ref(false);
+
+const handleLogout = async () => {
+  if (!confirm('¿Estás seguro de que deseas cerrar sesión? Dejarás de recibir notificaciones en este dispositivo.')) return;
+
+  isLoggingOut.value = true;
+  await notificationStore.unsubscribeFromPushNotifications();
+  window.location.href = '/logout';
 };
 
 // ============================================================================
@@ -757,9 +773,14 @@ const getDirectChannelId = (channel?: any): string | null => {
       <div class="px-6 pt-6 bg-white shrink-0">
         <div class="flex justify-between items-center mb-6">
           <h1 class="font-black text-2xl tracking-tight text-slate-800">Inbox</h1>
-          <button @click="store.fetchConversations()" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-900 group transition-all shadow-sm">
-            <i class="fas fa-sync-alt text-slate-400 group-hover:text-white text-xs" :class="{'fa-spin': store.loadingConversations}"></i>
-          </button>
+          <div class="flex items-center gap-2">
+            <button @click="store.fetchConversations()" class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-900 group transition-all shadow-sm" title="Actualizar chats">
+              <i class="fas fa-sync-alt text-slate-400 group-hover:text-white text-xs" :class="{'fa-spin': store.loadingConversations}"></i>
+            </button>
+            <button @click="handleLogout" :disabled="isLoggingOut" class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center hover:bg-red-600 group transition-all shadow-sm disabled:opacity-50" title="Cerrar sesión">
+              <i class="fas" :class="isLoggingOut ? 'fa-circle-notch fa-spin text-red-400' : 'fa-power-off text-red-400 group-hover:text-white text-xs'"></i>
+            </button>
+          </div>
         </div>
         <div class="flex bg-slate-100 p-1 rounded-xl mb-4 shadow-inner">
           <button v-for="status in ['open', 'archived', 'closed']" :key="status" @click="store.filterStatus = status" class="flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all" :class="store.filterStatus === status ? 'bg-white text-[#376875] shadow-sm' : 'text-slate-400 hover:text-slate-600'">
@@ -1176,25 +1197,6 @@ const getDirectChannelId = (channel?: any): string | null => {
             class="max-w-full max-h-full object-contain rounded-xl shadow-2xl cursor-default"
             @click.stop
         />
-      </div>
-    </Transition>
-
-    <Transition name="fade-slide">
-      <div
-          v-if="store.newNotification"
-          @click="selectChat(store.newNotification.conversationId)"
-          class="fixed top-4 right-4 md:top-6 md:right-8 z-[150] bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-slate-50 hover:scale-105 transition-all max-w-sm w-full"
-      >
-        <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0 shadow-md">
-          <i class="fab fa-whatsapp text-lg"></i>
-        </div>
-        <div class="min-w-0 flex-1">
-          <p class="text-[10px] font-black text-green-600 uppercase tracking-widest mb-0.5">Nuevo Mensaje</p>
-          <p class="text-sm font-bold text-slate-800 truncate">{{ store.newNotification.title }}</p>
-        </div>
-        <button @click.stop="store.newNotification = null" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0">
-          <i class="fas fa-times"></i>
-        </button>
       </div>
     </Transition>
 

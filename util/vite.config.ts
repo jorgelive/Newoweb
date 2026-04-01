@@ -54,6 +54,9 @@ export default defineConfig(({ command }) => {
                     clientsClaim: true,
                     skipWaiting: true,
 
+                    // ✅ Importante: Inyectamos el script nativo de notificaciones Push para app_util
+                    importScripts: ['/app_util/push-sw.js'],
+
                     // ✅ Importante: escanear SOLO desde public/app_util
                     globDirectory: '../public/app_util',
 

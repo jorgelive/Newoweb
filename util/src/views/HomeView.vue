@@ -2,9 +2,11 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useChatStore } from '@/stores/chatStore';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 const router = useRouter();
 const store = useChatStore();
+const notificationStore = useNotificationStore();
 
 const showLoginForm = ref(false);
 const loginUsername = ref('');
@@ -12,7 +14,7 @@ const loginPassword = ref('');
 const isLoggingIn = ref(false);
 const loginError = ref('');
 
-// Nuevos estados para controlar la sesión y el tooltip
+// Estados para controlar la sesión y el tooltip
 const isSessionActive = ref(false);
 const isCheckingSession = ref(true);
 const showSuccessTooltip = ref(false);
@@ -55,10 +57,31 @@ const handleLogin = async () => {
     setTimeout(() => {
       showSuccessTooltip.value = false;
     }, 3000);
+
+    // ✅ NUEVO: Intentar suscribir al navegador a las notificaciones Push
+    // Al hacerlo justo después del login, nos aseguramos de que axios
+    // enviará las cookies de sesión (withCredentials) y Symfony sabrá
+    // a qué usuario de la base de datos asignarle este endpoint.
+    await notificationStore.subscribeToPushNotifications();
+
   } else {
     loginError.value = store.error || 'Credenciales inválidas. Inténtalo de nuevo.';
   }
 };
+
+const isLoggingOut = ref(false);
+
+const handleLogout = async () => {
+  isLoggingOut.value = true;
+
+  // 1. Matamos la suscripción Push local y remota
+  await notificationStore.unsubscribeFromPushNotifications();
+
+  // 2. Usamos el enrutamiento nativo del navegador hacia el firewall de Symfony
+  window.location.href = '/logout';
+};
+
+
 </script>
 
 <template>
@@ -105,8 +128,13 @@ const handleLogin = async () => {
           <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
         </button>
 
-        <div v-else class="px-8 py-4 bg-green-50 text-green-700 border-2 border-green-200 font-bold text-lg rounded-2xl shadow-sm flex justify-center items-center gap-3 w-full sm:w-auto">
-          <i class="fas fa-shield-alt"></i> Sesión Activa
+        <div v-else class="flex items-center gap-3 w-full sm:w-auto">
+          <div class="px-6 py-4 bg-green-50 text-green-700 border-2 border-green-200 font-bold text-lg rounded-2xl shadow-sm flex justify-center items-center gap-3">
+            <i class="fas fa-shield-alt"></i> Sesión Activa
+          </div>
+          <button @click="handleLogout" :disabled="isLoggingOut" class="px-6 py-4 bg-red-50 text-red-600 border-2 border-red-200 font-bold text-lg rounded-2xl shadow-sm hover:bg-red-100 transition-all flex justify-center items-center gap-3 disabled:opacity-50">
+            <i class="fas" :class="isLoggingOut ? 'fa-circle-notch fa-spin' : 'fa-power-off'"></i> Salir
+          </button>
         </div>
 
       </div>

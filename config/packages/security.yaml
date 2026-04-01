@@ -117,6 +117,9 @@ security:
 
         - { path: '^/locale', roles: PUBLIC_ACCESS }
 
+        - { path: '^/user/push-subscription', roles: IS_AUTHENTICATED_FULLY }
+        - { path: '^/user/push-unsubscribe', roles: IS_AUTHENTICATED_FULLY }
+
         # PANEL: todos requiere login (por host)
         - { host: '%app.host.panel%', path: '^/', roles: ROLE_USER }
 
