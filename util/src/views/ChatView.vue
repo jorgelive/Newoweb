@@ -4,14 +4,11 @@ import { useChatStore, ApiMessage, ApiTemplate } from '@/stores/chatStore';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
-
-
+import { useRoute, useRouter } from 'vue-router';
 
 const store = useChatStore();
 const attachmentStore = useAttachmentStore();
 const notificationStore = useNotificationStore();
-
-
 
 const messagesContainer = ref<HTMLElement | null>(null);
 const conversationsContainer = ref<HTMLElement | null>(null);
@@ -203,6 +200,9 @@ const previewImageUrl = ref<string | null>(null);
 
 const translatedMessages = ref<Record<string, boolean>>({});
 
+const route = useRoute();
+const router = useRouter(); // <-- NUEVO
+
 const handlePopState = (event: PopStateEvent) => {
   if (window.innerWidth >= 768) return;
   isTransitioning.value = false;
@@ -219,15 +219,24 @@ const handlePopState = (event: PopStateEvent) => {
   });
 };
 
-onMounted(() => {
-  store.fetchConversations();
+onMounted(async () => {
+  store.fetchConversations(); // Ya no necesita await porque selectConversation es autosuficiente ahora
   store.fetchTemplates();
   store.initGlobalMercure();
 
   window.addEventListener('resize', handleResize);
   updateChatVisibility();
 
-  if (window.innerWidth < 768) {
+  // --- LÓGICA DE NOTIFICACIONES / ENRUTAMIENTO DIRECTO ---
+  if (route.query.id) {
+    const targetId = route.query.id as string;
+    await selectChat(targetId);
+
+    // Opcional: Limpiamos la URL visualmente para que quede limpia en "/chat"
+    router.replace({ path: '/chat', query: {} });
+  }
+
+  if (window.innerWidth < 768 && !route.query.id) {
     history.replaceState({ view: 'sidebar' }, '');
   }
   window.addEventListener('popstate', handlePopState);

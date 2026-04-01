@@ -488,19 +488,42 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     const selectConversation = async (id: string) => {
-        const found = conversations.value.find(c => c.id === id);
-        if (!found) return;
+        error.value = null;
 
-        currentConversation.value = found;
+        // 1. Buscamos en memoria
+        let found = conversations.value.find(c => c.id === id);
+
+        // 2. Si no está en memoria (chat antiguo no cargado aún), lo buscamos directo en la API
+        if (!found) {
+            loadingMessages.value = true; // Mostramos spinner de carga mientras resolvemos
+            try {
+                // Hacemos un GET directo al ID de la conversación
+                const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}`);
+                found = response.data;
+
+                // Si la encontramos, la inyectamos al inicio de la lista de conversaciones
+                if (found) {
+                    conversations.value.unshift(found);
+                }
+            } catch (err: any) {
+                // Si la API devuelve 404, la conversación no existe o no tiene permisos
+                loadingMessages.value = false;
+                error.value = 'No se pudo encontrar la conversación solicitada.';
+                return;
+            }
+        }
+
+        // 3. Procedemos con la carga normal (ahora que sabemos que "found" existe)
+        currentConversation.value = found || null;
         loadingMessages.value = true;
         messagesPage.value = 1;
         hasMoreMessages.value = true;
         newNotification.value = null;
 
         try {
-            if (found.unreadCount > 0) {
+            if (found && found.unreadCount > 0) {
                 apiClient.post(`/platform/user/util/msg/conversations/${id}/read`)
-                    .then(() => found.unreadCount = 0)
+                    .then(() => { if (found) found.unreadCount = 0; })
                     .catch(e => console.error("Error al marcar leídos", e));
                 found.unreadCount = 0;
             }
@@ -509,10 +532,11 @@ export const useChatStore = defineStore('chatStore', () => {
             messages.value = extractData(response).reverse();
             hasMoreMessages.value = hasNextPage(response);
 
+            // Re-abrimos el túnel para escuchar mensajes en vivo de esta conversación
             connectToMercure(id);
 
         } catch (err) {
-            error.value = 'Error al cargar mensajes';
+            error.value = 'Error al cargar los mensajes de esta conversación.';
         } finally {
             loadingMessages.value = false;
         }
