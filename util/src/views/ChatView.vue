@@ -219,6 +219,14 @@ const handlePopState = (event: PopStateEvent) => {
   });
 };
 
+watch(() => route.query.id, async (newId) => {
+  if (newId) {
+    await selectChat(newId as string);
+    // Limpiamos la URL para que quede bonita en la barra de direcciones
+    router.replace({ path: '/chat', query: {} });
+  }
+});
+
 onMounted(async () => {
   store.fetchConversations(); // Ya no necesita await porque selectConversation es autosuficiente ahora
   store.fetchTemplates();
@@ -240,6 +248,7 @@ onMounted(async () => {
     history.replaceState({ view: 'sidebar' }, '');
   }
   window.addEventListener('popstate', handlePopState);
+
 });
 
 onUnmounted(() => {

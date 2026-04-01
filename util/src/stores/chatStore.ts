@@ -3,7 +3,8 @@ import { defineStore } from 'pinia';
 import { ref, computed, shallowRef } from 'vue';
 import axios, { InternalAxiosRequestConfig } from 'axios';
 import { useAttachmentStore } from './attachmentStore';
-import { useNotificationStore } from './notificationStore'; // ✅ NUEVO IMPORT
+import { useNotificationStore } from './notificationStore';
+import { watch } from 'vue'; // Asegúrate de tener watch importado arriba en vue
 
 // Interfaz extendida para manejar estados personalizados en las peticiones Axios
 export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -404,12 +405,13 @@ export const useChatStore = defineStore('chatStore', () => {
                         };
                         setTimeout(() => { newNotification.value = null; }, 5000);
 
-                        // ✅ Despacho oficial al nuevo Store Global
+                        const safeId = convData.id || convData['@id'].split('/').pop();
+
                         notificationStore.addNotification({
                             title: `Mensaje de ${convData.guestName || 'Huésped'}`,
                             body: 'Tienes un nuevo mensaje sin leer.',
                             type: 'info',
-                            actionUrl: `/chat?id=${convData.id}` // Usamos la ruta correcta de Vue Router
+                            actionUrl: `/chat?id=${safeId}` // <-- USAMOS EL ID SEGURO
                         });
                     }
 
@@ -607,12 +609,33 @@ export const useChatStore = defineStore('chatStore', () => {
         }
     };
 
+    // LÓGICA DE APP BADGE (ICONO DEL SISTEMA OPERATIVO)
+    // ============================================================================
+    const totalUnreadConversations = computed(() => {
+        // Cuenta cuántas conversaciones tienen al menos 1 mensaje sin leer
+        return conversations.value.filter(c => c.unreadCount > 0).length;
+    });
+
+
+
+    watch(totalUnreadConversations, (unreadCount) => {
+        if ('setAppBadge' in navigator && 'clearAppBadge' in navigator) {
+            if (unreadCount > 0) {
+                // Le pone el número exacto al icono
+                navigator.setAppBadge(unreadCount).catch(() => {});
+            } else {
+                // Solo limpia el badge si ya no hay chats pendientes
+                navigator.clearAppBadge().catch(() => {});
+            }
+        }
+    });
+
     return {
         conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages,
         templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
         loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations,
         isSessionExpired, checkSession, renewSession, cancelRenewal,
         getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage,
-        initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus
+        initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, totalUnreadConversations
     };
 });

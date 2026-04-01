@@ -98,28 +98,26 @@ export const useNotificationStore = defineStore('notificationStore', () => {
      * Solicita permisos al navegador y registra la suscripción Push en el backend de Symfony.
      * ¿Por qué existe?: Es el puente necesario para que el Service Worker reciba notificaciones en segundo plano.
      */
-    const subscribeToPushNotifications = async (): Promise<void> => {
+    const subscribeToPushNotifications = async (): Promise<boolean> => {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            console.warn('Push messaging no es soportado por este navegador.');
-            return;
+            console.warn('Push messaging no es soportado.');
+            return false; // <-- RETORNA FALSE
         }
 
         try {
             // 1. Pedir permiso al usuario explícitamente
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
-                console.warn('Permiso de notificaciones denegado por el usuario.');
-                return;
+                return false; // <-- RETORNA FALSE
             }
 
             // 2. Obtener el Service Worker activo
             const registration = await navigator.serviceWorker.ready;
-
             const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
             if (!vapidPublicKey) {
                 console.error('La clave VAPID pública no está configurada en el .env');
-                return;
+                return false;
             }
 
             const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
@@ -140,10 +138,11 @@ export const useNotificationStore = defineStore('notificationStore', () => {
                 auth: subscriptionData.keys?.auth
             });
 
-            console.log('Suscripción Push registrada exitosamente en el backend.');
+            return true; // <-- RETORNA TRUE SI FUE UN ÉXITO
 
         } catch (error) {
-            console.error('Error al intentar suscribirse a las notificaciones Push:', error);
+            console.error('Error al intentar suscribirse:', error);
+            return false; // <-- RETORNA FALSE
         }
     };
 

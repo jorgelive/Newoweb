@@ -5,95 +5,49 @@ import NotificationToast from '@/components/NotificationToast.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
 
 const notificationStore = useNotificationStore();
-
-// Estado para mostrar el botón manual de notificaciones (Especial para iOS)
 const showManualSubscriptionButton = ref(false);
 
-/**
- * Función que limpia el globo rojo ("Badge") del icono de la PWA en el SO.
- */
-const clearPwaBadge = () => {
-  if ('clearAppBadge' in navigator) {
-    navigator.clearAppBadge().catch((error) => {
-      console.warn('No se pudo limpiar el badge del SO:', error);
-    });
-  }
-};
-
-/**
- * Event Listener: Detecta cuando el usuario regresa a la pestaña o abre la PWA.
- */
 const handleVisibilityChange = async () => {
   if (document.visibilityState === 'visible') {
-    console.log('=== VISIBILITY CHANGE ===');
-    console.log('controller:', navigator.serviceWorker?.controller);
-    console.log('clearAppBadge disponible:', 'clearAppBadge' in navigator);
-
-    await clearPwaBadge();
-
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_BADGE' });
-      console.log('✅ Mensaje CLEAR_BADGE enviado al SW');
-    } else {
-      console.warn('❌ No hay SW controller activo');
+      // Solo le decimos al SW que cierre las notificaciones flotantes,
+      // ¡Ya NO borramos el badge aquí! El chatStore se encarga del badge.
+      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
     }
   }
 };
 
-/**
- * Intenta suscribir al usuario. Si el navegador lo bloquea (ej. iOS exigiendo un tap manual),
- * muestra el botón para que el usuario pueda hacerlo voluntariamente.
- */
 const triggerSubscription = async () => {
+  // 1. Ocultar el botón inmediatamente para que no se quede pegado
+  showManualSubscriptionButton.value = false;
   try {
     const success = await notificationStore.subscribeToPushNotifications();
-    // Si la suscripción falla (probablemente porque iOS exige interacción del usuario),
-    // o si el permiso está en "default", mostramos el botón.
+    // Si falló (porque iOS exige otro tap) y no está bloqueado, lo volvemos a mostrar
     if (!success && Notification.permission !== 'denied') {
       showManualSubscriptionButton.value = true;
-    } else {
-      showManualSubscriptionButton.value = false;
     }
   } catch (error) {
-    console.error("Fallo al suscribir, mostrando botón manual fallback.", error);
     showManualSubscriptionButton.value = true;
   }
 };
 
-/**
- * Al montar la aplicación base, inicializamos los oyentes globales.
- */
 onMounted(() => {
-  // --- 1. LIMPIEZA DEL BADGE EN PRIMER PLANO ---
-  clearPwaBadge();
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
-  // --- 2. OYENTE DE MENSAJES DEL SERVICE WORKER ---
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'PUSH_TO_STORE') {
-        const payload = event.data.payload;
-        notificationStore.addNotification({
-          title: payload.title,
-          body: payload.body,
-          type: 'info',
-          actionUrl: payload.actionUrl
-        });
+        notificationStore.addNotification(event.data.payload);
       }
     });
   }
 
-  // --- 3. REGISTRO AUTOMÁTICO DE SUSCRIPCIÓN PUSH (Con fallback para iOS) ---
-  setTimeout(() => {
-    // Si el permiso ya está concedido, Notification.permission será 'granted'
+  setTimeout(async () => {
     if (Notification.permission === 'granted') {
-      // Ya tiene permiso, solo renovamos/aseguramos la suscripción silenciosamente
-      notificationStore.subscribeToPushNotifications();
+      await notificationStore.subscribeToPushNotifications();
     } else if (Notification.permission === 'default') {
-      // El navegador aún no sabe qué hacer. Intentamos de forma automática (Funciona en Android/Mac).
-      triggerSubscription();
+      await triggerSubscription();
     }
-    // Si está en 'denied', no hacemos nada, el usuario lo bloqueó intencionalmente.
   }, 3000);
 });
 

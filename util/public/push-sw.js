@@ -6,7 +6,7 @@ self.addEventListener('push', (event) => {
     let notificationData = {
         title: 'Nueva Notificación',
         body: 'Tienes un mensaje nuevo.',
-        actionUrl: '/app_util/'
+        actionUrl: '/chat'
     };
 
     if (event.data) {
@@ -21,9 +21,9 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
             const isAppFocused = clientList.some((client) => client.focused);
-            console.log('[push-sw.js] Push recibido | App en foco:', isAppFocused);
 
             if (isAppFocused) {
+                // Si la app está abierta, se lo pasamos a Pinia (Vue) para que muestre el Toast
                 clientList.forEach((client) => {
                     client.postMessage({
                         type: 'PUSH_TO_STORE',
@@ -31,19 +31,13 @@ self.addEventListener('push', (event) => {
                     });
                 });
             } else {
-                if ('setAppBadge' in self.navigator) {
-                    self.navigator.setAppBadge()
-                        .then(() => console.log('[push-sw.js] ✅ Badge seteado'))
-                        .catch((e) => console.error('[push-sw.js] ❌ Error seteando badge:', e));
-                } else {
-                    console.warn('[push-sw.js] setAppBadge no disponible');
-                }
-
+                // Si la app está cerrada, mostramos la notificación nativa del celular/mac
+                // NOTA: Ya no usamos setAppBadge aquí, Pinia se encarga de eso.
                 return self.registration.showNotification(notificationData.title, {
                     body: notificationData.body,
                     icon: '/app_util/pwa-192x192.png',
                     badge: '/app_util/favicon.svg',
-                    data: { url: notificationData.actionUrl || '/app_util/' },
+                    data: { url: notificationData.actionUrl || '/chat' },
                     tag: 'chat-message',
                     renotify: true
                 });
@@ -53,59 +47,39 @@ self.addEventListener('push', (event) => {
 });
 
 self.addEventListener('notificationclick', (event) => {
+    // Al tocar la notificación, la cerramos de la barra superior
     event.notification.close();
 
-    if ('clearAppBadge' in self.navigator) {
-        self.navigator.clearAppBadge()
-            .then(() => console.log('[push-sw.js] ✅ Badge limpiado en notificationclick'))
-            .catch((e) => console.error('[push-sw.js] ❌ Error limpiando badge en notificationclick:', e));
-    } else {
-        console.warn('[push-sw.js] ❌ clearAppBadge no disponible en notificationclick');
-    }
-
-    const urlToOpen = event.notification.data.url || '/app_util/';
-    console.log('[push-sw.js] notificationclick → abriendo URL:', urlToOpen);
+    const urlToOpen = event.notification.data.url || '/chat';
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            console.log('[push-sw.js] Clientes encontrados:', windowClients.length);
-
+            // Buscamos si la app ya está abierta en segundo plano
             for (let i = 0; i < windowClients.length; i++) {
                 let client = windowClients[i];
-                console.log(`[push-sw.js] Cliente ${i}:`, client.url, '| focused:', client.focused);
-
                 if (client.url && 'focus' in client) {
-                    client.navigate(urlToOpen);
-                    return client.focus();
+                    client.navigate(urlToOpen); // Navegamos al chat específico
+                    return client.focus();      // Traemos la app al primer plano
                 }
             }
 
+            // Si estaba cerrada por completo, la abrimos
             if (clients.openWindow) {
-                console.log('[push-sw.js] No había cliente abierto → abriendo nueva ventana');
                 return clients.openWindow(urlToOpen);
             }
         })
     );
 });
 
-// En el SW, cuando el mensaje CLEAR_BADGE llega:
+// Cuando Vue (App.vue) se abre y nos dice que limpiemos la basura:
 self.addEventListener('message', (event) => {
-    console.log('[push-sw.js] 📨 Mensaje recibido:', JSON.stringify(event.data));
-
-    if (event.data?.type === 'CLEAR_BADGE') {
-        // Limpiar badge Web API
-        if ('clearAppBadge' in self.navigator) {
-            self.navigator.clearAppBadge().catch(() => {});
-        }
-
-        // ✅ Esto es lo que realmente limpia el badge en Android:
-        // Cerrar todas las notificaciones activas del SW
+    if (event.data?.type === 'CLEAR_NOTIFICATIONS') {
+        // Cerramos todas las notificaciones de la barra superior de Android
         self.registration.getNotifications().then((notifications) => {
-            console.log('[push-sw.js] Notificaciones activas:', notifications.length);
             notifications.forEach((notification) => {
                 notification.close();
-                console.log('[push-sw.js] ✅ Notificación cerrada:', notification.title);
             });
         });
+        // ¡OJO! Ya no ejecutamos clearAppBadge(). Dejamos que el chatStore.ts controle los números del icono.
     }
 });
