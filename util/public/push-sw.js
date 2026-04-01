@@ -88,17 +88,24 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
+// En el SW, cuando el mensaje CLEAR_BADGE llega:
 self.addEventListener('message', (event) => {
     console.log('[push-sw.js] 📨 Mensaje recibido:', JSON.stringify(event.data));
 
     if (event.data?.type === 'CLEAR_BADGE') {
-        console.log('[push-sw.js] 🔴 Intentando limpiar badge...');
-        console.log('[push-sw.js] clearAppBadge disponible:', 'clearAppBadge' in self.navigator);
-
+        // Limpiar badge Web API
         if ('clearAppBadge' in self.navigator) {
-            self.navigator.clearAppBadge()
-                .then(() => console.log('[push-sw.js] ✅ Badge limpiado exitosamente'))
-                .catch((e) => console.error('[push-sw.js] ❌ Error:', e.message, e));
+            self.navigator.clearAppBadge().catch(() => {});
         }
+
+        // ✅ Esto es lo que realmente limpia el badge en Android:
+        // Cerrar todas las notificaciones activas del SW
+        self.registration.getNotifications().then((notifications) => {
+            console.log('[push-sw.js] Notificaciones activas:', notifications.length);
+            notifications.forEach((notification) => {
+                notification.close();
+                console.log('[push-sw.js] ✅ Notificación cerrada:', notification.title);
+            });
+        });
     }
 });
