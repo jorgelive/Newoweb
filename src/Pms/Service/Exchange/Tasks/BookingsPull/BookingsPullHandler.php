@@ -61,7 +61,7 @@ final class BookingsPullHandler implements ExchangeHandlerInterface
         $messages = []; // Log detallado (limitado)
 
         // ✅ Limpieza de caché del Persister (Obs #7)
-        $this->persister->resetCache();
+        $this->persister->reset();
 
         // 4. Procesamiento Masivo (Fila por Fila)
         foreach ($bookings as $index => $bookingData) {
