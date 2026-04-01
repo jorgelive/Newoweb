@@ -108,7 +108,7 @@ readonly class WhatsappMetaReceivePersister
             $textoRecibido = trim($messageData['text']['body'] ?? '');
 
             $message->setContentExternal($textoRecibido);
-            $message->setContentLocal($textoRecibido);
+            // ELIMINADO: $message->setContentLocal($textoRecibido); para permitir traducción automática.
 
             $detectedLangCode = 'es';
             if (!empty($textoRecibido)) {
@@ -169,7 +169,7 @@ readonly class WhatsappMetaReceivePersister
             $textoBoton = "🔘 [Respuesta rápida]: " . $btnText;
 
             $message->setContentExternal($textoBoton);
-            $message->setContentLocal($textoBoton);
+            // ELIMINADO: $message->setContentLocal($textoBoton);
             $message->setLanguageCode($currentConversationLang);
 
             $message->setInboundIntent(array_merge($baseIntent, [
@@ -192,7 +192,7 @@ readonly class WhatsappMetaReceivePersister
             }
 
             $message->setContentExternal($textoInt);
-            $message->setContentLocal($textoInt);
+            // ELIMINADO: $message->setContentLocal($textoInt);
             $message->setLanguageCode($currentConversationLang);
 
             $message->setInboundIntent(array_merge($baseIntent, [
@@ -231,7 +231,7 @@ readonly class WhatsappMetaReceivePersister
             }
 
             $message->setContentExternal($textoMedia);
-            $message->setContentLocal($textoMedia);
+            // ELIMINADO: $message->setContentLocal($textoMedia);
             $message->setLanguageCode($currentConversationLang);
 
         } elseif ($type === 'location') {
@@ -240,12 +240,12 @@ readonly class WhatsappMetaReceivePersister
             $textoLoc = "📍 [Ubicación compartida]: https://maps.google.com/?q={$lat},{$lng}";
 
             $message->setContentExternal($textoLoc);
-            $message->setContentLocal($textoLoc);
+            // ELIMINADO: $message->setContentLocal($textoLoc);
             $message->setLanguageCode($currentConversationLang);
         } else {
             $textoFail = "🤖 [Tipo de mensaje no soportado: {$type}]";
             $message->setContentExternal($textoFail);
-            $message->setContentLocal($textoFail);
+            // ELIMINADO: $message->setContentLocal($textoFail);
             $message->setLanguageCode($currentConversationLang);
         }
 
@@ -455,7 +455,7 @@ readonly class WhatsappMetaReceivePersister
         $message->setSenderType(Message::SENDER_SYSTEM);
         $message->setStatus(Message::STATUS_RECEIVED);
         $message->setContentExternal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
-        $message->setContentLocal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
+        // ELIMINADO: $message->setContentLocal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
         $message->setLanguageCode($conversation->getIdioma()?->getId() ?? 'es');
 
         $timestamp = $callData['timestamp'] ?? time();

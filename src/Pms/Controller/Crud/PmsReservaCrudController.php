@@ -248,11 +248,20 @@ final class PmsReservaCrudController extends BaseCrudController
             return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator->setAction(Action::INDEX)->generateUrl());
         }
 
-        $lang = $reserva->getIdioma() ? (string) $reserva->getIdioma()->getId() : 'es';
-        $cuerpoPlantilla = $template->getWhatsappLinkBody($lang);
+        // LÓGICA DE BIFURCACIÓN DE IDIOMA
+        $idiomaEntity = $reserva->getIdioma();
+        $templateLang = 'es'; // Fallback por defecto absoluto
+
+        if ($idiomaEntity !== null) {
+            $internalLang = strtolower($idiomaEntity->getId());
+            // Si el idioma de la reserva no tiene plantillas (prioridad 0), forzamos inglés
+            $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
+        }
+
+        $cuerpoPlantilla = $template->getWhatsappLinkBody($templateLang);
 
         if (!$cuerpoPlantilla) {
-            $this->addFlash('warning', sprintf('La plantilla "%s" no tiene traducción disponible.', $template->getName()));
+            $this->addFlash('warning', sprintf('La plantilla "%s" no tiene traducción disponible para el idioma seleccionado (%s).', $template->getName(), strtoupper($templateLang)));
             return $this->redirect($context->getReferrer());
         }
 

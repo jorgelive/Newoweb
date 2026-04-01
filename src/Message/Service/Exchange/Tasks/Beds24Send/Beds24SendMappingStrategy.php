@@ -67,17 +67,22 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
             // =================================================================
             $conversation = $msg->getConversation();
             $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
-            $internalLang = strtolower($conversation->getIdioma()?->getId() ?? 'es');
+
+            $idiomaEntity = $conversation->getIdioma();
+            $internalLang = strtolower($idiomaEntity->getId());
+            // NUEVO: Bifurcación de idiomas. El texto libre usa $internalLang, pero las plantillas usan $templateLang.
+            $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
 
             // 1. EXTRACCIÓN DE CONTENIDO Y PLANTILLA
             $content = '';
             $template = $msg->getTemplate();
 
             if ($template !== null) {
-                $content = (string) $template->getBeds24Body($internalLang);
+                $content = (string) $template->getBeds24Body($templateLang);
             }
 
             if (empty(trim($content))) {
+                // Aquí usamos el texto de Google Translate sin importar si es Hebreo o Japonés.
                 $content = $msg->getContentExternal() ?? $msg->getContentLocal() ?? '';
             }
 
@@ -103,8 +108,8 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 $metaJson = $template->getWhatsappMetaTmpl();
 
                 if (!empty($metaJson['buttons_map'])) {
-                    $menuTexts = $this->getMenuTranslations($internalLang);
-                    $metaLang = $this->normalizeLanguageForMeta($internalLang);
+                    $menuTexts = $this->getMenuTranslations($templateLang);
+                    $metaLang = $this->normalizeLanguageForMeta($templateLang);
 
                     $content .= "\n\n" . $menuTexts['header'] . "\n\n";
                     $quickReplyIndex = 1;
@@ -253,6 +258,11 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 'header' => '*— Optionen —*',
                 'footer' => '_👉 Antworten Sie mit der Nummer Ihrer Option._',
                 'default_btn' => 'Option'
+            ],
+            'nl' => [
+                'header' => '*— Opties —*',
+                'footer' => '_👉 Antwoord met het nummer van uw optie._',
+                'default_btn' => 'Optie'
             ]
         ];
 

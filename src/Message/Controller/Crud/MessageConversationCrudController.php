@@ -153,8 +153,11 @@ class MessageConversationCrudController extends BaseCrudController
         yield TextField::new('whatsappDisabledReason', 'Motivo del Bloqueo')
             ->setColumns(9);
 
+        // ELIMINADO: La restricción ->andWhere('entity.prioridad > 0')
+        // MOTIVO: Permitir que el formulario cargue y guarde correctamente conversaciones
+        // creadas automáticamente con idiomas exóticos (prioridad 0) sin arrojar error de validación.
         yield AssociationField::new('idioma', 'Idioma')
-            ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->andWhere('entity.prioridad > 0')->orderBy('entity.prioridad', 'DESC'))
+            ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'))
             ->setRequired(true)
             ->setFormTypeOption('attr', ['required' => true])
             ->setColumns(2);

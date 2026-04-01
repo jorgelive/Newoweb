@@ -610,16 +610,21 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     /**
-     * MODO STALKER: Trae los últimos mensajes de una conversación sin disparar el webhook de lectura
+     * MODO STALKER: Trae los últimos mensajes de una conversación sin disparar el webhook de lectura.
+     * Filtra los mensajes programados o pendientes para mostrar solo el historial real.
      * @param {string} conversationId ID de la conversación
-     * @returns {Promise<ApiMessage[]>} Lista de los últimos mensajes
+     * @returns {Promise<ApiMessage[]>} Lista de los últimos mensajes enviados/recibidos
      */
     const fetchLatestMessagesForStalk = async (conversationId: string): Promise<ApiMessage[]> => {
         try {
             const response = await apiClient.get(`/platform/user/util/msg/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
-            const data = extractData(response);
-            // Retornamos máximo los últimos 5 para la previsualización
-            return data.slice(0, 5);
+            const data = extractData(response) as ApiMessage[];
+
+            // 🔥 Filtramos para excluir plantillas programadas para el futuro o en cola de envío
+            const realHistoryMessages = data.filter(m => !m.scheduledForFuture && m.status !== 'pending');
+
+            // Retornamos máximo los últimos 5 del historial real
+            return realHistoryMessages.slice(0, 5);
         } catch (err) {
             console.error('Error en Modo Stalker:', err);
             return [];

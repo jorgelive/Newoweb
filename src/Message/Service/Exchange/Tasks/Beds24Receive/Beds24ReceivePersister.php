@@ -136,7 +136,7 @@ readonly class Beds24ReceivePersister
 
             // 2. Verdad histórica: Guardamos exactamente lo que llegó
             $message->setContentExternal($rawContent);
-            $message->setContentLocal($rawContent); // Sin traducción en esta capa
+            // ELIMINADO: $message->setContentLocal($rawContent); para que Doctrine detone el traductor.
 
             $textoRecibido = trim(strip_tags($rawContent));
             $currentConversationLang = $conversation->getIdioma()?->getId() ?? 'es';

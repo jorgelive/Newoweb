@@ -649,9 +649,11 @@ final class BookingPullPersister implements ResetInterface
         // 3. Buscar el idioma en la base de datos
         $idioma = $this->em->find(MaestroIdioma::class, $code);
 
-        // 4. REGLA DE NEGOCIO: Si no existe, O su prioridad es 0 (no lo manejamos) -> Fallback a Inglés
-        if (!$idioma || $idioma->getPrioridad() <= 0) {
-
+        // 4. REGLA DE NEGOCIO: Si no existe en la base de datos -> Fallback a Inglés
+        // ELIMINADO: La restricción de prioridad ($idioma->getPrioridad() <= 0).
+        // MOTIVO TÉCNICO: Permitir que idiomas "exóticos" (prioridad 0) se guarden en la reserva y
+        // conversación para que Google Translate funcione correctamente con texto libre.
+        if (!$idioma) {
             $idiomaDefault = $this->em->find(MaestroIdioma::class, MaestroIdioma::DEFAULT_IDIOMA);
 
             if (!$idiomaDefault) {

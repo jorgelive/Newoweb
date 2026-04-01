@@ -114,8 +114,12 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
             // -------------------------------------------------------------------------
             // 🌐 RESOLUCIÓN DE IDIOMAS (Local vs Meta API)
             // -------------------------------------------------------------------------
-            $internalLang = strtolower($conversation->getIdioma()->getId());
-            $metaLang = $this->normalizeLanguageForMeta($internalLang);
+            $idiomaEntity = $conversation->getIdioma();
+            $internalLang = strtolower($idiomaEntity->getId());
+            // NUEVO: Bifurcación. Si la prioridad es 0, las plantillas y menús caen en inglés.
+            $templateLang = ($idiomaEntity->getPrioridad() > 0) ? $internalLang : 'en';
+
+            $metaLang = $this->normalizeLanguageForMeta($templateLang);
 
             $isSessionActive = $conversation->isWhatsappSessionActive();
 
@@ -153,7 +157,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
 
                 // 1. HEADER
-                $headerData = $template->getWhatsappMetaHeader($internalLang);
+                $headerData = $template->getWhatsappMetaHeader($templateLang);
                 if ($headerData) {
                     $format = $headerData['format'];
                     $headerComponent = ['type' => 'header', 'parameters' => []];
@@ -234,9 +238,9 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // ENVÍO DE MENSAJE LIBRE O QUICK REPLY INTERNO (DENTRO DE 24H)
                 // -----------------------------------------------------------------
 
-                // Usamos internalLang para consultar las entidades locales de Doctrine
-                $headerData = $template?->getWhatsappMetaHeader($internalLang);
-                $footerText = $template?->getWhatsappMetaFooter($internalLang);
+                // Usamos templateLang para consultar las plantillas locales de Doctrine
+                $headerData = $template?->getWhatsappMetaHeader($templateLang);
+                $footerText = $template?->getWhatsappMetaFooter($templateLang);
                 $bodyText = '';
 
                 if (!empty($metaJson['body'])) {
@@ -273,8 +277,8 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
                 // 🎯 EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE (REFACTORIZADO)
                 if (!empty($metaJson['buttons_map'])) {
-                    // 1. Obtenemos las traducciones según el idioma de la conversación
-                    $menuTexts = $this->getMenuTranslations($internalLang);
+                    // 1. Obtenemos las traducciones evaluando la prioridad de la plantilla
+                    $menuTexts = $this->getMenuTranslations($templateLang);
 
                     // 2. Inyectamos el título dinámico
                     $finalContent .= "\n\n" . $menuTexts['header'] . "\n\n";
@@ -454,6 +458,11 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 'header' => '*— Optionen —*',
                 'footer' => '_👉 Antworten Sie mit der Nummer Ihrer Option._',
                 'default_btn' => 'Option'
+            ],
+            'nl' => [
+                'header' => '*— Opties —*',
+                'footer' => '_👉 Antwoord met het nummer van uw optie._',
+                'default_btn' => 'Optie'
             ]
         ];
 
