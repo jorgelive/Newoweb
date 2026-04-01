@@ -25,12 +25,17 @@ const clearPwaBadge = () => {
  */
 const handleVisibilityChange = async () => {
   if (document.visibilityState === 'visible') {
-    // Limpiar desde la página (por si acaso)
+    console.log('=== VISIBILITY CHANGE ===');
+    console.log('controller:', navigator.serviceWorker?.controller);
+    console.log('clearAppBadge disponible:', 'clearAppBadge' in navigator);
+
     await clearPwaBadge();
 
-    // ✅ Limpiar desde el SW (el que realmente funciona)
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_BADGE' });
+      console.log('✅ Mensaje CLEAR_BADGE enviado al SW');
+    } else {
+      console.warn('❌ No hay SW controller activo');
     }
   }
 };

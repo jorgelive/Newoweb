@@ -409,7 +409,7 @@ export const useChatStore = defineStore('chatStore', () => {
                             title: `Mensaje de ${convData.guestName || 'Huésped'}`,
                             body: 'Tienes un nuevo mensaje sin leer.',
                             type: 'info',
-                            actionUrl: `/app_util/chat/${convData.id}`
+                            actionUrl: `/chat?id=${convData.id}` // Usamos la ruta correcta de Vue Router
                         });
                     }
 

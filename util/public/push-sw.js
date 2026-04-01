@@ -52,21 +52,33 @@ self.addEventListener('notificationclick', (event) => {
 
     // ✅ Limpiar badge al hacer click en la notificación
     if ('clearAppBadge' in self.navigator) {
-        self.navigator.clearAppBadge().catch(() => {});
+        self.navigator.clearAppBadge()
+            .then(() => console.log('[SW] ✅ Badge limpiado en notificationclick'))
+            .catch((e) => console.error('[SW] ❌ Error limpiando badge en notificationclick:', e));
+    } else {
+        console.warn('[SW] ❌ clearAppBadge no disponible en notificationclick');
     }
 
     const urlToOpen = event.notification.data.url || '/app_util/';
 
+    console.log('[SW] notificationclick → abriendo URL:', urlToOpen);
+
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            console.log('[SW] Clientes encontrados:', windowClients.length);
+
             for (let i = 0; i < windowClients.length; i++) {
                 let client = windowClients[i];
+                console.log(`[SW] Cliente ${i}:`, client.url, '| focused:', client.focused);
+
                 if (client.url && 'focus' in client) {
                     client.navigate(urlToOpen);
                     return client.focus();
                 }
             }
+
             if (clients.openWindow) {
+                console.log('[SW] No había cliente abierto → abriendo nueva ventana');
                 return clients.openWindow(urlToOpen);
             }
         })
