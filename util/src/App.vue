@@ -13,6 +13,7 @@ const notificationStore = useNotificationStore();
  * sin importar en qué ruta se encuentre el usuario.
  */
 onMounted(() => {
+  // --- 1. OYENTE DE MENSAJES DEL SERVICE WORKER ---
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'PUSH_TO_STORE') {
@@ -26,6 +27,15 @@ onMounted(() => {
       }
     });
   }
+
+  // --- 2. REGISTRO AUTOMÁTICO DE SUSCRIPCIÓN PUSH ---
+  // Como Symfony ya validó al usuario mediante el firewall antes de cargar Vue,
+  // intentamos registrar el navegador silenciosamente a los 3 segundos.
+  setTimeout(async () => {
+    // Si no hay VAPID keys en producción, la función fallará silenciosamente
+    // según el fallback que programamos en el store.
+    await notificationStore.subscribeToPushNotifications();
+  }, 3000);
 });
 </script>
 
