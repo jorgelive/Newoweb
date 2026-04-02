@@ -23,15 +23,7 @@ use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Persister para PULL/Webhooks de Beds24.
- * * Correcciones aplicadas:
- * * ✅ Return explícito (array) en lugar de void para trazabilidad.
- * * ✅ Cacheo de negativos ("misses") para evitar N+1 en datos inexistentes.
- * * ✅ Eliminación de estado estático (static) para evitar contaminación entre jobs.
- * * ✅ Normalización estricta de IDs al inicio.
- * * ✅ Validación fuerte de Maestros (Pais/Idioma) para evitar nulls silenciosos.
- * * ✅ Inyección obligatoria de PmsEstablecimiento para evitar reservas huérfanas.
- * * ✅ Implementación de ResetInterface para vaciado automático de memoria en Workers asíncronos.
- * * ✅ Inyección de PhoneSanitizer para limpiar datos antes del UoW de Doctrine.
+ * Implementa ResetInterface para evitar fugas de memoria en Workers.
  */
 final class BookingPullPersister implements ResetInterface
 {
@@ -185,13 +177,7 @@ final class BookingPullPersister implements ResetInterface
         ];
     }
 
-    /**
-     * ✅ CAMBIO APLICADO: Manejo seguro de nulos y casteo de UUIDs a string para evitar errores de comparación.
-     */
-    private function resolveEstablecimiento(
-        Beds24Config $config,
-        PmsUnidadBeds24Map $map
-    ): PmsEstablecimiento {
+    private function resolveEstablecimiento(Beds24Config $config, PmsUnidadBeds24Map $map): PmsEstablecimiento {
         $establecimiento = $map->getPmsUnidad()->getEstablecimiento();
 
         if (!$establecimiento) {
@@ -279,7 +265,7 @@ final class BookingPullPersister implements ResetInterface
 
     private function upsertReservaFull(Beds24BookingDto $booking, bool $isPrincipal, PmsEstablecimiento $establecimiento, ?PmsReserva $reservaExistente = null): PmsReserva
     {
-        $bookIdStr = $this->normalizeBeds24Id($booking->id); // Ya validado en upsert, pero tipado seguro
+        $bookIdStr = $this->normalizeBeds24Id($booking->id);
         $masterReal = $this->resolveMasterIdReal($booking);
         $effectiveMasterId = $masterReal ?? $bookIdStr;
 
@@ -321,31 +307,39 @@ final class BookingPullPersister implements ResetInterface
             $reserva->setIdioma($this->resolveIdioma($booking));
         }
 
-        $hasRealData =
-            trim((string) $booking->firstName) !== '' ||
-            trim((string) $booking->lastName) !== '' ||
-            trim((string) $booking->email) !== '' ||
-            trim((string) $booking->phone) !== '';
+        // Limpieza de datos entrantes
+        $firstName = trim((string) $booking->firstName);
+        $lastName  = trim((string) $booking->lastName);
+        $email     = trim((string) $booking->email);
+        $phone     = trim((string) $booking->phone);
+        $mobile    = trim((string) $booking->mobile);
 
-        // (Obs #10) Bloqueo de datos solo si tenemos datos significativos
-        if (!$reserva->isDatosLocked() && $hasRealData && $isPrincipal) {
-            $reserva->setNombreCliente($booking->firstName);
-            $reserva->setApellidoCliente($booking->lastName);
-            $reserva->setEmailCliente($booking->email);
+        // ¿Vino algo? (Aunque sea solo el firstName de un Inquiry)
+        $hasAnyData = $firstName !== '' || $lastName !== '' || $email !== '' || $phone !== '' || $mobile !== '';
 
-            // 💡 FIX: Resolvemos el país primero para poder pasarle el ISO al PhoneSanitizer de inmediato
+        // 🔥 LA MAGIA DEL INQUIRY: Separamos tener *algo* de tener datos *fuertes*
+        // Airbnb manda solo firstName en estado Request. No queremos sellar la reserva con eso.
+        // Solo consideraremos que la info es fuerte si viene un Apellido o un medio de contacto.
+        $hasStrongContactData = $lastName !== '' || $email !== '' || $phone !== '' || $mobile !== '';
+
+        // Si el candado está abierto, guardamos todo lo que traiga
+        if (!$reserva->isDatosLocked() && $hasAnyData && $isPrincipal) {
+
+            $reserva->setNombreCliente($firstName !== '' ? $firstName : null);
+            $reserva->setApellidoCliente($lastName !== '' ? $lastName : null);
+            $reserva->setEmailCliente($email !== '' ? $email : null);
+
             $pais = $this->resolvePais($booking);
             $reserva->setPais($pais);
             $reserva->setIdioma($this->resolveIdioma($booking));
 
-            // 💡 FIX: Sanitizamos los teléfonos en el acto delegando la lógica.
-            $rawPhone = trim((string) $booking->phone);
-            $reserva->setTelefono($rawPhone !== '' ? $this->phoneSanitizer->cleanPhoneNumber($rawPhone, $pais->getId()) : null);
+            $reserva->setTelefono($phone !== '' ? $this->phoneSanitizer->cleanPhoneNumber($phone, $pais->getId()) : null);
+            $reserva->setTelefono2($mobile !== '' ? $this->phoneSanitizer->cleanPhoneNumber($mobile, $pais->getId()) : null);
 
-            $rawMobile = trim((string) $booking->mobile);
-            $reserva->setTelefono2($rawMobile !== '' ? $this->phoneSanitizer->cleanPhoneNumber($rawMobile, $pais->getId()) : null);
-
-            $reserva->setDatosLocked(true);
+            // SOLO bloqueamos (cerramos candado) si llegó información sólida
+            if ($hasStrongContactData) {
+                $reserva->setDatosLocked(true);
+            }
         }
 
         return $reserva;
@@ -363,9 +357,8 @@ final class BookingPullPersister implements ResetInterface
             $reserva->setBeds24MasterId($masterIdStr);
             $reserva->setNombreCliente('Pendiente Sync');
             $reserva->setApellidoCliente('(Grupo)');
-            $reserva->setEstablecimiento($establecimiento); // ✅ Amarre del establecimiento al stub
+            $reserva->setEstablecimiento($establecimiento);
             $reserva->setIdioma($this->resolveIdioma($booking));
-
 
             $this->em->persist($reserva);
         }
@@ -522,6 +515,11 @@ final class BookingPullPersister implements ResetInterface
         return $channel;
     }
 
+    /**
+     * Resuelve el estado de la reserva aplicando las reglas de negocio de Canales vs OTAs.
+     * Respeta ÚNICAMENTE el estado "Abierto" (Inquiry) como pre-reserva intocable.
+     * El resto (new, request) pasará a Confirmada si el canal es de pago total.
+     */
     private function resolveEstado(Beds24BookingDto $dto): PmsEventoEstado
     {
         $statusApi = trim((string) ($dto->status ?? ''));
@@ -549,35 +547,53 @@ final class BookingPullPersister implements ResetInterface
                 ?? throw new RuntimeException('CRÍTICO: Maestro corrupto (falta PENDIENTE).');
         }
 
-        // =======================================================
-        // PASO 2: REGLA DE NEGOCIO (El canal pisa al estado base)
-        // =======================================================
-        if ($estadoBase->getId() == PmsEventoEstado::CODIGO_PENDIENTE) {
-
-            $channelCode = strtolower(trim((string) ($dto->channel ?? '')));
-
-            if (in_array($channelCode, PmsChannel::CANAL_PAGO_TOTAL, true)) {
-                // Es OTA de pago total, forzamos a Confirmada
-                return $this->em->find(PmsEventoEstado::class, PmsEventoEstado::CODIGO_CONFIRMADA)
-                    ?? throw new RuntimeException('CRÍTICO: Maestro corrupto (falta CONFIRMADA).');
-            }
+        // 1. Si Beds24 reporta que ESTÁ CANCELADA, respetamos eso sobre todo.
+        if ((int)$statusApi === 0 || $estadoBase->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
+            return $estadoBase;
         }
 
-        // Si no es de pago total, o no era Pendiente, devolvemos el estado base normal
+        // 2. PROTECCIÓN ESTRICTA DE PRE-RESERVAS (INQUIRY):
+        // El único estado que NO se toca ni se auto-confirma es ABIERTO.
+        if ($estadoBase->getId() === PmsEventoEstado::CODIGO_ABIERTO) {
+            return $estadoBase;
+        }
+
+        // 3. REGLA DE NEGOCIO OTA (Pago Total):
+        // Si llegó hasta aquí (es new, request, etc.) y es canal tipo Airbnb, forzamos Confirmada.
+        $channelCode = strtolower(trim((string) ($dto->channel ?? '')));
+        if (in_array($channelCode, PmsChannel::CANAL_PAGO_TOTAL, true)) {
+            return $this->em->find(PmsEventoEstado::class, PmsEventoEstado::CODIGO_CONFIRMADA)
+                ?? throw new RuntimeException('CRÍTICO: Maestro corrupto (falta CONFIRMADA).');
+        }
+
+        // Si no es OTA de pago total, devuelve el estado natural mapeado (Pendiente, Requerimiento, etc.)
         return $estadoBase;
     }
 
-    private function resolveEstadoPagoInicial(Beds24BookingDto $dto): PmsEventoEstadoPago
+    /**
+     * Define el estado de pago basándose en el Canal y en el Estado Final calculado.
+     */
+    private function resolveEstadoPagoInicial(Beds24BookingDto $dto, PmsEventoEstado $estadoReal): PmsEventoEstadoPago
     {
+        // 1. PROTECCIÓN DE PRE-RESERVAS PARA EL PAGO (INQUIRY):
+        // Si el evento quedó estrictamente como ABIERTO, aseguramos que nazca SIN PAGO.
+        if ($estadoReal->getId() === PmsEventoEstado::CODIGO_ABIERTO) {
+            return $this->em->find(PmsEventoEstadoPago::class, PmsEventoEstadoPago::ID_SIN_PAGO)
+                ?? throw new RuntimeException('CRÍTICO: Maestro PmsEventoEstadoPago corrupto (Sin Pago).');
+        }
+
+        // 2. REGLA DE PAGO TOTAL:
+        // Si ya no es Inquiry (puede haber sido Request o New que se auto-confirmó arriba),
+        // verificamos si el canal garantiza el cobro (ej. Airbnb).
         $channelCode = strtolower(trim((string) ($dto->channel ?? '')));
         $isPagoTotal = in_array($channelCode, PmsChannel::CANAL_PAGO_TOTAL, true);
+
         $targetId = $isPagoTotal ? PmsEventoEstadoPago::ID_PAGO_TOTAL : PmsEventoEstadoPago::ID_SIN_PAGO;
 
         return $this->em->find(PmsEventoEstadoPago::class, $targetId)
             ?? $this->em->find(PmsEventoEstadoPago::class, PmsEventoEstadoPago::ID_SIN_PAGO)
             ?? throw new RuntimeException('CRÍTICO: Maestro PmsEventoEstadoPago corrupto.');
     }
-
     private function resolveMap(Beds24BookingDto $dto): ?PmsUnidadBeds24Map
     {
         $key = (string) $dto->propertyId . '_' . (string) $dto->roomId;
@@ -623,7 +639,7 @@ final class BookingPullPersister implements ResetInterface
 
         // 🔥 NUEVO MAGIA: Si el idioma está vacío, inferimos desde el país
         if ($code === '') {
-            $countryCode = strtoupper(trim((string) ($dto->country ?? ''))); // Beds24 suele mandar ISO2 o ISO3
+            $countryCode = strtoupper(trim((string) ($dto->country ?? '')));
 
             if ($countryCode !== '') {
                 // Buscamos el país. (Usa tu método resolvePais si lo tienes, o el EM directo)
