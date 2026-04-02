@@ -10,6 +10,7 @@ use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use DateTimeImmutable;
 use DateTimeZone;
+use Throwable;
 
 /**
  * Patrón Adaptador: Envuelve una entidad PmsReserva para que cumpla
@@ -98,9 +99,6 @@ class PmsReservaMessageContext implements MessageContextInterface
     public function getMilestones(): array
     {
         // 🔥 CORTAFUEGOS ANTI-SPAM PARA INQUIRIES Y BLOQUEOS
-        // Si es una consulta abierta (inquiry) o un bloqueo de calendario, vaciamos intencionalmente los hitos.
-        // Al retornar un array vacío, el MessageRuleEngine carecerá de un START válido,
-        // lo que matemáticamente imposibilita la creación y programación de plantillas automáticas.
         if ($this->isAbiertoOrBloqueo()) {
             return [];
         }
@@ -108,7 +106,7 @@ class PmsReservaMessageContext implements MessageContextInterface
         //TODO: Refactor: poner todo en UTC para mensajes
         $tzLima = new DateTimeZone('America/Lima');
 
-        // 🔹 HORAS (Manejando tanto si Doctrine devuelve DateTime como si devuelve String)
+        // 🔹 HORAS
         $horaCheckInRaw  = $this->reserva->getEstablecimiento()?->getHoraCheckIn();
         $horaCheckOutRaw = $this->reserva->getEstablecimiento()?->getHoraCheckOut();
 
@@ -119,40 +117,35 @@ class PmsReservaMessageContext implements MessageContextInterface
         [$hIn, $mIn, $sIn]    = array_map('intval', explode(':', $horaCheckInStr));
         [$hOut, $mOut, $sOut] = array_map('intval', explode(':', $horaCheckOutStr));
 
-        // 🔹 START / END
-        $start = clone $this->reserva->getFechaLlegada();
-        if ($start) {
-            $start->setTime($hIn, $mIn, $sIn);
+        // 🔹 START / END (🚨 CORRECCIÓN DEL CLONE Y DEL SETTIME)
+        $start = null;
+        $llegadaOrig = $this->reserva->getFechaLlegada();
+        if ($llegadaOrig instanceof \DateTimeInterface) {
+            $start = clone $llegadaOrig;
+            // Se reasigna por si el objeto es DateTimeImmutable
+            $start = $start->setTime($hIn, $mIn, $sIn);
         }
 
-        $end = clone $this->reserva->getFechaSalida();
-        if ($end) {
-            $end->setTime($hOut, $mOut, $sOut);
+        $end = null;
+        $salidaOrig = $this->reserva->getFechaSalida();
+        if ($salidaOrig instanceof \DateTimeInterface) {
+            $end = clone $salidaOrig;
+            // Se reasigna por si el objeto es DateTimeImmutable
+            $end = $end->setTime($hOut, $mOut, $sOut);
         }
 
         // 🔹 CREATED (caso mixto)
+        $created = null;
         if ($this->reserva->getPrimeraFechaReservaCanal() !== null) {
             $fechaCanal = $this->reserva->getPrimeraFechaReservaCanal();
-
-            // 1. Extraemos los números limpios y FORZAMOS a PHP a entender que son UTC absolutos
-            $createdUtc = new \DateTimeImmutable(
-                $fechaCanal->format('Y-m-d H:i:s'),
-                new \DateTimeZone('UTC')
-            );
-
-            // 2. Ahora SÍ hacemos la conversión matemática a Lima (esto restará las 5 horas)
+            $createdUtc = new \DateTimeImmutable($fechaCanal->format('Y-m-d H:i:s'), new \DateTimeZone('UTC'));
             $createdLima = $createdUtc->setTimezone($tzLima);
-
-            // 3. Lo convertimos de nuevo a un formato "naive" (sin zona atada)
             $created = new \DateTimeImmutable($createdLima->format('Y-m-d H:i:s'));
         } else {
-            // Ya está en naive (NO tocar). Manejo estricto de tipos para evitar el error del IDE.
             $createdAt = $this->reserva->getCreatedAt();
-
             if ($createdAt instanceof \DateTime) {
                 $created = \DateTimeImmutable::createFromMutable($createdAt);
             } else {
-                // Si ya es DateTimeImmutable, o si es null, lo pasamos directo
                 $created = $createdAt;
             }
         }
@@ -170,7 +163,8 @@ class PmsReservaMessageContext implements MessageContextInterface
             if ($expectedArrivalRaw instanceof \DateTimeInterface) {
                 $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $expectedArrivalRaw;
             } else {
-                $fechaLlegada = clone $this->reserva->getFechaLlegada();
+                // 🚨 CORRECCIÓN DEL CLONE AQUÍ TAMBIÉN
+                $fechaLlegada = $this->reserva->getFechaLlegada();
                 if ($fechaLlegada instanceof \DateTimeInterface) {
                     try {
                         $fechaString = $fechaLlegada->format('Y-m-d');
@@ -178,7 +172,7 @@ class PmsReservaMessageContext implements MessageContextInterface
 
                         $expectedArrivalCompleto = new \DateTimeImmutable("$fechaString $horaLimpia");
                         $milestones[ConversationMilestoneInterface::EXPECTED_ARRIVAL] = $expectedArrivalCompleto;
-                    } catch (\Exception $e) {
+                    } catch (Throwable $e) {
                         // Fallback silencioso
                     }
                 }
