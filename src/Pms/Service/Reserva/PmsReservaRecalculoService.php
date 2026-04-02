@@ -98,7 +98,7 @@ SQL;
                     // Pasamos false para no hacer mini-flushes constantes y agrupar todo al final
                     $conversation = $this->messageFactory->upsertFromContext($context, false);
 
-                    // 🔥 3. EL BYPASS DEL LISTENER: EJECUCIÓN MANUAL EXPLÍCITA
+                    // Ejecución explicita ya que no se llamara al listener de al haberse ejecutado por sql
                     if ($conversation instanceof MessageConversation) {
                         // Forzamos el motor pasándole true para que salte protecciones y evalúe los cambios crudos
                         $this->ruleEngine->syncConversationRules($conversation, MessageRuleEngine::TRIGGER_UPDATE, true);
