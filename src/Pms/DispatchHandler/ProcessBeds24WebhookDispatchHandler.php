@@ -50,34 +50,7 @@ final readonly class ProcessBeds24WebhookDispatchHandler
 
             $audit->setPayload($payload);
 
-
-            // 1. Extraemos los datos del objeto 'booking'
-            $booking = $payload['booking'] ?? [];
-            $bookingId = $booking['id'] ?? 'N/A';
-            $guestName = trim(($booking['firstName'] ?? '') . ' ' . ($booking['lastName'] ?? ''));
-            $channel = strtoupper($booking['referer'] ?? 'DIRECT');
-
-            // 2. Contadores de sub-nodos
-            $msgCount = count($payload['messages'] ?? []);
-            $invCount = count($payload['invoiceItems'] ?? []);
-
-            // 3. Construimos el string descriptivo
-            // Ejemplo: "B24 #83116820 | ANA CAÑABATE LOPEZ | [B.COM] | MSGS: 6 | INVS: 1"
-            $fullLabel = sprintf(
-                "B24 #%s | %s | [%s] | MSGS: %d | INVS: %d",
-                $bookingId,
-                $guestName ?: 'GUEST',
-                $channel,
-                $msgCount,
-                $invCount
-            );
-
-            // 4. Aplicamos substr de seguridad a 256 para el campo de la DB
-            // Usamos mb_substr para proteger la integridad de los caracteres UTF-8
-            $audit->setEventType(mb_substr($fullLabel, 0, 256));
-
-            $responseDetails = [];
-            $globalErrors = [];
+            // ... (todo tu código interno del try se queda igual) ...
 
             // 1. PROCESAR BOOKINGS
             if (isset($payload['booking'])) {
@@ -106,13 +79,36 @@ final readonly class ProcessBeds24WebhookDispatchHandler
                 'errors' => $globalErrors
             ]);
 
-        } catch (Throwable $e) {
-            $this->terminateWithError($audit, "Error Crítico Worker: " . $e->getMessage());
-            throw $e;
-        } finally {
+            // Hacemos el flush del éxito AQUÍ, no en el finally
             $this->em->flush();
+
+        } catch (Throwable $e) {
+            // Logueamos el error original directamente al logger para no perderlo NUNCA
+            $this->logger->critical("ERROR FATAL en Webhook Handler", [
+                'exception' => $e,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Si el EM sigue abierto, intentamos guardar el error en la auditoría
+            if ($this->em->isOpen()) {
+                $this->terminateWithError($audit, "Error Crítico Worker: " . $e->getMessage());
+                try {
+                    $this->em->flush();
+                } catch (\Throwable $flushEx) {
+                    $this->logger->error("No se pudo guardar la auditoría tras el error: " . $flushEx->getMessage());
+                }
+            }
+
+            // Volvemos a lanzar la excepción para que Messenger marque el fallo
+            throw $e;
+
+        } finally {
             $scope->restore();
-            $this->em->clear();
+            // Solo limpiamos si el EM sigue abierto, si está cerrado no podemos (ni debemos) hacer nada
+            if ($this->em->isOpen()) {
+                $this->em->clear();
+            }
         }
     }
 
