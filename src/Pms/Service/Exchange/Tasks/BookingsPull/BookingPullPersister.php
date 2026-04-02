@@ -23,7 +23,15 @@ use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Persister para PULL/Webhooks de Beds24.
- * Implementa ResetInterface para evitar fugas de memoria en Workers.
+ * * Correcciones aplicadas:
+ * * ✅ Return explícito (array) en lugar de void para trazabilidad.
+ * * ✅ Cacheo de negativos ("misses") para evitar N+1 en datos inexistentes.
+ * * ✅ Eliminación de estado estático (static) para evitar contaminación entre jobs.
+ * * ✅ Normalización estricta de IDs al inicio.
+ * * ✅ Validación fuerte de Maestros (Pais/Idioma) para evitar nulls silenciosos.
+ * * ✅ Inyección obligatoria de PmsEstablecimiento para evitar reservas huérfanas.
+ * * ✅ Implementación de ResetInterface para vaciado automático de memoria en Workers asíncronos.
+ * * ✅ Inyección de PhoneSanitizer para limpiar datos antes del UoW de Doctrine.
  */
 final class BookingPullPersister implements ResetInterface
 {
@@ -429,7 +437,10 @@ final class BookingPullPersister implements ResetInterface
         $evento->setEstadoBeds24($booking->status);
         $evento->setSubestadoBeds24($booking->subStatus);
         $evento->setRateDescription($booking->rateDescription);
-        $evento->setEstado($this->resolveEstado($booking));
+
+        // 💡 FIX: Capturamos el estado calculado en una variable para poder pasarlo luego a EstadoPago
+        $estadoReal = $this->resolveEstado($booking);
+        $evento->setEstado($estadoReal);
 
         //ahora el channel el del evento
         $evento->setReferenciaCanal($booking->apiReference);
@@ -441,7 +452,8 @@ final class BookingPullPersister implements ResetInterface
 
 
         if ($evento->getEstadoPago() === null) {
-            $evento->setEstadoPago($this->resolveEstadoPagoInicial($booking));
+            // 💡 FIX: Pasamos el segundo argumento (estadoReal) requerido por la nueva firma del método
+            $evento->setEstadoPago($this->resolveEstadoPagoInicial($booking, $estadoReal));
         }
 
         $evento->setCantidadAdultos($booking->numAdult ?? 1);
@@ -639,7 +651,7 @@ final class BookingPullPersister implements ResetInterface
 
         // 🔥 NUEVO MAGIA: Si el idioma está vacío, inferimos desde el país
         if ($code === '') {
-            $countryCode = strtoupper(trim((string) ($dto->country ?? '')));
+            $countryCode = strtoupper(trim((string) ($dto->country ?? ''))); // Beds24 suele mandar ISO2 o ISO3
 
             if ($countryCode !== '') {
                 // Buscamos el país. (Usa tu método resolvePais si lo tienes, o el EM directo)
