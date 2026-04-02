@@ -6,6 +6,7 @@ namespace App\Pms\Service\Message;
 
 use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Contract\MessageContextInterface;
+use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -13,6 +14,8 @@ use DateTimeZone;
 /**
  * Patrón Adaptador: Envuelve una entidad PmsReserva para que cumpla
  * con el contrato genérico que el módulo de Mensajes espera.
+ * * Actúa como puente traduciendo la complejidad del PMS (reservas, estados, fechas)
+ * a un contexto plano y agnóstico consumible por el motor de plantillas.
  */
 class PmsReservaMessageContext implements MessageContextInterface
 {
@@ -24,19 +27,34 @@ class PmsReservaMessageContext implements MessageContextInterface
     // IDENTIFICADORES Y CONTACTO BASE
     // =========================================================================
 
+    /**
+     * Define la familia del contexto para aislar reglas de negocio.
+     */
     public function getContextType(): string { return 'pms_reserva'; }
 
+    /**
+     * Identificador único de la entidad subyacente.
+     */
     public function getContextId(): string { return (string) $this->reserva->getId(); }
 
+    /**
+     * Idioma preferido del huésped para la selección de plantillas traducidas.
+     */
     public function getContextLanguage(): string {
         return $this->reserva->getIdioma()?->getId() ?? 'en';
     }
 
+    /**
+     * Nombre compuesto del huésped.
+     */
     public function getContextName(): ?string
     {
         return trim($this->reserva->getNombreCliente() . ' ' . $this->reserva->getApellidoCliente());
     }
 
+    /**
+     * Teléfono primario o secundario para envíos por WhatsApp Meta.
+     */
     public function getContextPhone(): ?string
     {
         return $this->reserva->getTelefono() ?? $this->reserva->getTelefono2();
@@ -46,18 +64,47 @@ class PmsReservaMessageContext implements MessageContextInterface
     // DICCIONARIO AGNÓSTICO PARA EL JSON
     // =========================================================================
 
+    /**
+     * Origen principal de la reserva (ej. Airbnb, Booking, Directo).
+     */
     public function getOrigin(): ?string
     {
         return $this->reserva->getChannel()?->getId() ?? 'directo';
     }
 
+    /**
+     * Etiqueta de estado simplificada para renderizado rápido en el UI del Chat
+     * y filtros de reglas en el RuleEngine.
+     */
     public function getStatusTag(): ?string
     {
-        return $this->isCancelled() ? 'cancelled' : 'confirmed';
+        if ($this->isCancelled()) {
+            return 'cancelled';
+        }
+
+        if ($this->isAbiertoOrBloqueo()) {
+            return 'inquiry';
+        }
+
+        return 'confirmed';
     }
 
+    /**
+     * Genera el diccionario agnóstico de hitos cronológicos (Fechas clave).
+     * Estos hitos son el núcleo matemático con el que el MessageRuleEngine calcula los offsets de envío.
+     *
+     * @return array<string, \DateTimeInterface>
+     */
     public function getMilestones(): array
     {
+        // 🔥 CORTAFUEGOS ANTI-SPAM PARA INQUIRIES Y BLOQUEOS
+        // Si es una consulta abierta (inquiry) o un bloqueo de calendario, vaciamos intencionalmente los hitos.
+        // Al retornar un array vacío, el MessageRuleEngine carecerá de un START válido,
+        // lo que matemáticamente imposibilita la creación y programación de plantillas automáticas.
+        if ($this->isAbiertoOrBloqueo()) {
+            return [];
+        }
+
         //TODO: Refactor: poner todo en UTC para mensajes
         $tzLima = new DateTimeZone('America/Lima');
 
@@ -145,6 +192,9 @@ class PmsReservaMessageContext implements MessageContextInterface
         return $milestones;
     }
 
+    /**
+     * Unidades habitacionales asignadas a la reserva.
+     */
     public function getItems(): array
     {
         $unidadesString = $this->reserva->getUnidadesAggregate();
@@ -154,22 +204,60 @@ class PmsReservaMessageContext implements MessageContextInterface
         return array_map('trim', explode(',', $unidadesString));
     }
 
+    /**
+     * Monto financiero total de la reserva.
+     */
     public function getFinancialTotal(): ?float
     {
         return (float) $this->reserva->getMontoTotal();
     }
 
+    /**
+     * Indica si la reserva ya ha sido pagada en su totalidad.
+     */
     public function isFinancialCleared(): bool
     {
         return false;
     }
 
     // =========================================================================
-    // REGLAS DE NEGOCIO DEL CHAT
+    // REGLAS DE NEGOCIO DEL CHAT Y VALIDACIONES DE ESTADO
     // =========================================================================
 
+    /**
+     * Indica si la reserva está anulada financieramente y operativamente en el PMS.
+     */
     public function isCancelled(): bool
     {
         return $this->reserva->isTotalmenteCancelada();
+    }
+
+    /**
+     * Evalúa de manera estricta y tipada si la reserva es exclusivamente
+     * un inquiry (estado abierto) o un bloqueo de calendario.
+     * * Al tener acceso al modelo exacto, evaluamos la colección de Doctrine real.
+     *
+     * @return bool True si es puramente inquiry o bloqueo, False en caso de tener reservas vivas o estar vacía.
+     */
+    public function isAbiertoOrBloqueo(): bool
+    {
+        $eventos = $this->reserva->getEventosCalendario();
+
+        // Si no hay eventos, no podemos catalogarlo como inquiry/bloqueo (es un draft o error)
+        if ($eventos->isEmpty()) {
+            return false;
+        }
+
+        foreach ($eventos as $evento) {
+            $estadoId = $evento->getEstado()?->getId();
+
+            // Si encontramos un solo evento con un estado que NO sea Inquiry o Bloqueo
+            // (ej. Confirmada, Pendiente), la reserva general deja de ser un mero bloqueo.
+            if ($estadoId !== PmsEventoEstado::CODIGO_ABIERTO && $estadoId !== PmsEventoEstado::CODIGO_BLOQUEO) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

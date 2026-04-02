@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace App\Pms\Service\Reserva;
 
 use App\Message\Factory\MessageConversationFactory;
+use App\Message\Service\MessageRuleEngine;
+use App\Message\Entity\MessageConversation; // 🔥 Asegúrate de importar esto
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Message\PmsReservaMessageContext;
@@ -13,9 +15,10 @@ use Symfony\Component\Uid\Uuid;
 
 final class PmsReservaRecalculoService
 {
-    // 🔥 1. INYECTAMOS EL FACTORY DEL CHAT
+    // 🔥 1. INYECTAMOS EL FACTORY DEL CHAT Y EL MOTOR DE REGLAS
     public function __construct(
-        private readonly MessageConversationFactory $messageFactory
+        private readonly MessageConversationFactory $messageFactory,
+        private readonly MessageRuleEngine $ruleEngine
     ) {}
 
     public function recalcularDesdeEventos(array $reservaIds, EntityManagerInterface $entityManager, $flush): void
@@ -36,32 +39,25 @@ final class PmsReservaRecalculoService
 
             $in = implode(',', array_fill(0, count($binaryIds), '?'));
 
+            // ... (AQUÍ VA EXACTAMENTE TU SQL COMO LO TIENES) ...
             $sql = <<<SQL
 UPDATE pms_reserva r
 LEFT JOIN (
     SELECT
         e.reserva_id AS reserva_id,
-        
         COALESCE(MIN(CASE WHEN e.estado_id != '$estadoCancelada' THEN DATE(e.inicio) END), MIN(DATE(e.inicio))) AS fechaMin,
         COALESCE(MAX(CASE WHEN e.estado_id != '$estadoCancelada' THEN DATE(e.fin) END), MAX(DATE(e.fin))) AS fechaMax,
-        
         COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.monto, 0) ELSE 0 END), 0) AS totalMonto,
         COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.comision, 0) ELSE 0 END), 0) AS totalComision,
         COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.cantidad_adultos, 0) ELSE 0 END), 0) AS totalAdultos,
         COALESCE(SUM(CASE WHEN e.estado_id != '$estadoCancelada' THEN COALESCE(e.cantidad_ninos, 0) ELSE 0 END), 0) AS totalNinos,
-        
         GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.channel_id), '') SEPARATOR ' | ') AS canalesAgregados,
         GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.referencia_canal), '') SEPARATOR ' | ') AS refAgregadas,
         GROUP_CONCAT(DISTINCT NULLIF(TRIM(e.hora_llegada_canal), '') SEPARATOR ' | ') AS horasAgregadas,
-        
-        -- 🔥 AGRUPACIÓN DE NOMBRES DE UNIDADES (Solo vivos)
         GROUP_CONCAT(DISTINCT CASE WHEN e.estado_id != '$estadoCancelada' THEN NULLIF(TRIM(u.nombre), '') END SEPARATOR ', ') AS unidadesAgregadas,
-        
         MIN(e.fecha_reserva_canal) AS minFechaReserva,
         MAX(e.fecha_modificacion_canal) AS maxFechaModif,
-        
         MAX(CASE WHEN e.estado_id != '$estadoCancelada' AND e.channel_id != 'directo' THEN e.channel_id END) AS canalDominante
-        
     FROM pms_evento_calendario e
     LEFT JOIN pms_unidad u ON e.pms_unidad_id = u.id 
     WHERE e.reserva_id IN ($in)
@@ -74,17 +70,13 @@ SET
     r.comision_total                  = COALESCE(s.totalComision, 0),
     r.cantidad_adultos                = COALESCE(s.totalAdultos, 0),
     r.cantidad_ninos                  = COALESCE(s.totalNinos, 0),
-    
     r.canales_aggregate               = s.canalesAgregados,
     r.referencia_canal_aggregate      = s.refAgregadas,
     r.hora_llegada_canal_aggregate    = s.horasAgregadas,
     r.unidades_aggregate              = s.unidadesAgregadas,
-    
     r.primera_fecha_reserva_canal     = s.minFechaReserva,
     r.ultima_fecha_modificacion_canal = s.maxFechaModif,
-    
     r.channel_id                      = COALESCE(s.canalDominante, 'directo')
-    
 WHERE r.id IN ($in)
 SQL;
 
@@ -103,9 +95,20 @@ SQL;
                     // Envolvemos la reserva en su adaptador
                     $context = new PmsReservaMessageContext($reserva);
 
-                    // Actualizamos el chat (con true para que haga flush de la conversación)
-                    $this->messageFactory->upsertFromContext($context, $flush);
+                    // Pasamos false para no hacer mini-flushes constantes y agrupar todo al final
+                    $conversation = $this->messageFactory->upsertFromContext($context, false);
+
+                    // 🔥 3. EL BYPASS DEL LISTENER: EJECUCIÓN MANUAL EXPLÍCITA
+                    if ($conversation instanceof MessageConversation) {
+                        // Forzamos el motor pasándole true para que salte protecciones y evalúe los cambios crudos
+                        $this->ruleEngine->syncConversationRules($conversation, MessageRuleEngine::TRIGGER_UPDATE, true);
+                    }
                 }
+            }
+
+            // 4. Si se solicitó flush, lo hacemos una sola vez por lote (Mejor rendimiento)
+            if ($flush) {
+                $entityManager->flush();
             }
         }
     }
