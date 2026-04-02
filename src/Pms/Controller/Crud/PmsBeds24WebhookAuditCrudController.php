@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Pms\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
+use App\Pms\Dispatch\ProcessBeds24WebhookDispatch;
 use App\Pms\Entity\PmsBeds24WebhookAudit;
 use App\Security\Roles;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
@@ -19,6 +22,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * PmsBeds24WebhookAuditCrudController.
@@ -55,13 +60,28 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
      */
     public function configureActions(Actions $actions): Actions
     {
+        // 🔥 1. Creamos la acción personalizada para reejecutar el webhook
+        $retryWebhook = Action::new('retryWebhook', 'Reejecutar', 'fa fa-sync')
+            ->linkToCrudAction('retryWebhookAction') // Enlaza con el método que creamos abajo
+            ->setCssClass('btn btn-warning text-dark')
+            ->displayIf(static function (PmsBeds24WebhookAudit $audit) {
+                // Solo mostrar si el estado actual es Error
+                return $audit->getStatus() === PmsBeds24WebhookAudit::STATUS_ERROR;
+            });
+
         $actions
             ->disable(Action::NEW, Action::EDIT, Action::DELETE)
-            ->add(Crud::PAGE_INDEX, Action::DETAIL);
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            // 🔥 Añadimos el botón tanto a la vista de lista (INDEX) como al detalle (DETAIL)
+            ->add(Crud::PAGE_INDEX, $retryWebhook)
+            ->add(Crud::PAGE_DETAIL, $retryWebhook);
 
         return parent::configureActions($actions)
             ->setPermission(Action::INDEX, Roles::RESERVAS_SHOW)
-            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW);
+            ->setPermission(Action::DETAIL, Roles::RESERVAS_SHOW)
+            // Aseguramos que la acción de reintento requiera un nivel de acceso adecuado (ej. Admin o algo similar si lo tienes)
+            // ->setPermission('retryWebhook', Roles::ROLE_ADMIN)
+            ;
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -92,11 +112,13 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
 
         yield ChoiceField::new('status', 'Estado')
             ->setChoices([
+                'Queued' => PmsBeds24WebhookAudit::STATUS_QUEUED,
                 'Received' => PmsBeds24WebhookAudit::STATUS_RECEIVED,
                 'Processed' => PmsBeds24WebhookAudit::STATUS_PROCESSED,
                 'Error' => PmsBeds24WebhookAudit::STATUS_ERROR,
             ])
             ->renderAsBadges([
+                PmsBeds24WebhookAudit::STATUS_QUEUED => 'warning',
                 PmsBeds24WebhookAudit::STATUS_RECEIVED => 'info',
                 PmsBeds24WebhookAudit::STATUS_PROCESSED => 'success',
                 PmsBeds24WebhookAudit::STATUS_ERROR => 'danger',
@@ -164,4 +186,53 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
             ->setFormat('dd/MM/yyyy HH:mm')
             ->setFormTypeOption('disabled', true);
     }
+
+    /**
+     * 🔥 LÓGICA DE LA ACCIÓN PERSONALIZADA
+     * Este método recibe el clic del botón "Reejecutar".
+     * Reencola el webhook fallido en Messenger utilizando los datos crudos almacenados.
+     */
+    public function retryWebhookAction(
+        AdminContext $context,
+        MessageBusInterface $messageBus,
+        EntityManagerInterface $em
+    ): Response {
+        /** @var PmsBeds24WebhookAudit $audit */
+        $audit = $context->getEntity()->getInstance();
+
+        // 1. Extraer el Token de las cabeceras guardadas
+        $headers = $audit->getHeaders();
+        $token = '';
+
+        // Buscamos la llave 'x-beds24-webhook-token'. Symfony suele guardar todo en minúsculas en los headers.
+        if (isset($headers['x-beds24-webhook-token'][0])) {
+            $token = $headers['x-beds24-webhook-token'][0];
+        }
+
+        // Si no encontramos el token, abortamos para no encolar algo que va a fallar de todos modos
+        if (empty($token)) {
+            $this->addFlash('danger', 'Error crítico: No se encontró el token de seguridad (x-beds24-webhook-token) en las cabeceras almacenadas de este registro.');
+            return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
+        }
+
+        // 2. Despachar el mensaje al bus (igual que si entrara por el Controller original)
+        $message = new ProcessBeds24WebhookDispatch(
+            (string) $audit->getId(),
+            (string) $audit->getPayloadRaw(), // Nos aseguramos de enviar el rawPayload
+            $token
+        );
+
+        $messageBus->dispatch($message);
+
+        // 3. Actualizar el estado visual del registro a "En Cola"
+        $audit->setStatus(PmsBeds24WebhookAudit::STATUS_QUEUED);
+        $audit->setErrorMessage(null); // Limpiamos el error viejo para no confundir
+
+        $em->flush(); // Guardamos el cambio de estado
+
+        // 4. Feedback visual al usuario
+        $this->addFlash('success', '¡Webhook reencolado con éxito! El sistema lo procesará en segundo plano en los próximos segundos.');
+
+        // 5. Retornar al usuario a donde estaba
+        return $this->redirect($context->getReferrer() ?? $this->adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());    }
 }
