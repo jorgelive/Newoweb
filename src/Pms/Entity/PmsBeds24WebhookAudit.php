@@ -41,6 +41,7 @@ class PmsBeds24WebhookAudit
     public const STATUS_RECEIVED = 'received';
     public const STATUS_PROCESSED = 'processed';
     public const STATUS_ERROR = 'error';
+    public const STATUS_PARTIAL_ERROR = 'partial_error';
 
     /**
      * Momento exacto de la recepción física del request.

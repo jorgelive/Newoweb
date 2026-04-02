@@ -94,7 +94,7 @@ final readonly class ProcessBeds24WebhookDispatchHandler
             }
 
             // 3. ACTUALIZAR AUDITORÍA
-            $finalStatus = empty($globalErrors) ? PmsBeds24WebhookAudit::STATUS_PROCESSED : 'partial_error';
+            $finalStatus = empty($globalErrors) ? PmsBeds24WebhookAudit::STATUS_PROCESSED : PmsBeds24WebhookAudit::STATUS_PARTIAL_ERROR;
             if (!empty($globalErrors) && empty($responseDetails['bookings']) && empty($responseDetails['messages'])) {
                 $finalStatus = PmsBeds24WebhookAudit::STATUS_ERROR;
             }

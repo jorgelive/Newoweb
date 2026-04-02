@@ -65,8 +65,10 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
             ->linkToCrudAction('retryWebhookAction') // Enlaza con el método que creamos abajo
             ->setCssClass('btn btn-warning text-dark')
             ->displayIf(static function (PmsBeds24WebhookAudit $audit) {
-                // Solo mostrar si el estado actual es Error
-                return $audit->getStatus() === PmsBeds24WebhookAudit::STATUS_ERROR;
+                return in_array($audit->getStatus(), [
+                    PmsBeds24WebhookAudit::STATUS_ERROR,
+                    PmsBeds24WebhookAudit::STATUS_PARTIAL_ERROR // <-- ¡El botón ahora saldrá aquí también!
+                ], true);
             });
 
         $actions
@@ -115,12 +117,14 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
                 'Queued' => PmsBeds24WebhookAudit::STATUS_QUEUED,
                 'Received' => PmsBeds24WebhookAudit::STATUS_RECEIVED,
                 'Processed' => PmsBeds24WebhookAudit::STATUS_PROCESSED,
+                'Partial Error' => PmsBeds24WebhookAudit::STATUS_PARTIAL_ERROR,
                 'Error' => PmsBeds24WebhookAudit::STATUS_ERROR,
             ])
             ->renderAsBadges([
-                PmsBeds24WebhookAudit::STATUS_QUEUED => 'warning',
-                PmsBeds24WebhookAudit::STATUS_RECEIVED => 'info',
+                PmsBeds24WebhookAudit::STATUS_QUEUED => 'info',
+                PmsBeds24WebhookAudit::STATUS_RECEIVED => 'primary',
                 PmsBeds24WebhookAudit::STATUS_PROCESSED => 'success',
+                PmsBeds24WebhookAudit::STATUS_PARTIAL_ERROR => 'warning',
                 PmsBeds24WebhookAudit::STATUS_ERROR => 'danger',
             ]);
 
