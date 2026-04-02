@@ -57,50 +57,55 @@ final class PmsEventoCalendarioSecurityListener
      */
     public function preUpdate(PmsEventoCalendario $evento, PreUpdateEventArgs $args): void
     {
-        // Solo aplicamos restricciones de integridad a reservas que vienen de canales (OTA)
+        // 1. Solo aplicamos restricciones a reservas OTA
         if (!$evento->isOta()) {
             return;
         }
 
-        // ✅ LÓGICA CLAVE: Permitimos que los procesos automáticos de sincronización (pull)
-        // salten esta validación, ya que ellos SÍ tienen autoridad para cancelar reservas.
+        // 2. Si es el proceso automático (PULL), tiene permiso total
         if ($this->syncContext->isPull()) {
             return;
         }
 
-        // Verificamos si, y solo si, la propiedad 'estado' sufrió una mutación real en este request
+        // 3. Verificamos si cambió el estado
         if ($args->hasChangedField('estado')) {
             /** @var PmsEventoEstado|null $nuevoEstado */
             $nuevoEstado = $args->getNewValue('estado');
+            /** @var PmsEventoEstado|null $estadoAnterior */
+            $estadoAnterior = $args->getOldValue('estado');
 
             if (!$nuevoEstado) {
                 return;
             }
 
-            /** * ✅ ID NATURAL KEY:
-             * Obtenemos el ID directamente (ej: 'cancelada', 'consulta').
-             */
-            $idEstado = (string) $nuevoEstado->getId();
+            $idNuevo = (string) $nuevoEstado->getId();
+            $idAnterior = $estadoAnterior ? (string) $estadoAnterior->getId() : '';
 
-            // Blindaje estricto usando la constante centralizada de la entidad
-            if (in_array($idEstado, PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES, true)) {
+            // 🔥 LA EXCEPCIÓN: Si el estado de origen es "ABIERTO",
+            // permitimos que el usuario lo pase a "CANCELADA" para limpiar el calendario.
+            if ($idAnterior === PmsEventoEstado::CODIGO_ABIERTO && $idNuevo === PmsEventoEstado::CODIGO_CANCELADA) {
+                return; // Permitido: Limpieza de Inquiries no concretados.
+            }
 
-                // Mantenemos los mensajes de error específicos para mejorar el feedback al usuario
-                if ($idEstado === PmsEventoEstado::CODIGO_CANCELADA) {
+            // 4. BLINDAJE PARA EL RESTO DE CASOS
+            if (in_array($idNuevo, PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES, true)) {
+
+                if ($idNuevo === PmsEventoEstado::CODIGO_CANCELADA) {
                     throw new AccessDeniedHttpException(
-                        'SEGURIDAD OTA: Las reservas externas solo pueden ser canceladas automáticamente por el canal.'
+                        'SEGURIDAD OTA: Solo puedes cancelar manualmente Consultas (Inquiries). ' .
+                        'Las reservas en firme deben ser canceladas por el canal.'
                     );
                 }
 
-                if ($idEstado === PmsEventoEstado::CODIGO_ABIERTO) {
+                if ($idNuevo === PmsEventoEstado::CODIGO_ABIERTO) {
                     throw new AccessDeniedHttpException(
-                        'SEGURIDAD OTA: No se puede degradar una reserva de canal a un estado de consulta.'
+                        'SEGURIDAD OTA: No se puede degradar una reserva activa a consulta.'
                     );
                 }
 
-                if ($idEstado === PmsEventoEstado::CODIGO_BLOQUEO) {
+                if ($idNuevo === PmsEventoEstado::CODIGO_BLOQUEO) {
                     throw new AccessDeniedHttpException(
-                        'SEGURIDAD OTA: No se puede convertir una reserva de canal en un bloqueo manual.'
+                        'SEGURIDAD OTA: No se puede convertir una reserva externa en un bloqueo manual.'
                     );
                 }
 
