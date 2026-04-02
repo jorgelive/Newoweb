@@ -74,7 +74,8 @@ final class Beds24WebhookController extends AbstractController
             // CONDICIÓN A: Prioridad absoluta a los mensajes
             if (isset($payload['messages']) && is_array($payload['messages']) && !empty($payload['messages'])) {
                 $lastMessage = end($payload['messages']);
-                if (is_array($lastMessage) && !empty($lastMessage['time'])) {
+                //Solo aplicamos si es host, queremos lo mas tapido possible los guests
+                if (is_array($lastMessage) && ($lastMessage['source'] ?? '') === 'host' && !empty($lastMessage['time'])) {
                     try {
                         $eventTimestamp = (new DateTimeImmutable($lastMessage['time']))->getTimestamp();
                     } catch (Throwable) {
