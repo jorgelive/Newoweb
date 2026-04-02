@@ -14,13 +14,16 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\PersistentCollection;
 use Doctrine\ORM\UnitOfWork;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Servicio Beds24BookingsPushQueueCreator.
  * Gestiona el encolado de sincronizaciones hacia Beds24.
  * Integrado con Factory para generación correcta de UUIDs v7.
+ * Implementa ResetInterface para evitar fugas de memoria y entidades
+ * "unmanaged" en workers asíncronos de larga duración.
  */
-final class Beds24BookingsPushQueueCreator
+final class Beds24BookingsPushQueueCreator implements ResetInterface
 {
     private const ENDPOINT_POST_BOOKINGS = 'POST_BOOKINGS';
     private const ENDPOINT_DELETE_BOOKINGS = 'DELETE_BOOKINGS';
@@ -37,6 +40,17 @@ final class Beds24BookingsPushQueueCreator
         private readonly PmsBookingsPushQueueFactory $factory,
     ) {}
 
+    /**
+     * Limpia la memoria interna de la clase.
+     * Symfony Messenger llama a este método automáticamente después de procesar
+     * cada mensaje, garantizando que el caché no retenga entidades "desvinculadas"
+     * (unmanaged) que provocarían errores en Doctrine tras un $em->clear().
+     */
+    public function reset(): void
+    {
+        $this->runtimeDedupe = [];
+    }
+
     public function enqueueForLink(
         PmsEventoBeds24Link $link,
         ExchangeEndpoint    $endpoint,
@@ -51,6 +65,8 @@ final class Beds24BookingsPushQueueCreator
         $isDelete = ($uow !== null && $uow->isScheduledForDelete(entity: $link));
 
         // 1. Escudo PULL (Webhooks)
+        // Evita el Efecto Eco para el enlace principal, pero permite que los
+        // "espejos" generados durante el pull se sincronicen hacia Beds24.
         if ($this->syncContext->isPull()) {
             if ($link->isEsPrincipal()) {
                 return;
@@ -69,7 +85,6 @@ final class Beds24BookingsPushQueueCreator
         }
 
         // 3. Deduplicación
-        // ✅ NUEVO: La clave de deduplicación ahora incluye explícitamente el proveedor
         $linkId = (string) $link->getId();
         $providerVal = $endpoint->getProvider()?->value ?? ConnectivityProvider::BEDS24->value;
         $dedupeKey = sprintf('link:%s:provider:%s:endpoint:%s', $linkId, $providerVal, $endpoint->getAccion());
@@ -132,13 +147,13 @@ final class Beds24BookingsPushQueueCreator
             endpoint: $endpoint
         );
 
-        // ✅ NUEVO: Validación de Acción + Proveedor para identificar si es un DELETE de Beds24
+        // Validación de Acción + Proveedor para identificar si es un DELETE de Beds24
         $isDeleteAction = $isDelete
             || ($endpoint->getProvider() === ConnectivityProvider::BEDS24 && $endpoint->getAccion() === self::ENDPOINT_DELETE_BOOKINGS)
             || $link->getStatus() === PmsEventoBeds24Link::STATUS_PENDING_DELETE;
 
         if ($isDeleteAction) {
-            // 🛑 ROMPEMOS LA RELACIÓN para evitar resucitar el link borrado por cascada
+            // ROMPEMOS LA RELACIÓN para evitar resucitar el link borrado por cascada
             $queue->setLink(null);
 
             // Snapshot histórico obligatorio
@@ -242,7 +257,7 @@ final class Beds24BookingsPushQueueCreator
 
             $ep = $queue->getEndpoint();
 
-            // ✅ NUEVO: Solo cancelamos POSTs que pertenezcan explícitamente a BEDS24
+            // Solo cancelamos POSTs que pertenezcan explícitamente a BEDS24
             if ($ep === null || $ep->getProvider() !== ConnectivityProvider::BEDS24 || $ep->getAccion() !== self::ENDPOINT_POST_BOOKINGS) {
                 continue;
             }

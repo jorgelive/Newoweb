@@ -1,7 +1,0 @@
-framework:
-    messenger:
-        routing:
-            #este es peligroso solo usar para mensajes y deshabilitar
-            App\Exchange\Dispatch\RunExchangeTaskDispatch: sync
-
-            App\Pms\Dispatch\ProcessBeds24WebhookDispatch: sync

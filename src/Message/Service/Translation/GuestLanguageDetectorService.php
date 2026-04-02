@@ -18,7 +18,7 @@ class GuestLanguageDetectorService
     {
         // Restringimos la detección SOLO a los idiomas que tu PMS y plantillas soportan.
         // Esto evita que un error ortográfico se detecte como un idioma exótico.
-        $this->detector = new Language(['es', 'en', 'pt', 'fr', 'it', 'de']);
+        $this->detector = new Language();
     }
 
     /**
