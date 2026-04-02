@@ -41,6 +41,7 @@ class MetaWebhookAudit
     public const string STATUS_RECEIVED = 'received';
     public const string STATUS_PROCESSED = 'processed';
     public const string STATUS_ERROR = 'error';
+    public const string STATUS_PARTIAL_ERROR = 'partial_error';
 
     /**
      * Momento exacto de la recepción física del request.

@@ -158,7 +158,7 @@ final class MetaWebhookController extends AbstractController
                 $this->logger->info('Payload de Meta sin datos procesables (sin messages ni statuses).');
             }
 
-            $finalStatus = empty($globalErrors) ? MetaWebhookAudit::STATUS_PROCESSED : 'partial_error';
+            $finalStatus = empty($globalErrors) ? MetaWebhookAudit::STATUS_PROCESSED : MetaWebhookAudit::STATUS_PARTIAL_ERROR;
 
             if (!empty($globalErrors) && empty($responseDetails['messages']) && empty($responseDetails['statuses'])) {
                 $finalStatus = MetaWebhookAudit::STATUS_ERROR;

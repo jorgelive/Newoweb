@@ -78,17 +78,22 @@ readonly class Beds24ReceivePersister
             if ($existing) {
                 if ($existing->getDirection() === Message::DIRECTION_INCOMING && $dto->read === true && $existing->getStatus() !== Message::STATUS_READ) {
 
-                    // 1. 🔥 MAGIA ATÓMICA PRIMERO: Hacemos el merge del JSON.
-                    // El Merger actualiza la BD y hace un $em->refresh($existing) internamente.
                     $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
-                    $this->merger->merge($existing, 'beds24', ['read' => true, 'read_at' => $nowUtc]);
+
+                    try {
+                        // 1. 🔥 MAGIA ATÓMICA AISLADA
+                        $this->merger->merge($existing, 'beds24', ['read' => true, 'read_at' => $nowUtc]);
+                    } catch (Throwable $e) {
+                        // Si la magia falla, logueamos el error pero NO dejamos que cierre el EM
+                        $this->logger->warning("Falló el merge JSON atómico para el mensaje {$existing->getId()}: " . $e->getMessage());
+                    }
+
+                    // 2. Modificación normal vía UoW de Doctrine
                     $existing->setStatus(Message::STATUS_READ);
 
                     $stats['updated']++;
 
                     // ❌ NO hacemos flush aquí.
-                    // El $this->em->flush() global al final de la función guardará todos
-                    // los cambios de status juntos al terminar el bucle.
                 } else {
                     $stats['skipped']++;
                 }

@@ -67,7 +67,9 @@ final class PmsBeds24WebhookAuditCrudController extends BaseCrudController
             ->displayIf(static function (PmsBeds24WebhookAudit $audit) {
                 return in_array($audit->getStatus(), [
                     PmsBeds24WebhookAudit::STATUS_ERROR,
-                    PmsBeds24WebhookAudit::STATUS_PARTIAL_ERROR // <-- ¡El botón ahora saldrá aquí también!
+                    PmsBeds24WebhookAudit::STATUS_PARTIAL_ERROR,
+                    PmsBeds24WebhookAudit::STATUS_QUEUED,
+                    PmsBeds24WebhookAudit::STATUS_RECEIVED,
                 ], true);
             });
 

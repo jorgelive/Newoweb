@@ -65,9 +65,13 @@ final class MetaWebhookAuditCrudController extends BaseCrudController
             ->linkToCrudAction('retryWebhookAction')
             ->setCssClass('btn btn-warning text-dark')
             ->displayIf(static function (MetaWebhookAudit $audit) {
-                // Solo mostrar si el estado actual es Error o Parcial
-                return in_array($audit->getStatus(), [MetaWebhookAudit::STATUS_ERROR, 'partial_error'], true);
-            });
+                return in_array($audit->getStatus(), [
+                    MetaWebhookAudit::STATUS_ERROR,
+                    MetaWebhookAudit::STATUS_PARTIAL_ERROR,
+                    MetaWebhookAudit::STATUS_RECEIVED
+                ], true);
+            })
+        ;
 
         $actions
             ->disable(Action::NEW, Action::EDIT, Action::DELETE)
@@ -111,13 +115,13 @@ final class MetaWebhookAuditCrudController extends BaseCrudController
             ->setChoices([
                 'Recibido' => MetaWebhookAudit::STATUS_RECEIVED,
                 'Procesado' => MetaWebhookAudit::STATUS_PROCESSED,
-                'Error Parcial' => 'partial_error',
+                'Error Parcial' => MetaWebhookAudit::STATUS_PARTIAL_ERROR,
                 'Error' => MetaWebhookAudit::STATUS_ERROR,
             ])
             ->renderAsBadges([
                 MetaWebhookAudit::STATUS_RECEIVED => 'info',
                 MetaWebhookAudit::STATUS_PROCESSED => 'success',
-                'partial_error' => 'warning',
+                MetaWebhookAudit::STATUS_PARTIAL_ERROR => 'warning',
                 MetaWebhookAudit::STATUS_ERROR => 'danger',
             ]);
 
