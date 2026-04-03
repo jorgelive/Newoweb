@@ -50,20 +50,25 @@ final readonly class ProcessBeds24WebhookDispatchHandler
 
             $audit->setPayload($payload);
 
-            // ... (todo tu código interno del try se queda igual) ...
+            $responseDetails = [];
+            $globalErrors = []; // Nos aseguramos de inicializarlo
 
             // 1. PROCESAR BOOKINGS
             if (isset($payload['booking'])) {
                 $bookingResult = $this->handleBookings($payload['booking'], $dispatch->token);
-                $responseDetails['bookings'] = $bookingResult['processed'];
-                $globalErrors = array_merge($globalErrors, $bookingResult['errors']);
+                $responseDetails['bookings'] = $bookingResult['processed'] ?? [];
+
+                // Forzamos (array) en ambos lados para que NUNCA reviente si viene null
+                $globalErrors = array_merge((array)$globalErrors, (array)($bookingResult['errors'] ?? []));
             }
 
-            // 2. PROCESAR MENSAJES (Con el Persister optimizado)
+            // 2. PROCESAR MENSAJES
             if (isset($payload['messages'])) {
                 $messageResult = $this->handleMessages($payload['messages']);
-                $responseDetails['messages'] = $messageResult['processed'];
-                $globalErrors = array_merge($globalErrors, $messageResult['errors']);
+                $responseDetails['messages'] = $messageResult['processed'] ?? [];
+
+                // Forzamos (array) nuevamente
+                $globalErrors = array_merge((array)$globalErrors, (array)($messageResult['errors'] ?? []));
             }
 
             // 3. ACTUALIZAR AUDITORÍA
