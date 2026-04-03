@@ -1,3 +1,4 @@
+//src/sttores/chatStore.ts
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef, watch } from 'vue';
 import axios, { InternalAxiosRequestConfig } from 'axios';

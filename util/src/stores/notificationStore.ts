@@ -1,3 +1,4 @@
+//src/stores/notificationStore.ts
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
@@ -46,6 +47,18 @@ export const useNotificationStore = defineStore('notificationStore', () => {
     };
 
     const addNotification = (payload: Omit<AppNotification, 'id'>): void => {
+        // Validación de URLs corruptas de Mercure (cuando manda "unknown" o "undefined")
+        if (payload.actionUrl && (payload.actionUrl.includes('undefined') || payload.actionUrl.includes('unknown'))) {
+            payload.actionUrl = undefined;
+        }
+
+        // Filtro anti-spam: Si una notificación con el mismo título, cuerpo y URL ya está en pantalla, la ignoramos.
+        const isDuplicate = notifications.value.some(
+            n => n.title === payload.title && n.body === payload.body && n.actionUrl === payload.actionUrl
+        );
+
+        if (isDuplicate) return;
+
         const id = Date.now();
         notifications.value.push({ ...payload, id });
         setTimeout(() => removeNotification(id), 5000);

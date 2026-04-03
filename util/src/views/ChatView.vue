@@ -18,17 +18,12 @@ const isMobileSidebarOpen = ref(true);
 const isTransitioning = ref(true);
 
 // ============================================================================
-// LÓGICA DE LOGIN PARA RENOVACIÓN DE SESIÓN (Intervención de modal flotante)
+// LÓGICA DE LOGIN PARA RENOVACIÓN DE SESIÓN
 // ============================================================================
 const loginUsername = ref('');
 const loginPassword = ref('');
 const isLoggingIn = ref(false);
 
-/**
- * Maneja el envío del formulario del modal cuando la sesión expira (401).
- * Delega la validación al store, que reanudará las peticiones pausadas.
- * @returns {Promise<void>}
- */
 const handleSessionRenewal = async () => {
   if (!loginUsername.value || !loginPassword.value) return;
   isLoggingIn.value = true;
@@ -41,7 +36,6 @@ const handleSessionRenewal = async () => {
   if (success) {
     loginPassword.value = '';
 
-    // Si había peticiones, el interceptor las soltará, pero reforzamos la UI
     await store.fetchConversations();
 
     if (store.currentConversation) {
@@ -65,29 +59,23 @@ const handleLogout = async () => {
 };
 
 // ============================================================================
-// LÓGICA DE MENÚ CONTEXTUAL Y LONG PRESS (NUEVO)
+// LÓGICA DE MENÚ CONTEXTUAL Y LONG PRESS
 // ============================================================================
 const isContextMenuOpen = ref(false);
 const contextMenuPos = ref({ x: 0, y: 0 });
 const contextMenuMessage = ref<ApiMessage | null>(null);
 
 let pressTimer: number | null = null;
-let isPressAction = false; // Flag para evitar que el long press dispare el click de traducción
+let isPressAction = false;
 
-/**
- * Inicia el temporizador para detectar un toque prolongado (Long Press)
- */
 const startLongPress = (msg: ApiMessage, event: TouchEvent | MouseEvent) => {
-  isPressAction = false; // Reseteamos el flag
+  isPressAction = false;
   pressTimer = window.setTimeout(() => {
-    isPressAction = true; // Confirmamos que fue un long press
+    isPressAction = true;
     openContextMenu(msg, event);
-  }, 500); // 500ms para considerar long press
+  }, 500);
 };
 
-/**
- * Cancela el temporizador si el usuario mueve el dedo o suelta antes de tiempo
- */
 const cancelLongPress = () => {
   if (pressTimer) {
     clearTimeout(pressTimer);
@@ -95,12 +83,7 @@ const cancelLongPress = () => {
   }
 };
 
-/**
- * Abre el menú contextual calculando la posición del ratón o del dedo
- */
 const openContextMenu = (msg: ApiMessage, event: MouseEvent | TouchEvent) => {
-  // event.preventDefault(); no lo usamos globalmente aquí porque en mobile rompe el scroll a veces,
-  // pero el @contextmenu.prevent de vue ya lo hace para PC.
   contextMenuMessage.value = msg;
 
   let clientX = 0;
@@ -114,11 +97,10 @@ const openContextMenu = (msg: ApiMessage, event: MouseEvent | TouchEvent) => {
     clientY = (event as MouseEvent).clientY;
   }
 
-  // Ajuste para que el menú no se salga de la pantalla si se presiona muy al borde
   const screenW = window.innerWidth;
   const screenH = window.innerHeight;
-  const menuW = 180; // Ancho aproximado del menú
-  const menuH = 80;  // Alto aproximado del menú
+  const menuW = 180;
+  const menuH = 80;
 
   contextMenuPos.value = {
     x: clientX + menuW > screenW ? screenW - menuW - 10 : clientX,
@@ -143,10 +125,6 @@ const copyMessageText = async () => {
   closeContextMenu();
 };
 
-/**
- * Interceptor del click original. Si venimos de un long press, ignora el click
- * para no traducir accidentalmente el mensaje al abrir el menú.
- */
 const handleMessageClick = (msg: ApiMessage, event: Event) => {
   if (isPressAction) {
     isPressAction = false;
@@ -156,12 +134,8 @@ const handleMessageClick = (msg: ApiMessage, event: Event) => {
 };
 
 // ============================================================================
-// LÓGICA DE REACCIONES (NUEVO)
+// LÓGICA DE REACCIONES
 // ============================================================================
-/**
- * Extrae y agrupa las reacciones del metadata del mensaje.
- * Retorna un array de objetos con el emoji y la cantidad de veces que se repite.
- */
 const getReactions = (msg: ApiMessage): { emoji: string; count: number }[] => {
   const reactionsMap = msg.metadata?.whatsappMeta?.reactions;
   if (!reactionsMap) return [];
@@ -177,9 +151,8 @@ const getReactions = (msg: ApiMessage): { emoji: string; count: number }[] => {
   return Object.entries(counts).map(([emoji, count]) => ({ emoji, count }));
 };
 
-
 // ============================================================================
-// NUEVO: MODO STALKER (LONG PRESS EN CONVERSACIONES DE LA LISTA)
+// MODO STALKER (LONG PRESS EN CONVERSACIONES DE LA LISTA)
 // ============================================================================
 const isStalkMenuOpen = ref(false);
 const stalkMenuPos = ref({ x: 0, y: 0 });
@@ -203,7 +176,6 @@ const cancelStalkLongPress = () => {
     clearTimeout(stalkPressTimer);
     stalkPressTimer = null;
   }
-  // Pequeño delay para que el click normal no se dispare justo después de soltar
   setTimeout(() => {
     isStalkPressAction.value = false;
   }, 100);
@@ -249,7 +221,6 @@ const closeStalkMenu = () => {
   stalkConversation.value = null;
 };
 
-
 // ============================================================================
 // LÓGICA ORIGINAL DE UI Y CHAT
 // ============================================================================
@@ -274,13 +245,11 @@ const previewImageUrl = ref<string | null>(null);
 const translatedMessages = ref<Record<string, boolean>>({});
 
 const route = useRoute();
-const router = useRouter(); // <-- NUEVO
+const router = useRouter();
 
-// 🔥 OBSERVADOR DE RUTA RAÍZ (NO QUEDA ATRAPADO EN EL MOUNT) 🔥
 watch(() => route.query.id, async (newId) => {
   if (newId) {
     await selectChat(newId as string);
-    // Limpiamos la URL para que quede bonita en la barra de direcciones
     router.replace({ path: '/chat', query: {} });
   }
 });
@@ -302,19 +271,16 @@ const handlePopState = (event: PopStateEvent) => {
 };
 
 onMounted(async () => {
-  store.fetchConversations(); // Ya no necesita await porque selectConversation es autosuficiente ahora
+  store.fetchConversations();
   store.fetchTemplates();
   store.initGlobalMercure();
 
   window.addEventListener('resize', handleResize);
   updateChatVisibility();
 
-  // --- LÓGICA DE NOTIFICACIONES / ENRUTAMIENTO DIRECTO ---
   if (route.query.id) {
     const targetId = route.query.id as string;
     await selectChat(targetId);
-
-    // Opcional: Limpiamos la URL visualmente para que quede limpia en "/chat"
     router.replace({ path: '/chat', query: {} });
   }
 
@@ -428,6 +394,36 @@ const isWhatsappAllowed = computed(() => {
   return sessionActive;
 });
 
+/**
+ * Selecciona inteligentemente el canal predeterminado al cambiar de conversación o limpiar plantilla.
+ * Prioriza el último canal por el que nos habló el huésped, dejando libertad al operador
+ * de seleccionar otros canales usando los botones.
+ */
+const setDefaultChannels = () => {
+  const chat = store.currentConversation;
+  if (!chat) return;
+
+  const newChannels: string[] = [];
+
+  const lastIncoming = [...store.activeChatMessages].reverse().find(m => m.direction === 'incoming');
+
+  if (lastIncoming) {
+    const channelId = getDirectChannelId(lastIncoming.channel);
+    if (channelId === 'whatsapp_meta' && isWhatsappAllowed.value) {
+      newChannels.push('whatsapp_meta');
+    } else if (channelId === 'beds24' && isBeds24Allowed.value) {
+      newChannels.push('beds24');
+    }
+  }
+
+  if (newChannels.length === 0) {
+    if (isBeds24Allowed.value) newChannels.push('beds24');
+    if (chat.whatsappSessionActive && !chat.whatsappDisabled) newChannels.push('whatsapp_meta');
+  }
+
+  selectedChannels.value = newChannels;
+};
+
 watch(() => store.currentConversation, (chat) => {
   selectedTemplateId.value = null;
   showTemplateDropdown.value = false;
@@ -436,11 +432,13 @@ watch(() => store.currentConversation, (chat) => {
 
   activeTab.value = 'history';
 
-  const newChannels: string[] = [];
-  if (isBeds24Allowed.value) newChannels.push('beds24');
-  if (chat?.whatsappSessionActive && !chat?.whatsappDisabled) newChannels.push('whatsapp_meta');
+  setDefaultChannels();
+});
 
-  selectedChannels.value = newChannels;
+watch(() => store.activeChatMessages, (newMessages, oldMessages) => {
+  if (oldMessages.length === 0 && newMessages.length > 0 && !selectedTemplateId.value) {
+    setDefaultChannels();
+  }
 });
 
 const selectChat = async (id: string) => {
@@ -503,13 +501,7 @@ const selectTemplate = (tpl: ApiTemplate) => {
 
 const clearTemplate = () => {
   selectedTemplateId.value = null;
-  const restoredChannels: string[] = [];
-  const chat = store.currentConversation;
-  if (chat) {
-    if (isBeds24Allowed.value) restoredChannels.push('beds24');
-    if (chat.whatsappSessionActive && !chat.whatsappDisabled) restoredChannels.push('whatsapp_meta');
-  }
-  selectedChannels.value = restoredChannels;
+  setDefaultChannels();
 };
 
 const onFileSelected = (event: Event) => {
