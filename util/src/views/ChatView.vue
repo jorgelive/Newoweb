@@ -59,6 +59,15 @@ const handleLogout = async () => {
 };
 
 // ============================================================================
+// LÓGICA DE ACTUALIZACIÓN DE PWA EN CALIENTE
+// ============================================================================
+const updateAvailable = ref(false);
+
+const refreshApp = () => {
+  window.location.reload();
+};
+
+// ============================================================================
 // LÓGICA DE MENÚ CONTEXTUAL (MENSAJES)
 // ============================================================================
 const isContextMenuOpen = ref(false);
@@ -260,6 +269,73 @@ const closeStalkMenu = () => {
 };
 
 // ============================================================================
+// LÓGICA DE SHARE TARGET (INDEXED DB)
+// ============================================================================
+const sharedFileFromDB = ref<File | null>(null);
+
+const checkSharedFile = () => {
+  return new Promise<void>((resolve) => {
+    const request = indexedDB.open('OpenPeruSharedDB', 1);
+
+    request.onupgradeneeded = (e) => {
+      const db = (e.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains('sharedFiles')) {
+        db.createObjectStore('sharedFiles');
+      }
+    };
+
+    request.onsuccess = (e) => {
+      const db = (e.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains('sharedFiles')) return resolve();
+
+      const tx = db.transaction('sharedFiles', 'readonly');
+      const store = tx.objectStore('sharedFiles');
+      const getReq = store.get('latest_shared_file');
+
+      getReq.onsuccess = () => {
+        if (getReq.result instanceof File) {
+          sharedFileFromDB.value = getReq.result;
+        }
+        resolve();
+      };
+    };
+    request.onerror = () => resolve();
+  });
+};
+
+const attachSharedFile = () => {
+  if (sharedFileFromDB.value) {
+    const success = attachmentStore.setFile(sharedFileFromDB.value);
+    if (success) {
+      if (!attachmentStore.isImage && selectedChannels.value.includes('beds24')) {
+        store.error = 'Beds24 solo permite el envío de imágenes. Canal desmarcado automáticamente.';
+        selectedChannels.value = selectedChannels.value.filter(c => c !== 'beds24');
+      }
+    } else {
+      store.error = attachmentStore.error;
+    }
+    clearSharedFile(); // Lo eliminamos de BD una vez extraido
+  }
+};
+
+const clearSharedFile = () => {
+  sharedFileFromDB.value = null;
+  const request = indexedDB.open('OpenPeruSharedDB', 1);
+  request.onsuccess = (e) => {
+    const db = (e.target as IDBOpenDBRequest).result;
+    const tx = db.transaction('sharedFiles', 'readwrite');
+    tx.objectStore('sharedFiles').delete('latest_shared_file');
+  };
+};
+
+const handleVisibilityChange = () => {
+  // Cuando regresamos a la PWA, verificamos si el SW dejó un archivo en IndexedDB
+  if (!document.hidden) {
+    checkSharedFile();
+  }
+};
+
+// ============================================================================
 // LÓGICA ORIGINAL DE UI Y CHAT
 // ============================================================================
 const updateChatVisibility = () => {
@@ -313,6 +389,17 @@ onMounted(async () => {
   store.fetchTemplates();
   store.initGlobalMercure();
 
+  // Verificamos si hay un archivo compartido pendiente
+  checkSharedFile();
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  // Detector de actualización del Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      updateAvailable.value = true;
+    });
+  }
+
   window.addEventListener('resize', handleResize);
   updateChatVisibility();
 
@@ -331,6 +418,7 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('popstate', handlePopState);
   window.removeEventListener('resize', handleResize);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 
 let isAdjustingMessageScroll = false;
@@ -645,7 +733,6 @@ const formatTime = (iso?: string) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-// NUEVA FUNCIÓN: Formatea la fecha y hora específicamente para el Stalker Mode
 const formatStalkDate = (iso?: string) => {
   if (!iso) return '';
   const msgDate = new Date(iso);
@@ -660,7 +747,6 @@ const formatStalkDate = (iso?: string) => {
   if (isToday) {
     return timeString;
   } else {
-    // Si no es hoy, mostramos "23 mar, 06:43 A.M."
     const dateString = msgDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
     return `${dateString}, ${timeString}`;
   }
@@ -835,6 +921,13 @@ const getDirectChannelId = (channel?: any): string | null => {
 <template>
   <div class="fixed inset-0 flex bg-[#F8FAFC] font-sans overflow-hidden text-slate-900 antialiased" @contextmenu="isContextMenuOpen ? closeContextMenu() : (isStalkMenuOpen ? closeStalkMenu() : null)">
 
+    <Transition name="toast-slide">
+      <div v-if="updateAvailable" class="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-[#376875] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-fade-in font-bold cursor-pointer hover:bg-[#2c535d] transition-colors" @click="refreshApp">
+        <i class="fas fa-sync-alt fa-spin"></i>
+        <span class="text-sm">Nueva versión disponible. Clic para actualizar.</span>
+      </div>
+    </Transition>
+
     <div v-if="isContextMenuOpen" class="fixed inset-0 z-[400]" @click="closeContextMenu"></div>
     <Transition name="fade-scale">
       <div v-if="isContextMenuOpen"
@@ -864,7 +957,7 @@ const getDirectChannelId = (channel?: any): string | null => {
         <div v-if="isLoadingStalk" class="flex justify-center py-6"><i class="fas fa-circle-notch fa-spin text-slate-300 text-2xl"></i></div>
         <div v-else-if="stalkMessages.length === 0" class="text-xs text-slate-400 text-center py-4 italic">No hay historial reciente.</div>
 
-        <div v-else class="overflow-y-auto flex flex-col-reverse gap-3 scrollbar-hide py-1">
+        <div v-else class="overflow-y-auto flex flex-col gap-3 scrollbar-hide py-1">
           <div v-for="m in stalkMessages" :key="m.id" class="text-[12px] p-2.5 rounded-xl border shadow-sm leading-relaxed"
                :class="m.direction === 'outgoing' ? 'bg-[#376875]/5 border-[#376875]/10 text-slate-700 ml-6 rounded-tr-sm' : 'bg-white border-slate-200 text-slate-800 mr-6 rounded-tl-sm'">
             <div class="font-black mb-1 flex justify-between text-[9px] uppercase tracking-wider" :class="m.direction === 'outgoing' ? 'text-[#376875]' : 'text-slate-400'">
@@ -1309,6 +1402,18 @@ const getDirectChannelId = (channel?: any): string | null => {
           <input type="file" ref="fileInput" class="hidden" @change="onFileSelected" />
 
           <form @submit.prevent="send" class="max-w-4xl mx-auto flex items-end gap-2 md:gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-[24px] focus-within:bg-white focus-within:border-[#376875]/30 transition-all w-full relative min-w-0">
+
+            <Transition name="fade-scale">
+              <div v-if="sharedFileFromDB && !attachmentStore.file" class="absolute -top-14 left-0 bg-[#E07845] text-white px-4 py-2 rounded-xl shadow-xl z-20 flex items-center gap-3 animate-bounce">
+                <i class="fas fa-share-alt"></i>
+                <div class="flex flex-col min-w-0">
+                  <span class="text-xs font-bold truncate max-w-[150px] md:max-w-xs">{{ sharedFileFromDB.name }}</span>
+                  <span class="text-[9px] opacity-80">Recibido para compartir</span>
+                </div>
+                <button type="button" @click="attachSharedFile" class="bg-white text-[#E07845] px-2 py-1 rounded text-xs font-black hover:bg-orange-50 ml-1">Adjuntar</button>
+                <button type="button" @click="clearSharedFile" class="bg-red-500/20 text-white px-2 py-1 rounded text-xs font-black hover:bg-red-500 hover:text-white ml-1 transition-colors border border-white/10">Descartar</button>
+              </div>
+            </Transition>
 
             <div v-if="attachmentStore.file" class="absolute -top-14 left-0 bg-white border border-slate-200 shadow-lg rounded-xl px-3 py-2 flex items-center gap-3 z-10 animate-fade-in max-w-full">
               <img v-if="attachmentStore.isImage" :src="attachmentStore.previewUrl ?? undefined" class="w-8 h-8 object-cover rounded shadow-sm shrink-0" />

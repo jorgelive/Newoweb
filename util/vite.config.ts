@@ -47,6 +47,23 @@ export default defineConfig(({ command }) => {
                         { src: '/app_util/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
                         { src: '/app_util/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
                     ],
+                    // ✅ NUEVO: Web Share Target API para recibir archivos desde otras apps
+                    share_target: {
+                        action: "/app_util/chat",
+                        method: "POST",
+                        enctype: "multipart/form-data",
+                        params: {
+                            title: "title",
+                            text: "text",
+                            url: "url",
+                            files: [
+                                {
+                                    name: "shared_file",
+                                    accept: ["image/*", "application/pdf", "text/plain", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+                                }
+                            ]
+                        }
+                    }
                 },
 
                 workbox: {

@@ -372,7 +372,7 @@ export const useChatStore = defineStore('chatStore', () => {
         }
 
         try {
-            const authResponse = await apiClient.get('/message/mercure/auth');
+            const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
             const { hubUrl, token } = authResponse.data;
 
             const topic = 'https://openperu.pe/host/conversations';
@@ -434,6 +434,7 @@ export const useChatStore = defineStore('chatStore', () => {
                 console.error('❌ Desconexión del túnel Global de Mercure...');
                 globalEventSource.value?.close(); // Aseguramos que se cierre para evitar loops
 
+                // Verificamos silenciosamente si la cookie de sesión principal sigue viva
                 const isAlive = await checkSession();
                 if (!isAlive) {
                     isSessionExpired.value = true;
@@ -458,7 +459,7 @@ export const useChatStore = defineStore('chatStore', () => {
         }
 
         try {
-            const authResponse = await apiClient.get('/message/mercure/auth');
+            const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
             const { hubUrl, token } = authResponse.data;
 
             const topic = `https://openperu.pe/conversations/${conversationId}`;
@@ -497,6 +498,7 @@ export const useChatStore = defineStore('chatStore', () => {
                 console.error('❌ Desconexión del túnel local de Mercure...');
                 eventSource.value?.close(); // Aseguramos cierre
 
+                // Verificamos silenciosamente si la cookie de sesión principal sigue viva
                 const isAlive = await checkSession();
                 if (!isAlive) {
                     isSessionExpired.value = true;
@@ -525,7 +527,7 @@ export const useChatStore = defineStore('chatStore', () => {
 
         // 2. Si no está en memoria (chat antiguo no cargado aún), lo buscamos directo en la API
         if (!found) {
-            loadingMessages.value = true;
+            loadingMessages.value = true; // Mostramos spinner de carga mientras resolvemos
             try {
                 // Hacemos un GET directo al ID de la conversación
                 const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}`);
@@ -639,7 +641,8 @@ export const useChatStore = defineStore('chatStore', () => {
 
     /**
      * MODO STALKER: Trae los últimos mensajes de una conversación sin disparar el webhook de lectura.
-     * Filtra los mensajes programados o pendientes para mostrar solo el historial real.
+     * Filtra rigurosamente los mensajes programados o pendientes, toma los 5 últimos y los
+     * ordena de más antiguo a más nuevo para una visualización top-down correcta.
      * @param {string} conversationId ID de la conversación
      * @returns {Promise<ApiMessage[]>} Lista de los últimos mensajes enviados/recibidos
      */
@@ -648,23 +651,24 @@ export const useChatStore = defineStore('chatStore', () => {
             const response = await apiClient.get(`/platform/user/util/msg/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
             const data = extractData(response) as ApiMessage[];
 
-            // 🔥 Filtramos estrictamente para excluir plantillas programadas a futuro o en cola
-            const realHistoryMessages = data.filter(m => {
-                // 1. Excluir si tiene explícito el flag de ser programado
-                if (m.scheduledForFuture === true || (m as any).isScheduledForFuture === true) {
-                    return false;
-                }
+            // 1. Filtro estricto (rechaza colas, cancelados y programados a futuro)
+            const realHistoryMessages = data.filter(m =>
+                m.scheduledForFuture !== true &&
+                (m as any).isScheduledForFuture !== true &&
+                m.status !== 'pending' &&
+                m.status !== 'queued' &&
+                m.status !== 'cancelled'
+            );
 
-                // 2. Excluir si el status es 'queued' (Así marcamos la cola de plantillas en DB)
-                if (m.status === 'queued') {
-                    return false;
-                }
+            // 2. Tomar los primeros 5 limpios (la API los devolvió del más reciente al más viejo)
+            const latest5 = realHistoryMessages.slice(0, 5);
 
-                return true;
+            // 3. Ordenar cronológicamente (ASCENDENTE) para que en la UI con flex-col se lean de arriba a abajo
+            return latest5.sort((a, b) => {
+                const dateA = new Date(a.effectiveDateTime || a.createdAt).getTime();
+                const dateB = new Date(b.effectiveDateTime || b.createdAt).getTime();
+                return dateA - dateB;
             });
-
-            // Retornamos máximo los últimos 5 del historial real
-            return realHistoryMessages.slice(0, 5);
         } catch (err) {
             console.error('Error en Modo Stalker:', err);
             return [];

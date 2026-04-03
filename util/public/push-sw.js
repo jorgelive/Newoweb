@@ -39,6 +39,53 @@ function sanitizeUrl(rawUrl) {
     return urlStr;
 }
 
+// ====================================================================
+// INTERCEPTOR SHARE TARGET (Guardado en IndexedDB)
+// ====================================================================
+self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
+
+    // Interceptamos la petición POST que manda el Share Target
+    if (event.request.method === 'POST' && url.pathname.endsWith('/chat')) {
+        event.respondWith((async () => {
+            try {
+                const formData = await event.request.formData();
+                const file = formData.get('shared_file');
+
+                if (file) {
+                    await new Promise((resolve, reject) => {
+                        const request = indexedDB.open('OpenPeruSharedDB', 1);
+
+                        request.onupgradeneeded = (e) => {
+                            const db = e.target.result;
+                            if (!db.objectStoreNames.contains('sharedFiles')) {
+                                db.createObjectStore('sharedFiles');
+                            }
+                        };
+
+                        request.onsuccess = (e) => {
+                            const db = e.target.result;
+                            const tx = db.transaction('sharedFiles', 'readwrite');
+                            const store = tx.objectStore('sharedFiles');
+                            // Guardamos con llave fija para tener un solo slot limpio
+                            store.put(file, 'latest_shared_file');
+                            tx.oncomplete = () => resolve();
+                            tx.onerror = () => reject(tx.error);
+                        };
+                        request.onerror = () => reject(request.error);
+                    });
+                }
+            } catch (e) {
+                console.error('[push-sw.js] Error interceptando archivo compartido:', e);
+            }
+
+            // Redirigimos al usuario a la vista de chat sin recargar la app por POST
+            return Response.redirect(url.pathname, 303);
+        })());
+    }
+});
+
+
 self.addEventListener('push', (event) => {
     let notificationData = {
         title: 'Nueva Notificación',
