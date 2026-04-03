@@ -432,10 +432,14 @@ export const useChatStore = defineStore('chatStore', () => {
 
             globalEventSource.value.onerror = (err) => {
                 console.error('❌ Error en el túnel Global de Mercure:', err);
+                // Si la conexión de Mercure falla, es probable que la sesión haya caducado.
+                // Disparamos el modal de reconexión.
+                isSessionExpired.value = true;
             };
 
         } catch (err) {
             console.error('❌ Fallo al inicializar Global Mercure (posible sesión expirada o sin permisos)');
+            // El interceptor de Axios ya debería haber capturado esto si fue un 401
         }
     };
 
@@ -483,6 +487,8 @@ export const useChatStore = defineStore('chatStore', () => {
 
             eventSource.value.onerror = (err) => {
                 console.error('❌ Error en el túnel de Mercure:', err);
+                // Si la conexión local falla, disparamos el modal.
+                isSessionExpired.value = true;
             };
 
         } catch (err) {
