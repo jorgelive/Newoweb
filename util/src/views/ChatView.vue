@@ -59,7 +59,7 @@ const handleLogout = async () => {
 };
 
 // ============================================================================
-// LÓGICA DE MENÚ CONTEXTUAL Y LONG PRESS
+// LÓGICA DE MENÚ CONTEXTUAL (MENSAJES)
 // ============================================================================
 const isContextMenuOpen = ref(false);
 const contextMenuPos = ref({ x: 0, y: 0 });
@@ -152,21 +152,24 @@ const getReactions = (msg: ApiMessage): { emoji: string; count: number }[] => {
 };
 
 // ============================================================================
-// MODO STALKER (LONG PRESS EN CONVERSACIONES DE LA LISTA)
+// MODO STALKER (HOVER / LONG PRESS / RIGHT CLICK EN CONVERSACIONES)
 // ============================================================================
 const isStalkMenuOpen = ref(false);
 const stalkMenuPos = ref({ x: 0, y: 0 });
 const stalkConversation = ref<ApiConversation | null>(null);
 const stalkMessages = ref<ApiMessage[]>([]);
 const isLoadingStalk = ref(false);
+const isStalkHoverMode = ref(false);
 
 let stalkPressTimer: number | null = null;
-const isStalkPressAction = ref(false);
+let stalkHoverTimer: number | null = null;
+const isStalkTouchAction = ref(false);
 
-const startStalkLongPress = (chat: ApiConversation, event: TouchEvent | MouseEvent) => {
-  isStalkPressAction.value = false;
+const startStalkLongPress = (chat: ApiConversation, event: TouchEvent) => {
+  isStalkTouchAction.value = false;
   stalkPressTimer = window.setTimeout(() => {
-    isStalkPressAction.value = true;
+    isStalkTouchAction.value = true;
+    isStalkHoverMode.value = false;
     openStalkMenu(chat, event);
   }, 500);
 };
@@ -177,8 +180,40 @@ const cancelStalkLongPress = () => {
     stalkPressTimer = null;
   }
   setTimeout(() => {
-    isStalkPressAction.value = false;
+    isStalkTouchAction.value = false;
   }, 100);
+};
+
+const startStalkHover = (chat: ApiConversation, event: MouseEvent) => {
+  if (window.matchMedia("(pointer: coarse)").matches) return;
+  cancelStalkHover();
+  stalkHoverTimer = window.setTimeout(() => {
+    isStalkHoverMode.value = true;
+    openStalkMenu(chat, event);
+  }, 700);
+};
+
+const cancelStalkHover = () => {
+  if (stalkHoverTimer) {
+    clearTimeout(stalkHoverTimer);
+    stalkHoverTimer = null;
+  }
+  if (isStalkMenuOpen.value && isStalkHoverMode.value) {
+    closeStalkMenu();
+  }
+};
+
+const handleContextMenu = (chat: ApiConversation, event: MouseEvent) => {
+  isStalkHoverMode.value = false;
+  openStalkMenu(chat, event);
+};
+
+const handleChatClick = (chat: ApiConversation) => {
+  if (isStalkTouchAction.value) return;
+
+  cancelStalkHover();
+  closeStalkMenu();
+  selectChat(chat.id);
 };
 
 const openStalkMenu = async (chat: ApiConversation, event: MouseEvent | TouchEvent) => {
@@ -187,10 +222,10 @@ const openStalkMenu = async (chat: ApiConversation, event: MouseEvent | TouchEve
   let clientX = 0;
   let clientY = 0;
 
-  if ('touches' in event) {
-    clientX = event.touches[0].clientX;
-    clientY = event.touches[0].clientY;
-  } else {
+  if ('touches' in event && (event as TouchEvent).touches.length > 0) {
+    clientX = (event as TouchEvent).touches[0].clientX;
+    clientY = (event as TouchEvent).touches[0].clientY;
+  } else if ('clientX' in event) {
     clientX = (event as MouseEvent).clientX;
     clientY = (event as MouseEvent).clientY;
   }
@@ -200,9 +235,11 @@ const openStalkMenu = async (chat: ApiConversation, event: MouseEvent | TouchEve
   const menuW = 300;
   const menuH = 250;
 
+  const offset = isStalkHoverMode.value ? 15 : 0;
+
   stalkMenuPos.value = {
-    x: clientX + menuW > screenW ? screenW - menuW - 10 : clientX,
-    y: clientY + menuH > screenH ? screenH - menuH - 10 : clientY
+    x: clientX + offset + menuW > screenW ? screenW - menuW - 10 : clientX + offset,
+    y: clientY + offset + menuH > screenH ? screenH - menuH - 10 : clientY + offset
   };
 
   isStalkMenuOpen.value = true;
@@ -219,6 +256,7 @@ const openStalkMenu = async (chat: ApiConversation, event: MouseEvent | TouchEve
 const closeStalkMenu = () => {
   isStalkMenuOpen.value = false;
   stalkConversation.value = null;
+  isStalkHoverMode.value = false;
 };
 
 // ============================================================================
@@ -394,11 +432,6 @@ const isWhatsappAllowed = computed(() => {
   return sessionActive;
 });
 
-/**
- * Selecciona inteligentemente el canal predeterminado al cambiar de conversación o limpiar plantilla.
- * Prioriza el último canal por el que nos habló el huésped, dejando libertad al operador
- * de seleccionar otros canales usando los botones.
- */
 const setDefaultChannels = () => {
   const chat = store.currentConversation;
   if (!chat) return;
@@ -612,6 +645,27 @@ const formatTime = (iso?: string) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+// NUEVA FUNCIÓN: Formatea la fecha y hora específicamente para el Stalker Mode
+const formatStalkDate = (iso?: string) => {
+  if (!iso) return '';
+  const msgDate = new Date(iso);
+  const today = new Date();
+
+  const isToday = msgDate.getDate() === today.getDate() &&
+      msgDate.getMonth() === today.getMonth() &&
+      msgDate.getFullYear() === today.getFullYear();
+
+  const timeString = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (isToday) {
+    return timeString;
+  } else {
+    // Si no es hoy, mostramos "23 mar, 06:43 A.M."
+    const dateString = msgDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    return `${dateString}, ${timeString}`;
+  }
+};
+
 const formatFullDate = (iso?: string) => {
   if (!iso) return '';
   const [year, month, day] = iso.split('T')[0].split('-').map(Number);
@@ -792,10 +846,12 @@ const getDirectChannelId = (channel?: any): string | null => {
       </div>
     </Transition>
 
-    <div v-if="isStalkMenuOpen" class="fixed inset-0 z-[400]" @click="closeStalkMenu"></div>
+    <div v-if="isStalkMenuOpen && !isStalkHoverMode" class="fixed inset-0 z-[400]" @click="closeStalkMenu"></div>
+
     <Transition name="fade-scale">
       <div v-if="isStalkMenuOpen"
            :style="{ top: stalkMenuPos.y + 'px', left: stalkMenuPos.x + 'px' }"
+           :class="{'pointer-events-none': isStalkHoverMode}"
            class="fixed z-[500] bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 w-72 md:w-80 overflow-hidden transform origin-top-left flex flex-col gap-3 max-h-[350px]">
 
         <h3 class="text-xs font-black uppercase text-slate-500 border-b border-slate-100 pb-2 flex justify-between items-center">
@@ -813,7 +869,7 @@ const getDirectChannelId = (channel?: any): string | null => {
                :class="m.direction === 'outgoing' ? 'bg-[#376875]/5 border-[#376875]/10 text-slate-700 ml-6 rounded-tr-sm' : 'bg-white border-slate-200 text-slate-800 mr-6 rounded-tl-sm'">
             <div class="font-black mb-1 flex justify-between text-[9px] uppercase tracking-wider" :class="m.direction === 'outgoing' ? 'text-[#376875]' : 'text-slate-400'">
               <span>{{ m.direction === 'incoming' ? stalkConversation?.guestName || 'Huésped' : 'Tú' }}</span>
-              <span>{{ formatTime(m.createdAt) }}</span>
+              <span>{{ formatStalkDate(m.effectiveDateTime || m.createdAt) }}</span>
             </div>
             <div class="whitespace-pre-wrap break-words opacity-90 font-medium">
               {{ m.contentLocal || m.contentExternal || (m.template ? '🤖 [Plantilla]' : '📎 [Archivo Adjunto]') }}
@@ -821,7 +877,7 @@ const getDirectChannelId = (channel?: any): string | null => {
           </div>
         </div>
 
-        <button @click="closeStalkMenu" class="mt-1 w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors">
+        <button v-if="!isStalkHoverMode" @click="closeStalkMenu" class="mt-1 w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors">
           Cerrar
         </button>
       </div>
@@ -912,11 +968,13 @@ const getDirectChannelId = (channel?: any): string | null => {
         <div v-else-if="store.filteredConversations.length === 0" class="p-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">Bandeja Vacía</div>
 
         <div v-for="chat in store.filteredConversations" :key="chat?.id" class="mb-1">
-          <button @click="!isStalkPressAction ? selectChat(chat.id) : null"
+          <button @click="handleChatClick(chat)"
                   @touchstart="startStalkLongPress(chat, $event)"
                   @touchend="cancelStalkLongPress"
                   @touchmove="cancelStalkLongPress"
-                  @contextmenu.prevent="openStalkMenu(chat, $event)"
+                  @mouseenter="startStalkHover(chat, $event)"
+                  @mouseleave="cancelStalkHover"
+                  @contextmenu.prevent="handleContextMenu(chat, $event)"
                   class="w-full text-left p-3 rounded-2xl transition-all flex gap-3 relative group border border-transparent items-center"
                   :class="store.currentConversation?.id === chat.id ? 'bg-white border-slate-200 shadow-xl translate-x-1' : 'hover:bg-slate-50'">
 

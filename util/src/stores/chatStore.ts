@@ -1,4 +1,4 @@
-//src/sttores/chatStore.ts
+//src/stores/chatStore.ts
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef, watch } from 'vue';
 import axios, { InternalAxiosRequestConfig } from 'axios';
@@ -430,16 +430,24 @@ export const useChatStore = defineStore('chatStore', () => {
                 }
             };
 
-            globalEventSource.value.onerror = (err) => {
-                console.error('❌ Error en el túnel Global de Mercure:', err);
-                // Si la conexión de Mercure falla, es probable que la sesión haya caducado.
-                // Disparamos el modal de reconexión.
-                isSessionExpired.value = true;
+            globalEventSource.value.onerror = async () => {
+                console.error('❌ Desconexión del túnel Global de Mercure...');
+                globalEventSource.value?.close(); // Aseguramos que se cierre para evitar loops
+
+                const isAlive = await checkSession();
+                if (!isAlive) {
+                    isSessionExpired.value = true;
+                } else {
+                    // La sesión PHP vive, pero el token JWT expiró. Reconectamos para obtener uno nuevo.
+                    console.log('🔄 Sesión activa, regenerando token Mercure Global...');
+                    setTimeout(() => {
+                        initGlobalMercure();
+                    }, 3000); // 3 segundos de espera por si fue un parpadeo de red
+                }
             };
 
         } catch (err) {
-            console.error('❌ Fallo al inicializar Global Mercure (posible sesión expirada o sin permisos)');
-            // El interceptor de Axios ya debería haber capturado esto si fue un 401
+            console.error('❌ Fallo al inicializar Global Mercure');
         }
     };
 
@@ -485,14 +493,27 @@ export const useChatStore = defineStore('chatStore', () => {
                 }
             };
 
-            eventSource.value.onerror = (err) => {
-                console.error('❌ Error en el túnel de Mercure:', err);
-                // Si la conexión local falla, disparamos el modal.
-                isSessionExpired.value = true;
+            eventSource.value.onerror = async () => {
+                console.error('❌ Desconexión del túnel local de Mercure...');
+                eventSource.value?.close(); // Aseguramos cierre
+
+                const isAlive = await checkSession();
+                if (!isAlive) {
+                    isSessionExpired.value = true;
+                } else {
+                    // La sesión PHP vive, regeneramos el token local
+                    console.log('🔄 Sesión activa, regenerando token Mercure Local...');
+                    setTimeout(() => {
+                        // Solo reconectamos si el usuario sigue viendo la misma conversación
+                        if (currentConversation.value && currentConversation.value.id === conversationId) {
+                            connectToMercure(conversationId);
+                        }
+                    }, 3000);
+                }
             };
 
         } catch (err) {
-            console.error('❌ Fallo al inicializar Mercure local (posible sesión expirada)');
+            console.error('❌ Fallo al inicializar Mercure local');
         }
     };
 
@@ -504,7 +525,7 @@ export const useChatStore = defineStore('chatStore', () => {
 
         // 2. Si no está en memoria (chat antiguo no cargado aún), lo buscamos directo en la API
         if (!found) {
-            loadingMessages.value = true; // Mostramos spinner de carga mientras resolvemos
+            loadingMessages.value = true;
             try {
                 // Hacemos un GET directo al ID de la conversación
                 const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}`);
@@ -627,8 +648,20 @@ export const useChatStore = defineStore('chatStore', () => {
             const response = await apiClient.get(`/platform/user/util/msg/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
             const data = extractData(response) as ApiMessage[];
 
-            // 🔥 Filtramos para excluir plantillas programadas para el futuro o en cola de envío
-            const realHistoryMessages = data.filter(m => !m.scheduledForFuture && m.status !== 'pending');
+            // 🔥 Filtramos estrictamente para excluir plantillas programadas a futuro o en cola
+            const realHistoryMessages = data.filter(m => {
+                // 1. Excluir si tiene explícito el flag de ser programado
+                if (m.scheduledForFuture === true || (m as any).isScheduledForFuture === true) {
+                    return false;
+                }
+
+                // 2. Excluir si el status es 'queued' (Así marcamos la cola de plantillas en DB)
+                if (m.status === 'queued') {
+                    return false;
+                }
+
+                return true;
+            });
 
             // Retornamos máximo los últimos 5 del historial real
             return realHistoryMessages.slice(0, 5);

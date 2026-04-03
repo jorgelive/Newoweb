@@ -1,4 +1,43 @@
-console.log('[push-sw.js] ✅ Script cargado');
+//public/push-sw.js
+console.log('[push-sw.js] ✅ Script cargado y escudo anti-undefined activado');
+
+// ====================================================================
+// FUNCIÓN SANITIZADORA: Limpia la basura que envía el backend
+// ====================================================================
+function sanitizeUrl(rawUrl) {
+    if (!rawUrl) return '/chat';
+    const urlStr = String(rawUrl);
+
+    // 1. Si trae la palabra literal undefined o unknown -> Mandar al Inbox general
+    if (urlStr.includes('undefined') || urlStr.includes('unknown')) {
+        return '/chat';
+    }
+
+    // 2. Si viene concatenado sin barra (ej: util.openperu.pe019d4090...)
+    if (urlStr.includes('openperu.pe') && !urlStr.includes('/chat')) {
+        const parts = urlStr.split('openperu.pe');
+        const dirtyId = parts[1] ? parts[1].replace(/^\//, '') : '';
+
+        if (dirtyId && dirtyId.length > 10 && !dirtyId.startsWith('chat')) {
+            return `/chat?id=${dirtyId}`;
+        } else if (dirtyId && dirtyId.startsWith('chat')) {
+            return `/${dirtyId}`;
+        }
+        return '/chat';
+    }
+
+    // 3. Si viene como URL absoluta completa, sacamos solo el path
+    if (urlStr.startsWith('http')) {
+        try {
+            const urlObj = new URL(urlStr);
+            return urlObj.pathname + urlObj.search;
+        } catch (e) {
+            return '/chat';
+        }
+    }
+
+    return urlStr;
+}
 
 self.addEventListener('push', (event) => {
     let notificationData = {
@@ -15,6 +54,10 @@ self.addEventListener('push', (event) => {
             console.error('[push-sw.js] Error al parsear el JSON del Push:', e);
         }
     }
+
+    // ¡AQUÍ ESTÁ LA MAGIA! Limpiamos la URL antes de hacer cualquier cosa
+    const safeUrl = sanitizeUrl(notificationData.actionUrl);
+    notificationData.actionUrl = safeUrl; // Se lo devolvemos limpio a Vue
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
@@ -34,7 +77,7 @@ self.addEventListener('push', (event) => {
                     body: notificationData.body,
                     icon: '/app_util/pwa-192x192.png',
                     badge: '/app_util/favicon.svg',
-                    data: { url: notificationData.actionUrl || '/chat' },
+                    data: { url: safeUrl }, // Guardamos la URL ya limpia y segura
                     tag: 'chat-message',
                     renotify: true
                 });
@@ -49,20 +92,24 @@ self.addEventListener('notificationclick', (event) => {
 
     const urlToOpen = event.notification.data.url || '/chat';
 
+    // Convertimos la ruta relativa en una URL absoluta basada en el dominio de la app
+    // Esto evita para siempre el error de DNS "util.openperu.peundefined"
+    const targetUrl = new URL(urlToOpen, self.registration.scope).href;
+
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
             // Buscamos si la app ya está abierta en segundo plano
             for (let i = 0; i < windowClients.length; i++) {
                 let client = windowClients[i];
                 if (client.url && 'focus' in client) {
-                    client.navigate(urlToOpen); // Navegamos al chat específico leyendo el ?id=
+                    client.navigate(targetUrl); // Navegamos usando la URL segura
                     return client.focus();      // Traemos la app al primer plano
                 }
             }
 
             // Si estaba cerrada por completo, la abrimos
             if (clients.openWindow) {
-                return clients.openWindow(urlToOpen);
+                return clients.openWindow(targetUrl);
             }
         })
     );
