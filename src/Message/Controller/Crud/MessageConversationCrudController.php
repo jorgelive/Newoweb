@@ -15,10 +15,12 @@ use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ArrayField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
@@ -26,6 +28,10 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -59,12 +65,33 @@ class MessageConversationCrudController extends BaseCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Conversación')
-            ->setEntityLabelInPlural('Conversaciones')
+            ->setEntityLabelInSingular('Conversación (Auditoría)')
+            ->setEntityLabelInPlural('Auditoría de Conversaciones')
             ->setSearchFields(['id', 'guestName', 'guestPhone', 'contextId'])
             // 🔥 ORDENADO POR ÚLTIMA INTERACCIÓN POR DEFECTO
             ->setDefaultSort(['lastMessageAt' => 'DESC', 'createdAt' => 'DESC'])
             ->showEntityActionsInlined();
+    }
+
+    // =====================================================================
+    // 🔥 NUEVO: FILTROS PARA AUDITORÍA
+    // =====================================================================
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            ->add(ChoiceFilter::new('status', 'Estado')->setChoices([
+                'Abierto' => MessageConversation::STATUS_OPEN,
+                'Cerrado' => MessageConversation::STATUS_CLOSED,
+                'Archivado' => MessageConversation::STATUS_ARCHIVED
+            ]))
+            ->add(ChoiceFilter::new('contextType', 'Tipo de Contexto')->setChoices([
+                'Reserva PMS' => 'pms_reserva',
+                'Manual' => 'manual'
+            ]))
+            ->add(TextFilter::new('contextId', 'ID de Contexto / Localizador'))
+            ->add(BooleanFilter::new('whatsappDisabled', 'WhatsApp Deshabilitado'))
+            ->add(DateTimeFilter::new('lastMessageAt', 'Fecha Último Mensaje'))
+            ->add(DateTimeFilter::new('createdAt', 'Fecha de Creación'));
     }
 
     public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
@@ -119,10 +146,12 @@ class MessageConversationCrudController extends BaseCrudController
 
         // --- SECCIÓN 1: IDENTIFICACIÓN Y ESTADO ---
         yield FormField::addPanel('Estado y Metadatos')->setIcon('fa fa-info-circle');
+
         yield IdField::new('id', 'UUID')
             ->setMaxLength(40)
             ->onlyOnDetail()
             ->setColumns(4);
+
         yield ChoiceField::new('status', 'Estado')
             ->setChoices([
                 'Abierto' => MessageConversation::STATUS_OPEN,
@@ -133,7 +162,8 @@ class MessageConversationCrudController extends BaseCrudController
                 MessageConversation::STATUS_OPEN => 'success',
                 MessageConversation::STATUS_CLOSED => 'secondary',
                 MessageConversation::STATUS_ARCHIVED => 'dark'
-            ])->setColumns(4);
+            ])
+            ->setColumns(4);
 
         yield IntegerField::new('unreadCount', 'No leídos')
             ->hideOnForm()
@@ -146,16 +176,6 @@ class MessageConversationCrudController extends BaseCrudController
         yield TextField::new('guestName', 'Nombre Completo')->setColumns(4);
         yield TextField::new('guestPhone', 'Teléfono / WhatsApp')->setColumns(4);
 
-        yield FormField::addPanel('Control de Canales')->setIcon('fa fa-shield-alt');
-        yield BooleanField::new('whatsappDisabled', 'WhatsApp Deshabilitado')
-            ->renderAsSwitch(true)
-            ->setColumns(3);
-        yield TextField::new('whatsappDisabledReason', 'Motivo del Bloqueo')
-            ->setColumns(9);
-
-        // ELIMINADO: La restricción ->andWhere('entity.prioridad > 0')
-        // MOTIVO: Permitir que el formulario cargue y guarde correctamente conversaciones
-        // creadas automáticamente con idiomas exóticos (prioridad 0) sin arrojar error de validación.
         yield AssociationField::new('idioma', 'Idioma')
             ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'))
             ->setRequired(true)
@@ -167,29 +187,86 @@ class MessageConversationCrudController extends BaseCrudController
             ->renderAsSwitch(true)
             ->setColumns(2);
 
-        // --- SECCIÓN 3: CONTEXTO PMS (Lógica de Negocio) ---
-        yield FormField::addPanel('Contexto de Reserva (PMS)')->setIcon('fa fa-link');
-        yield ChoiceField::new('contextType', 'Tipo de Contexto')->setChoices(['Reserva PMS' => 'pms_reserva', 'Manual' => 'manual'])->setColumns(3);
-        yield TextField::new('contextId', 'ID / Localizador')->setColumns(3);
-        yield TextField::new('contextOrigin', 'Origen (OTA)')->hideOnForm()->setColumns(3);
-        yield TextField::new('contextStatusTag', 'Etiqueta PMS')->hideOnForm()->setColumns(3);
+        yield FormField::addPanel('Control de Canales')->setIcon('fa fa-shield-alt');
 
-        yield ArrayField::new('contextItems', 'Unidades / Casitas')->hideOnForm()->setColumns(4);
-        yield NumberField::new('contextFinancialTotal', 'Monto Total Reserva')->hideOnForm()->setColumns(4)->setNumDecimals(2);
-        yield BooleanField::new('contextFinancialIsCleared', '¿Pagado?')->hideOnForm()->setColumns(4)->renderAsSwitch(false);
+        yield BooleanField::new('whatsappDisabled', 'WhatsApp Deshabilitado')
+            ->renderAsSwitch(true)
+            ->setColumns(3);
+
+        yield TextField::new('whatsappDisabledReason', 'Motivo del Bloqueo')
+            ->setColumns(9);
+
+        // --- SECCIÓN 3: CONTEXTO PMS (Lógica de Negocio y Auditoría) ---
+        yield FormField::addPanel('Contexto de Reserva (PMS & JSON)')->setIcon('fa fa-link');
+
+        yield ChoiceField::new('contextType', 'Tipo de Contexto')
+            ->setChoices(['Reserva PMS' => 'pms_reserva', 'Manual' => 'manual'])
+            ->setColumns(3);
+
+        yield TextField::new('contextId', 'ID / Localizador')
+            ->setColumns(3);
+
+        yield TextField::new('contextOrigin', 'Origen (OTA)')
+            ->hideOnForm()
+            ->setColumns(3);
+
+        yield TextField::new('contextStatusTag', 'Etiqueta PMS')
+            ->hideOnForm()
+            ->setColumns(3);
+
+        yield ArrayField::new('contextItems', 'Unidades / Casitas')
+            ->hideOnForm()
+            ->setColumns(4);
+
+        yield NumberField::new('contextFinancialTotal', 'Monto Total Reserva')
+            ->hideOnForm()
+            ->setColumns(4)
+            ->setNumDecimals(2);
+
+        yield BooleanField::new('contextFinancialIsCleared', '¿Pagado?')
+            ->hideOnForm()
+            ->setColumns(4)
+            ->renderAsSwitch(false);
+
+        // 🔥 Magia de Auditoría: El JSON Crudo expuesto de forma segura
+        yield CodeEditorField::new('contextData', 'Metadata Cruda del Contexto (JSON)')
+            ->hideOnIndex()
+            ->hideWhenCreating()
+            ->setLanguage('javascript')
+            ->setColumns(12)
+            ->setFormTypeOption('disabled', true)
+            ->formatValue(function ($value) {
+                return is_array($value) ? json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '{}';
+            });
 
         // --- SECCIÓN 4: CRONOLOGÍA Y SESIONES DE CANAL ---
-        yield FormField::addPanel('Cronología y Sesiones de Canal')->setIcon('fa fa-clock')->renderCollapsed();
-        yield DateTimeField::new('createdAt', 'Fecha de Creación')->hideOnForm()->setColumns(3);
-        yield DateTimeField::new('lastMessageAt', 'Último Mensaje (General)')->hideOnForm()->setColumns(3);
-        yield DateTimeField::new('lastInboundAt', 'Última Respuesta Huésped')->hideOnForm()->setColumns(3);
+        yield FormField::addPanel('Cronología y Sesiones de Canal')->setIcon('fa fa-clock');
 
-        // Control de Sesión Meta (Visual y Práctico)
-        yield DateTimeField::new('whatsappSessionValidUntil', 'Vencimiento Ventana Meta (24h)')->hideOnForm()->setColumns(3);
+        // Se hace visible en Index y Detalle para auditoría rápida
+        yield DateTimeField::new('createdAt', 'Creado')
+            ->setFormat('yyyy-MM-dd HH:mm')
+            ->setFormTypeOption('disabled', true)
+            ->setColumns(3);
+
+        yield DateTimeField::new('lastMessageAt', 'Último Mensaje')
+            ->setFormat('yyyy-MM-dd HH:mm')
+            ->setFormTypeOption('disabled', true)
+            ->setColumns(3);
+
+        yield DateTimeField::new('lastInboundAt', 'Última Respuesta Huésped')
+            ->setFormat('yyyy-MM-dd HH:mm')
+            ->setFormTypeOption('disabled', true)
+            ->setColumns(3);
+
+        yield DateTimeField::new('whatsappSessionValidUntil', 'Vencimiento Ventana Meta')
+            ->setFormat('yyyy-MM-dd HH:mm')
+            ->setFormTypeOption('disabled', true)
+            ->setColumns(3);
+
         yield BooleanField::new('isWhatsappSessionActive', '¿Chat Meta Activo?')
             ->hideOnForm()
-            ->setHelp('Si está en verde, puedes enviar mensajes libres por WhatsApp.')
-            ->renderAsSwitch(false) // Lo forzamos a ser de solo lectura visual
+            ->setHelp('Si está en verde, la ventana de 24h está abierta.')
+            ->renderAsSwitch(false)
             ->setColumns(12);
 
         // --- SECCIÓN 5: CHAT INTERACTIVO ---
@@ -204,7 +281,7 @@ class MessageConversationCrudController extends BaseCrudController
                 ->useEntryCrudForm(MessageCrudController::class)
                 ->setFormTypeOption('by_reference', false)
                 ->setFormTypeOption('prototype_data', $prototype)
-                ->allowDelete(false)
+                ->allowDelete(false) // Mantenemos la integridad de auditoría
                 ->addCssClass('field-collection-inline');
         }
     }

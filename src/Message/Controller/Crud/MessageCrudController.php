@@ -16,14 +16,18 @@ use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -91,11 +95,40 @@ class MessageCrudController extends BaseCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Mensaje')
-            ->setEntityLabelInPlural('Historial de Mensajes')
-            ->setSearchFields(['contentLocal', 'contentExternal', 'subjectLocal', 'subjectExternal'])
+            ->setEntityLabelInSingular('Mensaje (Auditoría)')
+            ->setEntityLabelInPlural('Auditoría de Mensajes')
+            ->setSearchFields(['contentLocal', 'contentExternal', 'subjectLocal', 'subjectExternal', 'id'])
             ->setDefaultSort(['createdAt' => 'DESC'])
             ->showEntityActionsInlined();
+    }
+
+    // =====================================================================
+    // 🔥 NUEVO: FILTROS PARA AUDITORÍA
+    // =====================================================================
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters
+            ->add(ChoiceFilter::new('status', 'Estado')->setChoices([
+                'Pendiente' => Message::STATUS_PENDING,
+                'En Cola (Queued)' => Message::STATUS_QUEUED,
+                'Enviado/Delivered' => Message::STATUS_SENT,
+                'Fallido' => Message::STATUS_FAILED,
+                'Recibido' => Message::STATUS_RECEIVED,
+                'Leído' => Message::STATUS_READ,
+                'Cancelado' => Message::STATUS_CANCELLED,
+            ]))
+            ->add(ChoiceFilter::new('direction', 'Dirección')->setChoices([
+                'Saliente (Tú -> Huésped)' => Message::DIRECTION_OUTGOING,
+                'Entrante (Huésped -> Tú)' => Message::DIRECTION_INCOMING,
+            ]))
+            ->add(ChoiceFilter::new('senderType', 'Remitente')->setChoices([
+                'Host (Manual)' => Message::SENDER_HOST,
+                'Huésped' => Message::SENDER_GUEST,
+                'Sistema Automático' => Message::SENDER_SYSTEM,
+                'Nota Interna' => Message::SENDER_INTERNAL,
+            ]))
+            ->add(DateTimeFilter::new('createdAt', 'Fecha de Creación'))
+            ->add(DateTimeFilter::new('scheduledAt', 'Fecha Programada'));
     }
 
     public function configureFields(string $pageName): iterable
@@ -103,9 +136,8 @@ class MessageCrudController extends BaseCrudController
         $isEdit = $pageName === Crud::PAGE_EDIT;
         $request = $this->requestStack->getCurrentRequest();
 
-        // 1. OBTENER LA CONVERSACIÓN ACTUAL (A prueba de balas)
+        // 1. OBTENER LA CONVERSACIÓN ACTUAL
         $conversation = null;
-
         $instance = $this->getContext()?->getEntity()->getInstance();
 
         if ($instance instanceof MessageConversation) {
@@ -129,7 +161,6 @@ class MessageCrudController extends BaseCrudController
         }
 
         $validTemplateIds = [];
-
         if ($conversation !== null) {
             $validTemplateIds = $this->getValidTemplateIds($conversation);
         }
@@ -141,7 +172,7 @@ class MessageCrudController extends BaseCrudController
 
         yield IdField::new('id', 'UUID')->setMaxLength(40)->onlyOnDetail();
 
-        yield ChoiceField::new('status', 'Estado del Mensaje')
+        yield ChoiceField::new('status', 'Estado')
             ->setChoices([
                 'Pendiente' => Message::STATUS_PENDING,
                 'En Cola' => Message::STATUS_QUEUED,
@@ -149,6 +180,7 @@ class MessageCrudController extends BaseCrudController
                 'Fallido' => Message::STATUS_FAILED,
                 'Recibido' => Message::STATUS_RECEIVED,
                 'Leído' => Message::STATUS_READ,
+                'Cancelado' => Message::STATUS_CANCELLED,
             ])
             ->renderAsBadges([
                 Message::STATUS_PENDING => 'warning',
@@ -157,15 +189,16 @@ class MessageCrudController extends BaseCrudController
                 Message::STATUS_FAILED => 'danger',
                 Message::STATUS_RECEIVED => 'primary',
                 Message::STATUS_READ => 'success',
+                Message::STATUS_CANCELLED => 'dark',
             ])
             ->setFormTypeOption('disabled', true)
             ->hideWhenCreating()
-            ->setColumns(4);
+            ->setColumns(3);
 
         yield ChoiceField::new('direction', 'Dirección')
             ->setChoices([
-                'Saliente (Tú -> Huésped)' => Message::DIRECTION_OUTGOING,
-                'Entrante (Huésped -> Tú)' => Message::DIRECTION_INCOMING,
+                'Saliente' => Message::DIRECTION_OUTGOING,
+                'Entrante' => Message::DIRECTION_INCOMING,
             ])
             ->renderAsBadges([
                 Message::DIRECTION_OUTGOING => 'primary',
@@ -173,31 +206,30 @@ class MessageCrudController extends BaseCrudController
             ])
             ->setFormTypeOption('disabled', true)
             ->hideWhenCreating()
-            ->setColumns(4);
+            ->setColumns(3);
 
         yield ChoiceField::new('senderType', 'Remitente')
             ->setChoices([
-                'Host (Manual)' => Message::SENDER_HOST,
+                'Host' => Message::SENDER_HOST,
                 'Huésped' => Message::SENDER_GUEST,
-                'Sistema Automático' => Message::SENDER_SYSTEM,
-                'Nota Interna' => Message::SENDER_INTERNAL,
+                'Sistema' => Message::SENDER_SYSTEM,
+                'Nota' => Message::SENDER_INTERNAL,
             ])
             ->setFormTypeOption('disabled', true)
             ->hideWhenCreating()
-            ->setColumns(4);
-
-
-        // =====================================================================
-        // PANEL 2: REDACCIÓN (NUEVO MENSAJE)
-        // =====================================================================
-        yield FormField::addPanel('Contenido del Mensaje')->setIcon('fa fa-paper-plane');
+            ->setColumns(3);
 
         if (!method_exists($this, 'isEmbedded') || !$this->isEmbedded()) {
-            yield AssociationField::new('conversation', 'Conversación / Huésped')
+            yield AssociationField::new('conversation', 'Conversación')
                 ->setRequired(true)
-                ->hideOnIndex()
-                ->setFormTypeOption('disabled', $isEdit);
+                ->setFormTypeOption('disabled', $isEdit)
+                ->setColumns(3);
         }
+
+        // =====================================================================
+        // PANEL 2: REDACCIÓN Y CONTENIDO
+        // =====================================================================
+        yield FormField::addPanel('Contenido del Mensaje')->setIcon('fa fa-paper-plane');
 
         $channels = $this->em->getRepository(MessageChannel::class)->findAll();
         $channelChoices = [];
@@ -205,73 +237,69 @@ class MessageCrudController extends BaseCrudController
             $channelChoices[$ch->getName()] = (string) $ch->getId();
         }
 
-        yield ChoiceField::new('transientChannels', 'Canales de Envío')
+        yield ChoiceField::new('transientChannels', 'Canales (Forzados)')
             ->setChoices($channelChoices)
             ->allowMultipleChoices()
             ->renderExpanded()
-            ->setHelp('Si usas una plantilla, esta selección manual será ignorada.')
             ->onlyOnForms()
             ->setFormTypeOption('disabled', $isEdit);
 
-        yield TextField::new('subjectLocal', 'Asunto (En tu idioma)')
-            ->setRequired(false)
-            ->setColumns(12)
-            ->setFormTypeOption('disabled', $isEdit)
-            ->hideOnIndex();
-
-        yield TextareaField::new('contentLocal', 'Texto del Mensaje (En tu idioma)')
-            ->setColumns(12)
+        yield TextareaField::new('contentLocal', 'Texto (Local)')
+            ->setColumns(6)
             ->setFormTypeOption('disabled', $isEdit);
 
+        yield TextareaField::new('contentExternal', 'Texto (Huésped)')
+            ->setColumns(6)
+            ->setFormTypeOption('disabled', $isEdit);
 
         // =====================================================================
-        // PANEL 3: MODO OVERRIDE EXTERNAL
+        // PANEL 3: LÍNEA DE TIEMPO (AHORA VISIBLE EN INDEX)
         // =====================================================================
-        yield FormField::addPanel('Mensaje Exacto (Idioma del Huésped)')->setIcon('fa fa-globe')->renderCollapsed();
+        yield FormField::addPanel('Línea de Tiempo')->setIcon('fa fa-clock');
 
-        yield TextField::new('subjectExternal', 'Asunto (Idioma del Huésped)')
-            ->setRequired(false)
-            ->setColumns(12)
-            ->setFormTypeOption('disabled', $isEdit)
-            ->hideOnIndex();
-
-        yield TextareaField::new('contentExternal', 'Texto Exacto (Idioma del Huésped)')
-            ->setRequired(false)
-            ->setColumns(12)
-            ->setFormTypeOption('disabled', $isEdit)
-            ->hideOnIndex();
-
+        yield DateTimeField::new('createdAt', 'Creado')->setFormat('yyyy-MM-dd HH:mm')->setFormTypeOption('disabled', true);
+        yield DateTimeField::new('scheduledAt', 'Programado (RunAt)')->setFormat('yyyy-MM-dd HH:mm')->setFormTypeOption('disabled', true);
+        yield DateTimeField::new('updatedAt', 'Últ. Actualización')->setFormat('yyyy-MM-dd HH:mm')->hideOnIndex()->setFormTypeOption('disabled', true);
 
         // =====================================================================
-        // PANEL 4: COLAS DE ENVÍO Y TRAZABILIDAD (WORKERS)
+        // PANEL 4: AUDITORÍA AVANZADA (COLAS Y METADATA PRETTY JSON)
         // =====================================================================
-        yield FormField::addPanel('Trazabilidad y Colas de Envío')->setIcon('fa fa-network-wired')->hideWhenCreating();
+        yield FormField::addPanel('Auditoría Avanzada (Workers & JSON)')->setIcon('fa fa-bug');
 
-        // Mostramos las colas en modo de solo lectura. EasyAdmin usará el __toString() de las colas.
-        yield CollectionField::new('beds24SendQueues', 'Cola de Envío: Beds24')
+        yield CollectionField::new('beds24SendQueues', 'Colas Beds24')
+            ->hideOnIndex()
             ->hideWhenCreating()
             ->setFormTypeOption('disabled', true)
             ->setColumns(6);
 
-        yield CollectionField::new('whatsappMetaSendQueues', 'Cola de Envío: WhatsApp')
+        yield CollectionField::new('whatsappMetaSendQueues', 'Colas WhatsApp')
+            ->hideOnIndex()
             ->hideWhenCreating()
             ->setFormTypeOption('disabled', true)
             ->setColumns(6);
 
+        // 🔥 Magia: Formatear la metadata a Pretty JSON de solo lectura
+        yield CodeEditorField::new('metadata', 'Metadata Debug (JSON)')
+            ->hideOnIndex()
+            ->hideWhenCreating()
+            ->setLanguage('javascript') // Para el syntax highlighting en EasyAdmin
+            ->setColumns(12)
+            ->setFormTypeOption('disabled', true)
+            ->formatValue(function ($value) {
+                // Formateamos el array interno de Doctrine a JSON legible
+                return is_array($value) ? json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '{}';
+            });
 
         // =====================================================================
-        // PANEL 5: PLANTILLA Y FECHAS
+        // PANEL 5: PLANTILLA
         // =====================================================================
-        yield FormField::addPanel('Opciones Avanzadas y Auditoría')->setIcon('fa fa-sliders-h')->renderCollapsed();
+        yield FormField::addPanel('Plantilla')->setIcon('fa fa-file-alt')->renderCollapsed();
 
-        yield AssociationField::new('template', 'Usar Plantilla')
+        yield AssociationField::new('template', 'Plantilla Origen')
             ->autocomplete(false)
             ->setRequired(false)
             ->setColumns(12)
             ->setFormTypeOption('disabled', $isEdit)
-            ->setHelp($conversation
-                ? 'Solo se muestran las plantillas permitidas para el canal de esta reserva.'
-                : '⚠️ <b>Falta Contexto:</b> Guarda el mensaje sin plantilla primero, o créalo desde la vista de "Conversación" para habilitar las plantillas.')
             ->setQueryBuilder(function (QueryBuilder $qb) use ($validTemplateIds, $conversation) {
                 if ($conversation === null || empty($validTemplateIds)) {
                     $qb->andWhere('1 = 0');
@@ -283,10 +311,6 @@ class MessageCrudController extends BaseCrudController
                 }
                 return $qb->orderBy('entity.name', 'ASC');
             });
-
-        yield DateTimeField::new('scheduledAt', 'Programado para')->hideOnIndex()->setFormTypeOption('disabled', true);
-        yield DateTimeField::new('createdAt', 'Creado')->hideOnIndex()->setFormTypeOption('disabled', true);
-        yield DateTimeField::new('updatedAt', 'Actualizado')->hideOnIndex()->setFormTypeOption('disabled', true);
     }
 
     /**

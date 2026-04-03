@@ -44,6 +44,8 @@ use libphonenumber\PhoneNumberUtil;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\Uid\Uuid;
 
 final class PmsReservaCrudController extends BaseCrudController
 {
@@ -54,7 +56,8 @@ final class PmsReservaCrudController extends BaseCrudController
         protected RequestStack $requestStack,
         private readonly PmsMessageDataResolver $messageDataResolver,
         // Inyectamos nuestro Formateador Twig para usarlo en el Listado/Detalle
-        private readonly PhoneExtension $phoneExtension
+        private readonly PhoneExtension $phoneExtension,
+        private readonly ParameterBagInterface $params
     ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
@@ -453,15 +456,41 @@ TXT;
         yield TextField::new('apellidoCliente', 'Apellido')->setColumns(6);
 
         // 🔥 AQUÍ QUEDA LISTO TU CAMPO DE TELÉFONO PARA RENDERIZAR LA PLANTILLA VCARD
-        yield TextField::new('telefono', 'Teléfono')
+        yield TextField::new('telefono', 'Teléfono / Acciones')
             ->setColumns(6)
-            ->formatValue(fn($val) => $val ? $this->phoneExtension->formatPhone($val) : null)
-            ->setTemplatePath('panel/pms/pms_reserva/fields/telefono_wa_vcard.html.twig');
+            ->setTemplatePath('panel/pms/pms_reserva/fields/telefono_wa_vcard.html.twig')
+            ->formatValue(function ($val, $entity) {
+                if (!$entity instanceof PmsReserva) return $val;
 
-        // Ocultar el email en la vista de detalle si está vacío
-        if ($pageName !== Crud::PAGE_DETAIL || ($entity && $entity->getEmailCliente())) {
-            yield EmailField::new('emailCliente', 'Email')->setColumns(6);
-        }
+                $formattedPhone = $val ? $this->phoneExtension->formatPhone($val) : null;
+                $chatUrl = null;
+
+                try {
+                    // 🔥 Lógica DBAL para buscar el ID de la conversación sin depender de la Entidad
+                    $conn = $this->entityManager->getConnection();
+
+                    // Asumiendo que la tabla se llama 'conversation'
+                    $sql = "SELECT id FROM msg_conversation WHERE context_type = 'pms_reserva' AND context_id = :uuid LIMIT 1";
+                    $convIdRaw = $conn->fetchOne($sql, ['uuid' => (string) $entity->getId()]);
+
+                    if ($convIdRaw) {
+                        // Si Doctrine lo devuelve en formato binario (16 bytes), lo convertimos a string. Si ya es string, se queda igual.
+                        $convIdStr = strlen($convIdRaw) === 16 ? Uuid::fromBinary($convIdRaw)->toRfc4122() : (string) $convIdRaw;
+
+                        $baseUrl = $this->params->get('util_host_url');
+                        $chatUrl = rtrim($baseUrl, '/') . '/chat?id=' . $convIdStr;
+                    }
+                } catch (\Exception $e) {
+                    // Silencioso: Si la tabla no existe o hay error, simplemente no mostrará el botón
+                }
+
+                // 🔥 Retornamos una clase anónima. EasyAdmin usa __toString() para pintar texto seguro,
+                // pero Twig puede acceder a las propiedades públicas (raw, formatted, chatUrl) como un objeto.
+                return new class($val, $formattedPhone, $chatUrl) {
+                    public function __construct(public ?string $raw, public ?string $formatted, public ?string $chatUrl) {}
+                    public function __toString(): string { return (string) $this->formatted; }
+                };
+            });
 
         yield AssociationField::new('pais', 'País')
             ->setColumns(6)
@@ -531,6 +560,36 @@ TXT;
                     '<code style="user-select: all; padding: 5px; background: #f8f9fa; border: 1px solid #ddd; display: block; margin-bottom: 10px;">SELECT BIN_TO_UUID(id) as id_str, r.* FROM pms_reserva r WHERE id = UUID_TO_BIN(\'%s\');</code>',
                     $uuid
                 );
+            })
+            ->renderAsHtml();
+
+        // 🔥 NUEVO CAMPO VIRTUAL PARA TRAZABILIDAD (ENLACES A EVENTOS DE LA RESERVA)
+        yield TextField::new('trazabilidadEventos', 'Eventos Vinculados (Trazabilidad)')
+            ->setVirtual(true)
+            ->onlyOnDetail()
+            ->formatValue(function ($value, $entity) {
+                if (!$entity instanceof PmsReserva) return '-';
+
+                $eventos = $entity->getEventosCalendario();
+                if ($eventos->isEmpty()) return 'Sin eventos vinculados';
+
+                $html = '<ul style="margin: 0; padding-left: 1.2rem;">';
+                foreach ($eventos as $evento) {
+                    $url = $this->adminUrlGenerator
+                        ->setController(PmsEventoCalendarioCrudController::class)
+                        ->setAction(Action::DETAIL)
+                        ->setEntityId((string) $evento->getId())
+                        ->generateUrl();
+
+                    $html .= sprintf(
+                        '<li style="margin-bottom: 0.5rem;"><a href="%s" target="_blank" class="text-decoration-none"><strong>%s</strong> <i class="fas fa-external-link-alt text-muted" style="font-size: 0.85em; margin-left: 3px;"></i></a><br><small class="text-muted font-monospace">%s</small></li>',
+                        $url,
+                        htmlspecialchars((string) $evento),
+                        (string) $evento->getId()
+                    );
+                }
+                $html .= '</ul>';
+                return $html;
             })
             ->renderAsHtml();
 

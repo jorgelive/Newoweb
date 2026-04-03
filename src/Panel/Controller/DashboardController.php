@@ -4,49 +4,6 @@ declare(strict_types=1);
 
 namespace App\Panel\Controller;
 
-use App\Agent\Entity\AutoResponderRule;
-use App\Entity\Maestro\MaestroDocumentoTipo;
-use App\Entity\Maestro\MaestroIdioma;
-use App\Entity\Maestro\MaestroMoneda;
-use App\Entity\Maestro\MaestroPais;
-use App\Entity\Maestro\MaestroTipocambio;
-use App\Entity\User;
-use App\Exchange\Entity\Beds24Config;
-use App\Exchange\Entity\ExchangeCronCursor;
-use App\Exchange\Entity\ExchangeEndpoint;
-use App\Exchange\Entity\MetaConfig;
-use App\Message\Entity\Beds24ReceiveQueue;
-use App\Message\Entity\Beds24SendQueue;
-use App\Message\Entity\Message;
-use App\Message\Entity\MessageAttachment;
-use App\Message\Entity\MessageChannel;
-use App\Message\Entity\MessageConversation;
-use App\Message\Entity\MessageRule;
-use App\Message\Entity\MessageTemplate;
-use App\Message\Entity\MetaWebhookAudit;
-use App\Message\Entity\WhatsappMetaSendQueue;
-use App\Pax\Entity\UiI18n;
-use App\Pms\Entity\PmsBeds24WebhookAudit;
-use App\Pms\Entity\PmsBookingsPullQueue;
-use App\Pms\Entity\PmsBookingsPushQueue;
-use App\Pms\Entity\PmsChannel;
-use App\Pms\Entity\PmsEstablecimiento;
-use App\Pms\Entity\PmsEstablecimientoVirtual;
-use App\Pms\Entity\PmsEventAssignmentActivity;
-use App\Pms\Entity\PmsEventoBeds24Link;
-use App\Pms\Entity\PmsEventoCalendario;
-use App\Pms\Entity\PmsEventoEstado;
-use App\Pms\Entity\PmsEventoEstadoPago;
-use App\Pms\Entity\PmsGuia;
-use App\Pms\Entity\PmsGuiaItem;
-use App\Pms\Entity\PmsGuiaItemGaleria;
-use App\Pms\Entity\PmsGuiaSeccion;
-use App\Pms\Entity\PmsRatesPushQueue;
-use App\Pms\Entity\PmsReserva;
-use App\Pms\Entity\PmsReservaHuesped;
-use App\Pms\Entity\PmsTarifaRango;
-use App\Pms\Entity\PmsUnidad;
-use App\Pms\Entity\PmsUnidadBeds24Map;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -56,13 +13,52 @@ use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-// Maestros
-
-// PMS Entities
-
-// 🔥 NUEVAS ENTIDADES DE MENSAJERÍA
-
-// EasyAdmin Imports
+// 🔥 IMPORTACIONES DE CONTROLADORES CRUD (Reemplazan a las Entidades)
+use App\Agent\Controller\Crud\AutoResponderRuleCrudController;
+use App\Exchange\Controller\Crud\Beds24ConfigCrudController;
+use App\Exchange\Controller\Crud\CronCursorCrudController;
+use App\Exchange\Controller\Crud\ExchangeEndpointCrudController;
+use App\Exchange\Controller\Crud\MetaConfigCrudController;
+use App\Message\Controller\Crud\Beds24ReceiveQueueCrudController;
+use App\Message\Controller\Crud\Beds24SendQueueCrudController;
+use App\Message\Controller\Crud\MessageAttachmentCrudController;
+use App\Message\Controller\Crud\MessageChannelCrudController;
+use App\Message\Controller\Crud\MessageConversationCrudController;
+use App\Message\Controller\Crud\MessageCrudController;
+use App\Message\Controller\Crud\MessageRuleCrudController;
+use App\Message\Controller\Crud\MessageTemplateCrudController;
+use App\Message\Controller\Crud\MetaWebhookAuditCrudController;
+use App\Message\Controller\Crud\WhatsappMetaSendQueueCrudController;
+use App\Panel\Controller\Crud\MaestroDocumentoTipoCrudController;
+use App\Panel\Controller\Crud\MaestroIdiomaCrudController;
+use App\Panel\Controller\Crud\MaestroMonedaCrudController;
+use App\Panel\Controller\Crud\MaestroPaisCrudController;
+use App\Panel\Controller\Crud\MaestroTipocambioCrudController;
+use App\Panel\Controller\Crud\MessengerMessageCrudController;
+use App\Panel\Controller\Crud\PushSubscriptionCrudController;
+use App\Panel\Controller\Crud\UserCrudController;
+use App\Pax\Controller\Crud\UiI18nCrudController;
+use App\Pms\Controller\Crud\PmsBeds24WebhookAuditCrudController;
+use App\Pms\Controller\Crud\PmsBookingsPullQueueCrudController;
+use App\Pms\Controller\Crud\PmsBookingsPushQueueCrudController;
+use App\Pms\Controller\Crud\PmsChannelCrudController;
+use App\Pms\Controller\Crud\PmsEstablecimientoCrudController;
+use App\Pms\Controller\Crud\PmsEstablecimientoVirtualCrudController;
+use App\Pms\Controller\Crud\PmsEventAssignmentActivityCrudController;
+use App\Pms\Controller\Crud\PmsEventoBeds24LinkCrudController;
+use App\Pms\Controller\Crud\PmsEventoCalendarioCrudController;
+use App\Pms\Controller\Crud\PmsEventoEstadoCrudController;
+use App\Pms\Controller\Crud\PmsEventoEstadoPagoCrudController;
+use App\Pms\Controller\Crud\PmsGuiaCrudController;
+use App\Pms\Controller\Crud\PmsGuiaItemCrudController;
+use App\Pms\Controller\Crud\PmsGuiaItemGaleriaCrudController;
+use App\Pms\Controller\Crud\PmsGuiaSeccionCrudController;
+use App\Pms\Controller\Crud\PmsRatesPushQueueCrudController;
+use App\Pms\Controller\Crud\PmsReservaCrudController;
+use App\Pms\Controller\Crud\PmsReservaHuespedCrudController;
+use App\Pms\Controller\Crud\PmsTarifaRangoCrudController;
+use App\Pms\Controller\Crud\PmsUnidadBeds24MapCrudController;
+use App\Pms\Controller\Crud\PmsUnidadCrudController;
 
 class DashboardController extends AbstractDashboardController
 {
@@ -121,23 +117,15 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::subMenu('Front Desk', 'fa fa-concierge-bell')
             ->setSubItems([
-                MenuItem::linkToCrud('Reservas', 'fa fa-bed', PmsReserva::class),
-                MenuItem::linkToCrud('Namelist (Huéspedes)', 'fa fa-users-viewfinder', PmsReservaHuesped::class),
-                MenuItem::linkToCrud('Eventos Calendario', 'fa fa-calendar-day', PmsEventoCalendario::class),
+                MenuItem::linkTo(PmsReservaCrudController::class, 'Reservas', 'fa fa-bed'),
+                MenuItem::linkTo(PmsReservaHuespedCrudController::class, 'Namelist (Huéspedes)', 'fa fa-users-viewfinder'),
+                MenuItem::linkTo(PmsEventoCalendarioCrudController::class, 'Eventos Calendario', 'fa fa-calendar-day'),
             ])
             ->setPermission(Roles::RESERVAS_SHOW);
 
-        yield MenuItem::subMenu('Bandeja de Mensajes', 'fa fa-comments')
-            ->setSubItems([
-                MenuItem::linkToCrud('Conversaciones', 'fa fa-comment-dots', MessageConversation::class),
-                MenuItem::linkToCrud('Historial General', 'fa fa-history', Message::class),
-                MenuItem::linkToCrud('Archivos Adjuntos', 'fa fa-paperclip', MessageAttachment::class),
-            ])
-            ->setPermission(Roles::MENSAJES_SHOW);
-
         yield MenuItem::subMenu('Precios', 'fa fa-chart-line')
             ->setSubItems([
-                MenuItem::linkToCrud('Tarifas', 'fa fa-tags', PmsTarifaRango::class),
+                MenuItem::linkTo(PmsTarifaRangoCrudController::class, 'Tarifas', 'fa fa-tags'),
             ])
             ->setPermission(Roles::RESERVAS_WRITE);
 
@@ -148,10 +136,10 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::subMenu('Guía Digital', 'fa fa-map-signs')
             ->setSubItems([
-                MenuItem::linkToCrud('Guías por Unidad', 'fa fa-book', PmsGuia::class),
-                MenuItem::linkToCrud('Secciones (Bloques)', 'fa fa-puzzle-piece', PmsGuiaSeccion::class),
-                MenuItem::linkToCrud('Ítems de Contenido', 'fa fa-info-circle', PmsGuiaItem::class),
-                MenuItem::linkToCrud('Galería de Imágenes', 'fa fa-images', PmsGuiaItemGaleria::class),
+                MenuItem::linkTo(PmsGuiaCrudController::class, 'Guías por Unidad', 'fa fa-book'),
+                MenuItem::linkTo(PmsGuiaSeccionCrudController::class, 'Secciones (Bloques)', 'fa fa-puzzle-piece'),
+                MenuItem::linkTo(PmsGuiaItemCrudController::class, 'Ítems de Contenido', 'fa fa-info-circle'),
+                MenuItem::linkTo(PmsGuiaItemGaleriaCrudController::class, 'Galería de Imágenes', 'fa fa-images'),
             ])
             ->setPermission(Roles::RESERVAS_SHOW);
 
@@ -162,39 +150,38 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::subMenu('Maestros PMS', 'fa fa-hotel')
             ->setSubItems([
-                MenuItem::linkToCrud('Establecimientos', 'fa fa-building', PmsEstablecimiento::class),
-                MenuItem::linkToCrud('Unidades', 'fa fa-door-open', PmsUnidad::class),
-                MenuItem::linkToCrud('Establecimientos Virtuales', 'fa fa-building-flag', PmsEstablecimientoVirtual::class),
-                MenuItem::linkToCrud('Canales de Venta', 'fa fa-shopping-cart', PmsChannel::class),
-                MenuItem::linkToCrud('Tareas / Actividades', 'fa fa-clipboard-list', PmsEventAssignmentActivity::class),
-                MenuItem::linkToCrud('Estados de Evento', 'fa fa-tag', PmsEventoEstado::class),
-                MenuItem::linkToCrud('Estados de Pago', 'fa fa-credit-card', PmsEventoEstadoPago::class),
+                MenuItem::linkTo(PmsEstablecimientoCrudController::class, 'Establecimientos', 'fa fa-building'),
+                MenuItem::linkTo(PmsUnidadCrudController::class, 'Unidades', 'fa fa-door-open'),
+                MenuItem::linkTo(PmsEstablecimientoVirtualCrudController::class, 'Establecimientos Virtuales', 'fa fa-building-flag'),
+                MenuItem::linkTo(PmsChannelCrudController::class, 'Canales de Venta', 'fa fa-shopping-cart'),
+                MenuItem::linkTo(PmsEventAssignmentActivityCrudController::class, 'Tareas / Actividades', 'fa fa-clipboard-list'),
+                MenuItem::linkTo(PmsEventoEstadoCrudController::class, 'Estados de Evento', 'fa fa-tag'),
+                MenuItem::linkTo(PmsEventoEstadoPagoCrudController::class, 'Estados de Pago', 'fa fa-credit-card'),
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 
         yield MenuItem::subMenu('Bot & IA (AutoResponder)', 'fa fa-brain')
             ->setSubItems([
-                MenuItem::linkToCrud('Reglas Deterministas', 'fa fa-bolt', AutoResponderRule::class),
-                // Aquí en el futuro puedes agregar: MenuItem::linkToCrud('Prompts de IA', 'fa fa-comment-dots', AiPrompt::class)
+                MenuItem::linkTo(AutoResponderRuleCrudController::class, 'Reglas Deterministas', 'fa fa-bolt'),
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 
         yield MenuItem::subMenu('Maestros Comunicación', 'fa fa-bullhorn')
             ->setSubItems([
-                MenuItem::linkToCrud('Canales de Envío', 'fa fa-tower-broadcast', MessageChannel::class),
-                MenuItem::linkToCrud('Plantillas (Templates)', 'fa fa-file-invoice', MessageTemplate::class),
-                MenuItem::linkToCrud('Reglas de Automatización', 'fa fa-robot', MessageRule::class),
+                MenuItem::linkTo(MessageChannelCrudController::class, 'Canales de Envío', 'fa fa-tower-broadcast'),
+                MenuItem::linkTo(MessageTemplateCrudController::class, 'Plantillas (Templates)', 'fa fa-file-invoice'),
+                MenuItem::linkTo(MessageRuleCrudController::class, 'Reglas de Automatización', 'fa fa-robot'),
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 
         yield MenuItem::subMenu('Maestros Globales', 'fa fa-globe-americas')
             ->setSubItems([
-                MenuItem::linkToCrud('Idiomas', 'fa fa-language', MaestroIdioma::class),
-                MenuItem::linkToCrud('Países', 'fa fa-flag', MaestroPais::class),
-                MenuItem::linkToCrud('Tipos Documento', 'fa fa-id-card', MaestroDocumentoTipo::class),
-                MenuItem::linkToCrud('Monedas', 'fa fa-coins', MaestroMoneda::class),
-                MenuItem::linkToCrud('Tipos de Cambio', 'fa fa-money-bill-transfer', MaestroTipocambio::class),
-                MenuItem::linkToCrud('Traducciones UI', 'fa fa-spell-check', UiI18n::class)
+                MenuItem::linkTo(MaestroIdiomaCrudController::class, 'Idiomas', 'fa fa-language'),
+                MenuItem::linkTo(MaestroPaisCrudController::class, 'Países', 'fa fa-flag'),
+                MenuItem::linkTo(MaestroDocumentoTipoCrudController::class, 'Tipos Documento', 'fa fa-id-card'),
+                MenuItem::linkTo(MaestroMonedaCrudController::class, 'Monedas', 'fa fa-coins'),
+                MenuItem::linkTo(MaestroTipocambioCrudController::class, 'Tipos de Cambio', 'fa fa-money-bill-transfer'),
+                MenuItem::linkTo(UiI18nCrudController::class, 'Traducciones UI', 'fa fa-spell-check')
             ])
             ->setPermission(Roles::MAESTROS_SHOW);
 
@@ -205,16 +192,16 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::subMenu('Credenciales y Endpoints', 'fa fa-network-wired')
             ->setSubItems([
-                MenuItem::linkToCrud('Endpoints (Hub)', 'fa fa-link', ExchangeEndpoint::class),
-                MenuItem::linkToCrud('Credenciales Beds24', 'fa fa-key', Beds24Config::class),
-                MenuItem::linkToCrud('Credenciales Meta', 'fab fa-whatsapp', MetaConfig::class),
+                MenuItem::linkTo(ExchangeEndpointCrudController::class, 'Endpoints (Hub)', 'fa fa-link'),
+                MenuItem::linkTo(Beds24ConfigCrudController::class, 'Credenciales Beds24', 'fa fa-key'),
+                MenuItem::linkTo(MetaConfigCrudController::class, 'Credenciales Meta', 'fab fa-whatsapp'),
             ])
             ->setPermission(Roles::ADMIN);
 
         yield MenuItem::subMenu('Mapeos Técnicos', 'fa fa-sitemap')
             ->setSubItems([
-                MenuItem::linkToCrud('Mapas Beds24 (Unidades)', 'fa fa-map-location-dot', PmsUnidadBeds24Map::class),
-                MenuItem::linkToCrud('Vínculos de Eventos', 'fa fa-link-slash', PmsEventoBeds24Link::class),
+                MenuItem::linkTo(PmsUnidadBeds24MapCrudController::class, 'Mapas Beds24 (Unidades)', 'fa fa-map-location-dot'),
+                MenuItem::linkTo(PmsEventoBeds24LinkCrudController::class, 'Vínculos de Eventos', 'fa fa-link-slash'),
             ])
             ->setPermission(Roles::ADMIN);
 
@@ -225,24 +212,29 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::subMenu('Colas de Trabajo (Jobs)', 'fa fa-server')
             ->setSubItems([
-                MenuItem::linkToCrud('Pull Reservas', 'fa fa-download', PmsBookingsPullQueue::class),
-                MenuItem::linkToCrud('Push Reservas', 'fa fa-upload', PmsBookingsPushQueue::class),
-                MenuItem::linkToCrud('Push Tarifas', 'fa fa-tags', PmsRatesPushQueue::class),
-                MenuItem::linkToCrud('Salida WhatsApp', 'fa fa-paper-plane', WhatsappMetaSendQueue::class),
-                MenuItem::linkToCrud('Salida Beds24', 'fa fa-cloud-upload-alt', Beds24SendQueue::class),
-                MenuItem::linkToCrud('Entrada Beds24', 'fa fa-cloud-download-alt', Beds24ReceiveQueue::class),
+                MenuItem::linkTo(PmsBookingsPullQueueCrudController::class, 'Pull Reservas', 'fa fa-download'),
+                MenuItem::linkTo(PmsBookingsPushQueueCrudController::class, 'Push Reservas', 'fa fa-upload'),
+                MenuItem::linkTo(PmsRatesPushQueueCrudController::class, 'Push Tarifas', 'fa fa-tags'),
+                MenuItem::linkTo(WhatsappMetaSendQueueCrudController::class, 'Salida WhatsApp', 'fa fa-paper-plane'),
+                MenuItem::linkTo(Beds24SendQueueCrudController::class, 'Salida Beds24', 'fa fa-cloud-upload-alt'),
+                MenuItem::linkTo(Beds24ReceiveQueueCrudController::class, 'Entrada Beds24', 'fa fa-cloud-download-alt'),
             ])
             ->setPermission(Roles::ADMIN);
 
         yield MenuItem::subMenu('Auditoría Técnica', 'fa fa-bug')
             ->setSubItems([
-                MenuItem::linkToCrud('Beds24 Webhook Audit', 'fa fa-stethoscope', PmsBeds24WebhookAudit::class),
-                MenuItem::linkToCrud('Meta Whatsapp Webhook Audit', 'fa fa-stethoscope', MetaWebhookAudit::class),
-                MenuItem::linkToCrud('Estado de Crons', 'fa fa-clock', ExchangeCronCursor::class),
+                MenuItem::linkTo(MessageConversationCrudController::class, 'Conversaciones (Mensajes)', 'fa fa-comment-dots'),
+                MenuItem::linkTo(MessageCrudController::class, 'Historial de Mensajes', 'fa fa-history'),
+                MenuItem::linkTo(MessageAttachmentCrudController::class, 'Archivos Adjuntos', 'fa fa-paperclip'),
+                MenuItem::linkTo(MessengerMessageCrudController::class, 'Colas del Sistema (Messenger)', 'fas fa-network-wired'),
+                MenuItem::linkTo(PushSubscriptionCrudController::class, 'Suscripciones Push (Dispositivos)', 'fas fa-mobile-alt'),
+                MenuItem::linkTo(PmsBeds24WebhookAuditCrudController::class, 'Beds24 Webhook Audit', 'fa fa-stethoscope'),
+                MenuItem::linkTo(MetaWebhookAuditCrudController::class, 'Meta Whatsapp Webhook Audit', 'fa fa-stethoscope'),
+                MenuItem::linkTo(CronCursorCrudController::class, 'Estado de Crons', 'fa fa-clock'),
             ])
             ->setPermission(Roles::ADMIN);
 
-        yield MenuItem::linkToCrud('Usuarios del Sistema', 'fa fa-users-gear', User::class)
+        yield MenuItem::linkTo(UserCrudController::class, 'Usuarios del Sistema', 'fa fa-users-gear')
             ->setPermission(Roles::ADMIN);
 
         yield MenuItem::linkToLogout('Cerrar Sesión', 'fa fa-sign-out-alt');

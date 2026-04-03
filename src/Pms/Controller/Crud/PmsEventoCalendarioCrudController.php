@@ -111,7 +111,15 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
     public function configureFilters(Filters $filters): Filters
     {
-        return $filters->add('referenciaCanal');
+        return $filters
+            ->add('referenciaCanal')
+            ->add('id')          // UUID del Evento
+            ->add('reserva')     // Reserva Padre
+            // 🔥 NUEVOS FILTROS DE AUDITORÍA
+            ->add('estado')      // Filtro por PmsEventoEstado (Confirmada, Bloqueo, Cancelada, etc.)
+            ->add('estadoPago')  // Filtro por PmsEventoEstadoPago (Pago Total, Parcial, etc.)
+            ->add('pmsUnidad')   // Filtro por Unidad (Habitación específica)
+            ->add('channel');    // Filtro por Canal (Booking, Airbnb, Directo)
     }
 
     public function configureFields(string $pageName): iterable
@@ -289,9 +297,74 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         yield AssociationField::new('beds24Links', 'Vínculos Técnicos')->setDisabled(true)->onlyOnDetail();
 
         // ---------------------------------------------------------------------
-        // 6. AUDITORÍA
+        // 6. AUDITORÍA Y TRAZABILIDAD
         // ---------------------------------------------------------------------
         yield FormField::addPanel('Auditoría')->setIcon('fa fa-shield-alt')->renderCollapsed();
+
+        // 🔥 CAMPO VIRTUAL: ENLACE HACIA LA RESERVA PADRE
+        yield TextField::new('trazabilidadReserva', 'Reserva Padre (Trazabilidad)')
+            ->setVirtual(true)
+            ->onlyOnDetail()
+            ->formatValue(function ($value, $entity) {
+                if (!$entity instanceof PmsEventoCalendario || !$entity->getReserva()) return 'Sin reserva padre';
+
+                $reserva = $entity->getReserva();
+                $url = $this->adminUrlGenerator
+                    ->setController(PmsReservaCrudController::class)
+                    ->setAction(Action::DETAIL)
+                    ->setEntityId((string) $reserva->getId())
+                    ->generateUrl();
+
+                return sprintf(
+                    '<a href="%s" target="_blank" class="text-decoration-none"><strong>%s</strong> <i class="fas fa-external-link-alt text-muted" style="font-size: 0.85em; margin-left: 3px;"></i></a><br><small class="text-muted font-monospace">%s</small>',
+                    $url,
+                    htmlspecialchars($reserva->getLocalizador() ?? 'Reserva ' . $reserva->getNombreApellido()),
+                    (string) $reserva->getId()
+                );
+            })
+            ->renderAsHtml();
+
+        // 🔥 CAMPO VIRTUAL: ENLACES HACIA LOS BEDS24 LINKS
+        yield TextField::new('trazabilidadLinks', 'Vínculos Beds24 (Trazabilidad)')
+            ->setVirtual(true)
+            ->onlyOnDetail()
+            ->formatValue(function ($value, $entity) {
+                if (!$entity instanceof PmsEventoCalendario) return '-';
+
+                $links = $entity->getBeds24Links();
+                if ($links->isEmpty()) return 'Sin vínculos técnicos';
+
+                $html = '<ul style="margin: 0; padding-left: 1.2rem;">';
+                foreach ($links as $link) {
+                    // Asume que existe un CrudController para PmsEventoBeds24Link.
+                    // Si no existe, se puede cambiar para renderizar solo texto informativo.
+                    try {
+                        $url = $this->adminUrlGenerator
+                            ->setController('App\Pms\Controller\Crud\PmsEventoBeds24LinkCrudController')
+                            ->setAction(Action::DETAIL)
+                            ->setEntityId((string) $link->getId())
+                            ->generateUrl();
+
+                        $html .= sprintf(
+                            '<li style="margin-bottom: 0.5rem;"><a href="%s" target="_blank" class="text-decoration-none"><strong>%s</strong> <i class="fas fa-external-link-alt text-muted" style="font-size: 0.85em; margin-left: 3px;"></i></a><br><small class="text-muted font-monospace">%s</small></li>',
+                            $url,
+                            htmlspecialchars((string) $link),
+                            (string) $link->getId()
+                        );
+                    } catch (\Exception $e) {
+                        // Fallback si el controlador no existe
+                        $html .= sprintf(
+                            '<li style="margin-bottom: 0.5rem;"><strong>%s</strong><br><small class="text-muted font-monospace">%s</small></li>',
+                            htmlspecialchars((string) $link),
+                            (string) $link->getId()
+                        );
+                    }
+                }
+                $html .= '</ul>';
+                return $html;
+            })
+            ->renderAsHtml();
+
         yield DateTimeField::new('createdAt', 'Creado')->hideOnIndex()->setFormat('dd/MM/yyyy HH:mm')->setFormTypeOption('disabled', true);
         yield DateTimeField::new('updatedAt', 'Actualizado')->hideOnIndex()->setFormat('dd/MM/yyyy HH:mm')->setFormTypeOption('disabled', true);
     }

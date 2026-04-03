@@ -430,4 +430,17 @@ class PmsEventoCalendario
 
         return 'Reserva';
     }
+
+    /**
+     * Getters virtuales para EasyAdmin (Trazabilidad)
+     */
+    public function getTrazabilidadReserva(): ?string
+    {
+        return null;
+    }
+
+    public function getTrazabilidadLinks(): ?string
+    {
+        return null;
+    }
 }

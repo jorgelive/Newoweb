@@ -476,4 +476,12 @@ class PmsReserva
         return null;
     }
 
+    /**
+     * Getter virtual para EasyAdmin (Trazabilidad)
+     */
+    public function getTrazabilidadEventos(): ?string
+    {
+        return null;
+    }
+
 }

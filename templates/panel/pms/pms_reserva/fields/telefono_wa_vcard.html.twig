@@ -1,8 +1,11 @@
 {# templates/panel/pms/pms_reserva/fields/telefono_wa_vcard.html.twig #}
-{% set telefono = field.formattedValue %}
+{% set contact_data = field.formattedValue %}
+{% set telefono_raw = contact_data.raw ?? entity.instance.telefono %}
+{% set telefono_fmt = contact_data.formatted ?? telefono_raw %}
+{% set chat_url = contact_data.chatUrl ?? null %}
 {% set reserva = entity.instance %}
 
-{% if reserva.telefono %}
+{% if telefono_raw %}
     {# 1. Generamos la URL segura hacia la acción 'generarVcard' del CRUD #}
     {% set vcard_url = ea_url()
         .setController('App\\Pms\\Controller\\Crud\\PmsReservaCrudController')
@@ -10,34 +13,53 @@
         .setEntityId(reserva.id)
     %}
 
-    {# 2. Limpiamos el número para WhatsApp (quitamos +, espacios, guiones y paréntesis) #}
-    {% set wa_number = reserva.telefono|replace({'+': '', ' ': '', '-': '', '(': '', ')': ''}) %}
+    {# 2. Limpiamos el número para WhatsApp #}
+    {% set wa_number = telefono_raw|replace({'+': '', ' ': '', '-': '', '(': '', ')': ''}) %}
     {% set wa_url = 'https://wa.me/' ~ wa_number %}
 
-    <div class="d-flex align-items-center gap-2">
-        {# El badge con el número de teléfono #}
-        <span class="badge bg-success-subtle text-success font-monospace" style="padding: 0.5em 0.7em; font-size: 0.9em;">
-            <i class="fas fa-phone-alt me-1"></i> {{ telefono }}
+    {# 🔥 flex-wrap arregla el desbordamiento en móviles #}
+    <div class="d-flex align-items-center flex-wrap gap-2">
+
+        {# El badge con el número de teléfono (white-space: nowrap evita que el número se parta) #}
+        <span class="badge bg-success-subtle text-success font-monospace" style="padding: 0.5em 0.7em; font-size: 0.9em; white-space: nowrap;">
+            <i class="fas fa-phone-alt me-1"></i> {{ telefono_fmt }}
         </span>
 
-        {# El botón para abrir WhatsApp #}
-        <a href="{{ wa_url }}"
-           target="_blank"
-           class="btn btn-sm btn-outline-success rounded-pill d-inline-flex align-items-center justify-content-center"
-           style="padding-left: 12px !important; padding-right: 12px !important; height: 30px;"
-           title="Abrir chat en WhatsApp">
-            <i class="fab fa-whatsapp me-1" style="font-size: 0.95rem;"></i>
-            <span style="line-height: 1;">WhatsApp</span>
-        </a>
+        {# Contenedor interno flexible para los botones #}
+        <div class="d-flex flex-wrap gap-2">
 
-        {# El botón para descargar la vCard #}
-        <a href="{{ vcard_url }}"
-           class="btn btn-sm btn-outline-secondary rounded-pill d-inline-flex align-items-center justify-content-center"
-           style="padding-left: 12px !important; padding-right: 12px !important; height: 30px;"
-           title="Descargar Contacto para el móvil">
-            <i class="fas fa-address-card me-1" style="font-size: 0.85rem;"></i>
-            <span style="line-height: 1;">vCard</span>
-        </a>
+            {# Botón de WhatsApp #}
+            <a href="{{ wa_url }}"
+               target="_blank"
+               class="btn btn-sm btn-outline-success rounded-pill d-inline-flex align-items-center justify-content-center"
+               style="padding-left: 12px !important; padding-right: 12px !important; height: 30px;"
+               title="Abrir chat en WhatsApp">
+                <i class="fab fa-whatsapp me-1" style="font-size: 0.95rem;"></i>
+                <span style="line-height: 1;">WhatsApp</span>
+            </a>
+
+            {# Botón de vCard #}
+            <a href="{{ vcard_url }}"
+               class="btn btn-sm btn-outline-secondary rounded-pill d-inline-flex align-items-center justify-content-center"
+               style="padding-left: 12px !important; padding-right: 12px !important; height: 30px;"
+               title="Descargar Contacto para el móvil">
+                <i class="fas fa-address-card me-1" style="font-size: 0.85rem;"></i>
+                <span style="line-height: 1;">vCard</span>
+            </a>
+
+            {# 🔥 Botón del Chat Interno (Solo se dibuja si se encontró la conversación en la DB) #}
+            {% if chat_url %}
+                <a href="{{ chat_url }}"
+                   target="_blank"
+                   class="btn btn-sm btn-outline-primary rounded-pill d-inline-flex align-items-center justify-content-center"
+                   style="padding-left: 12px !important; padding-right: 12px !important; height: 30px;"
+                   title="Abrir Chat Interno">
+                    <i class="fas fa-comments me-1" style="font-size: 0.85rem;"></i>
+                    <span style="line-height: 1;">Chat Interno</span>
+                </a>
+            {% endif %}
+
+        </div>
     </div>
 {% else %}
     <span class="text-muted small">Sin teléfono</span>
