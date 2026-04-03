@@ -97,26 +97,27 @@ class MessageTranslator
 
             $message->setContentLocal($results['translations'][0] ?? null);
 
-            // Si Google falla en la detección por ser un texto muy corto, usamos el de la conversación.
             $detectedLang = $results['detectedLanguage'] ?? $currentConvLang;
-
-            // SETEAMOS EL CÓDIGO EN EL MENSAJE
-            $message->setLanguageCode($detectedLang);
 
             // ACTUALIZACIÓN DE LA CONVERSACIÓN (Master)
             if ($detectedLang && $detectedLang !== $currentConvLang) {
-                // Obtenemos referencia proxy del MaestroIdioma (ID es el código natural: 'en', 'es')
-                $idiomaEntity = $this->entityManager->getReference(MaestroIdioma::class, $detectedLang);
 
-                // Validación estricta para resolver el warning del IDE (Expected MaestroIdioma, got object|null)
-                // Además asegura la integridad si el código detectado no existe en la DB.
+                // ✅ find() en lugar de getReference() — valida existencia real en BD
+                $idiomaEntity = $this->entityManager->getRepository(MaestroIdioma::class)->find($detectedLang)
+                    ?? $this->entityManager->getRepository(MaestroIdioma::class)->find('en');
+
                 if ($idiomaEntity instanceof MaestroIdioma) {
+                    $detectedLang = $idiomaEntity->getId(); // Aseguramos que el code sea el real de la BD
                     $message->getConversation()->setIdioma($idiomaEntity);
                     $this->logger->info("Language mismatch: Conversation updated to {$detectedLang}");
                 } else {
-                    $this->logger->warning("Se detectó el idioma {$detectedLang}, pero no se encontró la referencia de MaestroIdioma.");
+                    $this->logger->warning("Idioma {$detectedLang} no encontrado en BD ni fallback 'en'. Se mantiene el idioma actual.");
+                    $detectedLang = $currentConvLang; // Fallback al idioma actual
                 }
             }
+
+            // SETEAMOS EL CÓDIGO EN EL MENSAJE (después de validar)
+            $message->setLanguageCode($detectedLang);
 
         } catch (Throwable $e) {
             $this->logger->error('Error en detección/traducción entrante: ' . $e->getMessage());

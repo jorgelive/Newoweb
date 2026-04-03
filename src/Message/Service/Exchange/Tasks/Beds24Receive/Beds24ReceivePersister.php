@@ -84,7 +84,6 @@ readonly class Beds24ReceivePersister
                         // 1. 🔥 MAGIA ATÓMICA AISLADA
                         $this->merger->merge($existing, 'beds24', ['read' => true, 'read_at' => $nowUtc]);
                     } catch (Throwable $e) {
-                        // Si la magia falla, logueamos el error pero NO dejamos que cierre el EM
                         $this->logger->warning("Falló el merge JSON atómico para el mensaje {$existing->getId()}: " . $e->getMessage());
                     }
 
@@ -93,7 +92,6 @@ readonly class Beds24ReceivePersister
 
                     $stats['updated']++;
 
-                    // ❌ NO hacemos flush aquí.
                 } else {
                     $stats['skipped']++;
                 }
@@ -141,7 +139,6 @@ readonly class Beds24ReceivePersister
 
             // 2. Verdad histórica: Guardamos exactamente lo que llegó
             $message->setContentExternal($rawContent);
-            // ELIMINADO: $message->setContentLocal($rawContent); para que Doctrine detone el traductor.
 
             $textoRecibido = trim(strip_tags($rawContent));
             $currentConversationLang = $conversation->getIdioma()?->getId() ?? 'es';
@@ -163,19 +160,24 @@ readonly class Beds24ReceivePersister
                 // =================================================================
                 // 🧠 DETECCIÓN DINÁMICA DE IDIOMA (Local y Costo Cero)
                 // =================================================================
+                $idiomaEntity = null;
                 $detectedLangCode = 'es';
+
                 if (!empty($textoRecibido)) {
-                    $detectedLangCode = $this->languageDetector->detectLanguageCode($textoRecibido, $currentConversationLang);
+                    $rawDetected = $this->languageDetector->detectLanguageCode($textoRecibido, $currentConversationLang);
+
+                    // Buscar el idioma detectado; si no existe en la tabla, fallback a 'en'
+                    $idiomaEntity = $this->em->getRepository(MaestroIdioma::class)->find($rawDetected)
+                        ?? $this->em->getRepository(MaestroIdioma::class)->find('en');
+
+                    $detectedLangCode = $idiomaEntity?->getId() ?? 'es';
                 }
 
                 $message->setLanguageCode($detectedLangCode);
 
-                // Auto-corrección de la conversación
-                if ($detectedLangCode !== $currentConversationLang) {
-                    $newIdiomaEntity = $this->em->getRepository(MaestroIdioma::class)->find($detectedLangCode);
-                    if ($newIdiomaEntity) {
-                        $conversation->setIdioma($newIdiomaEntity);
-                    }
+                // Auto-corrección del idioma de la conversación
+                if ($idiomaEntity && $detectedLangCode !== $currentConversationLang) {
+                    $conversation->setIdioma($idiomaEntity);
                 }
 
                 // =================================================================
@@ -196,13 +198,11 @@ readonly class Beds24ReceivePersister
                     if (preg_match('/^(?:opci[oó]n|opc|opt|option|n[uú]mero|num|#)?\s*(\d{1,2})$/i', $textoRecibido, $matches)) {
                         $opcionElegida = (int) $matches[1];
 
-                        // Buscamos el ABSOLUTO ÚLTIMO mensaje de la conversación (sin importar dirección ni tipo)
                         $lastMessage = $this->em->getRepository(Message::class)->findOneBy(
                             ['conversation' => $conversation],
                             ['createdAt' => 'DESC']
                         );
 
-                        // Solo procesamos si el mensaje INMEDIATAMENTE ANTERIOR fue la plantilla
                         if ($lastMessage && $lastMessage->getTemplate() !== null) {
                             $metaJson = $lastMessage->getTemplate()->getWhatsappMetaTmpl();
                             $quickReplies = array_filter(

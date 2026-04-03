@@ -58,6 +58,7 @@ final readonly class ProcessBeds24WebhookDispatchHandler
 
             $audit->setPayload($payload);
 
+
             // 1. Extraemos los datos del objeto 'booking'
             $booking = $payload['booking'] ?? [];
             $bookingId = $booking['id'] ?? 'N/A';
@@ -84,31 +85,20 @@ final readonly class ProcessBeds24WebhookDispatchHandler
             $audit->setEventType(mb_substr($fullLabel, 0, 256));
 
             $responseDetails = [];
-            $globalErrors = []; // <-- CRÍTICO: Aseguramos que inicie como array
+            $globalErrors = [];
 
             // 1. PROCESAR BOOKINGS
             if (isset($payload['booking'])) {
                 $bookingResult = $this->handleBookings($payload['booking'], $dispatch->token);
                 $responseDetails['bookings'] = $bookingResult['processed'];
-
-                // Forzamos (array) para evitar TypeError si el método devuelve null accidentalmente
-                $globalErrors = array_merge((array)$globalErrors, (array)($bookingResult['errors'] ?? []));
+                $globalErrors = array_merge($globalErrors, $bookingResult['errors']);
             }
 
             // 2. PROCESAR MENSAJES (Con el Persister optimizado)
             if (isset($payload['messages'])) {
                 $messageResult = $this->handleMessages($payload['messages']);
                 $responseDetails['messages'] = $messageResult['processed'];
-
-                // Forzamos (array) aquí también
-                $globalErrors = array_merge((array)$globalErrors, (array)($messageResult['errors'] ?? []));
-            }
-
-            // 🔥 TRAMPA DE FUERZA BRUTA:
-            // Si hubo errores tragados por los sub-métodos, detenemos la ejecución
-            // e imprimimos el error real en la consola antes de que el EM explote.
-            if (!empty($globalErrors)) {
-                dd($globalErrors);
+                $globalErrors = array_merge($globalErrors, $messageResult['errors']);
             }
 
             // 3. ACTUALIZAR AUDITORÍA
@@ -124,31 +114,11 @@ final readonly class ProcessBeds24WebhookDispatchHandler
                 'errors' => $globalErrors
             ]);
 
-            // Hacemos el flush del éxito AQUÍ adentro del try
-            $this->em->flush();
-
         } catch (Throwable $e) {
-            // Logueamos el error original directamente al logger para no perderlo NUNCA
-            $this->logger->critical("ERROR FATAL en Webhook Handler", [
-                'exception' => $e,
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            // Si el EM sigue abierto, intentamos guardar el error en la auditoría
-            if ($this->em->isOpen()) {
-                $this->terminateWithError($audit, "Error Crítico Worker: " . $e->getMessage());
-                try {
-                    $this->em->flush();
-                } catch (\Throwable $flushEx) {
-                    $this->logger->error("No se pudo guardar la auditoría tras el error: " . $flushEx->getMessage());
-                }
-            }
-
-            // Volvemos a lanzar la excepción para que Messenger marque el fallo
+            $this->terminateWithError($audit, "Error Crítico Worker: " . $e->getMessage());
             throw $e;
-
         } finally {
+            $this->em->flush();
             $scope->restore();
             // Solo limpiamos si el EM sigue abierto, si está cerrado no podemos (ni debemos) hacer nada
             if ($this->em->isOpen()) {
