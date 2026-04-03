@@ -30,6 +30,14 @@ final readonly class ProcessBeds24WebhookDispatchHandler
         private LoggerInterface $logger
     ) {}
 
+    /**
+     * Procesa la solicitud encolada desde el webhook, ejecutando la lógica pesada
+     * en segundo plano.
+     *
+     * @param ProcessBeds24WebhookDispatch $dispatch DTO con el payload original.
+     * @return void
+     * @throws Throwable Si ocurre un error crítico que el Worker deba reportar a la cola.
+     */
     public function __invoke(ProcessBeds24WebhookDispatch $dispatch): void
     {
         $audit = $this->em->getRepository(PmsBeds24WebhookAudit::class)->find($dispatch->auditId);
@@ -50,25 +58,57 @@ final readonly class ProcessBeds24WebhookDispatchHandler
 
             $audit->setPayload($payload);
 
+            // 1. Extraemos los datos del objeto 'booking'
+            $booking = $payload['booking'] ?? [];
+            $bookingId = $booking['id'] ?? 'N/A';
+            $guestName = trim(($booking['firstName'] ?? '') . ' ' . ($booking['lastName'] ?? ''));
+            $channel = strtoupper($booking['referer'] ?? 'DIRECT');
+
+            // 2. Contadores de sub-nodos
+            $msgCount = count($payload['messages'] ?? []);
+            $invCount = count($payload['invoiceItems'] ?? []);
+
+            // 3. Construimos el string descriptivo
+            // Ejemplo: "B24 #83116820 | ANA CAÑABATE LOPEZ | [B.COM] | MSGS: 6 | INVS: 1"
+            $fullLabel = sprintf(
+                "B24 #%s | %s | [%s] | MSGS: %d | INVS: %d",
+                $bookingId,
+                $guestName ?: 'GUEST',
+                $channel,
+                $msgCount,
+                $invCount
+            );
+
+            // 4. Aplicamos substr de seguridad a 256 para el campo de la DB
+            // Usamos mb_substr para proteger la integridad de los caracteres UTF-8
+            $audit->setEventType(mb_substr($fullLabel, 0, 256));
+
             $responseDetails = [];
-            $globalErrors = []; // Nos aseguramos de inicializarlo
+            $globalErrors = []; // <-- CRÍTICO: Aseguramos que inicie como array
 
             // 1. PROCESAR BOOKINGS
             if (isset($payload['booking'])) {
                 $bookingResult = $this->handleBookings($payload['booking'], $dispatch->token);
-                $responseDetails['bookings'] = $bookingResult['processed'] ?? [];
+                $responseDetails['bookings'] = $bookingResult['processed'];
 
-                // Forzamos (array) en ambos lados para que NUNCA reviente si viene null
+                // Forzamos (array) para evitar TypeError si el método devuelve null accidentalmente
                 $globalErrors = array_merge((array)$globalErrors, (array)($bookingResult['errors'] ?? []));
             }
 
-            // 2. PROCESAR MENSAJES
+            // 2. PROCESAR MENSAJES (Con el Persister optimizado)
             if (isset($payload['messages'])) {
                 $messageResult = $this->handleMessages($payload['messages']);
-                $responseDetails['messages'] = $messageResult['processed'] ?? [];
+                $responseDetails['messages'] = $messageResult['processed'];
 
-                // Forzamos (array) nuevamente
+                // Forzamos (array) aquí también
                 $globalErrors = array_merge((array)$globalErrors, (array)($messageResult['errors'] ?? []));
+            }
+
+            // 🔥 TRAMPA DE FUERZA BRUTA:
+            // Si hubo errores tragados por los sub-métodos, detenemos la ejecución
+            // e imprimimos el error real en la consola antes de que el EM explote.
+            if (!empty($globalErrors)) {
+                dd($globalErrors);
             }
 
             // 3. ACTUALIZAR AUDITORÍA
@@ -84,7 +124,7 @@ final readonly class ProcessBeds24WebhookDispatchHandler
                 'errors' => $globalErrors
             ]);
 
-            // Hacemos el flush del éxito AQUÍ, no en el finally
+            // Hacemos el flush del éxito AQUÍ adentro del try
             $this->em->flush();
 
         } catch (Throwable $e) {
@@ -117,6 +157,12 @@ final readonly class ProcessBeds24WebhookDispatchHandler
         }
     }
 
+    /**
+     * Procesa el nodo de reservas de Beds24
+     * * @param mixed $bookingData Nodo 'booking' del payload
+     * @param string $token Token de seguridad del webhook
+     * @return array
+     */
     private function handleBookings(mixed $bookingData, string $token): array
     {
         $bookingsToProcess = is_array($bookingData) && array_is_list($bookingData) ? $bookingData : [$bookingData];
@@ -136,6 +182,11 @@ final readonly class ProcessBeds24WebhookDispatchHandler
         return ['processed' => $processedIds, 'errors' => $errors];
     }
 
+    /**
+     * Procesa los mensajes recibidos del huésped en el canal de Beds24.
+     * * @param mixed $messagesData Nodo 'messages' del payload
+     * @return array
+     */
     private function handleMessages(mixed $messagesData): array
     {
         $messagesToProcess = is_array($messagesData) && array_is_list($messagesData) ? $messagesData : [$messagesData];
@@ -157,6 +208,12 @@ final readonly class ProcessBeds24WebhookDispatchHandler
         return ['processed' => $processedIds, 'errors' => $errors];
     }
 
+    /**
+     * Actualiza el estado de la auditoría cuando ocurre un error grave.
+     * * @param PmsBeds24WebhookAudit $audit Entidad de auditoría
+     * @param string $msg Mensaje de error para registrar
+     * @return void
+     */
     private function terminateWithError(PmsBeds24WebhookAudit $audit, string $msg): void
     {
         $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
