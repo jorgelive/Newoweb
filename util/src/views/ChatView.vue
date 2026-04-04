@@ -143,6 +143,64 @@ const handleMessageClick = (msg: ApiMessage, event: Event) => {
 };
 
 // ============================================================================
+// LÓGICA DE VISUALIZACIÓN DE ERRORES EN MÓVIL (TAP / LONG PRESS)
+// ============================================================================
+const activeErrorText = ref<string | null>(null);
+const errorTooltipPos = ref({ x: 0, y: 0 });
+let errorPressTimer: number | null = null;
+
+const showMobileError = (text: string | null, event: TouchEvent | MouseEvent) => {
+  if (!text) return;
+
+  let clientX = 0;
+  let clientY = 0;
+
+  if ('touches' in event && (event as TouchEvent).touches.length > 0) {
+    clientX = (event as TouchEvent).touches[0].clientX;
+    clientY = (event as TouchEvent).touches[0].clientY;
+  } else if ('clientX' in event) {
+    clientX = (event as MouseEvent).clientX;
+    clientY = (event as MouseEvent).clientY;
+  } else {
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    clientX = rect.left;
+    clientY = rect.top;
+  }
+
+  const screenW = window.innerWidth;
+  const screenH = window.innerHeight;
+  const menuW = 250;
+  const menuH = 80;
+
+  errorTooltipPos.value = {
+    x: clientX + menuW > screenW ? screenW - menuW - 10 : clientX,
+    y: clientY + menuH > screenH ? screenH - menuH - 10 : clientY + 20
+  };
+
+  activeErrorText.value = text;
+};
+
+const startErrorLongPress = (text: string | null, event: TouchEvent | MouseEvent) => {
+  if (!text) return;
+  cancelErrorLongPress();
+  errorPressTimer = window.setTimeout(() => {
+    showMobileError(text, event);
+  }, 400); // 400ms para considerar long press
+};
+
+const cancelErrorLongPress = () => {
+  if (errorPressTimer) {
+    clearTimeout(errorPressTimer);
+    errorPressTimer = null;
+  }
+};
+
+const closeErrorTooltip = () => {
+  activeErrorText.value = null;
+};
+
+// ============================================================================
 // LÓGICA DE REACCIONES
 // ============================================================================
 const getReactions = (msg: ApiMessage): { emoji: string; count: number }[] => {
@@ -874,6 +932,22 @@ const formatMessageText = (text: string | null | undefined): string => {
 const getDispatchError = (msg: ApiMessage, channelKeyword: string): string | null => {
   const meta = msg.metadata;
   if (!meta) return null;
+
+  // 1. Revisar errores nativos de los proveedores (Webhooks)
+  if (channelKeyword === 'whatsapp' && meta.whatsappMeta) {
+    if (meta.whatsappMeta.error_reason || meta.whatsappMeta.error_code) {
+      const code = meta.whatsappMeta.error_code ? ` (Code: ${meta.whatsappMeta.error_code})` : '';
+      return (meta.whatsappMeta.error_reason || 'Error de WhatsApp Meta') + code;
+    }
+  }
+
+  if (channelKeyword === 'beds24' && meta.beds24) {
+    if (meta.beds24.error) {
+      return meta.beds24.error;
+    }
+  }
+
+  // 2. Revisar errores internos del backend (dispatch_errors)
   const searchKey = channelKeyword.toLowerCase();
   if (meta.dispatch_errors) {
     const error = meta.dispatch_errors.find((e: string) => e.toLowerCase().includes(searchKey));
@@ -883,6 +957,7 @@ const getDispatchError = (msg: ApiMessage, channelKeyword: string): string | nul
     const warning = meta.dispatch_warnings.find((e: string) => e.toLowerCase().includes(searchKey));
     if (warning) return warning;
   }
+
   return null;
 };
 
@@ -948,6 +1023,18 @@ const getDirectChannelId = (channel?: any): string | null => {
         <button @click="copyMessageText" class="w-full text-left px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-[#376875] flex items-center gap-3 transition-colors">
           <i class="far fa-copy opacity-70"></i> Copiar texto
         </button>
+      </div>
+    </Transition>
+
+    <div v-if="activeErrorText" class="fixed inset-0 z-[400]" @click="closeErrorTooltip"></div>
+    <Transition name="fade-scale">
+      <div v-if="activeErrorText"
+           :style="{ top: errorTooltipPos.y + 'px', left: errorTooltipPos.x + 'px' }"
+           class="fixed z-[500] bg-red-600 text-white border border-red-700 shadow-2xl rounded-xl p-3 w-64 overflow-hidden transform origin-top-left pointer-events-none">
+        <div class="flex items-start gap-2">
+          <i class="fas fa-exclamation-triangle mt-0.5"></i>
+          <p class="text-[11px] font-bold leading-tight whitespace-pre-wrap break-words">{{ activeErrorText }}</p>
+        </div>
       </div>
     </Transition>
 
@@ -1304,7 +1391,11 @@ const getDirectChannelId = (channel?: any): string | null => {
 
                             <span v-if="getDispatchError(msg, 'whatsapp') || msg.whatsappMetaSendQueues?.length > 0 || msg.metadata?.whatsappMeta?.sent_at || msg.metadata?.whatsappMeta?.error_code"
                                   class="flex items-center gap-0.5 ml-2 cursor-help"
-                                  :title="getDispatchError(msg, 'whatsapp') || 'WhatsApp'">
+                                  :title="getDispatchError(msg, 'whatsapp') || 'WhatsApp'"
+                                  @touchstart="startErrorLongPress(getDispatchError(msg, 'whatsapp'), $event)"
+                                  @touchend="cancelErrorLongPress"
+                                  @touchmove="cancelErrorLongPress"
+                                  @click.stop="showMobileError(getDispatchError(msg, 'whatsapp'), $event)">
 
                               <i class="fab fa-whatsapp text-[10px]"
                                  :class="getDispatchError(msg, 'whatsapp') ? 'text-red-500' : 'text-green-500 opacity-70'"></i>
@@ -1315,7 +1406,11 @@ const getDirectChannelId = (channel?: any): string | null => {
 
                             <span v-if="getDispatchError(msg, 'beds24') || msg.beds24SendQueues?.length > 0 || msg.metadata?.beds24?.sent_at || msg.metadata?.beds24?.error"
                                   class="flex items-center gap-0.5 ml-2 cursor-help"
-                                  :title="getDispatchError(msg, 'beds24') || 'Beds24'">
+                                  :title="getDispatchError(msg, 'beds24') || 'Beds24'"
+                                  @touchstart="startErrorLongPress(getDispatchError(msg, 'beds24'), $event)"
+                                  @touchend="cancelErrorLongPress"
+                                  @touchmove="cancelErrorLongPress"
+                                  @click.stop="showMobileError(getDispatchError(msg, 'beds24'), $event)">
 
                               <i class="fas fa-bed text-[9px]"
                                  :class="getDispatchError(msg, 'beds24') ? 'text-red-500' : 'text-[#003580] opacity-60'"></i>
