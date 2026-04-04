@@ -345,7 +345,8 @@ const updateChatVisibility = () => {
 watch(isMobileSidebarOpen, updateChatVisibility);
 const handleResize = () => updateChatVisibility();
 
-const activeTab = ref<'history' | 'scheduled'>('history');
+// ✅ NUEVO: Soporte para la pestaña Cancelados
+const activeTab = ref<'history' | 'scheduled' | 'cancelled'>('history');
 
 const selectedTemplateId = ref<string | null>(null);
 const showTemplateDropdown = ref(false);
@@ -759,15 +760,26 @@ const formatFullDate = (iso?: string) => {
   return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
 };
 
+// ============================================================================
+// AGRUPACIÓN DE MENSAJES (Soporta Pestaña Cancelados)
+// ============================================================================
 const groupedMessages = computed(() => {
   const groups: Record<string, any[]> = {};
 
-  const sourceList = [...(activeTab.value === 'history' ? store.activeChatMessages : store.scheduledMessages)];
+  let sourceList: ApiMessage[] = [];
+
+  if (activeTab.value === 'history') {
+    sourceList = [...store.activeChatMessages];
+  } else if (activeTab.value === 'scheduled') {
+    sourceList = [...store.scheduledMessages];
+  } else if (activeTab.value === 'cancelled') {
+    sourceList = [...store.cancelledMessages];
+  }
 
   sourceList.sort((a, b) => {
-    const dateA = new Date(a.effectiveDateTime || a.createdAt).getTime();
-    const dateB = new Date(b.effectiveDateTime || b.createdAt).getTime();
-    return dateA - dateB;
+    const timeA = new Date(a.effectiveDateTime || a.createdAt).getTime();
+    const timeB = new Date(b.effectiveDateTime || b.createdAt).getTime();
+    return timeA - timeB;
   });
 
   sourceList.forEach(msg => {
@@ -1149,12 +1161,15 @@ const getDirectChannelId = (channel?: any): string | null => {
             </div>
           </header>
 
-          <div v-if="store.scheduledMessages.length > 0" class="bg-slate-50 border-b border-slate-200 px-4 md:px-8 py-2 flex gap-6 text-xs font-black uppercase tracking-widest">
-            <button @click="activeTab = 'history'" class="pb-1 transition-colors" :class="activeTab === 'history' ? 'text-[#376875] border-b-2 border-[#376875]' : 'text-slate-400 hover:text-slate-600'">
+          <div v-if="store.scheduledMessages.length > 0 || store.cancelledMessages.length > 0" class="bg-slate-50 border-b border-slate-200 px-4 md:px-8 py-2 flex gap-6 text-xs font-black uppercase tracking-widest overflow-x-auto scrollbar-hide">
+            <button @click="activeTab = 'history'" class="pb-1 transition-colors whitespace-nowrap" :class="activeTab === 'history' ? 'text-[#376875] border-b-2 border-[#376875]' : 'text-slate-400 hover:text-slate-600'">
               <i class="fas fa-history mr-1"></i> Historial
             </button>
-            <button @click="activeTab = 'scheduled'" class="pb-1 transition-colors" :class="activeTab === 'scheduled' ? 'text-[#E07845] border-b-2 border-[#E07845]' : 'text-slate-400 hover:text-slate-600'">
+            <button v-if="store.scheduledMessages.length > 0" @click="activeTab = 'scheduled'" class="pb-1 transition-colors whitespace-nowrap" :class="activeTab === 'scheduled' ? 'text-[#E07845] border-b-2 border-[#E07845]' : 'text-slate-400 hover:text-slate-600'">
               <i class="far fa-calendar-alt mr-1"></i> Programados ({{ store.scheduledMessages.length }})
+            </button>
+            <button v-if="store.cancelledMessages.length > 0" @click="activeTab = 'cancelled'" class="pb-1 transition-colors whitespace-nowrap" :class="activeTab === 'cancelled' ? 'text-red-500 border-b-2 border-red-500' : 'text-slate-400 hover:text-slate-600'">
+              <i class="fas fa-ban mr-1"></i> Cancelados ({{ store.cancelledMessages.length }})
             </button>
           </div>
         </div>
@@ -1170,9 +1185,14 @@ const getDirectChannelId = (channel?: any): string | null => {
               <p class="text-sm font-bold uppercase tracking-widest">No hay envíos pendientes</p>
             </div>
 
+            <div v-if="activeTab === 'cancelled' && store.cancelledMessages.length === 0" class="text-center py-10 opacity-50">
+              <i class="fas fa-ban text-4xl mb-3 block"></i>
+              <p class="text-sm font-bold uppercase tracking-widest">No hay mensajes cancelados</p>
+            </div>
+
             <div v-for="(group, date) in groupedMessages" :key="date" class="flex flex-col">
               <div class="flex justify-center my-6 sticky top-2 z-10">
-                <span :class="activeTab === 'scheduled' ? 'bg-[#E07845] text-white' : 'bg-white/90 text-slate-800'" class="px-4 py-1.5 backdrop-blur-md border border-slate-200 shadow-sm rounded-full text-[10px] font-black uppercase tracking-widest">
+                <span :class="activeTab === 'scheduled' ? 'bg-[#E07845] text-white' : (activeTab === 'cancelled' ? 'bg-red-500 text-white' : 'bg-white/90 text-slate-800')" class="px-4 py-1.5 backdrop-blur-md border border-slate-200 shadow-sm rounded-full text-[10px] font-black uppercase tracking-widest">
                   {{
                     activeTab === 'history' && date === `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
                         ? 'Hoy'
@@ -1204,7 +1224,7 @@ const getDirectChannelId = (channel?: any): string | null => {
                           @touchmove="cancelLongPress"
                           @contextmenu.prevent="openContextMenu(msg, $event)"
                       >
-                        <div v-if="msg.template && msg.direction === 'outgoing'" :class="activeTab === 'scheduled' ? 'bg-orange-50 border-orange-200' : 'bg-slate-100 border-slate-200 text-slate-600'" class="rounded-2xl p-4 border text-sm font-medium leading-relaxed relative shadow-sm text-center">
+                        <div v-if="msg.template && msg.direction === 'outgoing'" :class="activeTab === 'scheduled' ? 'bg-orange-50 border-orange-200' : (activeTab === 'cancelled' ? 'bg-red-50 border-red-200' : 'bg-slate-100 border-slate-200 text-slate-600')" class="rounded-2xl p-4 border text-sm font-medium leading-relaxed relative shadow-sm text-center">
                           <i class="fas fa-robot text-lg mb-2 block opacity-50"></i>
                           <span class="block text-[10px] font-black uppercase tracking-widest opacity-80 mb-2">{{ getTemplateName(msg.template) }}</span>
                           <span class="opacity-90 italic">"{{ msg.contentLocal || msg.contentExternal }}"</span>
@@ -1213,7 +1233,8 @@ const getDirectChannelId = (channel?: any): string | null => {
                         <div v-else :class="[
                           msg.direction === 'outgoing' ? 'rounded-tr-none' : 'rounded-tl-none',
                           activeTab === 'scheduled' ? 'bg-orange-50 border-2 border-orange-200 text-slate-800 shadow-sm' :
-                          (msg.direction === 'outgoing' ? 'bg-[#376875] text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-800 shadow-sm')
+                          (activeTab === 'cancelled' ? 'bg-red-50 border-2 border-red-200 text-slate-800 shadow-sm' :
+                          (msg.direction === 'outgoing' ? 'bg-[#376875] text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-800 shadow-sm'))
                         ]" class="rounded-3xl p-4 md:p-5 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap relative break-words select-none">
 
                           <div v-if="msg.attachments?.length" class="mb-3 space-y-2">
@@ -1263,7 +1284,7 @@ const getDirectChannelId = (channel?: any): string | null => {
 
                     </div>
 
-                    <div class="flex items-center gap-1.5 mt-2.5 px-2 text-[10px] font-black uppercase tracking-tighter" :class="[msg.direction === 'outgoing' ? 'flex-row-reverse' : 'flex-row', activeTab === 'scheduled' ? 'text-orange-400' : 'text-slate-400']">
+                    <div class="flex items-center gap-1.5 mt-2.5 px-2 text-[10px] font-black uppercase tracking-tighter" :class="[msg.direction === 'outgoing' ? 'flex-row-reverse' : 'flex-row', activeTab === 'scheduled' ? 'text-orange-400' : (activeTab === 'cancelled' ? 'text-red-400' : 'text-slate-400')]">
 
                       <span>{{ formatTime(msg.effectiveDateTime || msg.createdAt) }}</span>
 
