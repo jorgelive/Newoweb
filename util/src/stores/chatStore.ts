@@ -37,21 +37,8 @@ export interface ApiMessage {
     effectiveDateTime?: string | null;
     scheduledForFuture?: boolean;
     metadata?: {
-        beds24?: {
-            sent_at?: string;
-            delivered_at?: string;
-            read_at?: string;
-            error?: string;
-            [key: string]: any;
-        };
-        whatsappMeta?: {
-            sent_at?: string;
-            delivered_at?: string;
-            read_at?: string;
-            error_code?: string;
-            error_reason?: string;
-            [key: string]: any;
-        };
+        beds24?: { sent_at?: string; delivered_at?: string; read_at?: string; error?: string; [key: string]: any; };
+        whatsappMeta?: { sent_at?: string; delivered_at?: string; read_at?: string; error_code?: string; error_reason?: string; [key: string]: any; };
         dispatch_errors?: string[];
         dispatch_warnings?: string[];
         [key: string]: any;
@@ -64,38 +51,11 @@ export interface ApiMessage {
 }
 
 export interface ApiTemplate {
-    '@id': string;
-    id: string;
-    code: string;
-    name: string;
-    contextType: string | null;
-    allowedSources: string[];
-    allowedAgencies: string[];
-    channels: string[];
-    whatsappMetaOfficial: boolean;
-    beds24Active: boolean;
-    whatsappMetaActive: boolean;
-    emailActive: boolean;
+    '@id': string; id: string; code: string; name: string; contextType: string | null; allowedSources: string[]; allowedAgencies: string[]; channels: string[]; whatsappMetaOfficial: boolean; beds24Active: boolean; whatsappMetaActive: boolean; emailActive: boolean;
 }
 
 export interface ApiConversation {
-    '@id': string;
-    id: string;
-    status: string;
-    guestName: string | null;
-    guestPhone: string | null;
-    contextType: string;
-    contextId: string;
-    createdAt: string;
-    lastMessageAt: string | null;
-    unreadCount: number;
-    contextOrigin: string | null;
-    contextStatusTag: string | null;
-    contextMilestones: { start?: string; end?: string; booked_at?: string; eta?: string; };
-    contextItems: string[];
-    whatsappSessionActive?: boolean;
-    whatsappDisabled?: boolean;
-    whatsappDisabledReason?: string | null;
+    '@id': string; id: string; status: string; guestName: string | null; guestPhone: string | null; contextType: string; contextId: string; createdAt: string; lastMessageAt: string | null; unreadCount: number; contextOrigin: string | null; contextStatusTag: string | null; contextMilestones: { start?: string; end?: string; booked_at?: string; eta?: string; }; contextItems: string[]; whatsappSessionActive?: boolean; whatsappDisabled?: boolean; whatsappDisabledReason?: string | null;
 }
 
 export const useChatStore = defineStore('chatStore', () => {
@@ -152,11 +112,8 @@ export const useChatStore = defineStore('chatStore', () => {
      */
     const processQueue = (error: any = null) => {
         failedQueue.forEach(prom => {
-            if (error) {
-                prom.reject(error);
-            } else {
-                prom.resolve(apiClient(prom.config));
-            }
+            if (error) prom.reject(error);
+            else prom.resolve(apiClient(prom.config));
         });
         failedQueue = [];
     };
@@ -166,16 +123,32 @@ export const useChatStore = defineStore('chatStore', () => {
         return config;
     });
 
-    /**
-     * Interceptor global para capturar errores 401 (No autorizado).
-     * Pausa la ejecución, levanta la bandera de sesión expirada y encola la petición.
-     */
+    // ============================================================================
+    // INTERCEPTOR MEJORADO (DETECTA SYMFONY REDIRECT 302 -> HTML)
+    // ============================================================================
     apiClient.interceptors.response.use(
-        response => response,
+        (response) => {
+            // Si esperamos JSON pero Symfony nos devuelve el HTML del login (Status 200 OK)
+            const contentType = response.headers['content-type'];
+            if (contentType && contentType.includes('text/html')) {
+                const originalRequest = response.config as CustomAxiosRequestConfig;
+
+                if (!originalRequest._retry && !originalRequest._silentAuthCheck) {
+                    isSessionExpired.value = true;
+                    originalRequest._retry = true;
+
+                    return new Promise((resolve, reject) => {
+                        failedQueue.push({ resolve, reject, config: originalRequest });
+                    });
+                }
+                return Promise.reject(new Error('Sesión expirada (Redirección HTML detectada)'));
+            }
+            return response;
+        },
         async (error) => {
             const originalRequest = error.config as CustomAxiosRequestConfig;
 
-            // Si es 401, no se ha reintentado, y NO es una verificación silenciosa, levantamos el modal.
+            // Si devuelve 401 explícito (en caso de que lo configuremos en el futuro)
             if (error.response?.status === 401 && !originalRequest._retry && !originalRequest._silentAuthCheck) {
                 isSessionExpired.value = true;
                 originalRequest._retry = true;
@@ -217,33 +190,20 @@ export const useChatStore = defineStore('chatStore', () => {
     const eventSource = shallowRef<EventSource | null>(null);
     const globalEventSource = shallowRef<EventSource | null>(null);
 
-    const filteredConversations = computed(() => {
-        return conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase());
-    });
-
-    const activeChatMessages = computed(() => {
-        return messages.value.filter(m => !m.scheduledForFuture);
-    });
+    const filteredConversations = computed(() => conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()));
+    const activeChatMessages = computed(() => messages.value.filter(m => !m.scheduledForFuture));
 
     const scheduledMessages = computed(() => {
         return messages.value
             .filter(m => m.scheduledForFuture)
-            .sort((a, b) => {
-                const dateA = new Date(a.effectiveDateTime || a.createdAt).getTime();
-                const dateB = new Date(b.effectiveDateTime || b.createdAt).getTime();
-                return dateA - dateB;
-            });
+            .sort((a, b) => new Date(a.effectiveDateTime || a.createdAt).getTime() - new Date(b.effectiveDateTime || b.createdAt).getTime());
     });
 
     const validTemplates = computed(() => {
         if (!currentConversation.value) return [];
         const chat = currentConversation.value;
         const origin = chat.contextOrigin || 'manual';
-        return templates.value.filter(t => {
-            if (t.contextType && t.contextType !== chat.contextType) return false;
-            if (t.allowedSources?.length && !t.allowedSources.includes(origin)) return false;
-            return true;
-        });
+        return templates.value.filter(t => (!t.contextType || t.contextType === chat.contextType) && (!t.allowedSources?.length || t.allowedSources.includes(origin)));
     });
 
     const getExternalContextUrl = computed(() => {
@@ -268,14 +228,16 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     /**
-     * Realiza una comprobación silenciosa para saber si hay una sesión activa en el backend.
-     * Utiliza un flag _silentAuthCheck para que el interceptor no lance el modal si devuelve 401.
-     * @returns {Promise<boolean>} True si la sesión es válida, False si no lo es.
+     * Comprobación silenciosa de sesión, protegiendo contra respuestas HTML del firewall
      */
     const checkSession = async (): Promise<boolean> => {
         try {
-            // Utilizamos el endpoint de mercure u otro ligero, marcado como silencioso
-            await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
+            const res = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
+            // Si nos devolvió HTML (login form) en vez de JSON, la sesión murió
+            const contentType = res.headers['content-type'];
+            if (contentType && contentType.includes('text/html')) {
+                return false;
+            }
             return true;
         } catch (e) {
             return false;
@@ -300,10 +262,7 @@ export const useChatStore = defineStore('chatStore', () => {
 
             // 2. Renovar túneles Mercure
             await initGlobalMercure();
-            if (currentConversation.value) {
-                await connectToMercure(currentConversation.value.id);
-            }
-
+            if (currentConversation.value) await connectToMercure(currentConversation.value.id);
             return true;
         } catch (err: any) {
             error.value = err.response?.data?.message || 'Error de autenticación. Verifica tus credenciales.';
@@ -317,7 +276,7 @@ export const useChatStore = defineStore('chatStore', () => {
      */
     const cancelRenewal = () => {
         isSessionExpired.value = false;
-        processQueue(new Error('Renovación de sesión cancelada por el usuario.'));
+        processQueue(new Error('Renovación cancelada.'));
     };
 
     // ============================================================================
@@ -342,21 +301,16 @@ export const useChatStore = defineStore('chatStore', () => {
             hasMoreConversations.value = true;
         }
 
-        error.value = null;
         try {
             const response = await apiClient.get(`/platform/user/util/msg/conversations?order[lastMessageAt]=desc&page=${pageToFetch}`);
             const data = extractData(response);
-
-            if (loadMore) {
-                conversations.value.push(...data);
-            } else {
-                conversations.value = data;
-            }
+            if (loadMore) conversations.value.push(...data);
+            else conversations.value = data;
 
             hasMoreConversations.value = hasNextPage(response);
             conversationsPage.value = pageToFetch;
         } catch (err: any) {
-            if (err.response?.status !== 401) {
+            if (err.response?.status !== 401 && err.message !== 'Sesión expirada (Redirección HTML detectada)') {
                 error.value = 'Error al sincronizar chats';
             }
         } finally {
@@ -370,15 +324,17 @@ export const useChatStore = defineStore('chatStore', () => {
             globalEventSource.value.close();
             globalEventSource.value = null;
         }
-
         try {
             const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
+
+            // Si nos topamos con HTML aquí, abortamos.
+            if (authResponse.headers['content-type']?.includes('text/html')) {
+                throw new Error('HTML response');
+            }
+
             const { hubUrl, token } = authResponse.data;
-
-            const topic = 'https://openperu.pe/host/conversations';
             const url = new URL(hubUrl);
-            url.searchParams.append('topic', topic);
-
+            url.searchParams.append('topic', 'https://openperu.pe/host/conversations');
             if (token) url.searchParams.append('authorization', token);
 
             globalEventSource.value = new EventSource(url.toString(), { withCredentials: true });
@@ -392,64 +348,32 @@ export const useChatStore = defineStore('chatStore', () => {
                 if (data.type === 'conversation_updated' || data.type === 'conversation_created') {
                     const convData = data.conversation;
                     const existingConv = conversations.value.find(c => c['@id'] === convData['@id']);
-                    const isNewUnread = convData.unreadCount > (existingConv?.unreadCount || 0);
 
-                    if (isNewUnread && (currentConversation.value?.['@id'] !== convData['@id'] || !isChatVisible.value)) {
-
-                        // Propiedad original mantenida intacta (ya no se usa en ChatView, pero existe)
-                        newNotification.value = {
-                            show: true,
-                            conversationId: convData.id,
-                            title: convData.guestName || 'Huésped',
-                        };
+                    if (convData.unreadCount > (existingConv?.unreadCount || 0) && (currentConversation.value?.['@id'] !== convData['@id'] || !isChatVisible.value)) {
+                        newNotification.value = { show: true, conversationId: convData.id, title: convData.guestName || 'Huésped' };
                         setTimeout(() => { newNotification.value = null; }, 5000);
 
                         // 1. Extraemos el ID seguro por si no viene la propiedad "id" limpia
                         const safeId = convData.id || convData['@id'].split('/').pop();
-
-                        // ✅ Despacho oficial al nuevo Store Global usando actionUrl corregido
-                        notificationStore.addNotification({
-                            title: `Mensaje de ${convData.guestName || 'Huésped'}`,
-                            body: 'Tienes un nuevo mensaje sin leer.',
-                            type: 'info',
-                            actionUrl: `/chat?id=${safeId}`
-                        });
+                        notificationStore.addNotification({ title: `Mensaje de ${convData.guestName || 'Huésped'}`, body: 'Tienes un nuevo mensaje sin leer.', type: 'info', actionUrl: `/chat?id=${safeId}` });
                     }
 
-                    if (existingConv) {
-                        Object.assign(existingConv, convData);
-                    } else {
-                        conversations.value.unshift(convData);
-                    }
-
-                    conversations.value.sort((a, b) => {
-                        const dateA = new Date(a.lastMessageAt || 0).getTime();
-                        const dateB = new Date(b.lastMessageAt || 0).getTime();
-                        return dateB - dateA;
-                    });
+                    if (existingConv) Object.assign(existingConv, convData);
+                    else conversations.value.unshift(convData);
+                    conversations.value.sort((a, b) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
                 }
             };
 
             globalEventSource.value.onerror = async () => {
                 console.error('❌ Desconexión del túnel Global de Mercure...');
-                globalEventSource.value?.close(); // Aseguramos que se cierre para evitar loops
+                globalEventSource.value?.close();
 
                 // Verificamos silenciosamente si la cookie de sesión principal sigue viva
                 const isAlive = await checkSession();
-                if (!isAlive) {
-                    isSessionExpired.value = true;
-                } else {
-                    // La sesión PHP vive, pero el token JWT expiró. Reconectamos para obtener uno nuevo.
-                    console.log('🔄 Sesión activa, regenerando token Mercure Global...');
-                    setTimeout(() => {
-                        initGlobalMercure();
-                    }, 3000); // 3 segundos de espera por si fue un parpadeo de red
-                }
+                if (!isAlive) isSessionExpired.value = true;
+                else setTimeout(() => initGlobalMercure(), 5000);
             };
-
-        } catch (err) {
-            console.error('❌ Fallo al inicializar Global Mercure');
-        }
+        } catch (err) {}
     };
 
     const connectToMercure = async (conversationId: string) => {
@@ -460,15 +384,14 @@ export const useChatStore = defineStore('chatStore', () => {
 
         try {
             const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
-            const { hubUrl, token } = authResponse.data;
-
-            const topic = `https://openperu.pe/conversations/${conversationId}`;
-            const url = new URL(hubUrl);
-            url.searchParams.append('topic', topic);
-
-            if (token) {
-                url.searchParams.append('authorization', token);
+            if (authResponse.headers['content-type']?.includes('text/html')) {
+                throw new Error('HTML response');
             }
+
+            const { hubUrl, token } = authResponse.data;
+            const url = new URL(hubUrl);
+            url.searchParams.append('topic', `https://openperu.pe/conversations/${conversationId}`);
+            if (token) url.searchParams.append('authorization', token);
 
             eventSource.value = new EventSource(url.toString(), { withCredentials: true });
 
@@ -483,40 +406,22 @@ export const useChatStore = defineStore('chatStore', () => {
 
                     if (incomingData.direction === 'incoming') {
                         if (isChatVisible.value) {
-                            apiClient.post(`/platform/user/util/msg/conversations/${conversationId}/read`)
-                                .catch(e => console.error("Error auto-reading", e));
-
+                            apiClient.post(`/platform/user/util/msg/conversations/${conversationId}/read`).catch(() => {});
                             if (currentConversation.value) currentConversation.value.unreadCount = 0;
-                        } else {
-                            if (currentConversation.value) currentConversation.value.unreadCount++;
+                        } else if (currentConversation.value) {
+                            currentConversation.value.unreadCount++;
                         }
                     }
                 }
             };
 
             eventSource.value.onerror = async () => {
-                console.error('❌ Desconexión del túnel local de Mercure...');
-                eventSource.value?.close(); // Aseguramos cierre
-
-                // Verificamos silenciosamente si la cookie de sesión principal sigue viva
+                eventSource.value?.close();
                 const isAlive = await checkSession();
-                if (!isAlive) {
-                    isSessionExpired.value = true;
-                } else {
-                    // La sesión PHP vive, regeneramos el token local
-                    console.log('🔄 Sesión activa, regenerando token Mercure Local...');
-                    setTimeout(() => {
-                        // Solo reconectamos si el usuario sigue viendo la misma conversación
-                        if (currentConversation.value && currentConversation.value.id === conversationId) {
-                            connectToMercure(conversationId);
-                        }
-                    }, 3000);
-                }
+                if (!isAlive) isSessionExpired.value = true;
+                else if (currentConversation.value?.id === conversationId) setTimeout(() => connectToMercure(conversationId), 5000);
             };
-
-        } catch (err) {
-            console.error('❌ Fallo al inicializar Mercure local');
-        }
+        } catch (err) {}
     };
 
     const selectConversation = async (id: string) => {
@@ -527,20 +432,16 @@ export const useChatStore = defineStore('chatStore', () => {
 
         // 2. Si no está en memoria (chat antiguo no cargado aún), lo buscamos directo en la API
         if (!found) {
-            loadingMessages.value = true; // Mostramos spinner de carga mientras resolvemos
+            loadingMessages.value = true;
             try {
                 // Hacemos un GET directo al ID de la conversación
                 const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}`);
                 found = response.data;
-
-                // Si la encontramos, la inyectamos al inicio de la lista de conversaciones
-                if (found) {
-                    conversations.value.unshift(found);
-                }
+                if (found) conversations.value.unshift(found);
             } catch (err: any) {
                 // Si la API devuelve 404, la conversación no existe o no tiene permisos
                 loadingMessages.value = false;
-                error.value = 'No se pudo encontrar la conversación solicitada.';
+                error.value = 'Conversación no encontrada.';
                 return;
             }
         }
@@ -550,13 +451,10 @@ export const useChatStore = defineStore('chatStore', () => {
         loadingMessages.value = true;
         messagesPage.value = 1;
         hasMoreMessages.value = true;
-        newNotification.value = null;
 
         try {
             if (found && found.unreadCount > 0) {
-                apiClient.post(`/platform/user/util/msg/conversations/${id}/read`)
-                    .then(() => { if (found) found.unreadCount = 0; })
-                    .catch(e => console.error("Error al marcar leídos", e));
+                apiClient.post(`/platform/user/util/msg/conversations/${id}/read`).then(() => { if (found) found.unreadCount = 0; });
                 found.unreadCount = 0;
             }
 
@@ -568,7 +466,7 @@ export const useChatStore = defineStore('chatStore', () => {
             connectToMercure(id);
 
         } catch (err) {
-            error.value = 'Error al cargar los mensajes de esta conversación.';
+            error.value = 'Error al cargar mensajes.';
         } finally {
             loadingMessages.value = false;
         }
@@ -589,7 +487,7 @@ export const useChatStore = defineStore('chatStore', () => {
             hasMoreMessages.value = hasNextPage(response);
             messagesPage.value = nextPage;
         } catch (err) {
-            error.value = 'Error al cargar historial antiguo';
+            error.value = 'Error al cargar historial.';
         } finally {
             loadingMoreMessages.value = false;
         }
@@ -608,32 +506,14 @@ export const useChatStore = defineStore('chatStore', () => {
             form.append('direction', 'outgoing');
             form.append('senderType', 'host');
             form.append('status', 'pending');
-
-            channels.forEach(channel => {
-                form.append('transientChannels[]', channel);
-            });
-
-            if (templateIri) {
-                form.append('template', templateIri);
-            } else {
-                form.append('contentLocal', text.trim());
-            }
-
-            if (attachmentStore.file) {
-                form.append('file', attachmentStore.file);
-            }
-
-            await apiClient.post('/platform/user/util/msg/messages', form, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-
+            channels.forEach(channel => form.append('transientChannels[]', channel));
+            if (templateIri) form.append('template', templateIri);
+            else form.append('contentLocal', text.trim());
+            if (attachmentStore.file) form.append('file', attachmentStore.file);
+            await apiClient.post('/platform/user/util/msg/messages', form, { headers: { 'Content-Type': 'multipart/form-data' } });
             attachmentStore.clear();
-
         } catch (err) {
-            error.value = 'Fallo al enviar el mensaje. Verifica el tamaño del archivo o tu conexión.';
-            console.error('Error enviando mensaje Multipart:', err);
+            error.value = 'Fallo al enviar mensaje.';
         } finally {
             sendingMessage.value = false;
         }
@@ -662,56 +542,22 @@ export const useChatStore = defineStore('chatStore', () => {
 
             // 2. Tomar los primeros 5 limpios (la API los devolvió del más reciente al más viejo)
             const latest5 = realHistoryMessages.slice(0, 5);
-
-            // 3. Ordenar cronológicamente (ASCENDENTE) para que en la UI con flex-col se lean de arriba a abajo
-            return latest5.sort((a, b) => {
-                const dateA = new Date(a.effectiveDateTime || a.createdAt).getTime();
-                const dateB = new Date(b.effectiveDateTime || b.createdAt).getTime();
-                return dateA - dateB;
-            });
-        } catch (err) {
-            console.error('Error en Modo Stalker:', err);
-            return [];
-        }
+            return latest5.sort((a, b) => new Date(a.effectiveDateTime || a.createdAt).getTime() - new Date(b.effectiveDateTime || b.createdAt).getTime());
+        } catch (err) { return []; }
     };
 
-    // ============================================================================
-    // LÓGICA DE APP BADGE Y LIMPIEZA DE NOTIFICACIONES NATIVAS
-    // ============================================================================
-    const totalUnreadConversations = computed(() => {
-        // Cuenta cuántas conversaciones tienen al menos 1 mensaje sin leer
-        return conversations.value.filter(c => c.unreadCount > 0).length;
-    });
-
-    watch(totalUnreadConversations, (unreadCount) => {
-        // 1. Actualizar el Badge del icono (El globo rojo en macOS/Android)
+    watch(() => conversations.value.filter(c => c.unreadCount > 0).length, (unreadCount) => {
         if ('setAppBadge' in navigator && 'clearAppBadge' in navigator) {
-            if (unreadCount > 0) {
-                // Le pone el número exacto al icono
-                navigator.setAppBadge(unreadCount).catch(() => {});
-            } else {
-                // Solo limpia el badge si ya no hay chats pendientes
-                navigator.clearAppBadge().catch(() => {});
-            }
+            if (unreadCount > 0) navigator.setAppBadge(unreadCount).catch(() => {});
+            else navigator.clearAppBadge().catch(() => {});
         }
-
-        // 2. Control inteligente de la barra de estado de Android
-        // Si el usuario ya leyó todo (contador llega a 0), le ordenamos al SW limpiar la barra.
-        if (unreadCount === 0) {
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
-            }
+        if (unreadCount === 0 && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
         }
     });
 
 
     return {
-        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages,
-        templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error,
-        loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations,
-        isSessionExpired, checkSession, renewSession, cancelRenewal,
-        getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage,
-        initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus,
-        fetchLatestMessagesForStalk
+        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, renewSession, cancelRenewal, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk
     };
 });

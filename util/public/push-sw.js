@@ -13,15 +13,23 @@ function sanitizeUrl(rawUrl) {
         return '/chat';
     }
 
-    // 2. Si viene concatenado sin barra (ej: util.openperu.pe019d4090...)
-    if (urlStr.includes('openperu.pe') && !urlStr.includes('/chat')) {
+    // 2. Si viene el dominio pegado (util.openperu.peundefined)
+    if (urlStr.includes('openperu.pe')) {
         const parts = urlStr.split('openperu.pe');
-        const dirtyId = parts[1] ? parts[1].replace(/^\//, '') : '';
+        let dirtyId = parts[1] ? parts[1] : '';
 
+        // Removemos slash inicial si lo hay
+        dirtyId = dirtyId.replace(/^\//, '');
+
+        if (dirtyId.includes('undefined') || dirtyId.includes('unknown')) {
+            return '/chat';
+        }
+
+        // Si es un ID real (uuid > 10 chars)
         if (dirtyId && dirtyId.length > 10 && !dirtyId.startsWith('chat')) {
             return `/chat?id=${dirtyId}`;
         } else if (dirtyId && dirtyId.startsWith('chat')) {
-            return `/${dirtyId}`;
+            return `/${dirtyId}`; // Ej: /chat?id=...
         }
         return '/chat';
     }
@@ -97,9 +105,7 @@ self.addEventListener('push', (event) => {
         try {
             const parsedData = event.data.json();
             notificationData = parsedData.payload || parsedData;
-        } catch (e) {
-            console.error('[push-sw.js] Error al parsear el JSON del Push:', e);
-        }
+        } catch (e) {}
     }
 
     // ¡AQUÍ ESTÁ LA MAGIA! Limpiamos la URL antes de hacer cualquier cosa
@@ -124,7 +130,7 @@ self.addEventListener('push', (event) => {
                     body: notificationData.body,
                     icon: '/app_util/pwa-192x192.png',
                     badge: '/app_util/favicon.svg',
-                    data: { url: safeUrl }, // Guardamos la URL ya limpia y segura
+                    data: { url: safeUrl }, // URL curada
                     tag: 'chat-message',
                     renotify: true
                 });
@@ -137,10 +143,13 @@ self.addEventListener('notificationclick', (event) => {
     // Al tocar la notificación, la cerramos de la barra superior
     event.notification.close();
 
-    const urlToOpen = event.notification.data.url || '/chat';
+    // Curamos por última vez por si algo se filtró
+    let urlToOpen = event.notification.data?.url || '/chat';
+    if(String(urlToOpen).includes('undefined') || String(urlToOpen).includes('unknown')) {
+        urlToOpen = '/chat';
+    }
 
-    // Convertimos la ruta relativa en una URL absoluta basada en el dominio de la app
-    // Esto evita para siempre el error de DNS "util.openperu.peundefined"
+    // Construimos la ruta segura
     const targetUrl = new URL(urlToOpen, self.registration.scope).href;
 
     event.waitUntil(
@@ -149,8 +158,8 @@ self.addEventListener('notificationclick', (event) => {
             for (let i = 0; i < windowClients.length; i++) {
                 let client = windowClients[i];
                 if (client.url && 'focus' in client) {
-                    client.navigate(targetUrl); // Navegamos usando la URL segura
-                    return client.focus();      // Traemos la app al primer plano
+                    client.navigate(targetUrl);
+                    return client.focus();
                 }
             }
 
@@ -166,10 +175,7 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('message', (event) => {
     if (event.data?.type === 'CLEAR_NOTIFICATIONS') {
         self.registration.getNotifications().then((notifications) => {
-            notifications.forEach((notification) => {
-                notification.close();
-            });
+            notifications.forEach((notification) => notification.close());
         });
-        // IMPORTANTE: NO usamos clearAppBadge aquí. El chatStore (Pinia) maneja el número.
     }
 });
