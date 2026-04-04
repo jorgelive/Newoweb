@@ -127,24 +127,7 @@ export const useChatStore = defineStore('chatStore', () => {
     // INTERCEPTOR MEJORADO (DETECTA SYMFONY REDIRECT 302 -> HTML)
     // ============================================================================
     apiClient.interceptors.response.use(
-        (response) => {
-            // Si esperamos JSON pero Symfony nos devuelve el HTML del login (Status 200 OK)
-            const contentType = response.headers['content-type'];
-            if (contentType && contentType.includes('text/html')) {
-                const originalRequest = response.config as CustomAxiosRequestConfig;
-
-                if (!originalRequest._retry && !originalRequest._silentAuthCheck) {
-                    isSessionExpired.value = true;
-                    originalRequest._retry = true;
-
-                    return new Promise((resolve, reject) => {
-                        failedQueue.push({ resolve, reject, config: originalRequest });
-                    });
-                }
-                return Promise.reject(new Error('Sesión expirada (Redirección HTML detectada)'));
-            }
-            return response;
-        },
+        response => response,
         async (error) => {
             const originalRequest = error.config as CustomAxiosRequestConfig;
 
@@ -190,14 +173,45 @@ export const useChatStore = defineStore('chatStore', () => {
     const eventSource = shallowRef<EventSource | null>(null);
     const globalEventSource = shallowRef<EventSource | null>(null);
 
-    const filteredConversations = computed(() => conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()));
-    const activeChatMessages = computed(() => messages.value.filter(m => !m.scheduledForFuture));
+    const filteredConversations = computed(() => {
+        return conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase());
+    });
+
+    // ============================================================================
+    // FILTROS DE PESTAÑAS MEJORADOS (Historial, Programados, Cancelados)
+    // ============================================================================
+
+    const activeChatMessages = computed(() => {
+        const now = new Date();
+        return messages.value.filter(m => {
+            if (getMessageDisplayStatus(m) === 'cancelled') return false; // Los cancelados van a su propia pestaña
+
+            const effectiveDate = new Date(m.effectiveDateTime || m.createdAt);
+            const isPast = effectiveDate <= now;
+
+            return m.scheduledForFuture === false || isPast;
+        });
+    });
 
     const scheduledMessages = computed(() => {
+        const now = new Date();
         return messages.value
-            .filter(m => m.scheduledForFuture)
+            .filter(m => {
+                if (getMessageDisplayStatus(m) === 'cancelled') return false; // Los cancelados van a su propia pestaña
+
+                const effectiveDate = new Date(m.effectiveDateTime || m.createdAt);
+                return m.scheduledForFuture === true && effectiveDate > now;
+            })
             .sort((a, b) => new Date(a.effectiveDateTime || a.createdAt).getTime() - new Date(b.effectiveDateTime || b.createdAt).getTime());
     });
+
+    const cancelledMessages = computed(() => {
+        return messages.value
+            .filter(m => getMessageDisplayStatus(m) === 'cancelled')
+            .sort((a, b) => new Date(a.effectiveDateTime || a.createdAt).getTime() - new Date(b.effectiveDateTime || b.createdAt).getTime());
+    });
+
+    // ============================================================================
 
     const validTemplates = computed(() => {
         if (!currentConversation.value) return [];
@@ -232,12 +246,13 @@ export const useChatStore = defineStore('chatStore', () => {
      */
     const checkSession = async (): Promise<boolean> => {
         try {
-            const res = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
-            // Si nos devolvió HTML (login form) en vez de JSON, la sesión murió
-            const contentType = res.headers['content-type'];
-            if (contentType && contentType.includes('text/html')) {
+            const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
+
+            // ✅ CORRECCIÓN AQUÍ: Evita que Symfony engañe al Axios con un HTTP 200 de la pantalla de login HTML
+            if (authResponse.headers['content-type']?.includes('text/html') || typeof authResponse.data === 'string') {
                 return false;
             }
+
             return true;
         } catch (e) {
             return false;
@@ -265,7 +280,7 @@ export const useChatStore = defineStore('chatStore', () => {
             if (currentConversation.value) await connectToMercure(currentConversation.value.id);
             return true;
         } catch (err: any) {
-            error.value = err.response?.data?.message || 'Error de autenticación. Verifica tus credenciales.';
+            error.value = err.response?.data?.message || 'Error de autenticación.';
             processQueue(err);
             return false;
         }
@@ -276,7 +291,7 @@ export const useChatStore = defineStore('chatStore', () => {
      */
     const cancelRenewal = () => {
         isSessionExpired.value = false;
-        processQueue(new Error('Renovación cancelada.'));
+        processQueue(new Error('Cancelado.'));
     };
 
     // ============================================================================
@@ -310,9 +325,7 @@ export const useChatStore = defineStore('chatStore', () => {
             hasMoreConversations.value = hasNextPage(response);
             conversationsPage.value = pageToFetch;
         } catch (err: any) {
-            if (err.response?.status !== 401 && err.message !== 'Sesión expirada (Redirección HTML detectada)') {
-                error.value = 'Error al sincronizar chats';
-            }
+            if (err.response?.status !== 401) error.value = 'Error al sincronizar chats';
         } finally {
             loadingConversations.value = false;
             loadingMoreConversations.value = false;
@@ -558,6 +571,6 @@ export const useChatStore = defineStore('chatStore', () => {
 
 
     return {
-        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, renewSession, cancelRenewal, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk
+        conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, renewSession, cancelRenewal, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk
     };
 });
