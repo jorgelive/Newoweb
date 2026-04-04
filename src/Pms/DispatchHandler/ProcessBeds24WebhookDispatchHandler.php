@@ -15,6 +15,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Throwable;
+use RuntimeException;
 
 /**
  * Worker Asíncrono Principal para procesar los Webhooks de Beds24 en su totalidad.
@@ -114,13 +115,36 @@ final readonly class ProcessBeds24WebhookDispatchHandler
                 'errors' => $globalErrors
             ]);
 
+            // 🔥 REGLA DE ORO: CHECK ANTES DEL FLUSH
+            // Movemos el flush AQUÍ ADENTRO del try. Si el EM murió en los sub-procesos, abortamos
+            // de inmediato y lanzamos la alerta, evitando el falso error "EntityManagerClosed".
+            if (!$this->em->isOpen()) {
+                $this->logger->critical("El EntityManager se cerró durante el procesamiento. Abortando guardado final.", [
+                    'errores_acumulados' => $globalErrors
+                ]);
+                throw new RuntimeException("El proceso interno rompió la conexión a la base de datos.");
+            }
+
+            $this->em->flush();
+
         } catch (Throwable $e) {
-            $this->terminateWithError($audit, "Error Crítico Worker: " . $e->getMessage());
+            // 🔥 REGLA DE ORO: PASAR LA EXCEPCIÓN COMPLETA AL LOGGER
+            $this->logger->error("Fallo crítico en Worker de Beds24", ['exception' => $e]);
+
+            // Intentamos guardar el error en la auditoría si el EM sigue vivo
+            if ($this->em->isOpen()) {
+                $this->terminateWithError($audit, "Error Crítico Worker: " . $e->getMessage());
+                try {
+                    $this->em->flush();
+                } catch (Throwable $flushException) {
+                    $this->logger->critical("Imposible guardar estado de error en auditoría.", ['exception' => $flushException]);
+                }
+            }
+
             throw $e;
         } finally {
-            $this->em->flush();
             $scope->restore();
-            // Solo limpiamos si el EM sigue abierto, si está cerrado no podemos (ni debemos) hacer nada
+            // Solo limpiamos si el EM sigue abierto
             if ($this->em->isOpen()) {
                 $this->em->clear();
             }
@@ -146,7 +170,13 @@ final readonly class ProcessBeds24WebhookDispatchHandler
                 $res = $this->bookingService->process($token, $data);
                 $processedIds[] = $res['id'] ?? $data['id'];
             } catch (Throwable $e) {
-                $errors[] = ['id' => $data['id'] ?? 'unknown', 'error' => $e->getMessage()];
+                // 🔥 REGLA DE ORO: PASAR LA EXCEPCIÓN AL LOGGER PARA TENER EL TRACE
+                $this->logger->error("Error procesando reserva Beds24 desde Worker", ['exception' => $e, 'booking_id' => $data['id']]);
+
+                $errors[] = [
+                    'id' => $data['id'] ?? 'unknown',
+                    'error' => $e->getMessage()
+                ];
             }
         }
         return ['processed' => $processedIds, 'errors' => $errors];
@@ -172,7 +202,13 @@ final readonly class ProcessBeds24WebhookDispatchHandler
                     $processedIds[] = $dto->id;
                 }
             } catch (Throwable $e) {
-                $errors[] = ['message_id' => $data['id'] ?? 'unknown', 'error' => $e->getMessage()];
+                // 🔥 REGLA DE ORO: PASAR LA EXCEPCIÓN AL LOGGER
+                $this->logger->error("Error procesando mensaje Beds24 desde Worker", ['exception' => $e, 'message_id' => $data['id']]);
+
+                $errors[] = [
+                    'message_id' => $data['id'] ?? 'unknown',
+                    'error' => $e->getMessage()
+                ];
             }
         }
         return ['processed' => $processedIds, 'errors' => $errors];
@@ -187,7 +223,7 @@ final readonly class ProcessBeds24WebhookDispatchHandler
     private function terminateWithError(PmsBeds24WebhookAudit $audit, string $msg): void
     {
         $audit->setStatus(PmsBeds24WebhookAudit::STATUS_ERROR);
-        $audit->setErrorMessage(mb_substr($msg, 0, 2000));
-        $this->logger->error("Webhook Worker Error: " . $msg);
+        $audit->setErrorMessage(mb_substr($msg, 0, 2000, 'UTF-8'));
+        // Ya no es necesario loguear como error aquí porque lo logueamos en el catch principal con el Stack Trace completo.
     }
 }

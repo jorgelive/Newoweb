@@ -102,8 +102,12 @@ class MessageTranslator
             // ACTUALIZACIÓN DE LA CONVERSACIÓN (Master)
             if ($detectedLang && $detectedLang !== $currentConvLang) {
 
-                // ✅ find() en lugar de getReference() — valida existencia real en BD
-                $idiomaEntity = $this->entityManager->getRepository(MaestroIdioma::class)->find($detectedLang)
+                // 🔥 NORMALIZACIÓN REGIONAL: Extraer solo las 2 primeras letras
+                // Google Cloud Translation suele devolver formatos como 'es-AR', 'pt-BR' o 'zh-CN'.
+                $iso2LangCode = substr(strtolower($detectedLang), 0, 2);
+
+                // ✅ find() en lugar de getReference() — valida existencia real en BD usando el código normalizado
+                $idiomaEntity = $this->entityManager->getRepository(MaestroIdioma::class)->find($iso2LangCode)
                     ?? $this->entityManager->getRepository(MaestroIdioma::class)->find('en');
 
                 if ($idiomaEntity instanceof MaestroIdioma) {
@@ -111,12 +115,12 @@ class MessageTranslator
                     $message->getConversation()->setIdioma($idiomaEntity);
                     $this->logger->info("Language mismatch: Conversation updated to {$detectedLang}");
                 } else {
-                    $this->logger->warning("Idioma {$detectedLang} no encontrado en BD ni fallback 'en'. Se mantiene el idioma actual.");
+                    $this->logger->warning("Idioma {$iso2LangCode} (original: {$detectedLang}) no encontrado en BD ni fallback 'en'. Se mantiene el idioma actual.");
                     $detectedLang = $currentConvLang; // Fallback al idioma actual
                 }
             }
 
-            // SETEAMOS EL CÓDIGO EN EL MENSAJE (después de validar)
+            // SETEAMOS EL CÓDIGO EN EL MENSAJE (después de validar y normalizar)
             $message->setLanguageCode($detectedLang);
 
         } catch (Throwable $e) {

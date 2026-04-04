@@ -107,22 +107,41 @@ readonly class WhatsappMetaReceivePersister
         if ($type === 'text') {
             $textoRecibido = trim($messageData['text']['body'] ?? '');
 
-            $message->setContentExternal($textoRecibido);
+            // 🔥 PROTECCIÓN DE LONGITUD: Evitamos el "Data too long" en MySQL
+            $safeContent = mb_substr($textoRecibido, 0, 60000, 'UTF-8');
+            if (mb_strlen($textoRecibido, 'UTF-8') > 60000) {
+                $safeContent .= '... [CONTENIDO TRUNCADO POR SEGURIDAD]';
+            }
+
+            $message->setContentExternal($safeContent);
             // ELIMINADO: $message->setContentLocal($textoRecibido); para permitir traducción automática.
 
+            // =================================================================
+            // 🧠 DETECCIÓN DINÁMICA DE IDIOMA (Blindada y Normalizada)
+            // =================================================================
             $detectedLangCode = 'es';
             if (!empty($textoRecibido)) {
-                $detectedLangCode = $this->languageDetector->detectLanguageCode($textoRecibido, $currentConversationLang);
+                $rawDetected = $this->languageDetector->detectLanguageCode($textoRecibido, $currentConversationLang);
+
+                // 🔥 Normalizamos extrayendo solo las 2 primeras letras (ej: 'en-US' -> 'en')
+                $iso2LangCode = substr(strtolower($rawDetected), 0, 2);
+
+                $repoIdioma = $this->em->getRepository(MaestroIdioma::class);
+
+                // Buscamos el detectado, o aplicamos fallback a inglés
+                $newIdiomaEntity = $repoIdioma->find($iso2LangCode) ?? $repoIdioma->find('en');
+
+                if ($newIdiomaEntity instanceof MaestroIdioma) {
+                    $detectedLangCode = $newIdiomaEntity->getId();
+
+                    // Solo actualizamos la conversación si el idioma es válido y diferente
+                    if ($detectedLangCode !== $currentConversationLang) {
+                        $conversation->setIdioma($newIdiomaEntity);
+                    }
+                }
             }
 
             $message->setLanguageCode($detectedLangCode);
-
-            if ($detectedLangCode !== $currentConversationLang) {
-                $newIdiomaEntity = $this->em->getRepository(MaestroIdioma::class)->find($detectedLangCode);
-                if ($newIdiomaEntity) {
-                    $conversation->setIdioma($newIdiomaEntity);
-                }
-            }
 
             $intent = array_merge($baseIntent, [
                 'category'    => 'free_text',

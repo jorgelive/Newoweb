@@ -166,8 +166,12 @@ readonly class Beds24ReceivePersister
                 if (!empty($textoRecibido)) {
                     $rawDetected = $this->languageDetector->detectLanguageCode($textoRecibido, $currentConversationLang);
 
-                    // Buscar el idioma detectado; si no existe en la tabla, fallback a 'en'
-                    $idiomaEntity = $this->em->getRepository(MaestroIdioma::class)->find($rawDetected)
+                    // 🔥 EL TOQUE MAESTRO: Extraer solo las 2 primeras letras para normalizar
+                    // formatos regionales (ej: 'he-IL' pasa a ser 'he', 'en-US' pasa a 'en')
+                    $iso2LangCode = substr(strtolower($rawDetected), 0, 2);
+
+                    // Buscar el idioma detectado (normalizado); si no existe en la tabla, fallback a 'en'
+                    $idiomaEntity = $this->em->getRepository(MaestroIdioma::class)->find($iso2LangCode)
                         ?? $this->em->getRepository(MaestroIdioma::class)->find('en');
 
                     $detectedLangCode = $idiomaEntity?->getId() ?? 'es';
