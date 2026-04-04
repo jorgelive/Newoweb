@@ -37,13 +37,13 @@ class WhatsappMetaButtonType extends AbstractType
                     'Respuesta Rápida' => 'quick_reply',
                     'Llamar' => 'phone_number',
                 ],
-                'attr' => ['readonly' => true], // Bloqueado: Lo controla Meta
+                'attr' => ['readonly' => false], //Se bloqueara por stimulus
                 'row_attr' => ['class' => 'col-md-2 mb-3'],
             ])
             ->add('content', TextType::class, [
                 'label' => 'Valor Nativo (Meta)',
                 'required' => false,
-                'attr' => ['readonly' => true], // Bloqueado: Aquí escribe el Sync Service
+                'attr' => ['readonly' => false], //Se bloqueara por stimulus
                 'help' => 'URL oficial aprobada (ej: https://.../{{1}}).',
                 'row_attr' => ['class' => 'col-md-5 mb-3'],
             ])
