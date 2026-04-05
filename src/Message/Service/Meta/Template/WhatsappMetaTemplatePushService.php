@@ -39,7 +39,7 @@ final readonly class WhatsappMetaTemplatePushService
         // 🔥 PROTECCIÓN CONTRA TIMEOUT: Damos 2 minutos de vida al script
         // Meta tarda mucho en procesar múltiples idiomas consecutivamente.
         set_time_limit(120);
-        
+
         $config = $this->em->getRepository(MetaConfig::class)->findOneBy(['activo' => true]);
         if (!$config) {
             throw new RuntimeException('No se encontró una configuración de Meta activa.');

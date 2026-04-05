@@ -291,13 +291,24 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                 // Hidratamos todas las variables del bloque de texto principal
                 $finalContent = $this->hydrateVariables($finalContent, $resolver, $conversation->getContextId());
 
-                // 🎯 EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE (REFACTORIZADO)
+                // 🎯 EMULAR BOTONES DINÁMICOS EN TEXTO LIBRE (UX MEJORADO)
                 if (!empty($metaJson['buttons_map'])) {
-                    // 1. Obtenemos las traducciones evaluando la prioridad de la plantilla
+
+                    // 1. Detección Inteligente: ¿Hay opciones para interactuar o son puros links?
+                    $hasQuickReplies = false;
+                    foreach ($metaJson['buttons_map'] as $btn) {
+                        if (strtolower($btn['type'] ?? '') === 'quick_reply') {
+                            $hasQuickReplies = true;
+                            break;
+                        }
+                    }
+
+                    // 2. Obtenemos las traducciones del menú adaptado
                     $menuTexts = $this->getMenuTranslations($templateLang);
 
-                    // 2. Inyectamos el título dinámico
-                    $finalContent .= "\n\n" . $menuTexts['header'] . "\n\n";
+                    // 3. Inyectamos el título semánticamente correcto
+                    $headerTitle = $hasQuickReplies ? $menuTexts['header_options'] : $menuTexts['header_links'];
+                    $finalContent .= "\n\n" . $headerTitle . "\n\n";
 
                     $variables = $resolver ? $resolver->getMessageVariables($conversation->getContextId()) : [];
                     $quickReplyIndex = 1;
@@ -329,8 +340,8 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                         }
                     }
 
-                    // 4. Inyectamos el footer dinámico
-                    if ($quickReplyIndex > 1) {
+                    // 4. Inyectamos el footer dinámico SOLO si hay Quick Replies reales
+                    if ($hasQuickReplies) {
                         $finalContent = rtrim($finalContent) . "\n\n" . $menuTexts['footer'];
                     } else {
                         $finalContent = rtrim($finalContent);
@@ -441,45 +452,54 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
     /**
      * Diccionario rápido para los textos de la interfaz emulada.
-     * Soporta los idiomas principales y hace fallback a Inglés.
+     * Soporta dos contextos visuales:
+     * - header_options: Para menús mixtos o interactivos.
+     * - header_links: Para menús que solo contienen URLs (sin interacción del usuario).
      */
     private function getMenuTranslations(string $lang): array
     {
         $translations = [
             'es' => [
-                'header' => '*— Opciones —*',
-                'footer' => '_👉 Responde con el número de tu opción._',
-                'default_btn' => 'Opción'
+                'header_options' => '*— Opciones —*',
+                'header_links'   => '*— Enlaces —*',
+                'footer'         => '_👉 Responde con el número de tu opción._',
+                'default_btn'    => 'Opción'
             ],
             'en' => [
-                'header' => '*— Options —*',
-                'footer' => '_👉 Reply with the number of your option._',
-                'default_btn' => 'Option'
+                'header_options' => '*— Options —*',
+                'header_links'   => '*— Links —*',
+                'footer'         => '_👉 Reply with the number of your option._',
+                'default_btn'    => 'Option'
             ],
             'pt' => [
-                'header' => '*— Opções —*',
-                'footer' => '_👉 Responda com o número da sua opção._',
-                'default_btn' => 'Opção'
+                'header_options' => '*— Opções —*',
+                'header_links'   => '*— Links —*',
+                'footer'         => '_👉 Responda com o número da sua opção._',
+                'default_btn'    => 'Opção'
             ],
             'fr' => [
-                'header' => '*— Options —*',
-                'footer' => '_👉 Répondez avec le numéro de votre option._',
-                'default_btn' => 'Option'
+                'header_options' => '*— Options —*',
+                'header_links'   => '*— Liens —*',
+                'footer'         => '_👉 Répondez avec le numéro de votre option._',
+                'default_btn'    => 'Option'
             ],
             'it' => [
-                'header' => '*— Opzioni —*',
-                'footer' => '_👉 Rispondi con il numero della tua opzione._',
-                'default_btn' => 'Opzione'
+                'header_options' => '*— Opzioni —*',
+                'header_links'   => '*— Link —*',
+                'footer'         => '_👉 Rispondi con il numero della tua opzione._',
+                'default_btn'    => 'Opzione'
             ],
             'de' => [
-                'header' => '*— Optionen —*',
-                'footer' => '_👉 Antworten Sie mit der Nummer Ihrer Option._',
-                'default_btn' => 'Option'
+                'header_options' => '*— Optionen —*',
+                'header_links'   => '*— Links —*',
+                'footer'         => '_👉 Antworten Sie mit der Nummer Ihrer Option._',
+                'default_btn'    => 'Option'
             ],
             'nl' => [
-                'header' => '*— Opties —*',
-                'footer' => '_👉 Antwoord met het nummer van uw optie._',
-                'default_btn' => 'Optie'
+                'header_options' => '*— Opties —*',
+                'header_links'   => '*— Links —*',
+                'footer'         => '_👉 Antwoord met het nummer van uw optie._',
+                'default_btn'    => 'Optie'
             ]
         ];
 
