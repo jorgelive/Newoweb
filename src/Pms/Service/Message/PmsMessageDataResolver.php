@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Pms\Service\Message;
 
 use App\Message\Contract\MessageDataResolverInterface;
-use App\Pms\Entity\PmsChannel; // 🔥 IMPORTANTE
+use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsReserva;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -61,7 +62,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         $targetBookId = $reserva->getBeds24MasterId();
 
         // 2. Sino lo buscamos en el link
-        if (empty($targetBookId) ) {
+        if (empty($targetBookId)) {
             foreach ($reserva->getEventosCalendario() as $evento) {
                 /** @var PmsEventoCalendario $evento */
                 foreach ($evento->getBeds24Links() as $link) {
@@ -74,17 +75,16 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             }
         }
 
-        // 🔥 OBTENEMOS EL ID DEL CANAL (Ej: 'airbnb', 'booking', 'directo')
+        // 🔥 OBTENEMOS EL ID DEL CANAL
         $sourceId = $reserva->getChannel() ? $reserva->getChannel()->getId() : PmsChannel::CODIGO_DIRECTO;
 
         return [
             'beds24_book_id' => $targetBookId,
             'beds24_config'  => $reserva->getEstablecimiento()?->getBeds24Config(),
-            'source'         => $sourceId, // 🔥 AÑADIDO PARA LA REGLA DE OTAs
+            'source'         => $sourceId,
         ];
     }
 
-    // 🔥 CAMBIADO EL NOMBRE A getMessageVariables (Refactor)
     public function getMessageVariables(string $contextId): array
     {
         $reserva = $this->getReserva($contextId);
@@ -111,6 +111,38 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'guest_country'         => $pais ? $pais->getNombre() : '',
             'guide_url'             => rtrim($this->paxBookGuideUrl, '/') . '/' . $localizador,
             'guide_path'            => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $localizador,
+            'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
+            'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
+        ];
+    }
+
+    /**
+     * Obtiene un conjunto de variables mixtas (URLs reales + Datos Dummy) para previsualizaciones
+     * y para inyectar en el array obligatorio 'example' al crear plantillas en Meta.
+     *
+     * @return array<string, string|int|float> Diccionario de variables dummy seguras.
+     */
+    public function getPreviewMessageVariables(): array
+    {
+        $dummyLocator = 'PREVIEW-123456';
+        $now = new DateTimeImmutable();
+        $checkout = $now->modify('+4 days');
+
+        return [
+            'guest_name'            => 'John',
+            'guest_full_name'       => 'John Doe',
+            'locator'               => $dummyLocator,
+            'checkin_date'          => $now->format('d/m/Y'),
+            'checkout_date'         => $checkout->format('d/m/Y'),
+            'nights'                => 4,
+            'pax_total'             => 2,
+            'total_amount'          => '150.00',
+            'property_name'         => 'Centro Cusco Inti',
+            'room_name'             => 'Casita Principal',
+            'channel_name'          => 'Booking.com',
+            'guest_country'         => 'Perú',
+            'guide_url'             => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator,
+            'guide_path'            => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $dummyLocator,
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
         ];

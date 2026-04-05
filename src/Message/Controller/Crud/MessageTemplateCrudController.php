@@ -10,6 +10,7 @@ use App\Message\Form\Type\EmailTemplateType;
 use App\Message\Form\Type\WhatsappLinkTemplateType;
 use App\Message\Form\Type\WhatsappMetaTemplateType;
 use App\Message\Service\MessageSegmentationAggregator;
+use App\Message\Service\Meta\Template\WhatsappMetaTemplatePushService;
 use App\Message\Service\Meta\Template\WhatsappMetaTemplateSyncService;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Security\Roles;
@@ -29,7 +30,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Throwable;
 
 class MessageTemplateCrudController extends BaseCrudController
@@ -66,15 +66,29 @@ class MessageTemplateCrudController extends BaseCrudController
 
     public function configureActions(Actions $actions): Actions
     {
+        // 1. Botón global para sincronizar (PULL)
         $syncMetaAction = Action::new('syncMetaTemplates', 'Sincronizar Meta', 'fa fa-cloud-download-alt')
-            ->linkToCrudAction('executeMetaSync') // Apunta al método de abajo
-            ->createAsGlobalAction()              // Lo coloca arriba a la derecha, junto a "Crear"
+            ->linkToCrudAction('executeMetaSync')
+            ->createAsGlobalAction()
             ->setCssClass('btn btn-info');
+
+        // 2. Botón individual para hacer PUSH a Meta (Bypass interfaz web)
+        $pushMetaAction = Action::new('pushMetaTemplate', 'Push a Meta', 'fa fa-cloud-upload-alt')
+            ->linkToCrudAction('executePushToMeta')
+            ->setCssClass('btn btn-warning text-dark') // Diferenciado visualmente
+            ->displayIf(static function (MessageTemplate $entity) {
+                // Solo mostrar si tiene datos de Meta
+                return !empty($entity->getWhatsappMetaTmpl());
+            });
 
         $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DETAIL)
-            ->add(Crud::PAGE_INDEX, $syncMetaAction);
+            ->add(Crud::PAGE_INDEX, $syncMetaAction)
+            // Añadimos el nuevo botón de Push en lista, vista detalle y edición
+            ->add(Crud::PAGE_INDEX, $pushMetaAction)
+            ->add(Crud::PAGE_DETAIL, $pushMetaAction)
+            ->add(Crud::PAGE_EDIT, $pushMetaAction);
 
         $actions = parent::configureActions($actions);
 
@@ -91,7 +105,8 @@ class MessageTemplateCrudController extends BaseCrudController
             ->setPermission(Action::DETAIL, Roles::MENSAJES_SHOW)
             ->setPermission(Action::NEW, Roles::MENSAJES_WRITE)
             ->setPermission(Action::EDIT, Roles::MENSAJES_WRITE)
-            ->setPermission(Action::DELETE, Roles::MENSAJES_DELETE);
+            ->setPermission(Action::DELETE, Roles::MENSAJES_DELETE)
+            ->setPermission('pushMetaTemplate', Roles::MENSAJES_WRITE); // Requiere permisos de escritura
     }
 
     public function configureFields(string $pageName): iterable
@@ -256,5 +271,68 @@ class MessageTemplateCrudController extends BaseCrudController
             ->generateUrl();
 
         return $this->redirect($targetUrl);
+    }
+
+    /**
+     * Fuerz el envío (Push) de la estructura JSON de esta plantilla hacia Meta
+     * para su creación o actualización en múltiples idiomas, bypaseando la web de Facebook.
+     *
+     * @param AdminContext $context Contexto actual de la petición en EasyAdmin.
+     * @param WhatsappMetaTemplatePushService $pushService Servicio encargado de formatear y subir la plantilla a Meta.
+     * @param AdminUrlGenerator $adminUrlGenerator Generador de URLs.
+     * @return Response Redirección a la vista previa.
+     */
+    public function executePushToMeta(
+        AdminContext $context,
+        WhatsappMetaTemplatePushService $pushService,
+        AdminUrlGenerator $adminUrlGenerator
+    ): Response {
+        $template = $context->getEntity()->getInstance();
+
+        if (!$template instanceof MessageTemplate) {
+            $this->addFlash('danger', 'Error interno: No se pudo obtener la entidad de la plantilla.');
+            return $this->redirect($context->getReferrer() ?? $adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
+        }
+
+        try {
+            // Ejecutamos el servicio que armamos, que procesa todos los idiomas
+            $results = $pushService->pushTemplateToMeta($template);
+
+            if (empty($results)) {
+                $this->addFlash('warning', 'La plantilla local no tiene un JSON de WhatsApp Meta válido o no contiene idiomas configurados.');
+            } else {
+                $successCount = 0;
+                $errorMessages = [];
+
+                // Analizamos los resultados por idioma
+                foreach ($results as $lang => $result) {
+                    if ($result['status'] === 'success') {
+                        $successCount++;
+                    } else {
+                        $errorMessages[] = strtoupper($lang) . ': ' . $result['message'];
+                    }
+                }
+
+                // Generamos el feedback al usuario
+                if ($successCount > 0) {
+                    $this->addFlash('success', sprintf('✅ Se enviaron a revisión en Meta %d idiomas exitosamente.', $successCount));
+                }
+
+                if (!empty($errorMessages)) {
+                    $this->addFlash('danger', '❌ Ocurrieron errores en algunos idiomas: <br>' . implode('<br>', $errorMessages));
+                }
+            }
+
+        } catch (Throwable $e) {
+            $this->addFlash('danger', 'Error crítico al hacer Push a Meta: ' . $e->getMessage());
+        }
+
+        // Retornamos a la misma vista donde el usuario hizo clic (Index, Detail o Edit)
+        $referrer = $context->getReferrer();
+        if ($referrer) {
+            return $this->redirect($referrer);
+        }
+
+        return $this->redirect($adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl());
     }
 }

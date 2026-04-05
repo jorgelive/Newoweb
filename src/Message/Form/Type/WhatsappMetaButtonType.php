@@ -26,7 +26,7 @@ class WhatsappMetaButtonType extends AbstractType
         $builder
             ->add('index', IntegerType::class, [
                 'label' => 'Índice (Posición)',
-                'attr' => ['readonly' => true], // Bloqueado: Lo controla Meta
+                'attr' => ['readonly' => false], // Bloqueado: Lo controla Meta
                 'help' => '0 = Primer botón, 1 = Segundo...',
                 'row_attr' => ['class' => 'col-md-2 mb-3'],
             ])

@@ -148,4 +148,91 @@ final class WhatsappMetaClient implements ExchangeClientInterface
 
         return $decoded ?? [];
     }
+
+    /**
+     * PUSH DE DEFINICIÓN: Envía el JSON estructural de una plantilla para revisión de Meta.
+     */
+    public function pushTemplateDefinition(MetaConfig $config, ExchangeEndpoint $endpoint, array $templatePayload): array
+    {
+        $apiKey = $config->getCredential('apiKey') ?? $config->getToken();
+        $wabaId = $config->getCredential('wabaId');
+
+        if (!$apiKey || !$wabaId) {
+            throw new \RuntimeException(sprintf('La configuración de Meta [%s] no tiene API Key o WABA ID para hacer Push.', $config->getNombre()));
+        }
+
+        $dynamicPath = str_replace('{wabaId}', (string)$wabaId, (string)$endpoint->getEndpoint());
+        $url = sprintf('%s/%s', rtrim((string)$config->getBaseUrlRaw(), '/'), ltrim($dynamicPath, '/'));
+
+        $response = $this->httpClient->request('POST', $url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type'  => 'application/json',
+            ],
+            'json' => $templatePayload
+        ]);
+
+        $content = $response->getContent(false);
+        $decoded = json_decode($content, true);
+
+        if ($response->getStatusCode() >= 400) {
+            // 🔥 EXTRACCIÓN PROFUNDA DEL ERROR DE META 🔥
+            $baseError = $decoded['error']['message'] ?? 'Error desconocido';
+            $userMsg = $decoded['error']['error_user_msg'] ?? '';
+            $details = $decoded['error']['error_data']['details'] ?? '';
+
+            $detailedError = $baseError;
+            if ($userMsg) {
+                $detailedError .= ' | ' . $userMsg;
+            }
+            if ($details) {
+                $detailedError .= ' | Detalles: ' . $details;
+            }
+
+            throw new \RuntimeException($detailedError);
+        }
+
+        return $decoded ?? [];
+    }
+
+    /**
+     * EDITAR DEFINICIÓN: Actualiza los componentes de un idioma existente directamente por su ID.
+     * A diferencia del Push, aquí Meta solo permite enviar la llave 'components'.
+     */
+    public function editTemplateDefinition(MetaConfig $config, string $templateId, array $componentsPayload): array
+    {
+        $apiKey = $config->getCredential('apiKey') ?? $config->getToken();
+
+        if (!$apiKey) {
+            throw new \RuntimeException(sprintf('La configuración de Meta [%s] no tiene API Key.', $config->getNombre()));
+        }
+
+        // Para editar, la URL es la base + el ID numérico de la plantilla (no el path con wabaId)
+        $url = sprintf('%s/%s', rtrim((string)$config->getBaseUrlRaw(), '/'), $templateId);
+
+        $response = $this->httpClient->request('POST', $url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type'  => 'application/json',
+            ],
+            'json' => ['components' => $componentsPayload]
+        ]);
+
+        $content = $response->getContent(false);
+        $decoded = json_decode($content, true);
+
+        if ($response->getStatusCode() >= 400) {
+            $baseError = $decoded['error']['message'] ?? 'Error desconocido';
+            $userMsg = $decoded['error']['error_user_msg'] ?? '';
+            $details = $decoded['error']['error_data']['details'] ?? '';
+
+            $detailedError = $baseError;
+            if ($userMsg) $detailedError .= ' | ' . $userMsg;
+            if ($details) $detailedError .= ' | Detalles: ' . $details;
+
+            throw new \RuntimeException('Error EDITANDO en Meta API: ' . $detailedError);
+        }
+
+        return $decoded ?? [];
+    }
 }

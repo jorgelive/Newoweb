@@ -15,9 +15,10 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Servicio encargado de EMPUJAR (Push) plantillas locales hacia WhatsApp Meta Cloud API.
- * * Esta versión está optimizada para la CREACIÓN de nuevas plantillas, forzando el formato
- * de parámetros NOMBRADOS para evitar errores de validación en la interfaz de Meta.
+ * Servicio encargado de sincronizar (Push/Edit) plantillas locales hacia WhatsApp Meta Cloud API.
+ * * * AUTO-DISCOVERY: Detecta si el idioma existe en Meta para decidir si crear o editar.
+ * * VALIDACIÓN ESTRICTA: Lanza excepción si un Quick Reply o URL no tiene 'resolver_key'.
+ * * REGLA META: En la definición de estructura, los botones Quick Reply no llevan payload técnico.
  */
 final readonly class WhatsappMetaTemplatePushService
 {
@@ -29,11 +30,9 @@ final readonly class WhatsappMetaTemplatePushService
     ) {}
 
     /**
-     * Envía la estructura completa de la plantilla a Meta para su revisión.
-     * Itera sobre cada idioma definido en el JSON local.
-     *
-     * @param MessageTemplate $template Entidad que contiene el JSON de Meta.
-     * @return array<string, array<string, mixed>> Resultados por idioma.
+     * Sincroniza la estructura de la plantilla con Meta.
+     * * @param MessageTemplate $template Entidad con el JSON de Meta.
+     * @return array Resumen de operaciones por idioma.
      */
     public function pushTemplateToMeta(MessageTemplate $template): array
     {
@@ -42,12 +41,12 @@ final readonly class WhatsappMetaTemplatePushService
             throw new RuntimeException('No se encontró una configuración de Meta activa.');
         }
 
-        $endpoint = $this->em->getRepository(ExchangeEndpoint::class)->findOneBy([
-            'accion' => 'PUSH_META_TEMPLATE'
-        ]);
+        $pushEndpoint = $this->em->getRepository(ExchangeEndpoint::class)->findOneBy(['accion' => 'PUSH_META_TEMPLATE']);
+        $fetchEndpoint = $this->em->getRepository(ExchangeEndpoint::class)->findOneBy(['accion' => 'FETCH_META_TEMPLATES']);
 
-        if (!$endpoint) {
-            throw new RuntimeException('Endpoint PUSH_META_TEMPLATE no configurado en Exchange.');
+        // 🔥 CORRECCIÓN: Variable corregida a $pushEndpoint
+        if (!$pushEndpoint || !$fetchEndpoint) {
+            throw new RuntimeException('Endpoints PUSH_META_TEMPLATE o FETCH_META_TEMPLATES no configurados en Exchange.');
         }
 
         $metaTmpl = $template->getWhatsappMetaTmpl();
@@ -58,40 +57,47 @@ final readonly class WhatsappMetaTemplatePushService
         // Datos dummy del Resolver para los "examples" obligatorios de Meta
         $previewData = $this->previewResolver->getPreviewMessageVariables();
 
-        // Extraemos los idiomas únicos definidos en el bloque body
-        $localLanguages = [];
-        foreach ($metaTmpl['body'] ?? [] as $b) {
-            if (!empty($b['language'])) {
-                $localLanguages[] = $b['language'];
-            }
+        // AUTO-DISCOVERY: Obtenemos lo que ya existe en Meta para no duplicar
+        try {
+            $metaResponse = $this->metaClient->fetchTemplates($config, $fetchEndpoint);
+            $existingTemplates = $metaResponse['data'] ?? [];
+        } catch (Throwable $e) {
+            $this->logger->error('Error recuperando plantillas de Meta: ' . $e->getMessage());
+            $existingTemplates = [];
         }
-        $localLanguages = array_unique($localLanguages);
 
+        $localLanguages = array_unique(array_map(fn($b) => $b['language'], $metaTmpl['body'] ?? []));
         $results = [];
 
         foreach ($localLanguages as $localLang) {
             $metaLangCode = $this->mapLanguageToMeta($localLang);
+            $templateName = $metaTmpl['meta_template_name'];
 
             try {
-                // Construimos el payload con parameter_format => NAMED
+                // Construimos payload minimalista (sin payloads técnicos en botones)
                 $payload = $this->buildSingleLanguagePayload($metaTmpl, $localLang, $metaLangCode, $previewData);
 
-                $response = $this->metaClient->pushTemplateDefinition($config, $endpoint, $payload);
+                $existingId = $this->findExistingTemplateId($existingTemplates, $templateName, $metaLangCode);
 
-                $results[$localLang] = [
-                    'status' => 'success',
-                    'meta_id' => $response['id'] ?? null,
-                    'meta_lang' => $metaLangCode
-                ];
+                if ($existingId) {
+                    // --- MODO EDICIÓN ---
+                    $this->metaClient->editTemplateDefinition($config, $existingId, $payload['components']);
+                    $results[$localLang] = ['status' => 'success', 'action' => 'EDITED', 'meta_id' => $existingId];
+                } else {
+                    // --- MODO CREACIÓN ---
+                    $response = $this->metaClient->pushTemplateDefinition($config, $pushEndpoint, $payload);
+                    $results[$localLang] = ['status' => 'success', 'action' => 'CREATED', 'meta_id' => $response['id'] ?? null];
+                }
 
-                $this->logger->info(sprintf('Push exitoso: %s (%s)', $metaTmpl['meta_template_name'], $metaLangCode));
+                $this->logger->info("Sincronización exitosa: $templateName ($metaLangCode)");
 
             } catch (Throwable $e) {
-                $results[$localLang] = [
-                    'status' => 'error',
-                    'message' => $e->getMessage()
-                ];
-                $this->logger->error(sprintf('Fallo en Push %s: %s', $metaLangCode, $e->getMessage()));
+                $results[$localLang] = ['status' => 'error', 'message' => $e->getMessage()];
+
+                // Si falta resolver_key, abortamos todo el proceso
+                if ($e instanceof RuntimeException && str_contains($e->getMessage(), 'resolver_key')) {
+                    throw $e;
+                }
             }
         }
 
@@ -99,7 +105,21 @@ final readonly class WhatsappMetaTemplatePushService
     }
 
     /**
-     * Construye el JSON individual por idioma con la estructura exacta que Meta exige.
+     * Busca el ID de una plantilla existente en el pool de Meta.
+     */
+    private function findExistingTemplateId(array $metaTemplates, string $name, string $langCode): ?string
+    {
+        foreach ($metaTemplates as $tpl) {
+            if (($tpl['name'] ?? '') === $name && ($tpl['language'] ?? '') === $langCode) {
+                return (string)($tpl['id'] ?? '');
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Construye el payload JSON para un idioma específico.
+     * @throws RuntimeException Si un Quick Reply carece de resolver_key.
      */
     private function buildSingleLanguagePayload(array $metaTmpl, string $localLang, string $metaLangCode, array $previewData): array
     {
@@ -151,6 +171,16 @@ final readonly class WhatsappMetaTemplatePushService
                 $btnText = $this->extractTextByLanguage($btnMap['button_text'] ?? [], $localLang);
                 if ($btnText === '') continue;
 
+                // VALIDACIÓN TRANSVERSAL: Ambos tipos de botones requieren resolver_key
+                if (empty($btnMap['resolver_key'])) {
+                    throw new RuntimeException(sprintf(
+                        'Error de validación: El botón "%s" (tipo: %s) en el idioma [%s] NO tiene definida una "resolver_key".',
+                        $btnText,
+                        $btnMap['type'] ?? 'unknown',
+                        $localLang
+                    ));
+                }
+
                 if ($btnMap['type'] === 'url') {
                     $url = (string)($btnMap['content'] ?? '');
                     $btnComp = [
@@ -166,6 +196,7 @@ final readonly class WhatsappMetaTemplatePushService
                     $buttons[] = $btnComp;
 
                 } elseif ($btnMap['type'] === 'quick_reply') {
+                    // Para definición estructural en Meta, no enviamos el payload técnico
                     $buttons[] = [
                         'type' => 'QUICK_REPLY',
                         'text' => $btnText
@@ -186,7 +217,7 @@ final readonly class WhatsappMetaTemplatePushService
             'language'         => $metaLangCode,
             'category'         => $metaTmpl['category'] ?? 'MARKETING',
             'components'       => $components,
-            'parameter_format' => 'NAMED' // Indica que usamos {{variable_name}}
+            'parameter_format' => 'NAMED'
         ];
     }
 

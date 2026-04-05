@@ -40,10 +40,6 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
     /**
      * Mapea un lote de mensajes encolados hacia la estructura esperada por la API Cloud de Meta.
-     *
-     * @param HomogeneousBatch $batch Lote de elementos a procesar.
-     * @return MappingResult El resultado del mapeo con el payload final y el mapa de correlación.
-     * @throws RuntimeException Si falta la configuración crítica o se viola una política de Meta.
      */
     public function map(HomogeneousBatch $batch): MappingResult
     {
@@ -169,7 +165,6 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                                 if (!isset($variables[$paramName]) || (string)$variables[$paramName] === '') {
                                     throw new RuntimeException(sprintf('Error (Header): Variable "%s" vacía.', $paramName));
                                 }
-                                // Meta exige 'parameter_name' en todos los componentes cuando se usan variables nombradas
                                 $headerComponent['parameters'][] = [
                                     'type' => 'text',
                                     'parameter_name' => $paramName,
@@ -218,17 +213,38 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
                     $messagePayload['template']['components'][] = ['type' => 'body', 'parameters' => $resolvedBodyParams];
                 }
 
-                // 3. BOTONES NATIVOS
+                // 3. BOTONES NATIVOS (Modificado para soportar URL y QUICK_REPLY)
                 foreach ($metaJson['buttons_map'] ?? [] as $btn) {
-                    if (($btn['type'] ?? '') === 'url') {
+                    $btnType = strtolower((string)($btn['type'] ?? ''));
+                    $indexStr = (string) ($btn['index'] ?? '0');
+
+                    if ($btnType === 'url') {
                         $resolverKey = $btn['resolver_key'] ?? str_replace(['{{', '}}', ' '], '', $btn['content'] ?? '');
                         $urlValue = (string) ($variables[$resolverKey] ?? '');
 
                         $messagePayload['template']['components'][] = [
                             'type' => 'button',
                             'sub_type' => 'url',
-                            'index' => (string) ($btn['index'] ?? '0'),
-                            'parameters' => [['type' => 'text', 'text' => $urlValue]]
+                            'index' => $indexStr,
+                            'parameters' => [
+                                ['type' => 'text', 'text' => $urlValue]
+                            ]
+                        ];
+                    } elseif ($btnType === 'quick_reply') {
+                        // 🔥 INYECCIÓN DE PAYLOAD: Aquí mandamos tu CMD_ a Meta en el envío
+                        $resolverKey = (string)($btn['resolver_key'] ?? '');
+
+                        if ($resolverKey === '') {
+                            throw new RuntimeException(sprintf('Error (Botones): La plantilla "%s" intenta enviar un Quick Reply sin "resolver_key".', $template->getCode()));
+                        }
+
+                        $messagePayload['template']['components'][] = [
+                            'type' => 'button',
+                            'sub_type' => 'quick_reply',
+                            'index' => $indexStr,
+                            'parameters' => [
+                                ['type' => 'payload', 'payload' => $resolverKey]
+                            ]
                         ];
                     }
                 }
@@ -291,6 +307,7 @@ final readonly class WhatsappMetaSendMappingStrategy implements MappingStrategyI
 
                         // 3. Usamos el botón dinámico con fallback traducido
                         $btnText = $menuTexts['default_btn'];
+
                         foreach ($btn['button_text'] ?? [] as $tr) {
                             if ($this->normalizeLanguageForMeta(strtolower($tr['language'])) === $metaLang) {
                                 $btnText = $tr['content'];
