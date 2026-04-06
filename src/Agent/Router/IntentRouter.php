@@ -6,7 +6,7 @@ namespace App\Agent\Router;
 
 use App\Agent\Action\BotActionHandlerInterface;
 use App\Agent\Entity\AutoResponderRule;
-use App\Agent\Service\AiConversationProcessor;
+//use App\Agent\Service\AiConversationProcessor;
 use App\Message\Entity\Message;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
@@ -22,7 +22,7 @@ final readonly class IntentRouter
      */
     public function __construct(
         private EntityManagerInterface $em,
-        #[AutowireIterator(BotActionHandlerInterface::class)]
+        #[AutowireIterator('app.bot_action_handler')]
         private iterable $actionHandlers,
         //private AiConversationProcessor $aiProcessor
     ) {}

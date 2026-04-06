@@ -40,8 +40,7 @@ final readonly class SendTemplateActionHandler implements BotActionHandlerInterf
 
         // 2. Buscamos la plantilla en la BD
         $template = $this->em->getRepository(MessageTemplate::class)->findOneBy([
-            'code' => $templateCode,
-            'isActive' => true
+            'code' => $templateCode
         ]);
 
         if (!$template) {
