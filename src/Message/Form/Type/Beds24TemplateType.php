@@ -21,6 +21,11 @@ class Beds24TemplateType extends AbstractType
                 'required' => false,
                 'row_attr' => ['class' => 'col-md-12 mb-3'],
             ])
+            ->add('disable_meta_buttons', CheckboxType::class, [
+                'label' => 'Ocultar botones interactivos (No emular botonera de WhatsApp al final del mensaje)',
+                'required' => false,
+                'row_attr' => ['class' => 'col-md-12 mb-3 text-warning font-weight-bold'],
+            ])
             ->add('body', CollectionType::class, [
                 'entry_type' => TranslationLongTextType::class,
                 'label' => 'Cuerpo del Mensaje ( Soporta {{ guest_name }}, {{ localizador }}, {{ casita_url }} )',

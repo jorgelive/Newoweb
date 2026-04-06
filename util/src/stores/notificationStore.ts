@@ -47,12 +47,43 @@ export const useNotificationStore = defineStore('notificationStore', () => {
     };
 
     const addNotification = (payload: Omit<AppNotification, 'id'>): void => {
-        // Validación de URLs corruptas de Mercure (cuando manda "unknown" o "undefined")
-        if (payload.actionUrl && (payload.actionUrl.includes('undefined') || payload.actionUrl.includes('unknown'))) {
-            payload.actionUrl = undefined;
+
+        // ====================================================================
+        // ESCUDO ANTI-BASURA TOTAL PARA EL TOAST
+        // ====================================================================
+        if (payload.actionUrl) {
+            let url = String(payload.actionUrl);
+
+            // 1. Si la ruta incluye literalmente la palabra 'undefined' o 'unknown'
+            if (url.includes('undefined') || url.includes('unknown')) {
+                console.warn('[notificationStore] ⚠️ URL corrupta detectada desde el origen:', url, 'Payload completo:', payload);
+                payload.actionUrl = '/chat';
+            }
+            // 2. Si el Service Worker manda el dominio pegado (ej: http://util.openperu.pe019d4...)
+            else if (url.includes('openperu.pe') && !url.includes('/chat')) {
+                const parts = url.split('openperu.pe');
+                let dirtyId = parts[1] ? parts[1].replace(/^\//, '') : '';
+
+                if (dirtyId && dirtyId.length > 10) {
+                    payload.actionUrl = `/chat?id=${dirtyId}`;
+                } else {
+                    payload.actionUrl = '/chat';
+                }
+            }
+            // 3. Fallback: Si es una URL absoluta sana, extraemos la ruta relativa
+            else if (url.startsWith('http')) {
+                try {
+                    const obj = new URL(url);
+                    payload.actionUrl = obj.pathname + obj.search;
+                } catch(e) {
+                    payload.actionUrl = '/chat';
+                }
+            }
+        } else {
+            payload.actionUrl = '/chat'; // Si viene vacío, lo mandamos al inbox
         }
 
-        // Filtro anti-spam: Si una notificación con el mismo título, cuerpo y URL ya está en pantalla, la ignoramos.
+        // Filtro anti-spam: Evita toasts idénticos al mismo tiempo
         const isDuplicate = notifications.value.some(
             n => n.title === payload.title && n.body === payload.body && n.actionUrl === payload.actionUrl
         );
@@ -69,53 +100,23 @@ export const useNotificationStore = defineStore('notificationStore', () => {
     };
 
     const subscribeToPushNotifications = async (): Promise<boolean> => {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            console.warn('Push messaging no es soportado.');
-            return false;
-        }
-
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
         try {
             const permission = await Notification.requestPermission();
-            if (permission !== 'granted') {
-                return false;
-            }
-
+            if (permission !== 'granted') return false;
             const registration = await navigator.serviceWorker.ready;
             const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-
-            if (!vapidPublicKey) {
-                console.error('La clave VAPID pública no está configurada en el .env');
-                return false;
-            }
-
+            if (!vapidPublicKey) return false;
             const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
-
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: convertedVapidKey as BufferSource
-            });
-
+            const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: convertedVapidKey as BufferSource });
             const subscriptionData = subscription.toJSON();
-
-            await apiClient.post('/user/push-subscription', {
-                endpoint: subscriptionData.endpoint,
-                p256dh: subscriptionData.keys?.p256dh,
-                auth: subscriptionData.keys?.auth
-            });
-
+            await apiClient.post('/user/push-subscription', { endpoint: subscriptionData.endpoint, p256dh: subscriptionData.keys?.p256dh, auth: subscriptionData.keys?.auth });
             return true;
-
-        } catch (error) {
-            console.error('Error al intentar suscribirse:', error);
-            return false;
-        }
+        } catch (error) { return false; }
     };
 
     const unsubscribeFromPushNotifications = async (): Promise<void> => {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            return;
-        }
-
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
         try {
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.getSubscription();
@@ -125,17 +126,8 @@ export const useNotificationStore = defineStore('notificationStore', () => {
                 await subscription.unsubscribe();
                 await apiClient.post('/user/push-unsubscribe', { endpoint });
             }
-        } catch (error) {
-            console.error('Error al desuscribirse:', error);
-        }
+        } catch (error) {}
     };
 
-    return {
-        getNotifications,
-        setNotifications,
-        addNotification,
-        removeNotification,
-        subscribeToPushNotifications,
-        unsubscribeFromPushNotifications
-    };
+    return { getNotifications, setNotifications, addNotification, removeNotification, subscribeToPushNotifications, unsubscribeFromPushNotifications };
 });

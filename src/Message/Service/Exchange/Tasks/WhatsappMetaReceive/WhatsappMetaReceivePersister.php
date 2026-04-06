@@ -402,6 +402,7 @@ readonly class WhatsappMetaReceivePersister
                 '131049', // Ventana cerrada (Obligatorio usar plantilla)
                 '131056', // Sandbox / No verificado
                 '131030', // Recipiente inválido
+                '130497' // Business account is restricted from messaging users in this country.
             ];
 
             if (in_array($errorCode, $criticalErrors, true)) {

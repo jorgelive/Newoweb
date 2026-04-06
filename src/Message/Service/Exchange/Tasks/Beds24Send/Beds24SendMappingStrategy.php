@@ -61,7 +61,6 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 continue;
             }
 
-
             // =================================================================
             // ⬇️ ESCENARIO B: ENVÍO DE MENSAJE NUEVO (OUTGOING) ⬇️
             // =================================================================
@@ -103,15 +102,31 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                 }, $content);
             }
 
-            // 3. 🎯 RENDERIZADO OMNICANAL DE BOTONES (FUENTE: META)
-            if ($template !== null) {
+            // 3. 🎯 RENDERIZADO OMNICANAL DE BOTONES (UX MEJORADO)
+            // 🔥 VALIDACIÓN: Verificamos si el usuario bloqueó la generación de botones para Beds24
+            $disableMetaButtons = $template !== null && $template->isBeds24MetaButtonsDisabled();
+
+            if (!$disableMetaButtons && $template !== null) {
                 $metaJson = $template->getWhatsappMetaTmpl();
 
                 if (!empty($metaJson['buttons_map'])) {
+
+                    // Detección Inteligente: ¿Hay opciones para interactuar o son puros links?
+                    $hasQuickReplies = false;
+                    foreach ($metaJson['buttons_map'] as $btn) {
+                        if (strtolower($btn['type'] ?? '') === 'quick_reply') {
+                            $hasQuickReplies = true;
+                            break;
+                        }
+                    }
+
                     $menuTexts = $this->getMenuTranslations($templateLang);
                     $metaLang = $this->normalizeLanguageForMeta($templateLang);
 
-                    $content .= "\n\n" . $menuTexts['header'] . "\n\n";
+                    // Inyectamos el título semánticamente correcto
+                    $headerTitle = $hasQuickReplies ? $menuTexts['header_options'] : $menuTexts['header_links'];
+                    $content .= "\n\n" . $headerTitle . "\n\n";
+
                     $quickReplyIndex = 1;
 
                     foreach ($metaJson['buttons_map'] as $btn) {
@@ -139,7 +154,8 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
                         }
                     }
 
-                    if ($quickReplyIndex > 1) {
+                    // Inyectamos el footer dinámico SOLO si hay Quick Replies reales
+                    if ($hasQuickReplies) {
                         $content = rtrim($content) . "\n\n" . $menuTexts['footer'];
                     } else {
                         $content = rtrim($content);
@@ -225,43 +241,53 @@ final readonly class Beds24SendMappingStrategy implements MappingStrategyInterfa
 
     /**
      * Diccionario rápido para los textos de la interfaz emulada.
+     * Soporta dos contextos visuales:
+     * - header_options: Para menús mixtos o interactivos.
+     * - header_links: Para menús que solo contienen URLs (sin interacción del usuario).
      */
     private function getMenuTranslations(string $lang): array
     {
         $translations = [
             'es' => [
-                'header' => '*— Opciones —*',
-                'footer' => '_👉 Responde con el número de tu opción._',
-                'default_btn' => 'Opción'
+                'header_options' => '*— Opciones —*',
+                'header_links'   => '*— Enlaces —*',
+                'footer'         => '_👉 Responde con el número de tu opción._',
+                'default_btn'    => 'Opción'
             ],
             'en' => [
-                'header' => '*— Options —*',
-                'footer' => '_👉 Reply with the number of your option._',
+                'header_options' => '*— Options —*',
+                'header_links'   => '*— Links —*',
+                'footer'         => '_👉 Reply with the number of your option._',
                 'default_btn' => 'Option'
             ],
             'pt' => [
-                'header' => '*— Opções —*',
-                'footer' => '_👉 Responda com o número da sua opção._',
+                'header_options' => '*— Opções —*',
+                'header_links'   => '*— Links —*',
+                'footer'         => '_👉 Responda com o número da sua opção._',
                 'default_btn' => 'Opção'
             ],
             'fr' => [
-                'header' => '*— Options —*',
-                'footer' => '_👉 Répondez avec le numéro de votre option._',
+                'header_options' => '*— Options —*',
+                'header_links'   => '*— Liens —*',
+                'footer'         => '_👉 Répondez avec le numéro de votre option._',
                 'default_btn' => 'Option'
             ],
             'it' => [
-                'header' => '*— Opzioni —*',
-                'footer' => '_👉 Rispondi con il numero della tua opzione._',
+                'header_options' => '*— Opzioni —*',
+                'header_links'   => '*— Link —*',
+                'footer'         => '_👉 Rispondi con il numero della tua opzione._',
                 'default_btn' => 'Opzione'
             ],
             'de' => [
-                'header' => '*— Optionen —*',
-                'footer' => '_👉 Antworten Sie mit der Nummer Ihrer Option._',
+                'header_options' => '*— Optionen —*',
+                'header_links'   => '*— Links —*',
+                'footer'         => '_👉 Antworten Sie mit der Nummer Ihrer Option._',
                 'default_btn' => 'Option'
             ],
             'nl' => [
-                'header' => '*— Opties —*',
-                'footer' => '_👉 Antwoord met het nummer van uw optie._',
+                'header_options' => '*— Opties —*',
+                'header_links'   => '*— Links —*',
+                'footer'         => '_👉 Antwoord met het nummer van uw optie._',
                 'default_btn' => 'Optie'
             ]
         ];

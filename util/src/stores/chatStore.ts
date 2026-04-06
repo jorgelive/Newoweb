@@ -124,10 +124,26 @@ export const useChatStore = defineStore('chatStore', () => {
     });
 
     // ============================================================================
-    // INTERCEPTOR MEJORADO (DETECTA SYMFONY REDIRECT 302 -> HTML)
+    // INTERCEPTOR BLINDADO: Detecta el HTML de Symfony disfrazado de 200 OK
     // ============================================================================
     apiClient.interceptors.response.use(
-        response => response,
+        (response) => {
+            const contentType = response.headers['content-type'] || '';
+
+            // Si esperamos JSON pero Symfony nos manda el formulario de Login HTML
+            if (contentType.includes('text/html')) {
+                const originalRequest = response.config as CustomAxiosRequestConfig;
+                if (!originalRequest._retry && !originalRequest._silentAuthCheck) {
+                    isSessionExpired.value = true;
+                    originalRequest._retry = true;
+                    return new Promise((resolve, reject) => {
+                        failedQueue.push({ resolve, reject, config: originalRequest });
+                    });
+                }
+                return Promise.reject(new Error('Sesión expirada (HTML detectado)'));
+            }
+            return response;
+        },
         async (error) => {
             const originalRequest = error.config as CustomAxiosRequestConfig;
 
@@ -173,35 +189,21 @@ export const useChatStore = defineStore('chatStore', () => {
     const eventSource = shallowRef<EventSource | null>(null);
     const globalEventSource = shallowRef<EventSource | null>(null);
 
-    const filteredConversations = computed(() => {
-        return conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase());
-    });
-
-    // ============================================================================
-    // FILTROS DE PESTAÑAS MEJORADOS (Historial, Programados, Cancelados)
-    // ============================================================================
+    const filteredConversations = computed(() => conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()));
 
     const activeChatMessages = computed(() => {
         const now = new Date();
         return messages.value.filter(m => {
-            if (getMessageDisplayStatus(m) === 'cancelled') return false; // Los cancelados van a su propia pestaña
-
+            if (getMessageDisplayStatus(m) === 'cancelled') return false;
             const effectiveDate = new Date(m.effectiveDateTime || m.createdAt);
-            const isPast = effectiveDate <= now;
-
-            return m.scheduledForFuture === false || isPast;
+            return m.scheduledForFuture === false || effectiveDate <= now;
         });
     });
 
     const scheduledMessages = computed(() => {
         const now = new Date();
         return messages.value
-            .filter(m => {
-                if (getMessageDisplayStatus(m) === 'cancelled') return false; // Los cancelados van a su propia pestaña
-
-                const effectiveDate = new Date(m.effectiveDateTime || m.createdAt);
-                return m.scheduledForFuture === true && effectiveDate > now;
-            })
+            .filter(m => getMessageDisplayStatus(m) !== 'cancelled' && m.scheduledForFuture === true && new Date(m.effectiveDateTime || m.createdAt) > now)
             .sort((a, b) => new Date(a.effectiveDateTime || a.createdAt).getTime() - new Date(b.effectiveDateTime || b.createdAt).getTime());
     });
 
@@ -238,7 +240,7 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     // ============================================================================
-    // ACCIONES DE AUTENTICACIÓN
+    // COMPROBACIÓN DE SESIÓN RESILIENTE A CAÍDAS DE RED
     // ============================================================================
 
     /**
@@ -247,15 +249,18 @@ export const useChatStore = defineStore('chatStore', () => {
     const checkSession = async (): Promise<boolean> => {
         try {
             const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
-
-            // ✅ CORRECCIÓN AQUÍ: Evita que Symfony engañe al Axios con un HTTP 200 de la pantalla de login HTML
-            if (authResponse.headers['content-type']?.includes('text/html') || typeof authResponse.data === 'string') {
-                return false;
+            if (authResponse.headers['content-type']?.includes('text/html')) {
+                return false; // Murió la sesión (Symfony nos dio HTML)
             }
 
             return true;
-        } catch (e) {
-            return false;
+        } catch (e: any) {
+            // Solo devolvemos false si el servidor responde con 401.
+            // Si es un timeout o se cayó el internet móvil, asumimos TRUE para no disparar el modal en vano.
+            if (e.response?.status === 401) {
+                return false;
+            }
+            return true;
         }
     };
 
@@ -325,7 +330,9 @@ export const useChatStore = defineStore('chatStore', () => {
             hasMoreConversations.value = hasNextPage(response);
             conversationsPage.value = pageToFetch;
         } catch (err: any) {
-            if (err.response?.status !== 401) error.value = 'Error al sincronizar chats';
+            if (err.response?.status !== 401 && !err.message?.includes('HTML')) {
+                error.value = 'Error al sincronizar chats';
+            }
         } finally {
             loadingConversations.value = false;
             loadingMoreConversations.value = false;
@@ -339,11 +346,7 @@ export const useChatStore = defineStore('chatStore', () => {
         }
         try {
             const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
-
-            // Si nos topamos con HTML aquí, abortamos.
-            if (authResponse.headers['content-type']?.includes('text/html')) {
-                throw new Error('HTML response');
-            }
+            if (authResponse.headers['content-type']?.includes('text/html')) throw new Error('HTML response');
 
             const { hubUrl, token } = authResponse.data;
             const url = new URL(hubUrl);
@@ -397,9 +400,7 @@ export const useChatStore = defineStore('chatStore', () => {
 
         try {
             const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
-            if (authResponse.headers['content-type']?.includes('text/html')) {
-                throw new Error('HTML response');
-            }
+            if (authResponse.headers['content-type']?.includes('text/html')) throw new Error('HTML response');
 
             const { hubUrl, token } = authResponse.data;
             const url = new URL(hubUrl);
@@ -543,17 +544,7 @@ export const useChatStore = defineStore('chatStore', () => {
         try {
             const response = await apiClient.get(`/platform/user/util/msg/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
             const data = extractData(response) as ApiMessage[];
-
-            // 1. Filtro estricto (rechaza colas, cancelados y programados a futuro)
-            const realHistoryMessages = data.filter(m =>
-                m.scheduledForFuture !== true &&
-                (m as any).isScheduledForFuture !== true &&
-                m.status !== 'pending' &&
-                m.status !== 'queued' &&
-                m.status !== 'cancelled'
-            );
-
-            // 2. Tomar los primeros 5 limpios (la API los devolvió del más reciente al más viejo)
+            const realHistoryMessages = data.filter(m => m.scheduledForFuture !== true && (m as any).isScheduledForFuture !== true && m.status !== 'pending' && m.status !== 'queued' && m.status !== 'cancelled');
             const latest5 = realHistoryMessages.slice(0, 5);
             return latest5.sort((a, b) => new Date(a.effectiveDateTime || a.createdAt).getTime() - new Date(b.effectiveDateTime || b.createdAt).getTime());
         } catch (err) { return []; }
@@ -568,7 +559,6 @@ export const useChatStore = defineStore('chatStore', () => {
             navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
         }
     });
-
 
     return {
         conversations, filteredConversations, currentConversation, messages, activeChatMessages, scheduledMessages, cancelledMessages, templates, validTemplates, filterStatus, loadingConversations, loadingMessages, sendingMessage, error, loadingMoreConversations, loadingMoreMessages, hasMoreMessages, hasMoreConversations, isSessionExpired, checkSession, renewSession, cancelRenewal, getExternalContextUrl, fetchConversations, fetchTemplates, selectConversation, loadMoreMessages, sendMessage, initGlobalMercure, connectToMercure, newNotification, isChatVisible, getMessageDisplayStatus, fetchLatestMessagesForStalk

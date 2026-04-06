@@ -258,6 +258,18 @@ class MessageTemplate
         return ($this->beds24Tmpl['is_active'] ?? false) === true;
     }
 
+    /**
+     * Verifica si el usuario ha decidido ocultar explícitamente los botones de Meta
+     * al momento de enviar este mensaje a través de Beds24 (OTAs).
+     *
+     * @return bool
+     */
+    #[Groups(['template:read'])]
+    public function isBeds24MetaButtonsDisabled(): bool
+    {
+        return ($this->beds24Tmpl['disable_meta_buttons'] ?? false) === true;
+    }
+
     #[Groups(['template:read'])]
     public function isWhatsappMetaActive(): bool
     {
