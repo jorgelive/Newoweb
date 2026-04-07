@@ -1071,9 +1071,6 @@ const getDirectChannelId = (channel?: any): string | null => {
               <span v-if="m.template && m.direction === 'outgoing'" class="block text-[9px] font-black uppercase opacity-60 mb-0.5">
                 🤖 {{ getTemplateName(m.template) }}
               </span>
-              <span :class="{'italic': m.template}">
-                {{ m.contentLocal || m.contentExternal || (m.template ? '[Plantilla sin texto]' : '📎 [Archivo Adjunto]') }}
-              </span>
             </div>
           </div>
         </div>
