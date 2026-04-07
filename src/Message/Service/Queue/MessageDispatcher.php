@@ -9,6 +9,7 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 use Throwable;
 
@@ -24,7 +25,8 @@ readonly class MessageDispatcher
     public function __construct(
         #[TaggedIterator('app.message.enqueuer')]
         private iterable               $enqueuers,
-        private EntityManagerInterface $em
+        private EntityManagerInterface $em,
+        private LoggerInterface        $logger
     ) {}
 
     /**
@@ -35,13 +37,22 @@ readonly class MessageDispatcher
         $queues = [];
         $errors = [];
         $channels = $this->resolveChannels($message);
-
-        // 🔥 MAGIA DEL SCHEDULER: Leemos la fecha programada en memoria, o usamos "ahora"
         $runAt = $message->getScheduledAt() ?? new DateTimeImmutable();
 
         foreach ($channels as $channel) {
             foreach ($this->enqueuers as $enqueuer) {
                 if ($enqueuer->supports($channel)) {
+
+                    // 🛡️ BARRERA DE IDEMPOTENCIA
+                    if ($enqueuer->isAlreadyEnqueued($message)) {
+                        $this->logger->info(sprintf(
+                            'Idempotencia: La cola %s para el mensaje %s ya existe en BD. Ignorando doble creación.',
+                            $channel->getId(),
+                            $message->getId()?->toRfc4122() ?? 'N/A'
+                        ));
+                        break; // Salimos del bucle interno, vamos al siguiente canal
+                    }
+
                     try {
                         // Pasamos el $runAt exacto (presente o futuro) al Enqueuer
                         $queue = $enqueuer->createQueueEntity($message, $channel, $runAt);
@@ -50,8 +61,7 @@ readonly class MessageDispatcher
                             $queues[] = $queue;
                         }
                     } catch (Throwable $e) {
-                        // 🔥 CAPTURAMOS EL ERROR Y LO GUARDAMOS
-                        $errors[] = sprintf('[%s] %s', $channel->getName(), $e->getMessage());
+                        $errors[] = sprintf('[%s] %s', $channel->getName() ?? $channel->getId(), $e->getMessage());
                     }
                     break;
                 }

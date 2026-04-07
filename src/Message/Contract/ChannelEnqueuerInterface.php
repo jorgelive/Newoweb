@@ -28,4 +28,10 @@ interface ChannelEnqueuerInterface
         MessageChannel $channel,
         DateTimeImmutable $runAt
     ): ?MessageQueueItemInterface;
+
+    /**
+     * Verifica en la base de datos si ya existe una cola activa para este mensaje.
+     * Patrón Idempotencia para evitar duplicados por dobles flush() de Doctrine.
+     */
+    public function isAlreadyEnqueued(Message $message): bool;
 }

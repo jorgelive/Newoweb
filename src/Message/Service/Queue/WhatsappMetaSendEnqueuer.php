@@ -159,4 +159,47 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
 
         return $queue;
     }
+
+    public function isAlreadyEnqueued(Message $message): bool
+    {
+        if ($message->getId() === null) {
+            return false;
+        }
+
+        // =====================================================================
+        // CAPA 1: MEMORIA (Unit of Work)
+        // Previene duplicados si se llama al Dispatcher varias veces
+        // en el mismo request, ANTES del flush().
+        // =====================================================================
+        $uow = $this->em->getUnitOfWork();
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
+            if ($entity instanceof WhatsappMetaSendQueue) {
+                $queuedMessage = $entity->getMessage();
+
+                if ($queuedMessage !== null && $queuedMessage->getId() !== null) {
+                    // 🔥 COMPARACIÓN SEGURA
+                    if ($queuedMessage->getId()->equals($message->getId())) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // CAPA 2: BASE DE DATOS FÍSICA
+        // Previene duplicados contra colas que se crearon en requests anteriores
+        // o por otros workers/procesos.
+        // =====================================================================
+        $qb = $this->em->createQueryBuilder();
+        $count = (int) $qb->select('COUNT(q.id)')
+            ->from(WhatsappMetaSendQueue::class, 'q')
+            ->where('q.message = :message')
+            ->andWhere('q.status != :status_cancelled')
+            ->setParameter('message', $message)
+            ->setParameter('status_cancelled', WhatsappMetaSendQueue::STATUS_CANCELLED)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $count > 0;
+    }
 }

@@ -93,4 +93,48 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
 
         return $queue;
     }
+
+    public function isAlreadyEnqueued(Message $message): bool
+    {
+        if ($message->getId() === null) {
+            return false;
+        }
+
+        // =====================================================================
+        // CAPA 1: MEMORIA (Unit of Work)
+        // Previene duplicados si se llama al Dispatcher varias veces
+        // en el mismo request, ANTES del flush().
+        // =====================================================================
+        $uow = $this->em->getUnitOfWork();
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
+            if ($entity instanceof Beds24SendQueue) {
+                $queuedMessage = $entity->getMessage();
+
+                if ($queuedMessage !== null && $queuedMessage->getId() !== null) {
+                    // 🔥 COMPARACIÓN ROBUSTA POR VALOR DE UUID, NO POR INSTANCIA DE MEMORIA
+                    if ($queuedMessage->getId()->equals($message->getId())) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // CAPA 2: BASE DE DATOS FÍSICA
+        // Previene duplicados contra colas que se crearon en requests anteriores
+        // o por otros workers/procesos.
+        // =====================================================================
+        $qb = $this->em->createQueryBuilder();
+        $count = (int) $qb->select('COUNT(q.id)')
+            ->from(Beds24SendQueue::class, 'q')
+            ->where('q.message = :message')
+            // Opcional: ignoramos las que fueron explícitamente canceladas, permitiendo que se regeneren si es necesario.
+            ->andWhere('q.status != :status_cancelled')
+            ->setParameter('message', $message)
+            ->setParameter('status_cancelled', Beds24SendQueue::STATUS_CANCELLED)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $count > 0;
+    }
 }
