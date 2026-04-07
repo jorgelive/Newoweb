@@ -228,6 +228,8 @@ const stalkMessages = ref<ApiMessage[]>([]);
 const isLoadingStalk = ref(false);
 const isStalkHoverMode = ref(false);
 
+const stalkScrollContainer = ref<HTMLElement | null>(null);
+
 let stalkPressTimer: number | null = null;
 let stalkHoverTimer: number | null = null;
 const isStalkTouchAction = ref(false);
@@ -315,6 +317,11 @@ const openStalkMenu = async (chat: ApiConversation, event: MouseEvent | TouchEve
 
   try {
     stalkMessages.value = await store.fetchLatestMessagesForStalk(chat.id);
+
+    await nextTick();
+    if (stalkScrollContainer.value) {
+      stalkScrollContainer.value.scrollTop = stalkScrollContainer.value.scrollHeight;
+    }
   } finally {
     isLoadingStalk.value = false;
   }
