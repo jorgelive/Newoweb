@@ -589,17 +589,13 @@ const setDefaultChannels = () => {
 
   if (lastIncoming) {
     const channelId = getDirectChannelId(lastIncoming.channel);
-    // Si el último mensaje fue por WhatsApp y está permitido -> Seleccionar SOLO WhatsApp
     if (channelId === 'whatsapp_meta' && isWhatsappAllowed.value) {
       newChannels.push('whatsapp_meta');
-    }
-    // Si el último mensaje fue por Beds24 y está permitido -> Seleccionar SOLO Beds24
-    else if (channelId === 'beds24' && isBeds24Allowed.value) {
+    } else if (channelId === 'beds24' && isBeds24Allowed.value) {
       newChannels.push('beds24');
     }
   }
 
-  // FALLBACK: Solo si no hay canales detectados/permitidos en el paso anterior
   if (newChannels.length === 0) {
     if (isBeds24Allowed.value) newChannels.push('beds24');
     if (chat.whatsappSessionActive && !chat.whatsappDisabled) newChannels.push('whatsapp_meta');
@@ -1067,11 +1063,16 @@ const getDirectChannelId = (channel?: any): string | null => {
               <span>{{ m.direction === 'incoming' ? stalkConversation?.guestName || 'Huésped' : 'Tú' }}</span>
               <span>{{ formatStalkDate(m.effectiveDateTime || m.createdAt) }}</span>
             </div>
+
             <div class="whitespace-pre-wrap break-words opacity-90 font-medium">
-              <span v-if="m.template && m.direction === 'outgoing'" class="block text-[9px] font-black uppercase opacity-60 mb-0.5">
+              <span v-if="m.template" class="block text-[10px] font-black uppercase opacity-80">
                 🤖 {{ getTemplateName(m.template) }}
               </span>
+              <span v-else>
+                {{ m.contentLocal || m.contentExternal || '📎 [Archivo Adjunto]' }}
+              </span>
             </div>
+
           </div>
         </div>
 
