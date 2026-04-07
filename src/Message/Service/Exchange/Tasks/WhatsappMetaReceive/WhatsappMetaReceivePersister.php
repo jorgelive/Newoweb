@@ -107,23 +107,22 @@ readonly class WhatsappMetaReceivePersister
         if ($type === 'text') {
             $textoRecibido = trim($messageData['text']['body'] ?? '');
 
-            // 🔥 PROTECCIÓN DE LONGITUD: Evitamos el "Data too long" en MySQL
+            // PROTECCIÓN DE LONGITUD: Evitamos el "Data too long" en MySQL
             $safeContent = mb_substr($textoRecibido, 0, 60000, 'UTF-8');
             if (mb_strlen($textoRecibido, 'UTF-8') > 60000) {
                 $safeContent .= '... [CONTENIDO TRUNCADO POR SEGURIDAD]';
             }
 
             $message->setContentExternal($safeContent);
-            // ELIMINADO: $message->setContentLocal($textoRecibido); para permitir traducción automática.
 
             // =================================================================
-            // 🧠 DETECCIÓN DINÁMICA DE IDIOMA (Blindada y Normalizada)
+            // DETECCIÓN DINÁMICA DE IDIOMA (Blindada y Normalizada)
             // =================================================================
             $detectedLangCode = 'es';
             if (!empty($textoRecibido)) {
                 $rawDetected = $this->languageDetector->detectLanguageCode($textoRecibido, $currentConversationLang);
 
-                // 🔥 Normalizamos extrayendo solo las 2 primeras letras (ej: 'en-US' -> 'en')
+                // Normalizamos extrayendo solo las 2 primeras letras (ej: 'en-US' -> 'en')
                 $iso2LangCode = substr(strtolower($rawDetected), 0, 2);
 
                 $repoIdioma = $this->em->getRepository(MaestroIdioma::class);
@@ -148,7 +147,7 @@ readonly class WhatsappMetaReceivePersister
                 'action_code' => 'TXT_FREE'
             ]);
 
-            // 🎯 INTERCEPTOR DE MENÚS (Basado estrictamente en el último estado absoluto)
+            // INTERCEPTOR DE MENÚS (Basado estrictamente en el último estado absoluto)
             if (strlen($textoRecibido) <= 20) {
                 if (preg_match('/^(?:opci[oó]n|opc|opt|option|n[uú]mero|num|#)?\s*(\d{1,2})$/i', $textoRecibido, $matches)) {
                     $opcionElegida = (int) $matches[1];
@@ -188,7 +187,6 @@ readonly class WhatsappMetaReceivePersister
             $textoBoton = "🔘 [Respuesta rápida]: " . $btnText;
 
             $message->setContentExternal($textoBoton);
-            // ELIMINADO: $message->setContentLocal($textoBoton);
             $message->setLanguageCode($currentConversationLang);
 
             $message->setInboundIntent(array_merge($baseIntent, [
@@ -211,7 +209,6 @@ readonly class WhatsappMetaReceivePersister
             }
 
             $message->setContentExternal($textoInt);
-            // ELIMINADO: $message->setContentLocal($textoInt);
             $message->setLanguageCode($currentConversationLang);
 
             $message->setInboundIntent(array_merge($baseIntent, [
@@ -250,7 +247,6 @@ readonly class WhatsappMetaReceivePersister
             }
 
             $message->setContentExternal($textoMedia);
-            // ELIMINADO: $message->setContentLocal($textoMedia);
             $message->setLanguageCode($currentConversationLang);
 
         } elseif ($type === 'location') {
@@ -259,12 +255,10 @@ readonly class WhatsappMetaReceivePersister
             $textoLoc = "📍 [Ubicación compartida]: https://maps.google.com/?q={$lat},{$lng}";
 
             $message->setContentExternal($textoLoc);
-            // ELIMINADO: $message->setContentLocal($textoLoc);
             $message->setLanguageCode($currentConversationLang);
         } else {
             $textoFail = "🤖 [Tipo de mensaje no soportado: {$type}]";
             $message->setContentExternal($textoFail);
-            // ELIMINADO: $message->setContentLocal($textoFail);
             $message->setLanguageCode($currentConversationLang);
         }
 
@@ -272,7 +266,7 @@ readonly class WhatsappMetaReceivePersister
         // 6. GUARDAR Y NOTIFICAR
         // =====================================================================
 
-        // 🔥 MAGIA DE LA ENTIDAD: Al hacer addMessage, la entidad MessageConversation
+        // MAGIA DE LA ENTIDAD: Al hacer addMessage, la entidad MessageConversation
         // automáticamente incrementa los no leídos, actualiza el lastInboundAt y,
         // al ser un mensaje de whatsapp_meta, activa la sesión de 24 horas.
         $conversation->addMessage($message);
@@ -324,7 +318,7 @@ readonly class WhatsappMetaReceivePersister
                 $metaDataToMerge
             );
 
-            // 🔥 SOLUCIÓN: Hacemos un "touch" al mensaje para forzar el UoW de Doctrine.
+            // SOLUCIÓN: Hacemos un "touch" al mensaje para forzar el UoW de Doctrine.
             // Esto marca la entidad como "sucia" (dirty) y obligará a Doctrine a disparar
             // el evento postUpdate, lo que a su vez detonará tu MercureBroadcaster.
             $originalMessage->setUpdatedAt(new DateTimeImmutable());
@@ -346,6 +340,7 @@ readonly class WhatsappMetaReceivePersister
      * (como baneos o ventanas cerradas) y bloqueando el canal si el error es permanente.
      * * PROTECCIÓN ACTIVA: Usa bloqueo pesimista o merge atómico dependiendo de la implementación.
      * Se apoya en la transacción del FastTrackService.
+     * * @param array $statusData Payload JSON proveniente de Meta con los datos de estado
      */
     public function updateMessageStatus(array $statusData): void
     {
@@ -365,6 +360,7 @@ readonly class WhatsappMetaReceivePersister
 
         $metaDataToMerge = [];
         $newStatus = null;
+        $intentToSet = null; // 🚀 VARIABLE TEMPORAL: Guardamos el intent para sobrevivir al refresh
 
         // Preparar Datos
         if ($status === 'read') {
@@ -395,18 +391,11 @@ readonly class WhatsappMetaReceivePersister
                 $newStatus = Message::STATUS_FAILED;
             }
 
-            // 🚩 ALERTAS DE ENRUTAMIENTO Y BLOQUEO CRÍTICO
-            $criticalErrors = [
-                '131026', // El número no existe (No perder más tiempo aquí)
-                '131051', // Bloqueo por Salud del Ecosistema (Peligro de baneo)
-                '131049', // Ventana cerrada (Obligatorio usar plantilla)
-                '131056', // Sandbox / No verificado
-                '131030', // Recipiente inválido
-                '130497' // Business account is restricted from messaging users in this country.
-            ];
+            $criticalErrors = ['131026', '131051', '131049', '131056', '131030', '130497'];
 
             if (in_array($errorCode, $criticalErrors, true)) {
-                $metaDataToMerge['inbound_intent'] = [
+                // 🚀 En lugar de setear a la entidad, lo guardamos en la variable temporal
+                $intentToSet = [
                     'category'       => 'system_alert',
                     'action_code'    => 'ERR_' . $errorCode,
                     'source_channel' => 'whatsapp_meta',
@@ -422,33 +411,41 @@ readonly class WhatsappMetaReceivePersister
             $permanentErrors = ['131026', '131051', '131030'];
             if (in_array($errorCode, $permanentErrors, true)) {
                 $conversation = $message->getConversation();
-                if ($conversation !== null) {
-                    // Solo actualizamos si no estaba ya deshabilitado para no sobreescribir el primer motivo original
-                    if (!$conversation->isWhatsappDisabled()) {
-                        $conversation->setWhatsappDisabled(true);
-                        $conversation->setWhatsappDisabledReason(sprintf('Meta Error %s: %s', $errorCode, $metaDataToMerge['error_reason'] ?? 'Número inválido'));
-                        $this->em->persist($conversation);
-                    }
+                if ($conversation !== null && !$conversation->isWhatsappDisabled()) {
+                    $conversation->setWhatsappDisabled(true);
+                    $conversation->setWhatsappDisabledReason(sprintf('Meta Error %s: %s', $errorCode, $metaDataToMerge['error_reason'] ?? 'Número inválido'));
+                    $this->em->persist($conversation);
                 }
             }
         }
 
+        // =================================================================
+        // PASO 1: EL MERGER Y EL REFRESH (SQL Nativo)
+        // =================================================================
         if (!empty($metaDataToMerge)) {
             // Operación Atómica para fusionar los datos de Webhook sin borrar lo de Beds24
             $this->merger->merge(
                 $message,
                 'whatsappMeta',
                 $metaDataToMerge,
-                'whatsapp_meta', // Se asume que externalIdKey es 'whatsapp_meta'
-                $metaMessageId   // Se asume que externalIdValue es el ID de Meta
+                'whatsapp_meta',
+                $metaMessageId
             );
+            // ¡Aquí ocurre el $this->em->refresh($message)! La entidad se recarga desde DB.
         }
 
-        // 2. Transiciones PHP + Touch
+        // =================================================================
+        // PASO 2: TRANSICIONES DOCTRINE (Sobre la entidad ya recargada)
+        // =================================================================
+
+        // 🚀 Ahora sí, inyectamos el intent. Nadie lo borrará antes del flush.
+        if ($intentToSet !== null) {
+            $message->setInboundIntent($intentToSet);
+        }
+
         if ($newStatus) {
             $message->setStatus($newStatus);
-        } elseif (!empty($metaDataToMerge)) {
-            // Touch explícito si hubo un merge pero no cambió el Status (ej. Delivered)
+        } elseif (!empty($metaDataToMerge) || $intentToSet !== null) {
             $message->setUpdatedAt(new DateTimeImmutable());
         }
     }
@@ -456,10 +453,12 @@ readonly class WhatsappMetaReceivePersister
     /**
      * Registra una llamada perdida.
      * * ¿Por qué existe este método?
-     * La API Cloud de WhatsApp no soporta audio/video llamadas. Cuando un usuario
+     * La API Cloud de WhatsApp no soporta audio/videollamadas. Cuando un usuario
      * intenta llamar, Meta envía un evento de tipo 'call' (o un mensaje de sistema
      * indicando llamada perdida). Este método materializa ese evento como un mensaje
      * informativo en la UI para alertar al anfitrión.
+     * * @param array $callData Datos de la llamada
+     * @param array $contactData Datos del perfil de contacto que emite la llamada
      */
     public function processCall(array $callData, array $contactData): void
     {
@@ -475,7 +474,6 @@ readonly class WhatsappMetaReceivePersister
         $message->setSenderType(Message::SENDER_SYSTEM);
         $message->setStatus(Message::STATUS_RECEIVED);
         $message->setContentExternal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
-        // ELIMINADO: $message->setContentLocal("📞 [Llamada perdida]: El huésped intentó llamarte por WhatsApp.");
         $message->setLanguageCode($conversation->getIdioma()?->getId() ?? 'es');
 
         $timestamp = $callData['timestamp'] ?? time();
@@ -556,6 +554,8 @@ readonly class WhatsappMetaReceivePersister
      * Busca un mensaje en BD usando SQL Nativo.
      * Esto evita el Syntax Error de DQL con JSON_EXTRACT y permite que mensajes
      * enviados fuera del PMS (como desde el portal de Meta) se descarten sin error.
+     * * @param string $metaMessageId El identificador wamid retornado por Meta
+     * @return Message|null Retorna la entidad hidratada
      */
     private function findMessageByMetaId(string $metaMessageId): ?Message
     {
@@ -575,6 +575,8 @@ readonly class WhatsappMetaReceivePersister
     /**
      * Descarga el binario de un archivo multimedia desde la Graph API de Meta.
      * Retorna el contenido codificado en Base64 listo para el Factory.
+     * * @param string $mediaId Identificador multimedia de Meta
+     * @return string|null Devuelve el payload en Base64 o null si falla la descarga
      */
     private function downloadMediaFromMeta(string $mediaId): ?string
     {

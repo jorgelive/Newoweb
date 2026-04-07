@@ -589,13 +589,17 @@ const setDefaultChannels = () => {
 
   if (lastIncoming) {
     const channelId = getDirectChannelId(lastIncoming.channel);
+    // Si el último mensaje fue por WhatsApp y está permitido -> Seleccionar SOLO WhatsApp
     if (channelId === 'whatsapp_meta' && isWhatsappAllowed.value) {
       newChannels.push('whatsapp_meta');
-    } else if (channelId === 'beds24' && isBeds24Allowed.value) {
+    }
+    // Si el último mensaje fue por Beds24 y está permitido -> Seleccionar SOLO Beds24
+    else if (channelId === 'beds24' && isBeds24Allowed.value) {
       newChannels.push('beds24');
     }
   }
 
+  // FALLBACK: Solo si no hay canales detectados/permitidos en el paso anterior
   if (newChannels.length === 0) {
     if (isBeds24Allowed.value) newChannels.push('beds24');
     if (chat.whatsappSessionActive && !chat.whatsappDisabled) newChannels.push('whatsapp_meta');
@@ -1064,7 +1068,12 @@ const getDirectChannelId = (channel?: any): string | null => {
               <span>{{ formatStalkDate(m.effectiveDateTime || m.createdAt) }}</span>
             </div>
             <div class="whitespace-pre-wrap break-words opacity-90 font-medium">
-              {{ m.contentLocal || m.contentExternal || (m.template ? '🤖 [Plantilla]' : '📎 [Archivo Adjunto]') }}
+              <span v-if="m.template && m.direction === 'outgoing'" class="block text-[9px] font-black uppercase opacity-60 mb-0.5">
+                🤖 {{ getTemplateName(m.template) }}
+              </span>
+              <span :class="{'italic': m.template}">
+                {{ m.contentLocal || m.contentExternal || (m.template ? '[Plantilla sin texto]' : '📎 [Archivo Adjunto]') }}
+              </span>
             </div>
           </div>
         </div>

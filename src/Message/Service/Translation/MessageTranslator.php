@@ -57,14 +57,24 @@ class MessageTranslator
         }
 
         // 1. FLUJO ENTRANTE (Webhooks): Viene de afuera (External), falta Local.
-        // Dejamos que Google detecte el idioma real.
         if ($hasExternal && !$hasLocal) {
+            $cleanExternal = trim(strip_tags($message->getContentExternal()));
+
+            // 🔥 CORTAFUEGOS NUMÉRICO ESTRICTO:
+            // Los números puros ("2", "1") no tienen idioma ni van a Google. Heredan el actual.
+            if (is_numeric($cleanExternal)) {
+                $message->setContentLocal($message->getContentExternal());
+                $message->setLanguageCode($storedGuestLang);
+                return;
+            }
+
+            // Textos cortos ("ok", "gracias") y largos pasarán a Google para su traducción,
+            // pero controlaremos el cambio de idioma maestro dentro del método.
             $this->translateToLocalWithDetection($message, $storedGuestLang);
             return;
         }
 
         // 2. FLUJO SALIENTE (EasyAdmin): Escrito aquí (Local), falta External.
-        // Usamos el idioma que ya conocemos del cliente.
         if ($hasLocal && !$hasExternal) {
             $message->setLanguageCode($storedGuestLang);
 
@@ -90,33 +100,42 @@ class MessageTranslator
     private function translateToLocalWithDetection(Message $message, ?string $currentConvLang): void
     {
         try {
+            $rawExternal = $message->getContentExternal();
             $results = $this->googleTranslator->translateWithDetection(
-                [$message->getContentExternal()],
+                [$rawExternal],
                 $this->baseLanguage
             );
 
+            // Guardamos la traducción (si era "gracias", se traducirá según baseLanguage)
             $message->setContentLocal($results['translations'][0] ?? null);
 
             $detectedLang = $results['detectedLanguage'] ?? $currentConvLang;
 
-            // ACTUALIZACIÓN DE LA CONVERSACIÓN (Master)
+            // 🔥 FILTRO DE ENTROPÍA LINGÜÍSTICA
+            // Verificamos si el texto tiene "peso" real para justificar un cambio de idioma.
+            // Más de 15 caracteres o más de 2 palabras descarta casos como "ok", "yes", "muchas gracias".
+            $cleanText = trim(strip_tags($rawExternal));
+            $isLongEnoughToSwitch = mb_strlen($cleanText) > 15 || str_word_count($cleanText) > 2;
+
             if ($detectedLang && $detectedLang !== $currentConvLang) {
+                if ($isLongEnoughToSwitch) {
+                    // El texto es largo, el cambio de idioma es legítimo
+                    $iso2LangCode = substr(strtolower($detectedLang), 0, 2);
+                    $idiomaEntity = $this->entityManager->getRepository(MaestroIdioma::class)->find($iso2LangCode)
+                        ?? $this->entityManager->getRepository(MaestroIdioma::class)->find('en');
 
-                // 🔥 NORMALIZACIÓN REGIONAL: Extraer solo las 2 primeras letras
-                // Google Cloud Translation suele devolver formatos como 'es-AR', 'pt-BR' o 'zh-CN'.
-                $iso2LangCode = substr(strtolower($detectedLang), 0, 2);
-
-                // ✅ find() en lugar de getReference() — valida existencia real en BD usando el código normalizado
-                $idiomaEntity = $this->entityManager->getRepository(MaestroIdioma::class)->find($iso2LangCode)
-                    ?? $this->entityManager->getRepository(MaestroIdioma::class)->find('en');
-
-                if ($idiomaEntity instanceof MaestroIdioma) {
-                    $detectedLang = $idiomaEntity->getId(); // Aseguramos que el code sea el real de la BD
-                    $message->getConversation()->setIdioma($idiomaEntity);
-                    $this->logger->info("Language mismatch: Conversation updated to {$detectedLang}");
+                    if ($idiomaEntity instanceof MaestroIdioma) {
+                        $detectedLang = $idiomaEntity->getId();
+                        $message->getConversation()->setIdioma($idiomaEntity);
+                        $this->logger->info("Language mismatch: Conversation updated to {$detectedLang}");
+                    } else {
+                        $detectedLang = $currentConvLang;
+                    }
                 } else {
-                    $this->logger->warning("Idioma {$iso2LangCode} (original: {$detectedLang}) no encontrado en BD ni fallback 'en'. Se mantiene el idioma actual.");
-                    $detectedLang = $currentConvLang; // Fallback al idioma actual
+                    // 🛡️ SALVAGUARDA: El texto es muy corto ("gracias", "ok").
+                    // Aunque Google detectó otro idioma, NO cambiamos la conversación.
+                    // Forzamos a que el mensaje herede el idioma en el que ya veníamos hablando.
+                    $detectedLang = $currentConvLang;
                 }
             }
 
