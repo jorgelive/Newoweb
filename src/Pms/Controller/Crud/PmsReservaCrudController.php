@@ -137,20 +137,37 @@ final class PmsReservaCrudController extends BaseCrudController
                     $evento->setReserva($entityInstance);
                 }
 
-                if ($evento->isOta()) continue;
-
                 $isNew = $evento->getId() === null || $uow->getEntityState($evento) === UnitOfWork::STATE_NEW;
 
                 if ($isNew) {
-                    $this->eventoFactory->hydrateLinksForUi($evento);
+                    if (!$evento->isOta()) {
+                        $this->eventoFactory->hydrateLinksForUi($evento);
+                    }
                     continue;
                 }
 
                 $uow->computeChangeSet($metaEvento, $evento);
                 $changes = $uow->getEntityChangeSet($evento);
 
-                if (array_key_exists('pmsUnidad', $changes)) {
-                    $this->eventoFactory->hydrateLinksForUi($evento);
+                // 🔥 RÉPLICA DE LISTENER: Protección de Integridad OTA Terminal
+                // Procesamos intercepciones defensivas antes del flush
+                if ($evento->isOta()) {
+                    if (array_key_exists('estado', $changes)) {
+                        /** @var PmsEventoEstado|null $estadoAnterior */
+                        $estadoAnterior = $changes['estado'][0];
+
+                        // SÓLO bloqueamos la mutación si el evento ES de una OTA y su estado previo era "Cancelada"
+                        if ($estadoAnterior !== null && $estadoAnterior->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
+                            // Revertimos la mutación en memoria antes del flush
+                            $evento->setEstado($estadoAnterior);
+                            $uow->recomputeSingleEntityChangeSet($metaEvento, $evento);
+                        }
+                    }
+                } else {
+                    // Lógica original para eventos locales (NO OTA)
+                    if (array_key_exists('pmsUnidad', $changes)) {
+                        $this->eventoFactory->hydrateLinksForUi($evento);
+                    }
                 }
             }
 

@@ -212,6 +212,10 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         $fEstado = AssociationField::new('estado', 'Estado')
             ->setRequired(true)
             ->setFormTypeOptions(array_merge($tomSelectNoClear, [
+                'attr' => array_merge($tomSelectNoClear['attr'] ?? [], [
+                    'data-controller' => 'panel--pms-reserva--lock-estado',
+                    'data-panel--pms-reserva--lock-estado-codigo-value' => PmsEventoEstado::CODIGO_CANCELADA
+                ]),
                 'query_builder' => function ($repo) use ($isBloqueo, $isOta, $estadoActualId) {
                     $qb = $repo->createQueryBuilder('e');
 

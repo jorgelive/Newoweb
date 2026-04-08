@@ -73,16 +73,34 @@ const showPendingWarning = computed(() => {
 });
 
 const unlockDateFormatted = computed(() => {
-  const dateStr = store.helperContext?.data?.config?.unlock_at;
+  const dateStr = store.helperContext?.data?.config?.unlock_at; // Ejemplo: "2026-07-11 14:00:00"
   if (!dateStr) return '--';
 
-  // Al venir sin "T" o timezone desde tu Trait, se respeta la hora local del texto
-  const date = new Date(dateStr);
-  return date.toLocaleDateString(maestroStore.idiomaActual, {
+  // Paso 1: Separamos la fecha de la hora manualmente
+  // Esto evita que 'new Date()' intente adivinar la zona horaria
+  const [fecha, horaCompleta] = dateStr.split(' ');
+  const [anio, mes, dia] = fecha.split('-');
+  const [hora, minutos] = horaCompleta.split(':');
+
+  // Paso 2: Creamos un objeto Date usando componentes locales (año, mes-1, día...)
+  // Al pasar los parámetros uno a uno, JS asume que son "locales" al contexto actual
+  // pero sin aplicar desfases de UTC.
+  const date = new Date(
+      parseInt(anio),
+      parseInt(mes) - 1,
+      parseInt(dia),
+      parseInt(hora),
+      parseInt(minutos)
+  );
+
+  // Paso 3: Formateamos SIN pasar la propiedad timeZone
+  // Simplemente usamos el formato de idioma
+  return date.toLocaleString(maestroStore.idiomaActual, {
     day: '2-digit',
     month: 'long',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: false // Para que vea 14:00 y no haya duda
   });
 });
 
