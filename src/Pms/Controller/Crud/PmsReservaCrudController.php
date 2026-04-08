@@ -149,19 +149,27 @@ final class PmsReservaCrudController extends BaseCrudController
                 $uow->computeChangeSet($metaEvento, $evento);
                 $changes = $uow->getEntityChangeSet($evento);
 
-                // 🔥 RÉPLICA DE LISTENER: Protección de Integridad OTA Terminal
-                // Procesamos intercepciones defensivas antes del flush
+                // 🔥 RÉPLICA DE LISTENER: Protección de Integridad OTA Terminal y Fechas
                 if ($evento->isOta()) {
+                    // 1. Protección de estado (Solo bloquear si estaba Cancelada)
                     if (array_key_exists('estado', $changes)) {
                         /** @var PmsEventoEstado|null $estadoAnterior */
                         $estadoAnterior = $changes['estado'][0];
 
-                        // SÓLO bloqueamos la mutación si el evento ES de una OTA y su estado previo era "Cancelada"
                         if ($estadoAnterior !== null && $estadoAnterior->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
-                            // Revertimos la mutación en memoria antes del flush
                             $evento->setEstado($estadoAnterior);
                             $uow->recomputeSingleEntityChangeSet($metaEvento, $evento);
                         }
+                    }
+
+                    // 2. Protección de inmutabilidad en fechas OTA
+                    if (array_key_exists('inicio', $changes)) {
+                        $evento->setInicio($changes['inicio'][0]);
+                        $uow->recomputeSingleEntityChangeSet($metaEvento, $evento);
+                    }
+                    if (array_key_exists('fin', $changes)) {
+                        $evento->setFin($changes['fin'][0]);
+                        $uow->recomputeSingleEntityChangeSet($metaEvento, $evento);
                     }
                 } else {
                     // Lógica original para eventos locales (NO OTA)

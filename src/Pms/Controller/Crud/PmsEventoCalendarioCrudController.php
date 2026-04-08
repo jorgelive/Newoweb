@@ -178,7 +178,6 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         yield TextField::new('comentariosHuesped', 'Comentarios del Huésped')
             ->setHelp('Notas dejadas por el huésped o información adicional de la reserva.');
 
-        // Se agrega la opción para deshabilitar en la vista de guías
         yield BooleanField::new('guiaDisabled', 'No mostrar en guía')
             ->setHelp('Si se marca, este evento no aparecerá en la asignación o listado para los guías.');
 
@@ -246,10 +245,9 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
         if ($isOta) {
             if ($estadoActualId === PmsEventoEstado::CODIGO_CANCELADA) {
-                $fEstado->setDisabled(true);
+                // Removemos setDisabled(true) para no romper la colección y confiamos en el CSS/JS
                 $fEstado->setHelp('Estado Terminal. No se puede modificar.');
             } elseif ($estadoActualId !== PmsEventoEstado::CODIGO_ABIERTO) {
-                $fEstado->setDisabled(true);
                 $fEstado->setHelp('Las reservas en firme son controladas por el canal (OTA).');
             }
         } elseif ($isBloqueo) {
@@ -268,26 +266,28 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
         $fInicio = DateTimeField::new('inicio', 'Llegada (Check-in)')
             ->setRequired(true)
+            ->setHelp('Las fechas OTA son inmutables. Modifícalas en el canal de origen.')
             ->setFormTypeOptions([
                 'widget' => 'single_text', 'html5' => true,
-                'attr' => ['step' => 60, 'data-controller' => 'panel--pms-reserva--form-evento-fechas', 'data-action' => 'change->panel--pms-reserva--form-evento-fechas#updateEnd']
+                'attr' => [
+                    'step' => 60,
+                    'data-controller' => 'panel--pms-reserva--form-evento-fechas panel--pms-reserva--lock-ota-field',
+                    'data-action' => 'change->panel--pms-reserva--form-evento-fechas#updateEnd'
+                ]
             ]);
 
-        // 🔥 BLOQUEO DE FECHAS PARA OTAs
-        if ($isOta) {
-            $fInicio->setDisabled(true);
-            $fInicio->setHelp('Las fechas OTA son inmutables. Modifícalas en el canal de origen.');
-        }
         yield $fInicio;
 
         $fFin = DateTimeField::new('fin', 'Salida (Check-out)')
             ->setRequired(true)
-            ->setFormTypeOptions(['widget' => 'single_text', 'html5' => true, 'attr' => ['step' => 60]]);
+            ->setFormTypeOptions([
+                'widget' => 'single_text', 'html5' => true,
+                'attr' => [
+                    'step' => 60,
+                    'data-controller' => 'panel--pms-reserva--lock-ota-field'
+                ]
+            ]);
 
-        // 🔥 BLOQUEO DE FECHAS PARA OTAs
-        if ($isOta) {
-            $fFin->setDisabled(true);
-        }
         yield $fFin;
 
         // ---------------------------------------------------------------------
@@ -376,8 +376,6 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
                 $html = '<ul style="margin: 0; padding-left: 1.2rem;">';
                 foreach ($links as $link) {
-                    // Asume que existe un CrudController para PmsEventoBeds24Link.
-                    // Si no existe, se puede cambiar para renderizar solo texto informativo.
                     try {
                         $url = $this->adminUrlGenerator
                             ->setController('App\Pms\Controller\Crud\PmsEventoBeds24LinkCrudController')

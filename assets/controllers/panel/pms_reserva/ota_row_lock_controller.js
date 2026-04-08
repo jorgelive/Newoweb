@@ -1,27 +1,31 @@
 import { Controller } from '@hotwired/stimulus';
 
+/**
+ * Controlador genérico para campos estándar (inputs, dates, numbers) dentro de una colección.
+ * Evalúa si la fila pertenece a un evento OTA y bloquea completamente la interacción
+ * y el aspecto visual del campo para garantizar su inmutabilidad.
+ */
 export default class extends Controller {
     connect() {
-        // Encontramos el contenedor del acordeón
-        const collectionItem = this.element.closest('.field-collection-item');
-        if (!collectionItem) return;
+        // Obtenemos la raíz del ID de forma dinámica.
+        // Ej: "PmsReserva_eventosCalendario_0_inicio" -> corta en el último "_" -> "PmsReserva_eventosCalendario_0"
+        const idBase = this.element.id.substring(0, this.element.id.lastIndexOf('_'));
 
-        // 1. Eliminamos el botón de borrar
-        const removeButton = collectionItem.querySelector('.field-collection-delete-button');
-        if (removeButton) removeButton.remove();
+        const isOtaInput = document.getElementById(`${idBase}_isOta`);
+        const isOta = isOtaInput && isOtaInput.checked;
 
-        // 2. Aplicamos estilo de bloqueo
-        collectionItem.style.borderLeft = '5px solid #ffc107';
-        collectionItem.style.backgroundColor = '#fffdf0';
+        if (isOta) {
+            // Bloqueo DOM estándar
+            this.element.setAttribute('readonly', 'readonly');
 
-        // 3. Arreglamos el header del acordeón para que no quede el hueco feo
-        const accordionButton = collectionItem.querySelector('.accordion-button');
-        if (accordionButton) {
-            accordionButton.style.boxShadow = 'none';
-            accordionButton.style.borderRight = 'none';
-            accordionButton.style.borderTopRightRadius = 'var(--bs-accordion-border-radius, 0.25rem)';
-            accordionButton.style.borderBottomRightRadius = 'var(--bs-accordion-border-radius, 0.25rem)';
-            accordionButton.style.paddingRight = '1.25rem';
+            // Maquillaje visual (colores de EasyAdmin para campos deshabilitados)
+            this.element.style.backgroundColor = 'var(--form-control-bg-disabled, #e9ecef)';
+            this.element.style.color = 'var(--form-control-disabled-color, #6c757d)';
+            this.element.style.cursor = 'not-allowed';
+
+            // 🔥 TRUCO VITAL: En los inputs type="date/datetime", el 'readonly' a veces
+            // no bloquea el clic en el ícono del calendario. Esto desactiva el mouse por completo.
+            this.element.style.pointerEvents = 'none';
         }
     }
 }
