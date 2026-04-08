@@ -16,15 +16,17 @@ use Doctrine\Persistence\ObjectManager;
 use LogicException;
 
 /**
- * Listener de Integridad de Datos.
- * Objetivo: Validar reglas de negocio estrictas antes de guardar en BD.
+ * Listener de Integridad de Datos y Automatización de Negocio.
+ * Valida la coherencia estructural de la reserva (fechas, canales) y automatiza
+ * los cambios de estado vinculados a los pagos sin violar las reglas de seguridad.
  */
 #[AsEntityListener(event: Events::prePersist, method: 'prePersist', entity: PmsEventoCalendario::class)]
 #[AsEntityListener(event: Events::preUpdate, method: 'preUpdate', entity: PmsEventoCalendario::class)]
 final class PmsEventoCalendarioIntegrityListener
 {
     /**
-     * Se ejecuta antes de crear un nuevo registro.
+     * Se ejecuta antes de crear un nuevo registro en la base de datos.
+     * Garantiza que la reserva nazca con integridad total.
      */
     public function prePersist(PmsEventoCalendario $evento, PrePersistEventArgs $args): void
     {
@@ -35,6 +37,7 @@ final class PmsEventoCalendarioIntegrityListener
 
     /**
      * Se ejecuta antes de actualizar un registro existente.
+     * Intercepta los cambios para aplicar reglas de negocio y re-calcula el UnitOfWork si es necesario.
      */
     public function preUpdate(PmsEventoCalendario $evento, PreUpdateEventArgs $args): void
     {
@@ -45,21 +48,20 @@ final class PmsEventoCalendarioIntegrityListener
             $this->validarFechas($evento);
         }
 
-        // RED DE SEGURIDAD 1: Canal Directo
+        // RED DE SEGURIDAD 1: Recuperación de Canal Directo
         if ($evento->getChannel() === null && !$evento->isOta()) {
             $this->asegurarCanalDirecto($evento, $args->getObjectManager());
             $needsRecompute = true;
         }
 
-        // RED DE SEGURIDAD 2: Si el estado de pago cambió, evaluamos la auto-confirmación
+        // RED DE SEGURIDAD 2: Automatización de Confirmación por Pago
         if ($args->hasChangedField('estadoPago')) {
             if ($this->asegurarEstadoConfirmadoPorPago($evento, $args->getObjectManager())) {
                 $needsRecompute = true;
             }
         }
 
-        // 🔥 HACK DOCTRINE: Si alguna de las reglas anteriores mutó la entidad en un preUpdate,
-        // debemos decirle al UnitOfWork que re-calcule los cambios para que se guarden en la BD.
+        // Propagar mutaciones internas a Doctrine
         if ($needsRecompute) {
             $em = $args->getObjectManager();
             $uow = $em->getUnitOfWork();
@@ -69,7 +71,8 @@ final class PmsEventoCalendarioIntegrityListener
     }
 
     /**
-     * Inyecta el Canal Directo si el evento no es OTA y se quedó sin canal.
+     * Inyecta el Canal Directo por defecto si una reserva manual se quedó sin canal asignado.
+     * Previene datos huérfanos en los reportes financieros.
      */
     private function asegurarCanalDirecto(PmsEventoCalendario $evento, ObjectManager $em): void
     {
@@ -84,9 +87,10 @@ final class PmsEventoCalendarioIntegrityListener
     }
 
     /**
-     * Regla de Negocio: Si el estado de pago pasa a ser cualquiera distinto de "no pagado",
-     * el evento debe pasar automáticamente a estado "Confirmada".
-     * * @return bool True si se realizó una mutación en la entidad, False si no se hizo nada.
+     * Regla de Negocio Automatizada: Si el estado de pago pasa a ser distinto de "no pagado",
+     * la reserva pasa automáticamente a "Confirmada", SALVO que sea un estado terminal (ej. Cancelada).
+     *
+     * @return bool True si se realizó una mutación en la entidad, False en caso contrario.
      */
     private function asegurarEstadoConfirmadoPorPago(PmsEventoCalendario $evento, ObjectManager $em): bool
     {
@@ -98,10 +102,15 @@ final class PmsEventoCalendarioIntegrityListener
             return false;
         }
 
-        // Si el estado de pago es CUALQUIERA MENOS "no pagado" (ID_SIN_PAGO)
+        // 🔥 ARMONÍA CON EL SECURITY LISTENER: Respeto absoluto a los Estados Terminales.
+        // Previene excepciones "AccessDenied" si alguien hace un reembolso parcial de una reserva muerta.
+        if ($estadoActual->getId() === PmsEventoEstado::CODIGO_CANCELADA) {
+            return false;
+        }
+
         if ($estadoPago->getId() !== PmsEventoEstadoPago::ID_SIN_PAGO) {
 
-            // Y si la reserva NO está ya confirmada (para no hacer queries redundantes)
+            // Verificamos que no esté ya confirmada para ahorrar queries y evitar updates redundantes
             if ($estadoActual->getId() !== PmsEventoEstado::CODIGO_CONFIRMADA) {
 
                 // Usamos getReference para inyectar el estado sin disparar un SELECT a la BD
@@ -118,8 +127,9 @@ final class PmsEventoCalendarioIntegrityListener
     }
 
     /**
-     * Lógica central de validación.
-     * Lanza LogicException para detener la transacción inmediatamente si hay incoherencia.
+     * Validación Estricta de Espacio-Tiempo.
+     * Garantiza que Beds24 y el sistema local nunca reciban reservas con duración de cero o negativa.
+     * * @throws LogicException Si la fecha de fin es menor o igual a la de inicio.
      */
     private function validarFechas(PmsEventoCalendario $evento): void
     {
@@ -138,7 +148,7 @@ final class PmsEventoCalendarioIntegrityListener
 
                 throw new LogicException(sprintf(
                     'ERROR DE INTEGRIDAD (Evento #%s | %s): La fecha de fin (%s) no puede ser igual o anterior a la de inicio (%s). ' .
-                    'Beds24 requiere una duración mínima de 1 minuto/noche. Operación abortada.',
+                    'Se requiere una duración mínima de 1 minuto/noche. Operación abortada.',
                     $id,
                     $unidad,
                     $fin->format('Y-m-d H:i'),

@@ -93,6 +93,10 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ->add(Crud::PAGE_EDIT, Action::DETAIL)
             ->add(Crud::PAGE_EDIT, Action::DELETE);
 
+        // 🔥 CONTROL VISUAL DEL BORRADO
+        // Evalúa en tiempo real si el evento se puede borrar.
+        // Si no es seguro (ej. es de OTA o está sincronizando), oculta el botón
+        // para que el usuario ni siquiera pueda intentarlo.
         $checkBorrado = function (Action $action) {
             return $action->displayIf(fn(PmsEventoCalendario $e) => $e->isSafeToDelete());
         };
@@ -115,11 +119,10 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ->add('referenciaCanal')
             ->add('id')          // UUID del Evento
             ->add('reserva')     // Reserva Padre
-            // 🔥 NUEVOS FILTROS DE AUDITORÍA
-            ->add('estado')      // Filtro por PmsEventoEstado (Confirmada, Bloqueo, Cancelada, etc.)
-            ->add('estadoPago')  // Filtro por PmsEventoEstadoPago (Pago Total, Parcial, etc.)
-            ->add('pmsUnidad')   // Filtro por Unidad (Habitación específica)
-            ->add('channel');    // Filtro por Canal (Booking, Airbnb, Directo)
+            ->add('estado')      // Filtro por PmsEventoEstado
+            ->add('estadoPago')  // Filtro por PmsEventoEstadoPago
+            ->add('pmsUnidad')   // Filtro por Unidad
+            ->add('channel');    // Filtro por Canal
     }
 
     public function configureFields(string $pageName): iterable
@@ -145,7 +148,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             yield TextField::new('id')
                 ->setFormTypeOption('mapped', false)
                 ->onlyOnForms()
-                ->addCssClass('d-none'); // Lo oculta visualmente en el layout de EasyAdmin
+                ->addCssClass('d-none');
         } else {
             yield TextField::new('localizador', 'Localizador')
                 ->setFormTypeOption('disabled', true)
@@ -164,7 +167,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             })->renderAsHtml();
 
         // ---------------------------------------------------------------------
-        // 2. DESCRIPCIÓN Y COMENTARIOS (SIEMPRE HABILITADOS)
+        // 2. DESCRIPCIÓN Y COMENTARIOS
         // ---------------------------------------------------------------------
         $fDescripcion = TextField::new('descripcion', $isBloqueo ? 'Motivo del Bloqueo' : 'Notas Internas (Hotel)');
         if ($isBloqueo) {
@@ -180,7 +183,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ->setHelp('Si se marca, este evento no aparecerá en la asignación o listado para los guías.');
 
         // ---------------------------------------------------------------------
-        // 3. DETALLES DEL EVENTO
+        // 3. DETALLES DEL EVENTO Y MÁQUINA DE ESTADOS UI
         // ---------------------------------------------------------------------
         yield FormField::addPanel('Detalles del Evento')->setIcon('fa fa-calendar-check');
 
@@ -203,28 +206,52 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ->setFormTypeOption('disabled', true)
             ->setQueryBuilder(fn($qb) => $qb->orderBy('entity.orden', 'ASC'));
 
+        // 🔥 CONTROL VISUAL INTELIGENTE DEL ESTADO
+        $estadoActualId = $entity instanceof PmsEventoCalendario ? $entity->getEstado()?->getId() : null;
+
         $fEstado = AssociationField::new('estado', 'Estado')
             ->setRequired(true)
             ->setFormTypeOptions(array_merge($tomSelectNoClear, [
-                'query_builder' => function ($repo) use ($isBloqueo, $isOta) {
+                'query_builder' => function ($repo) use ($isBloqueo, $isOta, $estadoActualId) {
                     $qb = $repo->createQueryBuilder('e');
+
                     if ($isBloqueo) {
-                        $qb->andWhere('e.id IN (:estados)')->setParameter('estados', [PmsEventoEstado::CODIGO_BLOQUEO, PmsEventoEstado::CODIGO_CANCELADA]);
+                        $qb->andWhere('e.id IN (:estados)')
+                            ->setParameter('estados', [PmsEventoEstado::CODIGO_BLOQUEO, PmsEventoEstado::CODIGO_CANCELADA]);
                     } elseif ($isOta) {
-                        $qb->andWhere('e.id NOT IN (:restringidos)')->setParameter('restringidos', PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES);
+                        // LOGICA DE LA MÁQUINA DE ESTADOS OTA EN LA UI
+                        if ($estadoActualId === PmsEventoEstado::CODIGO_ABIERTO) {
+                            $qb->andWhere('e.id IN (:permitidos)')
+                                ->setParameter('permitidos', [PmsEventoEstado::CODIGO_ABIERTO, PmsEventoEstado::CODIGO_CANCELADA]);
+                        } else {
+                            $restringidos = array_merge(
+                                PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES,
+                                [PmsEventoEstado::CODIGO_CANCELADA]
+                            );
+                            $qb->andWhere('e.id NOT IN (:restringidos)')
+                                ->setParameter('restringidos', $restringidos);
+                        }
                     } else {
-                        $qb->andWhere('e.id != :bloqueo')->setParameter('bloqueo', PmsEventoEstado::CODIGO_BLOQUEO);
+                        $qb->andWhere('e.id != :bloqueo')
+                            ->setParameter('bloqueo', PmsEventoEstado::CODIGO_BLOQUEO);
                     }
+
                     return $qb->orderBy('e.orden', 'ASC')->addOrderBy('e.nombre', 'ASC');
                 },
             ]));
 
-        // Bloqueo total de estado si es OTA cancelada (u otro estado restringido)
-        if ($isOta && in_array($entity?->getEstado()?->getId(), PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES, true)) {
-            $fEstado->setDisabled(true);
+        if ($isOta) {
+            if ($estadoActualId === PmsEventoEstado::CODIGO_CANCELADA) {
+                $fEstado->setDisabled(true);
+                $fEstado->setHelp('Estado Terminal. No se puede modificar.');
+            } elseif ($estadoActualId !== PmsEventoEstado::CODIGO_ABIERTO) {
+                $fEstado->setDisabled(true);
+                $fEstado->setHelp('Las reservas en firme son controladas por el canal (OTA).');
+            }
         } elseif ($isBloqueo) {
             $fEstado->hideOnForm();
         }
+
         yield $fEstado;
 
         $fEstadoPago = AssociationField::new('estadoPago', 'Estado de Pago')
@@ -241,13 +268,22 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
                 'widget' => 'single_text', 'html5' => true,
                 'attr' => ['step' => 60, 'data-controller' => 'panel--pms-reserva--form-evento-fechas', 'data-action' => 'change->panel--pms-reserva--form-evento-fechas#updateEnd']
             ]);
-        if ($isOta) $fInicio->setDisabled(true);
+
+        // 🔥 BLOQUEO DE FECHAS PARA OTAs
+        if ($isOta) {
+            $fInicio->setDisabled(true);
+            $fInicio->setHelp('Las fechas OTA son inmutables. Modifícalas en el canal de origen.');
+        }
         yield $fInicio;
 
         $fFin = DateTimeField::new('fin', 'Salida (Check-out)')
             ->setRequired(true)
             ->setFormTypeOptions(['widget' => 'single_text', 'html5' => true, 'attr' => ['step' => 60]]);
-        if ($isOta) $fFin->setDisabled(true);
+
+        // 🔥 BLOQUEO DE FECHAS PARA OTAs
+        if ($isOta) {
+            $fFin->setDisabled(true);
+        }
         yield $fFin;
 
         // ---------------------------------------------------------------------
@@ -352,7 +388,6 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
                             (string) $link->getId()
                         );
                     } catch (\Exception $e) {
-                        // Fallback si el controlador no existe
                         $html .= sprintf(
                             '<li style="margin-bottom: 0.5rem;"><strong>%s</strong><br><small class="text-muted font-monospace">%s</small></li>',
                             htmlspecialchars((string) $link),
