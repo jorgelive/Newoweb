@@ -243,14 +243,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
                 },
             ]));
 
-        if ($isOta) {
-            if ($estadoActualId === PmsEventoEstado::CODIGO_CANCELADA) {
-                // Removemos setDisabled(true) para no romper la colección y confiamos en el CSS/JS
-                $fEstado->setHelp('Estado Terminal. No se puede modificar.');
-            } elseif ($estadoActualId !== PmsEventoEstado::CODIGO_ABIERTO) {
-                $fEstado->setHelp('Las reservas en firme son controladas por el canal (OTA).');
-            }
-        } elseif ($isBloqueo) {
+        if ($isBloqueo) {
             $fEstado->hideOnForm();
         }
 
@@ -266,7 +259,6 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
         $fInicio = DateTimeField::new('inicio', 'Llegada (Check-in)')
             ->setRequired(true)
-            ->setHelp('Las fechas OTA son inmutables. Modifícalas en el canal de origen.')
             ->setFormTypeOptions([
                 'widget' => 'single_text', 'html5' => true,
                 'attr' => [
