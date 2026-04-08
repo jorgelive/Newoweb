@@ -22,6 +22,7 @@ const isTransitioning = ref(true);
 // ============================================================================
 const loginUsername = ref('');
 const loginPassword = ref('');
+const loginRemember = ref(true);
 const isLoggingIn = ref(false);
 
 const handleSessionRenewal = async () => {
@@ -30,7 +31,8 @@ const handleSessionRenewal = async () => {
 
   const success = await store.renewSession({
     _username: loginUsername.value,
-    _password: loginPassword.value
+    _password: loginPassword.value,
+    _remember_me: loginRemember.value
   });
 
   if (success) {
@@ -1122,7 +1124,17 @@ const getDirectChannelId = (channel?: any): string | null => {
                 </div>
               </div>
             </div>
-
+            <div class="flex items-center mt-4">
+              <input
+                  type="checkbox"
+                  id="renewRememberMe"
+                  v-model="loginRemember"
+                  class="w-4 h-4 text-[#376875] bg-slate-50 border-slate-300 rounded focus:ring-[#376875] focus:ring-2 cursor-pointer transition-colors"
+              >
+              <label for="renewRememberMe" class="ml-2 text-xs font-bold text-slate-600 cursor-pointer select-none">
+                Mantener sesión iniciada
+              </label>
+            </div>
             <div v-if="store.error && store.isSessionExpired" class="mt-4 text-xs font-bold text-red-500 bg-red-50 p-3 rounded-lg flex items-center gap-2">
               <i class="fas fa-exclamation-circle shrink-0"></i>
               <span>{{ store.error }}</span>

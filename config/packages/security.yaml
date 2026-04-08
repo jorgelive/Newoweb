@@ -76,7 +76,7 @@ security:
 
             # 2. Entrada silenciosa (JSON desde la PWA en Vue)
             json_login:
-                check_path: ajax_login # Apunta a tu ruta #[Route('/ajax_login')]
+                check_path: ajax_login
                 username_path: _username
                 password_path: _password
 
@@ -117,8 +117,9 @@ security:
 
         - { path: '^/locale', roles: PUBLIC_ACCESS }
 
-        - { path: '^/user/push-subscription', roles: IS_AUTHENTICATED_FULLY }
-        - { path: '^/user/push-unsubscribe', roles: IS_AUTHENTICATED_FULLY }
+        # ROLE_USER para que soporte "Remember Me"
+        - { path: '^/user/push-subscription', roles: ROLE_USER }
+        - { path: '^/user/push-unsubscribe', roles: ROLE_USER }
 
         # PANEL: todos requiere login (por host)
         - { host: '%app.host.panel%', path: '^/', roles: ROLE_USER }

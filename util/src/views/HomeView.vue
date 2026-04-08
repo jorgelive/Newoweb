@@ -11,6 +11,7 @@ const notificationStore = useNotificationStore();
 const showLoginForm = ref(false);
 const loginUsername = ref('');
 const loginPassword = ref('');
+const loginRemember = ref(true);
 const isLoggingIn = ref(false);
 const loginError = ref('');
 
@@ -42,7 +43,8 @@ const handleLogin = async () => {
 
   const success = await store.renewSession({
     _username: loginUsername.value,
-    _password: loginPassword.value
+    _password: loginPassword.value,
+    _remember_me: loginRemember.value
   });
 
   isLoggingIn.value = false;
@@ -58,10 +60,7 @@ const handleLogin = async () => {
       showSuccessTooltip.value = false;
     }, 3000);
 
-    // ✅ NUEVO: Intentar suscribir al navegador a las notificaciones Push
-    // Al hacerlo justo después del login, nos aseguramos de que axios
-    // enviará las cookies de sesión (withCredentials) y Symfony sabrá
-    // a qué usuario de la base de datos asignarle este endpoint.
+    // Intentar suscribir al navegador a las notificaciones Push
     await notificationStore.subscribeToPushNotifications();
 
   } else {
@@ -80,7 +79,6 @@ const handleLogout = async () => {
   // 2. Usamos el enrutamiento nativo del navegador hacia el firewall de Symfony
   window.location.href = '/logout';
 };
-
 
 </script>
 
@@ -162,6 +160,18 @@ const handleLogout = async () => {
               <i class="fas fa-key absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
               <input v-model="loginPassword" type="password" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#376875]/50 focus:border-[#376875] transition-all text-sm font-medium" placeholder="••••••••">
             </div>
+          </div>
+
+          <div class="flex items-center pt-1">
+            <input
+                type="checkbox"
+                id="rememberMe"
+                v-model="loginRemember"
+                class="w-4 h-4 text-[#376875] bg-slate-50 border-slate-300 rounded focus:ring-[#376875] focus:ring-2 cursor-pointer transition-colors"
+            >
+            <label for="rememberMe" class="ml-2 text-xs font-bold text-slate-600 cursor-pointer select-none">
+              Mantener sesión iniciada
+            </label>
           </div>
 
           <div v-if="loginError" class="mt-2 text-xs font-bold text-red-500 bg-red-50 p-3 rounded-lg flex items-center gap-2">

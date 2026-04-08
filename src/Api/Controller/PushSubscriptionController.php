@@ -44,7 +44,7 @@ class PushSubscriptionController extends AbstractController
      * @return JsonResponse Respuesta estandarizada sobre el estado del registro.
      */
     #[Route('/user/push-subscription', name: 'api_user_push_subscription', methods: ['POST'])]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('ROLE_USER')]
     public function subscribe(Request $request): JsonResponse
     {
         /** @var User|null $user */
@@ -103,7 +103,7 @@ class PushSubscriptionController extends AbstractController
      * @return JsonResponse
      */
     #[Route('/user/push-unsubscribe', name: 'api_user_push_unsubscribe', methods: ['POST'])]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('ROLE_USER')]
     public function unsubscribe(Request $request): JsonResponse
     {
         $content = $request->getContent();

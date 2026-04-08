@@ -188,7 +188,7 @@
                 <tr class="border-top border-light-subtle">
                     {# Unidad #}
                     <td>
-                        <div class="fw-bold text-dark">{{ evento.pmsUnidad|default('Sin Asignar') }}</div>
+                        <div class="fw-bold text-nowrap text-dark">{{ evento.pmsUnidad|default('Sin Asignar') }}</div>
                         {% if evento.descripcion %}
                             <div class="text-muted" style="font-size:.82rem;">
                                 {{ evento.descripcion }}
