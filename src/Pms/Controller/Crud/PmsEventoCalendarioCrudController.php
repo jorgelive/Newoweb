@@ -33,8 +33,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         protected RequestStack                      $requestStack,
         private readonly EntityManagerInterface     $entityManager,
         private readonly PmsEventoCalendarioFactory $eventoFactory
-    )
-    {
+    ) {
         parent::__construct($adminUrlGenerator, $requestStack);
     }
 
@@ -94,9 +93,6 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ->add(Crud::PAGE_EDIT, Action::DELETE);
 
         // 🔥 CONTROL VISUAL DEL BORRADO
-        // Evalúa en tiempo real si el evento se puede borrar.
-        // Si no es seguro (ej. es de OTA o está sincronizando), oculta el botón
-        // para que el usuario ni siquiera pueda intentarlo.
         $checkBorrado = function (Action $action) {
             return $action->displayIf(fn(PmsEventoCalendario $e) => $e->isSafeToDelete());
         };
@@ -117,12 +113,12 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
     {
         return $filters
             ->add('referenciaCanal')
-            ->add('id')          // UUID del Evento
-            ->add('reserva')     // Reserva Padre
-            ->add('estado')      // Filtro por PmsEventoEstado
-            ->add('estadoPago')  // Filtro por PmsEventoEstadoPago
-            ->add('pmsUnidad')   // Filtro por Unidad
-            ->add('channel');    // Filtro por Canal
+            ->add('id')
+            ->add('reserva')
+            ->add('estado')
+            ->add('estadoPago')
+            ->add('pmsUnidad')
+            ->add('channel');
     }
 
     public function configureFields(string $pageName): iterable
@@ -134,16 +130,20 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             ($entity instanceof PmsEventoCalendario &&
                 $entity->getEstado()?->getId() === PmsEventoEstado::CODIGO_BLOQUEO &&
                 !$entity->getReserva());
+
+        // NOTA: Esta variable casi siempre será 'false' en colecciones (porque $entity es la Reserva Padre),
+        // pero es VITAL mantenerla si en el futuro se accede al CRUD independiente de Eventos.
         $isOta = $entity instanceof PmsEventoCalendario && $entity->isOta();
 
-        $tomSelectNoClear = ['placeholder' => false, 'attr' => ['required' => 'required']];
+        // Controladores Stimulus definidos limpiamente
+        $ctrlLockOta = 'panel--pms-reserva--lock-ota-field';
+        $ctrlFechas  = 'panel--pms-reserva--form-evento-fechas';
 
         // ---------------------------------------------------------------------
         // 1. IDENTIFICADORES Y ESTADO
         // ---------------------------------------------------------------------
         yield TextField::new('id', 'UUID')->onlyOnDetail();
 
-        // 🔥 SALVAVIDAS ANTI-DELETE PARA COLECCIONES
         if ($isEmbedded) {
             yield TextField::new('id')
                 ->setFormTypeOption('mapped', false)
@@ -194,16 +194,14 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         }
         yield $fReserva;
 
-        // 1. UNIDAD (Limpiamos el PHP y delegamos a Stimulus)
-        $fUnidad = AssociationField::new('pmsUnidad', 'Unidad')
+        // 🔥 OPTIMIZACIÓN: Se eliminan array_merge anidados por opciones directas.
+        yield AssociationField::new('pmsUnidad', 'Unidad')
             ->setRequired(true)
-            ->setFormTypeOptions(array_merge($tomSelectNoClear, [
-                // Inyectamos el controlador Stimulus genérico de OTAs
-                'attr' => array_merge($tomSelectNoClear['attr'] ?? [], [
-                    'data-controller' => 'panel--pms-reserva--lock-ota-field'
-                ])
-            ]));
-        yield $fUnidad;
+            ->setFormTypeOptions(['placeholder' => false])
+            ->setFormTypeOption('attr', [
+                'required' => 'required',
+                'data-controller' => $ctrlLockOta
+            ]);
 
         yield AssociationField::new('channel', 'Canal')
             ->setColumns(6)
@@ -215,11 +213,8 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
         $fEstado = AssociationField::new('estado', 'Estado')
             ->setRequired(true)
-            ->setFormTypeOptions(array_merge($tomSelectNoClear, [
-                'attr' => array_merge($tomSelectNoClear['attr'] ?? [], [
-                    'data-controller' => 'panel--pms-reserva--lock-estado',
-                    'data-panel--pms-reserva--lock-estado-codigo-value' => PmsEventoEstado::CODIGO_CANCELADA
-                ]),
+            ->setFormTypeOptions([
+                'placeholder' => false,
                 'query_builder' => function ($repo) use ($isBloqueo, $isOta, $estadoActualId) {
                     $qb = $repo->createQueryBuilder('e');
 
@@ -232,10 +227,7 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
                             $qb->andWhere('e.id IN (:permitidos)')
                                 ->setParameter('permitidos', [PmsEventoEstado::CODIGO_ABIERTO, PmsEventoEstado::CODIGO_CANCELADA]);
                         } else {
-                            $restringidos = array_merge(
-                                PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES,
-                                [PmsEventoEstado::CODIGO_CANCELADA]
-                            );
+                            $restringidos = array_merge(PmsEventoCalendario::OTA_ESTADOS_NO_SELECCIONABLES, [PmsEventoEstado::CODIGO_CANCELADA]);
                             $qb->andWhere('e.id NOT IN (:restringidos)')
                                 ->setParameter('restringidos', $restringidos);
                         }
@@ -243,10 +235,14 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
                         $qb->andWhere('e.id != :bloqueo')
                             ->setParameter('bloqueo', PmsEventoEstado::CODIGO_BLOQUEO);
                     }
-
                     return $qb->orderBy('e.orden', 'ASC')->addOrderBy('e.nombre', 'ASC');
-                },
-            ]));
+                }
+            ])
+            ->setFormTypeOption('attr', [
+                'required' => 'required',
+                'data-controller' => 'panel--pms-reserva--lock-estado',
+                'data-panel--pms-reserva--lock-estado-codigo-value' => PmsEventoEstado::CODIGO_CANCELADA
+            ]);
 
         if ($isBloqueo) {
             $fEstado->hideOnForm();
@@ -256,56 +252,57 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
 
         $fEstadoPago = AssociationField::new('estadoPago', 'Estado de Pago')
             ->setRequired(true)
-            ->setFormTypeOptions($tomSelectNoClear);
+            ->setFormTypeOptions(['placeholder' => false])
+            ->setFormTypeOption('attr', ['required' => 'required']);
+
         if ($isBloqueo) $fEstadoPago->hideOnForm();
         yield $fEstadoPago;
 
         yield FormField::addRow();
 
-        $fInicio = DateTimeField::new('inicio', 'Llegada (Check-in)')
+        yield DateTimeField::new('inicio', 'Llegada (Check-in)')
             ->setRequired(true)
             ->setFormTypeOptions([
                 'widget' => 'single_text', 'html5' => true,
                 'attr' => [
                     'step' => 60,
-                    'data-controller' => 'panel--pms-reserva--form-evento-fechas panel--pms-reserva--lock-ota-field',
-                    'data-action' => 'change->panel--pms-reserva--form-evento-fechas#updateEnd'
+                    'data-controller' => sprintf('%s %s', $ctrlFechas, $ctrlLockOta),
+                    'data-action' => sprintf('change->%s#updateEnd', $ctrlFechas)
                 ]
             ]);
 
-        yield $fInicio;
-
-        $fFin = DateTimeField::new('fin', 'Salida (Check-out)')
+        yield DateTimeField::new('fin', 'Salida (Check-out)')
             ->setRequired(true)
             ->setFormTypeOptions([
                 'widget' => 'single_text', 'html5' => true,
                 'attr' => [
                     'step' => 60,
-                    'data-controller' => 'panel--pms-reserva--lock-ota-field'
+                    'data-controller' => $ctrlLockOta
                 ]
             ]);
-
-        yield $fFin;
 
         // ---------------------------------------------------------------------
         // 4. DATOS ECONÓMICOS Y PAX
         // ---------------------------------------------------------------------
-        $fAdultos = IntegerField::new('cantidadAdultos', 'Nº Adultos')->setRequired(true)->setColumns(6);
-        $fNinos = IntegerField::new('cantidadNinos', 'Nº Niños')->setRequired(true)->setColumns(6);
-        $fMonto = MoneyField::new('monto', 'Precio Total')->setCurrency('USD')->setStoredAsCents(false)->setColumns(6);
-        $fComision = MoneyField::new('comision', 'Comisión Canal')->setCurrency('USD')->setStoredAsCents(false)->setColumns(6);
+        $attrOtaLock = ['data-controller' => $ctrlLockOta];
+
+        $fAdultos = IntegerField::new('cantidadAdultos', 'Nº Adultos')
+            ->setRequired(true)->setColumns(6)->setFormTypeOption('attr', $attrOtaLock);
+
+        $fNinos = IntegerField::new('cantidadNinos', 'Nº Niños')
+            ->setRequired(true)->setColumns(6)->setFormTypeOption('attr', $attrOtaLock);
+
+        $fMonto = MoneyField::new('monto', 'Precio Total')
+            ->setCurrency('USD')->setStoredAsCents(false)->setColumns(6)->setFormTypeOption('attr', $attrOtaLock);
+
+        $fComision = MoneyField::new('comision', 'Comisión Canal')
+            ->setCurrency('USD')->setStoredAsCents(false)->setColumns(6)->setFormTypeOption('attr', $attrOtaLock);
 
         if ($isBloqueo) {
             $fAdultos->hideOnForm();
             $fNinos->hideOnForm();
             $fMonto->hideOnForm();
             $fComision->hideOnForm();
-        } elseif ($isOta) {
-            // Se usa readonly para que los datos viajen en el POST y eviten el borrado de colección
-            $fAdultos->setFormTypeOption('attr', ['readonly' => true]);
-            $fNinos->setFormTypeOption('attr', ['readonly' => true]);
-            $fMonto->setFormTypeOption('attr', ['readonly' => true]);
-            $fComision->setFormTypeOption('attr', ['readonly' => true]);
         }
 
         yield $fAdultos;
@@ -361,7 +358,6 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
             })
             ->renderAsHtml();
 
-        // 🔥 CAMPO VIRTUAL: ENLACES HACIA LOS BEDS24 LINKS
         yield TextField::new('trazabilidadLinks', 'Vínculos Beds24 (Trazabilidad)')
             ->setVirtual(true)
             ->onlyOnDetail()
