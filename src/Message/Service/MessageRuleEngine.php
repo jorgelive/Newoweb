@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace App\Message\Service;
 
 use App\Message\Contract\ConversationMilestoneInterface;
-use App\Message\Entity\Beds24SendQueue;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageRule;
-use App\Message\Entity\WhatsappMetaSendQueue;
-use App\Message\Service\Queue\MessageDispatcher;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
@@ -19,8 +16,7 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Motor centralizado para la programación, actualización y cancelación de mensajes automáticos.
- * Utiliza heurísticas de tiempo y triggers de contexto para evitar spam a reservas históricas
- * y resolver casos de reservas de última hora (Last-Minute Bookings).
+ * DELEGA toda la infraestructura de colas al MessageEnqueuerEntityListener.
  */
 final readonly class MessageRuleEngine
 {
@@ -30,17 +26,15 @@ final readonly class MessageRuleEngine
 
     public function __construct(
         private EntityManagerInterface $em,
-        private MessageDispatcher $dispatcher,
         private LoggerInterface $logger
     ) {}
 
     /**
      * Evalúa todas las reglas activas contra una conversación y orquesta su ciclo de vida.
-     * Incluye protección contra el "Time Machine Bug" (cálculos en el pasado lejano).
      *
      * @param MessageConversation $conversation La conversación objetivo.
-     * @param string $trigger El origen de la ejecución (insert, update, command).
-     * @param bool $force Si es true, ignora las protecciones preventivas de actualización.
+     * @param string $trigger El origen de la ejecución.
+     * @param bool $force Ignora protecciones.
      */
     public function syncConversationRules(
         MessageConversation $conversation,
@@ -66,53 +60,42 @@ final readonly class MessageRuleEngine
 
             $existingMessage = $this->findExistingSystemMessage($conversation, $rule);
 
-            // Escenario 1: La regla aplica a nivel de filtros y fechas
             if ($applies && $runAt !== null) {
                 if ($existingMessage !== null) {
-                    // Ya existe: Sincronizamos fechas y la configuración de canales (altas/bajas)
                     $this->syncPendingMessage($existingMessage, $rule, $runAt);
                 } else {
-                    // No existe: Evaluamos si debemos programarlo por primera vez
 
-                    // @TODO: RESTAURAR BLINDAJE LUEGO DEL CATCH-UP.
-                    // Evita que un simple UPDATE en una reserva vieja dispare correos de Bienvenida.
-                    /*
+
+                    // =========================================================
+                    // 🛡️ BLINDAJE RESTAURADO: Prevención de Spam Histórico
+                    // =========================================================
+                    // Evita que un simple UPDATE en una reserva vieja dispare
+                    // correos de Bienvenida de forma retroactiva.
                     if (
                         $rule->getMilestone() === ConversationMilestoneInterface::CREATED
                         && $trigger === self::TRIGGER_UPDATE
                         && !$force
                     ) {
-                        $this->logger->info("Omisión preventiva: Regla CREATED ignorada en actualización normal para {$conversation->getGuestName()}");
-                        continue;
+                        $this->logger->info(sprintf(
+                            "Omisión preventiva: Regla CREATED ('%s') ignorada en actualización normal para %s",
+                            $rule->getTemplate()->getName(),
+                            $conversation->getGuestName()
+                        ));
+                        continue; // Saltamos a la siguiente regla
                     }
-                    */
+                    // =========================================================
 
                     if ($runAt > $pastThreshold) {
                         // Flujo regular: El mensaje está en el futuro o acaba de cumplirse
                         $this->createNewScheduledMessage($conversation, $rule, $runAt);
                     } else {
-                        // Flujo de Rescate (Last-Minute Booking):
-                        // Si la regla caducó, pero la reserva es literalmente NUEVA (Insert),
-                        // adelantamos el envío a AHORA MISMO para que el huésped reciba la información vital.
+                        // Flujo de Rescate (Last-Minute Booking)
                         if ($trigger === self::TRIGGER_INSERT) {
-                            $this->logger->info(sprintf(
-                                "Last-Minute Catch: Forzando envío inmediato de regla atrasada para nueva reserva de %s",
-                                $conversation->getGuestName()
-                            ));
                             $this->createNewScheduledMessage($conversation, $rule, clone $now);
-                        } else {
-                            // Si caducó y es un Update, la descartamos silenciosamente
-                            $this->logger->info(sprintf(
-                                "Regla omitida para huésped (%s). La fecha calculada (%s) caducó respecto a la ventana de 2 horas.",
-                                $conversation->getGuestName(),
-                                $runAt->format('Y-m-d H:i')
-                            ));
                         }
                     }
                 }
-            }
-            // Escenario 2: La regla ya no aplica (El Hito pasó, se canceló la reserva, etc.)
-            else {
+            } else {
                 if ($existingMessage !== null) {
                     $this->cancelPendingQueues($existingMessage);
                 }
@@ -145,18 +128,6 @@ final readonly class MessageRuleEngine
             }
         }
 
-        $allowedAgencies = $rule->getAllowedAgencies();
-        if (!empty($allowedAgencies)) {
-            $contextData = $conversation->getContextData() ?? [];
-            $agencyId = $contextData['agency'] ?? $contextData['agency_id'] ?? null;
-            if ($agencyId === null || !in_array((string)$agencyId, $allowedAgencies, true)) {
-                return false;
-            }
-        }
-
-        // =========================================================================
-        // VALIDACIÓN DE HITOS CRONOLÓGICOS (Milestones)
-        // =========================================================================
         $milestones = $conversation->getContextMilestones();
         $today = clone (new DateTimeImmutable('now', new DateTimeZone('America/Lima')))->setTime(0, 0, 0);
 
@@ -164,40 +135,13 @@ final readonly class MessageRuleEngine
             case ConversationMilestoneInterface::START:
                 $startStr = $milestones[ConversationMilestoneInterface::START] ?? null;
                 if (!$startStr) return false;
-
-                $startDate = new DateTimeImmutable($startStr)->setTime(0, 0, 0);
-                if ($startDate < $today) {
-                    return false; // La llegada ya pasó
-                }
+                if ((new DateTimeImmutable($startStr))->setTime(0, 0, 0) < $today) return false;
                 break;
 
             case ConversationMilestoneInterface::END:
                 $endStr = $milestones[ConversationMilestoneInterface::END] ?? null;
                 if (!$endStr) return false;
-
-                $endDate = new DateTimeImmutable($endStr)->setTime(0, 0, 0);
-                if ($endDate < $today) {
-                    return false; // La salida ya pasó
-                }
-                break;
-
-            case ConversationMilestoneInterface::CREATED:
-                $startStr = $milestones[ConversationMilestoneInterface::START] ?? null;
-                $createdStr = $milestones[ConversationMilestoneInterface::CREATED] ?? null;
-
-                if (!$startStr) return false;
-
-                $startDate = new DateTimeImmutable($startStr)->setTime(0, 0, 0);
-                $createdDate = $createdStr ? new DateTimeImmutable($createdStr)->setTime(0, 0, 0) : clone $today;
-
-                // @TODO: ELIMINAR ESTA HEURÍSTICA LUEGO DEL CATCH-UP.
-                // Restringe correos de bienvenida en reservas antiguas a menos que falten +21 días para la llegada.
-                if ($createdDate < clone $today->modify('-1 day')) {
-                    $threeWeeksFromNow = clone $today->modify('+21 days');
-                    if ($startDate < $threeWeeksFromNow) {
-                        return false;
-                    }
-                }
+                if ((new DateTimeImmutable($endStr))->setTime(0, 0, 0) < $today) return false;
                 break;
         }
 
@@ -212,15 +156,11 @@ final readonly class MessageRuleEngine
         $milestones = $conversation->getContextMilestones();
         $baseDateString = $milestones[$rule->getMilestone()] ?? null;
 
-        if (!$baseDateString) {
-            return null;
-        }
+        if (!$baseDateString) return null;
 
         try {
-            $baseDate = new DateTimeImmutable($baseDateString);
-            $modifier = sprintf('%+d minutes', $rule->getOffsetMinutes());
-            return $baseDate->modify($modifier);
-        } catch (Exception $e) {
+            return (new DateTimeImmutable($baseDateString))->modify(sprintf('%+d minutes', $rule->getOffsetMinutes()));
+        } catch (Exception) {
             return null;
         }
     }
@@ -264,8 +204,12 @@ final readonly class MessageRuleEngine
     }
 
     /**
-     * Sincroniza la nueva fecha de ejecución y gestiona dinámicamente las colas (canales).
-     * CORTAFUEGOS CORREGIDO: Nunca duplica canales si ya existen en cualquier estado.
+     * Sincroniza la nueva fecha y expone los canales deseados.
+     * NO crea colas. El Listener capturará este cambio en preUpdate.
+     *
+     * @param Message $message
+     * @param MessageRule $rule
+     * @param DateTimeImmutable $newRunAt
      */
     private function syncPendingMessage(Message $message, MessageRule $rule, DateTimeImmutable $newRunAt): void
     {
@@ -275,112 +219,29 @@ final readonly class MessageRuleEngine
         }
 
         $targetChannelIds = $rule->getTargetCommunicationChannels()->map(fn($c) => $c->getId())->toArray();
-        $existingChannels = [];
-        $updated = false;
+        $message->setTransientChannels($targetChannelIds);
 
-        // 1. Sincronizar colas de Beds24
-        foreach ($message->getBeds24SendQueues() as $queue) {
-            // REGISTRO SEGURO: Anotamos que el canal ya existe en este mensaje, sin importar su estado.
-            $existingChannels[] = 'beds24';
-
-            if ($queue->getStatus() === Beds24SendQueue::STATUS_PENDING) {
-                if (in_array('beds24', $targetChannelIds, true)) {
-                    if ($queue->getRunAt() != $newRunAt) {
-                        $queue->setRunAt($newRunAt);
-                        $updated = true;
-                    }
-                } else {
-                    $queue->setStatus(Beds24SendQueue::STATUS_CANCELLED);
-                    $updated = true;
-                }
-            }
-        }
-
-        // 2. Sincronizar colas de WhatsApp Meta
-        foreach ($message->getWhatsappMetaSendQueues() as $queue) {
-            // REGISTRO SEGURO
-            $existingChannels[] = 'whatsapp_meta';
-
-            if ($queue->getStatus() === WhatsappMetaSendQueue::STATUS_PENDING) {
-                if (in_array('whatsapp_meta', $targetChannelIds, true)) {
-                    if ($queue->getRunAt() != $newRunAt) {
-                        $queue->setRunAt($newRunAt);
-                        $updated = true;
-                    }
-                } else {
-                    $queue->setStatus(WhatsappMetaSendQueue::STATUS_CANCELLED);
-                    $updated = true;
-                }
-            }
-        }
-
-        // 3. Identificar canales faltantes REALES
-        $existingChannels = array_unique($existingChannels);
-        $missingChannels = array_diff($targetChannelIds, $existingChannels);
-
-        if (!empty($missingChannels)) {
-            $originalChannels = $message->getTransientChannels();
-
-            // Forzamos temporalmente los canales faltantes para que el Dispatcher genere exclusivamente estas colas
-            $message->setTransientChannels($missingChannels);
-            $message->setScheduledAt($newRunAt);
-
-            $newQueues = $this->dispatcher->dispatch($message);
-
-            foreach ($newQueues as $newQueue) {
-                $this->em->persist($newQueue);
-            }
-
-            // Restauramos los canales combinando el histórico más los nuevos targets reales
-            $message->setTransientChannels(array_unique(array_merge($originalChannels, $targetChannelIds)));
-            $this->logger->info("Nuevos canales (" . implode(', ', $missingChannels) . ") encolados para el mensaje {$message->getId()}");
-            $updated = true;
-        }
-
-        // 4. Evaluar el estado integral del Mensaje
-        $this->resolveMessageStatus($message);
-
-        // Solo actualizamos el ScheduledAt si el mensaje sigue vivo en la cola
         if (in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING], true)) {
-            $message->setScheduledAt($newRunAt);
+            if ($message->getScheduledAt() != $newRunAt) {
+                $message->setScheduledAt($newRunAt);
+            }
         }
 
-        if ($updated) {
-            $this->logger->info("Sincronizado mensaje {$message->getId()}: estado actual consolidado: {$message->getStatus()}");
-        }
+        $this->resolveMessageStatus($message);
     }
 
     /**
-     * Cancela e invalida todas las tareas de envío pendientes asociadas al mensaje,
-     * y evalúa el estado final del mensaje principal. No borra fechas.
+     * Marca el mensaje como cancelado. El Listener propagará esto a las colas.
+     *
+     * @param Message $message
      */
     private function cancelPendingQueues(Message $message): void
     {
-        $cancelledAny = false;
-
-        foreach ($message->getBeds24SendQueues() as $queue) {
-            if ($queue->getStatus() === Beds24SendQueue::STATUS_PENDING) {
-                $queue->setStatus(Beds24SendQueue::STATUS_CANCELLED);
-                $cancelledAny = true;
-            }
-        }
-
-        foreach ($message->getWhatsappMetaSendQueues() as $queue) {
-            if ($queue->getStatus() === WhatsappMetaSendQueue::STATUS_PENDING) {
-                $queue->setStatus(WhatsappMetaSendQueue::STATUS_CANCELLED);
-                $cancelledAny = true;
-            }
-        }
-
-        if ($cancelledAny) {
-            $this->resolveMessageStatus($message);
-            $this->logger->info("Canceladas colas pendientes. Estado final del mensaje {$message->getId()}: {$message->getStatus()}");
+        if (in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING], true)) {
+            $message->setStatus(Message::STATUS_CANCELLED);
         }
     }
 
-    /**
-     * Genera una nueva instancia de Mensaje Automático para ser procesada por el Dispatcher.
-     */
     private function createNewScheduledMessage(MessageConversation $conversation, MessageRule $rule, DateTimeImmutable $runAt): void
     {
         $message = new Message();
@@ -409,45 +270,24 @@ final readonly class MessageRuleEngine
      */
     private function resolveMessageStatus(Message $message): void
     {
-        $hasPending = false;
-        $hasSuccess = false;
-        $hasFailed = false;
+        $hasPending = $hasSuccess = $hasFailed = false;
 
         foreach ($message->getBeds24SendQueues() as $q) {
-            $status = $q->getStatus();
-            if ($status === Beds24SendQueue::STATUS_PENDING) $hasPending = true;
-            if (in_array($status, [Beds24SendQueue::STATUS_SUCCESS, 'sent', 'delivered'], true)) $hasSuccess = true;
-            if ($status === Beds24SendQueue::STATUS_FAILED) $hasFailed = true;
+            $s = $q->getStatus();
+            if ($s === 'pending') $hasPending = true;
+            if (in_array($s, ['success', 'sent', 'delivered'], true)) $hasSuccess = true;
+            if ($s === 'failed') $hasFailed = true;
         }
 
         foreach ($message->getWhatsappMetaSendQueues() as $q) {
-            $status = $q->getStatus();
-            if ($status === WhatsappMetaSendQueue::STATUS_PENDING) $hasPending = true;
-            if (in_array($status, [WhatsappMetaSendQueue::STATUS_SUCCESS, 'sent', 'delivered'], true)) $hasSuccess = true;
-            if ($status === WhatsappMetaSendQueue::STATUS_FAILED) $hasFailed = true;
+            $s = $q->getStatus();
+            if ($s === 'pending') $hasPending = true;
+            if (in_array($s, ['success', 'sent', 'delivered'], true)) $hasSuccess = true;
+            if ($s === 'failed') $hasFailed = true;
         }
 
-        // Jerarquía de estados:
-        // 1. Si algo está pendiente, el mensaje sigue vivo en la cola.
-        if ($hasPending) {
-            $message->setStatus(Message::STATUS_QUEUED);
-            return;
-        }
-
-        // 2. Si ya no hay pendientes, pero al menos un canal tuvo éxito, el mensaje fue enviado.
-        if ($hasSuccess) {
-            $message->setStatus(Message::STATUS_SENT);
-            return;
-        }
-
-        // 3. Si no hay éxito, pero hubo intentos fallidos, el mensaje falló.
-        if ($hasFailed) {
-            $message->setStatus(Message::STATUS_FAILED);
-            return;
-        }
-
-        // 4. Si llegamos aquí: no hay pendientes, ni éxitos, ni fallos.
-        // Significa que o no se crearon colas o todas fueron expresamente canceladas.
-        $message->setStatus(Message::STATUS_CANCELLED);
+        if ($hasPending) { $message->setStatus(Message::STATUS_QUEUED); return; }
+        if ($hasSuccess) { $message->setStatus(Message::STATUS_SENT); return; }
+        if ($hasFailed)  { $message->setStatus(Message::STATUS_FAILED); return; }
     }
 }

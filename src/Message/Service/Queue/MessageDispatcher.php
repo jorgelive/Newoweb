@@ -9,9 +9,9 @@ use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 use Throwable;
+use Psr\Log\LoggerInterface;
 
 /**
  * Orquesta la creación de ítems en las colas (Outbox) usando el patrón Strategy.
@@ -30,7 +30,10 @@ readonly class MessageDispatcher
     ) {}
 
     /**
-     * @return array Objeto/s de cola listos para ser persistidos por el Listener.
+     * Evalúa canales y crea colas, respetando la idempotencia dictada por los Enqueuers.
+     *
+     * @param Message $message
+     * @return array
      */
     public function dispatch(Message $message): array
     {
@@ -46,11 +49,11 @@ readonly class MessageDispatcher
                     // 🛡️ BARRERA DE IDEMPOTENCIA
                     if ($enqueuer->isAlreadyEnqueued($message)) {
                         $this->logger->info(sprintf(
-                            'Idempotencia: La cola %s para el mensaje %s ya existe en BD. Ignorando doble creación.',
+                            'Idempotencia: La cola %s para el mensaje %s ya existe en BD/UoW. Ignorando.',
                             $channel->getId(),
                             $message->getId()?->toRfc4122() ?? 'N/A'
                         ));
-                        break; // Salimos del bucle interno, vamos al siguiente canal
+                        break;
                     }
 
                     try {
@@ -61,7 +64,7 @@ readonly class MessageDispatcher
                             $queues[] = $queue;
                         }
                     } catch (Throwable $e) {
-                        $errors[] = sprintf('[%s] %s', $channel->getName() ?? $channel->getId(), $e->getMessage());
+                        $errors[] = sprintf('[%s] %s', $channel->getName(), $e->getMessage());
                     }
                     break;
                 }
@@ -72,9 +75,7 @@ readonly class MessageDispatcher
         // Si hubo excepciones, o si había canales pero no se generó ninguna cola:
         if (!empty($errors) || (empty($queues) && !empty($channels))) {
             $message->setStatus(Message::STATUS_FAILED);
-
-            // Guardamos el detalle del error en la columna JSON para auditoría
-            $message->addMetadata('dispatch_errors', empty($errors) ? ['Error desconocido al generar la cola.'] : $errors);
+            $message->addMetadata('dispatch_errors', empty($errors) ? ['Error desconocido.'] : $errors);
         } else {
             // Si todo fue bien, lo ponemos en Queue
             $message->setStatus(Message::STATUS_QUEUED);

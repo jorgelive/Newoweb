@@ -38,6 +38,16 @@ final class ConversationSchedulingSubscriber
      */
     public function onFlush(OnFlushEventArgs $args): void
     {
+        // =====================================================================
+        // 🛡️ EL CANDADO MAESTRO
+        // =====================================================================
+        // Evita que el flush() interno disparado por el RuleEngine vuelva a
+        // despertar este recolector. Sin esto, Doctrine entra en un ciclo 
+        // infinito y duplica las colas por amnesia de la Unidad de Trabajo.
+        if ($this->isSyncing) {
+            return;
+        }
+
         $uow = $args->getObjectManager()->getUnitOfWork();
 
         // 1. Recolectar conversaciones NUEVAS (ej. Webhook de nueva reserva)
