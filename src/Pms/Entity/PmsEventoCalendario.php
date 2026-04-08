@@ -443,4 +443,28 @@ class PmsEventoCalendario
     {
         return null;
     }
+
+    /**
+     * Calcula la cantidad de noches (días calendario) de la estancia.
+     * Ignora las horas de check-in y check-out para evitar errores matemáticos
+     * en estancias menores a 24 horas reloj (ej. check-in 14:00, check-out 10:00).
+     *
+     * @return int
+     */
+    #[Groups(['pax_reserva:read'])]
+    public function getNoches(): int
+    {
+        if (null === $this->inicio || null === $this->fin) {
+            return 0;
+        }
+
+        // Normalizamos a medianoche para contar solo los saltos de calendario
+        $inicioDia = \DateTimeImmutable::createFromInterface($this->inicio)->setTime(0, 0, 0);
+        $finDia = \DateTimeImmutable::createFromInterface($this->fin)->setTime(0, 0, 0);
+
+        $interval = $inicioDia->diff($finDia);
+
+        // '%a' devuelve la cantidad total de días de diferencia
+        return (int) $interval->format('%a');
+    }
 }
