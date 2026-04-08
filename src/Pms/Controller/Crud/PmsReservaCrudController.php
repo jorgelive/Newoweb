@@ -150,7 +150,9 @@ final class PmsReservaCrudController extends BaseCrudController
                 $changes = $uow->getEntityChangeSet($evento);
 
                 // 🔥 RÉPLICA DE LISTENER: Protección de Integridad OTA Terminal y Fechas
+                // 🔥 RÉPLICA DE LISTENER: Protección de Integridad OTA Terminal, Fechas y Unidades
                 if ($evento->isOta()) {
+
                     // 1. Protección de estado (Solo bloquear si estaba Cancelada)
                     if (array_key_exists('estado', $changes)) {
                         /** @var PmsEventoEstado|null $estadoAnterior */
@@ -171,6 +173,13 @@ final class PmsReservaCrudController extends BaseCrudController
                         $evento->setFin($changes['fin'][0]);
                         $uow->recomputeSingleEntityChangeSet($metaEvento, $evento);
                     }
+
+                    // 3. 🔥 NUEVO: Protección de inmutabilidad en la Unidad OTA
+                    if (array_key_exists('pmsUnidad', $changes)) {
+                        $evento->setPmsUnidad($changes['pmsUnidad'][0]); // Revertimos al valor original [0]
+                        $uow->recomputeSingleEntityChangeSet($metaEvento, $evento);
+                    }
+
                 } else {
                     // Lógica original para eventos locales (NO OTA)
                     if (array_key_exists('pmsUnidad', $changes)) {

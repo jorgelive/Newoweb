@@ -194,10 +194,15 @@ final class PmsEventoCalendarioCrudController extends BaseCrudController
         }
         yield $fReserva;
 
+        // 1. UNIDAD (Limpiamos el PHP y delegamos a Stimulus)
         $fUnidad = AssociationField::new('pmsUnidad', 'Unidad')
             ->setRequired(true)
-            ->setFormTypeOptions($tomSelectNoClear);
-        if ($isOta) $fUnidad->setDisabled(true);
+            ->setFormTypeOptions(array_merge($tomSelectNoClear, [
+                // Inyectamos el controlador Stimulus genérico de OTAs
+                'attr' => array_merge($tomSelectNoClear['attr'] ?? [], [
+                    'data-controller' => 'panel--pms-reserva--lock-ota-field'
+                ])
+            ]));
         yield $fUnidad;
 
         yield AssociationField::new('channel', 'Canal')
