@@ -116,11 +116,45 @@
                     {% set emailMensaje = emailMensaje ~ '<p>&nbsp;</p> <p>Saludos Cordiales</p> <p>Jorge Gomez</p> <p>Reservas</p> <p>OpenPeru Travel Group</p> <p>RUC: 20600633164</p>' %}
 
                     {% if proveedor.telefono is defined %}
-                        <a href="https://wa.me/{{proveedor.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}?text={{ whatsappText|url_encode }}"
-                           target="_blank" class="btn btn-sm btn-success edit_link">
+                        <a href="#"
+                           class="btn btn-sm btn-success edit_link"
+                           data-toggle="modal"
+                           data-target="#whatsappModal-{{ loop.index }}">
                             <i class="fab fa-whatsapp" aria-hidden="true"></i>
                             Enviar por Whatsapp
                         </a>
+
+                        <div class="modal fade" id="whatsappModal-{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="whatsappLabel-{{ loop.index }}">
+                            <div class="modal-dialog modal-lg" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                        <h4 class="modal-title" id="whatsappLabel-{{ loop.index }}">Previsualizar y Enviar WhatsApp</h4>
+                                    </div>
+                                    {# Formulario GET: El navegador url-encodeará el textarea "text" automáticamente al hacer submit #}
+                                    <form action="https://wa.me/{{proveedor.telefono|replace({'-': '', '+': '', '(': '',  ')': '',  ' ': ''}) }}" method="GET" target="_blank">
+                                        <div class="modal-body">
+                                            <div class="form-group">
+                                                <label for="numeroDestino-{{ loop.index }}">Destinatario (Teléfono):</label>
+                                                <input type="text" class="form-control" id="numeroDestino-{{ loop.index }}" value="{{ proveedor.telefono }}" disabled>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="wa-mensaje-{{ loop.index }}">Mensaje de WhatsApp:</label>
+                                                {# Textarea en texto plano, sin ckeditor. Se elimina url_encode para que lo puedas leer/editar #}
+                                                <textarea class="form-control" id="wa-mensaje-{{ loop.index }}" name="text" rows="12" required>{{ whatsappText }}</textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            {# El onclick cierra el modal justo después de abrir la nueva pestaña #}
+                                            <button type="submit" class="btn btn-success" onclick="$('#whatsappModal-{{ loop.index }}').modal('hide');">
+                                                <i class="fab fa-whatsapp"></i> Abrir en WhatsApp
+                                            </button>
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                     {% endif %}
 
                     {% if proveedor.email is defined %}
@@ -132,27 +166,35 @@
                             Enviar por Correo
                         </a>
 
-                        <div class="modal fade" id="emailModal-{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="emailLabel">
-                            <div class="modal-dialog" role="document">
+                        <div class="modal fade" id="emailModal-{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="emailLabel-{{ loop.index }}">
+                            <div class="modal-dialog modal-lg" role="document">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                        <h4 class="modal-title">Enviar Mensaje</h4>
+                                        <h4 class="modal-title" id="emailLabel-{{ loop.index }}">Previsualizar y Enviar Mensaje</h4>
                                     </div>
-                                    <div class="modal-body">
-                                        Esta seguro que desea enviar el mensaje al proveedor?
-                                    </div>
-                                    <div class="modal-footer">
-                                        <div class="form-group">
-                                            <form action="{{ admin.generateObjectUrl('email', object ) }}" method="POST">
-                                                <input type="hidden" name="email[mensaje]" value="{{ emailMensaje|url_encode }}" />
-                                                <input type="hidden" name="email[titulo]" value="{{ emailTitulo|url_encode }}" />
-                                                <input type="hidden" name="email[destinatario]"  value="{{ proveedor.email|url_encode }}" />
-                                                <button type="submit" class="btn btn-danger">Enviar E-Mail</button>
-                                                <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
-                                            </form>
+                                    <form action="{{ admin.generateObjectUrl('email', object ) }}" method="POST">
+                                        <div class="modal-body">
+                                            <div class="form-group">
+                                                <label for="destinatario-{{ loop.index }}">Destinatario:</label>
+                                                <input type="email" class="form-control" id="destinatario-{{ loop.index }}" name="email[destinatario]" value="{{ proveedor.email }}" required>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label for="titulo-{{ loop.index }}">Asunto:</label>
+                                                <input type="text" class="form-control" id="titulo-{{ loop.index }}" name="email[titulo]" value="{{ emailTitulo }}" required>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label for="mensaje-{{ loop.index }}">Cuerpo del Correo:</label>
+                                                <textarea class="form-control editor-correo ckeditor" id="mensaje-{{ loop.index }}" name="email[mensaje]" rows="12" required>{{ emailMensaje|raw }}</textarea>
+                                            </div>
                                         </div>
-                                    </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-primary"><i class="fa fa-paper-plane"></i> Enviar E-Mail</button>
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>

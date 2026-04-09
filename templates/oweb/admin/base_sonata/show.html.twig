@@ -42,3 +42,108 @@
 
     </style>
 {% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script src="{{ asset('/app/ckeditor/ckeditor.js') }}"></script>
+
+    <script type="text/javascript">
+        (function ($) {
+
+            // ============================
+            //  CKEditor helpers (Vista Show)
+            // ============================
+            const editors = new Map();
+
+            /**
+             * Retorna la configuración base para las instancias de CKEditor 5.
+             * Habilita el soporte para etiquetas de imágenes y configura la barra de herramientas.
+             *
+             * @returns {Object} Objeto de configuración nativo de CKEditor.
+             */
+            function getCkeditorConfigBase() {
+                return {
+                    toolbar: {
+                        shouldNotGroupWhenFull: true
+                    },
+                    htmlSupport: {
+                        allow: [
+                            { name: 'img', classes: true, attributes: true, styles: true }
+                        ]
+                    },
+                    ui: {
+                        viewportOffset: { top: 30 }
+                    }
+                };
+            }
+
+            /**
+             * Inicializa las instancias de CKEditor en los elementos <textarea> que posean
+             * las clases `.ckeditor` (editable) o `.ckeditorread` (solo lectura).
+             * Previene la reinicialización mediante la clase de control `.ckrendered`.
+             *
+             * @param {HTMLElement|Document} scope El contexto del DOM donde se buscarán los elementos.
+             */
+            function initCkEditors(scope) {
+                var $scope = scope ? $(scope) : $(document);
+
+                // Instancias Editables (ej: para modales de envío de correos)
+                $scope.find('.ckeditor').each(function () {
+                    var $textarea = $(this);
+                    if ($textarea.hasClass('ckrendered')) {
+                        return;
+                    }
+
+                    var config = getCkeditorConfigBase();
+
+                    ClassicEditor.create(this, config).then(editor => {
+                        editors.set(editor.id, editor);
+                    }).catch(error => {
+                        // console.error(error);
+                    });
+
+                    $textarea.addClass('ckrendered');
+                });
+
+                // Instancias de Solo Lectura (ej: para mostrar contenido HTML formateado sin permitir edición)
+                $scope.find('.ckeditorread').each(function () {
+                    var $textarea = $(this);
+                    if ($textarea.hasClass('ckrendered')) {
+                        return;
+                    }
+
+                    var configReadOnly = getCkeditorConfigBase();
+                    configReadOnly.readOnly = true;
+
+                    ClassicEditor.create(this, configReadOnly).then(editor => {
+                        editor.enableReadOnlyMode('oweb-readonly-feature');
+                    }).catch(error => {
+                        // console.error(error);
+                    });
+
+                    $textarea.addClass('ckrendered');
+                });
+            }
+
+            // ============================
+            //  LISTENERS NATIVOS
+            // ============================
+
+            document.addEventListener('DOMContentLoaded', function () {
+                initCkEditors(document);
+            });
+
+            // Permite inicializar editores si se inyecta HTML dinámicamente en la vista show (ej. llamadas AJAX)
+            document.addEventListener('oweb.add_element', function (ev) {
+                var target = ev.target || document;
+                initCkEditors(target);
+            });
+
+            // Exponer helpers globales para accesibilidad externa
+            window.ckEditorsMap  = editors;
+            window.initCkEditors = initCkEditors;
+
+        })(jQuery);
+    </script>
+{% endblock %}

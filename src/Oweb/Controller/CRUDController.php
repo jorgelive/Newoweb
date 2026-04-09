@@ -13,6 +13,19 @@ use Symfony\Component\Mime\Email;
 
 class CRUDController extends BaseController
 {
+    /**
+     * Genera una respuesta HTTP con un archivo iCalendar (.ics) adjunto para forzar su descarga.
+     * Útil para exportar eventos de reservas e integrarlos en calendarios externos.
+     *
+     * Ejemplo de uso:
+     * $calendar = new \Eluceo\iCal\Component\Calendar('www.openperu.com');
+     * // ... se inyectan propiedades y eventos ...
+     * return $this->makeIcalResponse($calendar);
+     *
+     * @param mixed $calendar Objeto de calendario que implementa getContentType(), getFilename() y export().
+     * @param int   $status   Código de estado HTTP a retornar (por defecto 200 OK).
+     * @return Response       Respuesta de Symfony con las cabeceras adecuadas para la descarga del archivo adjunto.
+     */
     function makeIcalResponse($calendar, int $status = 200): Response
     {
         $mimeType = $calendar->getContentType(); // 'text/calendar'
@@ -41,6 +54,15 @@ class CRUDController extends BaseController
         return $response;
     }
 
+    /**
+     * Procesa la solicitud para enviar un correo electrónico al proveedor.
+     * Extrae los datos (destinatario, título, mensaje) del formulario de previsualización
+     * y emplea Symfony Mailer para la entrega.
+     *
+     * @param Request            $request Petición HTTP actual (captura POST del modal o GET legacy).
+     * @param TransportInterface $mailer  Servicio de transporte de correos de Symfony.
+     * @return RedirectResponse           Redirección a la vista de detalles (show) tras el intento de envío.
+     */
     public function emailAction(Request $request, TransportInterface $mailer): RedirectResponse
     {
         $object = $this->assertObjectExists($request, true);
@@ -48,8 +70,8 @@ class CRUDController extends BaseController
 
         // Determinar método de envío de datos
         $emailInfo = $request->isMethod('POST')
-            ? $request->request->get('email', [])   // POST
-            : $request->query->get('email', []);   // GET
+            ? $request->request->all('email')   // POST
+            : $request->query->all('email');   // GET
 
         // Validar campos obligatorios
         if (empty($emailInfo['destinatario']) || empty($emailInfo['titulo']) || empty($emailInfo['mensaje'])) {
@@ -57,7 +79,7 @@ class CRUDController extends BaseController
             return $this->redirectToRoute('admin_show', ['id' => $object->getId()]);
         }
 
-        // Si los datos vienen por GET, decodificarlos
+        // Si los datos vienen por GET, decodificarlos. En POST, se usan tal cual.
         $to      = $request->isMethod('GET') ? urldecode($emailInfo['destinatario']) : $emailInfo['destinatario'];
         $subject = $request->isMethod('GET') ? urldecode($emailInfo['titulo'])       : $emailInfo['titulo'];
         $message = $request->isMethod('GET') ? urldecode($emailInfo['mensaje'])     : $emailInfo['mensaje'];
@@ -83,6 +105,15 @@ class CRUDController extends BaseController
         return new RedirectResponse($this->admin->generateUrl('show', ['id' => $object->getId()]));
     }
 
+    /**
+     * Sobrescribe el comportamiento de redirección estándar del Sonata Admin tras operaciones de guardado.
+     * Si existe un contexto guardado en sesión ('last_list'), redirige a esa vista exacta,
+     * restaurando todos los parámetros de filtros y paginación previos.
+     *
+     * @param Request $request Petición HTTP actual.
+     * @param object  $object  Entidad sobre la cual se está operando.
+     * @return RedirectResponse Respuesta HTTP que redirige al listado filtrado o a la vista normal.
+     */
     protected function redirectTo(Request $request, object $object): RedirectResponse
     {
         $response = parent::redirectTo($request, $object);
@@ -116,6 +147,13 @@ class CRUDController extends BaseController
         return $response;
     }
 
+    /**
+     * Intercepta la acción de listado principal (listAction) para guardar el estado actual de los filtros
+     * y la ruta en la sesión del usuario. Esto permite construir botones de retorno eficientes y precisos.
+     *
+     * @param Request $request Petición HTTP actual.
+     * @return Response        Respuesta renderizada de la plantilla de listado base.
+     */
     public function listAction(Request $request): Response
     {
         // Evitar ejecutar en lista modal o si viene el parámetro 'pcode'

@@ -66,32 +66,32 @@
                                     <div class="op-cell">
                                         <span class="op-label">Inicio</span>
                                         <span class="op-value">
-                      <b class="op-hour" style="color: {{ colores.verde_oscuro }};">{{ componente.fechahorainicio|date('H:i') }}</b>
-                      <span class="op-date">{{ componente.fechahorainicio|date('Y-m-d') }}</span>
-                    </span>
+                                        <b class="op-hour" style="color: {{ colores.verde_oscuro }};">{{ componente.fechahorainicio|date('H:i') }}</b>
+                                        <span class="op-date">{{ componente.fechahorainicio|date('Y-m-d') }}</span>
+                                        </span>
                                     </div>
                                     <div class="op-cell">
                                         <span class="op-label">Fin</span>
                                         <span class="op-value">
-                      <b class="op-hour" style="color: {{ colores.verde_oscuro }};">{{ componente.fechahorafin|date('H:i') }}</b>
-                      <span class="op-date">{{ componente.fechahorafin|date('Y-m-d') }}</span>
-                    </span>
+                                            <b class="op-hour" style="color: {{ colores.verde_oscuro }};">{{ componente.fechahorafin|date('H:i') }}</b>
+                                            <span class="op-date">{{ componente.fechahorafin|date('Y-m-d') }}</span>
+                                        </span>
                                     </div>
                                     <div class="op-cell">
                                         <span class="op-label">Estado</span>
                                         <span class="op-value">
-                      <span class="op-chip" style="--chip: {{ componente.estadocotcomponente.color }};">{{ componente.estadocotcomponente.nombre }}</span>
-                    </span>
+                                            <span class="op-chip" style="--chip: {{ componente.estadocotcomponente.color }};">{{ componente.estadocotcomponente.nombre }}</span>
+                                        </span>
                                     </div>
 
                                     {% if componente.componente.componenteitems is defined and componente.componente.componenteitems|length > 0 %}
                                         <div class="op-cell op-cell--full">
                                             <span class="op-label">Items</span>
                                             <span class="op-value">
-                        {% for item in componente.componente.componenteitems %}
-                            <span class="op-pill">{{ item.titulo }}</span>
-                        {% endfor %}
-                      </span>
+                                                {% for item in componente.componente.componenteitems %}
+                                                    <span class="op-pill">{{ item.titulo }}</span>
+                                                {% endfor %}
+                                            </span>
                                         </div>
                                     {% endif %}
                                 </div>
@@ -140,9 +140,9 @@
                                                         {% if op.contacto.tipodocumento is not null or op.contacto.numerodocumento %}
                                                             <div class="op-cell"><span class="op-label">Documento</span>
                                                                 <span class="op-value">
-                                  {% if op.contacto.tipodocumento is not null %}{{ op.contacto.tipodocumento.nombre }} {% endif %}
+                                                                    {% if op.contacto.tipodocumento is not null %}{{ op.contacto.tipodocumento.nombre }} {% endif %}
                                                                     {% if op.contacto.numerodocumento %}{{ op.contacto.numerodocumento }}{% endif %}
-                                </span>
+                                                                </span>
                                                             </div>
                                                         {% endif %}
 
@@ -193,13 +193,13 @@
                                                     <div class="op-cell"><span class="op-label">#</span><span class="op-value">{{ tarifa.cantidad }}</span></div>
                                                     <div class="op-cell"><span class="op-label">Proveedor</span>
                                                         <span class="op-value">
-                              {% if tarifa.provider is not null %}
-                                  <a class="op-link" href="#">{{ tarifa.provider.nombre }}</a>
-                              {% else %}-{% endif %}
-                            </span>
+                                                            {% if tarifa.provider is not null %}
+                                                                  <a class="op-link" href="#">{{ tarifa.provider.nombre }}</a>
+                                                            {% else %}-{% endif %}
+                                                        </span>
                                                     </div>
                                                     <div class="op-cell"><span class="op-label">Tipo</span><span class="op-value">
-                            <span class="op-chip" style="--chip: {{ tarifa.tarifa.tipotarifa.listacolor }};">{{ tarifa.tarifa.tipotarifa.nombre }}</span></span>
+                                                        <span class="op-chip" style="--chip: {{ tarifa.tarifa.tipotarifa.listacolor }};">{{ tarifa.tarifa.tipotarifa.nombre }}</span></span>
                                                     </div>
                                                 </div>
 
