@@ -18,81 +18,92 @@ export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
     const currentId = ref<string | null>(null);
 
     // ⏰ Control de Tiempo
-    const lastUpdate = ref<number>(0);
-    // 10 minutos en milisegundos (10 * 60 * 1000)
-    const CACHE_TTL = 600000;
+    const lastUpdate = ref<number>(0); // Caché para el contexto (Guest/Public)
+    const lastUpdateGuia = ref<number>(0); // Caché específico para el CMS visual (getPmsGuia)
 
-    const cargarDatosCompletos = async (uuid: string, mode: 'public' | 'guest') => {
+    // 30 segundos en milisegundos (30 * 1000)
+    const CACHE_TTL = 30000;
 
-        // 1. ANÁLISIS DE CACHÉ
+    /**
+     * Carga el contexto de la guía y el CMS visual asegurando caché de 30s.
+     * Retiene los datos activos si no hay conexión a internet.
+     * * @param {string} uuid Identificador único de la reserva o propiedad.
+     * @param {'public' | 'guest'} mode Modo de acceso.
+     * @returns {Promise<void>}
+     */
+    const cargarDatosCompletos = async (uuid: string, mode: 'public' | 'guest'): Promise<void> => {
         const ahora = Date.now();
-        const tiempoTranscurrido = ahora - lastUpdate.value;
-        const datosExisten = helperContext.value && currentId.value === uuid;
-        const esFresco = tiempoTranscurrido < CACHE_TTL;
         const hayInternet = navigator.onLine; // Chequeo nativo del navegador
 
-        // CASO A: Datos frescos (menos de 10 min) -> Usar caché siempre
-        if (datosExisten && esFresco) {
-            console.log('⚡ GuiaStore: Cache válida (< 10m). Ahorrando petición.');
-            if (guia.value) return;
+        // Evaluaciones de estado y frescura
+        const tiempoTranscurridoContexto = ahora - lastUpdate.value;
+        const contextoExiste = helperContext.value && currentId.value === uuid;
+        const contextoFresco = tiempoTranscurridoContexto < CACHE_TTL;
+
+        const tiempoTranscurridoGuia = ahora - lastUpdateGuia.value;
+        const guiaExiste = guia.value !== null;
+        const guiaFresca = tiempoTranscurridoGuia < CACHE_TTL;
+
+        // 🛑 REGLA ESTRICTA OFFLINE: Si no hay red y tenemos datos, abortamos actualización.
+        if (!hayInternet) {
+            if (contextoExiste || guiaExiste) {
+                console.warn('⚠️ GuiaStore: Sin conexión a internet. Reteniendo la última data activa en caché de forma indefinida.');
+                return;
+            }
         }
 
-        // CASO B: Datos caducados PERO sin internet -> Usar caché (Salvavidas)
-        if (datosExisten && !esFresco && !hayInternet) {
-            console.warn('⚠️ GuiaStore: Datos caducados, pero SIN INTERNET. Usando versión antigua.');
-            // Opcional: Podrías poner una notificación UI tipo "Modo Offline"
-            return;
-        }
-
-        // CASO C: Datos caducados y CON internet -> Intentar actualizar
-        console.log('🔄 GuiaStore: Actualizando datos...');
+        console.log('🔄 GuiaStore: Validando caché y actualizando datos si es necesario...');
         loading.value = true;
 
         // 🔥 TRUCO: No borramos 'error' ni 'guia' todavía para mantener la UI visible
         // mientras carga la nueva versión por detrás.
 
         try {
-            // Cargar idiomas si faltan (esto suele ser rápido o estar en caché)
+            // Cargar idiomas si faltan (el maestroStore gestiona su propio caché de 30s)
             if (maestroStore.idiomas.length === 0) {
                 await maestroStore.cargarConfiguracion();
             }
 
-            let contextData;
+            // 1. ACTUALIZACIÓN DEL CONTEXTO (Guest/Public)
+            if (!contextoExiste || !contextoFresco) {
+                let contextData;
+                if (mode === 'guest') {
+                    contextData = await paxService.getGuiaGuestContext(uuid);
+                } else {
+                    contextData = await paxService.getGuiaPublicContext(uuid);
+                }
 
-            if (mode === 'guest') {
-                contextData = await paxService.getGuiaGuestContext(uuid);
+                helperContext.value = contextData;
+                currentId.value = uuid;
+                lastUpdate.value = Date.now();
+                error.value = null;
             } else {
-                contextData = await paxService.getGuiaPublicContext(uuid);
+                console.log('⚡ GuiaStore: Contexto fresco (< 30s). Ahorrando petición.');
             }
 
-            // Si llegamos aquí, la red funcionó. Actualizamos.
-            helperContext.value = contextData;
-            currentId.value = uuid;
-            lastUpdate.value = Date.now(); // 🕒 Renovamos el tiempo de vida
-            error.value = null; // Limpiamos errores viejos
+            // Extraer el ID real de la unidad del contexto actual
+            const unidadRealId = helperContext.value?.data?.config?.unit_uuid;
+            if (!unidadRealId) throw new Error('Datos corruptos: Sin ID de unidad en el contexto.');
 
-            const unidadRealId = contextData?.data?.config?.unit_uuid;
-            if (!unidadRealId) throw new Error('Datos corruptos: Sin ID de unidad');
-
-            // Cargar CMS visual
-            if (!guia.value || guia.value.unidad.id !== unidadRealId) {
+            // 2. ACTUALIZACIÓN DE LA GUÍA VISUAL (getPmsGuia)
+            // Actualiza si: no existe, cambió de unidad, o el caché de 30s expiró
+            if (!guiaExiste || guia.value?.unidad?.id !== unidadRealId || !guiaFresca) {
                 const guiaData = await paxService.getPmsGuia(unidadRealId);
                 guia.value = guiaData;
+                lastUpdateGuia.value = Date.now();
+            } else {
+                console.log('⚡ GuiaStore: CMS visual de Guía fresco (< 30s). Ahorrando petición.');
             }
 
         } catch (err: any) {
             console.error('❌ GuiaStore: Falló la actualización.', err);
 
-            // CASO D: Falló la petición (servidor caído o internet inestable)
-            // ¿Teníamos datos viejos? ¡NOS LOS QUEDAMOS!
-            if (datosExisten) {
-                console.log('🛡️ GuiaStore: Manteniendo datos antiguos por seguridad.');
-                // No lanzamos error a la UI, dejamos que el usuario siga navegando
-                // Solo guardamos el mensaje por si queremos mostrar un "Toast" de advertencia
-                error.value = "No se pudo actualizar, mostrando versión guardada.";
+            // Si falla el servidor pero teníamos datos, nos los quedamos por seguridad
+            if (contextoExiste || guiaExiste) {
+                console.log('🛡️ GuiaStore: Servidor falló. Manteniendo datos antiguos por seguridad.');
+                error.value = "No se pudo actualizar, mostrando última versión activa guardada.";
             } else {
-                // Si no teníamos nada y falló, ahí sí mostramos error fatal
-                error.value = err.message || 'Error de conexión.';
+                error.value = err.message || 'Error de conexión crítico.';
                 guia.value = null;
                 helperContext.value = null;
             }
@@ -101,6 +112,11 @@ export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
         }
     };
 
+    /**
+     * Extrae y devuelve el string traducido según el idioma actual.
+     * * @param {PmsContenidoTraducible[] | undefined} contenido Arreglo de traducciones.
+     * @returns {string} Texto traducido o cadena vacía si no existe.
+     */
     const traducir = (contenido: PmsContenidoTraducible[] | undefined): string => {
         if (!contenido || !Array.isArray(contenido) || contenido.length === 0) return '';
         const idioma = maestroStore.idiomaActual;
@@ -117,13 +133,14 @@ export const usePmsGuiaStore = defineStore('pmsGuiaStore', () => {
         error,
         currentId,
         lastUpdate,
+        lastUpdateGuia,
         cargarDatosCompletos,
         traducir
     };
 }, {
     persist: {
-        // Importante guardar lastUpdate para saber cuánto tiempo pasó al recargar
-        paths: ['guia', 'helperContext', 'currentId', 'lastUpdate'],
+        // Se añade lastUpdateGuia para persistir ambos temporizadores de caché
+        paths: ['guia', 'helperContext', 'currentId', 'lastUpdate', 'lastUpdateGuia'],
         storage: localStorage,
     } as PersistenceOptions
 });

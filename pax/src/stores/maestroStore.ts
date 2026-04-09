@@ -1,3 +1,4 @@
+// src/stores/maestroStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { paxService } from '@/services/paxService';
@@ -14,18 +15,19 @@ export const useMaestroStore = defineStore('maestroStore', () => {
 
         // ⏰ Control de Caché
         const lastUpdate = ref<number>(0);
-        // 24 Horas en milisegundos (24 * 60 * 60 * 1000)
-        // Los textos de la UI cambian muy poco, mejor un cache largo.
-        const CACHE_TTL = 86400000;
+        // 30 Segundos en milisegundos (30 * 1000)
+        const CACHE_TTL = 30000;
 
         // Variable para Request Deduplication
         let loadPromise: Promise<void> | null = null;
 
         /**
          * Carga la configuración de idiomas y textos UI desde la API (UiI18n).
-         * Utiliza caché local por 24 horas y deduplicación de peticiones.
+         * Utiliza caché local por 30 segundos y deduplicación de peticiones.
+         * Retiene los textos si se pierde la conexión.
+         * * @returns {Promise<void>}
          */
-        const cargarConfiguracion = async () => {
+        const cargarConfiguracion = async (): Promise<void> => {
 
             // 1. ANÁLISIS DE CACHÉ
             const ahora = Date.now();
@@ -34,15 +36,15 @@ export const useMaestroStore = defineStore('maestroStore', () => {
             const esFresco = tiempoTranscurrido < CACHE_TTL;
             const hayInternet = navigator.onLine;
 
-            // CASO A: Datos frescos (menos de 24h) -> Usar caché
-            if (datosExisten && esFresco) {
-                console.log('⚡ MaestroStore: Cache válida (< 24h).');
+            // 🛑 REGLA ESTRICTA OFFLINE: Si no hay red y tenemos datos, abortamos.
+            if (datosExisten && !hayInternet) {
+                console.warn('⚠️ MaestroStore: Sin conexión a internet. Manteniendo última data activa (Textos UI).');
                 return;
             }
 
-            // CASO B: Datos caducados PERO sin internet -> Usar caché
-            if (datosExisten && !esFresco && !hayInternet) {
-                console.warn('⚠️ MaestroStore: Datos caducados sin conexión. Usando versión antigua.');
+            // CASO A: Datos frescos (menos de 30s) -> Usar caché
+            if (datosExisten && esFresco) {
+                console.log('⚡ MaestroStore: Cache válida (< 30s).');
                 return;
             }
 
@@ -76,8 +78,7 @@ export const useMaestroStore = defineStore('maestroStore', () => {
                     // CASO E: Falló el servidor.
                     // Si tenemos datos viejos, NO lanzamos el error para que la App no rompa.
                     if (datosExisten) {
-                        console.log('🛡️ MaestroStore: Manteniendo textos antiguos por seguridad.');
-                        // Return silencioso (éxito falso) para que la app continúe
+                        console.log('🛡️ MaestroStore: Manteniendo textos antiguos por seguridad tras fallo del servidor.');
                         return;
                     }
 
@@ -94,6 +95,8 @@ export const useMaestroStore = defineStore('maestroStore', () => {
 
         /**
          * Extrae el string correcto basado en el idioma actual o sus fallbacks.
+         * * @param {PmsContenidoTraducible[] | undefined} contenido Arreglo con traducciones.
+         * @returns {string}
          */
         const traducir = (contenido: PmsContenidoTraducible[] | undefined): string => {
             if (!contenido || !Array.isArray(contenido) || contenido.length === 0) return '';
@@ -107,6 +110,9 @@ export const useMaestroStore = defineStore('maestroStore', () => {
         /**
          * Obtiene un texto de la UI por su clave y opcionalmente inyecta variables dinámicas.
          * Ejemplo: t('gui_info_restringida', { date: '12 de marzo' }) reemplazará {{ date }} por el valor.
+         * * @param {string} clave Clave del diccionario.
+         * @param {Record<string, string>} [variables] Objeto opcional con variables a interpolar.
+         * @returns {string} Texto formateado.
          */
         const t = (clave: string, variables?: Record<string, string>): string => {
             const entry = diccionario.value[clave];
@@ -122,21 +128,28 @@ export const useMaestroStore = defineStore('maestroStore', () => {
             return texto;
         };
 
+        /**
+         * Actualiza el idioma actual de la aplicación.
+         * * @param {string} id Código de idioma (ej. 'es', 'en').
+         */
+        const setIdioma = (id: string): void => {
+            idiomaActual.value = id;
+        };
+
         return {
             idiomas,
             idiomaActual,
             diccionario,
             loading,
-            lastUpdate, // Exportamos para persistencia
+            lastUpdate,
             cargarConfiguracion,
-            setIdioma: (id: string) => { idiomaActual.value = id },
+            setIdioma,
             traducir,
             t
         };
     },
     {
         persist: {
-            // 🔥 Guardamos 'lastUpdate' para saber la edad de los datos al recargar
             paths: ['idiomas', 'diccionario', 'idiomaActual', 'lastUpdate'],
             storage: localStorage,
         } as PersistenceOptions
