@@ -73,18 +73,25 @@ const showPendingWarning = computed(() => {
 });
 
 const unlockDateFormatted = computed(() => {
-  const dateStr = store.helperContext?.data?.config?.unlock_at; // Ejemplo: "2026-07-11 14:00:00"
+  const dateStr = store.helperContext?.data?.config?.unlock_at;
   if (!dateStr) return '--';
 
-  // Paso 1: Separamos la fecha de la hora manualmente
-  // Esto evita que 'new Date()' intente adivinar la zona horaria
-  const [fecha, horaCompleta] = dateStr.split(' ');
+  // Paso 1: Limpiamos la 'T' si viene en formato ISO (ej: "2026-04-11T14:00:00")
+  const cleanDateStr = dateStr.replace('T', ' ');
+
+  // Paso 2: Separamos la fecha de la hora
+  const partes = cleanDateStr.split(' ');
+
+  // Escudo de seguridad: si no hay hora, devolvemos el string original para que no crashee
+  if (partes.length < 2) return cleanDateStr;
+
+  const fecha = partes[0];
+  const horaCompleta = partes[1];
+
   const [anio, mes, dia] = fecha.split('-');
   const [hora, minutos] = horaCompleta.split(':');
 
-  // Paso 2: Creamos un objeto Date usando componentes locales (año, mes-1, día...)
-  // Al pasar los parámetros uno a uno, JS asume que son "locales" al contexto actual
-  // pero sin aplicar desfases de UTC.
+  // Paso 3: Creamos un objeto Date usando componentes locales
   const date = new Date(
       parseInt(anio),
       parseInt(mes) - 1,
@@ -93,8 +100,7 @@ const unlockDateFormatted = computed(() => {
       parseInt(minutos)
   );
 
-  // Paso 3: Formateamos SIN pasar la propiedad timeZone
-  // Simplemente usamos el formato de idioma
+  // Paso 4: Formateamos
   return date.toLocaleString(maestroStore.idiomaActual, {
     day: '2-digit',
     month: 'long',
