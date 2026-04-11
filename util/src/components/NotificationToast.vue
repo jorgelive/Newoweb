@@ -6,14 +6,36 @@ const notificationStore = useNotificationStore();
 const router = useRouter();
 
 /**
- * Maneja el clic sobre una notificación.
- * Si la notificación incluye una URL de acción (actionUrl),
- * redirige al usuario a esa ruta usando Vue Router y cierra el Toast.
- * * @param {AppNotification} notif La notificación que ha sido clickeada.
+ * Maneja el clic sobre una notificación interactiva.
+ * Redirige al usuario a la ruta de acción usando Vue Router y cierra el Toast.
+ * * Se implementa una sanitización defensiva para evitar errores críticos de DNS (NXDOMAIN)
+ * causados cuando el Service Worker o el Store envían propiedades faltantes que JS
+ * convierte en la cadena literal 'undefined'.
+ *
+ * @param {AppNotification} notif La notificación que ha sido clickeada.
+ * @returns {void}
  */
 const handleActionClick = (notif: AppNotification): void => {
   if (notif.actionUrl) {
-    router.push(notif.actionUrl);
+    let targetRoute = String(notif.actionUrl);
+
+    // 1. Escudo anti-undefined: Si la ruta se corrompió, aplicamos un fallback seguro al Inbox.
+    if (targetRoute.includes('undefined') || targetRoute.includes('unknown')) {
+      console.warn('[Toast] Ruta corrupta interceptada antes del Vue Router. Aplicando fallback a /chat. Ruta original:', targetRoute);
+      targetRoute = '/chat';
+    }
+    // 2. Prevención de fuga de SPA: Si llega una URL absoluta, extraemos solo el path relativo.
+    else if (targetRoute.startsWith('http')) {
+      try {
+        const urlObj = new URL(targetRoute);
+        targetRoute = urlObj.pathname + urlObj.search;
+      } catch (e) {
+        targetRoute = '/chat';
+      }
+    }
+
+    // Ejecutamos la navegación con la ruta purificada
+    router.push(targetRoute);
     notificationStore.removeNotification(notif.id);
   }
 };

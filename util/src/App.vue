@@ -25,6 +25,8 @@ onMounted(() => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'PUSH_TO_STORE') {
+        // 🔍 EL DETECTOR DE MENTIRAS:
+        console.log('📦 [App.vue] Payload crudo recibido del Service Worker:', event.data.payload);
         notificationStore.addNotification(event.data.payload);
       }
     });
