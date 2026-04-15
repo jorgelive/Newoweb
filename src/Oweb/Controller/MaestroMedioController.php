@@ -167,7 +167,7 @@ class MaestroMedioController extends CRUDController
 
         // Verificamos si la vista AJAX envió un ID válido de MaestroClasemedio para establecer la relación
         if (!empty($clasemedioId)) {
-            $claseMedio = $this->entityManager->getRepository(MaestroClasemedio::class)->find($$clasemedioId);
+            $claseMedio = $this->entityManager->getRepository(MaestroClasemedio::class)->find($clasemedioId);
             if ($claseMedio) {
                 $maestroMedio->setClasemedio($claseMedio);
             }
