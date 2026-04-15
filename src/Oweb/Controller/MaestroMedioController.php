@@ -2,6 +2,7 @@
 
 namespace App\Oweb\Controller;
 
+use App\Oweb\Entity\MaestroClasemedio;
 use App\Oweb\Entity\MaestroMedio;
 use App\Service\GoogleTranslateService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -14,7 +15,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Controlador para la gestión de MaestroMedio (Multimedia).
- * Implementa traducción automática V3 y carga de archivos mediante AJAX con procesamiento de base64.
+ * Implementa traducción automática V3 y carga de archivos masiva mediante AJAX con procesamiento de base64.
  */
 class MaestroMedioController extends CRUDController
 {
@@ -99,6 +100,7 @@ class MaestroMedioController extends CRUDController
 
     /**
      * Renderiza la vista personalizada para la carga masiva de medios.
+     * Obtiene e inyecta la lista de MaestroClasemedio para el menú desplegable.
      * * @param Request $request
      * @return Response
      */
@@ -106,18 +108,25 @@ class MaestroMedioController extends CRUDController
     {
         $this->admin->checkAccess('create');
 
-        $template = 'oweb/admin/reserva_unitmedio/carga.html.twig';
+        $template = 'oweb/admin/maestro_medio/carga.html.twig';
         $newObject = $this->admin->getNewInstance();
+
+        // Obtenemos todas las clases de medios disponibles para el selector dropdown en la vista
+        $claseMedios = $this->entityManager
+            ->getRepository(MaestroClasemedio::class)
+            ->findBy([], ['id' => 'ASC']);
 
         return $this->renderWithExtraParams($template, [
             'object' => $newObject,
             'action' => 'carga',
-            'objectId' => null
+            'objectId' => null,
+            'claseMedios' => $claseMedios,
         ]);
     }
 
     /**
      * Procesa la carga de archivos vía AJAX, decodificando base64 a archivos temporales.
+     * Analiza el payload JSON para adjuntar la relación con MaestroClasemedio si fue enviada.
      * * @param Request $request
      * @return Response
      */
@@ -154,6 +163,16 @@ class MaestroMedioController extends CRUDController
         $maestroMedio->setNombre(pathinfo($data->name, PATHINFO_FILENAME));
         $maestroMedio->setTitulo(pathinfo($data->name, PATHINFO_FILENAME));
 
+        $clasemedioId = $data->clasemedio_id ?? null;
+
+        // Verificamos si la vista AJAX envió un ID válido de MaestroClasemedio para establecer la relación
+        if (!empty($clasemedioId)) {
+            $claseMedio = $this->entityManager->getRepository(MaestroClasemedio::class)->find($$clasemedioId);
+            if ($claseMedio) {
+                $maestroMedio->setClasemedio($claseMedio);
+            }
+        }
+
         $this->entityManager->persist($maestroMedio);
         $this->entityManager->flush();
 
@@ -181,9 +200,9 @@ class MaestroMedioController extends CRUDController
 
     /**
      * Helper para capitalizar la primera letra de un string con soporte para caracteres especiales.
-     * * @param string $str
-     * @param string $encoding
-     * @return string
+     * * @param string $str Cadena original.
+     * @param string $encoding Codificación de caracteres.
+     * @return string Cadena con la primera letra mayúscula.
      */
     private function mb_ucfirst(string $str, string $encoding = 'UTF-8'): string
     {
