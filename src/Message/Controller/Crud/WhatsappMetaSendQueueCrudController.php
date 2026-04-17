@@ -63,8 +63,8 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
         return $crud
             ->setEntityLabelInSingular('Cola WhatsApp')
             ->setEntityLabelInPlural('Cola WhatsApp (Meta)')
-            ->setSearchFields(['destinationPhone', 'status', 'deliveryStatus', 'wamId'])
-            // ✅ Ordenado por actualización más reciente
+            // ✅ Se eliminó wamId porque no existe en la entidad
+            ->setSearchFields(['destinationPhone', 'status', 'deliveryStatus'])
             ->setDefaultSort(['updatedAt' => 'DESC'])
             ->showEntityActionsInlined();
     }
@@ -134,7 +134,7 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
         // --- PANEL 1: DESTINO Y ESTADO ---
         yield FormField::addPanel('Estado del Envío')->setIcon('fa fa-whatsapp');
 
-        // ✅ Nuevo campo: Mostrar nombre del cliente basado en la relación profunda (Queue -> Message -> Conversation)
+        // Mostrar nombre del cliente basado en la relación profunda (Queue -> Message -> Conversation)
         yield TextField::new('message.conversation.guestName', 'Cliente')
             ->setColumns(6)
             ->hideOnForm();
@@ -157,25 +157,22 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
 
         yield ChoiceField::new('deliveryStatus', 'WhatsApp Status (Meta)')
             ->setChoices([
+                'Unknown' => 'unknown',
                 'Submitted' => 'submitted',
                 'Delivered' => 'delivered',
                 'Read' => 'read',
-                'Failed' => 'failed'
             ])
             ->renderAsBadges([
                 'read' => 'info',
                 'delivered' => 'primary',
                 'submitted' => 'secondary',
-                'failed' => 'danger'
+                'unknown' => 'warning',
             ])
             ->setColumns(6);
 
         yield DateTimeField::new('runAt', 'Programado para')
             ->setFormat('dd/MM/yyyy HH:mm')
             ->setColumns(6);
-
-        yield TextField::new('wamId', 'WhatsApp Message ID (WAMID)')
-            ->onlyOnDetail();
 
         // --- PANEL 2: RELACIONES ---
         yield FormField::addPanel('Relaciones')->setIcon('fa fa-link');
