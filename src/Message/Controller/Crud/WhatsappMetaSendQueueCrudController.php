@@ -145,14 +145,18 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
 
         yield ChoiceField::new('status', 'Estado Worker')
             ->setChoices([
-                'Pendiente' => 'pending',
-                'Éxito' => 'success',
-                'Fallido' => 'failed',
+                'Pendiente' => WhatsappMetaSendQueue::STATUS_PENDING,
+                'Procesando' => WhatsappMetaSendQueue::STATUS_PROCESSING,
+                'Completado' => WhatsappMetaSendQueue::STATUS_SUCCESS,
+                'Fallido' => WhatsappMetaSendQueue::STATUS_FAILED,
+                'Cancelado' => WhatsappMetaSendQueue::STATUS_CANCELLED,
             ])
             ->renderAsBadges([
-                'pending' => 'warning',
-                'success' => 'success',
-                'failed' => 'danger'
+                WhatsappMetaSendQueue::STATUS_PENDING => 'warning',
+                WhatsappMetaSendQueue::STATUS_PROCESSING => 'info',
+                WhatsappMetaSendQueue::STATUS_SUCCESS => 'success',
+                WhatsappMetaSendQueue::STATUS_FAILED => 'danger',
+                WhatsappMetaSendQueue::STATUS_CANCELLED => 'dark',
             ])
             ->setColumns(6);
 
