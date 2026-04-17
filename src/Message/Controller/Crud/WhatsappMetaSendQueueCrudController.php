@@ -35,7 +35,8 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
 {
     /**
      * Constructor de la clase WhatsappMetaSendQueueCrudController.
-     * * @param AdminUrlGenerator $adminUrlGenerator Generador de URLs para EasyAdmin.
+     *
+     * @param AdminUrlGenerator $adminUrlGenerator Generador de URLs para EasyAdmin.
      * @param RequestStack      $requestStack      Pila de peticiones de Symfony.
      */
     public function __construct(
@@ -63,7 +64,6 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
         return $crud
             ->setEntityLabelInSingular('Cola WhatsApp')
             ->setEntityLabelInPlural('Cola WhatsApp (Meta)')
-            // ✅ Se eliminó wamId porque no existe en la entidad
             ->setSearchFields(['destinationPhone', 'status', 'deliveryStatus'])
             ->setDefaultSort(['updatedAt' => 'DESC'])
             ->showEntityActionsInlined();
@@ -94,7 +94,8 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
      * @param EntityDto        $entityDto Metadatos de la entidad actual.
      * @param FieldCollection  $fields    Campos configurados en el CRUD.
      * @param FilterCollection $filters   Filtros aplicados desde el panel lateral.
-     * * @return QueryBuilder
+     *
+     * @return QueryBuilder
      */
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
     {
@@ -177,11 +178,6 @@ final class WhatsappMetaSendQueueCrudController extends BaseCrudController
         // --- PANEL 2: RELACIONES ---
         yield FormField::addPanel('Relaciones')->setIcon('fa fa-link');
         yield AssociationField::new('message', 'Mensaje PMS');
-
-        // Exponemos la conversación completa en la vista de detalle
-        yield AssociationField::new('message.conversation', 'Conversación Completa')
-            ->onlyOnDetail();
-
         yield AssociationField::new('config', 'Configuración Meta');
 
         // --- PANEL 3: AUDITORÍA TÉCNICA ---
