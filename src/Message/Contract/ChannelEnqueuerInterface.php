@@ -16,7 +16,7 @@ interface ChannelEnqueuerInterface
 
     /**
      * Instancia la entidad de cola correspondiente y la asocia al mensaje.
-     * Retorna NULL si faltan datos críticos (ej: huésped sin teléfono, o reserva sin ID de Beds24).
+     * Retorna NULL si faltan datos críticos (ej.: huésped sin teléfono, o reserva sin ID de Beds24).
      *
      * @param Message $message El mensaje a encolar.
      * @param MessageChannel $channel El canal por donde saldrá.
@@ -34,4 +34,6 @@ interface ChannelEnqueuerInterface
      * Patrón Idempotencia para evitar duplicados por dobles flush() de Doctrine.
      */
     public function isAlreadyEnqueued(Message $message): bool;
+
+    public function isValid(Message $message): bool;
 }

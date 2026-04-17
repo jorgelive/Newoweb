@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Message\Service;
 
+use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Contract\ConversationMilestoneInterface;
 use App\Message\Entity\Message;
+use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
 use App\Message\Entity\MessageRule;
 use DateTimeImmutable;
@@ -13,6 +15,7 @@ use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
 /**
  * Motor centralizado para la programación, actualización y cancelación de mensajes automáticos.
@@ -24,9 +27,17 @@ final readonly class MessageRuleEngine
     public const string TRIGGER_UPDATE = 'update';
     public const string TRIGGER_COMMAND = 'command';
 
+    /**
+     * Constructor del motor de reglas.
+     * * @param EntityManagerInterface $em
+     * @param LoggerInterface $logger
+     * @param iterable<ChannelEnqueuerInterface> $enqueuers Colección de encoladores para validar viabilidad de canales.
+     */
     public function __construct(
         private EntityManagerInterface $em,
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        #[TaggedIterator('app.message.enqueuer')]
+        private iterable $enqueuers
     ) {}
 
     /**
@@ -64,7 +75,6 @@ final readonly class MessageRuleEngine
                 if ($existingMessage !== null) {
                     $this->syncPendingMessage($existingMessage, $rule, $runAt);
                 } else {
-
 
                     // =========================================================
                     // 🛡️ BLINDAJE RESTAURADO: Prevención de Spam Histórico
@@ -204,8 +214,9 @@ final readonly class MessageRuleEngine
     }
 
     /**
-     * Sincroniza la nueva fecha y expone los canales deseados.
-     * NO crea colas. El Listener capturará este cambio en preUpdate.
+     * Sincroniza la nueva fecha y realiza una "Poda de Canales" reactiva.
+     * Si un canal de la regla ya no es válido para el contexto actual (ej. Beds24 en Directo),
+     * se elimina de los transientChannels, lo que disparará la cancelación en el Listener.
      *
      * @param Message $message
      * @param MessageRule $rule
@@ -218,8 +229,34 @@ final readonly class MessageRuleEngine
             return;
         }
 
+        // 1. Obtenemos los canales que la REGLA quiere usar
         $targetChannelIds = $rule->getTargetCommunicationChannels()->map(fn($c) => $c->getId())->toArray();
-        $message->setTransientChannels($targetChannelIds);
+
+        // 2. 🔥 FILTRO DE SEGURIDAD: Validamos cada canal contra su Enqueuer
+        $validChannelIds = [];
+        foreach ($targetChannelIds as $channelId) {
+            foreach ($this->enqueuers as $enqueuer) {
+                // Buscamos el enqueuer que soporta este canal
+                if ($enqueuer->supports($this->em->getReference(MessageChannel::class, $channelId))) {
+                    if ($enqueuer->isValid($message)) {
+                        $validChannelIds[] = $channelId;
+                    } else {
+                        $this->logger->info("Regla Engine: Canal '$channelId' invalidado por el Enqueuer para el mensaje {$message->getId()}");
+                    }
+                    break;
+                }
+            }
+        }
+
+        // 3. Actualizamos los canales temporales con la lista filtrada
+        // Si 'beds24' estaba en la lista pero ahora se quitó, el Listener cancelará su cola.
+        $message->setTransientChannels($validChannelIds);
+
+        // 4. Si no quedan canales válidos, cancelamos el mensaje padre completamente
+        if (empty($validChannelIds)) {
+            $this->cancelPendingQueues($message);
+            return;
+        }
 
         if (in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING], true)) {
             if ($message->getScheduledAt() != $newRunAt) {
@@ -265,29 +302,40 @@ final readonly class MessageRuleEngine
 
     /**
      * Evalúa la realidad física de las colas para dictaminar el estado real del mensaje raíz.
-     * Evita que un mensaje exitoso por un canal se marque como cancelado solo porque el otro falló.
-     * Protege el UI evitando anular campos vitales.
+     * Ahora es 100% agnóstico a los canales, delegando la recolección a la entidad Message.
      */
     private function resolveMessageStatus(Message $message): void
     {
         $hasPending = $hasSuccess = $hasFailed = false;
 
-        foreach ($message->getBeds24SendQueues() as $q) {
+        // Iteramos de forma agnóstica usando la interfaz
+        foreach ($message->getAllQueues() as $q) {
             $s = $q->getStatus();
-            if ($s === 'pending') $hasPending = true;
-            if (in_array($s, ['success', 'sent', 'delivered'], true)) $hasSuccess = true;
-            if ($s === 'failed') $hasFailed = true;
+
+            if ($s === 'pending') {
+                $hasPending = true;
+            }
+            if (in_array($s, ['success', 'sent', 'delivered'], true)) {
+                $hasSuccess = true;
+            }
+            if ($s === 'failed') {
+                $hasFailed = true;
+            }
         }
 
-        foreach ($message->getWhatsappMetaSendQueues() as $q) {
-            $s = $q->getStatus();
-            if ($s === 'pending') $hasPending = true;
-            if (in_array($s, ['success', 'sent', 'delivered'], true)) $hasSuccess = true;
-            if ($s === 'failed') $hasFailed = true;
+        if ($hasPending) {
+            $message->setStatus(Message::STATUS_QUEUED);
+            return;
         }
 
-        if ($hasPending) { $message->setStatus(Message::STATUS_QUEUED); return; }
-        if ($hasSuccess) { $message->setStatus(Message::STATUS_SENT); return; }
-        if ($hasFailed)  { $message->setStatus(Message::STATUS_FAILED); return; }
+        if ($hasSuccess) {
+            $message->setStatus(Message::STATUS_SENT);
+            return;
+        }
+
+        if ($hasFailed) {
+            $message->setStatus(Message::STATUS_FAILED);
+            return;
+        }
     }
 }

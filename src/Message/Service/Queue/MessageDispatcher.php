@@ -16,11 +16,12 @@ use Psr\Log\LoggerInterface;
 /**
  * Orquesta la creación de ítems en las colas (Outbox) usando el patrón Strategy.
  * Delega la creación física a los Encoladores Específicos según los canales activos.
+ * Implementa resiliencia multicanal tolerando fallos parciales de encolamiento.
  */
 readonly class MessageDispatcher
 {
     /**
-     * @param iterable<ChannelEnqueuerInterface> $enqueuers
+     * @param iterable<ChannelEnqueuerInterface> $enqueuers Colección de encoladores etiquetados inyectados por Symfony.
      */
     public function __construct(
         #[TaggedIterator('app.message.enqueuer')]
@@ -30,10 +31,11 @@ readonly class MessageDispatcher
     ) {}
 
     /**
-     * Evalúa canales y crea colas, respetando la idempotencia dictada por los Enqueuers.
+     * Evalúa canales y crea colas físicas, respetando la idempotencia dictada por los Enqueuers.
+     * Si un canal falla, los demás continúan (Tolerancia a fallos parciales).
      *
-     * @param Message $message
-     * @return array
+     * @param Message $message La entidad mensaje original.
+     * @return array Un arreglo con las entidades de cola creadas (ej. Beds24SendQueue).
      */
     public function dispatch(Message $message): array
     {
@@ -64,29 +66,53 @@ readonly class MessageDispatcher
                             $queues[] = $queue;
                         }
                     } catch (Throwable $e) {
+                        // Atrapamos el error específico del canal, pero NO rompemos el bucle
                         $errors[] = sprintf('[%s] %s', $channel->getName(), $e->getMessage());
                     }
+
+                    // Ya encontramos el encolador para este canal, no seguimos iterando enqueuers
                     break;
                 }
             }
         }
 
-        // 🔥 LÓGICA DE FALLO NOTORIO
-        // Si hubo excepciones, o si había canales pero no se generó ninguna cola:
-        if (!empty($errors) || (empty($queues) && !empty($channels))) {
+        // =====================================================================
+        // 🔥 LÓGICA DE FALLO Y ÉXITO MEJORADA (Resiliencia Parcial)
+        // =====================================================================
+        if (empty($queues) && !empty($channels)) {
+            // FRACASO TOTAL: Había canales previstos, pero NINGUNO generó una cola.
+            // (Ya sea porque todos lanzaron excepción, o todos retornaron null por reglas de negocio)
             $message->setStatus(Message::STATUS_FAILED);
-            $message->addMetadata('dispatch_errors', empty($errors) ? ['Error desconocido.'] : $errors);
+
+            $motivo = empty($errors)
+                ? ['No se pudo generar ninguna cola para los canales solicitados (posible restricción de negocio por canal).']
+                : $errors;
+
+            $message->addMetadata('dispatch_errors', $motivo);
+
         } else {
-            // Si todo fue bien, lo ponemos en Queue
+            // ÉXITO (Total o Parcial): Al menos una cola se generó correctamente.
             $message->setStatus(Message::STATUS_QUEUED);
+
+            // Si hubo éxito, pero algún otro canal falló, dejamos registro de auditoría
+            if (!empty($errors)) {
+                $message->addMetadata('dispatch_partial_errors', $errors);
+                $this->logger->warning(sprintf(
+                    'Mensaje %s encolado con fallos parciales: %s',
+                    $message->getId()?->toRfc4122() ?? 'N/A',
+                    implode(' | ', $errors)
+                ));
+            }
         }
 
         return $queues;
     }
 
     /**
-     * Aplica las reglas de negocio para determinar los canales destino.
-     * @return MessageChannel[]
+     * Aplica las reglas de negocio para determinar los canales destino finales.
+     * Analiza las plantillas, la selección manual del usuario y hace un fallback si es necesario.
+     * * @param Message $message
+     * @return MessageChannel[] Arreglo de canales resultantes a despachar.
      */
     private function resolveChannels(Message $message): array
     {

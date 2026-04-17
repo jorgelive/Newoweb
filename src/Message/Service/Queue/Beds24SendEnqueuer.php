@@ -137,4 +137,38 @@ readonly class Beds24SendEnqueuer implements ChannelEnqueuerInterface
 
         return $count > 0;
     }
+
+
+    /**
+     * Valida si las condiciones actuales de la conversación permiten el envío por Beds24.
+     * Es vital para cancelar colas si una reserva cambia de OTA a Directo.
+     */
+    public function isValid(Message $message): bool
+    {
+        $conversation = $message->getConversation();
+        if (!$conversation) {
+            return false;
+        }
+
+        $resolver = $this->resolverRegistry->getResolver($conversation->getContextType());
+        if (!$resolver) {
+            return false;
+        }
+
+        $metadata = $resolver->getMetadata($conversation->getContextId());
+        $source = strtolower((string) ($metadata['source'] ?? ''));
+
+        // Si es directo, el canal Beds24 ya no es válido
+        $canalesDirectos = ['directo', 'manual', 'web', ''];
+        if (in_array($source, $canalesDirectos, true)) {
+            return false;
+        }
+
+        // Si no hay bookId o config, tampoco es válido
+        if (!($metadata['beds24_config'] ?? null) || !($metadata['beds24_book_id'] ?? null)) {
+            return false;
+        }
+
+        return true;
+    }
 }

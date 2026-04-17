@@ -202,4 +202,22 @@ readonly class WhatsappMetaSendEnqueuer implements ChannelEnqueuerInterface
 
         return $count > 0;
     }
+
+    /**
+     * Valida si las condiciones actuales permiten el envío por WhatsApp.
+     * A diferencia de Beds24, WhatsApp es un canal universal, por lo que
+     * siempre es válido independientemente de si la reserva es OTA o Directa.
+     */
+    public function isValid(Message $message): bool
+    {
+        $conversation = $message->getConversation();
+
+        // Opcional: El único motivo lógico para invalidarlo sería que no haya teléfono
+        if (!$conversation || empty($conversation->getGuestPhone())) {
+            return false;
+        }
+
+        return true;
+    }
+
 }

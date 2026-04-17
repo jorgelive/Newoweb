@@ -24,6 +24,7 @@ use InvalidArgumentException;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
+use App\Message\Contract\MessageQueueItemInterface;
 
 /**
  * Entidad que representa un mensaje individual dentro de una conversación.
@@ -538,7 +539,7 @@ class Message
     }
 
     /**
-     * Define la intención de entrada para ser evaluada asíncronamente por el AutoResponder.
+     * Define la intención de entrada para ser evaluada asíncronamente por el Autorresponder.
      *
      * @param array $intentData
      * @return $this
@@ -554,7 +555,7 @@ class Message
 
     /**
      * HACK DE AUDITORÍA: Rastrea quién y cuándo modifica el JSON.
-     * Esto dejará una huella en el JSON de la base de datos para cazar sobreescrituras.
+     * Esto dejará una huella en el JSON de la base de datos para cazar sobre escrituras.
      */
     private function appendDebugTrace(string $channel, string $action, $value): void
     {
@@ -579,5 +580,37 @@ class Message
         ];
 
         $this->metadata = $meta;
+    }
+
+    /**
+     * Agrupa todas las colas físicas asociadas a este mensaje en una única colección agnóstica.
+     * * ¿Por qué existe?: Evita fugas de abstracción. Permite que servicios de dominio
+     * (como MessageRuleEngine o el Dispatcher) puedan iterar y evaluar el estado de todas
+     * las colas sin necesidad de acoplarse a las colecciones físicas individuales de cada canal
+     * (Beds24, WhatsApp, etc.), respetando el Open/Closed Principle.
+     * * Dependencias y Efectos: Este es el único punto de convergencia entre las colecciones
+     * físicas de Doctrine y los contratos de dominio. Si en el futuro se añade un nuevo
+     * canal de salida (ej. SMS Twilio), su colección Doctrine DEBE sumarse obligatoriamente
+     * dentro de este método para que el motor de reglas pueda auditarlo.
+     *
+     * @return MessageQueueItemInterface[] Arreglo tipado donde cada elemento cumple el contrato de cola.
+     */
+    public function getAllQueues(): array
+    {
+        $queues = [];
+
+        if ($this->beds24SendQueues !== null) {
+            foreach ($this->beds24SendQueues as $q) {
+                $queues[] = $q;
+            }
+        }
+
+        if ($this->whatsappMetaSendQueues !== null) {
+            foreach ($this->whatsappMetaSendQueues as $q) {
+                $queues[] = $q;
+            }
+        }
+
+        return $queues;
     }
 }
