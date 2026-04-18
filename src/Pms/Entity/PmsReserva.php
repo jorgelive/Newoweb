@@ -333,8 +333,13 @@ class PmsReserva
 
     /**
      * Devuelve solo los eventos que deben ser visibles en la Guía del Huésped (PAX).
-     * Filtra por estados confirmados y asegura que la guía no esté explícitamente deshabilitada.
-     * * @return Collection<int, PmsEventoCalendario>
+     * Filtra por estados confirmados, asegura que la guía no esté explícitamente deshabilitada
+     * y los ordena cronológicamente por la fecha de ingreso (inicio).
+     *
+     * ¿Por qué existe?: Este método provee la colección exacta de eventos/reservaciones
+     * que un huésped debe visualizar en su extranet (PAX), garantizando un formato de lista
+     * ordenada y estructurada que la API y el frontend (Vue) puedan consumir directamente.
+     * * @return array<int, PmsEventoCalendario> Arreglo indexado secuencialmente de eventos activos.
      */
     #[Groups(['pax_reserva:read'])]
     public function getEventosActivosGuia(): array
@@ -352,7 +357,14 @@ class PmsReserva
         });
 
         // IMPORTANTE: .getValues() resetea los índices para que en JSON sea [{}, {}] y no {"1": {}, "2": {}}
-        return $filtrados->getValues();
+        $eventosArray = $filtrados->getValues();
+
+        // Ordenamos los eventos cronológicamente por la fecha de ingreso
+        usort($eventosArray, function (PmsEventoCalendario $a, PmsEventoCalendario $b) {
+            return $a->getInicio() <=> $b->getInicio();
+        });
+
+        return $eventosArray;
     }
 
     public function removeEventosCalendario(PmsEventoCalendario $evento): self {
@@ -420,9 +432,6 @@ class PmsReserva
         return true;
     }
 
-    /**
-     * 2. EL ARMADOR DE URL: Usa el buscador base para obtener el hotel_id.
-     */
     /**
      * 2. EL ARMADOR DE URL MULTI-CANAL
      */
