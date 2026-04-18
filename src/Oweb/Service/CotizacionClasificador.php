@@ -38,12 +38,9 @@ class CotizacionClasificador
     /**
      * Clasifica las tarifas de una cotización por servicio y componente.
      *
-     * Valida que la cotización tenga servicios, que cada servicio tenga componentes,
-     * y que cada componente tenga tarifas. Luego construye un array temporal de
-     * tarifas y las clasifica en clases según edad y tipo de pasajero.
-     *
-     * Además genera alertas si los servicios están separados por más de 20 días y
-     * asegura que la cantidad de pasajeros coincida con la cantidad del componente.
+     * Utiliza un enfoque de "Doble Pasada":
+     * 1. Extrae el "Perfil Maestro" buscando el componente con las reglas más estrictas.
+     * 2. Recorre todos los componentes y encaja las tarifas en esos contenedores inmutables.
      *
      * @param CotizacionCotizacion $cotizacion La cotización a procesar.
      * @param MaestroTipocambio $tipocambio Tipo de cambio para conversión de montos.
@@ -57,9 +54,15 @@ class CotizacionClasificador
             return false;
         }
 
+        // --- PASADA 1: Encontrar el perfil de pasajeros maestro ---
+        if (!$this->definirClasesMaestras($tipocambio)) {
+            return false;
+        }
+
         $existeAlertaDiferencia = false;
         $fechaHoraPrimerServicio = null;
 
+        // --- PASADA 2: Asignar tarifas a los contenedores inmutables ---
         foreach ($cotizacion->getCotservicios() as $servicio) {
             foreach ($servicio->getCotcomponentes() as $componente) {
                 if ($fechaHoraPrimerServicio === null) {
@@ -70,7 +73,6 @@ class CotizacionClasificador
 
                 $cantidadComponente = 0;
                 $tarifasTemp = $this->construirArrayTarifasComponente($componente, $servicio, $tipocambio, $cantidadComponente);
-
 
                 if ($tarifasTemp === false) {
                     return false;
@@ -98,6 +100,100 @@ class CotizacionClasificador
         $this->datos['tarifas']['resumen'] = $this->resumenDeClasificado;
 
         return true;
+    }
+
+    /**
+     * Define los contenedores (clases) base analizando cuál es el componente
+     * con mayor nivel de especificidad (ej. Entradas a Machu Picchu o Trenes).
+     * Esto evita que tarifas genéricas secuestren clases que requieren nacionalidad.
+     *
+     * @param MaestroTipocambio $tipocambio
+     * @return bool
+     */
+    private function definirClasesMaestras(MaestroTipocambio $tipocambio): bool
+    {
+        $mejorPuntaje = -1;
+        $componenteMaestroData = [];
+
+        // Buscar el componente más restrictivo
+        foreach ($this->cotizacion->getCotservicios() as $servicio) {
+            foreach ($servicio->getCotcomponentes() as $componente) {
+                $cantidadComponente = 0;
+                $tarifasTemp = $this->construirArrayTarifasComponente($componente, $servicio, $tipocambio, $cantidadComponente);
+
+                if ($tarifasTemp === false) {
+                    return false;
+                }
+
+                // El maestro debe cubrir a todos los pasajeros de la cotización
+                if ($cantidadComponente != $this->cotizacion->getNumeropasajeros()) {
+                    continue;
+                }
+
+                $puntaje = $this->calcularEspecificidadComponente($tarifasTemp);
+
+                if ($puntaje > $mejorPuntaje) {
+                    $mejorPuntaje = $puntaje;
+                    $componenteMaestroData = $tarifasTemp;
+                }
+            }
+        }
+
+        if (empty($componenteMaestroData)) {
+            $this->requestStack->getSession()->getFlashBag()->add('error', 'No se pudo determinar un perfil maestro de pasajeros en la cotización.');
+            return false;
+        }
+
+        // Construir las clases maestras (contenedores inmutables)
+        $clasesAgrupadas = [];
+        foreach ($componenteMaestroData as $tarifa) {
+            $min = $tarifa['edadMin'] ?? self::EDAD_MINIMA_DEFAULT;
+            $max = $tarifa['edadMax'] ?? self::EDAD_MAXIMA_DEFAULT;
+            $tipo = 'r' . $min . '-' . $max . 't' . $tarifa['tipoPaxId'];
+
+            if (!isset($clasesAgrupadas[$tipo])) {
+                $clasesAgrupadas[$tipo] = [
+                    'tipo' => $tipo,
+                    'cantidad' => 0,
+                    'cantidadRestante' => 0,
+                    'tipoPaxId' => $tarifa['tipoPaxId'],
+                    'tipoPaxNombre' => $tarifa['tipoPaxNombre'],
+                    'tipoPaxTitulo' => $tarifa['tipoPaxTitulo'],
+                    'edadMin' => $min,
+                    'edadMax' => $max,
+                    'tarifas' => []
+                ];
+            }
+
+            $clasesAgrupadas[$tipo]['cantidad'] += $tarifa['cantidad'];
+            $clasesAgrupadas[$tipo]['cantidadRestante'] += $tarifa['cantidad'];
+        }
+
+        $this->tarifasClasificadas = array_values($clasesAgrupadas);
+        return true;
+    }
+
+    /**
+     * Calcula cuán "específico" es un arreglo de tarifas.
+     * Mayor especificidad (con nacionalidades declaradas y rangos de edad cortos)
+     * asegura que los contenedores maestros se creen correctamente.
+     *
+     * @param array $tarifas
+     * @return int
+     */
+    private function calcularEspecificidadComponente(array $tarifas): int
+    {
+        $score = 0;
+        foreach ($tarifas as $t) {
+            // Premia enormemente si exige nacionalidad explícita (Extranjero, Peruano, etc)
+            if ($t['tipoPaxId'] != 0) {
+                $score += 100;
+            }
+            // Premia rangos de edad cerrados (un rango 14-17 gana más puntos que un 0-120)
+            $rango = ($t['edadMax'] ?? self::EDAD_MAXIMA_DEFAULT) - ($t['edadMin'] ?? self::EDAD_MINIMA_DEFAULT);
+            $score += (self::EDAD_MAXIMA_DEFAULT - $rango);
+        }
+        return $score;
     }
 
     /**
@@ -213,9 +309,6 @@ class CotizacionClasificador
 
     /**
      * Valida que la cantidad de pasajeros del componente coincida con la cantidad de la cotización.
-     *
-     * Esta función compara la cantidad de pasajeros del componente con la cantidad total de pasajeros
-     * definida en la cotización. Si no coincide, agrega un mensaje de error en FlashBag.
      *
      * @param CotizacionCotcomponente $componente Componente actual a validar.
      * @param int $cantidadComponente Cantidad total de pasajeros calculada para este componente.
@@ -431,9 +524,6 @@ class CotizacionClasificador
     /**
      * Prepara y clasifica las tarifas de un componente según la edad y tipo de pasajero.
      *
-     * Transforma cada tarifa, ordena por prioridad para proteger clases específicas
-     * y las delega al procesador heurístico.
-     *
      * @param array $componente Lista de tarifas del componente.
      * @param int $cantidadTotalPasajeros Cantidad total de pasajeros a considerar.
      * @return bool Devuelve true si las tarifas se procesaron correctamente, false en caso contrario.
@@ -444,11 +534,9 @@ class CotizacionClasificador
         $tiposAux = [];
 
         foreach ($componente as $tarifa) {
-            // Determinar rango de edad de la tarifa, usando valores por defecto si no están definidos
             $min = $tarifa['edadMin'] ?? self::EDAD_MINIMA_DEFAULT;
             $max = $tarifa['edadMax'] ?? self::EDAD_MAXIMA_DEFAULT;
 
-            // Creamos un arreglo temporal con la información de la tarifa para clasificación
             $temp = [
                 'cantidad'          => $tarifa['cantidad'],
                 'tipoPaxId'         => $tarifa['tipoPaxId'],
@@ -463,7 +551,6 @@ class CotizacionClasificador
                 'tarifa'            => $tarifa,
             ];
 
-            // Si ya existe una tarifa con el mismo tipo, marcamos título persistente
             if (in_array($temp['tipo'], $tiposAux, true)) {
                 $temp['tituloPersistente'] = true;
             }
@@ -472,25 +559,17 @@ class CotizacionClasificador
             $tiposAux[] = $temp['tipo'];
         }
 
-        // Ordenamos las tarifas para procesar primero las más específicas.
-        // Esto evita que el heurístico asigne equivocadamente tarifas genéricas o amplias
-        // a clases que lógicamente pertenecen a grupos reducidos (ej. Peruano Menor).
         usort($tarifasParaClasificar, function ($a, $b) {
-            // Prioridad 1: Tarifas con tipo de pasajero específico (Nacionalidad explícita)
             $aPax = $a['tipoPaxId'] != 0 ? 1 : 0;
             $bPax = $b['tipoPaxId'] != 0 ? 1 : 0;
             if ($aPax !== $bPax) {
                 return $bPax <=> $aPax;
             }
-
-            // Prioridad 2: Rangos de edad más estrechos primero (más específicos)
             $aRango = $a['edadMax'] - $a['edadMin'];
             $bRango = $b['edadMax'] - $b['edadMin'];
             if ($aRango !== $bRango) {
                 return $aRango <=> $bRango;
             }
-
-            // Prioridad 3: Mayor cantidad primero por defecto para balanceo
             return $b['cantidad'] <=> $a['cantidad'];
         });
 
@@ -499,7 +578,6 @@ class CotizacionClasificador
                 $this->resetClasificacionTarifas();
                 return true;
             }
-            // Si procesarTarifa falla, se devuelve false
         }
 
         return false;
@@ -512,7 +590,6 @@ class CotizacionClasificador
      */
     private function resetClasificacionTarifas(): void
     {
-        // Recorremos cada clase y restauramos la cantidad restante
         foreach ($this->tarifasClasificadas as &$clase) {
             $clase['cantidadRestante'] = $clase['cantidad'];
         }
@@ -520,74 +597,24 @@ class CotizacionClasificador
     }
 
     /**
-     * Procesa y clasifica un conjunto de tarifas según las clases existentes.
-     *
-     * Esta función se encarga de:
-     * 1. Inicializar clases si aún no existen (`$this->tarifasClasificadas`).
-     * 2. Clasificar cada tarifa usando `clasificarTarifas` de forma recursiva.
-     * 3. Validar y registrar errores si hay tarifas que no pudieron clasificarse.
+     * Delega la clasificación recursiva a cada tarifa en el componente actual.
      *
      * @param array $tarifasParaClasificar Lista de tarifas a procesar y clasificar.
      * @param int $cantidadTotalPasajeros Cantidad total de pasajeros.
-     * @return bool True si todas las tarifas fueron clasificadas, false si quedan tarifas rezagadas.
+     * @return bool True si todas las tarifas fueron clasificadas.
      */
     private function procesarTarifa(array $tarifasParaClasificar, int $cantidadTotalPasajeros): bool
     {
-        // ---------- Inicialización de clases ----------
-        if (empty($this->tarifasClasificadas)) {
-            $cantidadTemporal = 0;
-
-            foreach ($tarifasParaClasificar as &$tarifa) {
-                $auxClase = [
-                    'tipo'             => $tarifa['tipo'],
-                    'cantidad'         => $tarifa['cantidad'],
-                    'cantidadRestante' => $tarifa['cantidad'],
-                    'tipoPaxId'        => $tarifa['tipoPaxId'],
-                    'tipoPaxNombre'    => $tarifa['tipoPaxNombre'],
-                    'tipoPaxTitulo'    => $tarifa['tipoPaxTitulo'],
-                ];
-
-                // Agregamos rango de edad si existe
-                if (isset($tarifa['edadMin'])) {
-                    $auxClase['edadMin'] = $tarifa['edadMin'];
-                }
-                if (isset($tarifa['edadMax'])) {
-                    $auxClase['edadMax'] = $tarifa['edadMax'];
-                }
-
-                // Limpiamos campos internos de la tarifa que no son necesarios
-                unset($tarifa['tarifa']['cantidad'], $tarifa['tarifa']['montototal']);
-
-                // Evitamos duplicar clases si coincide exactamente con el total de pasajeros
-                if ($cantidadTemporal > 0 && $cantidadTotalPasajeros == $tarifa['cantidad']) {
-                    continue;
-                }
-
-                // Agregamos la clase inicial a las tarifas clasificadas
-                $this->tarifasClasificadas[] = $auxClase;
-                $cantidadTemporal += $tarifa['cantidad'];
-
-                // Detenemos la inicialización si alcanzamos el total de pasajeros
-                if ($cantidadTemporal >= $cantidadTotalPasajeros) {
-                    break;
-                }
-            }
-            unset($tarifa);
-        }
-
-        // ---------- Clasificación recursiva ----------
         foreach ($tarifasParaClasificar as $key => &$tarifa) {
             $ejecucion = 0;
             $this->clasificarTarifas($tarifa, $ejecucion, $tarifa['tituloPersistente']);
 
-            // Eliminamos tarifas ya completamente clasificadas
             if ($tarifa['cantidad'] < 1) {
                 unset($tarifasParaClasificar[$key]);
             }
         }
         unset($tarifa);
 
-        // ---------- Validación de errores ----------
         if (!empty($tarifasParaClasificar)) {
             $tarifasDisplay = $this->generarResumenTarifas();
             $this->registrarErroresTarifas($tarifasParaClasificar, $tarifasDisplay);
@@ -599,10 +626,6 @@ class CotizacionClasificador
 
     /**
      * Genera un resumen legible de las tarifas clasificadas.
-     *
-     * Recorre todas las clases de tarifas y construye un string con los detalles
-     * de edad mínima, edad máxima, tipo de pasajero y cantidades. Además, establece
-     * un mensaje en FlashBag según la disponibilidad de espacio en las tarifas.
      *
      * @return string Resumen de las tarifas clasificadas.
      */
@@ -630,16 +653,13 @@ class CotizacionClasificador
                 $detalle[] = 'cantidad restante: ' . $tarifa['cantidadRestante'];
             }
 
-            // Concatenamos los detalles de cada tarifa
             $tarifasDisplay .= '[' . implode(', ', $detalle) . '] ';
 
-            // Guardamos la mayor cantidad restante
             if (($tarifa['cantidadRestante'] ?? 0) > $menorCantidadRestante) {
                 $menorCantidadRestante = $tarifa['cantidadRestante'];
             }
         }
 
-        // Flash general según disponibilidad
         if ($menorCantidadRestante === 0) {
             $this->requestStack->getSession()->getFlashBag()->add(
                 'error',
@@ -658,20 +678,14 @@ class CotizacionClasificador
     /**
      * Registra errores específicos de clasificación de tarifas en FlashBag.
      *
-     * Toma la primera tarifa que no pudo clasificarse y genera un mensaje detallado
-     * con nombre del servicio, componente, tipo de pasajero, edad y cantidad.
-     * También muestra el resumen actual de todas las tarifas clasificadas.
-     *
      * @param array $tarifasRestantes Tarifas que no pudieron clasificarse.
      * @param string $tarifasDisplay Resumen legible de las tarifas clasificadas.
      * @return void
      */
     private function registrarErroresTarifas(array $tarifasRestantes, string $tarifasDisplay): void
     {
-        // Tomamos la primera tarifa que no se pudo clasificar
         $tarifaError = reset($tarifasRestantes);
 
-        // Construimos un detalle completo de la tarifa
         $detalle = $tarifaError['tarifa']['nombreServicio']
             . ' - ' . $tarifaError['tarifa']['nombreComponente']
             . ' - ' . $tarifaError['tarifa']['nombre'];
@@ -688,13 +702,11 @@ class CotizacionClasificador
 
         $detalle .= ' - cantidad a clasificar: ' . $tarifaError['cantidad'];
 
-        // Mensaje principal de error para esta tarifa
         $this->requestStack->getSession()->getFlashBag()->add(
             'error',
             sprintf('No se pudo clasificar: %s.', $detalle)
         );
 
-        // Mensaje adicional con resumen de todas las tarifas
         if (!empty($tarifasDisplay)) {
             $this->requestStack->getSession()->getFlashBag()->add('error', 'Clasificación actual: ' . $tarifasDisplay);
         }
@@ -702,7 +714,10 @@ class CotizacionClasificador
 
 
     /**
-     * Clasifica una tarifa dentro de las clases existentes o crea una nueva clase si es necesario.
+     * Vierte la cantidad de la tarifa en los contenedores maestros designados.
+     *
+     * Los contenedores son inmutables (no cambian sus propiedades de edad o nacionalidad
+     * basándose en las tarifas que ingresan).
      *
      * @param array $tarifaParaClasificar La tarifa que se desea clasificar.
      * @param int $ejecucion Número de iteraciones recursivas para evitar loops infinitos.
@@ -713,10 +728,8 @@ class CotizacionClasificador
     {
         $ejecucion++;
 
-        // Obtenemos el índice de la clase más adecuada usando la heurística del voter
         $voterIndex = $this->voter($tarifaParaClasificar);
 
-        // Validación especial para prorrateo: si no hay clase y tarifa prorrateada
         if ($voterIndex < 0 && $this->cotizacion->getNumeropasajeros() == $tarifaParaClasificar['cantidad'] && $tarifaParaClasificar['prorrateado']) {
             foreach ($this->tarifasClasificadas as &$clase) {
                 $clase['tarifas'][] = $tarifaParaClasificar['tarifa'];
@@ -726,9 +739,8 @@ class CotizacionClasificador
             return 0;
         }
 
-        // Si no encontramos clase válida
         if ($voterIndex < 0) {
-            // Creamos una nueva clase automáticamente con los parámetros de la tarifa
+            // Failsafe por si llega un borde no detectado en el perfil maestro
             $nuevaClase = [
                 'edadMin' => $tarifaParaClasificar['edadMin'] ?? self::EDAD_MINIMA_DEFAULT,
                 'edadMax' => $tarifaParaClasificar['edadMax'] ?? self::EDAD_MAXIMA_DEFAULT,
@@ -746,7 +758,6 @@ class CotizacionClasificador
             return 0;
         }
 
-        // Concatenamos títulos persistentes si aplica
         if ($tituloPersistente) {
             $this->tarifasClasificadas[$voterIndex]['tituloPersistente'] =
                 isset($this->tarifasClasificadas[$voterIndex]['tituloPersistente'])
@@ -754,70 +765,20 @@ class CotizacionClasificador
                     : $tarifaParaClasificar['tituloOTipoTarifa'];
         }
 
-        // Creamos copia de la clase seleccionada para manipular sin afectar la original de inmediato
-        $copia = $this->tarifasClasificadas[$voterIndex];
-        $edadMin = $copia['edadMin'] ?? self::EDAD_MINIMA_DEFAULT;
-        $edadMax = $copia['edadMax'] ?? self::EDAD_MAXIMA_DEFAULT;
-
-        // Ajustamos rangos de edad si la tarifa los redefine
-        if (isset($tarifaParaClasificar['edadMin']) && $tarifaParaClasificar['edadMin'] > $edadMin) {
-            $copia['edadMin'] = $tarifaParaClasificar['edadMin'];
-        }
-        if (isset($tarifaParaClasificar['edadMax']) && $tarifaParaClasificar['edadMax'] < $edadMax) {
-            $copia['edadMax'] = $tarifaParaClasificar['edadMax'];
-        }
-
-        // Ajuste de tipoPax si no es genérico
-        if ($tarifaParaClasificar['tipoPaxId'] != 0) {
-            $copia['tipoPaxId'] = $tarifaParaClasificar['tipoPaxId'];
-            $copia['tipoPaxNombre'] = $tarifaParaClasificar['tipoPaxNombre'];
-            $copia['tipoPaxTitulo'] = $tarifaParaClasificar['tipoPaxTitulo'];
-        }
-
-        // Asignamos cantidades y tarifas
-        $copia['tipo'] = $tarifaParaClasificar['tipo'];
-        $copia['cantidad'] = $tarifaParaClasificar['cantidad'];
-        $copia['cantidadRestante'] = $tarifaParaClasificar['cantidad'];
-        $copia['tarifas'][] = $tarifaParaClasificar['tarifa'];
-
         $cantidadClase = $this->tarifasClasificadas[$voterIndex]['cantidadRestante'];
 
-        // Distribución de cantidades
-        if ($tarifaParaClasificar['cantidad'] == $cantidadClase) {
-            $copia['cantidadRestante'] = 0;
-            $this->tarifasClasificadas[$voterIndex] = $copia;
-            $tarifaParaClasificar['cantidad'] = 0;
-
-        } elseif ($tarifaParaClasificar['cantidad'] < $cantidadClase) {
-            $copia['cantidadRestante'] = 0;
-            $this->tarifasClasificadas[] = $copia;
-
-            $this->tarifasClasificadas[$voterIndex]['cantidad'] -= $tarifaParaClasificar['cantidad'];
+        if ($tarifaParaClasificar['cantidad'] <= $cantidadClase) {
+            // La tarifa encaja completamente en el contenedor restante
             $this->tarifasClasificadas[$voterIndex]['cantidadRestante'] -= $tarifaParaClasificar['cantidad'];
-
+            $this->tarifasClasificadas[$voterIndex]['tarifas'][] = $tarifaParaClasificar['tarifa'];
             $tarifaParaClasificar['cantidad'] = 0;
-
         } else {
-            $tarifaParaClasificar['cantidad'] -= $cantidadClase;
-
-            // Ajustamos clase existente con parámetros nuevos de la tarifa
-            if (isset($tarifaParaClasificar['edadMin']) && $tarifaParaClasificar['edadMin'] > $edadMin) {
-                $this->tarifasClasificadas[$voterIndex]['edadMin'] = $tarifaParaClasificar['edadMin'];
-            }
-            if (isset($tarifaParaClasificar['edadMax']) && $tarifaParaClasificar['edadMax'] < $edadMax) {
-                $this->tarifasClasificadas[$voterIndex]['edadMax'] = $tarifaParaClasificar['edadMax'];
-            }
-            if ($tarifaParaClasificar['tipoPaxId'] != 0) {
-                $this->tarifasClasificadas[$voterIndex]['tipoPaxId'] = $tarifaParaClasificar['tipoPaxId'];
-                $this->tarifasClasificadas[$voterIndex]['tipoPaxNombre'] = $tarifaParaClasificar['tipoPaxNombre'];
-                $this->tarifasClasificadas[$voterIndex]['tipoPaxTitulo'] = $tarifaParaClasificar['tipoPaxTitulo'];
-            }
-
+            // La tarifa desborda este contenedor. Llenamos y recurrimos el remanente.
             $this->tarifasClasificadas[$voterIndex]['cantidadRestante'] = 0;
             $this->tarifasClasificadas[$voterIndex]['tarifas'][] = $tarifaParaClasificar['tarifa'];
+            $tarifaParaClasificar['cantidad'] -= $cantidadClase;
         }
 
-        // Recursión controlada hasta 10 iteraciones
         if ($tarifaParaClasificar['cantidad'] > 0 && $ejecucion < self::MAX_RECURSION) {
             $tarifaParaClasificar['cantidad'] = $this->clasificarTarifas($tarifaParaClasificar, $ejecucion, $tituloPersistente);
         }
@@ -826,30 +787,29 @@ class CotizacionClasificador
     }
 
     /**
-     * Determina la clase más adecuada para una tarifa usando un sistema heurístico.
-     *
-     * La función compara la tarifa con las clases clasificadas priorizando fuertemente
-     * las coincidencias exactas de nacionalidad y edad para evitar inconsistencias
-     * (por ejemplo, asignar una tarifa amplia de extranjero a una clase de peruano menor).
+     * Determina la clase inmutable más adecuada para una tarifa.
+     * Al usar moldes pre-generados estrictos, la tarifa es la que debe demostrar compatibilidad
+     * con el molde, y no al revés.
      *
      * @param array $tarifaParaClasificar Los datos de la tarifa que se desea clasificar.
-     * @return int Retorna la clave de la clase con mayor puntaje, o -1 si no hay coincidencias válidas.
+     * @return int Retorna la clave del contenedor con mayor puntaje, o -1 si no encaja lógicamente.
      */
     private function voter(array $tarifaParaClasificar): int
     {
-        // Inicializamos el array de puntajes por cada clase
         $voterArray = [];
 
         foreach ($this->tarifasClasificadas as $key => $clase) {
             $voterArray[$key] = 0;
 
-            // Definimos los rangos de edad de la clase y de la tarifa
             $edadMinClase = $clase['edadMin'] ?? self::EDAD_MINIMA_DEFAULT;
             $edadMaxClase = $clase['edadMax'] ?? self::EDAD_MAXIMA_DEFAULT;
             $edadMinTarifa = $tarifaParaClasificar['edadMin'] ?? self::EDAD_MINIMA_DEFAULT;
             $edadMaxTarifa = $tarifaParaClasificar['edadMax'] ?? self::EDAD_MAXIMA_DEFAULT;
 
-            // Comprobamos que la clase tenga cupo y que el tipo de pasajero y edades sean compatibles
+            // Para encajar:
+            // 1. Debe haber cupo en la clase.
+            // 2. Coincidencia de Nacionalidad estricta (o que uno de los dos sea genérico ID 0)
+            // 3. Traslape lógico de edad (ej. Tarifa genérica 0-120 encaja en molde Peruano 14-17)
             if ($clase['cantidadRestante'] > 0 &&
                 ($tarifaParaClasificar['tipoPaxId'] == $clase['tipoPaxId'] ||
                     $tarifaParaClasificar['tipoPaxId'] == 0 ||
@@ -857,31 +817,31 @@ class CotizacionClasificador
                 $edadMinTarifa <= $edadMaxClase &&
                 $edadMaxTarifa >= $edadMinClase
             ) {
-                // Puntaje base por compatibilidad general
+                // Puntaje base por encaje lógico
                 $voterArray[$key] += 0.1;
 
-                // Bonificación fuerte por coincidencia exacta explícita de tipo de pasajero.
-                // Previene secuestro de clases cuando ambos eran temporales (0).
+                // Bono fuerte por coincidencia exacta de nacionalidad
                 if ($tarifaParaClasificar['tipoPaxId'] == $clase['tipoPaxId'] && $clase['tipoPaxId'] != 0) {
-                    $voterArray[$key] += 5.0;
+                    $voterArray[$key] += 10.0;
                 }
 
-                // Bonificación por coincidencia de edad.
-                // Asignamos 10 puntos a la exactitud para que supere ampliamente el error por 1 año de diferencia (1/1=1).
-                $voterArray[$key] += $edadMinTarifa == $edadMinClase ? 10.0 : 1.0 / abs($edadMinTarifa - $edadMinClase);
-                $voterArray[$key] += $edadMaxTarifa == $edadMaxClase ? 10.0 : 1.0 / abs($edadMaxTarifa - $edadMaxClase);
+                // Bono por coincidencia exacta de límites de edad
+                if ($edadMinTarifa == $edadMinClase) {
+                    $voterArray[$key] += 2.0;
+                }
+                if ($edadMaxTarifa == $edadMaxClase) {
+                    $voterArray[$key] += 2.0;
+                }
 
-                // Bonificación si la cantidad coincide exactamente
-                if ($clase['cantidad'] == $tarifaParaClasificar['cantidad']) {
-                    $voterArray[$key] += 0.3;
+                // Bono si la tarifa llena justo el hueco del contenedor
+                if ($clase['cantidadRestante'] == $tarifaParaClasificar['cantidad']) {
+                    $voterArray[$key] += 5.0;
                 }
             }
         }
 
-        // Si no hay coincidencias válidas, retornamos -1
         if (empty($voterArray) || max($voterArray) <= 0) return -1;
 
-        // Retornamos la clase con mayor puntaje
         return array_search(max($voterArray), $voterArray);
     }
 
@@ -895,13 +855,10 @@ class CotizacionClasificador
     private function inicializarResumenGlobal(array $tarifa): array
     {
         return [
-            // Claves cortas (para vistas globales)
             'nombre'          => $tarifa['tipoTarNombre'],
             'titulo'          => $tarifa['tipoTarTitulo'],
             'listacolor'      => $tarifa['tipoTarListacolor'],
             'ocultoenresumen' => $tarifa['tipoTarOcultoenresumen'],
-
-            // Montos iniciales en 0
             'montosoles'      => 0.0,
             'montodolares'    => 0.0,
             'ventasoles'      => 0.0,
@@ -923,13 +880,10 @@ class CotizacionClasificador
     private function inicializarResumenClase(array $tarifa): array
     {
         return [
-            // Claves largas (para vistas de detalle)
             'tipoTarNombre'          => $tarifa['tipoTarNombre'],
             'tipoTarTitulo'          => $tarifa['tipoTarTitulo'],
             'tipoTarListacolor'      => $tarifa['tipoTarListacolor'],
             'tipoTarOcultoenresumen' => $tarifa['tipoTarOcultoenresumen'],
-
-            // Montos iniciales en 0
             'montosoles'      => 0.0,
             'montodolares'    => 0.0,
             'ventasoles'      => 0.0,
@@ -953,20 +907,17 @@ class CotizacionClasificador
      */
     private function acumularMontos(array &$resumen, array $tarifa, int $cantidad = 1): void
     {
-        // 1. Sumar montos y ventas
         $resumen['montosoles']   += $tarifa['montosoles']   * $cantidad;
         $resumen['montodolares'] += $tarifa['montodolares'] * $cantidad;
         $resumen['ventasoles']   += $tarifa['ventasoles']   * $cantidad;
         $resumen['ventadolares'] += $tarifa['ventadolares'] * $cantidad;
 
-        // 2. Calcular adelantos y ganancias
         $adelantoPct = $this->cotizacion->getAdelanto() / 100;
         $resumen['adelantosoles']   = $resumen['ventasoles']   * $adelantoPct;
         $resumen['adelantodolares'] = $resumen['ventadolares'] * $adelantoPct;
         $resumen['gananciasoles']   = $resumen['ventasoles']   - $resumen['montosoles'];
         $resumen['gananciadolares'] = $resumen['ventadolares'] - $resumen['montodolares'];
 
-        // 3. Formatear todos los valores a string con 2 decimales
         foreach ([
                      'montosoles','montodolares',
                      'ventasoles','ventadolares',
@@ -986,41 +937,30 @@ class CotizacionClasificador
     {
         $resumenGlobal = [];
 
-        // Recorremos todas las clases de tarifas
         foreach ($this->tarifasClasificadas as $index => $clase) {
             $resumenClase = [];
 
             foreach ($clase['tarifas'] as $tarifa) {
                 $tipoId = $tarifa['tipoTarId'];
 
-                // 🔹 Inicializar resumen global si no existe aún
                 if (!isset($resumenGlobal[$tipoId])) {
                     $resumenGlobal[$tipoId] = $this->inicializarResumenGlobal($tarifa);
                 }
 
-                // Acumular en el global (multiplicado por la cantidad de la clase)
                 $this->acumularMontos($resumenGlobal[$tipoId], $tarifa, $clase['cantidad']);
 
-                // 🔹 Inicializar resumen de clase si no existe aún
                 if (!isset($resumenClase[$tipoId])) {
                     $resumenClase[$tipoId] = $this->inicializarResumenClase($tarifa);
                 }
 
-                // Acumular en la clase (sin multiplicar por la cantidad global)
                 $this->acumularMontos($resumenClase[$tipoId], $tarifa);
             }
 
-            // Ordenar detalle de la clase por ID de tipo
             ksort($resumenClase);
-
-            // Guardar el resumen de la clase en la estructura principal
             $this->tarifasClasificadas[$index]['resumen'] = $resumenClase;
         }
 
-        // Ordenar resumen global por ID de tipo
         ksort($resumenGlobal);
-
-        // Guardar consolidado en la propiedad final
         $this->resumenDeClasificado = $resumenGlobal;
     }
 
