@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Oweb\Controller;
 
 use App\Oweb\Entity\ServicioComponenteitem;
@@ -12,8 +14,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Controlador para la gestión de ítems de componentes de servicio.
- * Implementa la migración a Google Translate V3 mediante una capa de abstracción de servicio
- * para evitar el uso directo de vendors en el controlador.
+ * * Implementa operaciones extendidas de Sonata Admin, como la migración
+ * a Google Translate V3 mediante una capa de abstracción de servicio (GoogleTranslateService),
+ * respetando el principio de responsabilidad única al evitar el uso directo de vendors.
  */
 class ServicioComponenteitemController extends CRUDController
 {
@@ -21,8 +24,10 @@ class ServicioComponenteitemController extends CRUDController
     private GoogleTranslateService $translateService;
 
     /**
-     * @param EntityManagerInterface $entityManager Manejador de entidades.
-     * @param GoogleTranslateService $translateService Servicio de abstracción para la API V3.
+     * Inyecta las dependencias necesarias para la persistencia y traducción.
+     *
+     * @param EntityManagerInterface $entityManager    Manejador de entidades de Doctrine.
+     * @param GoogleTranslateService $translateService Servicio de abstracción para la API V3 de Google.
      */
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -34,27 +39,38 @@ class ServicioComponenteitemController extends CRUDController
 
     /**
      * Traduce el título del ítem del componente al idioma de la petición actual.
-     * * @param Request $request
-     * @return RedirectResponse
-     * @throws NotFoundHttpException Si el objeto no existe.
+     * * Este método obtiene el título en el idioma origen (defaultLocale), consume
+     * el servicio de traducción de Google Cloud y persiste el resultado en el
+     * idioma destino (targetLocale) preserving la capitalización.
+     *
+     * @param Request $request La petición HTTP actual que contiene el 'id' y el '_locale' destino.
+     * @return RedirectResponse Redirige al listado de Sonata con un mensaje flash.
+     * @throws NotFoundHttpException Si el objeto con el ID solicitado no existe.
+     * * @example
+     * // Al acceder a la ruta: /admin/app/oweb/serviciocomponenteitem/42/traducir?_locale=en
+     * // Traducirá el ítem ID 42 desde el idioma base al inglés.
      */
     public function traducirAction(Request $request): RedirectResponse
     {
+        // Validación de existencia del objeto en el contexto de la petición
         $object = $this->assertObjectExists($request, true);
 
         if (!$object) {
-            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', $request->get('id')));
+            // Casteo explícito a (string) para evitar TypeError en PHP 8.4 si get('id') retorna null
+            throw $this->createNotFoundException(sprintf('unable to find the object with id: %s', (string) $request->get('id')));
         }
 
         $id = $object->getId();
         $targetLocale = $request->getLocale();
         $defaultLocale = $request->getDefaultLocale();
 
+        // Prevención de sobreescritura del idioma base (Source)
         if ($defaultLocale === $targetLocale) {
             $this->addFlash('sonata_flash_error', 'El idioma actual debe ser diferente al idioma por defecto de la aplicación');
             return new RedirectResponse($this->admin->generateUrl('list'));
         }
 
+        // Validación de permisos de edición en el panel de Sonata
         $this->admin->checkAccess('edit', $object);
 
         /** @var ServicioComponenteitem $componenteitemDL */
@@ -80,12 +96,15 @@ class ServicioComponenteitemController extends CRUDController
 
                 $tituloTL = $translations[0] ?? '';
 
-                // Preservar capitalización inicial con soporte multibyte (estándar para Cusco)
+                // Preservar capitalización inicial con soporte multibyte.
+                // Se utiliza la función nativa mb_ucfirst de PHP 8.4.
                 if (mb_substr($tituloDL, 0, 1) === mb_strtoupper(mb_substr($tituloDL, 0, 1))) {
-                    $tituloTL = $this->mb_ucfirst($tituloTL);
+                    $tituloTL = mb_ucfirst($tituloTL);
                 }
 
                 $object->setTitulo($tituloTL);
+
+                // Actualiza el registro mediante el manejador de ciclo de vida del Admin
                 $this->admin->update($object);
 
                 $this->addFlash('sonata_flash_success', 'Ítem de componente traducido correctamente mediante API V3');
@@ -96,18 +115,5 @@ class ServicioComponenteitemController extends CRUDController
         }
 
         return new RedirectResponse($this->admin->generateUrl('list'));
-    }
-
-    /**
-     * Capitaliza la primera letra de un string con soporte para UTF-8.
-     * * @param string $str
-     * @param string $encoding
-     * @return string
-     */
-    private function mb_ucfirst(string $str, string $encoding = 'UTF-8'): string
-    {
-        $firstChar = mb_substr($str, 0, 1, $encoding);
-        $then = mb_substr($str, 1, null, $encoding);
-        return mb_strtoupper($firstChar, $encoding) . $then;
     }
 }

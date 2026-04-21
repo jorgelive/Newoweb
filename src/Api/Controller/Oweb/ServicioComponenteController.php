@@ -1,117 +1,134 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Api\Controller\Oweb;
 
+use App\Oweb\Entity\ServicioComponente;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use App\Oweb\Entity\ServicioComponente;
 
-
+/**
+ * Controlador de API para la gestión de Componentes de Servicio.
+ * Diseñado para alimentar componentes Select2 con alta concurrencia y soporte para PHP 8.4.
+ */
 #[Route('/servicio/componente')]
 class ServicioComponenteController extends AbstractController
 {
+    private EntityManagerInterface $entityManager;
+    private PaginatorInterface $paginator;
 
-    public static function getSubscribedServices(): array
-    {
-        return [
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
-                'knp_paginator' => PaginatorInterface::class
-            ] + parent::getSubscribedServices();
+    /**
+     * Inyección de dependencias recomendada para Symfony 6.4 / 7+ y PHP 8.4.
+     */
+    public function __construct(
+        EntityManagerInterface $entityManager,
+        PaginatorInterface $paginator
+    ) {
+        $this->entityManager = $entityManager;
+        $this->paginator = $paginator;
     }
 
+    /**
+     * Endpoint para Select2 que filtra componentes asociados a un servicio específico.
+     * * @param Request $request
+     * @param mixed $servicio ID del servicio padre.
+     */
     #[Route('/porserviciodropdown/{servicio}', name: 'api_oweb_servicio_componente_porserviciodropdown', defaults: ['servicio' => null])]
     public function porserviciodownAction(Request $request, $servicio): Response
     {
-        //?q=&_per_page=10&_page=1&field=tarifa&_=1513629738031
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-        $componentes = $em->getRepository(ServicioComponente::class)->createQueryBuilder('c');
-        if($servicio != 0){
-            $componentes
-                ->select('c')
+        // LIBERACIÓN DE SESIÓN: Evita el bloqueo de peticiones concurrentes del Select2.
+        if ($request->hasSession() && $request->getSession()->isStarted()) {
+            $request->getSession()->save();
+        }
+
+        $qb = $this->entityManager->getRepository(ServicioComponente::class)->createQueryBuilder('c');
+
+        if ($servicio !== null && $servicio != 0) {
+            $qb->select('c')
                 ->innerJoin('c.servicios', 's')
                 ->where('s.id = :servicio')
                 ->setParameter('servicio', $servicio);
         }
 
-        if(!empty($request->get('q'))){
-            $componentes->andWhere('c.nombre like :cadena')
-                ->setParameter('cadena', '%' . $request->get('q') . '%');
+        $queryTerm = $request->query->get('q');
+        if (!empty($queryTerm)) {
+            $qb->andWhere('c.nombre like :cadena')
+                ->setParameter('cadena', '%' . $queryTerm . '%');
         }
 
-        $componentes->orderBy('c.nombre', 'ASC');
+        $qb->orderBy('c.nombre', 'ASC');
 
-        $paginator  = $this->container->get('knp_paginator');
-        $pagination = $paginator->paginate(
-            $componentes->getQuery(),
-            $request->get('_page'),
-            $request->get('_per_page')
+        // REFIX PHP 8.4: Forzamos obtención de enteros para evitar TypeError en el paginador.
+        $page = $request->query->getInt('_page', 1);
+        $limit = $request->query->getInt('_per_page', 10);
+
+        $pagination = $this->paginator->paginate(
+            $qb->getQuery(),
+            $page,
+            $limit
         );
 
-        if(!$pagination->getItems()){
-            $content = ['status' => 'OK', 'items' => [], 'more' => false, 'message' => 'No existe contenido.'];
-            $status = Response::HTTP_OK;// Response::HTTP_NO_CONTENT;
-            return $this->makeresponse($content, $status);
-        };
+        if (!$pagination->getItems()) {
+            return new JsonResponse([
+                'status' => 'OK',
+                'items' => [],
+                'more' => false,
+                'message' => 'No existe contenido.'
+            ], Response::HTTP_OK);
+        }
 
-        foreach($pagination->getItems() as $key => $item):
-            $resultado[$key]['id'] = $item->getId();
-            $resultado[$key]['label'] = $item->getNombre();
-        endforeach;
+        $resultado = [];
+        foreach ($pagination->getItems() as $item) {
+            /** @var ServicioComponente $item */
+            $resultado[] = [
+                'id' => $item->getId(),
+                'label' => $item->getNombre(),
+            ];
+        }
 
         $totalItems = $pagination->getTotalItemCount();
-        $maxItems = $request->get('_page') * $request->get('_per_page');
+        $maxItems = $page * $limit;
 
-        //throw $this->createAccessDeniedException('no tiene el permiso para ver el contenido!');
-        // subject will be empty to avoid unnecessary database requests and keep autocomplete function fast
-
-        $content = [
+        return new JsonResponse([
             'status' => 'OK',
             'more' => ($maxItems < $totalItems),
             'items' => $resultado
-        ];
-        $status = Response::HTTP_OK;
-
-        return $this->makeresponse($content, $status);
+        ], Response::HTTP_OK);
     }
 
-
+    /**
+     * Retorna información técnica de un componente vía AJAX.
+     * * @param Request $request
+     * @param mixed $id
+     */
     #[Route('/ajaxinfo/{id}', name: 'api_oweb_servicio_componente_ajaxinfo', defaults: ['id' => null])]
     public function ajaxinfoAction(Request $request, $id): Response
     {
+        // Liberación de sesión preventiva.
+        if ($request->hasSession() && $request->getSession()->isStarted()) {
+            $request->getSession()->save();
+        }
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-        $componente=$em
+        $componente = $this->entityManager
             ->getRepository(ServicioComponente::class)
             ->find($id);
 
-        if(!$componente){
-            $content = [];
-            $status = Response::HTTP_NO_CONTENT;
-            return $this->makeresponse($content, $status);
+        if (!$componente) {
+            return new JsonResponse([], Response::HTTP_NO_CONTENT);
         }
 
-        $content['id'] = $componente->getId();
-        $content['duracion'] = $componente->getDuracion();
-        $content['dependeduracion'] = $componente->getTipocomponente()->isDependeduracion();
+        $content = [
+            'id' => $componente->getId(),
+            'duracion' => $componente->getDuracion(),
+            'dependeduracion' => $componente->getTipocomponente() ? $componente->getTipocomponente()->isDependeduracion() : false,
+        ];
 
-        $status = Response::HTTP_OK;
-
-        return $this->makeresponse($content, $status);
-
+        return new JsonResponse($content, Response::HTTP_OK);
     }
-
-
-    function makeresponse($content, $status): Response
-    {
-        $response = new Response();
-        $response->headers->set('Content-Type', 'application/json');
-        $response->setContent(json_encode($content));
-        $response->setStatusCode($status);
-        return $response;
-    }
-
 }

@@ -1,114 +1,127 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Api\Controller\Oweb;
 
+use App\Oweb\Entity\ServicioItinerario;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use App\Oweb\Entity\ServicioItinerario;
 
+/**
+ * Controlador de API para la gestión de Itinerarios.
+ * Proporciona endpoints para componentes de búsqueda (dropdowns) y consultas AJAX.
+ */
 #[Route('/servicio/itinerario')]
 class ServicioItinerarioController extends AbstractController
 {
+    private EntityManagerInterface $entityManager;
+    private PaginatorInterface $paginator;
 
-    public static function getSubscribedServices(): array
-    {
-        return [
-                'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
-                'knp_paginator' => PaginatorInterface::class
-            ] + parent::getSubscribedServices();
+    /**
+     * Inyección de dependencias moderna para evitar el uso del contenedor como service locator.
+     */
+    public function __construct(
+        EntityManagerInterface $entityManager,
+        PaginatorInterface $paginator
+    ) {
+        $this->entityManager = $entityManager;
+        $this->paginator = $paginator;
     }
 
+    /**
+     * Retorna información básica de un itinerario en formato JSON.
+     * * @param Request $request
+     * @param mixed $id ID del itinerario (puede ser null por el default de la ruta).
+     */
     #[Route('/ajaxinfo/{id}', name: 'api_oweb_servicio_itinerario_ajaxinfo', defaults: ['id' => null])]
     public function ajaxinfoAction(Request $request, $id): Response
     {
-        //?q=&_per_page=10&_page=1&field=tarifa&_=1513629738031
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-        $itinerario = $em
+        // LIBERACIÓN DE SESIÓN: Evita el Session Locking en peticiones AJAX concurrentes.
+        if ($request->hasSession() && $request->getSession()->isStarted()) {
+            $request->getSession()->save();
+        }
+
+        $itinerario = $this->entityManager
             ->getRepository(ServicioItinerario::class)
             ->find($id);
 
-        if(!$itinerario){
-            $content = [];
-            $status = Response::HTTP_NO_CONTENT;
-            return $this->makeresponse($content, $status);
+        if (!$itinerario) {
+            return new JsonResponse([], Response::HTTP_NO_CONTENT);
         }
 
-        $content['id'] = $itinerario->getId();
-        $content['hora'] = $itinerario->getHora()->format('H:i');
-        $content['duracion'] = $itinerario->getDuracion();
-        $status = Response::HTTP_OK;
+        $content = [
+            'id' => $itinerario->getId(),
+            'hora' => $itinerario->getHora() ? $itinerario->getHora()->format('H:i') : null,
+            'duracion' => $itinerario->getDuracion(),
+        ];
 
-        return $this->makeresponse($content, $status);
-
+        return new JsonResponse($content, Response::HTTP_OK);
     }
 
-
+    /**
+     * Endpoint para poblar dropdowns de búsqueda con soporte de paginación y filtros.
+     * * @param Request $request
+     * @param mixed $servicio ID del servicio para filtrar.
+     */
     #[Route('/porserviciodropdown/{servicio}', name: 'api_oweb_servicio_itinerario_porserviciodropdown', defaults: ['servicio' => null])]
     public function porserviciodropdownAction(Request $request, $servicio): Response
     {
-        //?q=&_per_page=10&_page=1&field=tarifa&_=1513629738031
+        // LIBERACIÓN DE SESIÓN: Vital aquí ya que los dropdowns de búsqueda suelen lanzar muchas peticiones.
+        if ($request->hasSession() && $request->getSession()->isStarted()) {
+            $request->getSession()->save();
+        }
 
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
-        $itinerarios = $em
-            ->getRepository(ServicioItinerario::class)->createQueryBuilder('i');
-        if($servicio != 0){
-            $itinerarios->where('i.servicio = :servicio')
+        $qb = $this->entityManager
+            ->getRepository(ServicioItinerario::class)
+            ->createQueryBuilder('i');
+
+        if ($servicio !== null && $servicio != 0) {
+            $qb->where('i.servicio = :servicio')
                 ->setParameter('servicio', $servicio);
         }
 
-        if(!empty($request->get('q'))){
-            $itinerarios->andWhere('i.nombre like :cadena')
-                ->setParameter('cadena', '%' . $request->get('q') . '%');
+        $queryTerm = $request->query->get('q');
+        if (!empty($queryTerm)) {
+            $qb->andWhere('i.nombre like :cadena')
+                ->setParameter('cadena', '%' . $queryTerm . '%');
         }
 
-        $itinerarios->orderBy('i.nombre', 'ASC');
+        $qb->orderBy('i.nombre', 'ASC');
 
-        $paginator  = $this->container->get('knp_paginator');
-        $pagination = $paginator->paginate(
-            $itinerarios->getQuery(),
-            $request->get('_page'),
-            $request->get('_per_page')
+        // REFIX PHP 8.4: Forzamos obtención de enteros para el paginador evitando el TypeError.
+        $page = $request->query->getInt('_page', 1);
+        $limit = $request->query->getInt('_per_page', 10);
+
+        $pagination = $this->paginator->paginate(
+            $qb->getQuery(),
+            $page,
+            $limit
         );
 
-        if(!$pagination->getItems()){
-            $content = ['status' => 'OK', 'items' => [], 'more' => false, 'message' => 'No existe contenido.'];
-            $status = Response::HTTP_OK;// Response::HTTP_NO_CONTENT;
-            return $this->makeresponse($content, $status);
+        $resultado = [];
+        foreach ($pagination->getItems() as $item) {
+            /** @var ServicioItinerario $item */
+            $resultado[] = [
+                'id' => $item->getId(),
+                'label' => $item->getNombre(),
+            ];
         }
 
-        foreach($pagination->getItems() as $key => $item):
-            $resultado[$key]['id'] = $item->getId();
-            $resultado[$key]['label'] = $item->getNombre();
-        endforeach;
-
         $totalItems = $pagination->getTotalItemCount();
-        $maxItems = $request->get('_page') * $request->get('_per_page');
-
-        //throw $this->createAccessDeniedException('no tiene el permiso para ver el contenido!');
-        // subject will be empty to avoid unnecessary database requests and keep autocomplete function fast
+        $maxItems = $page * $limit;
 
         $content = [
             'status' => 'OK',
             'more' => ($maxItems < $totalItems),
             'items' => $resultado
         ];
-        $status = Response::HTTP_OK;
 
-        return $this->makeresponse($content, $status);
+        return new JsonResponse($content, Response::HTTP_OK);
     }
-
-    function makeresponse($content, $status): Response
-    {
-        $response = new Response();
-        $response->headers->set('Content-Type', 'application/json');
-        $response->setContent(json_encode($content));
-        $response->setStatusCode($status);
-        return $response;
-
-    }
-
 }
