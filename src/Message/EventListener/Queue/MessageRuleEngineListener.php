@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Message\EventListener\Queue;
 
 use App\Message\Entity\MessageConversation;
-use App\Message\Service\MessageRuleEngine;
+use App\Message\Service\Queue\MessageRuleEngine;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Event\PostFlushEventArgs;
@@ -18,7 +18,7 @@ use Doctrine\ORM\Events;
  */
 #[AsDoctrineListener(event: Events::onFlush, priority: 100)]
 #[AsDoctrineListener(event: Events::postFlush, priority: 100)]
-final class ConversationSchedulingSubscriber
+final class MessageRuleEngineListener
 {
     /** @var array<string, MessageConversation> */
     private array $conversationsToInsert = [];

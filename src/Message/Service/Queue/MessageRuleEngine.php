@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Message\Service;
+namespace App\Message\Service\Queue;
 
 use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Contract\ConversationMilestoneInterface;
@@ -29,7 +29,8 @@ final readonly class MessageRuleEngine
 
     /**
      * Constructor del motor de reglas.
-     * * @param EntityManagerInterface $em
+     *
+     * @param EntityManagerInterface $em
      * @param LoggerInterface $logger
      * @param iterable<ChannelEnqueuerInterface> $enqueuers Colección de encoladores para validar viabilidad de canales.
      */
@@ -195,17 +196,39 @@ final readonly class MessageRuleEngine
     }
 
     /**
-     * Localiza un mensaje generado previamente por el sistema asociado a la misma plantilla.
-     * Se usa casting estricto a (string) para evitar la fragilidad de buscar por UUID u objetos Doctrine.
+     * Localiza el último intento de un mensaje generado por el sistema para una plantilla.
+     * Ignora los intentos muertos (cancelados) para forzar la creación de uno nuevo.
+     *
+     * * ¿Por qué existe?: Facilita la reactivación de reservas. Si una reserva fue cancelada
+     * (y su mensaje murió) pero luego se reactiva, este método asegura que el motor genere
+     * una nueva entidad limpia.
+     * * * Dependencias y Efectos: Excluye deliberadamente el estado FAILED de esta regla de inmutabilidad.
+     * Si un mensaje está FAILED, significa que falló por un error de red o API en el Worker,
+     * y podría estar en un ciclo de reintentos. Si generamos uno nuevo estando en FAILED,
+     * nos arriesgamos a duplicar el envío hacia el huésped.
      */
     private function findExistingSystemMessage(MessageConversation $conversation, MessageRule $rule): ?Message
     {
         $ruleTemplateId = (string) $rule->getTemplate()->getId();
 
-        foreach ($conversation->getMessages() as $msg) {
+        // Invertimos el arreglo para evaluar siempre el intento más reciente primero.
+        // Esto garantiza que tomemos decisiones sobre la realidad actual del chat.
+        $messages = $conversation->getMessages()->toArray();
+        $messages = array_reverse($messages);
+
+        foreach ($messages as $msg) {
             if ($msg->getTemplate() !== null
                 && (string) $msg->getTemplate()->getId() === $ruleTemplateId
                 && $msg->getSenderType() === Message::SENDER_SYSTEM) {
+
+                // 🔥 LA MAGIA DE LA INMUTABILIDAD:
+                // Solo generamos un intento nuevo si la cancelación fue una decisión de negocio definitiva.
+                // Protegemos el estado FAILED para que las colas de reintentos puedan hacer su trabajo.
+                if ($msg->getStatus() === Message::STATUS_CANCELLED) {
+                    return null;
+                }
+
+                // Si está pendiente, fallido, enviado o en proceso, retornamos este mismo para actualizarlo
                 return $msg;
             }
         }

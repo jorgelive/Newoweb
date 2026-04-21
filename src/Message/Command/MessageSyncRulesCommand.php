@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Command;
 
 use App\Message\Entity\MessageConversation;
-use App\Message\Service\MessageRuleEngine;
+use App\Message\Service\Queue\MessageRuleEngine;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;

@@ -3,15 +3,17 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Reserva;
 
+use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageConversationFactory;
-use App\Message\Service\MessageRuleEngine;
-use App\Message\Entity\MessageConversation; // 🔥 Asegúrate de importar esto
+use App\Message\Service\Queue\MessageRuleEngine;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Service\Message\PmsReservaMessageContext;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
+
+// 🔥 Asegúrate de importar esto
 
 final class PmsReservaRecalculoService
 {
