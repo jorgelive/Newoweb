@@ -52,14 +52,14 @@ readonly class WhatsappMetaReceivePersister
         $metaMessageId = $messageData['id'] ?? null;
         if (!$metaMessageId) return;
 
-        // 1. Deduplicación en BD (Evita duplicados si Meta reenvía el Webhook por delays)
+        // 1. Deduplicación en BD
         $existingMessage = $this->findMessageByMetaId($metaMessageId);
         if ($existingMessage) return;
 
         $type = $messageData['type'] ?? 'text';
 
         // =====================================================================
-        // CASO ESPECIAL: REACCIONES (Mutación atómica, no crea mensaje nuevo)
+        // CASO ESPECIAL: REACCIONES (Mutación atómica)
         // =====================================================================
         if ($type === 'reaction') {
             $this->handleReaction($messageData, $contactData);
@@ -89,7 +89,8 @@ readonly class WhatsappMetaReceivePersister
 
         // Fecha original en la que el usuario envió el mensaje
         $timestamp = $messageData['timestamp'] ?? time();
-        $message->setCreatedAt(new DateTimeImmutable()->setTimestamp((int)$timestamp));
+        $msgDate = new DateTimeImmutable()->setTimestamp((int)$timestamp);
+        $message->setCreatedAt($msgDate);
 
         // =====================================================================
         // 5. PROCESAMIENTO DE CONTENIDO
@@ -110,9 +111,8 @@ readonly class WhatsappMetaReceivePersister
             // PROTECCIÓN DE LONGITUD: Evitamos el "Data too long" en MySQL
             $safeContent = mb_substr($textoRecibido, 0, 60000, 'UTF-8');
             if (mb_strlen($textoRecibido, 'UTF-8') > 60000) {
-                $safeContent .= '... [CONTENIDO TRUNCADO POR SEGURIDAD]';
+                $safeContent .= '... [CONTENIDO TRUNCADO]';
             }
-
             $message->setContentExternal($safeContent);
 
             // =================================================================
@@ -139,7 +139,6 @@ readonly class WhatsappMetaReceivePersister
                     }
                 }
             }
-
             $message->setLanguageCode($detectedLangCode);
 
             $intent = array_merge($baseIntent, [
@@ -170,7 +169,6 @@ readonly class WhatsappMetaReceivePersister
                         if (isset($quickRepliesList[$opcionElegida - 1])) {
                             $matchedButton = $quickRepliesList[$opcionElegida - 1];
                             $payloadOriginal = $matchedButton['payload'] ?? $matchedButton['resolver_key'] ?? null;
-
                             if ($payloadOriginal) {
                                 $intent['category'] = 'deterministic';
                                 $intent['action_code'] = $payloadOriginal;
@@ -184,11 +182,8 @@ readonly class WhatsappMetaReceivePersister
         } elseif ($type === 'button') {
             $payload = $messageData['button']['payload'] ?? 'BTN_UNKNOWN';
             $btnText = $messageData['button']['text'] ?? 'Botón';
-            $textoBoton = "🔘 [Respuesta rápida]: " . $btnText;
-
-            $message->setContentExternal($textoBoton);
+            $message->setContentExternal("🔘 [Respuesta rápida]: " . $btnText);
             $message->setLanguageCode($currentConversationLang);
-
             $message->setInboundIntent(array_merge($baseIntent, [
                 'category'    => 'deterministic',
                 'action_code' => $payload
@@ -242,7 +237,7 @@ readonly class WhatsappMetaReceivePersister
                         $textoMedia = "🚫 [Error procesando archivo multimedia]";
                     }
                 } else {
-                    $textoMedia = "🚫 [Archivo multimedia expirado o inaccesible]";
+                    $textoMedia = "🚫 [Archivo expirado o inaccesible]";
                 }
             }
 
@@ -252,18 +247,15 @@ readonly class WhatsappMetaReceivePersister
         } elseif ($type === 'location') {
             $lat = $messageData['location']['latitude'] ?? '';
             $lng = $messageData['location']['longitude'] ?? '';
-            $textoLoc = "📍 [Ubicación compartida]: https://maps.google.com/?q={$lat},{$lng}";
-
-            $message->setContentExternal($textoLoc);
+            $message->setContentExternal("📍 [Ubicación compartida]: https://maps.google.com/?q={$lat},{$lng}");
             $message->setLanguageCode($currentConversationLang);
         } else {
-            $textoFail = "🤖 [Tipo de mensaje no soportado: {$type}]";
-            $message->setContentExternal($textoFail);
+            $message->setContentExternal("🤖 [Tipo de mensaje no soportado: {$type}]");
             $message->setLanguageCode($currentConversationLang);
         }
 
         // =====================================================================
-        // 6. GUARDAR Y NOTIFICAR
+        // 🔥 6. LÓGICA EXPLÍCITA DE CONVERSACIÓN Y NOTIFICACIÓN
         // =====================================================================
 
         // MAGIA DE LA ENTIDAD: Al hacer addMessage, la entidad MessageConversation
@@ -272,7 +264,20 @@ readonly class WhatsappMetaReceivePersister
         $conversation->addMessage($message);
         $this->em->persist($message);
 
-        // El flush() local se mantiene, pero el commit() lo hará el FastTrackService
+        // 1. Tiempos base
+        $conversation->setLastMessageAt($msgDate);
+        $conversation->setLastInboundAt($msgDate);
+
+        // 2. Notificaciones y Estado
+        $conversation->incrementUnreadCount();
+        if ($conversation->getStatus() !== MessageConversation::STATUS_OPEN) {
+            $conversation->setStatus(MessageConversation::STATUS_OPEN);
+        }
+
+        // 3. 🔥 VENTANA DE 24 HORAS DE META (Vital para WhatsApp)
+        $windowExpiry = (clone $msgDate)->modify('+24 hours');
+        $conversation->setWhatsappSessionValidUntil($windowExpiry);
+
         $this->em->flush();
     }
 
@@ -323,10 +328,17 @@ readonly class WhatsappMetaReceivePersister
             // el evento postUpdate, lo que a su vez detonará tu MercureBroadcaster.
             $originalMessage->setUpdatedAt(new DateTimeImmutable());
 
-            // Actualizamos la conversación para que suba en el listado visual (Touch)
+            // Touch explícito
             $conversation = $originalMessage->getConversation();
             if ($conversation !== null) {
-                $conversation->setLastInboundAt(new DateTimeImmutable());
+                $now = new DateTimeImmutable();
+                $conversation->setLastInboundAt($now);
+                $conversation->setLastMessageAt($now);
+
+                if ($conversation->getStatus() !== MessageConversation::STATUS_OPEN) {
+                    $conversation->setStatus(MessageConversation::STATUS_OPEN);
+                }
+
                 $this->em->flush();
             }
         }
@@ -360,7 +372,7 @@ readonly class WhatsappMetaReceivePersister
 
         $metaDataToMerge = [];
         $newStatus = null;
-        $intentToSet = null; // 🚀 VARIABLE TEMPORAL: Guardamos el intent para sobrevivir al refresh
+        $intentToSet = null;
 
         // Preparar Datos
         if ($status === 'read') {
@@ -423,15 +435,7 @@ readonly class WhatsappMetaReceivePersister
         // PASO 1: EL MERGER Y EL REFRESH (SQL Nativo)
         // =================================================================
         if (!empty($metaDataToMerge)) {
-            // Operación Atómica para fusionar los datos de Webhook sin borrar lo de Beds24
-            $this->merger->merge(
-                $message,
-                'whatsappMeta',
-                $metaDataToMerge,
-                'whatsapp_meta',
-                $metaMessageId
-            );
-            // ¡Aquí ocurre el $this->em->refresh($message)! La entidad se recarga desde DB.
+            $this->merger->merge($message, 'whatsappMeta', $metaDataToMerge, 'whatsapp_meta', $metaMessageId);
         }
 
         // =================================================================
@@ -477,7 +481,18 @@ readonly class WhatsappMetaReceivePersister
         $message->setLanguageCode($conversation->getIdioma()?->getId() ?? 'es');
 
         $timestamp = $callData['timestamp'] ?? time();
-        $message->setCreatedAt(new DateTimeImmutable()->setTimestamp((int)$timestamp));
+        $msgDate = new DateTimeImmutable()->setTimestamp((int)$timestamp);
+        $message->setCreatedAt($msgDate);
+
+        // Touch explícito
+        $conversation->addMessage($message);
+        $conversation->setLastMessageAt($msgDate);
+        $conversation->setLastInboundAt($msgDate);
+        $conversation->incrementUnreadCount();
+
+        if ($conversation->getStatus() !== MessageConversation::STATUS_OPEN) {
+            $conversation->setStatus(MessageConversation::STATUS_OPEN);
+        }
 
         $this->em->persist($message);
         $this->em->flush();
@@ -564,11 +579,9 @@ readonly class WhatsappMetaReceivePersister
 
         // Usamos SQL puro para que MySQL maneje el JSON_EXTRACT directamente
         $sql = 'SELECT * FROM msg_message m WHERE JSON_EXTRACT(m.external_ids, :path) = :metaId LIMIT 1';
-
         $query = $this->em->createNativeQuery($sql, $rsm);
         $query->setParameter('path', '$."whatsapp_meta"');
         $query->setParameter('metaId', $metaMessageId);
-
         return $query->getOneOrNullResult();
     }
 

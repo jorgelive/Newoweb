@@ -8,6 +8,7 @@ use App\Entity\Maestro\MaestroIdioma;
 use App\Message\Dto\Beds24MessageDto;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
+use App\Message\Entity\MessageConversation;
 use App\Message\Factory\MessageAttachmentFactory;
 use App\Message\Factory\MessageConversationFactory;
 use App\Message\Service\MessageJsonMerger;
@@ -77,9 +78,7 @@ readonly class Beds24ReceivePersister
             // Si ya existe y está identificado, actualizamos lectura y saltamos
             if ($existing) {
                 if ($existing->getDirection() === Message::DIRECTION_INCOMING && $dto->read === true && $existing->getStatus() !== Message::STATUS_READ) {
-
                     $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
-
                     try {
                         // 1. 🔥 MAGIA ATÓMICA AISLADA
                         $this->merger->merge($existing, 'beds24', ['read' => true, 'read_at' => $nowUtc]);
@@ -89,9 +88,7 @@ readonly class Beds24ReceivePersister
 
                     // 2. Modificación normal vía UoW de Doctrine
                     $existing->setStatus(Message::STATUS_READ);
-
                     $stats['updated']++;
-
                 } else {
                     $stats['skipped']++;
                 }
@@ -227,7 +224,6 @@ readonly class Beds24ReceivePersister
                         }
                     }
                 }
-
                 $message->setInboundIntent($intent);
 
             } else {
@@ -237,12 +233,13 @@ readonly class Beds24ReceivePersister
                 $message->setLanguageCode($currentConversationLang);
             }
 
-            // Fechas y Zonas Horarias
+            // Fechas del Mensaje
+            $msgDate = new DateTimeImmutable(); // Fallback
             if ($dto->time !== null) {
                 $timeUtc = $dto->time instanceof DateTimeImmutable ? $dto->time : DateTimeImmutable::createFromInterface($dto->time);
-                $timeLima = $timeUtc->setTimezone(new DateTimeZone('America/Lima'));
-                $message->setCreatedAt($timeLima);
+                $msgDate = $timeUtc->setTimezone(new DateTimeZone('America/Lima'));
             }
+            $message->setCreatedAt($msgDate);
 
             // Adjuntos
             if ($source === Message::SENDER_GUEST) {
@@ -271,8 +268,33 @@ readonly class Beds24ReceivePersister
                 }
             }
 
+            // =================================================================
+            // 🔥 LÓGICA EXPLÍCITA DE CONVERSACIÓN (Reemplaza el onPrePersist)
+            // =================================================================
             $conversation->addMessage($message);
             $this->em->persist($message);
+
+            // 1. Actualizamos el puntero general (para que el chat suba)
+            $currentLast = $conversation->getLastMessageAt();
+            if ($currentLast === null || $msgDate > $currentLast) {
+                $conversation->setLastMessageAt($msgDate);
+            }
+
+            // 2. Si es del huésped, notificamos
+            if ($source === Message::SENDER_GUEST) {
+                $currentInbound = $conversation->getLastInboundAt();
+                if ($currentInbound === null || $msgDate > $currentInbound) {
+                    $conversation->setLastInboundAt($msgDate);
+                }
+
+                $conversation->incrementUnreadCount();
+
+                // Si la conversación estaba cerrada, la reabrimos
+                if ($conversation->getStatus() !== MessageConversation::STATUS_OPEN) {
+                    $conversation->setStatus(MessageConversation::STATUS_OPEN);
+                }
+            }
+
             $stats['imported']++;
         }
 
@@ -280,7 +302,6 @@ readonly class Beds24ReceivePersister
         // 🔥 EL ÚNICO FLUSH (Consolidación) 🔥
         // =====================================================================
         $this->em->flush();
-
         return $stats;
     }
 }
