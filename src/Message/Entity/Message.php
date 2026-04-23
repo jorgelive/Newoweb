@@ -181,6 +181,70 @@ class Message
     }
 
     // =========================================================================
+    // LIFECYCLE CALLBACKS
+    // =========================================================================
+
+    /**
+     * Al insertar un mensaje nuevo, actualiza los contadores y fechas de la conversación.
+     * Los mensajes programados para el futuro se insertan silenciosamente.
+     */
+    #[ORM\PrePersist]
+    public function onPrePersist(): void
+    {
+        if ($this->conversation === null || $this->isScheduledForFuture()) {
+            return;
+        }
+
+        $msgDate = $this->getEffectiveDateTime() ?: new DateTimeImmutable();
+
+        $currentLast = $this->conversation->getLastMessageAt();
+        // Solo actualiza la conversación si el mensaje es realmente MÁS NUEVO
+        if ($currentLast === null || $msgDate > $currentLast) {
+            $this->conversation->setLastMessageAt($msgDate);
+        }
+
+        if ($this->direction === self::DIRECTION_INCOMING) {
+            $currentInbound = $this->conversation->getLastInboundAt();
+            if ($currentInbound === null || $msgDate > $currentInbound) {
+                $this->conversation->setLastInboundAt($msgDate);
+            }
+            $this->conversation->incrementUnreadCount();
+
+            if ($this->channel?->getId() === 'whatsapp_meta') {
+                $this->conversation->setWhatsappSessionValidUntil(
+                    (clone $msgDate)->modify('+24 hours')
+                );
+            }
+        }
+    }
+
+    /**
+     * Al actualizar un mensaje, solo actualiza lastMessageAt cuando el worker
+     * confirma que fue enviado o recibido. No toca unreadCount.
+     */
+    #[ORM\PreUpdate]
+    public function onPreUpdate(): void
+    {
+        if ($this->conversation !== null &&
+            in_array($this->status, [self::STATUS_SENT, self::STATUS_RECEIVED, self::STATUS_READ], true)) {
+
+            $msgDate = $this->getEffectiveDateTime() ?: new DateTimeImmutable();
+            $now = new DateTimeImmutable();
+
+            // CORTAFUEGOS: Si el worker actualiza el mensaje, solo subimos el chat
+            // si la fecha efectiva del mensaje es <= a HOY.
+            if ($msgDate <= $now) {
+                $currentLast = $this->conversation->getLastMessageAt();
+
+                // Si el mensaje tiene una fecha más reciente que la conversación, la subimos
+                if ($currentLast === null || $msgDate > $currentLast) {
+                    $this->conversation->setLastMessageAt($msgDate);
+                }
+            }
+        }
+    }
+
+    // =========================================================================
     // GETTERS BÁSICOS
     // =========================================================================
 
