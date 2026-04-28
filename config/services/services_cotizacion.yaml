@@ -1,0 +1,28 @@
+# config/services/services_cotizacion.yaml
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\Cotizacion\:
+        resource: '../../src/Cotizacion/'
+        exclude:
+            - '../../src/Cotizacion/Dto/'
+            - '../../src/Cotizacion/Entity/'
+
+    # =========================
+    # controllers del módulo Cotizacion
+    # (fuera de src/Controller/)
+    # =========================
+    App\Cotizacion\Controller\:
+        resource: '../../src/Cotizacion/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+          - 'controller.service_arguments'
+
+
+
+

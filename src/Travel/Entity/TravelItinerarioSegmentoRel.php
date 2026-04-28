@@ -1,0 +1,83 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Travel\Entity;
+
+use App\Entity\Trait\IdTrait;
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * Pivot que ordena la narrativa dentro de la plantilla del itinerario.
+ */
+#[ORM\Entity]
+#[ORM\Table(name: 'travel_itinerario_segmento_rel')]
+class TravelItinerarioSegmentoRel
+{
+    use IdTrait;
+
+    #[ORM\ManyToOne(targetEntity: TravelItinerario::class, inversedBy: 'itinerarioSegmentos')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    private ?TravelItinerario $itinerario = null;
+
+    #[ORM\ManyToOne(targetEntity: TravelSegmento::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?TravelSegmento $segmento = null;
+
+    #[ORM\Column(type: 'integer')]
+    private int $dia = 1;
+
+    #[ORM\Column(type: 'integer')]
+    private int $orden = 1;
+
+    public function __construct()
+    {
+        $this->initializeId();
+    }
+
+    public function getItinerario(): ?TravelItinerario
+    {
+        return $this->itinerario;
+    }
+
+    public function setItinerario(?TravelItinerario $itinerario): self
+    {
+        $this->itinerario = $itinerario;
+        return $this;
+    }
+
+    public function getSegmento(): ?TravelSegmento
+    {
+        return $this->segmento;
+    }
+
+    public function setSegmento(?TravelSegmento $segmento): self
+    {
+        $this->segmento = $segmento;
+        return $this;
+    }
+
+    public function getDia(): int
+    {
+        return $this->dia;
+    }
+
+    public function setDia(int $dia): self
+    {
+        $this->dia = $dia;
+        return $this;
+    }
+
+    public function getOrden(): int
+    {
+        return $this->orden;
+    }
+
+    public function setOrden(int $orden): self
+    {
+        $this->orden = $orden;
+        return $this;
+    }
+
+
+}

@@ -13,7 +13,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-// 🔥 IMPORTACIONES DE CONTROLADORES CRUD (Reemplazan a las Entidades)
+// 🔥 IMPORTACIONES DE CONTROLADORES CRUD
 use App\Agent\Controller\Crud\AutoResponderRuleCrudController;
 use App\Exchange\Controller\Crud\Beds24ConfigCrudController;
 use App\Exchange\Controller\Crud\CronCursorCrudController;
@@ -59,6 +59,19 @@ use App\Pms\Controller\Crud\PmsReservaHuespedCrudController;
 use App\Pms\Controller\Crud\PmsTarifaRangoCrudController;
 use App\Pms\Controller\Crud\PmsUnidadBeds24MapCrudController;
 use App\Pms\Controller\Crud\PmsUnidadCrudController;
+
+// 🔥 NUEVAS IMPORTACIONES MÓDULO TRAVEL (Agencia & Tours)
+use App\Travel\Controller\Crud\TravelServicioCrudController;
+use App\Travel\Controller\Crud\TravelItinerarioCrudController;
+use App\Travel\Controller\Crud\TravelSegmentoCrudController;
+use App\Travel\Controller\Crud\TravelComponenteCrudController;
+use App\Travel\Controller\Crud\TravelTarifaCrudController;
+use App\Travel\Controller\Crud\TravelItemDiccionarioCrudController;
+use App\Travel\Controller\Crud\TravelNotaCrudController; // <-- NUEVO
+
+// 🔥 IMPORTACIONES MÓDULO COTIZACIONES (Caja Fuerte)
+use App\Cotizacion\Controller\Crud\CotizacionFileCrudController;
+use App\Cotizacion\Controller\Crud\CotizacionCrudController;
 
 class DashboardController extends AbstractDashboardController
 {
@@ -128,6 +141,38 @@ class DashboardController extends AbstractDashboardController
                 MenuItem::linkTo(PmsTarifaRangoCrudController::class, 'Tarifas', 'fa fa-tags'),
             ])
             ->setPermission(Roles::RESERVAS_WRITE);
+
+        // =========================================================================
+        // SECCIÓN NUEVA: AGENCIA & TOURS (TRAVEL)
+        // =========================================================================
+        yield MenuItem::section('Agencia & Tours');
+
+        // CAJA FUERTE (Transaccional)
+        yield MenuItem::subMenu('Cotizaciones (Ventas)', 'fa fa-file-invoice-dollar')
+            ->setSubItems([
+                MenuItem::linkTo(CotizacionFileCrudController::class, 'Expedientes (Files)', 'fa fa-folder-open'),
+                MenuItem::linkTo(CotizacionCrudController::class, 'Auditoría de Versiones', 'fa fa-history'),
+            ])
+            ->setPermission(Roles::RESERVAS_WRITE);
+
+        // CATÁLOGO DE VENTA
+        yield MenuItem::subMenu('Catálogo de Productos', 'fa fa-map-marked-alt')
+            ->setSubItems([
+                MenuItem::linkTo(TravelServicioCrudController::class, 'Servicios / Tours', 'fa fa-route'),
+                MenuItem::linkTo(TravelSegmentoCrudController::class, 'Segmentos Narrativos', 'fa fa-paragraph'),
+                MenuItem::linkTo(TravelItinerarioCrudController::class, 'Plantillas de Itinerario', 'fa fa-book-open'),
+                MenuItem::linkTo(TravelNotaCrudController::class, 'Notas y Políticas', 'fa fa-file-alt'), // <-- NUEVO
+            ])
+            ->setPermission(Roles::MAESTROS_SHOW);
+
+        // LOGÍSTICA Y FINANZAS
+        yield MenuItem::subMenu('Logística y Tarifas', 'fa fa-cogs')
+            ->setSubItems([
+                MenuItem::linkTo(TravelComponenteCrudController::class, 'Componentes Base', 'fa fa-cubes'),
+                MenuItem::linkTo(TravelTarifaCrudController::class, 'Tarifario Maestro', 'fa fa-hand-holding-usd'),
+                MenuItem::linkTo(TravelItemDiccionarioCrudController::class, 'Diccionario Multiidioma', 'fa fa-language'),
+            ])
+            ->setPermission(Roles::MAESTROS_WRITE);
 
         // =========================================================================
         // SECCIÓN 2: EXPERIENCIA DEL HUÉSPED

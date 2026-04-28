@@ -1,0 +1,28 @@
+# config/services/services_travel.yaml
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\Travel\:
+        resource: '../../src/Travel/'
+        exclude:
+            - '../../src/Travel/Dto/'
+            - '../../src/Travel/Entity/'
+
+    # =========================
+    # controllers del módulo Travel
+    # (fuera de src/Controller/)
+    # =========================
+    App\Travel\Controller\:
+        resource: '../../src/Travel/Controller/'
+        autowire: true
+        autoconfigure: true
+        tags:
+          - 'controller.service_arguments'
+
+
+
+
