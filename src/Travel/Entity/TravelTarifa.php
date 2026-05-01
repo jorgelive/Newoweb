@@ -74,6 +74,40 @@ class TravelTarifa
         $this->initializeId();
     }
 
+    /**
+     * Representación en texto para EasyAdmin y depuración.
+     * Genera una etiqueta visual que resume el costo, la moneda y las reglas de negocio.
+     * Ejemplos: "🏷️ Adulto | USD 84.00 👤 [Por Pax]" o "🏷️ Van Privada | PEN 150.00 👥 [Por Grupo]"
+     */
+    public function __toString(): string
+    {
+        if (!$this->nombreInterno) {
+            return '✨ Nueva Tarifa';
+        }
+
+        $monedaStr = $this->moneda ? (string) $this->moneda : '';
+        $montoStr = $this->monto !== null ? $this->monto : '0.00';
+
+        // Etiqueta base
+        $etiqueta = sprintf('🏷️ %s | %s %s', $this->nombreInterno, $monedaStr, $montoStr);
+
+        // Indicador visual de la matemática (cómo se cobra)
+        if ($this->costoPorGrupo) {
+            $etiqueta .= ' 👥 [Por Grupo]';
+        } else {
+            $etiqueta .= ' 👤 [Por Pax]';
+        }
+
+        // Indicador visual de restricciones de edad (para evitar errores operativos)
+        if ($this->edadMinima !== null || $this->edadMaxima !== null) {
+            $min = $this->edadMinima ?? '0';
+            $max = $this->edadMaxima ?? '∞';
+            $etiqueta .= sprintf(' 🎂 (%s-%s años)', $min, $max);
+        }
+
+        return $etiqueta;
+    }
+
     // ... (Getters y Setters respetando tipado estricto)
     public function getMonto(): ?string
     {

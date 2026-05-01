@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Controlador Base "Cerebro Central".
- * BLINDADO: Soporta entidades con IDs exóticos (Strings, Custom Keys) sin romper la navegación.
+ * BLINDADO: Soporta entidades con IDs exóticos y no rompe el Paginador.
  */
 abstract class BaseCrudController extends AbstractCrudController
 {
@@ -29,25 +29,33 @@ abstract class BaseCrudController extends AbstractCrudController
         $request = $this->requestStack->getCurrentRequest();
         if (!$request) return $actions;
 
+        // Intentamos ver si la petición ya trae un pasaporte
         $returnTo = $request->query->get('returnTo');
 
-        // 1. AUTO-GENERACIÓN
-        if (!$returnTo && $this->isIndexPage($request)) {
-            $returnTo = base64_encode($request->getUri());
-            $request->query->set('returnTo', $returnTo);
+        // 1. AUTO-GENERACIÓN SEGURA (Sin tocar el $request global)
+        if ($this->isIndexPage($request)) {
+            $currentUri = $request->getUri();
+
+            // Limpiamos la URL por si trae basura vieja para evitar el "Efecto Bola de Nieve Base64"
+            $cleanUri = preg_replace('/([?&])returnTo=[^&]*(&|$)/', '$1', $currentUri);
+            $cleanUri = rtrim($cleanUri, '?&');
+
+            // Generamos el pasaporte
+            $returnTo = base64_encode($cleanUri);
+
         }
 
         // 2. GESTIÓN DE BOTONES
         if ($returnTo) {
 
             // A. PROPAGADOR (Hacia adelante)
-            // CAMBIO: Usamos getSafeId() en lugar de getId() directo
+            // Aquí es donde inyectamos el pasaporte, solo directamente a los botones.
             $propagator = function (Action $action) use ($returnTo) {
                 return $action->linkToUrl(function ($entity = null) use ($action, $returnTo) {
                     return $this->adminUrlGenerator
                         ->setController(static::class)
                         ->setAction($action->getAsDto()->getName())
-                        ->setEntityId($this->getSafeId($entity)) // <--- AQUÍ ESTÁ EL PARCHE
+                        ->setEntityId($this->getSafeId($entity))
                         ->set('returnTo', $returnTo)
                         ->generateUrl();
                 });
@@ -107,9 +115,7 @@ abstract class BaseCrudController extends AbstractCrudController
     }
 
     /**
-     * 🔥 MAGIA ANTICRASH: Obtiene el ID de cualquier entidad.
-     * 1. Intenta getId().
-     * 2. Si falla, busca la propiedad marcada con #[Id] o #[ORM\Id] usando Reflexión.
+     * MAGIA ANTICRASH: Obtiene el ID de cualquier entidad.
      */
     private function getSafeId(mixed $entity): mixed
     {

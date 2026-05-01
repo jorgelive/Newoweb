@@ -51,7 +51,7 @@ class TranslationTextType extends AbstractType
             'label' => false,
             'attr' => ['placeholder' => 'Escribe el texto...'],
             'row_attr' => ['class' => 'col-md-9 mb-0'],
-            'constraints' => [new NotBlank(['message' => 'El contenido es obligatorio.'])],
+            //'constraints' => [new NotBlank(['message' => 'El contenido es obligatorio.'])],
             'required' => true,
         ]);
     }

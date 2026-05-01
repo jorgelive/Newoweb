@@ -61,6 +61,38 @@ class TravelComponenteItem
     }
 
     /**
+     * Representación en texto para EasyAdmin y depuración.
+     * Genera una etiqueta visual atractiva que indica el estado del ítem.
+     * Ejemplos: "✅ Guiado [INCLUIDO]" o "➕ Seguro Aventura [OPCIONAL] 💰"
+     */
+    public function __toString(): string
+    {
+        if (!$this->diccionario) {
+            return '✨ Nuevo Ítem';
+        }
+
+        $nombreItem = (string) $this->diccionario;
+        $modoNombre = $this->modo->name;
+
+        // Asignamos un ícono visual dependiendo del modo para facilitar la lectura rápida
+        $icono = match ($modoNombre) {
+            'INCLUIDO' => '✅',
+            'NO_INCLUIDO' => '❌',
+            'OPCIONAL', 'UPSELL' => '➕',
+            default => '▪️'
+        };
+
+        $etiqueta = sprintf('%s %s [%s]', $icono, $nombreItem, $modoNombre);
+
+        // Si tiene un costo extra vinculado, le damos una pista visual al usuario
+        if ($this->componenteAdicionalVinculado) {
+            $etiqueta .= ' 💰 (Vinculado)';
+        }
+
+        return $etiqueta;
+    }
+
+    /**
      * Obtiene el componente logístico padre.
      */
     public function getComponente(): ?TravelComponente

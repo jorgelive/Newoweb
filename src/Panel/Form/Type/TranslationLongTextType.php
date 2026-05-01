@@ -53,7 +53,7 @@ class TranslationLongTextType extends AbstractType
                 'rows' => 5, // Ideal para WhatsApp/Beds24
             ],
             'row_attr' => ['class' => 'col-md-12'],
-            'constraints' => [new NotBlank(['message' => 'El contenido es obligatorio.'])],
+            //'constraints' => [new NotBlank(['message' => 'El contenido es obligatorio.'])],
             'required' => true,
         ]);
     }

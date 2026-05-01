@@ -67,6 +67,7 @@ class TravelItemDiccionarioCrudController extends BaseCrudController
 
         yield CollectionField::new('titulo', 'Viñeta / Título')
             ->setEntryType(TranslationTextType::class)
+            ->setRequired(false)
             ->setColumns(12)
             ->setHelp('Ingresa el idioma base (Ej: Español) y el sistema traducirá los demás al guardar.');
     }

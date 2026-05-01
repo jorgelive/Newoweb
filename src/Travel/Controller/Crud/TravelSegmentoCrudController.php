@@ -8,6 +8,8 @@ use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationHtmlType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelSegmento;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
@@ -28,6 +30,30 @@ class TravelSegmentoCrudController extends BaseCrudController
             ->showEntityActionsInlined()
             ->setEntityLabelInSingular('Segmento')
             ->setEntityLabelInPlural('Segmentos de itinerario');
+    }
+
+    /**
+    * Sobrescribimos el método de eliminación para capturar el error de llave foránea
+    * y evitar el Error 500 en producción.
+    */
+    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        try {
+            // Intentamos eliminar el segmento de forma normal
+            $entityManager->remove($entityInstance);
+            $entityManager->flush();
+
+        } catch (ForeignKeyConstraintViolationException $e) {
+            // Si MySQL nos bloquea porque el segmento está en un itinerario,
+            // mostramos un mensaje amigable y abortamos la eliminación.
+            $this->addFlash(
+                'danger',
+                '⛔ <strong>Acción denegada:</strong> No puedes eliminar este segmento porque está siendo utilizado en uno o más Itinerarios. Si realmente deseas borrarlo, primero debes quitarlo de las plantillas.'
+            );
+
+            // Refrescamos la entidad para que Doctrine no se quede en un estado inconsistente
+            $entityManager->refresh($entityInstance);
+        }
     }
 
     public function configureFields(string $pageName): iterable

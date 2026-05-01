@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Travel\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
+use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Enum\ComponenteTipoEnum;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
@@ -53,14 +55,30 @@ class TravelComponenteCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        yield FormField::addPanel('Datos Generales')->setIcon('fa fa-box');
+        yield FormField::addPanel('Identidad del Componente')->setIcon('fa fa-box');
 
-        yield TextField::new('nombre', 'Nombre del Componente (Interno)')->setColumns(6);
+        yield TextField::new('nombre', 'Nombre Interno (Administrativo)')
+            ->setColumns(6)
+            ->setHelp('Ej: BTI - Boleto Turístico Integral');
 
         yield ChoiceField::new('tipo', 'Categoría Operativa')
             ->setChoices(array_reduce(ComponenteTipoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
             ->formatValue(static fn ($value) => $value instanceof ComponenteTipoEnum ? $value->value : $value)
             ->setColumns(6);
+
+        // 🔥 NUEVO: Bloque de Traducción para el Título Público
+        yield FormField::addPanel('Título Público (Lo que ve el cliente)')->setIcon('fa fa-language')
+            ->setHelp('Si este componente no es un "Pool" y se muestra directamente al cliente, aquí defines cómo se lee en su PDF.');
+
+        yield BooleanField::new('ejecutarTraduccion', 'Traducir Automáticamente')->onlyOnForms()->setColumns(6);
+        yield BooleanField::new('sobreescribirTraduccion', 'Sobrescribir Existentes')->onlyOnForms()->setColumns(6);
+
+        yield CollectionField::new('titulo', 'Título Comercial')
+            ->setEntryType(TranslationTextType::class)
+            ->setRequired(false)
+            ->setColumns(12);
+
+        yield FormField::addPanel('Configuración Operativa')->setIcon('fa fa-cogs');
 
         yield NumberField::new('duracion', 'Duración (Horas)')
             ->setNumDecimals(1)
@@ -74,10 +92,11 @@ class TravelComponenteCrudController extends BaseCrudController
         yield FormField::addPanel('Ítems y Upsells (Lo que incluye)')->setIcon('fa fa-list-check');
 
         yield CollectionField::new('componenteItems', 'Detalle de Inclusiones')
-            ->useEntryCrudForm(TravelComponenteItemCrudController::class) // <-- Aquí entra en acción
+            ->useEntryCrudForm(TravelComponenteItemCrudController::class)
             ->setFormTypeOption('by_reference', false)
+            ->setFormTypeOption('required', false)
             ->setColumns(12)
-            ->setHelp('Añade los elementos descriptivos que componen este servicio y define si son Upsells (opcionales).');
+            ->setHelp('Para paquetes (Pools), añade aquí los servicios que incluye (Bus, Guía, etc). Si este componente es un servicio atómico (Ej: Ticket de Tren), puedes dejar esto completamente vacío.');
 
         // 🔥 TAMBIÉN INYECTAMOS LAS TARIFAS DIRECTO EN EL COMPONENTE 🔥
         yield FormField::addPanel('Tarifario Base')->setIcon('fa fa-money-bill-wave');

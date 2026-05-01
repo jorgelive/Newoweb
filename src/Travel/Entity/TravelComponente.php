@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use App\Attribute\AutoTranslate;
+use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Travel\Enum\ComponenteTipoEnum;
@@ -21,9 +23,15 @@ class TravelComponente
 {
     use IdTrait;
     use TimestampTrait;
+    use AutoTranslateControlTrait;
 
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
+
+    // 🔥 NUEVO: El título público que verá el huésped
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $titulo = [];
 
     #[ORM\Column(type: 'string', length: 50, enumType: ComponenteTipoEnum::class)]
     private ComponenteTipoEnum $tipo = ComponenteTipoEnum::EXTRAS;
@@ -84,6 +92,23 @@ class TravelComponente
     public function setNombre(string $nombre): self
     {
         $this->nombre = $nombre;
+        return $this;
+    }
+
+    /**
+     * Obtiene el título multilingüe visible para el cliente.
+     */
+    public function getTitulo(): array
+    {
+        return $this->titulo;
+    }
+
+    /**
+     * Establece el título multilingüe visible para el cliente.
+     */
+    public function setTitulo(array $titulo): self
+    {
+        $this->titulo = $titulo;
         return $this;
     }
 
@@ -192,6 +217,7 @@ class TravelComponente
             $this->tarifas->add($tarifa);
             $tarifa->setComponente($this);
         }
+
         return $this;
     }
 

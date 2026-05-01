@@ -8,6 +8,8 @@ api_platform:
             - '%kernel.project_dir%/src/Entity'
             - '%kernel.project_dir%/src/Pms/Entity'
             - '%kernel.project_dir%/src/Message/Entity'
+            - '%kernel.project_dir%/src/Travel/Entity'
+            - '%kernel.project_dir%/src/Cotizacion/Entity'
             # Descomenta estas líneas si luego quieres exponer APIs de estos módulos:
             # - '%kernel.project_dir%/src/Exchange/Entity'
 

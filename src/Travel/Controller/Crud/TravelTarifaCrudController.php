@@ -58,9 +58,12 @@ class TravelTarifaCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
+        $isEmbedded = $this->isEmbedded();
         yield FormField::addPanel('Identificación y Costo')->setIcon('fa fa-tag');
 
-        yield AssociationField::new('componente', 'Componente Logístico')->setColumns(6);
+        if (!$isEmbedded) {
+            yield AssociationField::new('componente', 'Componente Logístico')->setColumns(6);
+        }
         yield TextField::new('nombreInterno', 'Referencia Interna')->setColumns(6);
 
         yield AssociationField::new('moneda', 'Moneda')
