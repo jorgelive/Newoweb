@@ -1,74 +1,67 @@
-//src/stores/chatStore.ts
+// src/stores/chatStore.ts
 import { defineStore } from 'pinia';
 import { ref, computed, shallowRef, watch } from 'vue';
-import axios, { InternalAxiosRequestConfig } from 'axios';
 import { useAttachmentStore } from './attachmentStore';
 import { useNotificationStore } from './notificationStore';
+// 👇 Importamos los tipos automáticos de API Platform generados desde OpenAPI
+import type { components } from '@/types/api';
+// 👇 Importamos el cliente centralizado y sus utilidades de sesión
+import { apiClient, getUrls, processQueue, type CustomAxiosRequestConfig } from '@/services/apiClient';
 
-// Interfaz extendida para manejar estados personalizados en las peticiones Axios
-export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
-    _retry?: boolean;
-    _silentAuthCheck?: boolean;
-}
+// ============================================================================
+// TIPOS AUTOGENERADOS (HÍBRIDOS)
+// ============================================================================
+export type ApiMessageQueue = components['schemas']['WhatsappMetaSendQueue-message.read'] | components['schemas']['Beds24SendQueue-message.read'];
+export type ApiAttachment = components['schemas']['MessageAttachment-message.read'];
+export type ApiTemplate = components['schemas']['MessageTemplate-template.read'];
 
-export interface ApiMessageQueue {
-    status: string;
-    deliveryStatus?: string;
-}
+/**
+ * TIPADO HÍBRIDO CONVERSACIÓN:
+ * Heredamos la estructura robusta de OpenAPI pero flexibilizamos `contextMilestones`.
+ * Esto previene errores de tipado estricto cuando el PMS envía estructuras de fechas variables.
+ */
+type BaseApiConversation = components['schemas']['Conversation-conversation.read'];
+export type ApiConversation = Omit<BaseApiConversation, 'contextMilestones'> & {
+    '@id'?: string; // 👈 AÑADE ESTO
+    '@type'?: string; // 👈 AÑADE ESTO
+    contextMilestones?: { start?: string; end?: string; booked_at?: string; eta?: string; } | any;
+};
 
-export interface ApiAttachment {
-    '@id': string;
-    id: string;
-    originalName: string;
-    mimeType: string;
-    fileUrl?: string;
-}
-
-export interface ApiMessage {
-    '@id': string;
-    id: string;
-    direction: string;
-    status: string;
-    senderType: string;
-    contentLocal: string | null;
-    contentExternal: string | null;
-    createdAt: string;
-    scheduledAt?: string | null;
-    effectiveDateTime?: string | null;
-    scheduledForFuture?: boolean;
+/**
+ * TIPADO HÍBRIDO MENSAJE:
+ * Heredamos de OpenAPI pero definimos explícitamente el JSON libre (`metadata`)
+ * para garantizar autocompletado en la UI al leer respuestas de Webhooks (ej. `error_reason`).
+ */
+type BaseApiMessage = components['schemas']['Message-message.read'];
+export type ApiMessage = Omit<BaseApiMessage, 'metadata' | 'template' | 'channel' | 'whatsappMetaSendQueues' | 'beds24SendQueues' | 'attachments'> & {
+    '@id'?: string; // 👈 AÑADE ESTO
+    '@type'?: string; // 👈 AÑADE ESTO
     metadata?: {
         beds24?: { sent_at?: string; delivered_at?: string; read_at?: string; error?: string; [key: string]: any; };
-        whatsappMeta?: { sent_at?: string; delivered_at?: string; read_at?: string; error_code?: string; error_reason?: string; [key: string]: any; };
+        whatsappMeta?: { sent_at?: string; delivered_at?: string; read_at?: string; error_code?: string; error_reason?: string; reactions?: Record<string, string>; [key: string]: any; };
         dispatch_errors?: string[];
         dispatch_warnings?: string[];
         [key: string]: any;
     };
-    channel?: { id: string; name: string } | string;
+    template?: any; // API Platform puede devolver el IRI (string) o el objeto anidado según el grupo
+    channel?: { id: string; name: string } | string | null;
     whatsappMetaSendQueues?: ApiMessageQueue[] | string[];
     beds24SendQueues?: ApiMessageQueue[] | string[];
-    template?: any;
     attachments?: ApiAttachment[] | string[];
-}
-
-export interface ApiTemplate {
-    '@id': string; id: string; code: string; name: string; contextType: string | null; allowedSources: string[]; allowedAgencies: string[]; channels: string[]; whatsappMetaOfficial: boolean; beds24Active: boolean; whatsappMetaActive: boolean; emailActive: boolean;
-}
-
-export interface ApiConversation {
-    '@id': string; id: string; status: string; guestName: string | null; guestPhone: string | null; contextType: string; contextId: string; createdAt: string; lastMessageAt: string | null; unreadCount: number; contextOrigin: string | null; contextStatusTag: string | null; contextMilestones: { start?: string; end?: string; booked_at?: string; eta?: string; }; contextItems: string[]; whatsappSessionActive?: boolean; whatsappDisabled?: boolean; whatsappDisabledReason?: string | null;
-}
+};
 
 export const useChatStore = defineStore('chatStore', () => {
 
     /**
-     * Determina el estado visual de un mensaje basado en sus colas de envío.
+     * Calcula el estado visual final de un mensaje consolidando sus colas de envío subyacentes.
+     * Si todas las colas (WhatsApp, Beds24, etc.) fueron canceladas, el mensaje se muestra como cancelado.
+     *
      * @param {ApiMessage} msg El mensaje a evaluar.
-     * @returns {string} El estado final calculado (ej: 'cancelled', 'sent', 'delivered').
+     * @returns {string} El estado semántico (ej: 'cancelled', 'sent', 'delivered').
      */
     const getMessageDisplayStatus = (msg: ApiMessage): string => {
         if (msg.status === 'cancelled') return 'cancelled';
 
-        // Si todas las queues están canceladas, lo tratamos como cancelado visualmente
         const allQueues = [
             ...(msg.whatsappMetaSendQueues || []),
             ...(msg.beds24SendQueues || [])
@@ -81,87 +74,18 @@ export const useChatStore = defineStore('chatStore', () => {
         return msg.status;
     };
 
-    /**
-     * Obtiene las URLs base de la API y el Panel desde la configuración global o variables de entorno.
-     * @returns {{api: string, panel: string}} Objeto con las URLs.
-     */
-    const getUrls = () => {
-        // @ts-ignore
-        const config = window.OPENPERU_CONFIG || {};
-        return {
-            api: config.apiUrl || import.meta.env.VITE_API_URL || 'https://api.openperu.pe',
-            panel: config.panelUrl || import.meta.env.VITE_PANEL_URL || 'https://panel.openperu.pe'
-        };
-    };
-
-    const apiClient = axios.create({
-        withCredentials: true,
-        headers: { 'Accept': 'application/ld+json' }
-    });
-
     // ============================================================================
     // ESTADOS Y LÓGICA DE SESIÓN
     // ============================================================================
-    const isSessionExpired = ref(false);
-    let failedQueue: { resolve: Function, reject: Function, config: CustomAxiosRequestConfig }[] = [];
 
     /**
-     * Procesa la cola de peticiones pausadas tras un intento de login o cancelación.
-     * Si hay error, rechaza las promesas. Si fue exitoso, reintenta las peticiones originales.
-     * @param {any} error El error a inyectar en las peticiones si el login falló.
+     * Flag reactivo que detiene la UI y muestra el modal de re-login
+     * cuando `apiClient.ts` detecta una caída de sesión (HTML o 401).
      */
-    const processQueue = (error: any = null) => {
-        failedQueue.forEach(prom => {
-            if (error) prom.reject(error);
-            else prom.resolve(apiClient(prom.config));
-        });
-        failedQueue = [];
-    };
-
-    apiClient.interceptors.request.use((config) => {
-        config.baseURL = getUrls().api;
-        return config;
-    });
+    const isSessionExpired = ref(false);
 
     // ============================================================================
-    // INTERCEPTOR BLINDADO: Detecta el HTML de Symfony disfrazado de 200 OK
-    // ============================================================================
-    apiClient.interceptors.response.use(
-        (response) => {
-            const contentType = response.headers['content-type'] || '';
-
-            // Si esperamos JSON pero Symfony nos manda el formulario de Login HTML
-            if (contentType.includes('text/html')) {
-                const originalRequest = response.config as CustomAxiosRequestConfig;
-                if (!originalRequest._retry && !originalRequest._silentAuthCheck) {
-                    isSessionExpired.value = true;
-                    originalRequest._retry = true;
-                    return new Promise((resolve, reject) => {
-                        failedQueue.push({ resolve, reject, config: originalRequest });
-                    });
-                }
-                return Promise.reject(new Error('Sesión expirada (HTML detectado)'));
-            }
-            return response;
-        },
-        async (error) => {
-            const originalRequest = error.config as CustomAxiosRequestConfig;
-
-            // Si devuelve 401 explícito (en caso de que lo configuremos en el futuro)
-            if (error.response?.status === 401 && !originalRequest._retry && !originalRequest._silentAuthCheck) {
-                isSessionExpired.value = true;
-                originalRequest._retry = true;
-
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject, config: originalRequest });
-                });
-            }
-            return Promise.reject(error);
-        }
-    );
-
-    // ============================================================================
-    // ESTADOS DEL CHAT
+    // ESTADOS PRINCIPALES DEL CHAT
     // ============================================================================
     const conversations = ref<ApiConversation[]>([]);
     const currentConversation = ref<ApiConversation | null>(null);
@@ -169,11 +93,13 @@ export const useChatStore = defineStore('chatStore', () => {
     const templates = ref<ApiTemplate[]>([]);
     const filterStatus = ref<string>('open');
 
+    // Estados de Carga
     const loadingConversations = ref(false);
     const loadingMessages = ref(false);
     const sendingMessage = ref(false);
     const error = ref<string | null>(null);
 
+    // Paginación
     const conversationsPage = ref(1);
     const hasMoreConversations = ref(true);
     const loadingMoreConversations = ref(false);
@@ -182,39 +108,56 @@ export const useChatStore = defineStore('chatStore', () => {
     const hasMoreMessages = ref(true);
     const loadingMoreMessages = ref(false);
 
+    // UI & Webhooks
     const isChatVisible = ref(true);
-
     const newNotification = ref<{ show: boolean, title: string, conversationId: string } | null>(null);
 
+    // Conexiones Mercure
     const eventSource = shallowRef<EventSource | null>(null);
     const globalEventSource = shallowRef<EventSource | null>(null);
 
+    // ============================================================================
+    // GETTERS (COMPUTED)
+    // ============================================================================
+
     const filteredConversations = computed(() => conversations.value.filter(c => c.status && c.status.toLowerCase() === filterStatus.value.toLowerCase()));
 
+    /**
+     * Filtra los mensajes del historial activo.
+     * Excluye los mensajes cancelados y los programados cuyo tiempo efectivo aún no se cumple.
+     */
     const activeChatMessages = computed(() => {
         const now = new Date();
         return messages.value.filter(m => {
             if (getMessageDisplayStatus(m) === 'cancelled') return false;
-            const effectiveDate = new Date(m.effectiveDateTime || m.createdAt);
+            const effectiveDate = new Date(m.effectiveDateTime || m.createdAt as string);
             return m.scheduledForFuture === false || effectiveDate <= now;
         });
     });
 
+    /**
+     * Extrae y ordena cronológicamente los mensajes que están encolados para envío futuro.
+     */
     const scheduledMessages = computed(() => {
         const now = new Date();
         return messages.value
-            .filter(m => getMessageDisplayStatus(m) !== 'cancelled' && m.scheduledForFuture === true && new Date(m.effectiveDateTime || m.createdAt) > now)
-            .sort((a, b) => new Date(a.effectiveDateTime || a.createdAt).getTime() - new Date(b.effectiveDateTime || b.createdAt).getTime());
+            .filter(m => getMessageDisplayStatus(m) !== 'cancelled' && m.scheduledForFuture === true && new Date(m.effectiveDateTime || m.createdAt as string) > now)
+            .sort((a, b) => new Date(a.effectiveDateTime || a.createdAt as string).getTime() - new Date(b.effectiveDateTime || b.createdAt as string).getTime());
     });
 
+    /**
+     * Extrae los mensajes abortados para la pestaña de cancelados.
+     */
     const cancelledMessages = computed(() => {
         return messages.value
             .filter(m => getMessageDisplayStatus(m) === 'cancelled')
-            .sort((a, b) => new Date(a.effectiveDateTime || a.createdAt).getTime() - new Date(b.effectiveDateTime || b.createdAt).getTime());
+            .sort((a, b) => new Date(a.effectiveDateTime || a.createdAt as string).getTime() - new Date(b.effectiveDateTime || b.createdAt as string).getTime());
     });
 
-    // ============================================================================
-
+    /**
+     * Devuelve únicamente las plantillas autorizadas para el contexto actual.
+     * Previene que se envíen Quick Replies de un tipo de reserva a otro origen no compatible.
+     */
     const validTemplates = computed(() => {
         if (!currentConversation.value) return [];
         const chat = currentConversation.value;
@@ -222,12 +165,20 @@ export const useChatStore = defineStore('chatStore', () => {
         return templates.value.filter(t => (!t.contextType || t.contextType === chat.contextType) && (!t.allowedSources?.length || t.allowedSources.includes(origin)));
     });
 
+    /**
+     * Resuelve dinámicamente la URL absoluta del panel de administración (Symfony)
+     * basándose en el ID de la reserva vinculada a la conversación.
+     */
     const getExternalContextUrl = computed(() => {
         if (!currentConversation.value) return null;
         const chat = currentConversation.value;
         const routes: Record<string, string> = { 'pms_reserva': `/pms-reserva/${chat.contextId}` };
-        return routes[chat.contextType] ? `${getUrls().panel}${routes[chat.contextType]}` : null;
+        return routes[chat.contextType || ''] ? `${getUrls().panel}${routes[chat.contextType || '']}` : null;
     });
+
+    // ============================================================================
+    // UTILERÍAS INTERNAS API PLATFORM
+    // ============================================================================
 
     const extractData = (response: any) => {
         const data = response.data;
@@ -244,19 +195,20 @@ export const useChatStore = defineStore('chatStore', () => {
     // ============================================================================
 
     /**
-     * Comprobación silenciosa de sesión, protegiendo contra respuestas HTML del firewall
+     * Verifica la vigencia de la sesión sin disparar errores visuales.
+     * Utiliza un endpoint protegido. Si devuelve HTML (Firewall atrapado) o 401, la sesión murió.
+     * Tolera fallas de conexión (timeout) para no cerrar la sesión si solo se cortó el WiFi.
+     *
+     * @returns {Promise<boolean>} True si la sesión está viva, False si expiró.
      */
     const checkSession = async (): Promise<boolean> => {
         try {
             const authResponse = await apiClient.get('/message/mercure/auth', { _silentAuthCheck: true } as CustomAxiosRequestConfig);
             if (authResponse.headers['content-type']?.includes('text/html')) {
-                return false; // Murió la sesión (Symfony nos dio HTML)
+                return false;
             }
-
             return true;
         } catch (e: any) {
-            // Solo devolvemos false si el servidor responde con 401.
-            // Si es un timeout o se cayó el internet móvil, asumimos TRUE para no disparar el modal en vano.
             if (e.response?.status === 401) {
                 return false;
             }
@@ -265,24 +217,25 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     /**
-     * Intenta renovar la sesión atacando el endpoint JSON del backend de Symfony.
-     * Si es exitoso, libera la cola de mensajes y reinicia los túneles Mercure.
-     * @param {Object} credentials Credenciales de acceso.
-     * @returns {Promise<boolean>} True si la autenticación fue exitosa.
+     * Ejecuta el login AJAX contra Symfony. Si es exitoso, purga la cola centralizada
+     * de peticiones fallidas (en apiClient) y reinicia los túneles WebSockets.
+     *
+     * @param {Object} credentials Credenciales (_username, _password, _remember_me).
+     * @returns {Promise<boolean>}
      */
-    const renewSession = async (credentials: { _username: string, _password: string }): Promise<boolean> => {
+    const renewSession = async (credentials: { _username: string, _password: string, _remember_me?: boolean }): Promise<boolean> => {
         try {
             await apiClient.post('/ajax_login', credentials);
-
             isSessionExpired.value = false;
             error.value = null;
 
-            // 1. Liberamos cualquier petición pendiente
+            // 1. Liberamos cualquier petición pendiente pausada en el interceptor global
             processQueue(null);
 
-            // 2. Renovar túneles Mercure
+            // 2. Reconectamos escuchas en tiempo real
             await initGlobalMercure();
-            if (currentConversation.value) await connectToMercure(currentConversation.value.id);
+            if (currentConversation.value?.id) await connectToMercure(currentConversation.value.id);
+
             return true;
         } catch (err: any) {
             error.value = err.response?.data?.message || 'Error de autenticación.';
@@ -292,16 +245,17 @@ export const useChatStore = defineStore('chatStore', () => {
     };
 
     /**
-     * Cancela explícitamente el proceso de renovación de sesión, limpiando la cola.
+     * Aborta el proceso de re-login vaciando la cola de promesas con un error.
      */
     const cancelRenewal = () => {
         isSessionExpired.value = false;
-        processQueue(new Error('Cancelado.'));
+        processQueue(new Error('Cancelado por el usuario.'));
     };
 
     // ============================================================================
-    // ACCIONES DE DATOS
+    // ACCIONES DE DATOS (CRUD)
     // ============================================================================
+
     const fetchTemplates = async () => {
         try {
             const response = await apiClient.get('/platform/user/util/msg/templates');
@@ -309,9 +263,13 @@ export const useChatStore = defineStore('chatStore', () => {
         } catch (err) {}
     };
 
+    /**
+     * Obtiene el listado de conversaciones. Soporta paginación.
+     *
+     * @param {boolean} loadMore Si es true, añade los resultados al final de la lista existente.
+     */
     const fetchConversations = async (loadMore = false) => {
         let pageToFetch = 1;
-
         if (loadMore) {
             if (!hasMoreConversations.value || loadingMoreConversations.value) return;
             loadingMoreConversations.value = true;
@@ -330,6 +288,7 @@ export const useChatStore = defineStore('chatStore', () => {
             hasMoreConversations.value = hasNextPage(response);
             conversationsPage.value = pageToFetch;
         } catch (err: any) {
+            // Ignoramos errores 401/HTML ya que el apiClient centralizado los maneja.
             if (err.response?.status !== 401 && !err.message?.includes('HTML')) {
                 error.value = 'Error al sincronizar chats';
             }
@@ -339,6 +298,14 @@ export const useChatStore = defineStore('chatStore', () => {
         }
     };
 
+    // ============================================================================
+    // CONEXIONES MERCURE (WEBSOCKETS)
+    // ============================================================================
+
+    /**
+     * Inicializa el túnel global para escuchar nuevos mensajes en *todas* las conversaciones.
+     * Gestiona las notificaciones push nativas si el chat no está en foco.
+     */
     const initGlobalMercure = async () => {
         if (globalEventSource.value) {
             globalEventSource.value.close();
@@ -355,27 +322,33 @@ export const useChatStore = defineStore('chatStore', () => {
 
             globalEventSource.value = new EventSource(url.toString(), { withCredentials: true });
 
-            // ✅ Instanciamos el store global
             const notificationStore = useNotificationStore();
 
             globalEventSource.value.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-
                 if (data.type === 'conversation_updated' || data.type === 'conversation_created') {
                     const convData = data.conversation;
-                    const existingConv = conversations.value.find(c => c['@id'] === convData['@id']);
+                    // Búsqueda tolerante a IRIs o UUIDs
+                    const existingConv = conversations.value.find(c => (c['@id'] || c.id) === (convData['@id'] || convData.id));
 
-                    if (convData.unreadCount > (existingConv?.unreadCount || 0) && (currentConversation.value?.['@id'] !== convData['@id'] || !isChatVisible.value)) {
+                    // Lógica para disparar Notificación Push
+                    if (convData.unreadCount > (existingConv?.unreadCount || 0) && ((currentConversation.value as any)?.['@id'] !== convData['@id'] || !isChatVisible.value)) {
                         newNotification.value = { show: true, conversationId: convData.id, title: convData.guestName || 'Huésped' };
                         setTimeout(() => { newNotification.value = null; }, 5000);
 
-                        // 1. Extraemos el ID seguro por si no viene la propiedad "id" limpia
                         const safeId = convData.id || convData['@id'].split('/').pop();
-                        notificationStore.addNotification({ title: `Mensaje de ${convData.guestName || 'Huésped'}`, body: 'Tienes un nuevo mensaje sin leer.', type: 'info', actionUrl: `/chat?id=${safeId}` });
+                        notificationStore.addNotification({
+                            title: `Mensaje de ${convData.guestName || 'Huésped'}`,
+                            body: 'Tienes un nuevo mensaje sin leer.',
+                            type: 'info',
+                            actionUrl: `/chat?id=${safeId}`
+                        });
                     }
 
                     if (existingConv) Object.assign(existingConv, convData);
                     else conversations.value.unshift(convData);
+
+                    // Reordenamos el inbox para subir los mensajes recientes
                     conversations.value.sort((a, b) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
                 }
             };
@@ -383,15 +356,19 @@ export const useChatStore = defineStore('chatStore', () => {
             globalEventSource.value.onerror = async () => {
                 console.error('❌ Desconexión del túnel Global de Mercure...');
                 globalEventSource.value?.close();
-
-                // Verificamos silenciosamente si la cookie de sesión principal sigue viva
                 const isAlive = await checkSession();
                 if (!isAlive) isSessionExpired.value = true;
-                else setTimeout(() => initGlobalMercure(), 5000);
+                else setTimeout(() => initGlobalMercure(), 5000); // Backoff retry
             };
         } catch (err) {}
     };
 
+    /**
+     * Inicializa el túnel dedicado a una conversación específica.
+     * Escucha la confirmación de lectura, entrega y contenido en vivo del chat abierto.
+     *
+     * @param {string} conversationId UUID de la conversación.
+     */
     const connectToMercure = async (conversationId: string) => {
         if (eventSource.value) {
             eventSource.value.close();
@@ -411,19 +388,23 @@ export const useChatStore = defineStore('chatStore', () => {
 
             eventSource.value.onmessage = (event) => {
                 const incomingData = JSON.parse(event.data);
-                const index = messages.value.findIndex(m => m['@id'] === incomingData['@id']);
+
+                const index = messages.value.findIndex(m => (m['@id'] || m.id) === (incomingData['@id'] || incomingData.id));
 
                 if (index !== -1) {
+                    // Actualiza estado de un mensaje existente (ej. pasó de "sent" a "delivered")
                     messages.value.splice(index, 1, { ...messages.value[index], ...incomingData });
                 } else {
+                    // Es un mensaje nuevo entrante
                     messages.value.push(incomingData);
 
                     if (incomingData.direction === 'incoming') {
+                        // Si el chat está abierto en pantalla, disparamos POST para marcar como leído en BD
                         if (isChatVisible.value) {
                             apiClient.post(`/platform/user/util/msg/conversations/${conversationId}/read`).catch(() => {});
                             if (currentConversation.value) currentConversation.value.unreadCount = 0;
                         } else if (currentConversation.value) {
-                            currentConversation.value.unreadCount++;
+                            currentConversation.value.unreadCount = (currentConversation.value.unreadCount || 0) + 1;
                         }
                     }
                 }
@@ -438,36 +419,39 @@ export const useChatStore = defineStore('chatStore', () => {
         } catch (err) {}
     };
 
+    /**
+     * Carga el historial de una conversación y la establece como la ventana principal.
+     * Emite la llamada de lectura si el chat tenía notificaciones pendientes.
+     *
+     * @param {string} id UUID de la conversación.
+     */
     const selectConversation = async (id: string) => {
         error.value = null;
 
-        // 1. Buscamos en memoria
+        // 1. Buscamos en caché local (Inbox)
         let found = conversations.value.find(c => c.id === id);
 
-        // 2. Si no está en memoria (chat antiguo no cargado aún), lo buscamos directo en la API
+        // 2. Si es un enlace directo o un chat muy antiguo, buscamos en BD
         if (!found) {
             loadingMessages.value = true;
             try {
-                // Hacemos un GET directo al ID de la conversación
                 const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}`);
                 found = response.data;
                 if (found) conversations.value.unshift(found);
             } catch (err: any) {
-                // Si la API devuelve 404, la conversación no existe o no tiene permisos
                 loadingMessages.value = false;
                 error.value = 'Conversación no encontrada.';
                 return;
             }
         }
 
-        // 3. Procedemos con la carga normal (ahora que sabemos que "found" existe)
         currentConversation.value = found || null;
         loadingMessages.value = true;
         messagesPage.value = 1;
         hasMoreMessages.value = true;
 
         try {
-            if (found && found.unreadCount > 0) {
+            if (found && (found.unreadCount ?? 0) > 0) {
                 apiClient.post(`/platform/user/util/msg/conversations/${id}/read`).then(() => { if (found) found.unreadCount = 0; });
                 found.unreadCount = 0;
             }
@@ -476,11 +460,9 @@ export const useChatStore = defineStore('chatStore', () => {
             messages.value = extractData(response).reverse();
             hasMoreMessages.value = hasNextPage(response);
 
-            // Re-abrimos el túnel para escuchar mensajes en vivo de esta conversación
             connectToMercure(id);
-
         } catch (err) {
-            error.value = 'Error al cargar mensajes.';
+            error.value = 'Error al cargar historial del chat.';
         } finally {
             loadingMessages.value = false;
         }
@@ -497,16 +479,23 @@ export const useChatStore = defineStore('chatStore', () => {
             const olderMessages = extractData(response).reverse();
 
             messages.value = [...olderMessages, ...messages.value];
-
             hasMoreMessages.value = hasNextPage(response);
             messagesPage.value = nextPage;
         } catch (err) {
-            error.value = 'Error al cargar historial.';
+            error.value = 'Error al paginar historial.';
         } finally {
             loadingMoreMessages.value = false;
         }
     };
 
+    /**
+     * Despacha un nuevo mensaje hacia Symfony utilizando FormData.
+     * Soporta adjuntos (Multipart) y envíos multicanal (Transient Channels).
+     *
+     * @param {string} text Contenido local redactado por el usuario.
+     * @param {string | null} templateIri IRI del recurso plantilla (opcional).
+     * @param {string[]} channels Array con IDs de canales seleccionados (ej. 'beds24').
+     */
     const sendMessage = async (text: string, templateIri: string | null = null, channels: string[] = []) => {
         if (!currentConversation.value) return;
 
@@ -516,45 +505,61 @@ export const useChatStore = defineStore('chatStore', () => {
         try {
             const form = new FormData();
 
-            form.append('conversation', currentConversation.value['@id']);
+            // Flexibilidad IRI vs UUID
+            const convId = (currentConversation.value as any)['@id'] || `/platform/user/util/msg/conversations/${currentConversation.value.id}`;
+
+            form.append('conversation', convId);
             form.append('direction', 'outgoing');
             form.append('senderType', 'host');
-            form.append('status', 'pending');
+            form.append('status', 'pending'); // Backend asume el control del pipeline
+
             channels.forEach(channel => form.append('transientChannels[]', channel));
+
             if (templateIri) form.append('template', templateIri);
             else form.append('contentLocal', text.trim());
+
             if (attachmentStore.file) form.append('file', attachmentStore.file);
+
             await apiClient.post('/platform/user/util/msg/messages', form, { headers: { 'Content-Type': 'multipart/form-data' } });
-            attachmentStore.clear();
+            attachmentStore.clear(); // Limpia RAM del navegador
         } catch (err) {
-            error.value = 'Fallo al enviar mensaje.';
+            error.value = 'Fallo al enviar el mensaje. Intente de nuevo.';
         } finally {
             sendingMessage.value = false;
         }
     };
 
     /**
-     * MODO STALKER: Trae los últimos mensajes de una conversación sin disparar el webhook de lectura.
-     * Filtra rigurosamente los mensajes programados o pendientes, toma los 5 últimos y los
+     * MODO STALKER:
+     * Trae los últimos 5 mensajes limpios de una conversación SIN disparar el webhook
+     * de lectura (No notifica al huésped). Ideal para previsualizaciones.
+     * Filtra rigurosamente los mensajes programados o pendientes, y
      * ordena de más antiguo a más nuevo para una visualización top-down correcta.
+     *
      * @param {string} conversationId ID de la conversación
-     * @returns {Promise<ApiMessage[]>} Lista de los últimos mensajes enviados/recibidos
+     * @returns {Promise<ApiMessage[]>} Lista recortada de mensajes
      */
     const fetchLatestMessagesForStalk = async (conversationId: string): Promise<ApiMessage[]> => {
         try {
             const response = await apiClient.get(`/platform/user/util/msg/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
             const data = extractData(response) as ApiMessage[];
-            const realHistoryMessages = data.filter(m => m.scheduledForFuture !== true && (m as any).isScheduledForFuture !== true && m.status !== 'pending' && m.status !== 'queued' && m.status !== 'cancelled');
+
+            const realHistoryMessages = data.filter(m => m.scheduledForFuture !== true && m.status !== 'pending' && m.status !== 'queued' && m.status !== 'cancelled');
             const latest5 = realHistoryMessages.slice(0, 5);
-            return latest5.sort((a, b) => new Date(a.effectiveDateTime || a.createdAt).getTime() - new Date(b.effectiveDateTime || b.createdAt).getTime());
+
+            return latest5.sort((a, b) => new Date(a.effectiveDateTime || a.createdAt as string).getTime() - new Date(b.effectiveDateTime || b.createdAt as string).getTime());
         } catch (err) { return []; }
     };
 
-    watch(() => conversations.value.filter(c => c.unreadCount > 0).length, (unreadCount) => {
+    // ============================================================================
+    // MANEJO DE BADGE NATIVO DEL NAVEGADOR
+    // ============================================================================
+    watch(() => conversations.value.filter(c => (c.unreadCount ?? 0) > 0).length, (unreadCount) => {
         if ('setAppBadge' in navigator && 'clearAppBadge' in navigator) {
-            if (unreadCount > 0) navigator.setAppBadge(unreadCount).catch(() => {});
-            else navigator.clearAppBadge().catch(() => {});
+            if (unreadCount > 0) (navigator as any).setAppBadge(unreadCount).catch(() => {});
+            else (navigator as any).clearAppBadge().catch(() => {});
         }
+        // Limpiamos las notificaciones persistentes del OS si ya se leyeron todos los chats
         if (unreadCount === 0 && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
         }

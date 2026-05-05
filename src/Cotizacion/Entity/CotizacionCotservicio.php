@@ -10,9 +10,10 @@ use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
- * Cabecera del servicio clonado. Congela la fecha de inicio.
+ * Cabecera del servicio clonado. Actúa como hito diario.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_cotservicio')]
@@ -25,16 +26,26 @@ class CotizacionCotservicio
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Cotizacion $cotizacion = null;
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'json')]
     private array $nombreSnapshot = [];
 
-    #[ORM\Column(type: 'datetime_immutable')]
+    // 🔥 NUEVO: Para saber qué plantilla se eligió en el dropdown "Itinerario"
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $itinerarioNombreSnapshot = null;
+
+    // 🔥 MODIFICADO: Solo Fecha, sin Hora. Es un milestone.
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?DateTimeImmutable $fechaInicioAbsoluta = null;
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\OneToMany(mappedBy: 'cotservicio', targetEntity: CotizacionCotcomponente::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
-    #[ORM\OrderBy(['fechaEjecucion' => 'ASC'])]
+    #[ORM\OrderBy(['fechaHoraInicio' => 'ASC'])]
     private Collection $cotcomponentes;
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\OneToMany(mappedBy: 'cotservicio', targetEntity: CotizacionSegmento::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['dia' => 'ASC', 'orden' => 'ASC'])]
     private Collection $cotsegmentos;
@@ -45,6 +56,8 @@ class CotizacionCotservicio
         $this->cotcomponentes = new ArrayCollection();
         $this->cotsegmentos = new ArrayCollection();
     }
+
+    // --- GETTERS Y SETTERS EXPLÍCITOS ---
 
     public function getCotizacion(): ?Cotizacion
     {
@@ -68,12 +81,23 @@ class CotizacionCotservicio
         return $this;
     }
 
+    public function getItinerarioNombreSnapshot(): ?string
+    {
+        return $this->itinerarioNombreSnapshot;
+    }
+
+    public function setItinerarioNombreSnapshot(?string $itinerarioNombreSnapshot): self
+    {
+        $this->itinerarioNombreSnapshot = $itinerarioNombreSnapshot;
+        return $this;
+    }
+
     public function getFechaInicioAbsoluta(): ?DateTimeImmutable
     {
         return $this->fechaInicioAbsoluta;
     }
 
-    public function setFechaInicioAbsoluta(DateTimeImmutable $fechaInicioAbsoluta): self
+    public function setFechaInicioAbsoluta(?DateTimeImmutable $fechaInicioAbsoluta): self
     {
         $this->fechaInicioAbsoluta = $fechaInicioAbsoluta;
         return $this;

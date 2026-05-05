@@ -9,11 +9,9 @@ use App\Entity\Trait\TimestampTrait;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\Serializer\Annotation\Groups;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
-/**
- * Entidad física de fotos para el storytelling manejada con VichUploader.
- */
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_segmento_imagen')]
 #[Vich\Uploadable]
@@ -22,6 +20,7 @@ class TravelSegmentoImagen
     use IdTrait;
     use TimestampTrait;
 
+    // 🚫 CORTE CIRCULAR
     #[ORM\ManyToOne(targetEntity: TravelSegmento::class, inversedBy: 'imagenes')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelSegmento $segmento = null;
@@ -29,9 +28,11 @@ class TravelSegmentoImagen
     #[Vich\UploadableField(mapping: 'travel_segmento_imagenes', fileNameProperty: 'imageName', size: 'imageSize')]
     private ?File $imageFile = null;
 
+    #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'string', nullable: true)]
     private ?string $imageName = null;
 
+    #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $imageSize = null;
 
@@ -88,6 +89,4 @@ class TravelSegmentoImagen
         $this->imageSize = $imageSize;
         return $this;
     }
-
-
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
-import { useChatStore, ApiMessage, ApiTemplate, ApiConversation } from '@/stores/chatStore';
+import { useChatStore, type ApiMessage, type ApiTemplate, type ApiConversation } from '@/stores/chatStore';
 import { useAttachmentStore } from '@/stores/attachmentStore';
 import MessageStatusIcon from '@/components/MessageStatusIcon.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
@@ -40,7 +40,7 @@ const handleSessionRenewal = async () => {
 
     await store.fetchConversations();
 
-    if (store.currentConversation) {
+    if (store.currentConversation?.id) {
       await store.selectConversation(store.currentConversation.id);
       await nextTick();
       scrollToBottom();
@@ -145,7 +145,7 @@ const handleMessageClick = (msg: ApiMessage, event: Event) => {
 };
 
 // ============================================================================
-// LÓGICA DE VISUALIZACIÓN DE ERRORES EN MÓVIL (TAP / LONG PRESS)
+// LÓGICA DE VISUALIZACIÓN DE ERRORES EN MÓVIL
 // ============================================================================
 const activeErrorText = ref<string | null>(null);
 const errorTooltipPos = ref({ x: 0, y: 0 });
@@ -188,7 +188,7 @@ const startErrorLongPress = (text: string | null, event: TouchEvent | MouseEvent
   cancelErrorLongPress();
   errorPressTimer = window.setTimeout(() => {
     showMobileError(text, event);
-  }, 400); // 400ms para considerar long press
+  }, 400);
 };
 
 const cancelErrorLongPress = () => {
@@ -221,7 +221,7 @@ const getReactions = (msg: ApiMessage): { emoji: string; count: number }[] => {
 };
 
 // ============================================================================
-// MODO STALKER (HOVER / LONG PRESS / RIGHT CLICK EN CONVERSACIONES)
+// MODO STALKER
 // ============================================================================
 const isStalkMenuOpen = ref(false);
 const stalkMenuPos = ref({ x: 0, y: 0 });
@@ -284,7 +284,7 @@ const handleChatClick = (chat: ApiConversation) => {
 
   cancelStalkHover();
   closeStalkMenu();
-  selectChat(chat.id);
+  if (chat.id) selectChat(chat.id);
 };
 
 const openStalkMenu = async (chat: ApiConversation, event: MouseEvent | TouchEvent) => {
@@ -317,15 +317,16 @@ const openStalkMenu = async (chat: ApiConversation, event: MouseEvent | TouchEve
   isLoadingStalk.value = true;
   stalkMessages.value = [];
 
-  try {
-    stalkMessages.value = await store.fetchLatestMessagesForStalk(chat.id);
-
-    await nextTick();
-    if (stalkScrollContainer.value) {
-      stalkScrollContainer.value.scrollTop = stalkScrollContainer.value.scrollHeight;
+  if (chat.id) {
+    try {
+      stalkMessages.value = await store.fetchLatestMessagesForStalk(chat.id);
+      await nextTick();
+      if (stalkScrollContainer.value) {
+        stalkScrollContainer.value.scrollTop = stalkScrollContainer.value.scrollHeight;
+      }
+    } finally {
+      isLoadingStalk.value = false;
     }
-  } finally {
-    isLoadingStalk.value = false;
   }
 };
 
@@ -381,7 +382,7 @@ const attachSharedFile = () => {
     } else {
       store.error = attachmentStore.error;
     }
-    clearSharedFile(); // Lo eliminamos de BD una vez extraido
+    clearSharedFile();
   }
 };
 
@@ -396,10 +397,7 @@ const clearSharedFile = () => {
 };
 
 const handleVisibilityChange = () => {
-  // Cuando regresamos a la PWA, verificamos si el SW dejó un archivo en IndexedDB
-  if (!document.hidden) {
-    checkSharedFile();
-  }
+  if (!document.hidden) checkSharedFile();
 };
 
 // ============================================================================
@@ -412,7 +410,6 @@ const updateChatVisibility = () => {
 watch(isMobileSidebarOpen, updateChatVisibility);
 const handleResize = () => updateChatVisibility();
 
-// ✅ NUEVO: Soporte para la pestaña Cancelados
 const activeTab = ref<'history' | 'scheduled' | 'cancelled'>('history');
 
 const selectedTemplateId = ref<string | null>(null);
@@ -457,11 +454,9 @@ onMounted(async () => {
   store.fetchTemplates();
   store.initGlobalMercure();
 
-  // Verificamos si hay un archivo compartido pendiente
   checkSharedFile();
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
-  // Detector de actualización del Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       updateAvailable.value = true;
@@ -559,7 +554,8 @@ const isBeds24Allowed = computed(() => {
   if (bannedOrigins.includes(origin)) return false;
 
   if (selectedTemplateId.value) {
-    const tpl = store.templates.find(t => t['@id'] === selectedTemplateId.value);
+    // @ts-ignore
+    const tpl = store.templates.find(t => (t['@id'] || t.id) === selectedTemplateId.value);
     if (tpl && !tpl.beds24Active) return false;
   }
 
@@ -575,7 +571,8 @@ const isWhatsappAllowed = computed(() => {
   const sessionActive = chat.whatsappSessionActive;
 
   if (selectedTemplateId.value) {
-    const tpl = store.templates.find(t => t['@id'] === selectedTemplateId.value);
+    // @ts-ignore
+    const tpl = store.templates.find(t => (t['@id'] || t.id) === selectedTemplateId.value);
     if (!tpl) return false;
 
     if (!tpl.whatsappMetaActive) return false;
@@ -618,9 +615,7 @@ watch(() => store.currentConversation, (chat) => {
   showTemplateDropdown.value = false;
   attachmentStore.clear();
   translatedMessages.value = {};
-
   activeTab.value = 'history';
-
   setDefaultChannels();
 });
 
@@ -673,7 +668,8 @@ const toggleChannel = (channel: string) => {
 };
 
 const selectTemplate = (tpl: ApiTemplate) => {
-  selectedTemplateId.value = tpl['@id'];
+  // @ts-ignore
+  selectedTemplateId.value = tpl['@id'] || tpl.id;
   showTemplateDropdown.value = false;
 
   let newChannels = tpl.channels || [];
@@ -682,7 +678,7 @@ const selectTemplate = (tpl: ApiTemplate) => {
   const sessionActive = chat?.whatsappSessionActive;
 
   if (chat?.whatsappDisabled || (!sessionActive && tpl.whatsappMetaOfficial === false)) {
-    newChannels = newChannels.filter(c => c !== 'whatsapp_meta');
+    newChannels = newChannels.filter((c: string) => c !== 'whatsapp_meta');
   }
 
   selectedChannels.value = newChannels;
@@ -773,7 +769,8 @@ const getChannelIcons = (msg: ApiMessage) => {
 const getTemplateName = (templateData: any) => {
   if (!templateData) return null;
   if (typeof templateData === 'string') {
-    const found = store.templates.find(t => t['@id'] === templateData);
+    // @ts-ignore
+    const found = store.templates.find(t => (t['@id'] || t.id) === templateData);
     return found ? found.name : 'Plantilla Automática';
   }
   return templateData.name || 'Plantilla Automática';
@@ -828,7 +825,7 @@ const formatFullDate = (iso?: string) => {
 };
 
 // ============================================================================
-// AGRUPACIÓN DE MENSAJES (Soporta Pestaña Cancelados)
+// AGRUPACIÓN DE MENSAJES
 // ============================================================================
 const groupedMessages = computed(() => {
   const groups: Record<string, any[]> = {};
@@ -844,8 +841,8 @@ const groupedMessages = computed(() => {
   }
 
   sourceList.sort((a, b) => {
-    const timeA = new Date(a.effectiveDateTime || a.createdAt).getTime();
-    const timeB = new Date(b.effectiveDateTime || b.createdAt).getTime();
+    const timeA = new Date(a.effectiveDateTime || a.createdAt as string).getTime();
+    const timeB = new Date(b.effectiveDateTime || b.createdAt as string).getTime();
     return timeA - timeB;
   });
 
@@ -853,7 +850,7 @@ const groupedMessages = computed(() => {
     const dateStr = msg.effectiveDateTime || msg.createdAt;
     if(!dateStr) return;
 
-    const dObj = new Date(dateStr);
+    const dObj = new Date(dateStr as string);
     const year = dObj.getFullYear();
     const month = String(dObj.getMonth() + 1).padStart(2, '0');
     const day = String(dObj.getDate()).padStart(2, '0');
@@ -913,10 +910,14 @@ const toggleTranslation = (msg: ApiMessage, event?: Event) => {
     return;
   }
   if (!hasTranslation(msg)) return;
+  // @ts-ignore
   translatedMessages.value[msg.id] = !translatedMessages.value[msg.id];
 };
 
-const isShowingTranslation = (msgId: string): boolean => !!translatedMessages.value[msgId];
+const isShowingTranslation = (msgId: string | undefined): boolean => {
+  if (!msgId) return false;
+  return !!translatedMessages.value[msgId];
+};
 
 const formatMessageText = (text: string | null | undefined): string => {
   if (!text) return '';
@@ -942,7 +943,6 @@ const getDispatchError = (msg: ApiMessage, channelKeyword: string): string | nul
   const meta = msg.metadata;
   if (!meta) return null;
 
-  // 1. Revisar errores nativos de los proveedores (Webhooks)
   if (channelKeyword === 'whatsapp' && meta.whatsappMeta) {
     if (meta.whatsappMeta.error_reason || meta.whatsappMeta.error_code) {
       const code = meta.whatsappMeta.error_code ? ` (Code: ${meta.whatsappMeta.error_code})` : '';
@@ -956,7 +956,6 @@ const getDispatchError = (msg: ApiMessage, channelKeyword: string): string | nul
     }
   }
 
-  // 2. Revisar errores internos del backend (dispatch_errors)
   const searchKey = channelKeyword.toLowerCase();
   if (meta.dispatch_errors) {
     const error = meta.dispatch_errors.find((e: string) => e.toLowerCase().includes(searchKey));
@@ -989,7 +988,7 @@ const getWhatsappStatus = (msg: ApiMessage) => {
     if (waMeta.delivered_at) return 'delivered';
     if (waMeta.sent_at) return 'sent';
   }
-  return getQueueStatus(msg.whatsappMetaSendQueues) || 'queued';
+  return getQueueStatus(msg.whatsappMetaSendQueues as any[]) || 'queued';
 };
 
 const getBeds24Status = (msg: ApiMessage) => {
@@ -1000,7 +999,7 @@ const getBeds24Status = (msg: ApiMessage) => {
     if (bedsMeta.delivered_at) return 'delivered';
     if (bedsMeta.sent_at) return 'sent';
   }
-  return getQueueStatus(msg.beds24SendQueues) || 'queued';
+  return getQueueStatus(msg.beds24SendQueues as any[]) || 'queued';
 };
 
 const getDirectChannelId = (channel?: any): string | null => {
@@ -1185,7 +1184,7 @@ const getDirectChannelId = (channel?: any): string | null => {
         <div v-if="store.loadingConversations" class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-slate-300"></i></div>
         <div v-else-if="store.filteredConversations.length === 0" class="p-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">Bandeja Vacía</div>
 
-        <div v-for="chat in store.filteredConversations" :key="chat?.id" class="mb-1">
+        <div v-for="(chat, index) in store.filteredConversations" :key="chat?.id ?? index" class="mb-1">
           <button @click="handleChatClick(chat)"
                   @touchstart="startStalkLongPress(chat, $event)"
                   @touchend="cancelStalkLongPress"
@@ -1226,7 +1225,7 @@ const getDirectChannelId = (channel?: any): string | null => {
               <span class="text-[10px] font-bold opacity-70 tracking-tighter leading-none">{{ formatTime(chat.lastMessageAt || chat.createdAt) }}</span>
             </span>
 
-            <span v-if="chat.unreadCount > 0" class="absolute -right-1 -top-1 w-5 h-5 bg-[#E07845] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-md">
+            <span v-if="(chat.unreadCount ?? 0) > 0" class="absolute -right-1 -top-1 w-5 h-5 bg-[#E07845] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-md">
               {{ chat.unreadCount }}
             </span>
           </button>

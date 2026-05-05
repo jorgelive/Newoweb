@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use App\Attribute\AutoTranslate;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\AutoTranslateControlTrait;
@@ -12,8 +13,7 @@ use App\Entity\Trait\TimestampTrait;
 use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
 use Doctrine\ORM\Mapping as ORM;
-
-// Asumo que MaestroMoneda se mantiene
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_tarifa')]
@@ -23,49 +23,54 @@ class TravelTarifa
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
+    // 🚫 CORTE CIRCULAR
     #[ORM\ManyToOne(targetEntity: TravelComponente::class, inversedBy: 'tarifas')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelComponente $componente = null;
 
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
     private ?string $monto = '0.00';
 
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?MaestroMoneda $moneda = null;
 
-    // --- REGLAS DE NEGOCIO Y CONSTRAINTS ---
-
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'string', length: 30, enumType: TarifaModalidadEnum::class, nullable: true)]
     private ?TarifaModalidadEnum $modalidad = null;
 
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'string', length: 30, enumType: TarifaProcedenciaEnum::class, nullable: true)]
     private ?TarifaProcedenciaEnum $procedencia = null;
 
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $edadMinima = null;
 
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $edadMaxima = null;
 
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $capacidadMinima = null;
 
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $capacidadMaxima = null;
 
-    /**
-     * Define si la matemática del motor debe considerar este costo como un bloque fijo (Ej. Una Van)
-     * que se divide entre los pasajeros, o si se debe multiplicar por cabeza (Ej. Un Ticket).
-     * Reemplaza al antiguo campo 'prorrateado'.
-     */
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $costoPorGrupo = false;
 
@@ -240,5 +245,4 @@ class TravelTarifa
         $this->costoPorGrupo = $costoPorGrupo;
         return $this;
     }
-
 }

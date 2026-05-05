@@ -4,19 +4,52 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use App\Travel\Enum\ComponenteTipoEnum;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Entidad base para la logística pura (El insumo financiero).
- * Representa costos crudos (Ej: Ticket de Tren, Guía, Almuerzo).
  */
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            normalizationContext: ['groups' => ['componente:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['componente:item:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
+        ),
+        new Post(
+            denormalizationContext: ['groups' => ['componente:write']],
+            securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para crear componentes.'
+        ),
+        new Put(
+            denormalizationContext: ['groups' => ['componente:write']],
+            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar componentes.'
+        ),
+        new Delete(
+            security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar componentes.'
+        )
+    ]
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_componente')]
 class TravelComponente
@@ -25,39 +58,44 @@ class TravelComponente
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
 
-    // 🔥 NUEVO: El título público que verá el huésped
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'string', length: 50, enumType: ComponenteTipoEnum::class)]
     private ComponenteTipoEnum $tipo = ComponenteTipoEnum::EXTRAS;
 
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'decimal', precision: 4, scale: 1, nullable: true)]
     private ?string $duracion = null;
 
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $anticipacionalerta = null;
 
     /**
-     * Los ítems internos (Descriptivos o Upsells) que componen este servicio logístico.
+     * 👇 CASCADA HACIA ABAJO (Items descriptivos)
      */
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\OneToMany(mappedBy: 'componente', targetEntity: TravelComponenteItem::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['orden' => 'ASC'])]
     private Collection $componenteItems;
 
     /**
-     * El listado de tarifas configuradas para este componente.
+     * 👇 CASCADA HACIA ABAJO (Tarifas)
      */
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\OneToMany(mappedBy: 'componente', targetEntity: TravelTarifa::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $tarifas;
 
     /**
-     * Servicios (Tours/Paquetes) que incluyen este componente en su "Bolsa" (Pool Logístico).
-     * Esta es la relación ManyToMany limpia (Reemplaza al antiguo pivot de fecha/hora).
+     * 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs
      */
     #[ORM\ManyToMany(targetEntity: TravelServicio::class, mappedBy: 'componentes')]
     private Collection $servicios;

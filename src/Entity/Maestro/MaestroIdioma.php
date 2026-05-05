@@ -58,15 +58,19 @@ class MaestroIdioma
     #[ORM\Id]
     #[ORM\Column(type: 'string', length: 2)]
     #[ORM\GeneratedValue(strategy: 'NONE')]
+    #[Groups(['pax:read', 'file:read', 'file:item:read'])]
     private ?string $id = null;
 
     #[ORM\Column(type: 'string', length: 50)]
+    #[Groups(['pax:read', 'file:read', 'file:item:read'])]
     private ?string $nombre = null;
 
     #[ORM\Column(type: 'string', length: 10, nullable: true)]
+    #[Groups(['pax:read', 'file:read', 'file:item:read'])]
     private ?string $bandera = null;
 
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    #[Groups(['pax:read', 'file:read', 'file:item:read'])]
     private int $prioridad = 0;
 
     public function __construct(string $id, string $nombre)
@@ -78,13 +82,11 @@ class MaestroIdioma
 
     // --- GETTERS & SETTERS ---
 
-    #[Groups(['pax:read'])]
     public function getId(): ?string
     {
         return $this->id;
     }
 
-    #[Groups(['pax:read'])]
     public function getNombre(): ?string
     {
         return $this->nombre;
@@ -96,7 +98,6 @@ class MaestroIdioma
         return $this;
     }
 
-    #[Groups(['pax:read'])] // 👈 Agregado para que el frontend vea la bandera
     public function getBandera(): ?string
     {
         return $this->bandera;
@@ -108,7 +109,6 @@ class MaestroIdioma
         return $this;
     }
 
-    #[Groups(['pax:read'])] // 👈 Agregado por si necesitas filtrar en el front
     public function getPrioridad(): int
     {
         return $this->prioridad;

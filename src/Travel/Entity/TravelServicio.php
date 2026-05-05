@@ -4,18 +4,52 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
  * para que luego las plantillas de itinerario y las cotizaciones los utilicen.
  */
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            normalizationContext: ['groups' => ['servicio:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['servicio:item:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
+        ),
+        new Post(
+            denormalizationContext: ['groups' => ['servicio:write']],
+            securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para crear servicios.'
+        ),
+        new Put(
+            denormalizationContext: ['groups' => ['servicio:write']],
+            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar servicios.'
+        ),
+        new Delete(
+            security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar servicios.'
+        )
+    ]
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_servicio')]
 class TravelServicio
@@ -24,30 +58,38 @@ class TravelServicio
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
+    #[Groups(['servicio:read', 'servicio:item:read', 'servicio:write'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
+    #[Groups(['servicio:read', 'servicio:item:read', 'servicio:write'])]
     #[ORM\Column(type: 'string', length: 20, nullable: true)]
     private ?string $codigo = null;
 
+    #[Groups(['servicio:read', 'servicio:item:read', 'servicio:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
     /**
-     * Pool logístico: Insumos financieros disponibles para este tour.
+     * Pool logístico. Solo lectura profunda, al escribir pasamos IRIs.
      */
+    #[Groups(['servicio:item:read', 'servicio:write'])]
     #[ORM\ManyToMany(targetEntity: TravelComponente::class, inversedBy: 'servicios')]
     #[ORM\JoinTable(name: 'travel_servicio_componentes_pool')]
     private Collection $componentes;
 
+    /**
+     * Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs.
+     */
+    #[Groups(['servicio:item:read', 'servicio:write'])]
     #[ORM\OneToMany(mappedBy: 'servicio', targetEntity: TravelItinerario::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $itinerarios;
 
     /**
-     * Pool narrativo: Piezas de Lego (Storytelling) disponibles para armar itinerarios.
-     * Es ManyToMany bidireccional mapeado por 'servicios' en TravelSegmento.
+     * Pool narrativo.
      */
+    #[Groups(['servicio:item:read', 'servicio:write'])]
     #[ORM\ManyToMany(targetEntity: TravelSegmento::class, mappedBy: 'servicios')]
     private Collection $segmentos;
 

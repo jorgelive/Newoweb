@@ -1,4 +1,4 @@
-//src/router/index.ts
+// src/router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -20,6 +20,23 @@ const router = createRouter({
             component: () => import('../views/ChatView.vue'),
             props: true
         },
+        // ============================================================================
+        // MÓDULO DE COTIZACIONES
+        // ============================================================================
+        {
+            path: '/cotizaciones',
+            name: 'cotizaciones_dashboard',
+            component: () => import('../views/Cotizaciones/DashboardView.vue')
+        },
+        {
+            path: '/cotizaciones/:id',
+            name: 'cotizaciones_editor',
+            component: () => import('../views/Cotizaciones/EditorView.vue'),
+            props: true // Permite que Vue inyecte el :id directamente como prop en el componente
+        },
+        // ============================================================================
+        // FALLBACK (Rutas no encontradas)
+        // ============================================================================
         {
             path: '/:pathMatch(.*)*',
             name: 'fallback',

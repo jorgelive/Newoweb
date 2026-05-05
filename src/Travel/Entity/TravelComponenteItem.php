@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Travel\Enum\ItemModoEnum;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Define un ítem descriptivo o un sub-componente dentro de un Componente Logístico mayor.
@@ -20,38 +22,30 @@ class TravelComponenteItem
     use IdTrait;
     use TimestampTrait;
 
-    /**
-     * El componente logístico padre al que pertenece este ítem (Ej: Paquete Machupicchu).
-     */
+    // 🚫 CORTE CIRCULAR
     #[ORM\ManyToOne(targetEntity: TravelComponente::class, inversedBy: 'componenteItems')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelComponente $componente = null;
 
-    /**
-     * El término bilingüe del diccionario que se imprimirá en el PDF (Ej: "Boleto de Tren").
-     */
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\ManyToOne(targetEntity: TravelItemDiccionario::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?TravelItemDiccionario $diccionario = null;
 
-    /**
-     * Define si este ítem nace incluido por defecto, es opcional (Upsell) o no está incluido.
-     */
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'string', length: 30, enumType: ItemModoEnum::class)]
     private ItemModoEnum $modo = ItemModoEnum::INCLUIDO;
 
     /**
-     * Si el ítem es OPCIONAL o UPSELL, esta relación apunta al Componente Maestro
-     * que contiene las tarifas reales (Adulto, Niño, etc.) para cobrar este extra.
-     * Si es nulo, el ítem se considera puramente informativo (Inerte financieramente).
+     * API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
      */
+    #[Groups(['componente:item:read', 'componente:write'])]
+    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelComponente::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?TravelComponente $componenteAdicionalVinculado = null;
 
-    /**
-     * Posición visual dentro de la lista de ítems del componente.
-     */
+    #[Groups(['componente:item:read', 'componente:write'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 1;
 

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Pivot Ternario: Vincula la logística (Componente) con la narrativa (Segmento),
@@ -18,29 +20,39 @@ class TravelSegmentoComponente
 {
     use IdTrait;
 
+    // 🚫 CORTE CIRCULAR: No serializamos el padre hacia arriba
     #[ORM\ManyToOne(targetEntity: TravelSegmento::class, inversedBy: 'segmentoComponentes')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelSegmento $segmento = null;
 
+    /**
+     * 🔥 TRUCO API PLATFORM: readableLink false.
+     * Solo necesitamos que Vue envíe y reciba el IRI del componente (/api/travel_componentes/UUID).
+     */
+    #[Groups(['segmento:item:read', 'segmento:write'])]
+    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelComponente::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?TravelComponente $componente = null;
 
     /**
-     * 🔥 NUEVO: El contexto de uso.
-     * Si es nulo, esta regla logística aplica a TODOS los servicios que usen este segmento.
-     * Si se define, la regla solo se dispara cuando el segmento se usa en ESTE servicio específico.
+     * El contexto de uso. Igual que el componente, solo IRI.
      */
+    #[Groups(['segmento:item:read', 'segmento:write'])]
+    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelServicio::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?TravelServicio $servicioContexto = null;
 
+    #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'time_immutable', nullable: true)]
     private ?DateTimeImmutable $hora = null;
 
+    #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $esIncluido = true;
 
+    #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 1;
 

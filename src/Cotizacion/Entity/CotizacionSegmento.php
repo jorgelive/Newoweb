@@ -9,6 +9,7 @@ use App\Entity\Trait\TimestampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 use DateTimeImmutable;
 
 /**
@@ -22,27 +23,35 @@ class CotizacionSegmento
     use IdTrait;
     use TimestampTrait;
 
+    // 🚫 CORTE CIRCULAR
     #[ORM\ManyToOne(targetEntity: CotizacionCotservicio::class, inversedBy: 'cotsegmentos')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionCotservicio $cotservicio = null;
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'integer')]
     private int $dia = 1;
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 1;
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'date_immutable')]
     private ?DateTimeImmutable $fechaAbsoluta = null;
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'json')]
     private array $contenidoSnapshot = [];
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'json')]
     private array $imagenesSnapshot = [];
 
     /**
      * Logística operativa amarrada a este bloque narrativo.
+     * 🚫 CORTE CIRCULAR HORIZONTAL: No usamos grupos aquí porque la logística
+     * ya bajó por Cotservicio.cotcomponentes.
      */
     #[ORM\OneToMany(mappedBy: 'cotsegmento', targetEntity: CotizacionCotcomponente::class)]
     private Collection $cotcomponentes;

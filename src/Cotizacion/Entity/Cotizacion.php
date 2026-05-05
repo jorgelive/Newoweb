@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use App\Cotizacion\Enum\CotizacionEstadoEnum; // 👈 Importar el Enum
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * La propuesta comercial específica (Versión) entregada al cliente.
@@ -25,28 +27,68 @@ class Cotizacion
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionFile $file = null;
 
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'integer')]
     private int $version = 1;
 
+    // 🔥 NUEVO: El estado comercial de la cotización usando el Enum
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 30, enumType: CotizacionEstadoEnum::class, options: ['default' => 'Pendiente'])]
+    private CotizacionEstadoEnum $estado = CotizacionEstadoEnum::PENDIENTE;
+
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'integer', options: ['default' => 1])]
+    private int $numPax = 1;
+
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'decimal', precision: 5, scale: 2, options: ['default' => '0.00'])]
+    private string $comision = '0.00';
+
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
+    private string $adelanto = '0.00';
+
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $hotelOculto = false;
+
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $precioOculto = false;
+
+    /**
+     * El texto de resumen/introducción WYSIWYG que encabeza la cotización.
+     */
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $resumen = null;
+
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $fechaExpiracion = null;
 
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'string', length: 10, options: ['default' => 'USD'])]
     private string $monedaGlobal = 'USD';
 
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'string', length: 5, options: ['default' => 'es'])]
+    private string $idiomaCliente = 'es';
+
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $totalCosto = '0.00';
 
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $totalVenta = '0.00';
 
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\OneToMany(mappedBy: 'cotizacion', targetEntity: CotizacionCotservicio::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['fechaInicioAbsoluta' => 'ASC'])]
     private Collection $cotservicios;
 
-    /**
-     * Snapshots inmutables de las notas, historias y políticas asociadas a esta versión.
-     */
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\OneToMany(mappedBy: 'cotizacion', targetEntity: CotizacionNota::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $cotnotas;
 
@@ -103,6 +145,17 @@ class Cotizacion
     public function setMonedaGlobal(string $monedaGlobal): self
     {
         $this->monedaGlobal = $monedaGlobal;
+        return $this;
+    }
+
+    public function getIdiomaCliente(): string
+    {
+        return $this->idiomaCliente;
+    }
+
+    public function setIdiomaCliente(string $idiomaCliente): self
+    {
+        $this->idiomaCliente = $idiomaCliente;
         return $this;
     }
 
@@ -180,5 +233,76 @@ class Cotizacion
             }
         }
         return $this;
+    }
+
+    public function getEstado(): CotizacionEstadoEnum
+    {
+        return $this->estado;
+    }
+
+    public function setEstado(CotizacionEstadoEnum $estado): self
+    {
+        $this->estado = $estado;
+        return $this;
+    }
+
+    public function getNumPax(): int
+    {
+        return $this->numPax;
+    }
+
+    public function setNumPax(int $numPax): void
+    {
+        $this->numPax = $numPax;
+    }
+
+    public function getComision(): string
+    {
+        return $this->comision;
+    }
+
+    public function setComision(string $comision): void
+    {
+        $this->comision = $comision;
+    }
+
+    public function getAdelanto(): string
+    {
+        return $this->adelanto;
+    }
+
+    public function setAdelanto(string $adelanto): void
+    {
+        $this->adelanto = $adelanto;
+    }
+
+    public function isHotelOculto(): bool
+    {
+        return $this->hotelOculto;
+    }
+
+    public function setHotelOculto(bool $hotelOculto): void
+    {
+        $this->hotelOculto = $hotelOculto;
+    }
+
+    public function isPrecioOculto(): bool
+    {
+        return $this->precioOculto;
+    }
+
+    public function setPrecioOculto(bool $precioOculto): void
+    {
+        $this->precioOculto = $precioOculto;
+    }
+
+    public function getResumen(): ?string
+    {
+        return $this->resumen;
+    }
+
+    public function setResumen(?string $resumen): void
+    {
+        $this->resumen = $resumen;
     }
 }

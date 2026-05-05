@@ -8,6 +8,7 @@ use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Travel\Enum\NotaTipoEnum;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Snapshot inmutable de una nota informativa dentro de una cotización específica.
@@ -19,16 +20,20 @@ class CotizacionNota
     use IdTrait;
     use TimestampTrait;
 
+    // 🚫 CORTE CIRCULAR
     #[ORM\ManyToOne(targetEntity: Cotizacion::class, inversedBy: 'cotnotas')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Cotizacion $cotizacion = null;
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'string', length: 30, enumType: NotaTipoEnum::class)]
     private NotaTipoEnum $tipo = NotaTipoEnum::INTRODUCCION;
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'json')]
     private array $tituloSnapshot = [];
 
+    #[Groups(['cotizacion:item:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'json')]
     private array $contenidoSnapshot = [];
 

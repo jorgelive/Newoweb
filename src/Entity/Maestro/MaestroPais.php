@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Entity\Maestro;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
 use App\Entity\Trait\TimestampTrait;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsReserva;
@@ -17,6 +20,18 @@ use Symfony\Component\Serializer\Attribute\Groups;
  * Entidad MaestroPais.
  * Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
  */
+#[ApiResource(
+    operations: [
+        new Get(
+            uriTemplate: '/public/maestro_pais/{id}'        ),
+        new GetCollection(
+            uriTemplate: '/public/maestro_pais'
+        )
+    ],
+    normalizationContext: ['groups' => ['pais:read']],
+    order: ['nombre' => 'ASC'],
+    paginationEnabled: false
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'maestro_pais')]
 #[ORM\HasLifecycleCallbacks]
@@ -30,14 +45,16 @@ class MaestroPais
     #[ORM\Id]
     #[ORM\Column(type: 'string', length: 2)]
     #[ORM\GeneratedValue(strategy: 'NONE')]
+    #[Groups(['pax:read', 'pais:read', 'file:read', 'file:item:read'])]
     private ?string $id = null; // ISO 'PE', 'US'...
 
     #[ORM\Column(type: 'string', length: 100)]
+    #[Groups(['pax:read', 'pais:read', 'file:read', 'file:item:read'])]
     private ?string $nombre = null;
 
     // 🔥 NUEVO: Campo para la Bandera (Emoji)
     #[ORM\Column(type: 'string', length: 10, nullable: true)]
-    #[Groups(['pax:read'])]
+    #[Groups(['pax:read', 'pais:read', 'file:read', 'file:item:read'])]
     private ?string $bandera = null;
 
     // 🔥 NUEVO: Zona horaria (ej: 'America/Lima', 'Europe/Madrid') - Nullable para no romper producción
@@ -88,10 +105,8 @@ class MaestroPais
      * -------------------------------------------------------------------------
      */
 
-    #[Groups(['pax:read'])]
     public function getId(): ?string { return $this->id; }
 
-    #[Groups(['pax:read'])]
     public function getNombre(): ?string { return $this->nombre; }
     public function setNombre(string $nombre): self { $this->nombre = $nombre; return $this; }
 

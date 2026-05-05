@@ -122,6 +122,12 @@ const handleLogout = async () => {
           </span>
         </RouterLink>
 
+        <RouterLink to="/cotizaciones" class="group relative px-8 py-4 bg-white text-slate-800 font-bold text-lg rounded-2xl overflow-hidden shadow-lg border border-slate-200 hover:border-[#E07845] transition-all hover:-translate-y-1 w-full sm:w-auto flex justify-center items-center gap-3">
+          <span class="relative z-10 flex items-center gap-3 group-hover:text-[#E07845] transition-colors">
+            <i class="fas fa-file-invoice-dollar text-xl"></i> Motor de Cotizaciones
+          </span>
+        </RouterLink>
+
         <button v-if="!isSessionActive" @click="showLoginForm = true" class="px-8 py-4 bg-white text-slate-700 border-2 border-slate-200 font-bold text-lg rounded-2xl shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all flex justify-center items-center gap-3 w-full sm:w-auto">
           <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
         </button>

@@ -4,34 +4,100 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use App\Entity\Maestro\MaestroIdioma;
+use App\Entity\Maestro\MaestroPais;
 use App\Entity\Trait\IdTrait;
+use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo.
  */
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            normalizationContext: ['groups' => ['file:read', 'timestamp:read']],
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['file:read', 'timestamp:read']],
+            security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
+        ),
+        new Post(
+            denormalizationContext: ['groups' => ['file:write']],
+            securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para crear expedientes.'
+        ),
+        new Put(
+            denormalizationContext: ['groups' => ['file:write']],
+            security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar expedientes.'
+        ),
+        new Delete(
+            security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar expedientes.'
+        )
+    ]
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_file')]
 class CotizacionFile
 {
     use IdTrait;
     use TimestampTrait;
+    use LocatorTrait;
 
-    #[ORM\Column(type: 'string', length: 50, unique: true)]
-    private ?string $correlativo = null;
-
+    #[Groups(['file:read', 'file:item:read', 'file:write'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreGrupo = null;
 
+    // TODO: En el futuro esto será una relación ManyToOne hacia NameList o Cliente
+    #[Groups(['file:read', 'file:item:read', 'file:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $pasajeroPrincipal = null;
 
+    #[Groups(['file:read', 'file:item:read', 'file:write'])]
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $email = null;
+
+    #[Groups(['file:read', 'file:item:read', 'file:write'])]
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $telefono = null;
+
+    #[Groups(['file:read', 'file:item:read', 'file:write'])]
+    #[ORM\ManyToOne(targetEntity: MaestroPais::class)]
+    #[ORM\JoinColumn(name: 'pais_id', referencedColumnName: 'id', nullable: true)]
+    private ?MaestroPais $pais = null;
+
+    #[Groups(['file:read', 'file:item:read', 'file:write'])]
+    #[ORM\ManyToOne(targetEntity: MaestroIdioma::class)]
+    #[ORM\JoinColumn(name: 'idioma_id', referencedColumnName: 'id', nullable: true)]
+    private ?MaestroIdioma $idioma = null;
+
+    #[Groups(['file:read', 'file:item:read', 'file:write'])]
     #[ORM\Column(type: 'string', length: 30, options: ['default' => 'abierto'])]
     private string $estado = 'abierto';
 
+    /**
+     * En el detalle del File, vemos la colección de cotizaciones, pero al no
+     * tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
+     * API Platform solo traerá la información superficial de la versión,
+     * evitando descargar el itinerario completo.
+     *
+     * @var Collection<int, Cotizacion>
+     */
+    #[Groups(['file:item:read'])]
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: Cotizacion::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['version' => 'DESC'])]
     private Collection $cotizaciones;
@@ -39,6 +105,7 @@ class CotizacionFile
     public function __construct()
     {
         $this->initializeId();
+        $this->initializeLocator();
         $this->cotizaciones = new ArrayCollection();
     }
 
@@ -47,16 +114,31 @@ class CotizacionFile
         return $this->nombreGrupo ?? 'File sin nombre';
     }
 
-    public function getCorrelativo(): ?string
+    // --- GETTERS Y SETTERS COMPLEJOS (RELACIONES) ---
+
+    public function getPais(): ?MaestroPais
     {
-        return $this->correlativo;
+        return $this->pais;
     }
 
-    public function setCorrelativo(string $correlativo): self
+    public function setPais(?MaestroPais $pais): self
     {
-        $this->correlativo = $correlativo;
+        $this->pais = $pais;
         return $this;
     }
+
+    public function getIdioma(): ?MaestroIdioma
+    {
+        return $this->idioma;
+    }
+
+    public function setIdioma(?MaestroIdioma $idioma): self
+    {
+        $this->idioma = $idioma;
+        return $this;
+    }
+
+    // --- GETTERS Y SETTERS BÁSICOS ---
 
     public function getNombreGrupo(): ?string
     {
@@ -77,6 +159,28 @@ class CotizacionFile
     public function setPasajeroPrincipal(?string $pasajeroPrincipal): self
     {
         $this->pasajeroPrincipal = $pasajeroPrincipal;
+        return $this;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(?string $email): self
+    {
+        $this->email = $email;
+        return $this;
+    }
+
+    public function getTelefono(): ?string
+    {
+        return $this->telefono;
+    }
+
+    public function setTelefono(?string $telefono): self
+    {
+        $this->telefono = $telefono;
         return $this;
     }
 
@@ -114,6 +218,4 @@ class CotizacionFile
         }
         return $this;
     }
-
-
 }

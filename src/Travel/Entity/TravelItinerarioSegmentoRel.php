@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Pivot que ordena la narrativa dentro de la plantilla del itinerario.
@@ -16,17 +18,26 @@ class TravelItinerarioSegmentoRel
 {
     use IdTrait;
 
+    // 🚫 CORTE CIRCULAR
     #[ORM\ManyToOne(targetEntity: TravelItinerario::class, inversedBy: 'itinerarioSegmentos')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelItinerario $itinerario = null;
 
+    /**
+     * 🔥 TRUCO API PLATFORM: readableLink false.
+     * Recibimos el IRI del segmento de catálogo que queremos inyectar en este día.
+     */
+    #[Groups(['itinerario:item:read', 'itinerario:write'])]
+    #[ApiProperty(readableLink: false)]
     #[ORM\ManyToOne(targetEntity: TravelSegmento::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?TravelSegmento $segmento = null;
 
+    #[Groups(['itinerario:item:read', 'itinerario:write'])]
     #[ORM\Column(type: 'integer')]
     private int $dia = 1;
 
+    #[Groups(['itinerario:item:read', 'itinerario:write'])]
     #[ORM\Column(type: 'integer')]
     private int $orden = 1;
 
@@ -78,6 +89,4 @@ class TravelItinerarioSegmentoRel
         $this->orden = $orden;
         return $this;
     }
-
-
 }

@@ -4,18 +4,48 @@ declare(strict_types=1);
 
 namespace App\Travel\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Attribute\AutoTranslate;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
-/**
- * El bloque atómico de Storytelling (Párrafos, notas, descripciones narrativas).
- * Diseñado como una pieza de Lego reutilizable transversalmente.
- */
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            normalizationContext: ['groups' => ['segmento:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['segmento:item:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
+        ),
+        new Post(
+            denormalizationContext: ['groups' => ['segmento:write']],
+            securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityPostDenormalizeMessage: 'No tienes permiso para crear segmentos.'
+        ),
+        new Put(
+            denormalizationContext: ['groups' => ['segmento:write']],
+            security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
+            securityMessage: 'No tienes permiso para editar segmentos.'
+        ),
+        new Delete(
+            security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
+            securityMessage: 'No tienes permiso para eliminar segmentos.'
+        )
+    ]
+)]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_segmento')]
 class TravelSegmento
@@ -24,31 +54,32 @@ class TravelSegmento
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    /**
-     * Los servicios (Bolsas/Pools) donde este segmento estará disponible.
-     * Relación ManyToMany para permitir reciclar el segmento en múltiples tours.
-     */
+    // 🚫 CORTE CIRCULAR
     #[ORM\ManyToMany(targetEntity: TravelServicio::class, inversedBy: 'segmentos')]
     #[ORM\JoinTable(name: 'travel_segmento_servicio_pool')]
     private Collection $servicios;
 
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
     private array $contenido = [];
 
+    // 👇 CASCADA HACIA ABAJO
+    #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoImagen::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $imagenes;
 
-    /**
-     * La lista de componentes logísticos (con su hora, servicio condicional y si están incluidos) que se ejecutan durante este párrafo.
-     */
+    // 👇 CASCADA HACIA ABAJO
+    #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoComponente::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['orden' => 'ASC'])]
     private Collection $segmentoComponentes;
