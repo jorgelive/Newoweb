@@ -22,9 +22,17 @@ final readonly class ProcessInboundIntentDispatchHandler
     {
         $msg = $this->em->getRepository(Message::class)->find($dispatch->messageId);
 
-        // 1. Doble validación de seguridad (por si el worker se retrasó y ya se resolvió)
+        // 1. Doble validación de seguridad
         if (!$msg instanceof Message || !$msg->getInboundIntent() || $msg->getInboundIntent()['resolved']) {
             return;
+        }
+
+        // 🔥 FIX PARA EL WORKER ASÍNCRONO:
+        // Limpiamos la caché del UnitOfWork para esta entidad y traemos los datos reales
+        // que el Webhook acaba de guardar (incluyendo la apertura de la ventana de 24h).
+        $conversation = $msg->getConversation();
+        if ($conversation !== null) {
+            $this->em->refresh($conversation);
         }
 
         // 2. Le pasamos el control a tu nuevo Router Determinista/IA

@@ -8,7 +8,7 @@ import type { ApiMaestro } from '@/stores/maestroStore';
 // ============================================================================
 // TIPOS AUTOGENERADOS Y EXTENDIDOS (HÍBRIDOS)
 // ============================================================================
-type BaseApiCotizacionFile = components['schemas']['CotizacionFile-file.read'];
+type BaseApiCotizacionFile = components['schemas']['CotizacionFile.jsonld-file.read_timestamp.read'];
 
 /**
  * TIPADO HÍBRIDO EXPEDIENTE:
@@ -79,7 +79,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         error.value = null;
 
         try {
-            const response = await apiClient.get(`/platform/cotizacion_files?page=${page}&order[createdAt]=desc`);
+            // 🔥 Contexto Sales: Consumiendo la ruta refactorizada de expedientes
+            const response = await apiClient.get(`/platform/sales/cotizacion_files?page=${page}&order[createdAt]=desc`);
             const rawData = response.data;
 
             // Resolución defensiva de miembros de colección para API Platform 3
@@ -118,7 +119,8 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
         error.value = null;
 
         try {
-            const response = await apiClient.post<ApiCotizacionFile>('/platform/cotizacion_files', payload);
+            // 🔥 Contexto Sales: Unificación de la ruta para mutaciones POST
+            const response = await apiClient.post<ApiCotizacionFile>('/platform/sales/cotizacion_files', payload);
             files.value.unshift(response.data);
             return response.data;
         } catch (err: any) {

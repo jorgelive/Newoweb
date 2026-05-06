@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router'; // 🔥 NUEVO: Para el botón retroceder
 import { useCotizacionEditorStore } from '@/stores/cotizaciones/cotizacionEditorStore';
 
 const store = useCotizacionEditorStore();
+const router = useRouter(); // 🔥 NUEVO
 
 // ============================================================================
 // INICIALIZACIÓN (HOOKS)
 // ============================================================================
 onMounted(() => {
-  // Llama al store para hacer los Fetch a la API Platform al abrir la pantalla
-  // Si tuvieras un ID en la URL de Vue Router, lo pasarías aquí: store.inicializarEditor(route.params.id)
   store.inicializarEditor();
 });
 
@@ -57,7 +57,8 @@ const plantillaSeleccionada = ref<string | null>(null);
     <!-- ================================================================== -->
     <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md flex-shrink-0">
       <div class="flex items-center gap-3">
-        <button class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
+        <!-- 🔥 NUEVO: Router Back implementado -->
+        <button @click="router.back()" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
           <i class="fas fa-arrow-left text-sm"></i>
         </button>
         <div class="overflow-hidden">
@@ -274,7 +275,7 @@ const plantillaSeleccionada = ref<string | null>(null);
                 <label class="block text-[10px] font-black text-[#E07845] uppercase tracking-widest mb-2"><i class="fas fa-book mr-1"></i> Catálogo Maestro</label>
                 <select v-model="store.dataActiva.servicioMaestroId" @change="e => store.onServicioMaestroChange((e.target as HTMLSelectElement).value)" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold outline-none">
                   <option :value="null">Seleccione del catálogo...</option>
-                  <option v-for="cat in store.catalogos.servicios" :key="cat.id" :value="cat.id">{{ cat.nombreInterno || store.renderI18n(cat.nombreI18n, 'es') }}</option>
+                  <option v-for="cat in store.catalogos.servicios" :key="cat.id" :value="cat.id">{{ cat.nombreInterno || store.renderI18n(cat.titulo, 'es') }}</option>
                 </select>
               </div>
               <div>
@@ -348,7 +349,7 @@ const plantillaSeleccionada = ref<string | null>(null);
               <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2"><i class="fas fa-box-open mr-1"></i> Insumo Maestro</label>
               <select v-model="store.dataActiva.componenteMaestroId" @change="e => store.onComponenteMaestroChange((e.target as HTMLSelectElement).value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none">
                 <option :value="null">Seleccione componente...</option>
-                <option v-for="cat in store.catalogos.componentes" :key="cat.id" :value="cat.id">{{ store.renderI18n(cat.nombreI18n, 'es') }}</option>
+                <option v-for="cat in store.catalogos.componentes" :key="cat.id" :value="cat.id">{{ store.renderI18n(cat.titulo, 'es') || cat.nombre }}</option>
               </select>
             </div>
 
@@ -441,7 +442,7 @@ const plantillaSeleccionada = ref<string | null>(null);
               <label class="block text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2"><i class="fas fa-tags mr-1"></i> Tarifa Maestra</label>
               <select v-model="store.dataActiva.tarifaMaestraId" @change="e => store.onTarifaMaestraChange((e.target as HTMLSelectElement).value)" class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm font-bold focus:ring-1 focus:ring-orange-500 outline-none">
                 <option :value="null">Precio manual (Sin maestro)...</option>
-                <option v-for="cat in store.catalogos.tarifas" :key="cat.id" :value="cat.id">{{ cat.nombreInterno || store.renderI18n(cat.nombreI18n, 'es') }} ({{ cat.moneda }} {{ cat.monto ?? 0 }})</option>
+                <option v-for="cat in store.catalogos.tarifas" :key="cat.id" :value="cat.id">{{ cat.nombreInterno || store.renderI18n(cat.titulo, 'es') }} ({{ cat.moneda }} {{ cat.monto ?? 0 }})</option>
               </select>
             </div>
 
@@ -529,9 +530,14 @@ const plantillaSeleccionada = ref<string | null>(null);
               <div class="p-5 border-b border-slate-100 bg-slate-50">
                 <label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">1. Cargar Plantilla Completa</label>
                 <div class="flex gap-2">
-                  <select v-model="plantillaSeleccionada" class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-indigo-500">
-                    <option :value="null">Seleccionar itinerario...</option>
-                    <option v-for="plt in store.catalogos.plantillasItinerario" :key="plt.id" :value="plt.id">{{ store.renderI18n(plt.nombreI18n, store.cotizacion.idiomaEdicion) }}</option>
+                  <select v-model="plantillaSeleccionada" class="flex-1 bg-white text-slate-700 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-indigo-500 appearance-none shadow-sm">
+                    <option :value="null" class="text-slate-400 bg-white font-medium">Seleccionar itinerario...</option>
+                    <option v-for="plt in store.catalogos.plantillasItinerario"
+                            :key="plt.id || plt['@id']"
+                            :value="plt.id || plt['@id']"
+                            class="text-slate-800 bg-white font-bold">
+                      {{ store.renderI18n(plt.titulo, store.cotizacion.idiomaEdicion) || plt.nombreInterno || 'Plantilla sin nombre' }}
+                    </option>
                   </select>
                   <button @click="plantillaSeleccionada && store.aplicarPlantilla(plantillaSeleccionada)" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors">Aplicar</button>
                 </div>
@@ -546,8 +552,8 @@ const plantillaSeleccionada = ref<string | null>(null);
                        class="bg-white border-2 border-dashed border-slate-200 p-3 rounded-xl cursor-grab hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3">
                     <i class="fas fa-grip-vertical text-slate-300 mt-1"></i>
                     <div class="flex-1">
-                      <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1">{{ store.renderI18n(seg.nombreI18n, store.cotizacion.idiomaEdicion) }}</h4>
-                      <p class="text-[10px] text-slate-500 line-clamp-2 leading-snug">{{ store.renderI18n(seg.contenidoI18n, store.cotizacion.idiomaEdicion) }}</p>
+                      <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1">{{ store.renderI18n(seg.titulo, store.cotizacion.idiomaEdicion) }}</h4>
+                      <p class="text-[10px] text-slate-500 line-clamp-2 leading-snug">{{ store.renderI18n(seg.contenido, store.cotizacion.idiomaEdicion) }}</p>
                     </div>
                     <button @click="store.agregarSegmentoIndividual(seg)" class="text-indigo-600 hover:bg-indigo-100 p-2 rounded-lg transition-colors flex-shrink-0"><i class="fas fa-plus"></i></button>
                   </div>

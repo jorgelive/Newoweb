@@ -19,30 +19,41 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ApiResource(
+    shortName: 'Diccionario', // 🔥 Define el recurso base para generar '/diccionarios'
     operations: [
+        // Genera: GET /travel/diccionarios
         new GetCollection(
             normalizationContext: ['groups' => ['diccionario:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: GET /travel/diccionarios/{id}
         new Get(
             normalizationContext: ['groups' => ['diccionario:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: POST /travel/diccionarios
         new Post(
             denormalizationContext: ['groups' => ['diccionario:write']],
             securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear elementos del diccionario.'
         ),
+
+        // Genera: PUT /travel/diccionarios/{id}
         new Put(
             denormalizationContext: ['groups' => ['diccionario:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar elementos.'
         ),
+
+        // Genera: DELETE /travel/diccionarios/{id}
         new Delete(
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar elementos.'
         )
-    ]
+    ],   // 🔥 Agrupa todas las rutas bajo el módulo logístico
+    routePrefix: '/travel'
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_item_diccionario')]

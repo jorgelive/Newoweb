@@ -20,32 +20,44 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
 
 #[ApiResource(
+    shortName: 'Itinerario', // 🔥 Define el recurso base para generar '/itinerarios'
     operations: [
+        // Genera: GET /travel/itinerarios
         new GetCollection(
             normalizationContext: ['groups' => ['itinerario:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: GET /travel/itinerarios/{id}
         new Get(
             normalizationContext: ['groups' => ['itinerario:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: POST /travel/itinerarios
         new Post(
             denormalizationContext: ['groups' => ['itinerario:write']],
             securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear itinerarios.'
         ),
+
+        // Genera: PUT /travel/itinerarios/{id}
         new Put(
             denormalizationContext: ['groups' => ['itinerario:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar itinerarios.'
         ),
+
+        // Genera: DELETE /travel/itinerarios/{id}
         new Delete(
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar itinerarios.'
         )
-    ]
+    ],  // 🔥 Agrupa todas las rutas bajo el módulo logístico
+    routePrefix: '/travel'
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_itinerario')]
@@ -61,11 +73,12 @@ class TravelItinerario
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?TravelServicio $servicio = null;
 
-    #[Groups(['itinerario:read', 'itinerario:item:read', 'itinerario:write'])]
+    #[Groups(['itinerario:read', 'itinerario:item:read', 'itinerario:write', 'servicio:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
-    #[Groups(['itinerario:read', 'itinerario:item:read', 'itinerario:write'])]
+    #[Groups(['itinerario:read', 'itinerario:item:read', 'itinerario:write','servicio:item:read'])]
+
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
@@ -94,6 +107,12 @@ class TravelItinerario
         $this->initializeId();
         $this->itinerarioSegmentos = new ArrayCollection();
         $this->notas = new ArrayCollection();
+    }
+
+    #[Groups(['itinerario:read', 'itinerario:item:read', 'servicio:item:read', 'cotizacion:read'])]
+    public function getId(): ?Uuid
+    {
+        return $this->id;
     }
 
     public function __toString(): string

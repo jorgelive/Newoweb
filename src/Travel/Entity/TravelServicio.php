@@ -19,36 +19,48 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
  * para que luego las plantillas de itinerario y las cotizaciones los utilicen.
  */
 #[ApiResource(
+    shortName: 'Servicio',  // 🔥 Define el recurso base para generar '/servicios'
     operations: [
+        // Genera: GET /travel/servicios
         new GetCollection(
             normalizationContext: ['groups' => ['servicio:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: GET /travel/servicios/{id}
         new Get(
             normalizationContext: ['groups' => ['servicio:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: POST /travel/servicios
         new Post(
             denormalizationContext: ['groups' => ['servicio:write']],
             securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear servicios.'
         ),
+
+        // Genera: PUT /travel/servicios/{id}
         new Put(
             denormalizationContext: ['groups' => ['servicio:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar servicios.'
         ),
+
+        // Genera: DELETE /travel/servicios/{id}
         new Delete(
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar servicios.'
         )
-    ]
+    ], // 🔥 Agrupa todas las rutas bajo el módulo logístico
+    routePrefix: '/travel'
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_servicio')]
@@ -104,6 +116,12 @@ class TravelServicio
     public function __toString(): string
     {
         return $this->nombreInterno ?? 'Sin nombre';
+    }
+
+    #[Groups(['servicio:read', 'servicio:item:read', 'cotizacion:read', 'cotizacion:item:read'])]
+    public function getId(): ?Uuid
+    {
+        return $this->id;
     }
 
     public function getNombreInterno(): ?string

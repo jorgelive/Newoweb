@@ -20,35 +20,47 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad base para la logística pura (El insumo financiero).
  */
 #[ApiResource(
+    shortName: 'Componente', // 🔥 Define el recurso base para generar '/componentes'
     operations: [
+        // Genera: GET /travel/componentes
         new GetCollection(
             normalizationContext: ['groups' => ['componente:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: GET /travel/componentes/{id}
         new Get(
             normalizationContext: ['groups' => ['componente:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: POST /travel/componentes
         new Post(
             denormalizationContext: ['groups' => ['componente:write']],
             securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear componentes.'
         ),
+
+        // Genera: PUT /travel/componentes/{id}
         new Put(
             denormalizationContext: ['groups' => ['componente:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar componentes.'
         ),
+
+        // Genera: DELETE /travel/componentes/{id}
         new Delete(
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar componentes.'
         )
-    ]
+    ],  // 🔥 Agrupa todas las rutas bajo el módulo logístico
+    routePrefix: '/travel'
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_componente')]
@@ -58,11 +70,11 @@ class TravelComponente
     use TimestampTrait;
     use AutoTranslateControlTrait;
 
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombre = null;
 
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
@@ -114,6 +126,12 @@ class TravelComponente
     public function __toString(): string
     {
         return $this->nombre ?? 'Componente sin nombre';
+    }
+
+    #[Groups(['componente:read', 'componente:item:read', 'servicio:item:read', 'segmento:item:read', 'cotizacion:read'])]
+    public function getId(): ?Uuid
+    {
+        return $this->id;
     }
 
     /**

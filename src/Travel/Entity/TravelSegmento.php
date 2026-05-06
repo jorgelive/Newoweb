@@ -19,32 +19,44 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
 
 #[ApiResource(
+    shortName: 'Segmento',  // 🔥 Define el recurso base para generar '/segmentos'
     operations: [
+        // Genera: GET /travel/segmentos
         new GetCollection(
             normalizationContext: ['groups' => ['segmento:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: GET /travel/segmentos/{id}
         new Get(
             normalizationContext: ['groups' => ['segmento:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: POST /travel/segmentos
         new Post(
             denormalizationContext: ['groups' => ['segmento:write']],
             securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear segmentos.'
         ),
+
+        // Genera: PUT /travel/segmentos/{id}
         new Put(
             denormalizationContext: ['groups' => ['segmento:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar segmentos.'
         ),
+
+        // Genera: DELETE /travel/segmentos/{id}
         new Delete(
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar segmentos.'
         )
-    ]
+    ], // 🔥 Agrupa todas las rutas bajo el módulo logístico
+    routePrefix: '/travel'
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_segmento')]
@@ -59,16 +71,16 @@ class TravelSegmento
     #[ORM\JoinTable(name: 'travel_segmento_servicio_pool')]
     private Collection $servicios;
 
-    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreInterno = null;
 
-    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
-    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write'])]
+    #[Groups(['segmento:read', 'segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
     private array $contenido = [];
@@ -79,7 +91,7 @@ class TravelSegmento
     private Collection $imagenes;
 
     // 👇 CASCADA HACIA ABAJO
-    #[Groups(['segmento:item:read', 'segmento:write'])]
+    #[Groups(['segmento:item:read', 'segmento:write', 'servicio:item:read'])]
     #[ORM\OneToMany(mappedBy: 'segmento', targetEntity: TravelSegmentoComponente::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['orden' => 'ASC'])]
     private Collection $segmentoComponentes;
@@ -95,6 +107,12 @@ class TravelSegmento
     public function __toString(): string
     {
         return $this->nombreInterno ?? 'Sin nombre';
+    }
+
+    #[Groups(['segmento:read', 'segmento:item:read', 'servicio:item:read', 'cotizacion:read'])]
+    public function getId(): ?Uuid
+    {
+        return $this->id;
     }
 
     /**

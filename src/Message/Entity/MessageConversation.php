@@ -31,13 +31,17 @@ use Symfony\Component\Uid\Uuid;
 #[ApiResource(
     shortName: 'Conversation',
     operations: [
-        new GetCollection(uriTemplate: '/user/util/msg/conversations'),
+        // API Platform infiere automáticamente: GET /message/conversations
+        new GetCollection(),
 
+        // API Platform infiere automáticamente: GET /message/conversations/{id}
         // Hereda el escudo global de lectura
-        new Get(uriTemplate: '/user/util/msg/conversations/{id}'),
+        new Get(),
 
+        // Para operaciones custom, solo escribes la parte final de la ruta.
+        // API Platform lo concatena: POST /message/conversations/{id}/read
         new Post(
-            uriTemplate: '/user/util/msg/conversations/{id}/read',
+            uriTemplate: '/conversations/{id}/read',
             controller: MarkConversationReadController::class,
             openapi: new Operation(
                 summary: 'Marca el chat como leído',
@@ -48,7 +52,8 @@ use Symfony\Component\Uid\Uuid;
             securityMessage: 'No tienes permisos para alterar el estado de las conversaciones.',
             deserialize: false
         )
-    ],
+    ], // 🔥 El módulo define la raíz para todas las operaciones
+    routePrefix: '/message',
     normalizationContext: ['groups' => ['conversation:read']],
     order: ['lastMessageAt' => 'DESC'],
 

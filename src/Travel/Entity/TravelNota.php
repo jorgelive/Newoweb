@@ -25,30 +25,41 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * Entidad transversal que almacena información compartida (Historias, Políticas, Tips).
  */
 #[ApiResource(
+    shortName: 'Nota',      // 🔥 Define el recurso base para generar '/notas'
     operations: [
+        // Genera: GET /travel/notas
         new GetCollection(
             normalizationContext: ['groups' => ['nota:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: GET /travel/notas/{id}
         new Get(
             normalizationContext: ['groups' => ['nota:item:read']],
             security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
         ),
+
+        // Genera: POST /travel/notas
         new Post(
             denormalizationContext: ['groups' => ['nota:write']],
             securityPostDenormalize: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear notas.'
         ),
+
+        // Genera: PUT /travel/notas/{id}
         new Put(
             denormalizationContext: ['groups' => ['nota:write']],
             security: "is_granted('" . Roles::MAESTROS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar notas.'
         ),
+
+        // Genera: DELETE /travel/notas/{id}
         new Delete(
             security: "is_granted('" . Roles::MAESTROS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar notas.'
         )
-    ]
+    ], // 🔥 Agrupa todas las rutas bajo el módulo logístico
+    routePrefix: '/travel'
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_nota')]

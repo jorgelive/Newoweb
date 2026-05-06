@@ -21,15 +21,21 @@ use Symfony\Component\Serializer\Attribute\Groups;
  * Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
  */
 #[ApiResource(
+    shortName: 'Pais',       // 🔥 Define el recurso base para generar la ruta (ej. '/pais' o '/paises')
     operations: [
-        new Get(
-            uriTemplate: '/public/maestro_pais/{id}'        ),
-        new GetCollection(
-            uriTemplate: '/public/maestro_pais'
-        )
-    ],
+        // API Platform infiere automáticamente la ruta individual: GET /maestro/pais/{id}
+        new Get(),
+
+        // API Platform infiere automáticamente la ruta de colección: GET /maestro/pais
+        new GetCollection(uriTemplate: '/paises')
+    ], // 🔥 Agrupa las rutas bajo el módulo de catálogos maestros
+    routePrefix: '/maestro',
     normalizationContext: ['groups' => ['pais:read']],
+
+    // Orden alfabético por defecto para facilitar la búsqueda en los selects del frontend
     order: ['nombre' => 'ASC'],
+
+    // Desactiva la paginación para cargar el catálogo completo de países en una sola petición
     paginationEnabled: false
 )]
 #[ORM\Entity]

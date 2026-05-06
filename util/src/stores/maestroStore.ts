@@ -44,8 +44,8 @@ export const useMaestroStore = defineStore('maestroStore', () => {
         try {
             // Ejecución de promesas en paralelo para optimizar la carga de red
             const [paisesRes, idiomasRes] = await Promise.all([
-                apiClient.get('/platform/public/maestro_pais'),
-                apiClient.get('/platform/public/maestro_idioma')
+                apiClient.get('/platform/maestro/paises'),
+                apiClient.get('/platform/maestro/idiomas')
             ]);
 
             paises.value = paisesRes.data['hydra:member'] || paisesRes.data['member'] || [];

@@ -25,30 +25,41 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo.
  */
 #[ApiResource(
+    shortName: 'CotizacionFile', // 🔥 Ajusta esto al nombre real de tu clase si es diferente (ej. 'Expediente')
     operations: [
+        // Genera: GET /sales/cotizacion_files
         new GetCollection(
             normalizationContext: ['groups' => ['file:read', 'timestamp:read']],
             security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
         ),
+
+        // Genera: GET /sales/cotizacion_files/{id}
         new Get(
             normalizationContext: ['groups' => ['file:read', 'timestamp:read']],
             security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
         ),
+
+        // Genera: POST /sales/cotizacion_files
         new Post(
             denormalizationContext: ['groups' => ['file:write']],
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear expedientes.'
         ),
+
+        // Genera: PUT /sales/cotizacion_files/{id}
         new Put(
             denormalizationContext: ['groups' => ['file:write']],
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar expedientes.'
         ),
+
+        // Genera: DELETE /sales/cotizacion_files/{id}
         new Delete(
             security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar expedientes.'
         )
-    ]
+    ],       // 🔥 Agrupa las rutas bajo el módulo de ventas/reservas
+    routePrefix: '/sales'
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_file')]

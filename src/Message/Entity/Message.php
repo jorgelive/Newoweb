@@ -36,9 +36,14 @@ use App\Message\Contract\MessageQueueItemInterface;
 #[ORM\HasLifecycleCallbacks]
 #[ValidTemplateScope]
 #[ApiResource(
+    shortName: 'Message',    // 🔥 Define el nombre base del recurso para generar '/messages'
     operations: [
+        // ------------------------------------------------------------------------
+        // 1. SUBRECURSO: Obtener mensajes filtrados por una conversación específica
+        // API Platform infiere combinando el prefix: GET /message/conversations/{id}/messages
+        // ------------------------------------------------------------------------
         new GetCollection(
-            uriTemplate: '/user/util/msg/conversations/{id}/messages',
+            uriTemplate: '/conversations/{id}/messages',
             uriVariables: [
                 'id' => new Link(
                     toProperty: 'conversation',
@@ -47,27 +52,36 @@ use App\Message\Contract\MessageQueueItemInterface;
             ],
             order: ['scheduledAt' => 'DESC', 'createdAt' => 'DESC']
         ),
-        new GetCollection(uriTemplate: '/user/util/msg/messages'),
 
-        // Al quitar la seguridad local, hereda el escudo global (MENSAJES_SHOW)
-        new Get(uriTemplate: '/user/util/msg/messages/{id}'),
+        // ------------------------------------------------------------------------
+        // 2. OPERACIONES ESTÁNDAR CRUD (Rutas inferidas automáticamente)
+        // ------------------------------------------------------------------------
 
+        // API Platform infiere automáticamente: GET /message/messages
+        new GetCollection(),
+
+        // Al quitar la seguridad local y la ruta, hereda el escudo global.
+        // API Platform infiere automáticamente: GET /message/messages/{id}
+        new Get(),
+
+        // API Platform infiere automáticamente: POST /message/messages
         new Post(
-            uriTemplate: '/user/util/msg/messages',
             inputFormats: [
                 'jsonld' => ['application/ld+json'],
                 'multipart' => ['multipart/form-data']
             ],
-            // 🔥 Verificamos ÚNICAMENTE el rol explícito de escritura
+            // 🔥 Verificamos ÚNICAMENTE el rol explícito de escritura (Post-Desnormalización)
+            // Se ejecuta después de que el objeto ha sido construido pero antes de persistir
             securityPostDenormalize: "is_granted('" . Roles::MENSAJES_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para enviar mensajes.',
             processor: MessageMultipartProcessor::class
         )
-    ],
+    ], // 🔥 Define el módulo o contexto delimitado
+    routePrefix: '/message',
     normalizationContext: ['groups' => ['message:read']],
     denormalizationContext: ['groups' => ['message:write']],
 
-    // 🔥 Escudo global: Solo usuarios con permiso de ver mensajes entran aquí
+    // 🔥 Escudo global: Solo usuarios con el rol de lectura pueden entrar a cualquier operación GET
     security: "is_granted('" . Roles::MENSAJES_SHOW . "')",
     securityMessage: 'Acceso denegado al módulo de mensajería.'
 )]

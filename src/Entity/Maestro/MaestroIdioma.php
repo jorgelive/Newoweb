@@ -19,16 +19,21 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\Table(name: 'maestro_idioma')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
+    shortName: 'Idioma',     // 🔥 Define el recurso base para generar la ruta '/idiomas'
     operations: [
-        new Get(
-            uriTemplate: '/public/maestro_idioma/{id}'
-        ),
-        new GetCollection(
-            uriTemplate: '/public/maestro_idioma'
-        )
-    ],
+        // API Platform infiere automáticamente: GET /maestro/idiomas/{id}
+        new Get(),
+
+        // API Platform infiere automáticamente: GET /maestro/idiomas
+        new GetCollection()
+    ], // 🔥 Agrupa las rutas bajo el módulo de catálogos maestros
+    routePrefix: '/maestro',
     normalizationContext: ['groups' => ['pax:read']],
-    order: ['prioridad' => 'DESC', 'nombre' => 'ASC'] // Orden por defecto
+
+    // Orden por defecto de la colección:
+    // Muestra primero los idiomas con mayor nivel de prioridad (ej. Español/Inglés)
+    // y en caso de empate los ordena alfabéticamente por nombre.
+    order: ['prioridad' => 'DESC', 'nombre' => 'ASC']
 )]
 #[ApiFilter(RangeFilter::class, properties: ['prioridad'])] // Permite ?prioridad[gt]=0
 #[ApiFilter(OrderFilter::class, properties: ['prioridad', 'nombre'])] // Permite reordenar desde la URL

@@ -22,9 +22,12 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(fields: ['code'], message: 'Este código de plantilla ya existe. El código debe ser único.')]
 #[ApiResource(
+    shortName: 'Template', // 🔥 Le dice a API Platform que el recurso base es "templates"
     operations: [
-        new GetCollection(uriTemplate: '/user/util/msg/templates')
-    ],
+        // API Platform infiere automáticamente: GET /message/templates
+        new GetCollection()
+    ], // 🔥 Define el módulo o contexto
+    routePrefix: '/message',
     normalizationContext: ['groups' => ['template:read']]
 )]
 class MessageTemplate

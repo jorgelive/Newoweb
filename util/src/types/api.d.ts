@@ -4,7 +4,59 @@
  */
 
 export interface paths {
-    "/platform/user/util/msg/conversations": {
+    "/platform/travel/componentes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of Componente resources.
+         * @description Retrieves the collection of Componente resources.
+         */
+        get: operations["api_travelcomponentes_get_collection"];
+        put?: never;
+        /**
+         * Creates a Componente resource.
+         * @description Creates a Componente resource.
+         */
+        post: operations["api_travelcomponentes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/travel/componentes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a Componente resource.
+         * @description Retrieves a Componente resource.
+         */
+        get: operations["api_travelcomponentes_id_get"];
+        /**
+         * Replaces the Componente resource.
+         * @description Replaces the Componente resource.
+         */
+        put: operations["api_travelcomponentes_id_put"];
+        post?: never;
+        /**
+         * Removes the Componente resource.
+         * @description Removes the Componente resource.
+         */
+        delete: operations["api_travelcomponentes_id_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/message/conversations": {
         parameters: {
             query?: never;
             header?: never;
@@ -15,7 +67,7 @@ export interface paths {
          * Retrieves the collection of Conversation resources.
          * @description Retrieves the collection of Conversation resources.
          */
-        get: operations["api_userutilmsgconversations_get_collection"];
+        get: operations["api_messageconversations_get_collection"];
         put?: never;
         post?: never;
         delete?: never;
@@ -24,7 +76,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/user/util/msg/conversations/{id}": {
+    "/platform/message/conversations/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -35,7 +87,7 @@ export interface paths {
          * Retrieves a Conversation resource.
          * @description Retrieves a Conversation resource.
          */
-        get: operations["api_userutilmsgconversations_id_get"];
+        get: operations["api_messageconversations_id_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -44,7 +96,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/user/util/msg/conversations/{id}/read": {
+    "/platform/message/conversations/{id}/read": {
         parameters: {
             query?: never;
             header?: never;
@@ -57,14 +109,14 @@ export interface paths {
          * Marca el chat como leído
          * @description Marca todos los mensajes INCOMING de la conversación como leídos y notifica a las OTAs.
          */
-        post: operations["api_userutilmsgconversations_idread_post"];
+        post: operations["api_messageconversations_idread_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/cotizacion_files": {
+    "/platform/sales/cotizacion_files": {
         parameters: {
             query?: never;
             header?: never;
@@ -75,20 +127,20 @@ export interface paths {
          * Retrieves the collection of CotizacionFile resources.
          * @description Retrieves the collection of CotizacionFile resources.
          */
-        get: operations["api_cotizacion_files_get_collection"];
+        get: operations["api_salescotizacion_files_get_collection"];
         put?: never;
         /**
          * Creates a CotizacionFile resource.
          * @description Creates a CotizacionFile resource.
          */
-        post: operations["api_cotizacion_files_post"];
+        post: operations["api_salescotizacion_files_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/cotizacion_files/{id}": {
+    "/platform/sales/cotizacion_files/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -99,24 +151,24 @@ export interface paths {
          * Retrieves a CotizacionFile resource.
          * @description Retrieves a CotizacionFile resource.
          */
-        get: operations["api_cotizacion_files_id_get"];
+        get: operations["api_salescotizacion_files_id_get"];
         /**
          * Replaces the CotizacionFile resource.
          * @description Replaces the CotizacionFile resource.
          */
-        put: operations["api_cotizacion_files_id_put"];
+        put: operations["api_salescotizacion_files_id_put"];
         post?: never;
         /**
          * Removes the CotizacionFile resource.
          * @description Removes the CotizacionFile resource.
          */
-        delete: operations["api_cotizacion_files_id_delete"];
+        delete: operations["api_salescotizacion_files_id_delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/public/maestro_idioma": {
+    "/platform/travel/diccionarios": {
         parameters: {
             query?: never;
             header?: never;
@@ -124,10 +176,62 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Retrieves the collection of MaestroIdioma resources.
-         * @description Retrieves the collection of MaestroIdioma resources.
+         * Retrieves the collection of Diccionario resources.
+         * @description Retrieves the collection of Diccionario resources.
          */
-        get: operations["api_publicmaestro_idioma_get_collection"];
+        get: operations["api_traveldiccionarios_get_collection"];
+        put?: never;
+        /**
+         * Creates a Diccionario resource.
+         * @description Creates a Diccionario resource.
+         */
+        post: operations["api_traveldiccionarios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/travel/diccionarios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a Diccionario resource.
+         * @description Retrieves a Diccionario resource.
+         */
+        get: operations["api_traveldiccionarios_id_get"];
+        /**
+         * Replaces the Diccionario resource.
+         * @description Replaces the Diccionario resource.
+         */
+        put: operations["api_traveldiccionarios_id_put"];
+        post?: never;
+        /**
+         * Removes the Diccionario resource.
+         * @description Removes the Diccionario resource.
+         */
+        delete: operations["api_traveldiccionarios_id_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/maestro/idiomas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of Idioma resources.
+         * @description Retrieves the collection of Idioma resources.
+         */
+        get: operations["api_maestroidiomas_get_collection"];
         put?: never;
         post?: never;
         delete?: never;
@@ -136,7 +240,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/public/maestro_idioma/{id}": {
+    "/platform/maestro/idiomas/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -144,10 +248,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Retrieves a MaestroIdioma resource.
-         * @description Retrieves a MaestroIdioma resource.
+         * Retrieves a Idioma resource.
+         * @description Retrieves a Idioma resource.
          */
-        get: operations["api_publicmaestro_idioma_id_get"];
+        get: operations["api_maestroidiomas_id_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -156,7 +260,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/public/maestro_pais": {
+    "/platform/travel/itinerarios": {
         parameters: {
             query?: never;
             header?: never;
@@ -164,19 +268,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Retrieves the collection of MaestroPais resources.
-         * @description Retrieves the collection of MaestroPais resources.
+         * Retrieves the collection of Itinerario resources.
+         * @description Retrieves the collection of Itinerario resources.
          */
-        get: operations["api_publicmaestro_pais_get_collection"];
+        get: operations["api_travelitinerarios_get_collection"];
         put?: never;
-        post?: never;
+        /**
+         * Creates a Itinerario resource.
+         * @description Creates a Itinerario resource.
+         */
+        post: operations["api_travelitinerarios_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/public/maestro_pais/{id}": {
+    "/platform/travel/itinerarios/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -184,19 +292,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Retrieves a MaestroPais resource.
-         * @description Retrieves a MaestroPais resource.
+         * Retrieves a Itinerario resource.
+         * @description Retrieves a Itinerario resource.
          */
-        get: operations["api_publicmaestro_pais_id_get"];
-        put?: never;
+        get: operations["api_travelitinerarios_id_get"];
+        /**
+         * Replaces the Itinerario resource.
+         * @description Replaces the Itinerario resource.
+         */
+        put: operations["api_travelitinerarios_id_put"];
         post?: never;
-        delete?: never;
+        /**
+         * Removes the Itinerario resource.
+         * @description Removes the Itinerario resource.
+         */
+        delete: operations["api_travelitinerarios_id_delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/user/util/msg/conversations/{id}/messages": {
+    "/platform/message/conversations/{id}/messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -207,7 +323,7 @@ export interface paths {
          * Retrieves the collection of Message resources.
          * @description Retrieves the collection of Message resources.
          */
-        get: operations["api_userutilmsgconversations_idmessages_get_collection"];
+        get: operations["api_messageconversations_idmessages_get_collection"];
         put?: never;
         post?: never;
         delete?: never;
@@ -216,7 +332,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/user/util/msg/messages": {
+    "/platform/message/messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -227,20 +343,20 @@ export interface paths {
          * Retrieves the collection of Message resources.
          * @description Retrieves the collection of Message resources.
          */
-        get: operations["api_userutilmsgmessages_get_collection"];
+        get: operations["api_messagemessages_get_collection"];
         put?: never;
         /**
          * Creates a Message resource.
          * @description Creates a Message resource.
          */
-        post: operations["api_userutilmsgmessages_post"];
+        post: operations["api_messagemessages_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/user/util/msg/messages/{id}": {
+    "/platform/message/messages/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -251,7 +367,7 @@ export interface paths {
          * Retrieves a Message resource.
          * @description Retrieves a Message resource.
          */
-        get: operations["api_userutilmsgmessages_id_get"];
+        get: operations["api_messagemessages_id_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -260,7 +376,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/user/util/msg/templates": {
+    "/platform/travel/notas": {
         parameters: {
             query?: never;
             header?: never;
@@ -268,10 +384,82 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Retrieves the collection of MessageTemplate resources.
-         * @description Retrieves the collection of MessageTemplate resources.
+         * Retrieves the collection of Nota resources.
+         * @description Retrieves the collection of Nota resources.
          */
-        get: operations["api_userutilmsgtemplates_get_collection"];
+        get: operations["api_travelnotas_get_collection"];
+        put?: never;
+        /**
+         * Creates a Nota resource.
+         * @description Creates a Nota resource.
+         */
+        post: operations["api_travelnotas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/travel/notas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a Nota resource.
+         * @description Retrieves a Nota resource.
+         */
+        get: operations["api_travelnotas_id_get"];
+        /**
+         * Replaces the Nota resource.
+         * @description Replaces the Nota resource.
+         */
+        put: operations["api_travelnotas_id_put"];
+        post?: never;
+        /**
+         * Removes the Nota resource.
+         * @description Removes the Nota resource.
+         */
+        delete: operations["api_travelnotas_id_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/maestro/pais/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a Pais resource.
+         * @description Retrieves a Pais resource.
+         */
+        get: operations["api_maestropais_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/maestro/paises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of Pais resources.
+         * @description Retrieves the collection of Pais resources.
+         */
+        get: operations["api_maestropaises_get_collection"];
         put?: never;
         post?: never;
         delete?: never;
@@ -320,7 +508,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/travel_componentes": {
+    "/platform/travel/segmentos": {
         parameters: {
             query?: never;
             header?: never;
@@ -328,23 +516,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Retrieves the collection of TravelComponente resources.
-         * @description Retrieves the collection of TravelComponente resources.
+         * Retrieves the collection of Segmento resources.
+         * @description Retrieves the collection of Segmento resources.
          */
-        get: operations["api_travel_componentes_get_collection"];
+        get: operations["api_travelsegmentos_get_collection"];
         put?: never;
         /**
-         * Creates a TravelComponente resource.
-         * @description Creates a TravelComponente resource.
+         * Creates a Segmento resource.
+         * @description Creates a Segmento resource.
          */
-        post: operations["api_travel_componentes_post"];
+        post: operations["api_travelsegmentos_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/travel_componentes/{id}": {
+    "/platform/travel/segmentos/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -352,27 +540,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Retrieves a TravelComponente resource.
-         * @description Retrieves a TravelComponente resource.
+         * Retrieves a Segmento resource.
+         * @description Retrieves a Segmento resource.
          */
-        get: operations["api_travel_componentes_id_get"];
+        get: operations["api_travelsegmentos_id_get"];
         /**
-         * Replaces the TravelComponente resource.
-         * @description Replaces the TravelComponente resource.
+         * Replaces the Segmento resource.
+         * @description Replaces the Segmento resource.
          */
-        put: operations["api_travel_componentes_id_put"];
+        put: operations["api_travelsegmentos_id_put"];
         post?: never;
         /**
-         * Removes the TravelComponente resource.
-         * @description Removes the TravelComponente resource.
+         * Removes the Segmento resource.
+         * @description Removes the Segmento resource.
          */
-        delete: operations["api_travel_componentes_id_delete"];
+        delete: operations["api_travelsegmentos_id_delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/travel_item_diccionarios": {
+    "/platform/travel/servicios": {
         parameters: {
             query?: never;
             header?: never;
@@ -380,23 +568,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Retrieves the collection of TravelItemDiccionario resources.
-         * @description Retrieves the collection of TravelItemDiccionario resources.
+         * Retrieves the collection of Servicio resources.
+         * @description Retrieves the collection of Servicio resources.
          */
-        get: operations["api_travel_item_diccionarios_get_collection"];
+        get: operations["api_travelservicios_get_collection"];
         put?: never;
         /**
-         * Creates a TravelItemDiccionario resource.
-         * @description Creates a TravelItemDiccionario resource.
+         * Creates a Servicio resource.
+         * @description Creates a Servicio resource.
          */
-        post: operations["api_travel_item_diccionarios_post"];
+        post: operations["api_travelservicios_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/travel_item_diccionarios/{id}": {
+    "/platform/travel/servicios/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -404,27 +592,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Retrieves a TravelItemDiccionario resource.
-         * @description Retrieves a TravelItemDiccionario resource.
+         * Retrieves a Servicio resource.
+         * @description Retrieves a Servicio resource.
          */
-        get: operations["api_travel_item_diccionarios_id_get"];
+        get: operations["api_travelservicios_id_get"];
         /**
-         * Replaces the TravelItemDiccionario resource.
-         * @description Replaces the TravelItemDiccionario resource.
+         * Replaces the Servicio resource.
+         * @description Replaces the Servicio resource.
          */
-        put: operations["api_travel_item_diccionarios_id_put"];
+        put: operations["api_travelservicios_id_put"];
         post?: never;
         /**
-         * Removes the TravelItemDiccionario resource.
-         * @description Removes the TravelItemDiccionario resource.
+         * Removes the Servicio resource.
+         * @description Removes the Servicio resource.
          */
-        delete: operations["api_travel_item_diccionarios_id_delete"];
+        delete: operations["api_travelservicios_id_delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/platform/travel_itinerarios": {
+    "/platform/message/templates": {
         parameters: {
             query?: never;
             header?: never;
@@ -432,201 +620,13 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Retrieves the collection of TravelItinerario resources.
-         * @description Retrieves the collection of TravelItinerario resources.
+         * Retrieves the collection of Template resources.
+         * @description Retrieves the collection of Template resources.
          */
-        get: operations["api_travel_itinerarios_get_collection"];
+        get: operations["api_messagetemplates_get_collection"];
         put?: never;
-        /**
-         * Creates a TravelItinerario resource.
-         * @description Creates a TravelItinerario resource.
-         */
-        post: operations["api_travel_itinerarios_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel_itinerarios/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves a TravelItinerario resource.
-         * @description Retrieves a TravelItinerario resource.
-         */
-        get: operations["api_travel_itinerarios_id_get"];
-        /**
-         * Replaces the TravelItinerario resource.
-         * @description Replaces the TravelItinerario resource.
-         */
-        put: operations["api_travel_itinerarios_id_put"];
         post?: never;
-        /**
-         * Removes the TravelItinerario resource.
-         * @description Removes the TravelItinerario resource.
-         */
-        delete: operations["api_travel_itinerarios_id_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel_notas": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves the collection of TravelNota resources.
-         * @description Retrieves the collection of TravelNota resources.
-         */
-        get: operations["api_travel_notas_get_collection"];
-        put?: never;
-        /**
-         * Creates a TravelNota resource.
-         * @description Creates a TravelNota resource.
-         */
-        post: operations["api_travel_notas_post"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel_notas/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves a TravelNota resource.
-         * @description Retrieves a TravelNota resource.
-         */
-        get: operations["api_travel_notas_id_get"];
-        /**
-         * Replaces the TravelNota resource.
-         * @description Replaces the TravelNota resource.
-         */
-        put: operations["api_travel_notas_id_put"];
-        post?: never;
-        /**
-         * Removes the TravelNota resource.
-         * @description Removes the TravelNota resource.
-         */
-        delete: operations["api_travel_notas_id_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel_segmentos": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves the collection of TravelSegmento resources.
-         * @description Retrieves the collection of TravelSegmento resources.
-         */
-        get: operations["api_travel_segmentos_get_collection"];
-        put?: never;
-        /**
-         * Creates a TravelSegmento resource.
-         * @description Creates a TravelSegmento resource.
-         */
-        post: operations["api_travel_segmentos_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel_segmentos/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves a TravelSegmento resource.
-         * @description Retrieves a TravelSegmento resource.
-         */
-        get: operations["api_travel_segmentos_id_get"];
-        /**
-         * Replaces the TravelSegmento resource.
-         * @description Replaces the TravelSegmento resource.
-         */
-        put: operations["api_travel_segmentos_id_put"];
-        post?: never;
-        /**
-         * Removes the TravelSegmento resource.
-         * @description Removes the TravelSegmento resource.
-         */
-        delete: operations["api_travel_segmentos_id_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel_servicios": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves the collection of TravelServicio resources.
-         * @description Retrieves the collection of TravelServicio resources.
-         */
-        get: operations["api_travel_servicios_get_collection"];
-        put?: never;
-        /**
-         * Creates a TravelServicio resource.
-         * @description Creates a TravelServicio resource.
-         */
-        post: operations["api_travel_servicios_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platform/travel_servicios/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Retrieves a TravelServicio resource.
-         * @description Retrieves a TravelServicio resource.
-         */
-        get: operations["api_travel_servicios_id_get"];
-        /**
-         * Replaces the TravelServicio resource.
-         * @description Replaces the TravelServicio resource.
-         */
-        put: operations["api_travel_servicios_id_put"];
-        post?: never;
-        /**
-         * Removes the TravelServicio resource.
-         * @description Removes the TravelServicio resource.
-         */
-        delete: operations["api_travel_servicios_id_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -699,6 +699,375 @@ export interface components {
             status: string;
             /** Format: date-time */
             runAt?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        Componente: {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
+            componenteItems?: components["schemas"]["TravelComponenteItem"][];
+            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            tarifas?: components["schemas"]["TravelTarifa"][];
+            /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
+            servicios?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente-componente.item.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
+            componenteItems?: components["schemas"]["TravelComponenteItem-componente.item.read"][];
+            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            tarifas?: components["schemas"]["TravelTarifa-componente.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente-componente.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente-componente.write": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
+            componenteItems?: components["schemas"]["TravelComponenteItem-componente.write"][];
+            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            tarifas?: components["schemas"]["TravelTarifa-componente.write"][];
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente-servicio.item.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.html": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
+            componenteItems?: components["schemas"]["TravelComponenteItem.html"][];
+            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            tarifas?: components["schemas"]["TravelTarifa.html"][];
+            /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
+            servicios?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.html-componente.item.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
+            componenteItems?: components["schemas"]["TravelComponenteItem.html-componente.item.read"][];
+            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            tarifas?: components["schemas"]["TravelTarifa.html-componente.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.html-componente.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.html-servicio.item.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
+            componenteItems?: components["schemas"]["TravelComponenteItem.jsonld"][];
+            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            tarifas?: components["schemas"]["TravelTarifa.jsonld"][];
+            /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
+            servicios?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
+            componenteItems?: components["schemas"]["TravelComponenteItem.jsonld-componente.item.read"][];
+            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            tarifas?: components["schemas"]["TravelTarifa.jsonld-componente.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.jsonld-componente.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.multipart": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
+            componenteItems?: components["schemas"]["TravelComponenteItem.multipart"][];
+            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            tarifas?: components["schemas"]["TravelTarifa.multipart"][];
+            /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
+            servicios?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.multipart-componente.item.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
+            componenteItems?: components["schemas"]["TravelComponenteItem.multipart-componente.item.read"][];
+            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
+            tarifas?: components["schemas"]["TravelTarifa.multipart-componente.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.multipart-componente.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Entidad base para la logística pura (El insumo financiero). */
+        "Componente.multipart-servicio.item.read": {
+            /** @description Obtiene el nombre interno del componente. */
+            nombre?: string;
+            /** @description Obtiene el título multilingüe visible para el cliente. */
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
         /** @description Unprocessable entity */
         ConstraintViolation: {
@@ -1409,8 +1778,8 @@ export interface components {
             pasajeroPrincipal?: string | null;
             email?: string | null;
             telefono?: string | null;
-            pais?: components["schemas"]["MaestroPais-file.read_timestamp.read"] | null;
-            idioma?: components["schemas"]["MaestroIdioma-file.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais-file.read_timestamp.read"] | null;
+            idioma?: components["schemas"]["Idioma-file.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
             /** Format: date-time */
@@ -1476,8 +1845,8 @@ export interface components {
             pasajeroPrincipal?: string | null;
             email?: string | null;
             telefono?: string | null;
-            pais?: components["schemas"]["MaestroPais.html-file.read_timestamp.read"] | null;
-            idioma?: components["schemas"]["MaestroIdioma.html-file.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais.html-file.read_timestamp.read"] | null;
+            idioma?: components["schemas"]["Idioma.html-file.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
             /** Format: date-time */
@@ -1524,8 +1893,8 @@ export interface components {
             pasajeroPrincipal?: string | null;
             email?: string | null;
             telefono?: string | null;
-            pais?: components["schemas"]["MaestroPais.jsonld-file.read_timestamp.read"] | null;
-            idioma?: components["schemas"]["MaestroIdioma.jsonld-file.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais.jsonld-file.read_timestamp.read"] | null;
+            idioma?: components["schemas"]["Idioma.jsonld-file.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
             /** Format: date-time */
@@ -1572,8 +1941,8 @@ export interface components {
             pasajeroPrincipal?: string | null;
             email?: string | null;
             telefono?: string | null;
-            pais?: components["schemas"]["MaestroPais.multipart-file.read_timestamp.read"] | null;
-            idioma?: components["schemas"]["MaestroIdioma.multipart-file.read_timestamp.read"] | null;
+            pais?: components["schemas"]["Pais.multipart-file.read_timestamp.read"] | null;
+            idioma?: components["schemas"]["Idioma.multipart-file.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
             /** Format: date-time */
@@ -1721,6 +2090,110 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        Diccionario: {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "Diccionario-diccionario.item.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+        };
+        "Diccionario-diccionario.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+        };
+        "Diccionario-diccionario.write": {
+            nombreInterno?: string;
+            titulo?: string[];
+        };
+        "Diccionario.html": {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "Diccionario.html-diccionario.item.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+        };
+        "Diccionario.html-diccionario.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+        };
+        "Diccionario.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "Diccionario.jsonld-diccionario.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            titulo?: string[];
+        };
+        "Diccionario.jsonld-diccionario.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            titulo?: string[];
+        };
+        "Diccionario.multipart": {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "Diccionario.multipart-diccionario.item.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+        };
+        "Diccionario.multipart-diccionario.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+        };
         /** @description A representation of common errors. */
         Error: {
             /** @description A short, human-readable summary of the problem. */
@@ -1804,7 +2277,7 @@ export interface components {
             "@id": string;
             "@type": string;
         };
-        "MaestroIdioma-file.read_timestamp.read": {
+        "Idioma-file.read_timestamp.read": {
             id?: string;
             nombre?: string;
             bandera?: string | null;
@@ -1814,13 +2287,13 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "MaestroIdioma-pax.read": {
+        "Idioma-pax.read": {
             id?: string;
             nombre?: string;
             bandera?: string | null;
             prioridad?: number;
         };
-        "MaestroIdioma.html-file.read_timestamp.read": {
+        "Idioma.html-file.read_timestamp.read": {
             id?: string;
             nombre?: string;
             bandera?: string | null;
@@ -1830,13 +2303,13 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "MaestroIdioma.html-pax.read": {
+        "Idioma.html-pax.read": {
             id?: string;
             nombre?: string;
             bandera?: string | null;
             prioridad?: number;
         };
-        "MaestroIdioma.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "Idioma.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
             bandera?: string | null;
@@ -1846,13 +2319,13 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "MaestroIdioma.jsonld-pax.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "Idioma.jsonld-pax.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
             bandera?: string | null;
             prioridad?: number;
         };
-        "MaestroIdioma.multipart-file.read_timestamp.read": {
+        "Idioma.multipart-file.read_timestamp.read": {
             id?: string;
             nombre?: string;
             bandera?: string | null;
@@ -1862,11 +2335,273 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "MaestroIdioma.multipart-pax.read": {
+        "Idioma.multipart-pax.read": {
             id?: string;
             nombre?: string;
             bandera?: string | null;
             prioridad?: number;
+        };
+        Itinerario: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel"][];
+            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "Itinerario-itinerario.item.read": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel-itinerario.item.read"][];
+            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario-itinerario.read": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario-itinerario.write": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel-itinerario.write"][];
+            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
+            notas?: string[];
+        };
+        "Itinerario-servicio.item.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.html"][];
+            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "Itinerario.html-itinerario.item.read": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.html-itinerario.item.read"][];
+            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.html-itinerario.read": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.html-servicio.item.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.jsonld"][];
+            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "Itinerario.jsonld-itinerario.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.jsonld-itinerario.item.read"][];
+            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.jsonld-itinerario.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.multipart"][];
+            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "Itinerario.multipart-itinerario.item.read": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.multipart-itinerario.item.read"][];
+            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
+            notas?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.multipart-itinerario.read": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            servicio?: string;
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 1 */
+            duracionDias: number;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Itinerario.multipart-servicio.item.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
         MaestroMoneda: {
             id?: string;
@@ -1909,82 +2644,6 @@ export interface components {
             updatedAt?: string | null;
         };
         "MaestroMoneda.multipart-componente.item.read": Record<string, never>;
-        "MaestroPais-file.read_timestamp.read": {
-            id?: string;
-            nombre?: string;
-            bandera?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        /**
-         * @description Entidad MaestroPais.
-         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
-         */
-        "MaestroPais-pais.read": {
-            id?: string;
-            nombre?: string;
-            bandera?: string | null;
-        };
-        "MaestroPais.html-file.read_timestamp.read": {
-            id?: string;
-            nombre?: string;
-            bandera?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        /**
-         * @description Entidad MaestroPais.
-         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
-         */
-        "MaestroPais.html-pais.read": {
-            id?: string;
-            nombre?: string;
-            bandera?: string | null;
-        };
-        /**
-         * @description Entidad MaestroPais.
-         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
-         */
-        "MaestroPais.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
-            id?: string;
-            nombre?: string;
-            bandera?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        /**
-         * @description Entidad MaestroPais.
-         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
-         */
-        "MaestroPais.jsonld-pais.read": components["schemas"]["HydraItemBaseSchema"] & {
-            id?: string;
-            nombre?: string;
-            bandera?: string | null;
-        };
-        "MaestroPais.multipart-file.read_timestamp.read": {
-            id?: string;
-            nombre?: string;
-            bandera?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        /**
-         * @description Entidad MaestroPais.
-         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
-         */
-        "MaestroPais.multipart-pais.read": {
-            id?: string;
-            nombre?: string;
-            bandera?: string | null;
-        };
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
          *     Expuesta a través de API Platform permitiendo lectura y escritura.
@@ -2227,89 +2886,292 @@ export interface components {
             id: string;
             name: string;
         };
-        "MessageTemplate-template.read": {
-            code: string;
-            name: string;
-            contextType?: string | null;
-            allowedSources?: string[] | null;
-            allowedAgencies?: string[] | null;
-            /** Format: uuid */
-            readonly id?: string;
-            readonly emailActive?: boolean;
-            readonly beds24Active?: boolean;
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        Nota: {
+            nombreInterno?: string;
             /**
-             * @description Verifica si el usuario ha decidido ocultar explícitamente los botones de Meta
-             *     al momento de enviar este mensaje a través de Beds24 (OTAs).
+             * @default introduccion
+             * @enum {string}
              */
-            readonly beds24MetaButtonsDisabled?: boolean;
-            readonly whatsappMetaActive?: boolean;
-            /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
-            whatsappMetaOfficial?: boolean;
-            /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
-            readonly channels?: string[];
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+            itinerarios?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
-        "MessageTemplate.html-template.read": {
-            code: string;
-            name: string;
-            contextType?: string | null;
-            allowedSources?: string[] | null;
-            allowedAgencies?: string[] | null;
-            /** Format: uuid */
-            readonly id?: string;
-            readonly emailActive?: boolean;
-            readonly beds24Active?: boolean;
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota-nota.item.read": {
+            nombreInterno?: string;
             /**
-             * @description Verifica si el usuario ha decidido ocultar explícitamente los botones de Meta
-             *     al momento de enviar este mensaje a través de Beds24 (OTAs).
+             * @default introduccion
+             * @enum {string}
              */
-            readonly beds24MetaButtonsDisabled?: boolean;
-            readonly whatsappMetaActive?: boolean;
-            /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
-            whatsappMetaOfficial?: boolean;
-            /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
-            readonly channels?: string[];
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
         };
-        "MessageTemplate.jsonld-template.read": components["schemas"]["HydraItemBaseSchema"] & {
-            code: string;
-            name: string;
-            contextType?: string | null;
-            allowedSources?: string[] | null;
-            allowedAgencies?: string[] | null;
-            /** Format: uuid */
-            readonly id?: string;
-            readonly emailActive?: boolean;
-            readonly beds24Active?: boolean;
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota-nota.read": {
+            nombreInterno?: string;
             /**
-             * @description Verifica si el usuario ha decidido ocultar explícitamente los botones de Meta
-             *     al momento de enviar este mensaje a través de Beds24 (OTAs).
+             * @default introduccion
+             * @enum {string}
              */
-            readonly beds24MetaButtonsDisabled?: boolean;
-            readonly whatsappMetaActive?: boolean;
-            /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
-            whatsappMetaOfficial?: boolean;
-            /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
-            readonly channels?: string[];
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
         };
-        "MessageTemplate.multipart-template.read": {
-            code: string;
-            name: string;
-            contextType?: string | null;
-            allowedSources?: string[] | null;
-            allowedAgencies?: string[] | null;
-            /** Format: uuid */
-            readonly id?: string;
-            readonly emailActive?: boolean;
-            readonly beds24Active?: boolean;
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota-nota.write": {
+            nombreInterno?: string;
             /**
-             * @description Verifica si el usuario ha decidido ocultar explícitamente los botones de Meta
-             *     al momento de enviar este mensaje a través de Beds24 (OTAs).
+             * @default introduccion
+             * @enum {string}
              */
-            readonly beds24MetaButtonsDisabled?: boolean;
-            readonly whatsappMetaActive?: boolean;
-            /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
-            whatsappMetaOfficial?: boolean;
-            /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
-            readonly channels?: string[];
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota.html": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+            itinerarios?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota.html-nota.item.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota.html-nota.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+            itinerarios?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota.jsonld-nota.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota.jsonld-nota.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota.multipart": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+            itinerarios?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota.multipart-nota.item.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
+        "Nota.multipart-nota.read": {
+            nombreInterno?: string;
+            /**
+             * @default introduccion
+             * @enum {string}
+             */
+            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
+            titulo?: string[];
+            contenido?: string[];
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais-file.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais-pais.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.html-file.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.html-pais.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.jsonld-pais.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.multipart-file.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.multipart-pais.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
         };
         "PmsChannel-pax_reserva.read": {
             /** @description El ID es el código string. */
@@ -2535,28 +3397,13 @@ export interface components {
             /** @description PROPIEDAD VIRTUAL (No es columna de DB). */
             imageUrl?: string | null;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        TravelComponente: {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
-            titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
-            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
-            componenteItems?: components["schemas"]["TravelComponenteItem"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa"][];
-            /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
+        Segmento: {
             servicios?: string[];
+            nombreInterno?: string;
+            titulo?: string[];
+            contenido?: string[];
+            imagenes?: components["schemas"]["TravelSegmentoImagen"][];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -2571,87 +3418,44 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente-componente.item.read": {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento-segmento.item.read": {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
-            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
-            componenteItems?: components["schemas"]["TravelComponenteItem-componente.item.read"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa-componente.item.read"][];
+            contenido?: string[];
+            imagenes?: components["schemas"]["TravelSegmentoImagen-segmento.item.read"][];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente-segmento.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente-componente.read": {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento-segmento.read": {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
+            contenido?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente-componente.write": {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento-segmento.write": {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
-            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
-            componenteItems?: components["schemas"]["TravelComponenteItem-componente.write"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa-componente.write"][];
+            contenido?: string[];
+            imagenes?: components["schemas"]["TravelSegmentoImagen-segmento.write"][];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente-segmento.write"][];
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente.html": {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento-servicio.item.read": {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
-            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
-            componenteItems?: components["schemas"]["TravelComponenteItem.html"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.html"][];
-            /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
+            contenido?: string[];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente-servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Segmento.html": {
             servicios?: string[];
+            nombreInterno?: string;
+            titulo?: string[];
+            contenido?: string[];
+            imagenes?: components["schemas"]["TravelSegmentoImagen.html"][];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.html"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -2666,66 +3470,37 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente.html-componente.item.read": {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento.html-segmento.item.read": {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
-            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
-            componenteItems?: components["schemas"]["TravelComponenteItem.html-componente.item.read"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.html-componente.item.read"][];
+            contenido?: string[];
+            imagenes?: components["schemas"]["TravelSegmentoImagen.html-segmento.item.read"][];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.html-segmento.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente.html-componente.read": {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento.html-segmento.read": {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
+            contenido?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento.html-servicio.item.read": {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
-            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
-            componenteItems?: components["schemas"]["TravelComponenteItem.jsonld"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.jsonld"][];
-            /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
+            contenido?: string[];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.html-servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Segmento.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             servicios?: string[];
+            nombreInterno?: string;
+            titulo?: string[];
+            contenido?: string[];
+            imagenes?: components["schemas"]["TravelSegmentoImagen.jsonld"][];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.jsonld"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -2740,66 +3515,37 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento.jsonld-segmento.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
-            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
-            componenteItems?: components["schemas"]["TravelComponenteItem.jsonld-componente.item.read"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.jsonld-componente.item.read"][];
+            contenido?: string[];
+            imagenes?: components["schemas"]["TravelSegmentoImagen.jsonld-segmento.item.read"][];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.jsonld-segmento.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente.jsonld-componente.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento.jsonld-segmento.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
+            contenido?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente.multipart": {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
-            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
-            componenteItems?: components["schemas"]["TravelComponenteItem.multipart"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.multipart"][];
-            /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
+            contenido?: string[];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.jsonld-servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Segmento.multipart": {
             servicios?: string[];
+            nombreInterno?: string;
+            titulo?: string[];
+            contenido?: string[];
+            imagenes?: components["schemas"]["TravelSegmentoImagen.multipart"][];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.multipart"][];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -2814,43 +3560,352 @@ export interface components {
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente.multipart-componente.item.read": {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento.multipart-segmento.item.read": {
+            nombreInterno?: string;
             titulo?: string[];
-            /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
-             */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
-            /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
-            componenteItems?: components["schemas"]["TravelComponenteItem.multipart-componente.item.read"][];
-            /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.multipart-componente.item.read"][];
+            contenido?: string[];
+            imagenes?: components["schemas"]["TravelSegmentoImagen.multipart-segmento.item.read"][];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.multipart-segmento.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
         };
-        /** @description Entidad base para la logística pura (El insumo financiero). */
-        "TravelComponente.multipart-componente.read": {
-            /** @description Obtiene el nombre interno del componente. */
-            nombre?: string;
-            /** @description Obtiene el título multilingüe visible para el cliente. */
+        "Segmento.multipart-segmento.read": {
+            nombreInterno?: string;
             titulo?: string[];
+            contenido?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Segmento.multipart-servicio.item.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+            contenido?: string[];
+            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.multipart-servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        Servicio: {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
+            componentes?: string[];
+            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
+            itinerarios?: string[];
+            /** @description Pool narrativo. */
+            segmentos?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
             /**
-             * @description Obtiene la categoría operativa del componente.
-             * @default extras
-             * @enum {string}
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
              */
-            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
-            /** @description Obtiene la duración estimada en horas. */
-            duracion?: string | null;
-            /** @description Obtiene los días de anticipación para alertas operativas. */
-            anticipacionalerta?: number | null;
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio-servicio.item.read": {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
+            componentes?: components["schemas"]["Componente-servicio.item.read"][];
+            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
+            itinerarios?: components["schemas"]["Itinerario-servicio.item.read"][];
+            /** @description Pool narrativo. */
+            segmentos?: components["schemas"]["Segmento-servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio-servicio.read": {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio-servicio.write": {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
+            componentes?: string[];
+            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
+            itinerarios?: string[];
+            /** @description Pool narrativo. */
+            segmentos?: string[];
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio.html": {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
+            componentes?: string[];
+            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
+            itinerarios?: string[];
+            /** @description Pool narrativo. */
+            segmentos?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio.html-servicio.item.read": {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
+            componentes?: components["schemas"]["Componente.html-servicio.item.read"][];
+            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
+            itinerarios?: components["schemas"]["Itinerario.html-servicio.item.read"][];
+            /** @description Pool narrativo. */
+            segmentos?: components["schemas"]["Segmento.html-servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio.html-servicio.read": {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
+            componentes?: string[];
+            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
+            itinerarios?: string[];
+            /** @description Pool narrativo. */
+            segmentos?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
+            componentes?: components["schemas"]["Componente.jsonld-servicio.item.read"][];
+            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
+            itinerarios?: components["schemas"]["Itinerario.jsonld-servicio.item.read"][];
+            /** @description Pool narrativo. */
+            segmentos?: components["schemas"]["Segmento.jsonld-servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio.jsonld-servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio.multipart": {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
+            componentes?: string[];
+            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
+            itinerarios?: string[];
+            /** @description Pool narrativo. */
+            segmentos?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio.multipart-servicio.item.read": {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
+            componentes?: components["schemas"]["Componente.multipart-servicio.item.read"][];
+            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
+            itinerarios?: components["schemas"]["Itinerario.multipart-servicio.item.read"][];
+            /** @description Pool narrativo. */
+            segmentos?: components["schemas"]["Segmento.multipart-servicio.item.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /**
+         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
+         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
+         */
+        "Servicio.multipart-servicio.read": {
+            nombreInterno?: string;
+            codigo?: string | null;
+            titulo?: string[];
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "Template-template.read": {
+            code: string;
+            name: string;
+            contextType?: string | null;
+            allowedSources?: string[] | null;
+            allowedAgencies?: string[] | null;
+            /** Format: uuid */
+            readonly id?: string;
+            readonly emailActive?: boolean;
+            readonly beds24Active?: boolean;
+            /**
+             * @description Verifica si el usuario ha decidido ocultar explícitamente los botones de Meta
+             *     al momento de enviar este mensaje a través de Beds24 (OTAs).
+             */
+            readonly beds24MetaButtonsDisabled?: boolean;
+            readonly whatsappMetaActive?: boolean;
+            /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
+            whatsappMetaOfficial?: boolean;
+            /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
+            readonly channels?: string[];
+        };
+        "Template.html-template.read": {
+            code: string;
+            name: string;
+            contextType?: string | null;
+            allowedSources?: string[] | null;
+            allowedAgencies?: string[] | null;
+            /** Format: uuid */
+            readonly id?: string;
+            readonly emailActive?: boolean;
+            readonly beds24Active?: boolean;
+            /**
+             * @description Verifica si el usuario ha decidido ocultar explícitamente los botones de Meta
+             *     al momento de enviar este mensaje a través de Beds24 (OTAs).
+             */
+            readonly beds24MetaButtonsDisabled?: boolean;
+            readonly whatsappMetaActive?: boolean;
+            /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
+            whatsappMetaOfficial?: boolean;
+            /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
+            readonly channels?: string[];
+        };
+        "Template.jsonld-template.read": components["schemas"]["HydraItemBaseSchema"] & {
+            code: string;
+            name: string;
+            contextType?: string | null;
+            allowedSources?: string[] | null;
+            allowedAgencies?: string[] | null;
+            /** Format: uuid */
+            readonly id?: string;
+            readonly emailActive?: boolean;
+            readonly beds24Active?: boolean;
+            /**
+             * @description Verifica si el usuario ha decidido ocultar explícitamente los botones de Meta
+             *     al momento de enviar este mensaje a través de Beds24 (OTAs).
+             */
+            readonly beds24MetaButtonsDisabled?: boolean;
+            readonly whatsappMetaActive?: boolean;
+            /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
+            whatsappMetaOfficial?: boolean;
+            /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
+            readonly channels?: string[];
+        };
+        "Template.multipart-template.read": {
+            code: string;
+            name: string;
+            contextType?: string | null;
+            allowedSources?: string[] | null;
+            allowedAgencies?: string[] | null;
+            /** Format: uuid */
+            readonly id?: string;
+            readonly emailActive?: boolean;
+            readonly beds24Active?: boolean;
+            /**
+             * @description Verifica si el usuario ha decidido ocultar explícitamente los botones de Meta
+             *     al momento de enviar este mensaje a través de Beds24 (OTAs).
+             */
+            readonly beds24MetaButtonsDisabled?: boolean;
+            readonly whatsappMetaActive?: boolean;
+            /** @description Determina si esta plantilla es oficial de Meta (aprobada por ellos) o es un "Quick Reply" interno del PMS. */
+            whatsappMetaOfficial?: boolean;
+            /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
+            readonly channels?: string[];
         };
         TravelComponenteItem: {
             /**
@@ -2928,7 +3983,7 @@ export interface components {
              */
             modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
             /** @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE. */
-            componenteAdicionalVinculado?: components["schemas"]["TravelComponente-componente.write"] | null;
+            componenteAdicionalVinculado?: components["schemas"]["Componente-componente.write"] | null;
             /**
              * @description Obtiene el orden de aparición.
              * @default 1
@@ -3121,332 +4176,6 @@ export interface components {
              */
             orden: number;
         };
-        TravelItemDiccionario: {
-            nombreInterno?: string;
-            titulo?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelItemDiccionario-diccionario.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-        };
-        "TravelItemDiccionario-diccionario.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-        };
-        "TravelItemDiccionario-diccionario.write": {
-            nombreInterno?: string;
-            titulo?: string[];
-        };
-        "TravelItemDiccionario.html": {
-            nombreInterno?: string;
-            titulo?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelItemDiccionario.html-diccionario.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-        };
-        "TravelItemDiccionario.html-diccionario.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-        };
-        "TravelItemDiccionario.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            titulo?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelItemDiccionario.jsonld-diccionario.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            titulo?: string[];
-        };
-        "TravelItemDiccionario.jsonld-diccionario.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            titulo?: string[];
-        };
-        "TravelItemDiccionario.multipart": {
-            nombreInterno?: string;
-            titulo?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelItemDiccionario.multipart-diccionario.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-        };
-        "TravelItemDiccionario.multipart-diccionario.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-        };
-        TravelItinerario: {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelItinerario-itinerario.item.read": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel-itinerario.item.read"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
-        };
-        "TravelItinerario-itinerario.read": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-        };
-        "TravelItinerario-itinerario.write": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel-itinerario.write"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
-        };
-        "TravelItinerario.html": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.html"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelItinerario.html-itinerario.item.read": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.html-itinerario.item.read"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
-        };
-        "TravelItinerario.html-itinerario.read": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-        };
-        "TravelItinerario.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.jsonld"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelItinerario.jsonld-itinerario.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.jsonld-itinerario.item.read"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
-        };
-        "TravelItinerario.jsonld-itinerario.read": components["schemas"]["HydraItemBaseSchema"] & {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-        };
-        "TravelItinerario.multipart": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.multipart"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelItinerario.multipart-itinerario.item.read": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-            itinerarioSegmentos?: components["schemas"]["TravelItinerarioSegmentoRel.multipart-itinerario.item.read"][];
-            /** @description Notas transversales. Solo enlazamos IRIs para no saturar. */
-            notas?: string[];
-        };
-        "TravelItinerario.multipart-itinerario.read": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            servicio?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 1 */
-            duracionDias: number;
-        };
         TravelItinerarioSegmentoRel: {
             /**
              * Format: iri-reference
@@ -3583,344 +4312,6 @@ export interface components {
             /** @default 1 */
             orden: number;
         };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        TravelNota: {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-            itinerarios?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota-nota.item.read": {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota-nota.read": {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota-nota.write": {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota.html": {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-            itinerarios?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota.html-nota.item.read": {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota.html-nota.read": {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-            itinerarios?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota.jsonld-nota.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota.jsonld-nota.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota.multipart": {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-            itinerarios?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota.multipart-nota.item.read": {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-        };
-        /** @description Entidad transversal que almacena información compartida (Historias, Políticas, Tips). */
-        "TravelNota.multipart-nota.read": {
-            nombreInterno?: string;
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            titulo?: string[];
-            contenido?: string[];
-        };
-        TravelSegmento: {
-            servicios?: string[];
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-            imagenes?: components["schemas"]["TravelSegmentoImagen"][];
-            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelSegmento-segmento.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-            imagenes?: components["schemas"]["TravelSegmentoImagen-segmento.item.read"][];
-            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente-segmento.item.read"][];
-        };
-        "TravelSegmento-segmento.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-        };
-        "TravelSegmento-segmento.write": {
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-            imagenes?: components["schemas"]["TravelSegmentoImagen-segmento.write"][];
-            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente-segmento.write"][];
-        };
-        "TravelSegmento.html": {
-            servicios?: string[];
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-            imagenes?: components["schemas"]["TravelSegmentoImagen.html"][];
-            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.html"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelSegmento.html-segmento.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-            imagenes?: components["schemas"]["TravelSegmentoImagen.html-segmento.item.read"][];
-            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.html-segmento.item.read"][];
-        };
-        "TravelSegmento.html-segmento.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-        };
-        "TravelSegmento.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            servicios?: string[];
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-            imagenes?: components["schemas"]["TravelSegmentoImagen.jsonld"][];
-            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.jsonld"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelSegmento.jsonld-segmento.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-            imagenes?: components["schemas"]["TravelSegmentoImagen.jsonld-segmento.item.read"][];
-            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.jsonld-segmento.item.read"][];
-        };
-        "TravelSegmento.jsonld-segmento.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-        };
-        "TravelSegmento.multipart": {
-            servicios?: string[];
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-            imagenes?: components["schemas"]["TravelSegmentoImagen.multipart"][];
-            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.multipart"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelSegmento.multipart-segmento.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-            imagenes?: components["schemas"]["TravelSegmentoImagen.multipart-segmento.item.read"][];
-            segmentoComponentes?: components["schemas"]["TravelSegmentoComponente.multipart-segmento.item.read"][];
-        };
-        "TravelSegmento.multipart-segmento.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-            contenido?: string[];
-        };
         TravelSegmentoComponente: {
             /**
              * Format: iri-reference
@@ -3988,6 +4379,7 @@ export interface components {
             /** @default 1 */
             orden: number;
         };
+        "TravelSegmentoComponente-servicio.item.read": Record<string, never>;
         "TravelSegmentoComponente.html": {
             /**
              * Format: iri-reference
@@ -4035,6 +4427,7 @@ export interface components {
             /** @default 1 */
             orden: number;
         };
+        "TravelSegmentoComponente.html-servicio.item.read": Record<string, never>;
         "TravelSegmentoComponente.jsonld": {
             /**
              * Format: iri-reference
@@ -4082,6 +4475,7 @@ export interface components {
             /** @default 1 */
             orden: number;
         };
+        "TravelSegmentoComponente.jsonld-servicio.item.read": Record<string, never>;
         "TravelSegmentoComponente.multipart": {
             /**
              * Format: iri-reference
@@ -4129,6 +4523,7 @@ export interface components {
             /** @default 1 */
             orden: number;
         };
+        "TravelSegmentoComponente.multipart-servicio.item.read": Record<string, never>;
         TravelSegmentoImagen: {
             /**
              * Format: iri-reference
@@ -4228,229 +4623,6 @@ export interface components {
         "TravelSegmentoImagen.multipart-segmento.item.read": {
             imageName?: string | null;
             imageSize?: number | null;
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        TravelServicio: {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
-            componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
-            itinerarios?: string[];
-            /** @description Pool narrativo. */
-            segmentos?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio-servicio.item.read": {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
-            componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
-            itinerarios?: string[];
-            /** @description Pool narrativo. */
-            segmentos?: string[];
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio-servicio.read": {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio-servicio.write": {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
-            componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
-            itinerarios?: string[];
-            /** @description Pool narrativo. */
-            segmentos?: string[];
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio.html": {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
-            componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
-            itinerarios?: string[];
-            /** @description Pool narrativo. */
-            segmentos?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio.html-servicio.item.read": {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
-            componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
-            itinerarios?: string[];
-            /** @description Pool narrativo. */
-            segmentos?: string[];
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio.html-servicio.read": {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
-            componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
-            itinerarios?: string[];
-            /** @description Pool narrativo. */
-            segmentos?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
-            componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
-            itinerarios?: string[];
-            /** @description Pool narrativo. */
-            segmentos?: string[];
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio.jsonld-servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio.multipart": {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
-            componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
-            itinerarios?: string[];
-            /** @description Pool narrativo. */
-            segmentos?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio.multipart-servicio.item.read": {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
-            /** @description Pool logístico. Solo lectura profunda, al escribir pasamos IRIs. */
-            componentes?: string[];
-            /** @description Itinerarios pre-armados. Solo lectura profunda, al escribir pasamos IRIs. */
-            itinerarios?: string[];
-            /** @description Pool narrativo. */
-            segmentos?: string[];
-        };
-        /**
-         * @description Actúa como una bolsa/pool que agrupa componentes logísticos y segmentos narrativos
-         *     para que luego las plantillas de itinerario y las cotizaciones los utilicen.
-         */
-        "TravelServicio.multipart-servicio.read": {
-            nombreInterno?: string;
-            codigo?: string | null;
-            titulo?: string[];
         };
         TravelTarifa: {
             /**
@@ -4750,7 +4922,268 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    api_userutilmsgconversations_get_collection: {
+    api_travelcomponentes_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Componente collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["Componente.jsonld-componente.read"][];
+                    };
+                    "application/json": components["schemas"]["Componente-componente.read"][];
+                    "text/html": components["schemas"]["Componente.html-componente.read"][];
+                    "multipart/form-data": components["schemas"]["Componente.multipart-componente.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_travelcomponentes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new Componente resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Componente-componente.write"];
+                "application/json": components["schemas"]["Componente-componente.write"];
+                "text/html": components["schemas"]["Componente-componente.write"];
+                "multipart/form-data": components["schemas"]["Componente-componente.write"];
+            };
+        };
+        responses: {
+            /** @description Componente resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Componente.jsonld"];
+                    "application/json": components["schemas"]["Componente"];
+                    "text/html": components["schemas"]["Componente.html"];
+                    "multipart/form-data": components["schemas"]["Componente.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelcomponentes_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Componente identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Componente resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Componente.jsonld-componente.item.read"];
+                    "application/json": components["schemas"]["Componente-componente.item.read"];
+                    "text/html": components["schemas"]["Componente.html-componente.item.read"];
+                    "multipart/form-data": components["schemas"]["Componente.multipart-componente.item.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_travelcomponentes_id_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Componente identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Componente resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Componente-componente.write"];
+                "application/json": components["schemas"]["Componente-componente.write"];
+                "text/html": components["schemas"]["Componente-componente.write"];
+                "multipart/form-data": components["schemas"]["Componente-componente.write"];
+            };
+        };
+        responses: {
+            /** @description Componente resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Componente.jsonld"];
+                    "application/json": components["schemas"]["Componente"];
+                    "text/html": components["schemas"]["Componente.html"];
+                    "multipart/form-data": components["schemas"]["Componente.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelcomponentes_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Componente identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Componente resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_messageconversations_get_collection: {
         parameters: {
             query?: {
                 /** @description The collection page number */
@@ -4791,7 +5224,7 @@ export interface operations {
             };
         };
     };
-    api_userutilmsgconversations_id_get: {
+    api_messageconversations_id_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4839,7 +5272,7 @@ export interface operations {
             };
         };
     };
-    api_userutilmsgconversations_idread_post: {
+    api_messageconversations_idread_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4906,7 +5339,7 @@ export interface operations {
             };
         };
     };
-    api_cotizacion_files_get_collection: {
+    api_salescotizacion_files_get_collection: {
         parameters: {
             query?: {
                 /** @description The collection page number */
@@ -4945,7 +5378,7 @@ export interface operations {
             };
         };
     };
-    api_cotizacion_files_post: {
+    api_salescotizacion_files_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4998,7 +5431,7 @@ export interface operations {
             };
         };
     };
-    api_cotizacion_files_id_get: {
+    api_salescotizacion_files_id_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5046,7 +5479,7 @@ export interface operations {
             };
         };
     };
-    api_cotizacion_files_id_put: {
+    api_salescotizacion_files_id_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -5124,7 +5557,7 @@ export interface operations {
             };
         };
     };
-    api_cotizacion_files_id_delete: {
+    api_salescotizacion_files_id_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -5167,7 +5600,268 @@ export interface operations {
             };
         };
     };
-    api_publicmaestro_idioma_get_collection: {
+    api_traveldiccionarios_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Diccionario collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["Diccionario.jsonld-diccionario.read"][];
+                    };
+                    "application/json": components["schemas"]["Diccionario-diccionario.read"][];
+                    "text/html": components["schemas"]["Diccionario.html-diccionario.read"][];
+                    "multipart/form-data": components["schemas"]["Diccionario.multipart-diccionario.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_traveldiccionarios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new Diccionario resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Diccionario-diccionario.write"];
+                "application/json": components["schemas"]["Diccionario-diccionario.write"];
+                "text/html": components["schemas"]["Diccionario-diccionario.write"];
+                "multipart/form-data": components["schemas"]["Diccionario-diccionario.write"];
+            };
+        };
+        responses: {
+            /** @description Diccionario resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Diccionario.jsonld"];
+                    "application/json": components["schemas"]["Diccionario"];
+                    "text/html": components["schemas"]["Diccionario.html"];
+                    "multipart/form-data": components["schemas"]["Diccionario.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_traveldiccionarios_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Diccionario identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Diccionario resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Diccionario.jsonld-diccionario.item.read"];
+                    "application/json": components["schemas"]["Diccionario-diccionario.item.read"];
+                    "text/html": components["schemas"]["Diccionario.html-diccionario.item.read"];
+                    "multipart/form-data": components["schemas"]["Diccionario.multipart-diccionario.item.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_traveldiccionarios_id_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Diccionario identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Diccionario resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Diccionario-diccionario.write"];
+                "application/json": components["schemas"]["Diccionario-diccionario.write"];
+                "text/html": components["schemas"]["Diccionario-diccionario.write"];
+                "multipart/form-data": components["schemas"]["Diccionario-diccionario.write"];
+            };
+        };
+        responses: {
+            /** @description Diccionario resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Diccionario.jsonld"];
+                    "application/json": components["schemas"]["Diccionario"];
+                    "text/html": components["schemas"]["Diccionario.html"];
+                    "multipart/form-data": components["schemas"]["Diccionario.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_traveldiccionarios_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Diccionario identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Diccionario resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_maestroidiomas_get_collection: {
         parameters: {
             query?: {
                 /** @description The collection page number */
@@ -5186,44 +5880,44 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description MaestroIdioma collection */
+            /** @description Idioma collection */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
-                        member: components["schemas"]["MaestroIdioma.jsonld-pax.read"][];
+                        member: components["schemas"]["Idioma.jsonld-pax.read"][];
                     };
-                    "application/json": components["schemas"]["MaestroIdioma-pax.read"][];
-                    "text/html": components["schemas"]["MaestroIdioma.html-pax.read"][];
-                    "multipart/form-data": components["schemas"]["MaestroIdioma.multipart-pax.read"][];
+                    "application/json": components["schemas"]["Idioma-pax.read"][];
+                    "text/html": components["schemas"]["Idioma.html-pax.read"][];
+                    "multipart/form-data": components["schemas"]["Idioma.multipart-pax.read"][];
                 };
             };
         };
     };
-    api_publicmaestro_idioma_id_get: {
+    api_maestroidiomas_id_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description MaestroIdioma identifier */
+                /** @description Idioma identifier */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description MaestroIdioma resource */
+            /** @description Idioma resource */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["MaestroIdioma.jsonld-pax.read"];
-                    "application/json": components["schemas"]["MaestroIdioma-pax.read"];
-                    "text/html": components["schemas"]["MaestroIdioma.html-pax.read"];
-                    "multipart/form-data": components["schemas"]["MaestroIdioma.multipart-pax.read"];
+                    "application/ld+json": components["schemas"]["Idioma.jsonld-pax.read"];
+                    "application/json": components["schemas"]["Idioma-pax.read"];
+                    "text/html": components["schemas"]["Idioma.html-pax.read"];
+                    "multipart/form-data": components["schemas"]["Idioma.multipart-pax.read"];
                 };
             };
             /** @description Not found */
@@ -5239,53 +5933,131 @@ export interface operations {
             };
         };
     };
-    api_publicmaestro_pais_get_collection: {
+    api_travelitinerarios_get_collection: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description MaestroPais collection */
+            /** @description Itinerario collection */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
-                        member: components["schemas"]["MaestroPais.jsonld-pais.read"][];
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["Itinerario.jsonld-itinerario.read"][];
                     };
-                    "application/json": components["schemas"]["MaestroPais-pais.read"][];
-                    "text/html": components["schemas"]["MaestroPais.html-pais.read"][];
-                    "multipart/form-data": components["schemas"]["MaestroPais.multipart-pais.read"][];
+                    "application/json": components["schemas"]["Itinerario-itinerario.read"][];
+                    "text/html": components["schemas"]["Itinerario.html-itinerario.read"][];
+                    "multipart/form-data": components["schemas"]["Itinerario.multipart-itinerario.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
     };
-    api_publicmaestro_pais_id_get: {
+    api_travelitinerarios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new Itinerario resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Itinerario-itinerario.write"];
+                "application/json": components["schemas"]["Itinerario-itinerario.write"];
+                "text/html": components["schemas"]["Itinerario-itinerario.write"];
+                "multipart/form-data": components["schemas"]["Itinerario-itinerario.write"];
+            };
+        };
+        responses: {
+            /** @description Itinerario resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Itinerario.jsonld"];
+                    "application/json": components["schemas"]["Itinerario"];
+                    "text/html": components["schemas"]["Itinerario.html"];
+                    "multipart/form-data": components["schemas"]["Itinerario.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelitinerarios_id_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description MaestroPais identifier */
+                /** @description Itinerario identifier */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description MaestroPais resource */
+            /** @description Itinerario resource */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["MaestroPais.jsonld-pais.read"];
-                    "application/json": components["schemas"]["MaestroPais-pais.read"];
-                    "text/html": components["schemas"]["MaestroPais.html-pais.read"];
-                    "multipart/form-data": components["schemas"]["MaestroPais.multipart-pais.read"];
+                    "application/ld+json": components["schemas"]["Itinerario.jsonld-itinerario.item.read"];
+                    "application/json": components["schemas"]["Itinerario-itinerario.item.read"];
+                    "text/html": components["schemas"]["Itinerario.html-itinerario.item.read"];
+                    "multipart/form-data": components["schemas"]["Itinerario.multipart-itinerario.item.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Not found */
@@ -5301,7 +6073,128 @@ export interface operations {
             };
         };
     };
-    api_userutilmsgconversations_idmessages_get_collection: {
+    api_travelitinerarios_id_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Itinerario identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Itinerario resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Itinerario-itinerario.write"];
+                "application/json": components["schemas"]["Itinerario-itinerario.write"];
+                "text/html": components["schemas"]["Itinerario-itinerario.write"];
+                "multipart/form-data": components["schemas"]["Itinerario-itinerario.write"];
+            };
+        };
+        responses: {
+            /** @description Itinerario resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Itinerario.jsonld"];
+                    "application/json": components["schemas"]["Itinerario"];
+                    "text/html": components["schemas"]["Itinerario.html"];
+                    "multipart/form-data": components["schemas"]["Itinerario.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelitinerarios_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Itinerario identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Itinerario resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_messageconversations_idmessages_get_collection: {
         parameters: {
             query?: {
                 /** @description The collection page number */
@@ -5343,7 +6236,7 @@ export interface operations {
             };
         };
     };
-    api_userutilmsgmessages_get_collection: {
+    api_messagemessages_get_collection: {
         parameters: {
             query?: {
                 /** @description The collection page number */
@@ -5382,7 +6275,7 @@ export interface operations {
             };
         };
     };
-    api_userutilmsgmessages_post: {
+    api_messagemessages_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5444,7 +6337,7 @@ export interface operations {
             };
         };
     };
-    api_userutilmsgmessages_id_get: {
+    api_messagemessages_id_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5492,7 +6385,7 @@ export interface operations {
             };
         };
     };
-    api_userutilmsgtemplates_get_collection: {
+    api_travelnotas_get_collection: {
         parameters: {
             query?: {
                 /** @description The collection page number */
@@ -5504,18 +6397,313 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description MessageTemplate collection */
+            /** @description Nota collection */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
-                        member: components["schemas"]["MessageTemplate.jsonld-template.read"][];
+                        member: components["schemas"]["Nota.jsonld-nota.read"][];
                     };
-                    "application/json": components["schemas"]["MessageTemplate-template.read"][];
-                    "text/html": components["schemas"]["MessageTemplate.html-template.read"][];
-                    "multipart/form-data": components["schemas"]["MessageTemplate.multipart-template.read"][];
+                    "application/json": components["schemas"]["Nota-nota.read"][];
+                    "text/html": components["schemas"]["Nota.html-nota.read"][];
+                    "multipart/form-data": components["schemas"]["Nota.multipart-nota.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_travelnotas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new Nota resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Nota-nota.write"];
+                "application/json": components["schemas"]["Nota-nota.write"];
+                "text/html": components["schemas"]["Nota-nota.write"];
+                "multipart/form-data": components["schemas"]["Nota-nota.write"];
+            };
+        };
+        responses: {
+            /** @description Nota resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Nota.jsonld"];
+                    "application/json": components["schemas"]["Nota"];
+                    "text/html": components["schemas"]["Nota.html"];
+                    "multipart/form-data": components["schemas"]["Nota.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelnotas_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Nota identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Nota resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Nota.jsonld-nota.item.read"];
+                    "application/json": components["schemas"]["Nota-nota.item.read"];
+                    "text/html": components["schemas"]["Nota.html-nota.item.read"];
+                    "multipart/form-data": components["schemas"]["Nota.multipart-nota.item.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_travelnotas_id_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Nota identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Nota resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Nota-nota.write"];
+                "application/json": components["schemas"]["Nota-nota.write"];
+                "text/html": components["schemas"]["Nota-nota.write"];
+                "multipart/form-data": components["schemas"]["Nota-nota.write"];
+            };
+        };
+        responses: {
+            /** @description Nota resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Nota.jsonld"];
+                    "application/json": components["schemas"]["Nota"];
+                    "text/html": components["schemas"]["Nota.html"];
+                    "multipart/form-data": components["schemas"]["Nota.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_travelnotas_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Nota identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Nota resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_maestropais_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Pais identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pais resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Pais.jsonld-pais.read"];
+                    "application/json": components["schemas"]["Pais-pais.read"];
+                    "text/html": components["schemas"]["Pais.html-pais.read"];
+                    "multipart/form-data": components["schemas"]["Pais.multipart-pais.read"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_maestropaises_get_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pais collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
+                        member: components["schemas"]["Pais.jsonld-pais.read"][];
+                    };
+                    "application/json": components["schemas"]["Pais-pais.read"][];
+                    "text/html": components["schemas"]["Pais.html-pais.read"][];
+                    "multipart/form-data": components["schemas"]["Pais.multipart-pais.read"][];
                 };
             };
         };
@@ -5594,7 +6782,7 @@ export interface operations {
             };
         };
     };
-    api_travel_componentes_get_collection: {
+    api_travelsegmentos_get_collection: {
         parameters: {
             query?: {
                 /** @description The collection page number */
@@ -5606,18 +6794,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description TravelComponente collection */
+            /** @description Segmento collection */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
-                        member: components["schemas"]["TravelComponente.jsonld-componente.read"][];
+                        member: components["schemas"]["Segmento.jsonld-segmento.read"][];
                     };
-                    "application/json": components["schemas"]["TravelComponente-componente.read"][];
-                    "text/html": components["schemas"]["TravelComponente.html-componente.read"][];
-                    "multipart/form-data": components["schemas"]["TravelComponente.multipart-componente.read"][];
+                    "application/json": components["schemas"]["Segmento-segmento.read"][];
+                    "text/html": components["schemas"]["Segmento.html-segmento.read"][];
+                    "multipart/form-data": components["schemas"]["Segmento.multipart-segmento.read"][];
                 };
             };
             /** @description Forbidden */
@@ -5633,33 +6821,33 @@ export interface operations {
             };
         };
     };
-    api_travel_componentes_post: {
+    api_travelsegmentos_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description The new TravelComponente resource */
+        /** @description The new Segmento resource */
         requestBody: {
             content: {
-                "application/ld+json": components["schemas"]["TravelComponente-componente.write"];
-                "application/json": components["schemas"]["TravelComponente-componente.write"];
-                "text/html": components["schemas"]["TravelComponente-componente.write"];
-                "multipart/form-data": components["schemas"]["TravelComponente-componente.write"];
+                "application/ld+json": components["schemas"]["Segmento-segmento.write"];
+                "application/json": components["schemas"]["Segmento-segmento.write"];
+                "text/html": components["schemas"]["Segmento-segmento.write"];
+                "multipart/form-data": components["schemas"]["Segmento-segmento.write"];
             };
         };
         responses: {
-            /** @description TravelComponente resource created */
+            /** @description Segmento resource created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["TravelComponente.jsonld"];
-                    "application/json": components["schemas"]["TravelComponente"];
-                    "text/html": components["schemas"]["TravelComponente.html"];
-                    "multipart/form-data": components["schemas"]["TravelComponente.multipart"];
+                    "application/ld+json": components["schemas"]["Segmento.jsonld"];
+                    "application/json": components["schemas"]["Segmento"];
+                    "text/html": components["schemas"]["Segmento.html"];
+                    "multipart/form-data": components["schemas"]["Segmento.multipart"];
                 };
             };
             /** @description Invalid input */
@@ -5686,28 +6874,28 @@ export interface operations {
             };
         };
     };
-    api_travel_componentes_id_get: {
+    api_travelsegmentos_id_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description TravelComponente identifier */
+                /** @description Segmento identifier */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description TravelComponente resource */
+            /** @description Segmento resource */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["TravelComponente.jsonld-componente.item.read"];
-                    "application/json": components["schemas"]["TravelComponente-componente.item.read"];
-                    "text/html": components["schemas"]["TravelComponente.html-componente.item.read"];
-                    "multipart/form-data": components["schemas"]["TravelComponente.multipart-componente.item.read"];
+                    "application/ld+json": components["schemas"]["Segmento.jsonld-segmento.item.read"];
+                    "application/json": components["schemas"]["Segmento-segmento.item.read"];
+                    "text/html": components["schemas"]["Segmento.html-segmento.item.read"];
+                    "multipart/form-data": components["schemas"]["Segmento.multipart-segmento.item.read"];
                 };
             };
             /** @description Forbidden */
@@ -5734,36 +6922,36 @@ export interface operations {
             };
         };
     };
-    api_travel_componentes_id_put: {
+    api_travelsegmentos_id_put: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description TravelComponente identifier */
+                /** @description Segmento identifier */
                 id: string;
             };
             cookie?: never;
         };
-        /** @description The updated TravelComponente resource */
+        /** @description The updated Segmento resource */
         requestBody: {
             content: {
-                "application/ld+json": components["schemas"]["TravelComponente-componente.write"];
-                "application/json": components["schemas"]["TravelComponente-componente.write"];
-                "text/html": components["schemas"]["TravelComponente-componente.write"];
-                "multipart/form-data": components["schemas"]["TravelComponente-componente.write"];
+                "application/ld+json": components["schemas"]["Segmento-segmento.write"];
+                "application/json": components["schemas"]["Segmento-segmento.write"];
+                "text/html": components["schemas"]["Segmento-segmento.write"];
+                "multipart/form-data": components["schemas"]["Segmento-segmento.write"];
             };
         };
         responses: {
-            /** @description TravelComponente resource updated */
+            /** @description Segmento resource updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["TravelComponente.jsonld"];
-                    "application/json": components["schemas"]["TravelComponente"];
-                    "text/html": components["schemas"]["TravelComponente.html"];
-                    "multipart/form-data": components["schemas"]["TravelComponente.multipart"];
+                    "application/ld+json": components["schemas"]["Segmento.jsonld"];
+                    "application/json": components["schemas"]["Segmento"];
+                    "text/html": components["schemas"]["Segmento.html"];
+                    "multipart/form-data": components["schemas"]["Segmento.multipart"];
                 };
             };
             /** @description Invalid input */
@@ -5812,19 +7000,19 @@ export interface operations {
             };
         };
     };
-    api_travel_componentes_id_delete: {
+    api_travelsegmentos_id_delete: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description TravelComponente identifier */
+                /** @description Segmento identifier */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description TravelComponente resource deleted */
+            /** @description Segmento resource deleted */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -5855,7 +7043,7 @@ export interface operations {
             };
         };
     };
-    api_travel_item_diccionarios_get_collection: {
+    api_travelservicios_get_collection: {
         parameters: {
             query?: {
                 /** @description The collection page number */
@@ -5867,18 +7055,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description TravelItemDiccionario collection */
+            /** @description Servicio collection */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
-                        member: components["schemas"]["TravelItemDiccionario.jsonld-diccionario.read"][];
+                        member: components["schemas"]["Servicio.jsonld-servicio.read"][];
                     };
-                    "application/json": components["schemas"]["TravelItemDiccionario-diccionario.read"][];
-                    "text/html": components["schemas"]["TravelItemDiccionario.html-diccionario.read"][];
-                    "multipart/form-data": components["schemas"]["TravelItemDiccionario.multipart-diccionario.read"][];
+                    "application/json": components["schemas"]["Servicio-servicio.read"][];
+                    "text/html": components["schemas"]["Servicio.html-servicio.read"][];
+                    "multipart/form-data": components["schemas"]["Servicio.multipart-servicio.read"][];
                 };
             };
             /** @description Forbidden */
@@ -5894,33 +7082,33 @@ export interface operations {
             };
         };
     };
-    api_travel_item_diccionarios_post: {
+    api_travelservicios_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description The new TravelItemDiccionario resource */
+        /** @description The new Servicio resource */
         requestBody: {
             content: {
-                "application/ld+json": components["schemas"]["TravelItemDiccionario-diccionario.write"];
-                "application/json": components["schemas"]["TravelItemDiccionario-diccionario.write"];
-                "text/html": components["schemas"]["TravelItemDiccionario-diccionario.write"];
-                "multipart/form-data": components["schemas"]["TravelItemDiccionario-diccionario.write"];
+                "application/ld+json": components["schemas"]["Servicio-servicio.write"];
+                "application/json": components["schemas"]["Servicio-servicio.write"];
+                "text/html": components["schemas"]["Servicio-servicio.write"];
+                "multipart/form-data": components["schemas"]["Servicio-servicio.write"];
             };
         };
         responses: {
-            /** @description TravelItemDiccionario resource created */
+            /** @description Servicio resource created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["TravelItemDiccionario.jsonld"];
-                    "application/json": components["schemas"]["TravelItemDiccionario"];
-                    "text/html": components["schemas"]["TravelItemDiccionario.html"];
-                    "multipart/form-data": components["schemas"]["TravelItemDiccionario.multipart"];
+                    "application/ld+json": components["schemas"]["Servicio.jsonld"];
+                    "application/json": components["schemas"]["Servicio"];
+                    "text/html": components["schemas"]["Servicio.html"];
+                    "multipart/form-data": components["schemas"]["Servicio.multipart"];
                 };
             };
             /** @description Invalid input */
@@ -5947,28 +7135,28 @@ export interface operations {
             };
         };
     };
-    api_travel_item_diccionarios_id_get: {
+    api_travelservicios_id_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description TravelItemDiccionario identifier */
+                /** @description Servicio identifier */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description TravelItemDiccionario resource */
+            /** @description Servicio resource */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["TravelItemDiccionario.jsonld-diccionario.item.read"];
-                    "application/json": components["schemas"]["TravelItemDiccionario-diccionario.item.read"];
-                    "text/html": components["schemas"]["TravelItemDiccionario.html-diccionario.item.read"];
-                    "multipart/form-data": components["schemas"]["TravelItemDiccionario.multipart-diccionario.item.read"];
+                    "application/ld+json": components["schemas"]["Servicio.jsonld-servicio.item.read"];
+                    "application/json": components["schemas"]["Servicio-servicio.item.read"];
+                    "text/html": components["schemas"]["Servicio.html-servicio.item.read"];
+                    "multipart/form-data": components["schemas"]["Servicio.multipart-servicio.item.read"];
                 };
             };
             /** @description Forbidden */
@@ -5995,36 +7183,36 @@ export interface operations {
             };
         };
     };
-    api_travel_item_diccionarios_id_put: {
+    api_travelservicios_id_put: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description TravelItemDiccionario identifier */
+                /** @description Servicio identifier */
                 id: string;
             };
             cookie?: never;
         };
-        /** @description The updated TravelItemDiccionario resource */
+        /** @description The updated Servicio resource */
         requestBody: {
             content: {
-                "application/ld+json": components["schemas"]["TravelItemDiccionario-diccionario.write"];
-                "application/json": components["schemas"]["TravelItemDiccionario-diccionario.write"];
-                "text/html": components["schemas"]["TravelItemDiccionario-diccionario.write"];
-                "multipart/form-data": components["schemas"]["TravelItemDiccionario-diccionario.write"];
+                "application/ld+json": components["schemas"]["Servicio-servicio.write"];
+                "application/json": components["schemas"]["Servicio-servicio.write"];
+                "text/html": components["schemas"]["Servicio-servicio.write"];
+                "multipart/form-data": components["schemas"]["Servicio-servicio.write"];
             };
         };
         responses: {
-            /** @description TravelItemDiccionario resource updated */
+            /** @description Servicio resource updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["TravelItemDiccionario.jsonld"];
-                    "application/json": components["schemas"]["TravelItemDiccionario"];
-                    "text/html": components["schemas"]["TravelItemDiccionario.html"];
-                    "multipart/form-data": components["schemas"]["TravelItemDiccionario.multipart"];
+                    "application/ld+json": components["schemas"]["Servicio.jsonld"];
+                    "application/json": components["schemas"]["Servicio"];
+                    "text/html": components["schemas"]["Servicio.html"];
+                    "multipart/form-data": components["schemas"]["Servicio.multipart"];
                 };
             };
             /** @description Invalid input */
@@ -6073,19 +7261,19 @@ export interface operations {
             };
         };
     };
-    api_travel_item_diccionarios_id_delete: {
+    api_travelservicios_id_delete: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description TravelItemDiccionario identifier */
+                /** @description Servicio identifier */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description TravelItemDiccionario resource deleted */
+            /** @description Servicio resource deleted */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -6116,7 +7304,7 @@ export interface operations {
             };
         };
     };
-    api_travel_itinerarios_get_collection: {
+    api_messagetemplates_get_collection: {
         parameters: {
             query?: {
                 /** @description The collection page number */
@@ -6128,1034 +7316,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description TravelItinerario collection */
+            /** @description Template collection */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
-                        member: components["schemas"]["TravelItinerario.jsonld-itinerario.read"][];
+                        member: components["schemas"]["Template.jsonld-template.read"][];
                     };
-                    "application/json": components["schemas"]["TravelItinerario-itinerario.read"][];
-                    "text/html": components["schemas"]["TravelItinerario.html-itinerario.read"][];
-                    "multipart/form-data": components["schemas"]["TravelItinerario.multipart-itinerario.read"][];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_itinerarios_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description The new TravelItinerario resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["TravelItinerario-itinerario.write"];
-                "application/json": components["schemas"]["TravelItinerario-itinerario.write"];
-                "text/html": components["schemas"]["TravelItinerario-itinerario.write"];
-                "multipart/form-data": components["schemas"]["TravelItinerario-itinerario.write"];
-            };
-        };
-        responses: {
-            /** @description TravelItinerario resource created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelItinerario.jsonld"];
-                    "application/json": components["schemas"]["TravelItinerario"];
-                    "text/html": components["schemas"]["TravelItinerario.html"];
-                    "multipart/form-data": components["schemas"]["TravelItinerario.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travel_itinerarios_id_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelItinerario identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelItinerario resource */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelItinerario.jsonld-itinerario.item.read"];
-                    "application/json": components["schemas"]["TravelItinerario-itinerario.item.read"];
-                    "text/html": components["schemas"]["TravelItinerario.html-itinerario.item.read"];
-                    "multipart/form-data": components["schemas"]["TravelItinerario.multipart-itinerario.item.read"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_itinerarios_id_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelItinerario identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** @description The updated TravelItinerario resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["TravelItinerario-itinerario.write"];
-                "application/json": components["schemas"]["TravelItinerario-itinerario.write"];
-                "text/html": components["schemas"]["TravelItinerario-itinerario.write"];
-                "multipart/form-data": components["schemas"]["TravelItinerario-itinerario.write"];
-            };
-        };
-        responses: {
-            /** @description TravelItinerario resource updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelItinerario.jsonld"];
-                    "application/json": components["schemas"]["TravelItinerario"];
-                    "text/html": components["schemas"]["TravelItinerario.html"];
-                    "multipart/form-data": components["schemas"]["TravelItinerario.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travel_itinerarios_id_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelItinerario identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelItinerario resource deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_notas_get_collection: {
-        parameters: {
-            query?: {
-                /** @description The collection page number */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelNota collection */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
-                        member: components["schemas"]["TravelNota.jsonld-nota.read"][];
-                    };
-                    "application/json": components["schemas"]["TravelNota-nota.read"][];
-                    "text/html": components["schemas"]["TravelNota.html-nota.read"][];
-                    "multipart/form-data": components["schemas"]["TravelNota.multipart-nota.read"][];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_notas_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description The new TravelNota resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["TravelNota-nota.write"];
-                "application/json": components["schemas"]["TravelNota-nota.write"];
-                "text/html": components["schemas"]["TravelNota-nota.write"];
-                "multipart/form-data": components["schemas"]["TravelNota-nota.write"];
-            };
-        };
-        responses: {
-            /** @description TravelNota resource created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelNota.jsonld"];
-                    "application/json": components["schemas"]["TravelNota"];
-                    "text/html": components["schemas"]["TravelNota.html"];
-                    "multipart/form-data": components["schemas"]["TravelNota.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travel_notas_id_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelNota identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelNota resource */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelNota.jsonld-nota.item.read"];
-                    "application/json": components["schemas"]["TravelNota-nota.item.read"];
-                    "text/html": components["schemas"]["TravelNota.html-nota.item.read"];
-                    "multipart/form-data": components["schemas"]["TravelNota.multipart-nota.item.read"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_notas_id_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelNota identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** @description The updated TravelNota resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["TravelNota-nota.write"];
-                "application/json": components["schemas"]["TravelNota-nota.write"];
-                "text/html": components["schemas"]["TravelNota-nota.write"];
-                "multipart/form-data": components["schemas"]["TravelNota-nota.write"];
-            };
-        };
-        responses: {
-            /** @description TravelNota resource updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelNota.jsonld"];
-                    "application/json": components["schemas"]["TravelNota"];
-                    "text/html": components["schemas"]["TravelNota.html"];
-                    "multipart/form-data": components["schemas"]["TravelNota.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travel_notas_id_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelNota identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelNota resource deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_segmentos_get_collection: {
-        parameters: {
-            query?: {
-                /** @description The collection page number */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelSegmento collection */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
-                        member: components["schemas"]["TravelSegmento.jsonld-segmento.read"][];
-                    };
-                    "application/json": components["schemas"]["TravelSegmento-segmento.read"][];
-                    "text/html": components["schemas"]["TravelSegmento.html-segmento.read"][];
-                    "multipart/form-data": components["schemas"]["TravelSegmento.multipart-segmento.read"][];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_segmentos_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description The new TravelSegmento resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["TravelSegmento-segmento.write"];
-                "application/json": components["schemas"]["TravelSegmento-segmento.write"];
-                "text/html": components["schemas"]["TravelSegmento-segmento.write"];
-                "multipart/form-data": components["schemas"]["TravelSegmento-segmento.write"];
-            };
-        };
-        responses: {
-            /** @description TravelSegmento resource created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelSegmento.jsonld"];
-                    "application/json": components["schemas"]["TravelSegmento"];
-                    "text/html": components["schemas"]["TravelSegmento.html"];
-                    "multipart/form-data": components["schemas"]["TravelSegmento.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travel_segmentos_id_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelSegmento identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelSegmento resource */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelSegmento.jsonld-segmento.item.read"];
-                    "application/json": components["schemas"]["TravelSegmento-segmento.item.read"];
-                    "text/html": components["schemas"]["TravelSegmento.html-segmento.item.read"];
-                    "multipart/form-data": components["schemas"]["TravelSegmento.multipart-segmento.item.read"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_segmentos_id_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelSegmento identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** @description The updated TravelSegmento resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["TravelSegmento-segmento.write"];
-                "application/json": components["schemas"]["TravelSegmento-segmento.write"];
-                "text/html": components["schemas"]["TravelSegmento-segmento.write"];
-                "multipart/form-data": components["schemas"]["TravelSegmento-segmento.write"];
-            };
-        };
-        responses: {
-            /** @description TravelSegmento resource updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelSegmento.jsonld"];
-                    "application/json": components["schemas"]["TravelSegmento"];
-                    "text/html": components["schemas"]["TravelSegmento.html"];
-                    "multipart/form-data": components["schemas"]["TravelSegmento.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travel_segmentos_id_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelSegmento identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelSegmento resource deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_servicios_get_collection: {
-        parameters: {
-            query?: {
-                /** @description The collection page number */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelServicio collection */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
-                        member: components["schemas"]["TravelServicio.jsonld-servicio.read"][];
-                    };
-                    "application/json": components["schemas"]["TravelServicio-servicio.read"][];
-                    "text/html": components["schemas"]["TravelServicio.html-servicio.read"][];
-                    "multipart/form-data": components["schemas"]["TravelServicio.multipart-servicio.read"][];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_servicios_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description The new TravelServicio resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["TravelServicio-servicio.write"];
-                "application/json": components["schemas"]["TravelServicio-servicio.write"];
-                "text/html": components["schemas"]["TravelServicio-servicio.write"];
-                "multipart/form-data": components["schemas"]["TravelServicio-servicio.write"];
-            };
-        };
-        responses: {
-            /** @description TravelServicio resource created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelServicio.jsonld"];
-                    "application/json": components["schemas"]["TravelServicio"];
-                    "text/html": components["schemas"]["TravelServicio.html"];
-                    "multipart/form-data": components["schemas"]["TravelServicio.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travel_servicios_id_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelServicio identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelServicio resource */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelServicio.jsonld-servicio.item.read"];
-                    "application/json": components["schemas"]["TravelServicio-servicio.item.read"];
-                    "text/html": components["schemas"]["TravelServicio.html-servicio.item.read"];
-                    "multipart/form-data": components["schemas"]["TravelServicio.multipart-servicio.item.read"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    api_travel_servicios_id_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelServicio identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** @description The updated TravelServicio resource */
-        requestBody: {
-            content: {
-                "application/ld+json": components["schemas"]["TravelServicio-servicio.write"];
-                "application/json": components["schemas"]["TravelServicio-servicio.write"];
-                "text/html": components["schemas"]["TravelServicio-servicio.write"];
-                "multipart/form-data": components["schemas"]["TravelServicio-servicio.write"];
-            };
-        };
-        responses: {
-            /** @description TravelServicio resource updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["TravelServicio.jsonld"];
-                    "application/json": components["schemas"]["TravelServicio"];
-                    "text/html": components["schemas"]["TravelServicio.html"];
-                    "multipart/form-data": components["schemas"]["TravelServicio.multipart"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description An error occurred */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
-                    "application/problem+json": components["schemas"]["ConstraintViolation"];
-                    "application/json": components["schemas"]["ConstraintViolation"];
-                };
-            };
-        };
-    };
-    api_travel_servicios_id_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description TravelServicio identifier */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description TravelServicio resource deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/ld+json": components["schemas"]["Error.jsonld"];
-                    "application/problem+json": components["schemas"]["Error"];
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Template-template.read"][];
+                    "text/html": components["schemas"]["Template.html-template.read"][];
+                    "multipart/form-data": components["schemas"]["Template.multipart-template.read"][];
                 };
             };
         };

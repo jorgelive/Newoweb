@@ -11,9 +11,9 @@ import { apiClient, getUrls, processQueue, type CustomAxiosRequestConfig } from 
 // ============================================================================
 // TIPOS AUTOGENERADOS (HÍBRIDOS)
 // ============================================================================
-export type ApiMessageQueue = components['schemas']['WhatsappMetaSendQueue-message.read'] | components['schemas']['Beds24SendQueue-message.read'];
-export type ApiAttachment = components['schemas']['MessageAttachment-message.read'];
-export type ApiTemplate = components['schemas']['MessageTemplate-template.read'];
+export type ApiMessageQueue = components['schemas']['WhatsappMetaSendQueue.jsonld-message.read'] | components['schemas']['Beds24SendQueue-message.read'];
+export type ApiAttachment = components['schemas']['MessageAttachment.jsonld-message.read'];
+export type ApiTemplate = components['schemas']['Template.jsonld-template.read'];
 
 /**
  * TIPADO HÍBRIDO CONVERSACIÓN:
@@ -32,7 +32,7 @@ export type ApiConversation = Omit<BaseApiConversation, 'contextMilestones'> & {
  * Heredamos de OpenAPI pero definimos explícitamente el JSON libre (`metadata`)
  * para garantizar autocompletado en la UI al leer respuestas de Webhooks (ej. `error_reason`).
  */
-type BaseApiMessage = components['schemas']['Message-message.read'];
+type BaseApiMessage = components['schemas']['Message.jsonld-message.read'];
 export type ApiMessage = Omit<BaseApiMessage, 'metadata' | 'template' | 'channel' | 'whatsappMetaSendQueues' | 'beds24SendQueues' | 'attachments'> & {
     '@id'?: string; // 👈 AÑADE ESTO
     '@type'?: string; // 👈 AÑADE ESTO
@@ -258,7 +258,7 @@ export const useChatStore = defineStore('chatStore', () => {
 
     const fetchTemplates = async () => {
         try {
-            const response = await apiClient.get('/platform/user/util/msg/templates');
+            const response = await apiClient.get('/platform/message/templates');
             templates.value = extractData(response);
         } catch (err) {}
     };
@@ -280,7 +280,7 @@ export const useChatStore = defineStore('chatStore', () => {
         }
 
         try {
-            const response = await apiClient.get(`/platform/user/util/msg/conversations?order[lastMessageAt]=desc&page=${pageToFetch}`);
+            const response = await apiClient.get(`/platform/message/conversations?order[lastMessageAt]=desc&page=${pageToFetch}`);
             const data = extractData(response);
             if (loadMore) conversations.value.push(...data);
             else conversations.value = data;
@@ -401,7 +401,7 @@ export const useChatStore = defineStore('chatStore', () => {
                     if (incomingData.direction === 'incoming') {
                         // Si el chat está abierto en pantalla, disparamos POST para marcar como leído en BD
                         if (isChatVisible.value) {
-                            apiClient.post(`/platform/user/util/msg/conversations/${conversationId}/read`).catch(() => {});
+                            apiClient.post(`/platform/message/conversations/${conversationId}/read`).catch(() => {});
                             if (currentConversation.value) currentConversation.value.unreadCount = 0;
                         } else if (currentConversation.value) {
                             currentConversation.value.unreadCount = (currentConversation.value.unreadCount || 0) + 1;
@@ -435,7 +435,7 @@ export const useChatStore = defineStore('chatStore', () => {
         if (!found) {
             loadingMessages.value = true;
             try {
-                const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}`);
+                const response = await apiClient.get(`/platform/message/conversations/${id}`);
                 found = response.data;
                 if (found) conversations.value.unshift(found);
             } catch (err: any) {
@@ -452,11 +452,11 @@ export const useChatStore = defineStore('chatStore', () => {
 
         try {
             if (found && (found.unreadCount ?? 0) > 0) {
-                apiClient.post(`/platform/user/util/msg/conversations/${id}/read`).then(() => { if (found) found.unreadCount = 0; });
+                apiClient.post(`/platform/message/conversations/${id}/read`).then(() => { if (found) found.unreadCount = 0; });
                 found.unreadCount = 0;
             }
 
-            const response = await apiClient.get(`/platform/user/util/msg/conversations/${id}/messages?order[createdAt]=desc&page=1`);
+            const response = await apiClient.get(`/platform/message/conversations/${id}/messages?order[createdAt]=desc&page=1`);
             messages.value = extractData(response).reverse();
             hasMoreMessages.value = hasNextPage(response);
 
@@ -475,7 +475,7 @@ export const useChatStore = defineStore('chatStore', () => {
         const nextPage = messagesPage.value + 1;
 
         try {
-            const response = await apiClient.get(`/platform/user/util/msg/conversations/${currentConversation.value.id}/messages?order[createdAt]=desc&page=${nextPage}`);
+            const response = await apiClient.get(`/platform/message/conversations/${currentConversation.value.id}/messages?order[createdAt]=desc&page=${nextPage}`);
             const olderMessages = extractData(response).reverse();
 
             messages.value = [...olderMessages, ...messages.value];
@@ -506,7 +506,7 @@ export const useChatStore = defineStore('chatStore', () => {
             const form = new FormData();
 
             // Flexibilidad IRI vs UUID
-            const convId = (currentConversation.value as any)['@id'] || `/platform/user/util/msg/conversations/${currentConversation.value.id}`;
+            const convId = (currentConversation.value as any)['@id'] || `/platform/message/conversations/${currentConversation.value.id}`;
 
             form.append('conversation', convId);
             form.append('direction', 'outgoing');
@@ -520,7 +520,7 @@ export const useChatStore = defineStore('chatStore', () => {
 
             if (attachmentStore.file) form.append('file', attachmentStore.file);
 
-            await apiClient.post('/platform/user/util/msg/messages', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+            await apiClient.post('/platform/message/messages', form, { headers: { 'Content-Type': 'multipart/form-data' } });
             attachmentStore.clear(); // Limpia RAM del navegador
         } catch (err) {
             error.value = 'Fallo al enviar el mensaje. Intente de nuevo.';
@@ -541,7 +541,7 @@ export const useChatStore = defineStore('chatStore', () => {
      */
     const fetchLatestMessagesForStalk = async (conversationId: string): Promise<ApiMessage[]> => {
         try {
-            const response = await apiClient.get(`/platform/user/util/msg/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
+            const response = await apiClient.get(`/platform/message/conversations/${conversationId}/messages?order[createdAt]=desc&page=1`);
             const data = extractData(response) as ApiMessage[];
 
             const realHistoryMessages = data.filter(m => m.scheduledForFuture !== true && m.status !== 'pending' && m.status !== 'queued' && m.status !== 'cancelled');
