@@ -166,13 +166,18 @@ class TravelServicio
     {
         if (!$this->componentes->contains($componente)) {
             $this->componentes->add($componente);
+            // 🔥 CLAVE: Sincronización bidireccional para que Doctrine lo guarde
+            $componente->addServicio($this);
         }
         return $this;
     }
 
     public function removeComponente(TravelComponente $componente): self
     {
-        $this->componentes->removeElement($componente);
+        if ($this->componentes->removeElement($componente)) {
+            // 🔥 CLAVE: Sincronización bidireccional al eliminar
+            $componente->removeServicio($this);
+        }
         return $this;
     }
 

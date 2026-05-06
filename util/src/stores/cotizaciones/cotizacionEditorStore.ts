@@ -37,17 +37,32 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // 🔥 HELPERS INVENCIBLES (Defensas contra datos incompletos del backend)
     // ============================================================================
 
-    // Convierte arreglos de URLs (IRIs) en objetos reales de forma automática
+    /**
+     * Convierte arreglos de IRIs (strings) o de objetos incompletos en objetos reales
+     * haciendo fetch automático a la API en paralelo.
+     */
     const hydrateRelations = async (items: any[]) => {
         if (!items || !Array.isArray(items) || items.length === 0) return [];
+
+        // Caso 1: Si el backend mandó puros strings (IRIs)
         if (typeof items[0] === 'string') {
             const responses = await Promise.all(items.map(iri => apiClient.get(iri)));
             return responses.map(res => res.data);
         }
+
+        // Caso 2: Si el backend mandó objetos, pero están INCOMPLETOS (les falta el título o nombre)
+        if (typeof items[0] === 'object' && items[0]['@id'] && !items[0].nombreInterno && !items[0].titulo && !items[0].nombre) {
+            console.warn("🔄 Hidratando objetos incompletos desde el backend...");
+            const responses = await Promise.all(items.map(obj => apiClient.get(obj['@id'])));
+            return responses.map(res => res.data);
+        }
+
         return items;
     };
 
-    // Previene que se borren los textos si el array 'titulo' llega vacío []
+    /**
+     * Garantiza que el snapshot de título tenga contenido válido aunque el backend envíe []
+     */
     const getTituloSafe = (entity: any) => {
         if (entity.titulo && Array.isArray(entity.titulo) && entity.titulo.length > 0) {
             return entity.titulo;
@@ -55,6 +70,23 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return [{ language: 'es', content: entity.nombreInterno || entity.nombre || 'Item sin nombre' }];
     };
 
+    /**
+     * Formatea el texto para los select de tarifas eliminando los corchetes [] vacíos
+     */
+    const getTarifaLabel = (cat: any, lang: string) => {
+        const nombre = renderI18n(cat.titulo, lang) || cat.nombreInterno || 'Tarifa sin nombre';
+        const moneda = cat.moneda?.codigo || cat.moneda || '';
+        const monto = parseFloat(cat.monto || cat.montoCosto || 0).toFixed(2);
+
+        if (moneda && moneda !== '[]') {
+            return `${nombre} (${moneda} ${monto})`;
+        } else {
+            return `${nombre} ($ ${monto})`;
+        }
+    };
+
+    // ============================================================================
+    // LÓGICA DE CARGA Y EDITOR
     // ============================================================================
 
     const inicializarEditor = async (cotizacionId?: string) => {
@@ -81,9 +113,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             const response = await apiClient.get('/platform/maestro/idiomas?prioridad[gt]=0&order[prioridad]=asc');
             idiomasDisponibles.value = response.data['hydra:member'] || response.data['member'] || [];
         } catch (e) {
-            idiomasDisponibles.value = [
-                {id: 'es', nombre: 'Español', bandera: '🇪🇸', prioridad: 1}
-            ];
+            idiomasDisponibles.value = [{ id: 'es', nombre: 'Español', bandera: '🇪🇸', prioridad: 1 }];
         }
     };
 
@@ -97,7 +127,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             catalogos.value.servicios = resServicios.data['hydra:member'] || resServicios.data['member'] || [];
             catalogos.value.allComponentes = resComponentes.data['hydra:member'] || resComponentes.data['member'] || [];
 
-            // Iniciamos con todos para que el usuario pueda ver el catálogo global si no selecciona servicio
+            // Por defecto mostramos todos. Se filtrarán estrictamente al elegir un servicio maestro.
             catalogos.value.componentes = catalogos.value.allComponentes;
         } catch (e) {
             console.warn("No se pudo cargar los catálogos base.", e);
@@ -106,15 +136,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const fetchServicioDetalles = async (servicioIriOrId: string) => {
         try {
-            // Asegura que la ruta sea válida sea UUID o IRI
-            const endpoint = servicioIriOrId.startsWith('/') ? servicioIriOrId : `/platform/travel/servicios/${servicioIriOrId}`;
-            const response = await apiClient.get(endpoint);
+            const id = servicioIriOrId.split('/').pop();
+            const response = await apiClient.get(`/platform/travel/servicios/${id}`);
             const data = response.data;
 
-            // 🔥 1. FILTRO DE COMPONENTES REPARADO
+            // 🔥 FILTRO ESTRICTO DE COMPONENTES
             if (data.componentes && data.componentes.length > 0) {
                 if (typeof data.componentes[0] === 'string') {
-                    // Cruza los IRIs del backend con la memoria RAM para filtrar
+                    // Mapeo IRI -> Objeto desde memoria RAM
                     catalogos.value.componentes = catalogos.value.allComponentes.filter((c: any) =>
                         data.componentes.some((iri: string) => iri === c['@id'] || iri.includes(c.id))
                     );
@@ -122,13 +151,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     catalogos.value.componentes = data.componentes;
                 }
             } else {
-                // Si el servicio no tiene logística amarrada en la BD, mostramos todo el catálogo
-                catalogos.value.componentes = catalogos.value.allComponentes;
+                // Si el servicio no tiene componentes asociados, vaciamos para evitar Cancún en Machupicchu
+                catalogos.value.componentes = [];
             }
 
-            // 🔥 2. HIDRATACIÓN OBLIGATORIA DE STORYTELLING
-            catalogos.value.plantillasItinerario = await hydrateRelations(data.itinerarios);
-            catalogos.value.poolSegmentos = await hydrateRelations(data.segmentos);
+            // Hidratación de itinerarios y segmentos (defensa contra IRIs)
+            catalogos.value.plantillasItinerario = await hydrateRelations(data.itinerarios || []);
+            catalogos.value.poolSegmentos = await hydrateRelations(data.segmentos || []);
 
         } catch (e) {
             console.error("🚨 Error al cargar detalles del servicio maestro", e);
@@ -137,10 +166,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const fetchComponenteDetalles = async (componenteIriOrId: string) => {
         try {
-            const endpoint = componenteIriOrId.startsWith('/') ? componenteIriOrId : `/platform/travel/componentes/${componenteIriOrId}`;
-            const response = await apiClient.get(endpoint);
-            // Hidrata las tarifas en caso de que vengan como strings
-            catalogos.value.tarifas = await hydrateRelations(response.data.tarifas);
+            const id = componenteIriOrId.split('/').pop();
+            const response = await apiClient.get(`/platform/travel/componentes/${id}`);
+            // Hidratamos las tarifas (pueden venir como IRIs)
+            catalogos.value.tarifas = await hydrateRelations(response.data.tarifas || []);
         } catch (e) {
             console.error("Error al cargar detalles del componente maestro", e);
         }
@@ -162,7 +191,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             idiomaCliente: idiomasDisponibles.value.length ? idiomasDisponibles.value[0].id : 'es',
             idiomaEdicion: 'es', numPax: 1, comision: 0.00, adelanto: 0.00,
             hotelOculto: true, precioOculto: false, resumenI18n: [],
-            itinerario: [{diaNumero: 1, fechaAbsoluta: new Date().toISOString().split('T')[0], cotservicios: []}]
+            itinerario: [{ diaNumero: 1, fechaAbsoluta: new Date().toISOString().split('T')[0], cotservicios: [] }]
         };
     };
 
@@ -185,6 +214,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             isLoading.value = false;
         }
     };
+
+    // ============================================================================
+    // CÁLCULOS Y TRADUCCIONES
+    // ============================================================================
 
     const totalCostoNeto = computed(() => {
         if (!cotizacion.value) return 0;
@@ -209,21 +242,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     });
 
     const getI18n = (arrayI18n: I18nString[] | undefined, lang: string): I18nString => {
-        if (!arrayI18n) return {language: lang, content: ''};
+        if (!arrayI18n) return { language: lang, content: '' };
         let found = arrayI18n.find(item => item.language === lang);
         if (!found) {
-            found = {language: lang, content: ''};
+            found = { language: lang, content: '' };
             arrayI18n.push(found);
         }
         return found;
     };
 
-    // 🔥 Limpio: Si no hay traducción, devuelve '' para que Vue use el fallback (|| cat.nombreInterno)
     const renderI18n = (arrayI18n: I18nString[] | undefined, lang: string): string => {
         if (!arrayI18n || !Array.isArray(arrayI18n)) return '';
         const found = arrayI18n.find(item => item.language === lang && item.content.trim() !== '');
         return found ? found.content : '';
     };
+
+    // ============================================================================
+    // NAVEGACIÓN Y ACCIONES DEL EDITOR
+    // ============================================================================
 
     const inspectorActivo = ref<NivelInspector>('resumen');
     const dataActiva = ref<any>(null);
@@ -233,7 +269,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const abrirNivel = async (nivel: NivelInspector, data: any = null): Promise<void> => {
         if (nivel === 'servicio' || nivel === 'resumen') historialNavegacion.value = [];
-        else historialNavegacion.value.push({nivel: inspectorActivo.value, data: dataActiva.value});
+        else historialNavegacion.value.push({ nivel: inspectorActivo.value, data: dataActiva.value });
 
         inspectorActivo.value = nivel;
         dataActiva.value = data;
@@ -268,13 +304,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (dataActiva.value && dataActiva.value.id === idBorrado) retrocederNivel();
     };
 
+    // MÉTODOS DE ESTRUCTURA (SERVICIOS, COMPONENTES, TARIFAS)
+
     const agregarServicio = (diaNumero: number): void => {
         const dia = cotizacion.value.itinerario.find((d: any) => d.diaNumero === diaNumero);
         if (dia) {
             const nuevoServicio = {
                 id: crypto.randomUUID(), servicioMaestroId: null,
-                nombreSnapshot: [{language: 'es', content: 'Nuevo Servicio'}],
-                itinerarioNombreSnapshot: [{language: 'es', content: 'Sin plantilla'}],
+                nombreSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
+                itinerarioNombreSnapshot: [{ language: 'es', content: 'Sin plantilla' }],
                 fechaInicioAbsoluta: dia.fechaAbsoluta, cotsegmentos: [], cotcomponentes: []
             };
             dia.cotservicios.push(nuevoServicio as any);
@@ -296,7 +334,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             if (servicio) {
                 const nuevoComponente = {
                     id: crypto.randomUUID(), componenteMaestroId: null,
-                    nombreSnapshot: [{language: 'es', content: 'Nuevo Componente'}],
+                    nombreSnapshot: [{ language: 'es', content: 'Nuevo Componente' }],
                     cantidad: 1, estado: 'Pendiente', modo: 'incluido',
                     fechaHoraInicio: `${servicio.fechaInicioAbsoluta}T08:00`,
                     fechaHoraFin: `${servicio.fechaInicioAbsoluta}T09:00`,
@@ -327,7 +365,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 if (componente) {
                     const nuevaTarifa = {
                         id: crypto.randomUUID(), tarifaMaestraId: null,
-                        nombreSnapshot: [{language: 'es', content: 'Nueva Tarifa'}],
+                        nombreSnapshot: [{ language: 'es', content: 'Nueva Tarifa' }],
                         cantidad: cotizacion.value.numPax, moneda: cotizacion.value.monedaGlobal,
                         montoCosto: 0.00, tipoModalidadSnapshot: 'Normal',
                         proveedorNombreSnapshot: null, detallesOperativos: []
@@ -359,7 +397,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 for (const componente of servicio.cotcomponentes) {
                     const tarifa = componente.cottarifas.find((t: any) => t.id === tarifaId);
                     if (tarifa) {
-                        tarifa.detallesOperativos.push({id: crypto.randomUUID(), tipo: 'Info', contenido: ''});
+                        tarifa.detallesOperativos.push({ id: crypto.randomUUID(), tipo: 'Info', contenido: '' });
                         return;
                     }
                 }
@@ -381,13 +419,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
-    const abrirEditorSegmentos = () => {
-        isSegmentEditorOpen.value = true;
-    };
-    const cerrarEditorSegmentos = () => {
-        isSegmentEditorOpen.value = false;
-    };
+    // ============================================================================
+    // STORYTELLING / SEGMENTOS
+    // ============================================================================
 
+    const abrirEditorSegmentos = () => { isSegmentEditorOpen.value = true; };
+    const cerrarEditorSegmentos = () => { isSegmentEditorOpen.value = false; };
+
+    /**
+     * Inyecta los componentes logísticos vinculados a un segmento narrativo
+     */
     const inyectarComponentesDeSegmento = (segmentoMaestro: any) => {
         if (!dataActiva.value || !dataActiva.value.cotcomponentes) return;
 
@@ -410,10 +451,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    /**
+     * Aplica una plantilla de itinerario completa (desempaquetando relaciones)
+     */
     const aplicarPlantilla = async (plantillaId: string): Promise<void> => {
         isLoading.value = true;
         try {
-            // Soporta que plantillaId sea UUID o IRI
             const endpoint = plantillaId.startsWith('/') ? plantillaId : `/platform/travel/itinerarios/${plantillaId}`;
             const response = await apiClient.get(endpoint);
             const plantillaProfunda = response.data;
@@ -422,16 +465,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             dataActiva.value.itinerarioNombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(plantillaProfunda)));
             let ordenMaximo = dataActiva.value.cotsegmentos.length;
 
-            // 🔥 1. DETECTAR LA PROPIEDAD CORRECTA (Depende de cómo se llame en tu PHP)
             const arrayRelaciones = plantillaProfunda.segmentos || plantillaProfunda.itinerarioSegmentos || [];
 
             if (arrayRelaciones && Array.isArray(arrayRelaciones)) {
-
-                // 🔥 2. DESEMPAQUETAR LA ENTIDAD INTERMEDIA (TravelItinerarioSegmentoRel)
-                // Si el item tiene una propiedad "segmento", la extraemos. Si no, usamos el item directamente.
+                // Desempaquetado de TravelItinerarioSegmentoRel -> Segmento
                 const segmentosRaw = arrayRelaciones.map((rel: any) => rel.segmento ? rel.segmento : rel);
-
-                // 🔥 3. HIDRATAR (Convierte los IRIs anidados en objetos reales)
                 const segmentosReales = await hydrateRelations(segmentosRaw);
 
                 segmentosReales.forEach((seg: any) => {
@@ -467,7 +505,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         dataActiva.value.cotsegmentos = dataActiva.value.cotsegmentos.filter((s: any) => s.id !== id);
     };
 
-    // 🔥 SINCRONIZADORES REPARADOS: El `.find` no fallará si recibe un IRI
+    // ============================================================================
+    // SINCRONIZADORES DE CATÁLOGO (EVENTOS CHANGE)
+    // ============================================================================
+
     const onServicioMaestroChange = async (val: string | null): Promise<void> => {
         if (!val || val === 'null') {
             catalogos.value.componentes = catalogos.value.allComponentes;
@@ -476,7 +517,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             return;
         }
 
-        // Busca tanto si "val" es el ID como si es el @id de API Platform
         const maestro = catalogos.value.servicios.find((s: any) => s.id === val || s['@id'] === val);
         if (maestro && dataActiva.value) {
             dataActiva.value.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
@@ -504,8 +544,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (maestro && dataActiva.value) {
             dataActiva.value.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
             dataActiva.value.moneda = maestro.moneda?.codigo || maestro.moneda || 'USD';
-            dataActiva.value.montoCosto = maestro.monto;
-            dataActiva.value.tipoModalidadSnapshot = maestro.modalidad;
+            // Parseo estricto a Float para que Vue lo acepte en inputs numéricos
+            dataActiva.value.montoCosto = parseFloat(maestro.monto || maestro.montoCosto || 0);
+            dataActiva.value.tipoModalidadSnapshot = maestro.modalidad || 'Normal';
         }
     };
 
@@ -516,6 +557,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         agregarServicio, eliminarServicio, agregarComponente, eliminarComponente, agregarTarifa,
         eliminarTarifa, agregarDetalleOperativo, eliminarDetalleOperativo, abrirEditorSegmentos,
         cerrarEditorSegmentos, aplicarPlantilla, agregarSegmentoIndividual, removerCotSegmento,
-        onServicioMaestroChange, onComponenteMaestroChange, onTarifaMaestraChange
+        onServicioMaestroChange, onComponenteMaestroChange, onTarifaMaestraChange, getTarifaLabel
     };
 });
