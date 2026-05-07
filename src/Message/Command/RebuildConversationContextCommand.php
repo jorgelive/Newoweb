@@ -155,7 +155,7 @@ class RebuildConversationContextCommand extends Command
                     && $now->diff($endDate)->days > 7
                     && $conversation->getStatus() === MessageConversation::STATUS_OPEN
                 ) {
-                    $conversation->setStatus(MessageConversation::STATUS_CLOSED);
+                    $conversation->setStatus(MessageConversation::STATUS_ARCHIVED);
                 }
             }
 

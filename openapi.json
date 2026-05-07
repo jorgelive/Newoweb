@@ -5637,6 +5637,39 @@
                             "type": "string"
                         }
                     },
+                    "tipo": {
+                        "description": "Obtiene la categor\u00eda operativa del componente.",
+                        "default": "extras",
+                        "type": "string",
+                        "enum": [
+                            "ticket_fijo",
+                            "ticket_variable",
+                            "guiado",
+                            "transporte",
+                            "alojamiento",
+                            "alimentacion",
+                            "pool",
+                            "privada",
+                            "personal_extra",
+                            "extras",
+                            "vuelo",
+                            "tren"
+                        ]
+                    },
+                    "duracion": {
+                        "description": "Obtiene la duraci\u00f3n estimada en horas.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "anticipacionalerta": {
+                        "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -5892,6 +5925,39 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "tipo": {
+                        "description": "Obtiene la categor\u00eda operativa del componente.",
+                        "default": "extras",
+                        "type": "string",
+                        "enum": [
+                            "ticket_fijo",
+                            "ticket_variable",
+                            "guiado",
+                            "transporte",
+                            "alojamiento",
+                            "alimentacion",
+                            "pool",
+                            "privada",
+                            "personal_extra",
+                            "extras",
+                            "vuelo",
+                            "tren"
+                        ]
+                    },
+                    "duracion": {
+                        "description": "Obtiene la duraci\u00f3n estimada en horas.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "anticipacionalerta": {
+                        "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "id": {
                         "readOnly": true,
@@ -6174,6 +6240,39 @@
                                     "type": "string"
                                 }
                             },
+                            "tipo": {
+                                "description": "Obtiene la categor\u00eda operativa del componente.",
+                                "default": "extras",
+                                "type": "string",
+                                "enum": [
+                                    "ticket_fijo",
+                                    "ticket_variable",
+                                    "guiado",
+                                    "transporte",
+                                    "alojamiento",
+                                    "alimentacion",
+                                    "pool",
+                                    "privada",
+                                    "personal_extra",
+                                    "extras",
+                                    "vuelo",
+                                    "tren"
+                                ]
+                            },
+                            "duracion": {
+                                "description": "Obtiene la duraci\u00f3n estimada en horas.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "anticipacionalerta": {
+                                "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
                             "id": {
                                 "readOnly": true,
                                 "type": [
@@ -6432,6 +6531,39 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "tipo": {
+                        "description": "Obtiene la categor\u00eda operativa del componente.",
+                        "default": "extras",
+                        "type": "string",
+                        "enum": [
+                            "ticket_fijo",
+                            "ticket_variable",
+                            "guiado",
+                            "transporte",
+                            "alojamiento",
+                            "alimentacion",
+                            "pool",
+                            "privada",
+                            "personal_extra",
+                            "extras",
+                            "vuelo",
+                            "tren"
+                        ]
+                    },
+                    "duracion": {
+                        "description": "Obtiene la duraci\u00f3n estimada en horas.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "anticipacionalerta": {
+                        "description": "Obtiene los d\u00edas de anticipaci\u00f3n para alertas operativas.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "id": {
                         "readOnly": true,
@@ -11128,7 +11260,18 @@
                 }
             },
             "MaestroMoneda-componente.item.read": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "simbolo": {
+                        "type": "string"
+                    }
+                }
             },
             "MaestroMoneda-componente.write": {
                 "type": "object"
@@ -11159,7 +11302,18 @@
                 }
             },
             "MaestroMoneda.html-componente.item.read": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "simbolo": {
+                        "type": "string"
+                    }
+                }
             },
             "MaestroMoneda.jsonld": {
                 "type": "object",
@@ -11187,7 +11341,18 @@
                 }
             },
             "MaestroMoneda.jsonld-componente.item.read": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "simbolo": {
+                        "type": "string"
+                    }
+                }
             },
             "MaestroMoneda.multipart": {
                 "type": "object",
@@ -11215,7 +11380,18 @@
                 }
             },
             "MaestroMoneda.multipart-componente.item.read": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "simbolo": {
+                        "type": "string"
+                    }
+                }
             },
             "Message-message.read": {
                 "type": "object",

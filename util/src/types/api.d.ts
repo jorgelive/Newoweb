@@ -805,6 +805,16 @@ export interface components {
             nombre?: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
             titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -892,6 +902,16 @@ export interface components {
             nombre?: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
             titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -979,6 +999,16 @@ export interface components {
             nombre?: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
             titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -1066,6 +1096,16 @@ export interface components {
             nombre?: string;
             /** @description Obtiene el título multilingüe visible para el cliente. */
             titulo?: string[];
+            /**
+             * @description Obtiene la categoría operativa del componente.
+             * @default extras
+             * @enum {string}
+             */
+            tipo: "ticket_fijo" | "ticket_variable" | "guiado" | "transporte" | "alojamiento" | "alimentacion" | "pool" | "privada" | "personal_extra" | "extras" | "vuelo" | "tren";
+            /** @description Obtiene la duración estimada en horas. */
+            duracion?: string | null;
+            /** @description Obtiene los días de anticipación para alertas operativas. */
+            anticipacionalerta?: number | null;
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -2612,7 +2652,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "MaestroMoneda-componente.item.read": Record<string, never>;
+        "MaestroMoneda-componente.item.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
         "MaestroMoneda-componente.write": Record<string, never>;
         "MaestroMoneda.html": {
             id?: string;
@@ -2623,7 +2667,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "MaestroMoneda.html-componente.item.read": Record<string, never>;
+        "MaestroMoneda.html-componente.item.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
         "MaestroMoneda.jsonld": {
             id?: string;
             nombre?: string;
@@ -2633,7 +2681,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "MaestroMoneda.jsonld-componente.item.read": Record<string, never>;
+        "MaestroMoneda.jsonld-componente.item.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
         "MaestroMoneda.multipart": {
             id?: string;
             nombre?: string;
@@ -2643,7 +2695,11 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "MaestroMoneda.multipart-componente.item.read": Record<string, never>;
+        "MaestroMoneda.multipart-componente.item.read": {
+            id?: string;
+            nombre?: string;
+            simbolo?: string;
+        };
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
          *     Expuesta a través de API Platform permitiendo lectura y escritura.

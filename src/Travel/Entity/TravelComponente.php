@@ -79,15 +79,15 @@ class TravelComponente
     #[ORM\Column(type: 'json')]
     private array $titulo = [];
 
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:item:read'])]
     #[ORM\Column(type: 'string', length: 50, enumType: ComponenteTipoEnum::class)]
     private ComponenteTipoEnum $tipo = ComponenteTipoEnum::EXTRAS;
 
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:item:read'])]
     #[ORM\Column(type: 'decimal', precision: 4, scale: 1, nullable: true)]
     private ?string $duracion = null;
 
-    #[Groups(['componente:read', 'componente:item:read', 'componente:write'])]
+    #[Groups(['componente:read', 'componente:item:read', 'componente:write', 'servicio:item:read', 'segmento:item:read'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $anticipacionalerta = null;
 

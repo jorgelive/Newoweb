@@ -6,6 +6,7 @@ namespace App\Entity\Maestro;
 use App\Entity\Trait\TimestampTrait;
 use App\Repository\Maestro\MaestroMonedaRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups; // 🔥 IMPRESCINDIBLE
 
 #[ORM\Entity(repositoryClass: MaestroMonedaRepository::class)]
 #[ORM\Table(name: 'maestro_moneda')]
@@ -13,19 +14,22 @@ use Doctrine\ORM\Mapping as ORM;
 class MaestroMoneda
 {
     public const DB_ID_SOL = 'PEN';
-
     public const DB_ID_USD = 'USD';
 
     use TimestampTrait;
 
+    // 🔥 Agregamos los grupos para que la Tarifa pueda exponer estos datos
+    #[Groups(['componente:item:read', 'cotizacion:read', 'cotizacion:item:read'])]
     #[ORM\Id]
     #[ORM\Column(type: 'string', length: 3)]
     #[ORM\GeneratedValue(strategy: 'NONE')]
     private ?string $id = null; // 'PEN', 'USD'...
 
+    #[Groups(['componente:item:read', 'cotizacion:read', 'cotizacion:item:read'])]
     #[ORM\Column(type: 'string', length: 50)]
     private ?string $nombre = null;
 
+    #[Groups(['componente:item:read', 'cotizacion:read', 'cotizacion:item:read'])]
     #[ORM\Column(type: 'string', length: 5)]
     private ?string $simbolo = null;
 
