@@ -116,6 +116,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/sales/cotizacions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of Cotizacion resources.
+         * @description Retrieves the collection of Cotizacion resources.
+         */
+        get: operations["api_salescotizacions_get_collection"];
+        put?: never;
+        /**
+         * Creates a Cotizacion resource.
+         * @description Creates a Cotizacion resource.
+         */
+        post: operations["api_salescotizacions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a Cotizacion resource.
+         * @description Retrieves a Cotizacion resource.
+         */
+        get: operations["api_salescotizacions_id_get"];
+        /**
+         * Replaces the Cotizacion resource.
+         * @description Replaces the Cotizacion resource.
+         */
+        put: operations["api_salescotizacions_id_put"];
+        post?: never;
+        /**
+         * Removes the Cotizacion resource.
+         * @description Removes the Cotizacion resource.
+         */
+        delete: operations["api_salescotizacions_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the Cotizacion resource.
+         * @description Updates the Cotizacion resource.
+         */
+        patch: operations["api_salescotizacions_id_patch"];
+        trace?: never;
+    };
     "/platform/sales/cotizacion_files": {
         parameters: {
             query?: never;
@@ -626,6 +682,26 @@ export interface paths {
         get: operations["api_messagetemplates_get_collection"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/maestro/tipo-cambio/consultar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a TipoCambio resource.
+         * @description Creates a TipoCambio resource.
+         */
+        post: operations["api_tipocambio_consultar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1355,7 +1431,44 @@ export interface components {
             readonly contextFinancialTotal?: number | null;
             readonly contextFinancialIsCleared?: boolean;
         };
-        Cotizacion: {
+        "Cotizacion-cotizacion.read_timestamp.read": {
+            file?: components["schemas"]["CotizacionFile-cotizacion.read_timestamp.read"];
+            /** @default 1 */
+            version: number;
+            /**
+             * @default Pendiente
+             * @enum {string}
+             */
+            estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
+            /** @default 1 */
+            numPax: number;
+            /** @default 0.00 */
+            comision: string;
+            /** @default 0.00 */
+            adelanto: string;
+            hotelOculto?: boolean;
+            precioOculto?: boolean;
+            resumen?: string[];
+            /** Format: date-time */
+            fechaExpiracion?: string | null;
+            /** @default USD */
+            monedaGlobal: string;
+            /** @default es */
+            idiomaCliente: string;
+            /** @default 0.00 */
+            totalCosto: string;
+            /** @default 0.00 */
+            totalVenta: string;
+            clasificacionFinanciera?: string[] | null;
+            cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.read_timestamp.read"][];
+            cotnotas?: components["schemas"]["CotizacionNota-cotizacion.read_timestamp.read"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Cotizacion-cotizacion.write": {
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -1376,8 +1489,7 @@ export interface components {
             adelanto: string;
             hotelOculto?: boolean;
             precioOculto?: boolean;
-            /** @description El texto de resumen/introducción WYSIWYG que encabeza la cotización. */
-            resumen?: string | null;
+            resumen?: string[];
             /** Format: date-time */
             fechaExpiracion?: string | null;
             /** @default USD */
@@ -1388,16 +1500,12 @@ export interface components {
             totalCosto: string;
             /** @default 0.00 */
             totalVenta: string;
-            cotservicios?: components["schemas"]["CotizacionCotservicio"][];
-            cotnotas?: components["schemas"]["CotizacionNota"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
+            clasificacionFinanciera?: string[] | null;
+            cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.write"][];
+            cotnotas?: components["schemas"]["CotizacionNota-cotizacion.write"][];
+            id?: string;
         };
-        "Cotizacion.html": {
+        "Cotizacion-cotizacion.write.jsonMergePatch": {
             /**
              * Format: iri-reference
              * @example https://example.com/
@@ -1418,8 +1526,7 @@ export interface components {
             adelanto: string;
             hotelOculto?: boolean;
             precioOculto?: boolean;
-            /** @description El texto de resumen/introducción WYSIWYG que encabeza la cotización. */
-            resumen?: string | null;
+            resumen?: string[];
             /** Format: date-time */
             fechaExpiracion?: string | null;
             /** @default USD */
@@ -1430,21 +1537,27 @@ export interface components {
             totalCosto: string;
             /** @default 0.00 */
             totalVenta: string;
-            cotservicios?: components["schemas"]["CotizacionCotservicio.html"][];
-            cotnotas?: components["schemas"]["CotizacionNota.html"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            clasificacionFinanciera?: string[] | null;
+            cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.write"][];
+            cotnotas?: components["schemas"]["CotizacionNota-cotizacion.write"][];
+            id?: string;
+        };
+        "Cotizacion-file.read_file.item.read_timestamp.read": {
+            /** @default 1 */
+            version: number;
+            /**
+             * @default Pendiente
+             * @enum {string}
+             */
+            estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "Cotizacion.jsonld": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            file?: string;
+        "Cotizacion.html-cotizacion.read_timestamp.read": {
+            file?: components["schemas"]["CotizacionFile.html-cotizacion.read_timestamp.read"];
             /** @default 1 */
             version: number;
             /**
@@ -1460,8 +1573,7 @@ export interface components {
             adelanto: string;
             hotelOculto?: boolean;
             precioOculto?: boolean;
-            /** @description El texto de resumen/introducción WYSIWYG que encabeza la cotización. */
-            resumen?: string | null;
+            resumen?: string[];
             /** Format: date-time */
             fechaExpiracion?: string | null;
             /** @default USD */
@@ -1472,21 +1584,31 @@ export interface components {
             totalCosto: string;
             /** @default 0.00 */
             totalVenta: string;
-            cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld"][];
-            cotnotas?: components["schemas"]["CotizacionNota.jsonld"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            clasificacionFinanciera?: string[] | null;
+            cotservicios?: components["schemas"]["CotizacionCotservicio.html-cotizacion.read_timestamp.read"][];
+            cotnotas?: components["schemas"]["CotizacionNota.html-cotizacion.read_timestamp.read"][];
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "Cotizacion.multipart": {
+        "Cotizacion.html-file.read_file.item.read_timestamp.read": {
+            /** @default 1 */
+            version: number;
             /**
-             * Format: iri-reference
-             * @example https://example.com/
+             * @default Pendiente
+             * @enum {string}
              */
-            file?: string;
+            estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Cotizacion.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            file?: components["schemas"]["CotizacionFile.jsonld-cotizacion.read_timestamp.read"];
             /** @default 1 */
             version: number;
             /**
@@ -1502,8 +1624,7 @@ export interface components {
             adelanto: string;
             hotelOculto?: boolean;
             precioOculto?: boolean;
-            /** @description El texto de resumen/introducción WYSIWYG que encabeza la cotización. */
-            resumen?: string | null;
+            resumen?: string[];
             /** Format: date-time */
             fechaExpiracion?: string | null;
             /** @default USD */
@@ -1514,19 +1635,83 @@ export interface components {
             totalCosto: string;
             /** @default 0.00 */
             totalVenta: string;
-            cotservicios?: components["schemas"]["CotizacionCotservicio.multipart"][];
-            cotnotas?: components["schemas"]["CotizacionNota.multipart"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            clasificacionFinanciera?: string[] | null;
+            cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read"][];
+            cotnotas?: components["schemas"]["CotizacionNota.jsonld-cotizacion.read_timestamp.read"][];
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        CotizacionCotcomponente: {
-            cotservicio?: components["schemas"]["CotizacionCotservicio"];
-            cotsegmento?: components["schemas"]["CotizacionSegmento"] | null;
-            nombreSnapshot?: string | null;
+        "Cotizacion.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @default 1 */
+            version: number;
+            /**
+             * @default Pendiente
+             * @enum {string}
+             */
+            estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Cotizacion.multipart-cotizacion.read_timestamp.read": {
+            file?: components["schemas"]["CotizacionFile.multipart-cotizacion.read_timestamp.read"];
+            /** @default 1 */
+            version: number;
+            /**
+             * @default Pendiente
+             * @enum {string}
+             */
+            estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
+            /** @default 1 */
+            numPax: number;
+            /** @default 0.00 */
+            comision: string;
+            /** @default 0.00 */
+            adelanto: string;
+            hotelOculto?: boolean;
+            precioOculto?: boolean;
+            resumen?: string[];
+            /** Format: date-time */
+            fechaExpiracion?: string | null;
+            /** @default USD */
+            monedaGlobal: string;
+            /** @default es */
+            idiomaCliente: string;
+            /** @default 0.00 */
+            totalCosto: string;
+            /** @default 0.00 */
+            totalVenta: string;
+            clasificacionFinanciera?: string[] | null;
+            cotservicios?: components["schemas"]["CotizacionCotservicio.multipart-cotizacion.read_timestamp.read"][];
+            cotnotas?: components["schemas"]["CotizacionNota.multipart-cotizacion.read_timestamp.read"][];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "Cotizacion.multipart-file.read_file.item.read_timestamp.read": {
+            /** @default 1 */
+            version: number;
+            /**
+             * @default Pendiente
+             * @enum {string}
+             */
+            estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
+            cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
+            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             /**
@@ -1538,24 +1723,23 @@ export interface components {
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** Format: date-time */
             fechaHoraInicio?: string | null;
             /** Format: date-time */
             fechaHoraFin?: string | null;
             snapshotItems?: string[];
-            cottarifas?: components["schemas"]["CotizacionCottarifa"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            cottarifas?: components["schemas"]["CotizacionCottarifa-cotizacion.read_timestamp.read"][];
+            componenteMaestroId?: string | null;
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionCotcomponente.html": {
-            cotservicio?: components["schemas"]["CotizacionCotservicio.html"];
-            cotsegmento?: components["schemas"]["CotizacionSegmento.html"] | null;
-            nombreSnapshot?: string | null;
+        "CotizacionCotcomponente-cotizacion.write": {
+            cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.write"] | null;
+            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             /**
@@ -1567,24 +1751,19 @@ export interface components {
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** Format: date-time */
             fechaHoraInicio?: string | null;
             /** Format: date-time */
             fechaHoraFin?: string | null;
             snapshotItems?: string[];
-            cottarifas?: components["schemas"]["CotizacionCottarifa.html"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
+            cottarifas?: components["schemas"]["CotizacionCottarifa-cotizacion.write"][];
+            componenteMaestroId?: string | null;
+            id?: string;
         };
-        "CotizacionCotcomponente.jsonld": {
-            cotservicio?: components["schemas"]["CotizacionCotservicio.jsonld"];
-            cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld"] | null;
-            nombreSnapshot?: string | null;
+        "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
+            cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
+            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             /**
@@ -1596,24 +1775,23 @@ export interface components {
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** Format: date-time */
             fechaHoraInicio?: string | null;
             /** Format: date-time */
             fechaHoraFin?: string | null;
             snapshotItems?: string[];
-            cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            cottarifas?: components["schemas"]["CotizacionCottarifa.html-cotizacion.read_timestamp.read"][];
+            componenteMaestroId?: string | null;
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionCotcomponente.multipart": {
-            cotservicio?: components["schemas"]["CotizacionCotservicio.multipart"];
-            cotsegmento?: components["schemas"]["CotizacionSegmento.multipart"] | null;
-            nombreSnapshot?: string | null;
+        "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": {
+            cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"] | null;
+            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             /**
@@ -1625,83 +1803,116 @@ export interface components {
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** Format: date-time */
             fechaHoraInicio?: string | null;
             /** Format: date-time */
             fechaHoraFin?: string | null;
             snapshotItems?: string[];
-            cottarifas?: components["schemas"]["CotizacionCottarifa.multipart"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            cottarifas?: components["schemas"]["CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read"][];
+            componenteMaestroId?: string | null;
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        CotizacionCotservicio: {
-            cotizacion?: components["schemas"]["Cotizacion"];
+        "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
+            cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
             nombreSnapshot?: string[];
-            itinerarioNombreSnapshot?: string | null;
+            /** @default 1 */
+            cantidad: number;
+            /**
+             * @default Pendiente
+             * @enum {string}
+             */
+            estado: "Pendiente" | "Confirmado" | "Reconfirmado" | "Cancelado";
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
+            /** Format: date-time */
+            fechaHoraInicio?: string | null;
+            /** Format: date-time */
+            fechaHoraFin?: string | null;
+            snapshotItems?: string[];
+            cottarifas?: components["schemas"]["CotizacionCottarifa.multipart-cotizacion.read_timestamp.read"][];
+            componenteMaestroId?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionCotservicio-cotizacion.read_timestamp.read": {
+            nombreSnapshot?: string[];
+            itinerarioNombreSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente"][];
-            cotsegmentos?: components["schemas"]["CotizacionSegmento"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.read_timestamp.read"][];
+            cotsegmentos?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"][];
+            servicioMaestroId?: string | null;
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionCotservicio.html": {
-            cotizacion?: components["schemas"]["Cotizacion.html"];
+        "CotizacionCotservicio-cotizacion.write": {
             nombreSnapshot?: string[];
-            itinerarioNombreSnapshot?: string | null;
+            itinerarioNombreSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html"][];
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.html"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
+            cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.write"][];
+            cotsegmentos?: components["schemas"]["CotizacionSegmento-cotizacion.write"][];
+            servicioMaestroId?: string | null;
+            id?: string;
         };
-        "CotizacionCotservicio.jsonld": {
-            cotizacion?: components["schemas"]["Cotizacion.jsonld"];
+        "CotizacionCotservicio.html-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
-            itinerarioNombreSnapshot?: string | null;
+            itinerarioNombreSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld"][];
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-cotizacion.read_timestamp.read"][];
+            cotsegmentos?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"][];
+            servicioMaestroId?: string | null;
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionCotservicio.multipart": {
-            cotizacion?: components["schemas"]["Cotizacion.multipart"];
+        "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
-            itinerarioNombreSnapshot?: string | null;
+            itinerarioNombreSnapshot?: string[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart"][];
-            cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read"][];
+            cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"][];
+            servicioMaestroId?: string | null;
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        CotizacionCottarifa: {
-            cotcomponente?: components["schemas"]["CotizacionCotcomponente"];
-            nombreSnapshot?: string | null;
+        "CotizacionCotservicio.multipart-cotizacion.read_timestamp.read": {
+            nombreSnapshot?: string[];
+            itinerarioNombreSnapshot?: string[];
+            /** Format: date-time */
+            fechaInicioAbsoluta?: string | null;
+            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read"][];
+            cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"][];
+            servicioMaestroId?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionCottarifa-cotizacion.read_timestamp.read": {
+            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -1711,17 +1922,16 @@ export interface components {
             tarifaMaestraId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
+            esGrupal?: boolean;
             detallesOperativos?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionCottarifa.html": {
-            cotcomponente?: components["schemas"]["CotizacionCotcomponente.html"];
-            nombreSnapshot?: string | null;
+        "CotizacionCottarifa-cotizacion.write": {
+            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -1731,17 +1941,12 @@ export interface components {
             tarifaMaestraId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
+            esGrupal?: boolean;
             detallesOperativos?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
+            id?: string;
         };
-        "CotizacionCottarifa.jsonld": {
-            cotcomponente?: components["schemas"]["CotizacionCotcomponente.jsonld"];
-            nombreSnapshot?: string | null;
+        "CotizacionCottarifa.html-cotizacion.read_timestamp.read": {
+            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -1751,17 +1956,16 @@ export interface components {
             tarifaMaestraId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
+            esGrupal?: boolean;
             detallesOperativos?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionCottarifa.multipart": {
-            cotcomponente?: components["schemas"]["CotizacionCotcomponente.multipart"];
-            nombreSnapshot?: string | null;
+        "CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read": {
+            nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
             /** @default 0.00 */
@@ -1771,9 +1975,28 @@ export interface components {
             tarifaMaestraId?: string | null;
             proveedorNombreSnapshot?: string | null;
             tipoModalidadSnapshot?: string | null;
+            esGrupal?: boolean;
             detallesOperativos?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionCottarifa.multipart-cotizacion.read_timestamp.read": {
+            nombreSnapshot?: string[];
+            /** @default 1 */
+            cantidad: number;
+            /** @default 0.00 */
+            montoCosto: string;
+            /** @default USD */
+            moneda: string;
+            tarifaMaestraId?: string | null;
+            proveedorNombreSnapshot?: string | null;
+            tipoModalidadSnapshot?: string | null;
+            esGrupal?: boolean;
+            detallesOperativos?: string[];
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -1803,7 +2026,7 @@ export interface components {
              *     API Platform solo traerá la información superficial de la versión,
              *     evitando descargar el itinerario completo.
              */
-            cotizaciones?: components["schemas"]["Cotizacion"][];
+            cotizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -1811,6 +2034,34 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             localizador?: string;
+        };
+        "CotizacionFile-cotizacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile-file.read_file.item.read_timestamp.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            pais?: components["schemas"]["Pais-file.read_file.item.read_timestamp.read"] | null;
+            idioma?: components["schemas"]["Idioma-file.read_file.item.read_timestamp.read"] | null;
+            /** @default abierto */
+            estado: string;
+            /**
+             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
+             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
+             *     API Platform solo traerá la información superficial de la versión,
+             *     evitando descargar el itinerario completo.
+             */
+            cotizaciones?: components["schemas"]["Cotizacion-file.read_file.item.read_timestamp.read"][];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile-file.read_timestamp.read": {
@@ -1870,7 +2121,7 @@ export interface components {
              *     API Platform solo traerá la información superficial de la versión,
              *     evitando descargar el itinerario completo.
              */
-            cotizaciones?: components["schemas"]["Cotizacion.html"][];
+            cotizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -1878,6 +2129,34 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             localizador?: string;
+        };
+        "CotizacionFile.html-cotizacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.html-file.read_file.item.read_timestamp.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            pais?: components["schemas"]["Pais.html-file.read_file.item.read_timestamp.read"] | null;
+            idioma?: components["schemas"]["Idioma.html-file.read_file.item.read_timestamp.read"] | null;
+            /** @default abierto */
+            estado: string;
+            /**
+             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
+             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
+             *     API Platform solo traerá la información superficial de la versión,
+             *     evitando descargar el itinerario completo.
+             */
+            cotizaciones?: components["schemas"]["Cotizacion.html-file.read_file.item.read_timestamp.read"][];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.html-file.read_timestamp.read": {
@@ -1918,7 +2197,7 @@ export interface components {
              *     API Platform solo traerá la información superficial de la versión,
              *     evitando descargar el itinerario completo.
              */
-            cotizaciones?: components["schemas"]["Cotizacion.jsonld"][];
+            cotizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -1926,6 +2205,35 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             localizador?: string;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            pais?: components["schemas"]["Pais.jsonld-file.read_file.item.read_timestamp.read"] | null;
+            idioma?: components["schemas"]["Idioma.jsonld-file.read_file.item.read_timestamp.read"] | null;
+            /** @default abierto */
+            estado: string;
+            /**
+             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
+             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
+             *     API Platform solo traerá la información superficial de la versión,
+             *     evitando descargar el itinerario completo.
+             */
+            cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.read_file.item.read_timestamp.read"][];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -1966,7 +2274,7 @@ export interface components {
              *     API Platform solo traerá la información superficial de la versión,
              *     evitando descargar el itinerario completo.
              */
-            cotizaciones?: components["schemas"]["Cotizacion.multipart"][];
+            cotizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -1974,6 +2282,34 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             localizador?: string;
+        };
+        "CotizacionFile.multipart-cotizacion.read_timestamp.read": {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
+        "CotizacionFile.multipart-file.read_file.item.read_timestamp.read": {
+            nombreGrupo?: string;
+            pasajeroPrincipal?: string | null;
+            email?: string | null;
+            telefono?: string | null;
+            pais?: components["schemas"]["Pais.multipart-file.read_file.item.read_timestamp.read"] | null;
+            idioma?: components["schemas"]["Idioma.multipart-file.read_file.item.read_timestamp.read"] | null;
+            /** @default abierto */
+            estado: string;
+            /**
+             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
+             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
+             *     API Platform solo traerá la información superficial de la versión,
+             *     evitando descargar el itinerario completo.
+             */
+            cotizaciones?: components["schemas"]["Cotizacion.multipart-file.read_file.item.read_timestamp.read"][];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.multipart-file.read_timestamp.read": {
@@ -1990,8 +2326,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        CotizacionNota: {
-            cotizacion?: components["schemas"]["Cotizacion"];
+        "CotizacionNota-cotizacion.read_timestamp.read": {
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionNota-cotizacion.write": {
             /**
              * @default introduccion
              * @enum {string}
@@ -1999,63 +2341,30 @@ export interface components {
             tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
             tituloSnapshot?: string[];
             contenidoSnapshot?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
+            id?: string;
+        };
+        "CotizacionNota.html-cotizacion.read_timestamp.read": {
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionNota.html": {
-            cotizacion?: components["schemas"]["Cotizacion.html"];
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            tituloSnapshot?: string[];
-            contenidoSnapshot?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
+        "CotizacionNota.jsonld-cotizacion.read_timestamp.read": {
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionNota.jsonld": {
-            cotizacion?: components["schemas"]["Cotizacion.jsonld"];
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            tituloSnapshot?: string[];
-            contenidoSnapshot?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
+        "CotizacionNota.multipart-cotizacion.read_timestamp.read": {
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionNota.multipart": {
-            cotizacion?: components["schemas"]["Cotizacion.multipart"];
-            /**
-             * @default introduccion
-             * @enum {string}
-             */
-            tipo: "introduccion" | "recomendacion" | "advertencia" | "politica" | "equipaje";
-            tituloSnapshot?: string[];
-            contenidoSnapshot?: string[];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
-        CotizacionSegmento: {
-            cotservicio?: components["schemas"]["CotizacionCotservicio"];
+        "CotizacionSegmento-cotizacion.read_timestamp.read": {
             /** @default 1 */
             dia: number;
             /** @default 1 */
@@ -2064,17 +2373,13 @@ export interface components {
             fechaAbsoluta?: string;
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
-            /** @description Logística operativa amarrada a este bloque narrativo. */
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionSegmento.html": {
-            cotservicio?: components["schemas"]["CotizacionCotservicio.html"];
+        "CotizacionSegmento-cotizacion.write": {
             /** @default 1 */
             dia: number;
             /** @default 1 */
@@ -2083,17 +2388,9 @@ export interface components {
             fechaAbsoluta?: string;
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
-            /** @description Logística operativa amarrada a este bloque narrativo. */
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html"][];
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
+            id?: string;
         };
-        "CotizacionSegmento.jsonld": {
-            cotservicio?: components["schemas"]["CotizacionCotservicio.jsonld"];
+        "CotizacionSegmento.html-cotizacion.read_timestamp.read": {
             /** @default 1 */
             dia: number;
             /** @default 1 */
@@ -2102,17 +2399,13 @@ export interface components {
             fechaAbsoluta?: string;
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
-            /** @description Logística operativa amarrada a este bloque narrativo. */
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionSegmento.multipart": {
-            cotservicio?: components["schemas"]["CotizacionCotservicio.multipart"];
+        "CotizacionSegmento.jsonld-cotizacion.read_timestamp.read": {
             /** @default 1 */
             dia: number;
             /** @default 1 */
@@ -2121,10 +2414,22 @@ export interface components {
             fechaAbsoluta?: string;
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
-            /** @description Logística operativa amarrada a este bloque narrativo. */
-            cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart"][];
-            /** Format: uuid */
-            readonly id?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionSegmento.multipart-cotizacion.read_timestamp.read": {
+            /** @default 1 */
+            dia: number;
+            /** @default 1 */
+            orden: number;
+            /** Format: date-time */
+            fechaAbsoluta?: string;
+            contenidoSnapshot?: string[];
+            imagenesSnapshot?: string[];
+            id?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2317,6 +2622,16 @@ export interface components {
             "@id": string;
             "@type": string;
         };
+        "Idioma-file.read_file.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            prioridad?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Idioma-file.read_timestamp.read": {
             id?: string;
             nombre?: string;
@@ -2332,6 +2647,16 @@ export interface components {
             nombre?: string;
             bandera?: string | null;
             prioridad?: number;
+        };
+        "Idioma.html-file.read_file.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            prioridad?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "Idioma.html-file.read_timestamp.read": {
             id?: string;
@@ -2349,6 +2674,16 @@ export interface components {
             bandera?: string | null;
             prioridad?: number;
         };
+        "Idioma.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            prioridad?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         "Idioma.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
@@ -2364,6 +2699,16 @@ export interface components {
             nombre?: string;
             bandera?: string | null;
             prioridad?: number;
+        };
+        "Idioma.multipart-file.read_file.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            prioridad?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "Idioma.multipart-file.read_timestamp.read": {
             id?: string;
@@ -2658,6 +3003,7 @@ export interface components {
             simbolo?: string;
         };
         "MaestroMoneda-componente.write": Record<string, never>;
+        "MaestroMoneda-tipocambio.read": Record<string, never>;
         "MaestroMoneda.html": {
             id?: string;
             nombre?: string;
@@ -2672,6 +3018,7 @@ export interface components {
             nombre?: string;
             simbolo?: string;
         };
+        "MaestroMoneda.html-tipocambio.read": Record<string, never>;
         "MaestroMoneda.jsonld": {
             id?: string;
             nombre?: string;
@@ -2686,6 +3033,7 @@ export interface components {
             nombre?: string;
             simbolo?: string;
         };
+        "MaestroMoneda.jsonld-tipocambio.read": Record<string, never>;
         "MaestroMoneda.multipart": {
             id?: string;
             nombre?: string;
@@ -2700,6 +3048,7 @@ export interface components {
             nombre?: string;
             simbolo?: string;
         };
+        "MaestroMoneda.multipart-tipocambio.read": Record<string, never>;
         /**
          * @description Entidad que representa un mensaje individual dentro de una conversación.
          *     Expuesta a través de API Platform permitiendo lectura y escritura.
@@ -3145,6 +3494,19 @@ export interface components {
          * @description Entidad MaestroPais.
          *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
          */
+        "Pais-file.read_file.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
         "Pais-file.read_timestamp.read": {
             id?: string;
             nombre?: string;
@@ -3162,6 +3524,19 @@ export interface components {
             id?: string;
             nombre?: string;
             bandera?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.html-file.read_file.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /**
          * @description Entidad MaestroPais.
@@ -3189,6 +3564,19 @@ export interface components {
          * @description Entidad MaestroPais.
          *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
          */
+        "Pais.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
         "Pais.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
@@ -3206,6 +3594,19 @@ export interface components {
             id?: string;
             nombre?: string;
             bandera?: string | null;
+        };
+        /**
+         * @description Entidad MaestroPais.
+         *     Almacena códigos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.
+         */
+        "Pais.multipart-file.read_file.item.read_timestamp.read": {
+            id?: string;
+            nombre?: string;
+            bandera?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         /**
          * @description Entidad MaestroPais.
@@ -3963,10 +4364,81 @@ export interface components {
             /** @description Extrae los canales de comunicación activos configurados en la plantilla. */
             readonly channels?: string[];
         };
+        /**
+         * @description Entidad MaestroTipocambio.
+         *     Registra el histórico de tasas de cambio.
+         */
+        TipoCambio: {
+            moneda?: components["schemas"]["MaestroMoneda"];
+            /** Format: date-time */
+            fecha?: string;
+            compra?: string;
+            venta?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly promedio?: string;
+            readonly promedioredondeado?: string;
+        };
+        /**
+         * @description Entidad MaestroTipocambio.
+         *     Registra el histórico de tasas de cambio.
+         */
+        "TipoCambio-tipocambio.read": {
+            moneda?: components["schemas"]["MaestroMoneda-tipocambio.read"];
+            /** Format: date-time */
+            fecha?: string;
+            compra?: string;
+            venta?: string;
+            readonly promedio?: string;
+            readonly promedioredondeado?: string;
+        };
+        /**
+         * @description Entidad MaestroTipocambio.
+         *     Registra el histórico de tasas de cambio.
+         */
+        "TipoCambio.html-tipocambio.read": {
+            moneda?: components["schemas"]["MaestroMoneda.html-tipocambio.read"];
+            /** Format: date-time */
+            fecha?: string;
+            compra?: string;
+            venta?: string;
+            readonly promedio?: string;
+            readonly promedioredondeado?: string;
+        };
+        /**
+         * @description Entidad MaestroTipocambio.
+         *     Registra el histórico de tasas de cambio.
+         */
+        "TipoCambio.jsonld-tipocambio.read": components["schemas"]["HydraItemBaseSchema"] & {
+            moneda?: components["schemas"]["MaestroMoneda.jsonld-tipocambio.read"];
+            /** Format: date-time */
+            fecha?: string;
+            compra?: string;
+            venta?: string;
+            readonly promedio?: string;
+            readonly promedioredondeado?: string;
+        };
+        /**
+         * @description Entidad MaestroTipocambio.
+         *     Registra el histórico de tasas de cambio.
+         */
+        "TipoCambio.multipart-tipocambio.read": {
+            moneda?: components["schemas"]["MaestroMoneda.multipart-tipocambio.read"];
+            /** Format: date-time */
+            fecha?: string;
+            compra?: string;
+            venta?: string;
+            readonly promedio?: string;
+            readonly promedioredondeado?: string;
+        };
         TravelComponenteItem: {
             /**
              * Format: iri-reference
-             * @description Obtiene el componente logístico padre.
+             * @description Establece el componente logístico padre.
              * @example https://example.com/
              */
             componente?: string;
@@ -3977,11 +4449,10 @@ export interface components {
              */
             diccionario?: string;
             /**
-             * @description Obtiene el modo de inclusión (Enum).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -4008,11 +4479,10 @@ export interface components {
              */
             diccionario?: string;
             /**
-             * @description Obtiene el modo de inclusión (Enum).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -4033,11 +4503,10 @@ export interface components {
              */
             diccionario?: string;
             /**
-             * @description Obtiene el modo de inclusión (Enum).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE. */
             componenteAdicionalVinculado?: components["schemas"]["Componente-componente.write"] | null;
             /**
@@ -4049,7 +4518,7 @@ export interface components {
         "TravelComponenteItem.html": {
             /**
              * Format: iri-reference
-             * @description Obtiene el componente logístico padre.
+             * @description Establece el componente logístico padre.
              * @example https://example.com/
              */
             componente?: string;
@@ -4060,11 +4529,10 @@ export interface components {
              */
             diccionario?: string;
             /**
-             * @description Obtiene el modo de inclusión (Enum).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -4091,11 +4559,10 @@ export interface components {
              */
             diccionario?: string;
             /**
-             * @description Obtiene el modo de inclusión (Enum).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -4111,7 +4578,7 @@ export interface components {
         "TravelComponenteItem.jsonld": {
             /**
              * Format: iri-reference
-             * @description Obtiene el componente logístico padre.
+             * @description Establece el componente logístico padre.
              * @example https://example.com/
              */
             componente?: string;
@@ -4122,11 +4589,10 @@ export interface components {
              */
             diccionario?: string;
             /**
-             * @description Obtiene el modo de inclusión (Enum).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -4153,11 +4619,10 @@ export interface components {
              */
             diccionario?: string;
             /**
-             * @description Obtiene el modo de inclusión (Enum).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -4173,7 +4638,7 @@ export interface components {
         "TravelComponenteItem.multipart": {
             /**
              * Format: iri-reference
-             * @description Obtiene el componente logístico padre.
+             * @description Establece el componente logístico padre.
              * @example https://example.com/
              */
             componente?: string;
@@ -4184,11 +4649,10 @@ export interface components {
              */
             diccionario?: string;
             /**
-             * @description Obtiene el modo de inclusión (Enum).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -4215,11 +4679,10 @@ export interface components {
              */
             diccionario?: string;
             /**
-             * @description Obtiene el modo de inclusión (Enum).
              * @default incluido
              * @enum {string}
              */
-            modo: "incluido" | "opcional" | "no_incluido" | "no_necesario" | "cortesia";
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /**
              * Format: iri-reference
              * @description API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -4388,8 +4851,11 @@ export interface components {
             servicioContexto?: string | null;
             /** Format: date-time */
             hora?: string | null;
-            /** @default true */
-            esIncluido: boolean;
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** @default 1 */
             orden: number;
             /** Format: uuid */
@@ -4410,8 +4876,11 @@ export interface components {
             servicioContexto?: string | null;
             /** Format: date-time */
             hora?: string | null;
-            /** @default true */
-            esIncluido: boolean;
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** @default 1 */
             orden: number;
         };
@@ -4430,8 +4899,11 @@ export interface components {
             servicioContexto?: string | null;
             /** Format: date-time */
             hora?: string | null;
-            /** @default true */
-            esIncluido: boolean;
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** @default 1 */
             orden: number;
         };
@@ -4456,8 +4928,11 @@ export interface components {
             servicioContexto?: string | null;
             /** Format: date-time */
             hora?: string | null;
-            /** @default true */
-            esIncluido: boolean;
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** @default 1 */
             orden: number;
             /** Format: uuid */
@@ -4478,8 +4953,11 @@ export interface components {
             servicioContexto?: string | null;
             /** Format: date-time */
             hora?: string | null;
-            /** @default true */
-            esIncluido: boolean;
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** @default 1 */
             orden: number;
         };
@@ -4504,8 +4982,11 @@ export interface components {
             servicioContexto?: string | null;
             /** Format: date-time */
             hora?: string | null;
-            /** @default true */
-            esIncluido: boolean;
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** @default 1 */
             orden: number;
             /** Format: uuid */
@@ -4526,8 +5007,11 @@ export interface components {
             servicioContexto?: string | null;
             /** Format: date-time */
             hora?: string | null;
-            /** @default true */
-            esIncluido: boolean;
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** @default 1 */
             orden: number;
         };
@@ -4552,8 +5036,11 @@ export interface components {
             servicioContexto?: string | null;
             /** Format: date-time */
             hora?: string | null;
-            /** @default true */
-            esIncluido: boolean;
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** @default 1 */
             orden: number;
             /** Format: uuid */
@@ -4574,8 +5061,11 @@ export interface components {
             servicioContexto?: string | null;
             /** Format: date-time */
             hora?: string | null;
-            /** @default true */
-            esIncluido: boolean;
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
             /** @default 1 */
             orden: number;
         };
@@ -5395,6 +5885,287 @@ export interface operations {
             };
         };
     };
+    api_salescotizacions_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cotizacion collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["Cotizacion.jsonld-cotizacion.read_timestamp.read"][];
+                    };
+                    "application/json": components["schemas"]["Cotizacion-cotizacion.read_timestamp.read"][];
+                    "text/html": components["schemas"]["Cotizacion.html-cotizacion.read_timestamp.read"][];
+                    "multipart/form-data": components["schemas"]["Cotizacion.multipart-cotizacion.read_timestamp.read"][];
+                };
+            };
+        };
+    };
+    api_salescotizacions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "application/json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "text/html": components["schemas"]["Cotizacion-cotizacion.write"];
+                "multipart/form-data": components["schemas"]["Cotizacion-cotizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.jsonld-cotizacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["Cotizacion-cotizacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["Cotizacion.html-cotizacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.multipart-cotizacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacions_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cotizacion resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.jsonld-cotizacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["Cotizacion-cotizacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["Cotizacion.html-cotizacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.multipart-cotizacion.read_timestamp.read"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salescotizacions_id_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "application/json": components["schemas"]["Cotizacion-cotizacion.write"];
+                "text/html": components["schemas"]["Cotizacion-cotizacion.write"];
+                "multipart/form-data": components["schemas"]["Cotizacion-cotizacion.write"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.jsonld-cotizacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["Cotizacion-cotizacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["Cotizacion.html-cotizacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.multipart-cotizacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacions_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cotizacion resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salescotizacions_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cotizacion identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated Cotizacion resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["Cotizacion-cotizacion.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description Cotizacion resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Cotizacion.jsonld-cotizacion.read_timestamp.read"];
+                    "application/json": components["schemas"]["Cotizacion-cotizacion.read_timestamp.read"];
+                    "text/html": components["schemas"]["Cotizacion.html-cotizacion.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["Cotizacion.multipart-cotizacion.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
     api_salescotizacion_files_get_collection: {
         parameters: {
             query?: {
@@ -5505,10 +6276,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld-file.read_timestamp.read"];
-                    "application/json": components["schemas"]["CotizacionFile-file.read_timestamp.read"];
-                    "text/html": components["schemas"]["CotizacionFile.html-file.read_timestamp.read"];
-                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart-file.read_timestamp.read"];
+                    "application/ld+json": components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
                 };
             };
             /** @description Forbidden */
@@ -7384,6 +8155,59 @@ export interface operations {
                     "application/json": components["schemas"]["Template-template.read"][];
                     "text/html": components["schemas"]["Template.html-template.read"][];
                     "multipart/form-data": components["schemas"]["Template.multipart-template.read"][];
+                };
+            };
+        };
+    };
+    api_tipocambio_consultar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new TipoCambio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["TipoCambio"];
+                "application/json": components["schemas"]["TipoCambio"];
+                "text/html": components["schemas"]["TipoCambio"];
+                "multipart/form-data": components["schemas"]["TipoCambio"];
+            };
+        };
+        responses: {
+            /** @description TipoCambio resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["TipoCambio.jsonld-tipocambio.read"];
+                    "application/json": components["schemas"]["TipoCambio-tipocambio.read"];
+                    "text/html": components["schemas"]["TipoCambio.html-tipocambio.read"];
+                    "multipart/form-data": components["schemas"]["TipoCambio.multipart-tipocambio.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };

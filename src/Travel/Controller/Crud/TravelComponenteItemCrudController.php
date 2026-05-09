@@ -6,7 +6,7 @@ namespace App\Travel\Controller\Crud;
 
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Travel\Entity\TravelComponenteItem;
-use App\Travel\Enum\ItemModoEnum;
+use App\Travel\Enum\ComponenteItemModoEnum;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
@@ -37,8 +37,8 @@ class TravelComponenteItemCrudController extends BaseCrudController
             ->setRequired(true);
 
         yield ChoiceField::new('modo', 'Condición Base')
-            ->setChoices(array_reduce(ItemModoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
-            ->formatValue(static fn ($value) => $value instanceof ItemModoEnum ? $value->value : $value)
+            ->setChoices(array_reduce(ComponenteItemModoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
+            ->formatValue(static fn ($value) => $value instanceof ComponenteItemModoEnum ? $value->value : $value)
             ->setHelp('¿Viene incluido, es opcional, o no está incluido?')
             ->setColumns(4)
             ->setRequired(true);

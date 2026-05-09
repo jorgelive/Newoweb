@@ -20,6 +20,7 @@ trait IdTrait
     }
 
     /**
+     * Genera un ID si la entidad aún no lo tiene.
      * Útil cuando necesitas el ID antes del flush (colas, dedupe, etc.).
      */
     public function initializeId(): void
@@ -27,5 +28,20 @@ trait IdTrait
         if ($this->id === null) {
             $this->id = new UuidV7();
         }
+    }
+
+    /**
+     * Genera un nuevo identificador UUID v7 de forma forzada, sobrescribiendo el actual.
+     * Este método existe para garantizar la unicidad al realizar una clonación profunda (__clone),
+     * evitando que el motor ORM intente actualizar el registro original debido a una colisión de IDs.
+     *
+     * Ejemplo de uso:
+     * public function __clone() {
+     * $this->resetId();
+     * }
+     */
+    public function resetId(): void
+    {
+        $this->id = new UuidV7();
     }
 }

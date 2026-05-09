@@ -46,6 +46,16 @@ class TravelItinerarioSegmentoRel
         $this->initializeId();
     }
 
+    public function __toString(): string
+    {
+        // Devuelve el nombre interno del segmento, o un fallback si aún no está asignado
+        if ($this->segmento instanceof TravelSegmento) {
+            return sprintf('Día %d - %s', $this->dia, $this->segmento->getNombreInterno() ?? 'Sin nombre');
+        }
+
+        return 'Nuevo Segmento de Itinerario';
+    }
+
     public function getItinerario(): ?TravelItinerario
     {
         return $this->itinerario;

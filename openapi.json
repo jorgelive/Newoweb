@@ -911,6 +911,575 @@
                 }
             }
         },
+        "/platform/sales/cotizacions": {
+            "get": {
+                "operationId": "api_salescotizacions_get_collection",
+                "tags": [
+                    "Cotizacion"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cotizacion collection",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "description": "Cotizacion.jsonld-cotizacion.read_timestamp.read collection.",
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/HydraCollectionBaseSchema"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "member"
+                                            ],
+                                            "properties": {
+                                                "member": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/Cotizacion.jsonld-cotizacion.read_timestamp.read"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Cotizacion-cotizacion.read_timestamp.read"
+                                    }
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Cotizacion.html-cotizacion.read_timestamp.read"
+                                    }
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Cotizacion.multipart-cotizacion.read_timestamp.read"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "summary": "Retrieves the collection of Cotizacion resources.",
+                "description": "Retrieves the collection of Cotizacion resources.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "The collection page number",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        },
+                        "style": "form",
+                        "explode": false
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "api_salescotizacions_post",
+                "tags": [
+                    "Cotizacion"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Cotizacion resource created",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.jsonld-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.html-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.multipart-cotizacion.read_timestamp.read"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Creates a Cotizacion resource.",
+                "description": "Creates a Cotizacion resource.",
+                "parameters": [],
+                "requestBody": {
+                    "description": "The new Cotizacion resource",
+                    "content": {
+                        "application/ld+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "text/html": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            }
+        },
+        "/platform/sales/cotizacions/{id}": {
+            "get": {
+                "operationId": "api_salescotizacions_id_get",
+                "tags": [
+                    "Cotizacion"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cotizacion resource",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.jsonld-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.html-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.multipart-cotizacion.read_timestamp.read"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves a Cotizacion resource.",
+                "description": "Retrieves a Cotizacion resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Cotizacion identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            },
+            "put": {
+                "operationId": "api_salescotizacions_id_put",
+                "tags": [
+                    "Cotizacion"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cotizacion resource updated",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.jsonld-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.html-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.multipart-cotizacion.read_timestamp.read"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Replaces the Cotizacion resource.",
+                "description": "Replaces the Cotizacion resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Cotizacion identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ],
+                "requestBody": {
+                    "description": "The updated Cotizacion resource",
+                    "content": {
+                        "application/ld+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "text/html": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            },
+            "delete": {
+                "operationId": "api_salescotizacions_id_delete",
+                "tags": [
+                    "Cotizacion"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Cotizacion resource deleted"
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Removes the Cotizacion resource.",
+                "description": "Removes the Cotizacion resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Cotizacion identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            },
+            "patch": {
+                "operationId": "api_salescotizacions_id_patch",
+                "tags": [
+                    "Cotizacion"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cotizacion resource updated",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.jsonld-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.html-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cotizacion.multipart-cotizacion.read_timestamp.read"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Updates the Cotizacion resource.",
+                "description": "Updates the Cotizacion resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Cotizacion identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ],
+                "requestBody": {
+                    "description": "The updated Cotizacion resource",
+                    "content": {
+                        "application/merge-patch+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Cotizacion-cotizacion.write.jsonMergePatch"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            }
+        },
         "/platform/sales/cotizacion_files": {
             "get": {
                 "operationId": "api_salescotizacion_files_get_collection",
@@ -1130,22 +1699,22 @@
                         "content": {
                             "application/ld+json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/CotizacionFile.jsonld-file.read_timestamp.read"
+                                    "$ref": "#/components/schemas/CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"
                                 }
                             },
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/CotizacionFile-file.read_timestamp.read"
+                                    "$ref": "#/components/schemas/CotizacionFile-file.read_file.item.read_timestamp.read"
                                 }
                             },
                             "text/html": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/CotizacionFile.html-file.read_timestamp.read"
+                                    "$ref": "#/components/schemas/CotizacionFile.html-file.read_file.item.read_timestamp.read"
                                 }
                             },
                             "multipart/form-data": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/CotizacionFile.multipart-file.read_timestamp.read"
+                                    "$ref": "#/components/schemas/CotizacionFile.multipart-file.read_file.item.read_timestamp.read"
                                 }
                             }
                         }
@@ -5121,6 +5690,113 @@
                 ]
             }
         },
+        "/platform/maestro/tipo-cambio/consultar": {
+            "post": {
+                "operationId": "api_tipocambio_consultar",
+                "tags": [
+                    "TipoCambio"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "TipoCambio resource created",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TipoCambio.jsonld-tipocambio.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TipoCambio-tipocambio.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TipoCambio.html-tipocambio.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TipoCambio.multipart-tipocambio.read"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Creates a TipoCambio resource.",
+                "description": "Creates a TipoCambio resource.",
+                "parameters": [],
+                "requestBody": {
+                    "description": "The new TipoCambio resource",
+                    "content": {
+                        "application/ld+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TipoCambio"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TipoCambio"
+                            }
+                        },
+                        "text/html": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TipoCambio"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TipoCambio"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            }
+        },
         "/platform/public/pax/ui_i18n": {
             "get": {
                 "operationId": "api_publicpaxui_i18n_get_collection",
@@ -7391,7 +8067,120 @@
                     }
                 }
             },
-            "Cotizacion": {
+            "Cotizacion-cotizacion.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "$ref": "#/components/schemas/CotizacionFile-cotizacion.read_timestamp.read"
+                    },
+                    "version": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "estado": {
+                        "default": "Pendiente",
+                        "type": "string",
+                        "enum": [
+                            "Pendiente",
+                            "Archivado",
+                            "Confirmado",
+                            "Operado",
+                            "Cancelado"
+                        ]
+                    },
+                    "numPax": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "comision": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "adelanto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "hotelOculto": {
+                        "type": "boolean"
+                    },
+                    "precioOculto": {
+                        "type": "boolean"
+                    },
+                    "resumen": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "fechaExpiracion": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "monedaGlobal": {
+                        "default": "USD",
+                        "type": "string"
+                    },
+                    "idiomaCliente": {
+                        "default": "es",
+                        "type": "string"
+                    },
+                    "totalCosto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "totalVenta": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "clasificacionFinanciera": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cotservicios": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionCotservicio-cotizacion.read_timestamp.read"
+                        }
+                    },
+                    "cotnotas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionNota-cotizacion.read_timestamp.read"
+                        }
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "Cotizacion-cotizacion.write": {
                 "type": "object",
                 "properties": {
                     "file": {
@@ -7433,11 +8222,10 @@
                         "type": "boolean"
                     },
                     "resumen": {
-                        "description": "El texto de resumen/introducci\u00f3n WYSIWYG que encabeza la cotizaci\u00f3n.",
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "fechaExpiracion": {
                         "type": [
@@ -7462,40 +8250,41 @@
                         "default": "0.00",
                         "type": "string"
                     },
+                    "clasificacionFinanciera": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "cotservicios": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCotservicio"
+                            "$ref": "#/components/schemas/CotizacionCotservicio-cotizacion.write"
                         }
                     },
                     "cotnotas": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionNota"
+                            "$ref": "#/components/schemas/CotizacionNota-cotizacion.write"
                         }
                     },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     }
                 }
             },
-            "Cotizacion.html": {
+            "Cotizacion-cotizacion.write.jsonMergePatch": {
                 "type": "object",
                 "properties": {
                     "file": {
@@ -7537,11 +8326,10 @@
                         "type": "boolean"
                     },
                     "resumen": {
-                        "description": "El texto de resumen/introducci\u00f3n WYSIWYG que encabeza la cotizaci\u00f3n.",
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "fechaExpiracion": {
                         "type": [
@@ -7566,25 +8354,68 @@
                         "default": "0.00",
                         "type": "string"
                     },
+                    "clasificacionFinanciera": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "cotservicios": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCotservicio.html"
+                            "$ref": "#/components/schemas/CotizacionCotservicio-cotizacion.write"
                         }
                     },
                     "cotnotas": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionNota.html"
+                            "$ref": "#/components/schemas/CotizacionNota-cotizacion.write"
                         }
                     },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    }
+                }
+            },
+            "Cotizacion-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "estado": {
+                        "default": "Pendiente",
+                        "type": "string",
+                        "enum": [
+                            "Pendiente",
+                            "Archivado",
+                            "Confirmado",
+                            "Operado",
+                            "Cancelado"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -7599,13 +8430,11 @@
                     }
                 }
             },
-            "Cotizacion.jsonld": {
+            "Cotizacion.html-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
                     "file": {
-                        "type": "string",
-                        "format": "iri-reference",
-                        "example": "https://example.com/"
+                        "$ref": "#/components/schemas/CotizacionFile.html-cotizacion.read_timestamp.read"
                     },
                     "version": {
                         "default": 1,
@@ -7641,11 +8470,10 @@
                         "type": "boolean"
                     },
                     "resumen": {
-                        "description": "El texto de resumen/introducci\u00f3n WYSIWYG que encabeza la cotizaci\u00f3n.",
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "fechaExpiracion": {
                         "type": [
@@ -7670,25 +8498,37 @@
                         "default": "0.00",
                         "type": "string"
                     },
+                    "clasificacionFinanciera": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "cotservicios": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCotservicio.jsonld"
+                            "$ref": "#/components/schemas/CotizacionCotservicio.html-cotizacion.read_timestamp.read"
                         }
                     },
                     "cotnotas": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionNota.jsonld"
+                            "$ref": "#/components/schemas/CotizacionNota.html-cotizacion.read_timestamp.read"
                         }
                     },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -7703,13 +8543,222 @@
                     }
                 }
             },
-            "Cotizacion.multipart": {
+            "Cotizacion.html-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "estado": {
+                        "default": "Pendiente",
+                        "type": "string",
+                        "enum": [
+                            "Pendiente",
+                            "Archivado",
+                            "Confirmado",
+                            "Operado",
+                            "Cancelado"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "Cotizacion.jsonld-cotizacion.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "file": {
+                                "$ref": "#/components/schemas/CotizacionFile.jsonld-cotizacion.read_timestamp.read"
+                            },
+                            "version": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "estado": {
+                                "default": "Pendiente",
+                                "type": "string",
+                                "enum": [
+                                    "Pendiente",
+                                    "Archivado",
+                                    "Confirmado",
+                                    "Operado",
+                                    "Cancelado"
+                                ]
+                            },
+                            "numPax": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "comision": {
+                                "default": "0.00",
+                                "type": "string"
+                            },
+                            "adelanto": {
+                                "default": "0.00",
+                                "type": "string"
+                            },
+                            "hotelOculto": {
+                                "type": "boolean"
+                            },
+                            "precioOculto": {
+                                "type": "boolean"
+                            },
+                            "resumen": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "fechaExpiracion": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "monedaGlobal": {
+                                "default": "USD",
+                                "type": "string"
+                            },
+                            "idiomaCliente": {
+                                "default": "es",
+                                "type": "string"
+                            },
+                            "totalCosto": {
+                                "default": "0.00",
+                                "type": "string"
+                            },
+                            "totalVenta": {
+                                "default": "0.00",
+                                "type": "string"
+                            },
+                            "clasificacionFinanciera": {
+                                "type": [
+                                    "array",
+                                    "null"
+                                ],
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "cotservicios": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "cotnotas": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/CotizacionNota.jsonld-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                ]
+            },
+            "Cotizacion.jsonld-file.read_file.item.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "version": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "estado": {
+                                "default": "Pendiente",
+                                "type": "string",
+                                "enum": [
+                                    "Pendiente",
+                                    "Archivado",
+                                    "Confirmado",
+                                    "Operado",
+                                    "Cancelado"
+                                ]
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                ]
+            },
+            "Cotizacion.multipart-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
                     "file": {
-                        "type": "string",
-                        "format": "iri-reference",
-                        "example": "https://example.com/"
+                        "$ref": "#/components/schemas/CotizacionFile.multipart-cotizacion.read_timestamp.read"
                     },
                     "version": {
                         "default": 1,
@@ -7745,11 +8794,10 @@
                         "type": "boolean"
                     },
                     "resumen": {
-                        "description": "El texto de resumen/introducci\u00f3n WYSIWYG que encabeza la cotizaci\u00f3n.",
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "fechaExpiracion": {
                         "type": [
@@ -7774,25 +8822,37 @@
                         "default": "0.00",
                         "type": "string"
                     },
+                    "clasificacionFinanciera": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "cotservicios": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCotservicio.multipart"
+                            "$ref": "#/components/schemas/CotizacionCotservicio.multipart-cotizacion.read_timestamp.read"
                         }
                     },
                     "cotnotas": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionNota.multipart"
+                            "$ref": "#/components/schemas/CotizacionNota.multipart-cotizacion.read_timestamp.read"
                         }
                     },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -7807,16 +8867,55 @@
                     }
                 }
             },
-            "CotizacionCotcomponente": {
+            "Cotizacion.multipart-file.read_file.item.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotservicio": {
-                        "$ref": "#/components/schemas/CotizacionCotservicio"
+                    "version": {
+                        "default": 1,
+                        "type": "integer"
                     },
+                    "estado": {
+                        "default": "Pendiente",
+                        "type": "string",
+                        "enum": [
+                            "Pendiente",
+                            "Archivado",
+                            "Confirmado",
+                            "Operado",
+                            "Cancelado"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
+                "type": "object",
+                "properties": {
                     "cotsegmento": {
                         "anyOf": [
                             {
-                                "$ref": "#/components/schemas/CotizacionSegmento"
+                                "$ref": "#/components/schemas/CotizacionSegmento-cotizacion.read_timestamp.read"
                             },
                             {
                                 "type": "null"
@@ -7824,10 +8923,10 @@
                         ]
                     },
                     "nombreSnapshot": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "cantidad": {
                         "default": 1,
@@ -7850,7 +8949,6 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -7877,16 +8975,25 @@
                     "cottarifas": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCottarifa"
+                            "$ref": "#/components/schemas/CotizacionCottarifa-cotizacion.read_timestamp.read"
                         }
                     },
-                    "id": {
-                        "readOnly": true,
+                    "componenteMaestroId": {
                         "type": [
                             "string",
                             "null"
-                        ],
-                        "format": "uuid"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -7901,16 +9008,13 @@
                     }
                 }
             },
-            "CotizacionCotcomponente.html": {
+            "CotizacionCotcomponente-cotizacion.write": {
                 "type": "object",
                 "properties": {
-                    "cotservicio": {
-                        "$ref": "#/components/schemas/CotizacionCotservicio.html"
-                    },
                     "cotsegmento": {
                         "anyOf": [
                             {
-                                "$ref": "#/components/schemas/CotizacionSegmento.html"
+                                "$ref": "#/components/schemas/CotizacionSegmento-cotizacion.write"
                             },
                             {
                                 "type": "null"
@@ -7918,10 +9022,10 @@
                         ]
                     },
                     "nombreSnapshot": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "cantidad": {
                         "default": 1,
@@ -7944,7 +9048,6 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -7971,40 +9074,35 @@
                     "cottarifas": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCottarifa.html"
+                            "$ref": "#/components/schemas/CotizacionCottarifa-cotizacion.write"
                         }
                     },
+                    "componenteMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     }
                 }
             },
-            "CotizacionCotcomponente.jsonld": {
+            "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotservicio": {
-                        "$ref": "#/components/schemas/CotizacionCotservicio.jsonld"
-                    },
                     "cotsegmento": {
                         "anyOf": [
                             {
-                                "$ref": "#/components/schemas/CotizacionSegmento.jsonld"
+                                "$ref": "#/components/schemas/CotizacionSegmento.html-cotizacion.read_timestamp.read"
                             },
                             {
                                 "type": "null"
@@ -8012,10 +9110,10 @@
                         ]
                     },
                     "nombreSnapshot": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "cantidad": {
                         "default": 1,
@@ -8038,7 +9136,6 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -8065,16 +9162,25 @@
                     "cottarifas": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCottarifa.jsonld"
+                            "$ref": "#/components/schemas/CotizacionCottarifa.html-cotizacion.read_timestamp.read"
                         }
                     },
-                    "id": {
-                        "readOnly": true,
+                    "componenteMaestroId": {
                         "type": [
                             "string",
                             "null"
-                        ],
-                        "format": "uuid"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -8089,16 +9195,13 @@
                     }
                 }
             },
-            "CotizacionCotcomponente.multipart": {
+            "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotservicio": {
-                        "$ref": "#/components/schemas/CotizacionCotservicio.multipart"
-                    },
                     "cotsegmento": {
                         "anyOf": [
                             {
-                                "$ref": "#/components/schemas/CotizacionSegmento.multipart"
+                                "$ref": "#/components/schemas/CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"
                             },
                             {
                                 "type": "null"
@@ -8106,10 +9209,10 @@
                         ]
                     },
                     "nombreSnapshot": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "cantidad": {
                         "default": 1,
@@ -8132,7 +9235,6 @@
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -8159,16 +9261,25 @@
                     "cottarifas": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCottarifa.multipart"
+                            "$ref": "#/components/schemas/CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read"
                         }
                     },
-                    "id": {
-                        "readOnly": true,
+                    "componenteMaestroId": {
                         "type": [
                             "string",
                             "null"
-                        ],
-                        "format": "uuid"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -8183,11 +9294,18 @@
                     }
                 }
             },
-            "CotizacionCotservicio": {
+            "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotizacion": {
-                        "$ref": "#/components/schemas/Cotizacion"
+                    "cotsegmento": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/CotizacionSegmento.multipart-cotizacion.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "nombreSnapshot": {
                         "type": "array",
@@ -8195,11 +9313,100 @@
                             "type": "string"
                         }
                     },
-                    "itinerarioNombreSnapshot": {
+                    "cantidad": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "estado": {
+                        "default": "Pendiente",
+                        "type": "string",
+                        "enum": [
+                            "Pendiente",
+                            "Confirmado",
+                            "Reconfirmado",
+                            "Cancelado"
+                        ]
+                    },
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
+                    },
+                    "fechaHoraInicio": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "fechaHoraFin": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "snapshotItems": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cottarifas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionCottarifa.multipart-cotizacion.read_timestamp.read"
+                        }
+                    },
+                    "componenteMaestroId": {
                         "type": [
                             "string",
                             "null"
                         ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionCotservicio-cotizacion.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "itinerarioNombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "fechaInicioAbsoluta": {
                         "type": [
@@ -8211,22 +9418,31 @@
                     "cotcomponentes": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCotcomponente"
+                            "$ref": "#/components/schemas/CotizacionCotcomponente-cotizacion.read_timestamp.read"
                         }
                     },
                     "cotsegmentos": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionSegmento"
+                            "$ref": "#/components/schemas/CotizacionSegmento-cotizacion.read_timestamp.read"
                         }
                     },
-                    "id": {
-                        "readOnly": true,
+                    "servicioMaestroId": {
                         "type": [
                             "string",
                             "null"
-                        ],
-                        "format": "uuid"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -8241,12 +9457,9 @@
                     }
                 }
             },
-            "CotizacionCotservicio.html": {
+            "CotizacionCotservicio-cotizacion.write": {
                 "type": "object",
                 "properties": {
-                    "cotizacion": {
-                        "$ref": "#/components/schemas/Cotizacion.html"
-                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -8254,10 +9467,10 @@
                         }
                     },
                     "itinerarioNombreSnapshot": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "fechaInicioAbsoluta": {
                         "type": [
@@ -8269,42 +9482,37 @@
                     "cotcomponentes": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCotcomponente.html"
+                            "$ref": "#/components/schemas/CotizacionCotcomponente-cotizacion.write"
                         }
                     },
                     "cotsegmentos": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionSegmento.html"
+                            "$ref": "#/components/schemas/CotizacionSegmento-cotizacion.write"
                         }
                     },
+                    "servicioMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     }
                 }
             },
-            "CotizacionCotservicio.jsonld": {
+            "CotizacionCotservicio.html-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotizacion": {
-                        "$ref": "#/components/schemas/Cotizacion.jsonld"
-                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -8312,10 +9520,10 @@
                         }
                     },
                     "itinerarioNombreSnapshot": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "fechaInicioAbsoluta": {
                         "type": [
@@ -8327,22 +9535,31 @@
                     "cotcomponentes": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCotcomponente.jsonld"
+                            "$ref": "#/components/schemas/CotizacionCotcomponente.html-cotizacion.read_timestamp.read"
                         }
                     },
                     "cotsegmentos": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionSegmento.jsonld"
+                            "$ref": "#/components/schemas/CotizacionSegmento.html-cotizacion.read_timestamp.read"
                         }
                     },
-                    "id": {
-                        "readOnly": true,
+                    "servicioMaestroId": {
                         "type": [
                             "string",
                             "null"
-                        ],
-                        "format": "uuid"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -8357,12 +9574,9 @@
                     }
                 }
             },
-            "CotizacionCotservicio.multipart": {
+            "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotizacion": {
-                        "$ref": "#/components/schemas/Cotizacion.multipart"
-                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -8370,10 +9584,10 @@
                         }
                     },
                     "itinerarioNombreSnapshot": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "fechaInicioAbsoluta": {
                         "type": [
@@ -8385,22 +9599,31 @@
                     "cotcomponentes": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCotcomponente.multipart"
+                            "$ref": "#/components/schemas/CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read"
                         }
                     },
                     "cotsegmentos": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionSegmento.multipart"
+                            "$ref": "#/components/schemas/CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"
                         }
                     },
-                    "id": {
-                        "readOnly": true,
+                    "servicioMaestroId": {
                         "type": [
                             "string",
                             "null"
-                        ],
-                        "format": "uuid"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -8415,17 +9638,78 @@
                     }
                 }
             },
-            "CotizacionCottarifa": {
+            "CotizacionCotservicio.multipart-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotcomponente": {
-                        "$ref": "#/components/schemas/CotizacionCotcomponente"
-                    },
                     "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "itinerarioNombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "fechaInicioAbsoluta": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "cotcomponentes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read"
+                        }
+                    },
+                    "cotsegmentos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionSegmento.multipart-cotizacion.read_timestamp.read"
+                        }
+                    },
+                    "servicioMaestroId": {
                         "type": [
                             "string",
                             "null"
                         ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionCottarifa-cotizacion.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "cantidad": {
                         "default": 1,
@@ -8457,6 +9741,9 @@
                             "null"
                         ]
                     },
+                    "esGrupal": {
+                        "type": "boolean"
+                    },
                     "detallesOperativos": {
                         "type": "array",
                         "items": {
@@ -8464,12 +9751,15 @@
                         }
                     },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -8484,17 +9774,14 @@
                     }
                 }
             },
-            "CotizacionCottarifa.html": {
+            "CotizacionCottarifa-cotizacion.write": {
                 "type": "object",
                 "properties": {
-                    "cotcomponente": {
-                        "$ref": "#/components/schemas/CotizacionCotcomponente.html"
-                    },
                     "nombreSnapshot": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "cantidad": {
                         "default": 1,
@@ -8526,6 +9813,9 @@
                             "null"
                         ]
                     },
+                    "esGrupal": {
+                        "type": "boolean"
+                    },
                     "detallesOperativos": {
                         "type": "array",
                         "items": {
@@ -8533,37 +9823,26 @@
                         }
                     },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     }
                 }
             },
-            "CotizacionCottarifa.jsonld": {
+            "CotizacionCottarifa.html-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotcomponente": {
-                        "$ref": "#/components/schemas/CotizacionCotcomponente.jsonld"
-                    },
                     "nombreSnapshot": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "cantidad": {
                         "default": 1,
@@ -8595,6 +9874,9 @@
                             "null"
                         ]
                     },
+                    "esGrupal": {
+                        "type": "boolean"
+                    },
                     "detallesOperativos": {
                         "type": "array",
                         "items": {
@@ -8602,12 +9884,15 @@
                         }
                     },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -8622,17 +9907,14 @@
                     }
                 }
             },
-            "CotizacionCottarifa.multipart": {
+            "CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotcomponente": {
-                        "$ref": "#/components/schemas/CotizacionCotcomponente.multipart"
-                    },
                     "nombreSnapshot": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "cantidad": {
                         "default": 1,
@@ -8664,6 +9946,9 @@
                             "null"
                         ]
                     },
+                    "esGrupal": {
+                        "type": "boolean"
+                    },
                     "detallesOperativos": {
                         "type": "array",
                         "items": {
@@ -8671,12 +9956,87 @@
                         }
                     },
                     "id": {
-                        "readOnly": true,
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "format": "uuid"
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionCottarifa.multipart-cotizacion.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cantidad": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "montoCosto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "moneda": {
+                        "default": "USD",
+                        "type": "string"
+                    },
+                    "tarifaMaestraId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tipoModalidadSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "esGrupal": {
+                        "type": "boolean"
+                    },
+                    "detallesOperativos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -8740,7 +10100,9 @@
                         "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/Cotizacion"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "id": {
@@ -8764,6 +10126,91 @@
                     },
                     "localizador": {
                         "type": "string"
+                    }
+                }
+            },
+            "CotizacionFile-cotizacion.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionFile-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo.",
+                "properties": {
+                    "nombreGrupo": {
+                        "type": "string"
+                    },
+                    "pasajeroPrincipal": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "telefono": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "pais": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Pais-file.read_file.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "idioma": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Idioma-file.read_file.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "estado": {
+                        "default": "abierto",
+                        "type": "string"
+                    },
+                    "cotizaciones": {
+                        "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Cotizacion-file.read_file.item.read_timestamp.read"
+                        }
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
                     }
                 }
             },
@@ -8925,7 +10372,9 @@
                         "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/Cotizacion.html"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "id": {
@@ -8949,6 +10398,91 @@
                     },
                     "localizador": {
                         "type": "string"
+                    }
+                }
+            },
+            "CotizacionFile.html-cotizacion.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionFile.html-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo.",
+                "properties": {
+                    "nombreGrupo": {
+                        "type": "string"
+                    },
+                    "pasajeroPrincipal": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "telefono": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "pais": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Pais.html-file.read_file.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "idioma": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Idioma.html-file.read_file.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "estado": {
+                        "default": "abierto",
+                        "type": "string"
+                    },
+                    "cotizaciones": {
+                        "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Cotizacion.html-file.read_file.item.read_timestamp.read"
+                        }
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
                     }
                 }
             },
@@ -9067,7 +10601,9 @@
                                 "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/components/schemas/Cotizacion.jsonld"
+                                    "type": "string",
+                                    "format": "iri-reference",
+                                    "example": "https://example.com/"
                                 }
                             },
                             "id": {
@@ -9091,6 +10627,106 @@
                             },
                             "localizador": {
                                 "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo."
+            },
+            "CotizacionFile.jsonld-cotizacion.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                ],
+                "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo."
+            },
+            "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreGrupo": {
+                                "type": "string"
+                            },
+                            "pasajeroPrincipal": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "email": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "telefono": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "pais": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/Pais.jsonld-file.read_file.item.read_timestamp.read"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "idioma": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/Idioma.jsonld-file.read_file.item.read_timestamp.read"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "estado": {
+                                "default": "abierto",
+                                "type": "string"
+                            },
+                            "cotizaciones": {
+                                "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Cotizacion.jsonld-file.read_file.item.read_timestamp.read"
+                                }
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
                             }
                         }
                     }
@@ -9215,7 +10851,9 @@
                         "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/Cotizacion.multipart"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "id": {
@@ -9239,6 +10877,91 @@
                     },
                     "localizador": {
                         "type": "string"
+                    }
+                }
+            },
+            "CotizacionFile.multipart-cotizacion.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionFile.multipart-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo.",
+                "properties": {
+                    "nombreGrupo": {
+                        "type": "string"
+                    },
+                    "pasajeroPrincipal": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "telefono": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "pais": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Pais.multipart-file.read_file.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "idioma": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Idioma.multipart-file.read_file.item.read_timestamp.read"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "estado": {
+                        "default": "abierto",
+                        "type": "string"
+                    },
+                    "cotizaciones": {
+                        "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Cotizacion.multipart-file.read_file.item.read_timestamp.read"
+                        }
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
                     }
                 }
             },
@@ -9304,12 +11027,36 @@
                     }
                 }
             },
-            "CotizacionNota": {
+            "CotizacionNota-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotizacion": {
-                        "$ref": "#/components/schemas/Cotizacion"
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionNota-cotizacion.write": {
+                "type": "object",
+                "properties": {
                     "tipo": {
                         "default": "introduccion",
                         "type": "string",
@@ -9334,63 +11081,32 @@
                         }
                     },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     }
                 }
             },
-            "CotizacionNota.html": {
+            "CotizacionNota.html-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotizacion": {
-                        "$ref": "#/components/schemas/Cotizacion.html"
-                    },
-                    "tipo": {
-                        "default": "introduccion",
-                        "type": "string",
-                        "enum": [
-                            "introduccion",
-                            "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
                         ]
                     },
-                    "tituloSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "contenidoSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
                     "createdAt": {
                         "type": "string",
                         "format": "date-time"
@@ -9404,43 +11120,20 @@
                     }
                 }
             },
-            "CotizacionNota.jsonld": {
+            "CotizacionNota.jsonld-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotizacion": {
-                        "$ref": "#/components/schemas/Cotizacion.jsonld"
-                    },
-                    "tipo": {
-                        "default": "introduccion",
-                        "type": "string",
-                        "enum": [
-                            "introduccion",
-                            "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
                         ]
                     },
-                    "tituloSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "contenidoSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
                     "createdAt": {
                         "type": "string",
                         "format": "date-time"
@@ -9454,43 +11147,20 @@
                     }
                 }
             },
-            "CotizacionNota.multipart": {
+            "CotizacionNota.multipart-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotizacion": {
-                        "$ref": "#/components/schemas/Cotizacion.multipart"
-                    },
-                    "tipo": {
-                        "default": "introduccion",
-                        "type": "string",
-                        "enum": [
-                            "introduccion",
-                            "recomendacion",
-                            "advertencia",
-                            "politica",
-                            "equipaje"
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
                         ]
                     },
-                    "tituloSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "contenidoSnapshot": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
                     "createdAt": {
                         "type": "string",
                         "format": "date-time"
@@ -9504,12 +11174,9 @@
                     }
                 }
             },
-            "CotizacionSegmento": {
+            "CotizacionSegmento-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotservicio": {
-                        "$ref": "#/components/schemas/CotizacionCotservicio"
-                    },
                     "dia": {
                         "default": 1,
                         "type": "integer"
@@ -9534,20 +11201,16 @@
                             "type": "string"
                         }
                     },
-                    "cotcomponentes": {
-                        "description": "Log\u00edstica operativa amarrada a este bloque narrativo.",
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/CotizacionCotcomponente"
-                        }
-                    },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -9562,12 +11225,9 @@
                     }
                 }
             },
-            "CotizacionSegmento.html": {
+            "CotizacionSegmento-cotizacion.write": {
                 "type": "object",
                 "properties": {
-                    "cotservicio": {
-                        "$ref": "#/components/schemas/CotizacionCotservicio.html"
-                    },
                     "dia": {
                         "default": 1,
                         "type": "integer"
@@ -9592,40 +11252,22 @@
                             "type": "string"
                         }
                     },
-                    "cotcomponentes": {
-                        "description": "Log\u00edstica operativa amarrada a este bloque narrativo.",
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/CotizacionCotcomponente.html"
-                        }
-                    },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     }
                 }
             },
-            "CotizacionSegmento.jsonld": {
+            "CotizacionSegmento.html-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotservicio": {
-                        "$ref": "#/components/schemas/CotizacionCotservicio.jsonld"
-                    },
                     "dia": {
                         "default": 1,
                         "type": "integer"
@@ -9650,20 +11292,16 @@
                             "type": "string"
                         }
                     },
-                    "cotcomponentes": {
-                        "description": "Log\u00edstica operativa amarrada a este bloque narrativo.",
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/CotizacionCotcomponente.jsonld"
-                        }
-                    },
                     "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -9678,12 +11316,9 @@
                     }
                 }
             },
-            "CotizacionSegmento.multipart": {
+            "CotizacionSegmento.jsonld-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
-                    "cotservicio": {
-                        "$ref": "#/components/schemas/CotizacionCotservicio.multipart"
-                    },
                     "dia": {
                         "default": 1,
                         "type": "integer"
@@ -9708,20 +11343,67 @@
                             "type": "string"
                         }
                     },
-                    "cotcomponentes": {
-                        "description": "Log\u00edstica operativa amarrada a este bloque narrativo.",
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/CotizacionCotcomponente.multipart"
-                        }
-                    },
                     "id": {
-                        "readOnly": true,
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "format": "uuid"
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionSegmento.multipart-cotizacion.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "dia": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "orden": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "fechaAbsoluta": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "contenidoSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "imagenesSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
                     },
                     "createdAt": {
                         "type": "string",
@@ -10290,6 +11972,37 @@
                     "@type"
                 ]
             },
+            "Idioma-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "bandera": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prioridad": {
+                        "type": "integer"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
             "Idioma-file.read_timestamp.read": {
                 "type": "object",
                 "properties": {
@@ -10338,6 +12051,37 @@
                     },
                     "prioridad": {
                         "type": "integer"
+                    }
+                }
+            },
+            "Idioma.html-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "bandera": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prioridad": {
+                        "type": "integer"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
                     }
                 }
             },
@@ -10391,6 +12135,44 @@
                         "type": "integer"
                     }
                 }
+            },
+            "Idioma.jsonld-file.read_file.item.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "nombre": {
+                                "type": "string"
+                            },
+                            "bandera": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "prioridad": {
+                                "type": "integer"
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                ]
             },
             "Idioma.jsonld-file.read_timestamp.read": {
                 "allOf": [
@@ -10456,6 +12238,37 @@
                         }
                     }
                 ]
+            },
+            "Idioma.multipart-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "bandera": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "prioridad": {
+                        "type": "integer"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
             },
             "Idioma.multipart-file.read_timestamp.read": {
                 "type": "object",
@@ -11276,6 +13089,9 @@
             "MaestroMoneda-componente.write": {
                 "type": "object"
             },
+            "MaestroMoneda-tipocambio.read": {
+                "type": "object"
+            },
             "MaestroMoneda.html": {
                 "type": "object",
                 "properties": {
@@ -11314,6 +13130,9 @@
                         "type": "string"
                     }
                 }
+            },
+            "MaestroMoneda.html-tipocambio.read": {
+                "type": "object"
             },
             "MaestroMoneda.jsonld": {
                 "type": "object",
@@ -11354,6 +13173,9 @@
                     }
                 }
             },
+            "MaestroMoneda.jsonld-tipocambio.read": {
+                "type": "object"
+            },
             "MaestroMoneda.multipart": {
                 "type": "object",
                 "properties": {
@@ -11392,6 +13214,9 @@
                         "type": "string"
                     }
                 }
+            },
+            "MaestroMoneda.multipart-tipocambio.read": {
+                "type": "object"
             },
             "Message-message.read": {
                 "type": "object",
@@ -12659,6 +14484,35 @@
                     }
                 }
             },
+            "Pais-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "description": "Entidad MaestroPais.\nAlmacena c\u00f3digos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "bandera": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
             "Pais-file.read_timestamp.read": {
                 "type": "object",
                 "description": "Entidad MaestroPais.\nAlmacena c\u00f3digos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.",
@@ -12703,6 +14557,35 @@
                             "string",
                             "null"
                         ]
+                    }
+                }
+            },
+            "Pais.html-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "description": "Entidad MaestroPais.\nAlmacena c\u00f3digos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "bandera": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
                     }
                 }
             },
@@ -12752,6 +14635,42 @@
                         ]
                     }
                 }
+            },
+            "Pais.jsonld-file.read_file.item.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "nombre": {
+                                "type": "string"
+                            },
+                            "bandera": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad MaestroPais.\nAlmacena c\u00f3digos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores."
             },
             "Pais.jsonld-file.read_timestamp.read": {
                 "allOf": [
@@ -12813,6 +14732,35 @@
                     }
                 ],
                 "description": "Entidad MaestroPais.\nAlmacena c\u00f3digos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores."
+            },
+            "Pais.multipart-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "description": "Entidad MaestroPais.\nAlmacena c\u00f3digos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores.",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "bandera": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
             },
             "Pais.multipart-file.read_timestamp.read": {
                 "type": "object",
@@ -15427,11 +17375,172 @@
                     }
                 }
             },
+            "TipoCambio": {
+                "type": "object",
+                "description": "Entidad MaestroTipocambio.\nRegistra el hist\u00f3rico de tasas de cambio.",
+                "properties": {
+                    "moneda": {
+                        "$ref": "#/components/schemas/MaestroMoneda"
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "compra": {
+                        "type": "string"
+                    },
+                    "venta": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "promedio": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "promedioredondeado": {
+                        "readOnly": true,
+                        "type": "string"
+                    }
+                }
+            },
+            "TipoCambio-tipocambio.read": {
+                "type": "object",
+                "description": "Entidad MaestroTipocambio.\nRegistra el hist\u00f3rico de tasas de cambio.",
+                "properties": {
+                    "moneda": {
+                        "$ref": "#/components/schemas/MaestroMoneda-tipocambio.read"
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "compra": {
+                        "type": "string"
+                    },
+                    "venta": {
+                        "type": "string"
+                    },
+                    "promedio": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "promedioredondeado": {
+                        "readOnly": true,
+                        "type": "string"
+                    }
+                }
+            },
+            "TipoCambio.html-tipocambio.read": {
+                "type": "object",
+                "description": "Entidad MaestroTipocambio.\nRegistra el hist\u00f3rico de tasas de cambio.",
+                "properties": {
+                    "moneda": {
+                        "$ref": "#/components/schemas/MaestroMoneda.html-tipocambio.read"
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "compra": {
+                        "type": "string"
+                    },
+                    "venta": {
+                        "type": "string"
+                    },
+                    "promedio": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "promedioredondeado": {
+                        "readOnly": true,
+                        "type": "string"
+                    }
+                }
+            },
+            "TipoCambio.jsonld-tipocambio.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "moneda": {
+                                "$ref": "#/components/schemas/MaestroMoneda.jsonld-tipocambio.read"
+                            },
+                            "fecha": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "compra": {
+                                "type": "string"
+                            },
+                            "venta": {
+                                "type": "string"
+                            },
+                            "promedio": {
+                                "readOnly": true,
+                                "type": "string"
+                            },
+                            "promedioredondeado": {
+                                "readOnly": true,
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "description": "Entidad MaestroTipocambio.\nRegistra el hist\u00f3rico de tasas de cambio."
+            },
+            "TipoCambio.multipart-tipocambio.read": {
+                "type": "object",
+                "description": "Entidad MaestroTipocambio.\nRegistra el hist\u00f3rico de tasas de cambio.",
+                "properties": {
+                    "moneda": {
+                        "$ref": "#/components/schemas/MaestroMoneda.multipart-tipocambio.read"
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "compra": {
+                        "type": "string"
+                    },
+                    "venta": {
+                        "type": "string"
+                    },
+                    "promedio": {
+                        "readOnly": true,
+                        "type": "string"
+                    },
+                    "promedioredondeado": {
+                        "readOnly": true,
+                        "type": "string"
+                    }
+                }
+            },
             "TravelComponenteItem": {
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "Obtiene el componente log\u00edstico padre.",
+                        "description": "Establece el componente log\u00edstico padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
@@ -15443,14 +17552,12 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
-                        "description": "Obtiene el modo de inclusi\u00f3n (Enum).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -15499,14 +17606,12 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
-                        "description": "Obtiene el modo de inclusi\u00f3n (Enum).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -15536,14 +17641,12 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
-                        "description": "Obtiene el modo de inclusi\u00f3n (Enum).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -15569,7 +17672,7 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "Obtiene el componente log\u00edstico padre.",
+                        "description": "Establece el componente log\u00edstico padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
@@ -15581,14 +17684,12 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
-                        "description": "Obtiene el modo de inclusi\u00f3n (Enum).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -15637,14 +17738,12 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
-                        "description": "Obtiene el modo de inclusi\u00f3n (Enum).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -15668,7 +17767,7 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "Obtiene el componente log\u00edstico padre.",
+                        "description": "Establece el componente log\u00edstico padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
@@ -15680,14 +17779,12 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
-                        "description": "Obtiene el modo de inclusi\u00f3n (Enum).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -15736,14 +17833,12 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
-                        "description": "Obtiene el modo de inclusi\u00f3n (Enum).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -15767,7 +17862,7 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "Obtiene el componente log\u00edstico padre.",
+                        "description": "Establece el componente log\u00edstico padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
@@ -15779,14 +17874,12 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
-                        "description": "Obtiene el modo de inclusi\u00f3n (Enum).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -15835,14 +17928,12 @@
                         "example": "https://example.com/"
                     },
                     "modo": {
-                        "description": "Obtiene el modo de inclusi\u00f3n (Enum).",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
                             "incluido",
                             "opcional",
                             "no_incluido",
-                            "no_necesario",
                             "cortesia"
                         ]
                     },
@@ -16115,9 +18206,15 @@
                         ],
                         "format": "date-time"
                     },
-                    "esIncluido": {
-                        "default": true,
-                        "type": "boolean"
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
                     },
                     "orden": {
                         "default": 1,
@@ -16158,9 +18255,15 @@
                         ],
                         "format": "date-time"
                     },
-                    "esIncluido": {
-                        "default": true,
-                        "type": "boolean"
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
                     },
                     "orden": {
                         "default": 1,
@@ -16193,9 +18296,15 @@
                         ],
                         "format": "date-time"
                     },
-                    "esIncluido": {
-                        "default": true,
-                        "type": "boolean"
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
                     },
                     "orden": {
                         "default": 1,
@@ -16236,9 +18345,15 @@
                         ],
                         "format": "date-time"
                     },
-                    "esIncluido": {
-                        "default": true,
-                        "type": "boolean"
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
                     },
                     "orden": {
                         "default": 1,
@@ -16279,9 +18394,15 @@
                         ],
                         "format": "date-time"
                     },
-                    "esIncluido": {
-                        "default": true,
-                        "type": "boolean"
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
                     },
                     "orden": {
                         "default": 1,
@@ -16322,9 +18443,15 @@
                         ],
                         "format": "date-time"
                     },
-                    "esIncluido": {
-                        "default": true,
-                        "type": "boolean"
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
                     },
                     "orden": {
                         "default": 1,
@@ -16365,9 +18492,15 @@
                         ],
                         "format": "date-time"
                     },
-                    "esIncluido": {
-                        "default": true,
-                        "type": "boolean"
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
                     },
                     "orden": {
                         "default": 1,
@@ -16408,9 +18541,15 @@
                         ],
                         "format": "date-time"
                     },
-                    "esIncluido": {
-                        "default": true,
-                        "type": "boolean"
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
                     },
                     "orden": {
                         "default": 1,
@@ -16451,9 +18590,15 @@
                         ],
                         "format": "date-time"
                     },
-                    "esIncluido": {
-                        "default": true,
-                        "type": "boolean"
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
                     },
                     "orden": {
                         "default": 1,
@@ -17703,6 +19848,10 @@
     "security": [],
     "tags": [
         {
+            "name": "Cotizacion",
+            "description": "Resource 'Cotizacion' operations."
+        },
+        {
             "name": "CotizacionFile",
             "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo."
         },
@@ -17741,6 +19890,10 @@
         {
             "name": "Pais",
             "description": "Entidad MaestroPais.\nAlmacena c\u00f3digos ISO 3166-1 alpha-2 como IDs naturales y mapeos de proveedores."
+        },
+        {
+            "name": "TipoCambio",
+            "description": "Entidad MaestroTipocambio.\nRegistra el hist\u00f3rico de tasas de cambio."
         },
         {
             "name": "Message",

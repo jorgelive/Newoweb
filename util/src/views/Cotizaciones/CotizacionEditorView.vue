@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useCotizacionEditorStore } from '@/stores/cotizaciones/cotizacionEditorStore';
 import SearchableSelect from '@/components/SearchableSelect.vue';
 import WysiwygEditor from '@/components/WysiwygEditor.vue';
 
-const store = useCotizacionEditorStore();
+const route = useRoute();
 const router = useRouter();
+const store = useCotizacionEditorStore();
 
-// SELECTORES SIEMPRE MUESTRAN EL NOMBRE INTERNO DEL MAESTRO
 const opcionesServicios = computed(() => store.catalogos.servicios.map(s => ({
   value: s.id || s['@id'],
   label: s.nombreInterno || s.nombre || 'Servicio sin nombre'
@@ -21,7 +21,7 @@ const opcionesComponentes = computed(() => store.catalogos.componentes.map(c => 
 
 const opcionesTarifas = computed(() => store.catalogos.tarifas.map(t => ({
   value: t.id || t['@id'],
-  label: store.getTarifaLabel(t, store.cotizacion.idiomaEdicion)
+  label: store.getTarifaLabel(t, store.cotizacion?.idiomaEdicion || 'es')
 })));
 
 const opcionesPlantillas = computed(() => store.catalogos.plantillasItinerario.map(p => ({
@@ -30,21 +30,20 @@ const opcionesPlantillas = computed(() => store.catalogos.plantillasItinerario.m
 })));
 
 onMounted(() => {
-  store.inicializarEditor();
+  const fileId = route.params.fileId as string;
+  const cotizacionId = route.params.cotizacionId as string;
+
+  if (fileId && cotizacionId) {
+    store.inicializarEditor(fileId, cotizacionId);
+  } else {
+    console.warn("Ruta inválida. Redirigiendo al inicio...");
+    router.push('/cotizaciones');
+  }
 });
 
 const formatFecha = (fecha?: string) => {
   if (!fecha) return '--';
   return new Date(fecha).toLocaleDateString('es-PE', { weekday: 'long', day: '2-digit', month: 'short', timeZone: 'UTC' });
-};
-
-const formatDateTimeFromISO = (isoString?: string) => {
-  if (!isoString) return '--';
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return '--';
-  return date.toLocaleString('es-PE', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true
-  }).replace(',', ' -');
 };
 
 const formatMoneda = (monto?: number | string, moneda?: string) => {
@@ -53,9 +52,7 @@ const formatMoneda = (monto?: number | string, moneda?: string) => {
 };
 
 const formatRangoServicio = (servicio: any) => {
-  if (!servicio.cotcomponentes || servicio.cotcomponentes.length === 0) {
-    return 'Sin logística programada';
-  }
+  if (!servicio.cotcomponentes || servicio.cotcomponentes.length === 0) return 'Sin logística programada';
 
   let minTime = Infinity;
   let maxTime = -Infinity;
@@ -74,11 +71,26 @@ const formatRangoServicio = (servicio: any) => {
   });
 
   if (minTime === Infinity) return 'Horarios no definidos';
-  if (maxTime === -Infinity || maxTime <= minTime) {
-    return formatDateTimeFromISO(minStr);
-  }
 
-  return `${formatDateTimeFromISO(minStr)} — ${formatDateTimeFromISO(maxStr)}`;
+  const dMin = new Date(minStr);
+  const dMax = new Date(maxStr);
+
+  const fTime = (d: Date) => d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const fDate = (d: Date) => d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).replace('.', '');
+
+  if (maxTime === -Infinity || maxTime <= minTime) return `${fDate(dMin)} • ${fTime(dMin)}`;
+  if (dMin.toDateString() === dMax.toDateString()) return `${fDate(dMin)} • ${fTime(dMin)} - ${fTime(dMax)}`;
+
+  return `${fDate(dMin)} ${fTime(dMin)}  —  ${fDate(dMax)} ${fTime(dMax)}`;
+};
+
+const formatDateTimeFromISO = (isoString?: string) => {
+  if (!isoString) return '--';
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return '--';
+  return date.toLocaleString('es-PE', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true
+  }).replace(',', ' -');
 };
 
 const dragStart = (e: DragEvent, segmentoMaestro: any) => {
@@ -97,16 +109,27 @@ const dropSegmento = (e: DragEvent) => {
 
 const plantillaSeleccionada = ref<string | null>(null);
 
-// Función helper para decidir si el input de Nombre Público del Componente debe deshabilitarse
 const isComponenteSoloItems = (componente: any) => {
   return !componente.nombreSnapshot || componente.nombreSnapshot.length === 0;
 };
 
-// Función para obtener el nombre interno del catálogo para mostrarlo como "placeholder" en componentes sin título
-const getNombreMaestroRef = (idMaestro: string) => {
-  if (!idMaestro) return 'Componente Contenedor (Solo ítems)';
-  const c = store.catalogos.allComponentes.find(cat => cat.id === idMaestro || cat['@id'] === idMaestro);
-  return c ? (c.nombreInterno || c.nombre) : 'Componente Contenedor (Solo ítems)';
+const extractIdStrView = (val: any) => val ? String(val).split('/').pop() : '';
+
+// 🔥 FIX: Error de TypeScript "undefined" solucionado (Validación estricta de string)
+const getNombreMaestroRef = (comp: any) => {
+  if (!comp || !comp.componenteMaestroId) return 'Insumo sin seleccionar';
+  const targetId = extractIdStrView(comp.componenteMaestroId);
+  if (!targetId) return 'Insumo sin seleccionar';
+
+  const c = store.catalogos.allComponentes.find(cat => extractIdStrView(cat.id) === targetId || extractIdStrView(cat['@id']) === targetId);
+
+  if (c && c.nombreInterno !== 'Sincronizando...') return c.nombreInterno || c.nombre || 'Insumo Genérico';
+
+  // Si no está en memoria local, enviamos a buscarlo al backend sin interrumpir la vista
+  store.fetchComponenteMaestroSilencioso(targetId as string);
+
+  const snapshotName = store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es');
+  return snapshotName ? snapshotName : 'Sincronizando...';
 };
 </script>
 
@@ -115,11 +138,13 @@ const getNombreMaestroRef = (idMaestro: string) => {
 
     <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md flex-shrink-0">
       <div class="flex items-center gap-3">
-        <button @click="router.push('/cotizaciones')" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
+        <button @click="router.push(`/cotizaciones/${store.fileActual?.id || ''}`)" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
           <i class="fas fa-arrow-left text-sm"></i>
         </button>
         <div class="overflow-hidden">
-          <h1 class="font-black text-base md:text-xl tracking-tight leading-none truncate">Familia Pérez <span class="hidden sm:inline">- Construcción</span></h1>
+          <h1 class="font-black text-base md:text-xl tracking-tight leading-none truncate">
+            {{ store.fileActual?.nombreGrupo || 'Cargando Expediente...' }}
+          </h1>
           <p class="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
             Motor Operativo <span v-if="store.cotizacion">• V{{ store.cotizacion.version ?? 1 }}</span>
           </p>
@@ -183,7 +208,7 @@ const getNombreMaestroRef = (idMaestro: string) => {
                      store.isServicioConAlerta(servicio) ? 'border-red-400 bg-red-50/10' : ''
                    ]">
 
-                <button @click.stop="store.eliminarServicio(dia.diaNumero, servicio.id)" class="absolute right-4 top-4 text-slate-400 hover:text-red-500 transition-colors z-10 bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
+                <button @click.stop="store.eliminarServicio(servicio.id)" class="absolute right-4 top-4 text-slate-400 hover:text-red-500 transition-colors z-10 bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
                   <i class="fas fa-trash-alt text-sm"></i>
                 </button>
 
@@ -201,12 +226,16 @@ const getNombreMaestroRef = (idMaestro: string) => {
 
                     <p class="text-[11px] font-bold text-slate-500 mt-1"><i class="fas fa-map-signs mr-1"></i> {{ store.getI18nText(servicio.itinerarioNombreSnapshot, store.cotizacion.idiomaEdicion) }}</p>
 
-                    <div class="flex items-center gap-2 mt-3">
-                      <span class="text-[10px] font-black bg-indigo-600 text-white px-2 py-1 rounded shadow-sm uppercase">Programación</span>
-                      <span class="text-xs font-black text-indigo-700 font-mono">{{ formatRangoServicio(servicio) }}</span>
+                    <div class="flex flex-wrap items-center gap-2 mt-4">
+                        <span class="text-[9px] font-black bg-indigo-600 text-white px-2 py-1.5 rounded uppercase tracking-widest shadow-sm">
+                            <i class="far fa-clock mr-1 text-indigo-200"></i> Programación
+                        </span>
+                      <span class="text-[11px] font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-md border border-slate-200 shadow-sm whitespace-nowrap">
+                            {{ formatRangoServicio(servicio) }}
+                        </span>
                     </div>
 
-                    <div class="flex gap-3 mt-4 pt-4 border-t border-slate-100">
+                    <div class="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-100">
                       <p class="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200">
                         <i class="fas fa-box-open mr-1 text-[#E07845]"></i> {{ servicio.cotcomponentes?.length ?? 0 }} COMPONENTES
                       </p>
@@ -220,7 +249,7 @@ const getNombreMaestroRef = (idMaestro: string) => {
             </div>
           </div>
 
-          <button @click="store.agregarServicio(1)" class="w-full py-6 border-2 border-dashed border-slate-300 rounded-3xl text-slate-500 font-black text-xs uppercase tracking-widest hover:border-[#376875] hover:text-[#376875] hover:bg-white transition-all shadow-sm">
+          <button @click="store.agregarServicio()" class="w-full py-6 border-2 border-dashed border-slate-300 rounded-3xl text-slate-500 font-black text-xs uppercase tracking-widest hover:border-[#376875] hover:text-[#376875] hover:bg-white transition-all shadow-sm">
             <i class="fas fa-plus-circle mr-2 text-lg"></i> Inyectar nuevo hito al itinerario
           </button>
 
@@ -246,11 +275,11 @@ const getNombreMaestroRef = (idMaestro: string) => {
               <div class="relative z-10 flex justify-between items-end">
                 <div>
                   <p class="text-[10px] font-bold bg-white/20 px-2 py-1 rounded w-max uppercase tracking-widest mb-1">Total Costo Neto</p>
-                  <p class="text-4xl font-black tracking-tight">${{ store.totalCostoNeto.toFixed(2) }}</p>
+                  <p class="text-4xl font-black tracking-tight">{{ formatMoneda(store.totalCostoNeto, store.cotizacion.monedaGlobal) }}</p>
                 </div>
                 <div class="text-right">
                   <p class="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Venta Sugerida</p>
-                  <p class="text-xl font-bold text-[#E07845]">${{ store.ventaSugerida.toFixed(2) }}</p>
+                  <p class="text-xl font-bold text-[#E07845]">{{ formatMoneda(store.ventaSugerida, store.cotizacion.monedaGlobal) }}</p>
                 </div>
               </div>
             </div>
@@ -268,7 +297,7 @@ const getNombreMaestroRef = (idMaestro: string) => {
               </div>
               <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between">
                 <p class="text-[10px] font-bold text-slate-500 uppercase">Margen Total</p>
-                <p class="text-xs font-black text-[#E07845]">${{ store.resumenFinanciero.ganancia.toFixed(2) }}</p>
+                <p class="text-xs font-black text-[#E07845]">{{ formatMoneda(store.resumenFinanciero.ganancia, store.cotizacion.monedaGlobal) }}</p>
               </div>
             </div>
 
@@ -293,7 +322,10 @@ const getNombreMaestroRef = (idMaestro: string) => {
               </div>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Num Pax (Base) *</label>
-                <input v-model="store.cotizacion.numPax" type="number" class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-center outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
+                <input :value="store.cotizacion.numPax"
+                       @change="e => store.updateNumPaxGlobal((e.target as HTMLInputElement).value)"
+                       type="number"
+                       class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-center outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
               </div>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Comisión (%)</label>
@@ -322,12 +354,27 @@ const getNombreMaestroRef = (idMaestro: string) => {
             <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-4">
               <div>
                 <label class="block text-[10px] font-black text-[#E07845] uppercase tracking-widest mb-2"><i class="fas fa-book mr-1"></i> Catálogo Maestro</label>
+
+                <div v-if="store.dataActiva.servicioMaestroId && store.dataActiva.cotcomponentes?.length > 0"
+                     class="w-full bg-slate-100 border border-slate-200 text-slate-500 rounded-lg px-3 py-2.5 text-sm font-bold flex justify-between items-center cursor-not-allowed shadow-inner">
+                  <span>{{ store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion) || 'Servicio Bloqueado' }}</span>
+                  <i class="fas fa-lock text-orange-400"></i>
+                </div>
+
                 <SearchableSelect
+                    v-else
                     v-model="store.dataActiva.servicioMaestroId"
                     :options="opcionesServicios"
                     placeholder="Buscar servicio..."
                     @change="val => store.onServicioMaestroChange(val)"
                 />
+
+                <p v-if="store.dataActiva.servicioMaestroId && store.dataActiva.cotcomponentes?.length > 0" class="text-[9px] font-bold text-orange-500 mt-1.5 flex items-center gap-1">
+                  <i class="fas fa-info-circle"></i> Catálogo bloqueado porque este servicio ya contiene logística.
+                </p>
+                <p v-else-if="!store.dataActiva.servicioMaestroId && store.dataActiva.cotcomponentes?.length > 0" class="text-[9px] font-bold text-red-500 mt-1.5 flex items-center gap-1">
+                  <i class="fas fa-exclamation-triangle"></i> Por favor selecciona un servicio maestro para habilitar el Storytelling.
+                </p>
               </div>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
@@ -356,7 +403,7 @@ const getNombreMaestroRef = (idMaestro: string) => {
             <div class="border-t border-slate-100 pt-5">
               <h3 class="text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 flex items-center justify-between">
                 <span>Componentes Logísticos</span>
-                <button @click="store.agregarComponente(store.dataActiva.id)" class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-[9px] font-bold shadow-sm border border-sky-200">+ Añadir</button>
+                <button @click="store.agregarComponente(store.dataActiva.id)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow-sm border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Extra</button>
               </h3>
               <div class="space-y-3">
                 <div v-for="comp in store.dataActiva.cotcomponentes" :key="comp.id" @click="store.abrirNivel('componente', comp)"
@@ -364,13 +411,13 @@ const getNombreMaestroRef = (idMaestro: string) => {
                      :class="store.isComponenteConAlerta(comp) ? 'border-red-400 bg-red-50/20' : ''">
                   <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="store.isComponenteConAlerta(comp) ? 'bg-red-400' : 'bg-sky-400'"></div>
 
-                  <button @click.stop="store.eliminarComponente(store.dataActiva.id, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
+                  <button v-if="!comp.cotsegmentoId && !comp.cotsegmento" @click.stop="store.eliminarComponente(store.dataActiva.id, comp.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 bg-slate-50 w-7 h-7 rounded-full flex justify-center items-center">
                     <i class="fas fa-trash-alt text-sm"></i>
                   </button>
 
                   <h4 class="font-black text-sm text-slate-800 leading-tight pr-8 mb-3">
                     <i v-if="store.isComponenteConAlerta(comp)" class="fas fa-exclamation-triangle text-red-500 mr-1" title="Tarifas no cuadran"></i>
-                    {{ isComponenteSoloItems(comp) ? getNombreMaestroRef(comp.componenteMaestroId) : store.getI18nText(comp.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                    {{ getNombreMaestroRef(comp) }}
                   </h4>
 
                   <div class="flex flex-col gap-1.5">
@@ -379,6 +426,9 @@ const getNombreMaestroRef = (idMaestro: string) => {
                     </span>
                     <span class="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
                       <i class="far fa-flag text-slate-400"></i> FIN: {{ formatDateTimeFromISO(comp.fechaHoraFin) }}
+                    </span>
+                    <span v-if="comp.cotsegmentoId || comp.cotsegmento" class="mt-1 text-[9px] font-bold text-indigo-400 flex items-center gap-1">
+                      <i class="fas fa-link"></i> Componente Matriz (Vinculado a Storytelling)
                     </span>
                   </div>
                 </div>
@@ -392,18 +442,33 @@ const getNombreMaestroRef = (idMaestro: string) => {
             <button @click="store.retrocederNivel" class="w-8 h-8 rounded-full hover:bg-sky-500 flex items-center justify-center transition-colors"><i class="fas fa-arrow-left"></i></button>
             <div class="flex-1 min-w-0">
               <p class="text-[9px] font-black text-sky-200 uppercase tracking-widest truncate">Componente Logístico</p>
-              <h2 class="text-sm font-black truncate">{{ isComponenteSoloItems(store.dataActiva) ? getNombreMaestroRef(store.dataActiva.componenteMaestroId) : store.getI18nText(store.dataActiva?.nombreSnapshot, store.cotizacion.idiomaEdicion) }}</h2>
+              <h2 class="text-sm font-black truncate">{{ getNombreMaestroRef(store.dataActiva) }}</h2>
             </div>
           </div>
           <div class="p-5 flex-1 overflow-y-auto space-y-6">
             <div class="bg-white border border-sky-200 p-4 rounded-xl shadow-sm">
               <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2"><i class="fas fa-box-open mr-1"></i> Insumo Maestro</label>
+
               <SearchableSelect
+                  v-if="!store.dataActiva.cotsegmentoId && !store.dataActiva.cotsegmento"
                   v-model="store.dataActiva.componenteMaestroId"
                   :options="opcionesComponentes"
                   placeholder="Buscar insumo..."
                   @change="val => store.onComponenteMaestroChange(val)"
               />
+              <div v-else class="flex flex-col gap-2 bg-indigo-50/60 p-4 rounded-xl border border-indigo-100 shadow-sm mt-1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center shadow-inner">
+                      <i class="fas fa-link text-sm"></i>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Insumo Maestro (Interno)</span>
+                      <span class="text-sm font-black text-indigo-900 mt-0.5">{{ getNombreMaestroRef(store.dataActiva) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -416,10 +481,10 @@ const getNombreMaestroRef = (idMaestro: string) => {
                        type="text" class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
 
                 <div v-else class="relative">
-                  <input :value="getNombreMaestroRef(store.dataActiva.componenteMaestroId)"
+                  <input value="Componente Contenedor (Solo ítems)"
                          type="text" disabled
                          class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none cursor-not-allowed">
-                  <p class="text-[9px] font-bold text-orange-500 mt-1.5 ml-1 flex items-center gap-1"><i class="fas fa-info-circle"></i> Componente agrupador. Lo que se mostrará en PDF serán los Ítems/Inclusiones.</p>
+                  <p class="text-[9px] font-bold text-orange-500 mt-1.5 ml-1 flex items-center gap-1"><i class="fas fa-info-circle"></i> Lo que se mostrará en la App serán las Inclusiones/Ítems.</p>
                 </div>
               </div>
 
@@ -440,35 +505,52 @@ const getNombreMaestroRef = (idMaestro: string) => {
               </div>
 
               <div>
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Modo</label>
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Modo Comercial</label>
                 <select v-model="store.dataActiva.modo" class="w-full bg-white text-slate-800 border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none appearance-none shadow-sm focus:ring-2 focus:ring-sky-500">
-                  <option value="incluido">Incluido</option>
-                  <option value="opcional">Opcional</option>
-                  <option value="no_incluido">No Incluido</option>
+                  <option value="incluido">Incluido (Suma Costo)</option>
+                  <option value="opcional">Opcional (No Suma)</option>
+                  <option value="no_incluido">No Incluido (Se Tacha)</option>
+                  <option value="cortesia">Cortesía (Suma 0)</option>
                 </select>
               </div>
             </div>
 
             <div class="border-t border-sky-100 pt-5 mt-4">
               <h3 class="text-[10px] font-black text-sky-700 uppercase tracking-widest mb-3 flex items-center justify-between">
-                <span><i class="fas fa-list-check mr-1"></i> Inclusiones / Ítems</span>
-                <button @click="store.agregarSnapshotItem(store.dataActiva.id)" class="bg-sky-100 text-sky-700 px-2 py-1 rounded shadow text-[9px] font-bold border border-sky-200">+ Ítem</button>
+                <span><i class="fas fa-list-check mr-1"></i> Inclusiones / Upsells</span>
+                <button @click="store.agregarSnapshotItem(store.dataActiva.id)" class="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold border border-sky-200 hover:bg-sky-200 transition-colors">+ Añadir Ítem</button>
               </h3>
 
               <div class="space-y-2">
                 <div v-if="!store.dataActiva.snapshotItems?.length" class="text-[10px] font-bold text-slate-400 uppercase text-center py-2 border border-dashed border-slate-200 rounded-lg">
                   No hay ítems registrados
                 </div>
-                <div v-else v-for="item in store.dataActiva.snapshotItems" :key="item.id" class="flex gap-3 items-center bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm group">
-                  <input type="checkbox" v-model="item.incluido" class="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">
-                  <input :value="store.getI18nText(item.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                         @input="e => store.setI18nText(item.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
-                         class="text-xs font-bold text-slate-700 w-full outline-none bg-transparent"
-                         :class="!item.incluido ? 'line-through text-slate-400' : ''"
-                         placeholder="Descripción de la inclusión...">
-                  <button @click="store.eliminarSnapshotItem(store.dataActiva.id, item.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1">
-                    <i class="fas fa-times text-sm"></i>
-                  </button>
+                <div v-else v-for="item in store.dataActiva.snapshotItems" :key="item.id"
+                     class="flex flex-col gap-1 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm transition-all"
+                     :class="item.tieneUpsell ? 'border-l-4 border-l-orange-400' : ''">
+
+                  <div class="flex gap-3 items-center">
+                    <input type="checkbox" v-model="item.incluido"
+                           @change="store.toggleUpsellComponent(item, store.dataActiva)"
+                           class="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer">
+
+                    <input :value="store.getI18nText(item.nombreSnapshot, store.cotizacion.idiomaEdicion)"
+                           @input="e => store.setI18nText(item.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                           class="text-xs font-bold text-slate-700 w-full outline-none bg-transparent"
+                           :class="(!item.incluido && item.modo === 'no_incluido') ? 'line-through text-slate-400' : (!item.incluido && item.modo === 'opcional') ? 'text-slate-500 italic' : ''"
+                           placeholder="Descripción de la inclusión...">
+
+                    <span v-if="item.modo === 'opcional'" class="text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">Opcional</span>
+                    <span v-if="item.tieneUpsell" class="text-[8px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase flex-shrink-0 whitespace-nowrap"><i class="fas fa-arrow-up"></i> Upsell</span>
+
+                    <button @click="store.eliminarSnapshotItem(store.dataActiva.id, item.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1">
+                      <i class="fas fa-times text-sm"></i>
+                    </button>
+                  </div>
+
+                  <p v-if="item.incluido && item.idComponenteInyectado" class="text-[8px] font-bold text-emerald-500 ml-7 flex items-center gap-1">
+                    <i class="fas fa-check-double"></i> Logística extra inyectada en el itinerario
+                  </p>
                 </div>
               </div>
             </div>
@@ -481,7 +563,7 @@ const getNombreMaestroRef = (idMaestro: string) => {
                 <span v-if="store.isComponenteConAlerta(store.dataActiva)" class="bg-red-100 text-red-600 px-2 py-1 rounded text-[9px] font-bold border border-red-200">
                       <i class="fas fa-exclamation-circle mr-1"></i> Faltan Pax
                   </span>
-                <button @click="store.agregarTarifa(store.dataActiva.id)" class="bg-orange-500 text-white px-2 py-1 rounded shadow text-[9px] font-bold">+ Tarifa</button>
+                <button @click="store.agregarTarifa(store.dataActiva.id)" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold transition-colors">+ Añadir Tarifa</button>
               </div>
               <div class="space-y-3">
                 <div v-for="tarifa in store.dataActiva.cottarifas" :key="tarifa.id" @click="store.abrirNivel('tarifa', tarifa)"
@@ -558,12 +640,23 @@ const getNombreMaestroRef = (idMaestro: string) => {
                 </div>
               </div>
               <div class="col-span-2 text-right">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">Subtotal Neto: <span class="text-orange-400 text-sm">${{ (store.dataActiva.montoCosto * store.dataActiva.cantidad).toFixed(2) }}</span></p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase">Subtotal Neto: <span class="text-orange-400 text-sm">{{ formatMoneda(store.dataActiva.montoCosto * store.dataActiva.cantidad, store.dataActiva.moneda) }}</span></p>
               </div>
             </div>
           </div>
         </div>
       </aside>
+    </div>
+
+    <div v-else class="flex-1 flex flex-col items-center justify-center bg-[#F8FAFC] p-8 text-center">
+      <i class="fas fa-unlink text-6xl text-slate-300 mb-6"></i>
+      <h2 class="text-2xl font-black text-slate-700 tracking-tight">Enlace Incompleto</h2>
+      <p class="text-slate-500 mt-2 font-medium max-w-md">
+        El motor operativo necesita saber exactamente qué Expediente y qué Versión cargar. Revisa que la URL contenga los identificadores correctos.
+      </p>
+      <button @click="router.push('/cotizaciones')" class="mt-8 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all">
+        <i class="fas fa-arrow-left mr-2"></i> Volver al Dashboard
+      </button>
     </div>
 
     <Transition name="fade-scale">

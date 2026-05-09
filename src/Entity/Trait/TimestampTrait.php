@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity\Trait;
 
 use Doctrine\ORM\Mapping as ORM;
@@ -62,5 +64,22 @@ trait TimestampTrait
     {
         $this->updatedAt = $updatedAt;
         return $this;
+    }
+
+    /**
+     * Restablece las fechas de auditoría a su estado inicial.
+     * Este método existe para asegurar que, al clonar una entidad, esta sea tratada
+     * como un registro completamente nuevo por el sistema de auditoría (Gedmo),
+     * en lugar de heredar la historia temporal del objeto original.
+     *
+     * Ejemplo de uso:
+     * public function __clone() {
+     * $this->resetTimestamps();
+     * }
+     */
+    public function resetTimestamps(): void
+    {
+        $this->createdAt = null;
+        $this->updatedAt = null;
     }
 }

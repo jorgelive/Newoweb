@@ -55,6 +55,12 @@ onMounted(() => {
 const handleCreate = async (): Promise<void> => {
   if (!newFile.value.nombreGrupo) return;
 
+  // 🔥 FIX: Búsqueda dinámica del IRI real.
+  // Extraemos el '@id' directamente del catálogo descargado para no tener que adivinar
+  // las rutas pluralizadas de API Platform (ej. /paises en vez de /maestro_pais)
+  const paisObj = maestroStore.paises.find((p: any) => p.id === newFile.value.paisId || p['@id'] === newFile.value.paisId);
+  const idiomaObj = maestroStore.idiomas.find((i: any) => i.id === newFile.value.idiomaId || i['@id'] === newFile.value.idiomaId);
+
   // Ignoramos tipado estricto si OpenAPI no ha sido indexado completamente en el IDE local
   // @ts-ignore
   const result = await fileStore.createFile({
@@ -64,8 +70,9 @@ const handleCreate = async (): Promise<void> => {
     telefono: newFile.value.telefono || null,
     estado: 'abierto',
     // Composición de IRI para API Platform basadas en la estructura de endpoints
-    pais: newFile.value.paisId ? `/platform/public/maestro_pais/${newFile.value.paisId}` : null,
-    idioma: newFile.value.idiomaId ? `/platform/public/maestro_idioma/${newFile.value.idiomaId}` : null,
+    // Inyectamos el IRI exacto que demanda API Platform
+    pais: paisObj ? paisObj['@id'] : null,
+    idioma: idiomaObj ? idiomaObj['@id'] : null
   });
 
   if (result && (result.id || result['@id'])) {

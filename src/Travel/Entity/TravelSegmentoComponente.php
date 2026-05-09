@@ -6,6 +6,7 @@ namespace App\Travel\Entity;
 
 use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
+use App\Travel\Enum\ComponenteItemModoEnum;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -48,9 +49,10 @@ class TravelSegmentoComponente
     #[ORM\Column(type: 'time_immutable', nullable: true)]
     private ?DateTimeImmutable $hora = null;
 
+    // 🔥 Reemplazado de bool a Enum
     #[Groups(['segmento:item:read', 'segmento:write'])]
-    #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    private bool $esIncluido = true;
+    #[ORM\Column(type: 'string', length: 30, enumType: ComponenteItemModoEnum::class)]
+    private ComponenteItemModoEnum $modo = ComponenteItemModoEnum::INCLUIDO;
 
     #[Groups(['segmento:item:read', 'segmento:write'])]
     #[ORM\Column(type: 'integer')]
@@ -66,7 +68,9 @@ class TravelSegmentoComponente
         $nombreComponente = $this->componente ? (string) $this->componente : 'Nuevo vínculo';
         $horaFormateada = $this->hora ? sprintf(' [%s]', $this->hora->format('H:i')) : '';
         $contexto = $this->servicioContexto ? sprintf(' (Solo en: %s)', $this->servicioContexto->getNombreInterno()) : ' (Global)';
-        $estadoInclusion = $this->esIncluido ? '' : ' - No Incluido';
+
+        // Etiqueta visual basada en el Enum
+        $estadoInclusion = sprintf(' - [%s]', $this->modo->name);
 
         return $nombreComponente . $horaFormateada . $contexto . $estadoInclusion;
     }
@@ -115,14 +119,14 @@ class TravelSegmentoComponente
         return $this;
     }
 
-    public function isEsIncluido(): bool
+    public function getModo(): ComponenteItemModoEnum
     {
-        return $this->esIncluido;
+        return $this->modo;
     }
 
-    public function setEsIncluido(bool $esIncluido): self
+    public function setModo(ComponenteItemModoEnum $modo): self
     {
-        $this->esIncluido = $esIncluido;
+        $this->modo = $modo;
         return $this;
     }
 

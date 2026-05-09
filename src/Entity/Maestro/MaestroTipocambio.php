@@ -4,75 +4,85 @@ declare(strict_types=1);
 
 namespace App\Entity\Maestro;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Post;
+use App\Api\Controller\TipocambioConsultaController;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 
 /**
  * Entidad MaestroTipocambio.
  * Registra el histórico de tasas de cambio.
- * ID Primario: UUID (via IdTrait).
- * Relación: Moneda usa ID Natural (String 3).
- * Sin IDs autoincrementales.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'maestro_tipocambio')]
 #[ORM\HasLifecycleCallbacks]
+#[ApiResource(
+    shortName: 'TipoCambio',
+    operations: [
+        new Post(
+            uriTemplate: '/tipo-cambio/consultar',
+            controller: TipocambioConsultaController::class,
+            read: false,        // API Platform no buscará el ID en la BD
+            deserialize: false, // Nuestro controlador procesará el JSON manualmente
+            name: 'api_tipocambio_consultar'
+        )
+    ],
+    routePrefix: '/maestro',
+    normalizationContext: ['groups' => ['tipocambio:read']]
+)]
 class MaestroTipocambio
 {
-    /** * Gestión de Identificador UUID (BINARY 16).
-     * Reemplaza totalmente al ID autoincremental.
-     */
     use IdTrait;
-
-    /** Gestión de auditoría (createdAt, updatedAt) */
     use TimestampTrait;
 
-    /**
-     * Relación con Moneda: ID Natural String(3) ('USD', 'PEN').
-     * Sin BINARY(16) aquí porque el destino es un ID Natural.
-     */
     #[ORM\ManyToOne(targetEntity: MaestroMoneda::class)]
     #[ORM\JoinColumn(name: 'moneda_id', referencedColumnName: 'id', nullable: false)]
+    #[Groups(['tipocambio:read'])]
     private ?MaestroMoneda $moneda = null;
 
     #[ORM\Column(type: 'date')]
+    #[Groups(['tipocambio:read'])]
     private ?DateTimeInterface $fecha = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 3)]
+    #[Groups(['tipocambio:read'])]
     private ?string $compra = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 3)]
+    #[Groups(['tipocambio:read'])]
     private ?string $venta = null;
 
     public function __construct()
     {
-        // Forzamos la generación del UUID en el constructor si el Trait lo permite
         $this->id = Uuid::v7();
     }
 
     /* ======================================================
-     * LÓGICA DE CÁLCULO (BCMath para precisión financiera)
+     * LÓGICA FINANCIERA (Precisión BCMath)
      * ====================================================== */
 
+    #[Groups(['tipocambio:read'])]
     public function getPromedio(): string
     {
         $compra = $this->compra ?? '0.000';
         $venta = $this->venta ?? '0.000';
-
         $suma = bcadd($compra, $venta, 3);
         return bcdiv($suma, '2', 3);
     }
 
+    #[Groups(['tipocambio:read'])]
     public function getPromedioredondeado(): string
     {
         return (string) round((float) $this->getPromedio(), 2);
     }
 
     /* ======================================================
-     * GETTERS Y SETTERS EXPLÍCITOS
+     * GETTERS Y SETTERS
      * ====================================================== */
 
     public function getMoneda(): ?MaestroMoneda { return $this->moneda; }

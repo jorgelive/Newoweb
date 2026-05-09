@@ -80,6 +80,16 @@ class TravelTarifa
     }
 
     /**
+     * 🔥 Obligatorio para el Deep Clone de la entidad Padre.
+     * Al usar clone desde el padre, este método garantiza que la tarifa
+     * nazca como un registro 100% nuevo en la base de datos.
+     */
+    public function __clone()
+    {
+        $this->resetId();
+        $this->resetTimestamps();
+    }
+    /**
      * Representación en texto para EasyAdmin y depuración.
      * Genera una etiqueta visual que resume el costo, la moneda y las reglas de negocio.
      * Ejemplos: "🏷️ Adulto | USD 84.00 👤 [Por Pax]" o "🏷️ Van Privada | PEN 150.00 👥 [Por Grupo]"

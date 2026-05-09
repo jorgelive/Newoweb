@@ -8,12 +8,11 @@ namespace App\Travel\Enum;
  * Define el comportamiento comercial y visual de un ítem dentro de un componente.
  * Reemplaza las tablas dinámicas para garantizar lógica estricta en la facturación y generación de PDFs.
  */
-enum ItemModoEnum: string
+enum ComponenteItemModoEnum: string
 {
     case INCLUIDO = 'incluido';
     case OPCIONAL = 'opcional';
     case NO_INCLUIDO = 'no_incluido';
-    case NO_NECESARIO = 'no_necesario';
     case CORTESIA = 'cortesia';
 
     /**
@@ -32,7 +31,6 @@ enum ItemModoEnum: string
 
     /**
      * Determina si el ítem debe mostrarse en la sección de "No Incluye" del itinerario.
-     * Ejemplo: Un boleto de niño 'no_necesario' no debe listarse como 'no incluido' para no confundir.
      *
      * @return bool
      */

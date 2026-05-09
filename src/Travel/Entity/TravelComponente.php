@@ -119,6 +119,40 @@ class TravelComponente
         $this->tarifas = new ArrayCollection();
         $this->servicios = new ArrayCollection();
     }
+    /**
+     * 🔥 CLONACIÓN PROFUNDA (DEEP CLONE)
+     * Delega la responsabilidad a la propia entidad para mantener la atomicidad.
+     */
+    public function __clone()
+    {
+        // 1. Limpieza total de identidad y auditoría (vía Traits)
+        $this->resetId();
+        $this->resetTimestamps();
+
+        // 2. Ajustar el nombre operativo
+        if ($this->nombre) {
+            $this->nombre = '(Clon) ' . $this->nombre;
+        }
+
+        // 3. Clonar profundamente los Ítems (Inclusiones)
+        $itemsOriginales = $this->componenteItems;
+        $this->componenteItems = new ArrayCollection();
+        foreach ($itemsOriginales as $itemOriginal) {
+            $clonItem = clone $itemOriginal;
+            $this->addComponenteItem($clonItem); // Esto setea el parent de forma segura
+        }
+
+        // 4. Clonar profundamente las Tarifas
+        $tarifasOriginales = $this->tarifas;
+        $this->tarifas = new ArrayCollection();
+        foreach ($tarifasOriginales as $tarifaOriginal) {
+            $clonTarifa = clone $tarifaOriginal;
+            $this->addTarifa($clonTarifa);
+        }
+
+        // 5. Reiniciar la trazabilidad (Un clon no debe estar vinculado a los servicios del original)
+        $this->servicios = new ArrayCollection();
+    }
 
     /**
      * Retorna el nombre del componente para las interfaces (EasyAdmin/Selects).

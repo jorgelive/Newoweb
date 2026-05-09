@@ -7,7 +7,7 @@ namespace App\Travel\Entity;
 use ApiPlatform\Metadata\ApiProperty;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
-use App\Travel\Enum\ItemModoEnum;
+use App\Travel\Enum\ComponenteItemModoEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -33,8 +33,8 @@ class TravelComponenteItem
     private ?TravelItemDiccionario $diccionario = null;
 
     #[Groups(['componente:item:read', 'componente:write'])]
-    #[ORM\Column(type: 'string', length: 30, enumType: ItemModoEnum::class)]
-    private ItemModoEnum $modo = ItemModoEnum::INCLUIDO;
+    #[ORM\Column(type: 'string', length: 30, enumType: ComponenteItemModoEnum::class)]
+    private ComponenteItemModoEnum $modo = ComponenteItemModoEnum::INCLUIDO;
 
     /**
      * API Platform Truco: readableLink false para que devuelva IRI y corte recursividad en VUE.
@@ -73,6 +73,7 @@ class TravelComponenteItem
             'INCLUIDO' => '✅',
             'NO_INCLUIDO' => '❌',
             'OPCIONAL', 'UPSELL' => '➕',
+            'CORTESIA' => '🎁',
             default => '▪️'
         };
 
@@ -86,9 +87,12 @@ class TravelComponenteItem
         return $etiqueta;
     }
 
-    /**
-     * Obtiene el componente logístico padre.
-     */
+    public function __clone()
+    {
+        $this->resetId();
+        $this->resetTimestamps();
+    }
+
     public function getComponente(): ?TravelComponente
     {
         return $this->componente;
@@ -120,18 +124,12 @@ class TravelComponenteItem
         return $this;
     }
 
-    /**
-     * Obtiene el modo de inclusión (Enum).
-     */
-    public function getModo(): ItemModoEnum
+    public function getModo(): ComponenteItemModoEnum
     {
         return $this->modo;
     }
 
-    /**
-     * Establece el modo de inclusión.
-     */
-    public function setModo(ItemModoEnum $modo): self
+    public function setModo(ComponenteItemModoEnum $modo): self
     {
         $this->modo = $modo;
         return $this;

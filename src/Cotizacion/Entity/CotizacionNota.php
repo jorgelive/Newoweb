@@ -9,18 +9,16 @@ use App\Entity\Trait\TimestampTrait;
 use App\Travel\Enum\NotaTipoEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Uid\Uuid;
 
-/**
- * Snapshot inmutable de una nota informativa dentro de una cotización específica.
- */
 #[ORM\Entity]
 #[ORM\Table(name: 'cot_nota')]
+#[ORM\HasLifecycleCallbacks]
 class CotizacionNota
 {
     use IdTrait;
     use TimestampTrait;
 
-    // 🚫 CORTE CIRCULAR
     #[ORM\ManyToOne(targetEntity: Cotizacion::class, inversedBy: 'cotnotas')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Cotizacion $cotizacion = null;
@@ -42,47 +40,25 @@ class CotizacionNota
         $this->initializeId();
     }
 
-    public function getCotizacion(): ?Cotizacion
-    {
-        return $this->cotizacion;
-    }
+    #[Groups(['cotizacion:read', 'cotizacion:item:read'])]
+    public function getId(): ?Uuid { return $this->id; }
 
-    public function setCotizacion(?Cotizacion $cotizacion): self
+    #[Groups(['cotizacion:write'])]
+    public function setId(Uuid|string $id): self
     {
-        $this->cotizacion = $cotizacion;
+        $this->id = is_string($id) ? Uuid::fromString($id) : $id;
         return $this;
     }
 
-    public function getTipo(): NotaTipoEnum
-    {
-        return $this->tipo;
-    }
+    public function getCotizacion(): ?Cotizacion { return $this->cotizacion; }
+    public function setCotizacion(?Cotizacion $cotizacion): self { $this->cotizacion = $cotizacion; return $this; }
 
-    public function setTipo(NotaTipoEnum $tipo): self
-    {
-        $this->tipo = $tipo;
-        return $this;
-    }
+    public function getTipo(): NotaTipoEnum { return $this->tipo; }
+    public function setTipo(NotaTipoEnum $tipo): self { $this->tipo = $tipo; return $this; }
 
-    public function getTituloSnapshot(): array
-    {
-        return $this->tituloSnapshot;
-    }
+    public function getTituloSnapshot(): array { return $this->tituloSnapshot; }
+    public function setTituloSnapshot(array $tituloSnapshot): self { $this->tituloSnapshot = $tituloSnapshot; return $this; }
 
-    public function setTituloSnapshot(array $tituloSnapshot): self
-    {
-        $this->tituloSnapshot = $tituloSnapshot;
-        return $this;
-    }
-
-    public function getContenidoSnapshot(): array
-    {
-        return $this->contenidoSnapshot;
-    }
-
-    public function setContenidoSnapshot(array $contenidoSnapshot): self
-    {
-        $this->contenidoSnapshot = $contenidoSnapshot;
-        return $this;
-    }
+    public function getContenidoSnapshot(): array { return $this->contenidoSnapshot; }
+    public function setContenidoSnapshot(array $contenidoSnapshot): self { $this->contenidoSnapshot = $contenidoSnapshot; return $this; }
 }

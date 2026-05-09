@@ -23,17 +23,32 @@ const router = createRouter({
         // ============================================================================
         // MÓDULO DE COTIZACIONES
         // ============================================================================
+
+        // 1. Dashboard: Lista de todos los Files (Expedientes)
         {
             path: '/cotizaciones',
             name: 'cotizaciones_dashboard',
             component: () => import('../views/Cotizaciones/DashboardView.vue')
         },
+
+        // 2. Sala del File (NUEVO): Datos del cliente y lista de versiones (V1, V2...)
         {
             path: '/cotizaciones/:id',
-            name: 'cotizaciones_editor',
-            component: () => import('../views/Cotizaciones/EditorView.vue'),
-            props: true // Permite que Vue inyecte el :id directamente como prop en el componente
+            name: 'file_detalle',
+            // Asegúrate de que este archivo exista con el nombre que le dimos en el paso anterior
+            component: () => import('../views/Cotizaciones/FileDetalle.vue'),
+            props: true
         },
+
+        // 3. Motor Operativo: Edición de una versión específica de la cotización
+        {
+            path: '/cotizaciones/:fileId/version/:cotizacionId',
+            name: 'cotizaciones_editor',
+            // Tu vista del Editor / Motor Operativo
+            component: () => import('../views/Cotizaciones/CotizacionEditorView.vue'),
+            props: true
+        },
+
         // ============================================================================
         // FALLBACK (Rutas no encontradas)
         // ============================================================================

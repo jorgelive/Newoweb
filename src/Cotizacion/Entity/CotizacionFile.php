@@ -35,7 +35,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
         // Genera: GET /sales/cotizacion_files/{id}
         new Get(
-            normalizationContext: ['groups' => ['file:read', 'timestamp:read']],
+            normalizationContext: ['groups' => ['file:read', 'file:item:read', 'timestamp:read']],
             security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
         ),
 
@@ -63,6 +63,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'cotizacion_file')]
+#[ORM\HasLifecycleCallbacks]
 class CotizacionFile
 {
     use IdTrait;
