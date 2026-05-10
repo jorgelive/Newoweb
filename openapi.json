@@ -8381,7 +8381,7 @@
                         "type": "integer"
                     },
                     "comision": {
-                        "default": "0.00",
+                        "default": "20.00",
                         "type": "string"
                     },
                     "adelanto": {
@@ -8421,6 +8421,10 @@
                     },
                     "totalVenta": {
                         "default": "0.00",
+                        "type": "string"
+                    },
+                    "tipoCambio": {
+                        "default": "1.0000",
                         "type": "string"
                     },
                     "clasificacionFinanciera": {
@@ -8496,7 +8500,7 @@
                         "type": "integer"
                     },
                     "comision": {
-                        "default": "0.00",
+                        "default": "20.00",
                         "type": "string"
                     },
                     "adelanto": {
@@ -8536,6 +8540,10 @@
                     },
                     "totalVenta": {
                         "default": "0.00",
+                        "type": "string"
+                    },
+                    "tipoCambio": {
+                        "default": "1.0000",
                         "type": "string"
                     },
                     "clasificacionFinanciera": {
@@ -8604,7 +8612,7 @@
                         "type": "integer"
                     },
                     "comision": {
-                        "default": "0.00",
+                        "default": "20.00",
                         "type": "string"
                     },
                     "adelanto": {
@@ -8644,6 +8652,10 @@
                     },
                     "totalVenta": {
                         "default": "0.00",
+                        "type": "string"
+                    },
+                    "tipoCambio": {
+                        "default": "1.0000",
                         "type": "string"
                     },
                     "clasificacionFinanciera": {
@@ -8752,7 +8764,7 @@
                         "type": "integer"
                     },
                     "comision": {
-                        "default": "0.00",
+                        "default": "20.00",
                         "type": "string"
                     },
                     "adelanto": {
@@ -8792,6 +8804,10 @@
                     },
                     "totalVenta": {
                         "default": "0.00",
+                        "type": "string"
+                    },
+                    "tipoCambio": {
+                        "default": "1.0000",
                         "type": "string"
                     },
                     "clasificacionFinanciera": {
@@ -8912,7 +8928,7 @@
                                 "type": "integer"
                             },
                             "comision": {
-                                "default": "0.00",
+                                "default": "20.00",
                                 "type": "string"
                             },
                             "adelanto": {
@@ -8952,6 +8968,10 @@
                             },
                             "totalVenta": {
                                 "default": "0.00",
+                                "type": "string"
+                            },
+                            "tipoCambio": {
+                                "default": "1.0000",
                                 "type": "string"
                             },
                             "clasificacionFinanciera": {
@@ -9076,7 +9096,7 @@
                         "type": "integer"
                     },
                     "comision": {
-                        "default": "0.00",
+                        "default": "20.00",
                         "type": "string"
                     },
                     "adelanto": {
@@ -9116,6 +9136,10 @@
                     },
                     "totalVenta": {
                         "default": "0.00",
+                        "type": "string"
+                    },
+                    "tipoCambio": {
+                        "default": "1.0000",
                         "type": "string"
                     },
                     "clasificacionFinanciera": {

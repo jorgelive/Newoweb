@@ -11,7 +11,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const isLoading = ref<boolean>(false);
     const idiomasDisponibles = ref<MaestroIdioma[]>([]);
-    const tipoCambioVenta = ref<number>(1);
+    const tipoCambioSugerido = ref<number>(1); // Renombrado para mayor claridad
 
     const catalogos = ref({
         servicios: [] as any[], allComponentes: [] as any[], componentes: [] as any[],
@@ -57,8 +57,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         const nombre = cat.nombreInterno || cat.nombre || 'Tarifa sin nombre';
         const moneda = cat.moneda?.codigo || cat.moneda?.id || cat.moneda || '';
         const monto = parseFloat(cat.monto || cat.montoCosto || 0).toFixed(2);
-        if (moneda && moneda !== '[]') return `${nombre} (${moneda} ${monto})`;
-        return `${nombre} ($ ${monto})`;
+        const esGrupal = cat.costoPorGrupo || cat.esGrupal || false;
+
+        // Parseo de edades
+        const min = (cat.edadMinima !== undefined && cat.edadMinima !== null && cat.edadMinima !== '') ? Number(cat.edadMinima) : null;
+        const max = (cat.edadMaxima !== undefined && cat.edadMaxima !== null && cat.edadMaxima !== '') ? Number(cat.edadMaxima) : null;
+
+        let edadStr = '';
+        if (min !== null && max !== null) edadStr = ` [${min}-${max} años]`;
+        else if (min !== null) edadStr = ` [${min}+ años]`;
+        else if (max !== null) edadStr = ` [Hasta ${max} años]`;
+
+        const monedaFinal = (moneda && moneda !== '[]') ? moneda : '$';
+        const indicadorMatematica = esGrupal ? ' 👥' : ' 👤';
+
+        return `${nombre}${edadStr}${indicadorMatematica} (${monedaFinal} ${monto})`;
     };
 
     const addDurationToDate = (baseIsoString: string, durationDecimal: number | string): string => {
@@ -205,7 +218,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         try {
             try {
                 const tcResponse = await apiClient.post('/platform/maestro/tipo-cambio/consultar', { fecha: new Date().toISOString().split('T')[0] });
-                tipoCambioVenta.value = parseFloat(tcResponse.data.venta) || 1;
+                // 🔥 CAMBIO: Guardamos el PROMEDIO
+                tipoCambioSugerido.value = parseFloat(tcResponse.data.promedio) || 1;
             } catch (err) {}
 
             await fetchIdiomas();
@@ -222,6 +236,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 await fetchCotizacion(cotizacionId);
             }
 
+            // 🔥 ABRIMOS LA CABECERA AUTOMÁTICAMENTE
+            abrirNivel('resumen');
+
         } catch (error) {
             console.error("Error al inicializar el editor:", error);
             alert("No se pudo cargar el Expediente. Verifica la URL.");
@@ -232,7 +249,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     const fetchIdiomas = async () => {
         try {
-            const response = await apiClient.get('/platform/maestro/idiomas?prioridad[gt]=0&order[prioridad]=asc');
+            // 🔥 CAMBIO: order[prioridad]=desc para que el español (prioridad alta) llegue primero
+            const response = await apiClient.get('/platform/maestro/idiomas?prioridad[gt]=0&order[prioridad]=desc');
             idiomasDisponibles.value = response.data['hydra:member'] || response.data['member'] || [];
         } catch (e) {
             idiomasDisponibles.value = [{ id: 'es', nombre: 'Español', bandera: '🇪🇸', prioridad: 1 }];
@@ -331,7 +349,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             componenteAdicionalVinculado: item.componenteAdicionalVinculado || null,
                             idComponenteInyectado: null,
                             isInjecting: false,
-                            sobreescribirTraduccion: false // 🔥 Listo para auto-traducirse
+                            sobreescribirTraduccion: false
                         };
                     }));
                 } else {
@@ -376,19 +394,26 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     const crearCotizacionVacia = (fileId: string) => {
+        // 🔥 Buscamos explícitamente el español para nacer bien
+        const idiomaDefault = idiomasDisponibles.value.find(i => i.id === 'es')
+            ? 'es'
+            : (idiomasDisponibles.value.length ? idiomasDisponibles.value[0].id : 'es');
+
         cotizacion.value = {
             id: crypto.randomUUID(),
             file: `/platform/sales/cotizacion_files/${fileId}`,
             version: 1, estado: 'Pendiente', monedaGlobal: 'USD',
-            idiomaCliente: idiomasDisponibles.value.length ? idiomasDisponibles.value[0].id : 'es',
-            idiomaEdicion: 'es', numPax: 1, comision: 0.00, adelanto: 0.00,
+            idiomaCliente: idiomaDefault,
+            idiomaEdicion: 'es', numPax: 1,
+            comision: 20.00, // 🔥 Iniciamos en 20%
+            adelanto: 0.00,
+            tipoCambio: String(tipoCambioSugerido.value || 1), // 🔥 Iniciamos con el PROMEDIO
             hotelOculto: true, precioOculto: false, resumenI18n: [],
-            sobreescribirTraduccion: false, // 🔥
+            sobreescribirTraduccion: false,
             cotservicios: []
         };
     };
 
-    // 🔥 EL GUARDADO LIMPIO Y DIRECTO
     const guardarCotizacion = async (): Promise<void> => {
         isLoading.value = true;
         try {
@@ -399,23 +424,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const payload = JSON.parse(JSON.stringify(cotizacion.value));
 
-            // --- Normalizar file ---
             if (payload.file && typeof payload.file === 'object') {
                 payload.file = payload.file['@id'] || payload.file.id;
             } else if (payload.file && !payload.file.includes('/platform/')) {
                 payload.file = `/platform/sales/cotizacion_files/${payload.file}`;
             }
 
-            // --- Campos raíz ---
             payload.comision = String(payload.comision || '0');
             payload.adelanto = String(payload.adelanto || '0');
             payload.totalCosto = String(resumenFinanciero.value?.totalCostoNeto || '0');
             payload.totalVenta = String(resumenFinanciero.value?.totalVentaBruta || '0');
             payload.numPax = parseInt(payload.numPax) || 1;
+            payload.tipoCambio = String(payload.tipoCambio || tipoCambioSugerido.value || 1); // 🔥
             payload.clasificacionFinanciera = resumenFinanciero.value?.desglosePorMoneda || {};
             delete payload.idiomaEdicion;
 
-            // --- Normalizar servicios ---
             if (payload.cotservicios && Array.isArray(payload.cotservicios)) {
                 payload.cotservicios.forEach((servicio: any) => {
 
@@ -430,7 +453,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         servicio.fechaInicioAbsoluta += 'T00:00:00';
                     }
 
-                    // Segmentos: solo normalizamos fechas
                     if (servicio.cotsegmentos && Array.isArray(servicio.cotsegmentos)) {
                         servicio.cotsegmentos.forEach((seg: any) => {
                             if (!seg.fechaAbsoluta) seg.fechaAbsoluta = servicio.fechaInicioAbsoluta;
@@ -438,7 +460,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         });
                     }
 
-                    // Componentes: el backend resuelve la referencia al segmento
                     if (servicio.cotcomponentes && Array.isArray(servicio.cotcomponentes)) {
                         servicio.cotcomponentes.forEach((componente: any) => {
                             componente.cantidad = parseInt(componente.cantidad) || 1;
@@ -447,7 +468,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 componente.componenteMaestroId = extractIdStr(componente.componenteMaestroId);
                             }
 
-                            // Siempre enviamos el IRI del segmento si existe — el processor lo resuelve
                             const segId = componente.cotsegmentoId || (
                                 typeof componente.cotsegmento === 'string'
                                     ? extractIdStr(componente.cotsegmento)
@@ -474,34 +494,28 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 });
             }
 
-            // --- Un solo request, sin fases ---
             const response = await (isUpdate ? apiClient.put : apiClient.post)(endpoint, payload);
             let savedData = response.data;
 
-            // --- Limpieza visual post-save ---
             if (!savedData.cotservicios) savedData.cotservicios = [];
             savedData.idiomaEdicion = 'es';
 
             savedData.cotservicios.forEach((s: any) => {
                 s.sobreescribirTraduccion = false;
-
                 if (s.fechaInicioAbsoluta?.includes('T')) {
                     s.fechaInicioAbsoluta = s.fechaInicioAbsoluta.split('T')[0];
                 }
-
                 s.cotsegmentos?.forEach((seg: any) => {
                     seg.sobreescribirTraduccion = false;
                     if (seg.fechaAbsoluta?.includes('T')) {
                         seg.fechaAbsoluta = seg.fechaAbsoluta.split('T')[0];
                     }
                 });
-
                 s.cotcomponentes?.forEach((c: any) => {
                     c.sobreescribirTraduccion = false;
                     c.snapshotItems?.forEach((i: any) => i.sobreescribirTraduccion = false);
                     c.cottarifas?.forEach((t: any) => t.sobreescribirTraduccion = false);
 
-                    // Reconstruir cotsegmentoId desde la respuesta
                     if (c.cotsegmento) {
                         c.cotsegmentoId = typeof c.cotsegmento === 'string'
                             ? extractIdStr(c.cotsegmento)
@@ -600,7 +614,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             nombreSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             itinerarioNombreSnapshot: [{ language: 'es', content: 'Sin plantilla' }],
             fechaInicioAbsoluta: fechaBase, cotsegmentos: [], cotcomponentes: [],
-            sobreescribirTraduccion: false // 🔥
+            sobreescribirTraduccion: false
         };
         if (!cotizacion.value.cotservicios) cotizacion.value.cotservicios = [];
         cotizacion.value.cotservicios.push(nuevoServicio);
@@ -625,7 +639,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 fechaHoraInicio: fechaBase.slice(0, 16),
                 fechaHoraFin: addDurationToDate(fechaBase, 1),
                 cotsegmentoId: null,
-                sobreescribirTraduccion: false, // 🔥
+                sobreescribirTraduccion: false,
                 snapshotItems: [], cottarifas: []
             };
             if (!servicio.cotcomponentes) servicio.cotcomponentes = [];
@@ -655,7 +669,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 tieneUpsell: false,
                 idComponenteInyectado: null,
                 isInjecting: false,
-                sobreescribirTraduccion: false // 🔥
+                sobreescribirTraduccion: false
             });
         }
     };
@@ -766,7 +780,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     montoCosto: 0.00, tipoModalidadSnapshot: 'Normal',
                     proveedorNombreSnapshot: null, detallesOperativos: [],
                     esGrupal: false,
-                    sobreescribirTraduccion: false // 🔥
+                    sobreescribirTraduccion: false
                 };
                 if (!componente.cottarifas) componente.cottarifas = [];
                 componente.cottarifas.push(nuevaTarifa);
@@ -832,7 +846,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     fechaHoraInicio: fechaHoraInicioFormateada,
                     fechaHoraFin: fechaHoraFinFormateada,
                     cotsegmentoId: idSegmentoGenerado,
-                    sobreescribirTraduccion: false, // 🔥
+                    sobreescribirTraduccion: false,
                     snapshotItems: [], cottarifas: []
                 };
 
@@ -880,7 +894,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         fechaAbsoluta: fechaCalculada,
                         nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(seg))),
                         contenidoSnapshot: JSON.parse(JSON.stringify(seg.contenido || [])),
-                        sobreescribirTraduccion: false // 🔥
+                        sobreescribirTraduccion: false
                     });
                     inyectarComponentesDeSegmento(seg, diaDelSegmento, nuevoIdSeg);
                 });
@@ -907,7 +921,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             fechaAbsoluta: fechaCalculada,
             nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro))),
             contenidoSnapshot: JSON.parse(JSON.stringify(segmentoMaestro.contenido || [])),
-            sobreescribirTraduccion: false // 🔥
+            sobreescribirTraduccion: false
         });
 
         inyectarComponentesDeSegmento(segmentoMaestro, 1, nuevoIdSeg);
@@ -1028,7 +1042,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     return {
         catalogos, cotizacion, fileActual, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
-        isMobileOpen, isSegmentEditorOpen, tipoCambioVenta,
+        isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido,
         resumenFinanciero, itinerarioDinamico, totalCostoNeto, ventaSugerida,
         isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,

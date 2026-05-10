@@ -5,19 +5,17 @@ declare(strict_types=1);
 namespace App\Entity\Trait;
 
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
-use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Trait TimestampTrait
- * Gestiona createdAt y updatedAt usando DateTimeImmutable.
+ * Gestiona createdAt y updatedAt de forma nativa a prueba de fallos.
  */
 trait TimestampTrait
 {
     /**
      * @var \DateTimeImmutable|null
      */
-    #[Gedmo\Timestampable(on: 'create')]
     #[ORM\Column(type: 'datetime_immutable')]
     #[Groups(['timestamp:read'])]
     protected ?\DateTimeImmutable $createdAt = null;
@@ -25,41 +23,50 @@ trait TimestampTrait
     /**
      * @var \DateTimeImmutable|null
      */
-    #[Gedmo\Timestampable(on: 'update')]
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     #[Groups(['timestamp:read'])]
     protected ?\DateTimeImmutable $updatedAt = null;
 
     /**
-     * @return \DateTimeImmutable|null
+     * Se ejecuta automáticamente justo antes de hacer el primer INSERT.
      */
+    #[ORM\PrePersist]
+    public function setTimestampsOnPersist(): void
+    {
+        if ($this->createdAt === null) {
+            $this->createdAt = new \DateTimeImmutable();
+        }
+    }
+
+    /**
+     * Se ejecuta automáticamente justo antes de hacer un UPDATE.
+     */
+    #[ORM\PreUpdate]
+    public function setTimestampsOnUpdate(): void
+    {
+        $this->updatedAt = new \DateTimeImmutable();
+
+        if ($this->createdAt === null) {
+            $this->createdAt = new \DateTimeImmutable();
+        }
+    }
+
     public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    /**
-     * @param \DateTimeImmutable|null $createdAt
-     * @return $this
-     */
     public function setCreatedAt(?\DateTimeImmutable $createdAt): self
     {
         $this->createdAt = $createdAt;
         return $this;
     }
 
-    /**
-     * @return \DateTimeImmutable|null
-     */
     public function getUpdatedAt(): ?\DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
-    /**
-     * @param \DateTimeImmutable|null $updatedAt
-     * @return $this
-     */
     public function setUpdatedAt(?\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
@@ -68,14 +75,7 @@ trait TimestampTrait
 
     /**
      * Restablece las fechas de auditoría a su estado inicial.
-     * Este método existe para asegurar que, al clonar una entidad, esta sea tratada
-     * como un registro completamente nuevo por el sistema de auditoría (Gedmo),
-     * en lugar de heredar la historia temporal del objeto original.
-     *
-     * Ejemplo de uso:
-     * public function __clone() {
-     * $this->resetTimestamps();
-     * }
+     * Ideal para operaciones de DEEP CLONE.
      */
     public function resetTimestamps(): void
     {

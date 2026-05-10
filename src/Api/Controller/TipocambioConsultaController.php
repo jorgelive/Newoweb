@@ -50,6 +50,7 @@ class TipocambioConsultaController extends AbstractController
             'fecha'  => $tipocambio->getFecha()?->format('Y-m-d'),
             'compra' => $tipocambio->getCompra(),
             'venta'  => $tipocambio->getVenta(),
+            'promedio' => $tipocambio->getPromedio(),
             'moneda' => $tipocambio->getMoneda()?->getId()
         ]);
     }

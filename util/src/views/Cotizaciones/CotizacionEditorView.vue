@@ -9,25 +9,46 @@ const route = useRoute();
 const router = useRouter();
 const store = useCotizacionEditorStore();
 
-const opcionesServicios = computed(() => store.catalogos.servicios.map(s => ({
-  value: s.id || s['@id'],
-  label: s.nombreInterno || s.nombre || 'Servicio sin nombre'
-})));
+const idiomasOrdenados = computed(() => {
+  if (!store.idiomasDisponibles) return [];
+  return [...store.idiomasDisponibles].sort((a, b) => b.prioridad - a.prioridad);
+});
 
-const opcionesComponentes = computed(() => store.catalogos.componentes.map(c => ({
-  value: c.id || c['@id'],
-  label: c.nombreInterno || c.nombre || 'Insumo sin nombre'
-})));
+const opcionesServicios = computed(() => {
+  return store.catalogos.servicios
+      .map(s => ({
+        value: s.id || s['@id'],
+        label: s.nombreInterno || s.nombre || 'Servicio sin nombre'
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+});
 
-const opcionesTarifas = computed(() => store.catalogos.tarifas.map(t => ({
-  value: t.id || t['@id'],
-  label: store.getTarifaLabel(t, store.cotizacion?.idiomaEdicion || 'es')
-})));
+const opcionesComponentes = computed(() => {
+  return store.catalogos.componentes
+      .map(c => ({
+        value: c.id || c['@id'],
+        label: c.nombreInterno || c.nombre || 'Insumo sin nombre'
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+});
 
-const opcionesPlantillas = computed(() => store.catalogos.plantillasItinerario.map(p => ({
-  value: p.id || p['@id'],
-  label: p.nombreInterno || p.nombre || 'Plantilla sin nombre'
-})));
+const opcionesTarifas = computed(() => {
+  return store.catalogos.tarifas
+      .map(t => ({
+        value: t.id || t['@id'],
+        label: store.getTarifaLabel(t, store.cotizacion?.idiomaEdicion || 'es')
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+});
+
+const opcionesPlantillas = computed(() => {
+  return store.catalogos.plantillasItinerario
+      .map(p => ({
+        value: p.id || p['@id'],
+        label: p.nombreInterno || p.nombre || 'Plantilla sin nombre'
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+});
 
 onMounted(() => {
   const fileId = route.params.fileId as string;
@@ -36,7 +57,6 @@ onMounted(() => {
   if (fileId && cotizacionId) {
     store.inicializarEditor(fileId, cotizacionId);
   } else {
-    console.warn("Ruta inválida. Redirigiendo al inicio...");
     router.push('/cotizaciones');
   }
 });
@@ -312,9 +332,9 @@ const getNombreMaestroRef = (comp: any) => {
                   </select>
                 </div>
                 <div>
-                  <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Idioma (PDF)</span>
+                  <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Idioma</span>
                   <select v-model="store.cotizacion.idiomaCliente" @change="store.cotizacion.idiomaEdicion = 'es'" class="w-full font-black text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-[#376875] text-sm appearance-none shadow-sm">
-                    <option v-for="lang in store.idiomasDisponibles" :key="lang.id" :value="lang.id">{{ lang.nombre }}</option>
+                    <option v-for="lang in idiomasOrdenados" :key="lang.id" :value="lang.id">{{ lang.nombre }}</option>
                   </select>
                 </div>
               </div>
@@ -329,10 +349,23 @@ const getNombreMaestroRef = (comp: any) => {
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Comisión (%)</label>
                 <input v-model="store.cotizacion.comision" type="number" step="0.1" class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-right text-emerald-600 outline-none focus:ring-2 focus:ring-[#376875] shadow-sm">
               </div>
+
+              <div class="col-span-2">
+                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1"><i class="fas fa-exchange-alt mr-1"></i> T. Cambio (Sugerido)</label>
+                <div class="relative">
+                  <input v-model="store.cotizacion.tipoCambio" type="number" step="0.0001"
+                         class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-black text-center outline-none focus:ring-2 focus:ring-orange-500 shadow-inner">
+                  <div class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase tracking-tighter">PEN/USD</div>
+                </div>
+                <p class="text-[9px] font-bold text-slate-400 mt-1.5 ml-1 flex items-center gap-1">
+                  <i class="fas fa-info-circle text-[#E07845]"></i> Valor promedio capturado para esta versión.
+                </p>
+              </div>
             </div>
+
             <div>
               <div class="flex items-center justify-between mb-1.5 ml-1">
-                <label class="block text-[10px] font-black text-slate-500 uppercase">Resumen PDF ({{ store.cotizacion.idiomaEdicion.toUpperCase() }})</label>
+                <label class="block text-[10px] font-black text-slate-500 uppercase">Resumen ({{ store.cotizacion.idiomaEdicion.toUpperCase() }})</label>
                 <button @click="store.cotizacion.sobreescribirTraduccion = !store.cotizacion.sobreescribirTraduccion"
                         :class="store.cotizacion.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
                         class="p-1 px-2 border rounded-lg transition-colors shadow-sm text-[10px] font-bold flex items-center gap-1" title="Traducir automáticamente a otros idiomas al guardar">
@@ -603,11 +636,15 @@ const getNombreMaestroRef = (comp: any) => {
                   <div class="flex justify-between items-center pr-6">
                     <div>
                       <h4 class="font-bold text-sm text-slate-800">{{ store.getI18nText(tarifa.nombreSnapshot, store.cotizacion.idiomaEdicion) }}</h4>
-                      <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded mt-1 inline-block border border-slate-200">
-                           {{ tarifa.esGrupal ? 'Por Grupo' : `${tarifa.cantidad} Pax` }}
-                        </span>
+                      <div class="flex gap-2 mt-1">
+      <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+         <i :class="tarifa.esGrupal ? 'fas fa-users' : 'fas fa-user'"></i>
+         {{ tarifa.esGrupal ? 'Costo Grupal' : `${tarifa.cantidad} Pax` }}
+      </span>
+                        <span v-if="tarifa.esGrupal" class="text-[9px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase">Fijo</span>
+                      </div>
                     </div>
-                    <span class="font-black text-orange-600 text-lg">{{ formatMoneda(tarifa.montoCosto * tarifa.cantidad, tarifa.moneda) }}</span>
+                    <span class="font-black text-orange-600 text-lg">{{ formatMoneda(tarifa.montoCosto * (tarifa.esGrupal ? 1 : tarifa.cantidad), tarifa.moneda) }}</span>
                   </div>
                 </div>
               </div>
@@ -647,6 +684,41 @@ const getNombreMaestroRef = (comp: any) => {
                           class="px-4 border rounded-xl transition-colors" title="Forzar traducción">
                     <i class="fas fa-language"></i>
                   </button>
+                </div>
+              </div>
+
+              <div class="col-span-2 bg-slate-800/50 border border-slate-700 p-4 rounded-2xl mb-2">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-black text-white flex items-center gap-2">
+                      <i class="fas fa-calculator text-emerald-400"></i> Modalidad de Cálculo
+                    </p>
+                    <p class="text-[10px] text-slate-400 mt-1">
+                      {{ store.dataActiva.tarifaMaestraId ? 'Bloqueado por Catálogo Maestro' : 'Define si el costo es por persona o por el total' }}
+                    </p>
+                  </div>
+
+                  <button @click="!store.dataActiva.tarifaMaestraId && (store.dataActiva.esGrupal = !store.dataActiva.esGrupal)"
+                          :disabled="!!store.dataActiva.tarifaMaestraId"
+                          :class="[
+                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none',
+                store.dataActiva.esGrupal ? 'bg-orange-500' : 'bg-slate-600',
+                store.dataActiva.tarifaMaestraId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+            ]">
+      <span :class="store.dataActiva.esGrupal ? 'translate-x-6' : 'translate-x-1'"
+            class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" />
+                  </button>
+                </div>
+
+                <div class="flex gap-4 mt-4">
+                  <div :class="store.dataActiva.esGrupal ? 'opacity-50' : 'opacity-100'" class="flex-1 text-center p-2 rounded-xl border border-dashed border-slate-600">
+                    <i class="fas fa-user text-xs mb-1"></i>
+                    <p class="text-[8px] font-black uppercase">Unitario (Pax)</p>
+                  </div>
+                  <div :class="!store.dataActiva.esGrupal ? 'opacity-50' : 'opacity-100'" class="flex-1 text-center p-2 rounded-xl border border-orange-500/50 bg-orange-500/10 text-orange-400">
+                    <i class="fas fa-users text-xs mb-1"></i>
+                    <p class="text-[8px] font-black uppercase">Grupal (Flat)</p>
+                  </div>
                 </div>
               </div>
 

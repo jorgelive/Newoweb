@@ -1522,7 +1522,7 @@ export interface components {
             estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /** @default 20.00 */
             comision: string;
             /** @default 0.00 */
             adelanto: string;
@@ -1539,6 +1539,8 @@ export interface components {
             totalCosto: string;
             /** @default 0.00 */
             totalVenta: string;
+            /** @default 1.0000 */
+            tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.read_timestamp.read"][];
             cotnotas?: components["schemas"]["CotizacionNota-cotizacion.read_timestamp.read"][];
@@ -1563,7 +1565,7 @@ export interface components {
             estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /** @default 20.00 */
             comision: string;
             /** @default 0.00 */
             adelanto: string;
@@ -1580,6 +1582,8 @@ export interface components {
             totalCosto: string;
             /** @default 0.00 */
             totalVenta: string;
+            /** @default 1.0000 */
+            tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.write"][];
             cotnotas?: components["schemas"]["CotizacionNota-cotizacion.write"][];
@@ -1602,7 +1606,7 @@ export interface components {
             estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /** @default 20.00 */
             comision: string;
             /** @default 0.00 */
             adelanto: string;
@@ -1619,6 +1623,8 @@ export interface components {
             totalCosto: string;
             /** @default 0.00 */
             totalVenta: string;
+            /** @default 1.0000 */
+            tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.write"][];
             cotnotas?: components["schemas"]["CotizacionNota-cotizacion.write"][];
@@ -1651,7 +1657,7 @@ export interface components {
             estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /** @default 20.00 */
             comision: string;
             /** @default 0.00 */
             adelanto: string;
@@ -1668,6 +1674,8 @@ export interface components {
             totalCosto: string;
             /** @default 0.00 */
             totalVenta: string;
+            /** @default 1.0000 */
+            tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.html-cotizacion.read_timestamp.read"][];
             cotnotas?: components["schemas"]["CotizacionNota.html-cotizacion.read_timestamp.read"][];
@@ -1702,7 +1710,7 @@ export interface components {
             estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /** @default 20.00 */
             comision: string;
             /** @default 0.00 */
             adelanto: string;
@@ -1719,6 +1727,8 @@ export interface components {
             totalCosto: string;
             /** @default 0.00 */
             totalVenta: string;
+            /** @default 1.0000 */
+            tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read"][];
             cotnotas?: components["schemas"]["CotizacionNota.jsonld-cotizacion.read_timestamp.read"][];
@@ -1753,7 +1763,7 @@ export interface components {
             estado: "Pendiente" | "Archivado" | "Confirmado" | "Operado" | "Cancelado";
             /** @default 1 */
             numPax: number;
-            /** @default 0.00 */
+            /** @default 20.00 */
             comision: string;
             /** @default 0.00 */
             adelanto: string;
@@ -1770,6 +1780,8 @@ export interface components {
             totalCosto: string;
             /** @default 0.00 */
             totalVenta: string;
+            /** @default 1.0000 */
+            tipoCambio: string;
             clasificacionFinanciera?: string[] | null;
             cotservicios?: components["schemas"]["CotizacionCotservicio.multipart-cotizacion.read_timestamp.read"][];
             cotnotas?: components["schemas"]["CotizacionNota.multipart-cotizacion.read_timestamp.read"][];
