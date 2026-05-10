@@ -330,7 +330,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             tieneUpsell: tieneUpsell,
                             componenteAdicionalVinculado: item.componenteAdicionalVinculado || null,
                             idComponenteInyectado: null,
-                            isInjecting: false
+                            isInjecting: false,
+                            sobreescribirTraduccion: false // 🔥 Listo para auto-traducirse
                         };
                     }));
                 } else {
@@ -382,11 +383,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             idiomaCliente: idiomasDisponibles.value.length ? idiomasDisponibles.value[0].id : 'es',
             idiomaEdicion: 'es', numPax: 1, comision: 0.00, adelanto: 0.00,
             hotelOculto: true, precioOculto: false, resumenI18n: [],
+            sobreescribirTraduccion: false, // 🔥
             cotservicios: []
         };
     };
 
     // 🔥 EL GUARDADO LIMPIO Y DIRECTO
+    // 🔥 EL GUARDADO ROBUSTO (DOS FASES PARA OFFLINE-FIRST)
+    // 🔥 EL GUARDADO ROBUSTO (DOS FASES CON DETECCIÓN INTELIGENTE)
     const guardarCotizacion = async (): Promise<void> => {
         isLoading.value = true;
         try {
@@ -409,7 +413,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             payload.clasificacionFinanciera = resumenFinanciero.value?.desglosePorMoneda || {};
             delete payload.idiomaEdicion;
 
-            // 🔥 EL MAPA INFALIBLE: Guardaremos las coordenadas exactas de las piezas
+            // 🔥 EL MAPA INFALIBLE: Coordenadas para la Fase 2
             let conexionesPendientes: { srvIdx: number, compIdx: number, segIdx: number }[] = [];
 
             if (payload.cotservicios && Array.isArray(payload.cotservicios)) {
@@ -432,22 +436,27 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                             componente.cantidad = parseInt(componente.cantidad) || 1;
                             if (componente.componenteMaestroId) componente.componenteMaestroId = extractIdStr(componente.componenteMaestroId);
 
-                            // 🔥 FASE 1: AISLAMOS LOS COMPONENTES
-                            if (componente.cotsegmentoId) {
-                                // Buscamos en qué posición está el segmento al que pertenece
-                                const segIdx = servicio.cotsegmentos.findIndex((s: any) => extractIdStr(s.id) === extractIdStr(componente.cotsegmentoId));
+                            // 🕵️ LÓGICA ANTI-FANTASMAS (Evita el Error 400)
+                            if (componente.cotsegmentoId || componente.cotsegmento) {
+                                let targetId = extractIdStr(componente.cotsegmentoId || componente.cotsegmento);
+
+                                let segIdx = -1;
+                                if (servicio.cotsegmentos) {
+                                    segIdx = servicio.cotsegmentos.findIndex((s: any) => extractIdStr(s.id) === targetId || extractIdStr(s['@id']) === targetId);
+                                }
 
                                 if (segIdx !== -1) {
-                                    const segmento = servicio.cotsegmentos[segIdx];
-
-                                    // Si el segmento es nuevo (no tiene fecha de creación de BD), aislamos.
-                                    if (!segmento.createdAt) {
+                                    const segmentoObj = servicio.cotsegmentos[segIdx];
+                                    if (!segmentoObj.createdAt) {
+                                        // ⚠️ Es un segmento nuevo. Ocultamos la conexión en la Fase 1.
                                         conexionesPendientes.push({ srvIdx, compIdx, segIdx });
                                         componente.cotsegmento = null;
                                     } else {
-                                        // Si ya existía, el ID es seguro.
-                                        componente.cotsegmento = `/platform/sales/cotizacion_segmentos/${extractIdStr(componente.cotsegmentoId)}`;
+                                        // ✅ El segmento ya existe en la BD, conectamos de forma segura.
+                                        componente.cotsegmento = `/platform/sales/cotizacion_segmentos/${targetId}`;
                                     }
+                                } else {
+                                    componente.cotsegmento = null;
                                 }
                             } else {
                                 componente.cotsegmento = null;
@@ -466,11 +475,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 });
             }
 
-            // EJECUCIÓN FASE 1: Guardamos todo (El Backend generará sus propios UUIDs con seguridad)
+            // 🔥 FASE 1: Guardar el grafo principal
             let response = await (isUpdate ? apiClient.put : apiClient.post)(endpoint, payload);
             let savedData = response.data;
 
-            // 🔥 EJECUCIÓN FASE 2: Conectamos los cables usando el mapa de posiciones
+            // 🔥 FASE 2: Conectar las piezas que faltaban
             if (conexionesPendientes.length > 0) {
                 const payloadFase2 = JSON.parse(JSON.stringify(savedData));
 
@@ -478,33 +487,59 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     payloadFase2.file = payloadFase2.file['@id'] || payloadFase2.file.id;
                 }
 
-                conexionesPendientes.forEach(coordenadas => {
-                    // 1. Buscamos el ID real y definitivo que generó el backend usando la posición
-                    const idRealSegmento = savedData.cotservicios[coordenadas.srvIdx].cotsegmentos[coordenadas.segIdx].id;
+                let changes = false;
+                conexionesPendientes.forEach(({ srvIdx, compIdx, segIdx }) => {
+                    const servicioF2 = payloadFase2.cotservicios[srvIdx];
+                    if (servicioF2 && servicioF2.cotsegmentos && servicioF2.cotcomponentes) {
+                        const segF2 = servicioF2.cotsegmentos[segIdx];
+                        const compF2 = servicioF2.cotcomponentes[compIdx];
 
-                    // 2. Apuntamos el componente hacia ese ID real
-                    const componente = payloadFase2.cotservicios[coordenadas.srvIdx].cotcomponentes[coordenadas.compIdx];
-                    componente.cotsegmento = `/platform/sales/cotizacion_segmentos/${extractIdStr(idRealSegmento)}`;
+                        if (segF2 && compF2) {
+                            // Extraemos el ID final devuelto por el servidor
+                            const realSegId = extractIdStr(segF2.id || segF2['@id']);
+                            compF2.cotsegmento = `/platform/sales/cotizacion_segmentos/${realSegId}`;
+                            changes = true;
+                        }
+                    }
                 });
 
-                // Enviamos la actualización limpia
-                response = await apiClient.put(`/platform/sales/cotizacions/${savedData.id}`, payloadFase2);
-                savedData = response.data;
+                if (changes) {
+                    // Restauramos las T en las fechas para que el PUT de la fase 2 no falle
+                    payloadFase2.cotservicios.forEach((s: any) => {
+                        if (s.fechaInicioAbsoluta && s.fechaInicioAbsoluta.length === 10) s.fechaInicioAbsoluta += 'T00:00:00';
+                        if (s.cotsegmentos) {
+                            s.cotsegmentos.forEach((seg: any) => {
+                                if (seg.fechaAbsoluta && seg.fechaAbsoluta.length === 10) seg.fechaAbsoluta += 'T00:00:00';
+                            });
+                        }
+                    });
+
+                    response = await apiClient.put(`/platform/sales/cotizacions/${savedData.id}`, payloadFase2);
+                    savedData = response.data;
+                }
             }
 
+            // LIMPIEZA VISUAL (Para la UI de Vue)
             if (!savedData.cotservicios) savedData.cotservicios = [];
             savedData.idiomaEdicion = 'es';
 
-            // Re-hidratamos limpiando la "T" para la interfaz
             savedData.cotservicios.forEach((s: any) => {
+                s.sobreescribirTraduccion = false;
                 if (s.fechaInicioAbsoluta && s.fechaInicioAbsoluta.includes('T')) s.fechaInicioAbsoluta = s.fechaInicioAbsoluta.split('T')[0];
+
                 if (s.cotsegmentos) {
                     s.cotsegmentos.forEach((seg: any) => {
+                        seg.sobreescribirTraduccion = false;
                         if (seg.fechaAbsoluta && seg.fechaAbsoluta.includes('T')) seg.fechaAbsoluta = seg.fechaAbsoluta.split('T')[0];
                     });
                 }
+
                 if (s.cotcomponentes) {
                     s.cotcomponentes.forEach((c: any) => {
+                        c.sobreescribirTraduccion = false;
+                        if (c.snapshotItems) c.snapshotItems.forEach((i: any) => i.sobreescribirTraduccion = false);
+                        if (c.cottarifas) c.cottarifas.forEach((t: any) => t.sobreescribirTraduccion = false);
+
                         if (c.cotsegmento && !c.cotsegmentoId) c.cotsegmentoId = typeof c.cotsegmento === 'string' ? extractIdStr(c.cotsegmento) : extractIdStr(c.cotsegmento.id || c.cotsegmento['@id']);
                     });
                 }
@@ -599,7 +634,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             id: crypto.randomUUID(), servicioMaestroId: null,
             nombreSnapshot: [{ language: 'es', content: 'Nuevo Servicio' }],
             itinerarioNombreSnapshot: [{ language: 'es', content: 'Sin plantilla' }],
-            fechaInicioAbsoluta: fechaBase, cotsegmentos: [], cotcomponentes: []
+            fechaInicioAbsoluta: fechaBase, cotsegmentos: [], cotcomponentes: [],
+            sobreescribirTraduccion: false // 🔥
         };
         if (!cotizacion.value.cotservicios) cotizacion.value.cotservicios = [];
         cotizacion.value.cotservicios.push(nuevoServicio);
@@ -624,6 +660,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 fechaHoraInicio: fechaBase.slice(0, 16),
                 fechaHoraFin: addDurationToDate(fechaBase, 1),
                 cotsegmentoId: null,
+                sobreescribirTraduccion: false, // 🔥
                 snapshotItems: [], cottarifas: []
             };
             if (!servicio.cotcomponentes) servicio.cotcomponentes = [];
@@ -652,7 +689,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 modoOriginal: 'incluido',
                 tieneUpsell: false,
                 idComponenteInyectado: null,
-                isInjecting: false
+                isInjecting: false,
+                sobreescribirTraduccion: false // 🔥
             });
         }
     };
@@ -711,6 +749,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         fechaHoraFin: componentePadre.fechaHoraFin,
                         cotsegmentoId: componentePadre.cotsegmentoId,
                         upsellSourceItemId: item.id,
+                        sobreescribirTraduccion: false,
                         snapshotItems: [],
                         cottarifas: []
                     };
@@ -761,7 +800,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     moneda: cotizacion.value.monedaGlobal,
                     montoCosto: 0.00, tipoModalidadSnapshot: 'Normal',
                     proveedorNombreSnapshot: null, detallesOperativos: [],
-                    esGrupal: false
+                    esGrupal: false,
+                    sobreescribirTraduccion: false // 🔥
                 };
                 if (!componente.cottarifas) componente.cottarifas = [];
                 componente.cottarifas.push(nuevaTarifa);
@@ -827,6 +867,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     fechaHoraInicio: fechaHoraInicioFormateada,
                     fechaHoraFin: fechaHoraFinFormateada,
                     cotsegmentoId: idSegmentoGenerado,
+                    sobreescribirTraduccion: false, // 🔥
                     snapshotItems: [], cottarifas: []
                 };
 
@@ -873,7 +914,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         orden: ordenMaximo,
                         fechaAbsoluta: fechaCalculada,
                         nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(seg))),
-                        contenidoSnapshot: JSON.parse(JSON.stringify(seg.contenido || []))
+                        contenidoSnapshot: JSON.parse(JSON.stringify(seg.contenido || [])),
+                        sobreescribirTraduccion: false // 🔥
                     });
                     inyectarComponentesDeSegmento(seg, diaDelSegmento, nuevoIdSeg);
                 });
@@ -899,7 +941,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             orden: ordenNuevo,
             fechaAbsoluta: fechaCalculada,
             nombreSnapshot: JSON.parse(JSON.stringify(getTituloSafe(segmentoMaestro))),
-            contenidoSnapshot: JSON.parse(JSON.stringify(segmentoMaestro.contenido || []))
+            contenidoSnapshot: JSON.parse(JSON.stringify(segmentoMaestro.contenido || [])),
+            sobreescribirTraduccion: false // 🔥
         });
 
         inyectarComponentesDeSegmento(segmentoMaestro, 1, nuevoIdSeg);

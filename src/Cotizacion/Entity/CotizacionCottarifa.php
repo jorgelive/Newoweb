@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use App\Attribute\AutoTranslate;
+use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
 
 #[ApiResource(operations: [new Get()], routePrefix: '/sales')]
 #[ORM\Entity]
@@ -20,12 +22,14 @@ class CotizacionCottarifa
 {
     use IdTrait;
     use TimestampTrait;
+    use AutoTranslateControlTrait;
 
     #[ORM\ManyToOne(targetEntity: CotizacionCotcomponente::class, inversedBy: 'cottarifas')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?CotizacionCotcomponente $cotcomponente = null;
 
     #[Groups(['cotizacion:item:read', 'cotizacion:write', 'cotizacion:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $nombreSnapshot = [];
 
@@ -73,6 +77,20 @@ class CotizacionCottarifa
     public function setId(Uuid|string $id): self
     {
         $this->id = is_string($id) ? Uuid::fromString($id) : $id;
+        return $this;
+    }
+
+    // --- MÉTODOS SOBRESCRITOS PARA EXPONER EL FLAG A API PLATFORM ---
+    #[Groups(['cotizacion:write'])]
+    public function getSobreescribirTraduccion(): bool
+    {
+        return $this->sobreescribirTraduccion;
+    }
+
+    #[Groups(['cotizacion:write'])]
+    public function setSobreescribirTraduccion(bool $sobreescribirTraduccion): self
+    {
+        $this->sobreescribirTraduccion = $sobreescribirTraduccion;
         return $this;
     }
 

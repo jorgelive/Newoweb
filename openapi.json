@@ -1480,6 +1480,222 @@
                 }
             }
         },
+        "/platform/sales/cotizacion_cotcomponentes/{id}": {
+            "get": {
+                "operationId": "api_salescotizacion_cotcomponentes_id_get",
+                "tags": [
+                    "CotizacionCotcomponente"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CotizacionCotcomponente resource",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCotcomponente.jsonld"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCotcomponente"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCotcomponente.html"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCotcomponente.multipart"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves a CotizacionCotcomponente resource.",
+                "description": "Retrieves a CotizacionCotcomponente resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "CotizacionCotcomponente identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
+        "/platform/sales/cotizacion_cotservicios/{id}": {
+            "get": {
+                "operationId": "api_salescotizacion_cotservicios_id_get",
+                "tags": [
+                    "CotizacionCotservicio"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CotizacionCotservicio resource",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCotservicio.jsonld"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCotservicio"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCotservicio.html"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCotservicio.multipart"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves a CotizacionCotservicio resource.",
+                "description": "Retrieves a CotizacionCotservicio resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "CotizacionCotservicio identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
+        "/platform/sales/cotizacion_cottarifas/{id}": {
+            "get": {
+                "operationId": "api_salescotizacion_cottarifas_id_get",
+                "tags": [
+                    "CotizacionCottarifa"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CotizacionCottarifa resource",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCottarifa.jsonld"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCottarifa"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCottarifa.html"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionCottarifa.multipart"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves a CotizacionCottarifa resource.",
+                "description": "Retrieves a CotizacionCottarifa resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "CotizacionCottarifa identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
         "/platform/sales/cotizacion_files": {
             "get": {
                 "operationId": "api_salescotizacion_files_get_collection",
@@ -1998,6 +2214,78 @@
                         "name": "id",
                         "in": "path",
                         "description": "CotizacionFile identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
+        "/platform/sales/cotizacion_segmentos/{id}": {
+            "get": {
+                "operationId": "api_salescotizacion_segmentos_id_get",
+                "tags": [
+                    "CotizacionSegmento"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CotizacionSegmento resource",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionSegmento.jsonld"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionSegmento"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionSegmento.html"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionSegmento.multipart"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves a CotizacionSegmento resource.",
+                "description": "Retrieves a CotizacionSegmento resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "CotizacionSegmento identifier",
                         "required": true,
                         "deprecated": false,
                         "schema": {
@@ -8281,6 +8569,10 @@
                                 "type": "string"
                             }
                         ]
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -8385,6 +8677,10 @@
                                 "type": "string"
                             }
                         ]
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -8909,6 +9205,120 @@
                     }
                 }
             },
+            "CotizacionCotcomponente": {
+                "type": "object",
+                "description": "Log\u00edstica inmutable. Congela los \u00edtems biling\u00fces, su estado y horarios precisos.",
+                "properties": {
+                    "cotservicio": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "cotsegmento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cantidad": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "estado": {
+                        "default": "Pendiente",
+                        "type": "string",
+                        "enum": [
+                            "Pendiente",
+                            "Confirmado",
+                            "Reconfirmado",
+                            "Cancelado"
+                        ]
+                    },
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
+                    },
+                    "fechaHoraInicio": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "fechaHoraFin": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "snapshotItems": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cottarifas": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "componenteMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    }
+                }
+            },
             "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
@@ -9093,6 +9503,124 @@
                                 "type": "string"
                             }
                         ]
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    }
+                }
+            },
+            "CotizacionCotcomponente.html": {
+                "type": "object",
+                "description": "Log\u00edstica inmutable. Congela los \u00edtems biling\u00fces, su estado y horarios precisos.",
+                "properties": {
+                    "cotservicio": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "cotsegmento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cantidad": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "estado": {
+                        "default": "Pendiente",
+                        "type": "string",
+                        "enum": [
+                            "Pendiente",
+                            "Confirmado",
+                            "Reconfirmado",
+                            "Cancelado"
+                        ]
+                    },
+                    "modo": {
+                        "default": "incluido",
+                        "type": "string",
+                        "enum": [
+                            "incluido",
+                            "opcional",
+                            "no_incluido",
+                            "cortesia"
+                        ]
+                    },
+                    "fechaHoraInicio": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "fechaHoraFin": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "snapshotItems": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cottarifas": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "componenteMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -9195,18 +9723,250 @@
                     }
                 }
             },
-            "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": {
-                "type": "object",
-                "properties": {
-                    "cotsegmento": {
-                        "anyOf": [
-                            {
-                                "$ref": "#/components/schemas/CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"
+            "CotizacionCotcomponente.jsonld": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "cotservicio": {
+                                "type": "string",
+                                "format": "iri-reference",
+                                "example": "https://example.com/"
                             },
-                            {
-                                "type": "null"
+                            "cotsegmento": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "iri-reference",
+                                "example": "https://example.com/"
+                            },
+                            "nombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "cantidad": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "estado": {
+                                "default": "Pendiente",
+                                "type": "string",
+                                "enum": [
+                                    "Pendiente",
+                                    "Confirmado",
+                                    "Reconfirmado",
+                                    "Cancelado"
+                                ]
+                            },
+                            "modo": {
+                                "default": "incluido",
+                                "type": "string",
+                                "enum": [
+                                    "incluido",
+                                    "opcional",
+                                    "no_incluido",
+                                    "cortesia"
+                                ]
+                            },
+                            "fechaHoraInicio": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "fechaHoraFin": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "snapshotItems": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "cottarifas": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "format": "iri-reference",
+                                    "example": "https://example.com/"
+                                }
+                            },
+                            "componenteMaestroId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "ejecutarTraduccion": {
+                                "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                                "default": true,
+                                "type": "boolean"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
                             }
-                        ]
+                        }
+                    }
+                ],
+                "description": "Log\u00edstica inmutable. Congela los \u00edtems biling\u00fces, su estado y horarios precisos."
+            },
+            "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "cotsegmento": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "nombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "cantidad": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "estado": {
+                                "default": "Pendiente",
+                                "type": "string",
+                                "enum": [
+                                    "Pendiente",
+                                    "Confirmado",
+                                    "Reconfirmado",
+                                    "Cancelado"
+                                ]
+                            },
+                            "modo": {
+                                "default": "incluido",
+                                "type": "string",
+                                "enum": [
+                                    "incluido",
+                                    "opcional",
+                                    "no_incluido",
+                                    "cortesia"
+                                ]
+                            },
+                            "fechaHoraInicio": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "fechaHoraFin": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "snapshotItems": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "cottarifas": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "componenteMaestroId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                ],
+                "description": "Log\u00edstica inmutable. Congela los \u00edtems biling\u00fces, su estado y horarios precisos."
+            },
+            "CotizacionCotcomponente.multipart": {
+                "type": "object",
+                "description": "Log\u00edstica inmutable. Congela los \u00edtems biling\u00fces, su estado y horarios precisos.",
+                "properties": {
+                    "cotservicio": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "cotsegmento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
                     },
                     "nombreSnapshot": {
                         "type": "array",
@@ -9261,7 +10021,9 @@
                     "cottarifas": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "componenteMaestroId": {
@@ -9291,6 +10053,15 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -9390,6 +10161,88 @@
                             "null"
                         ],
                         "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionCotservicio": {
+                "type": "object",
+                "properties": {
+                    "cotizacion": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "itinerarioNombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "fechaInicioAbsoluta": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "cotcomponentes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "cotsegmentos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "servicioMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -9507,6 +10360,92 @@
                                 "type": "string"
                             }
                         ]
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    }
+                }
+            },
+            "CotizacionCotservicio.html": {
+                "type": "object",
+                "properties": {
+                    "cotizacion": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "itinerarioNombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "fechaInicioAbsoluta": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "cotcomponentes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "cotsegmentos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "servicioMaestroId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -9574,9 +10513,174 @@
                     }
                 }
             },
+            "CotizacionCotservicio.jsonld": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "cotizacion": {
+                                "type": "string",
+                                "format": "iri-reference",
+                                "example": "https://example.com/"
+                            },
+                            "nombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "itinerarioNombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "fechaInicioAbsoluta": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "cotcomponentes": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "format": "iri-reference",
+                                    "example": "https://example.com/"
+                                }
+                            },
+                            "cotsegmentos": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "format": "iri-reference",
+                                    "example": "https://example.com/"
+                                }
+                            },
+                            "servicioMaestroId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "ejecutarTraduccion": {
+                                "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                                "default": true,
+                                "type": "boolean"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                ]
+            },
             "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "itinerarioNombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "fechaInicioAbsoluta": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "cotcomponentes": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "cotsegmentos": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"
+                                }
+                            },
+                            "servicioMaestroId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                ]
+            },
+            "CotizacionCotservicio.multipart": {
                 "type": "object",
                 "properties": {
+                    "cotizacion": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -9599,13 +10703,17 @@
                     "cotcomponentes": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "cotsegmentos": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "servicioMaestroId": {
@@ -9635,6 +10743,15 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -9699,6 +10816,92 @@
                             "null"
                         ],
                         "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionCottarifa": {
+                "type": "object",
+                "properties": {
+                    "cotcomponente": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cantidad": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "montoCosto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "moneda": {
+                        "default": "USD",
+                        "type": "string"
+                    },
+                    "tarifaMaestraId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tipoModalidadSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "esGrupal": {
+                        "type": "boolean"
+                    },
+                    "detallesOperativos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -9832,6 +11035,96 @@
                                 "type": "string"
                             }
                         ]
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    }
+                }
+            },
+            "CotizacionCottarifa.html": {
+                "type": "object",
+                "properties": {
+                    "cotcomponente": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cantidad": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "montoCosto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "moneda": {
+                        "default": "USD",
+                        "type": "string"
+                    },
+                    "tarifaMaestraId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "proveedorNombreSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tipoModalidadSnapshot": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "esGrupal": {
+                        "type": "boolean"
+                    },
+                    "detallesOperativos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -9907,9 +11200,186 @@
                     }
                 }
             },
+            "CotizacionCottarifa.jsonld": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "cotcomponente": {
+                                "type": "string",
+                                "format": "iri-reference",
+                                "example": "https://example.com/"
+                            },
+                            "nombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "cantidad": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "montoCosto": {
+                                "default": "0.00",
+                                "type": "string"
+                            },
+                            "moneda": {
+                                "default": "USD",
+                                "type": "string"
+                            },
+                            "tarifaMaestraId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorNombreSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "tipoModalidadSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "esGrupal": {
+                                "type": "boolean"
+                            },
+                            "detallesOperativos": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "ejecutarTraduccion": {
+                                "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                                "default": true,
+                                "type": "boolean"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                ]
+            },
             "CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "cantidad": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "montoCosto": {
+                                "default": "0.00",
+                                "type": "string"
+                            },
+                            "moneda": {
+                                "default": "USD",
+                                "type": "string"
+                            },
+                            "tarifaMaestraId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "proveedorNombreSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "tipoModalidadSnapshot": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "esGrupal": {
+                                "type": "boolean"
+                            },
+                            "detallesOperativos": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                ]
+            },
+            "CotizacionCottarifa.multipart": {
                 "type": "object",
                 "properties": {
+                    "cotcomponente": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
                     "nombreSnapshot": {
                         "type": "array",
                         "items": {
@@ -9976,6 +11446,15 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -10097,7 +11576,6 @@
                         "type": "string"
                     },
                     "cotizaciones": {
-                        "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -10195,7 +11673,6 @@
                         "type": "string"
                     },
                     "cotizaciones": {
-                        "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Cotizacion-file.read_file.item.read_timestamp.read"
@@ -10369,7 +11846,6 @@
                         "type": "string"
                     },
                     "cotizaciones": {
-                        "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -10467,7 +11943,6 @@
                         "type": "string"
                     },
                     "cotizaciones": {
-                        "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Cotizacion.html-file.read_file.item.read_timestamp.read"
@@ -10598,7 +12073,6 @@
                                 "type": "string"
                             },
                             "cotizaciones": {
-                                "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                                 "type": "array",
                                 "items": {
                                     "type": "string",
@@ -10711,7 +12185,6 @@
                                 "type": "string"
                             },
                             "cotizaciones": {
-                                "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                                 "type": "array",
                                 "items": {
                                     "$ref": "#/components/schemas/Cotizacion.jsonld-file.read_file.item.read_timestamp.read"
@@ -10848,7 +12321,6 @@
                         "type": "string"
                     },
                     "cotizaciones": {
-                        "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                         "type": "array",
                         "items": {
                             "type": "string",
@@ -10946,7 +12418,6 @@
                         "type": "string"
                     },
                     "cotizaciones": {
-                        "description": "En el detalle del File, vemos la colecci\u00f3n de cotizaciones, pero al no\ntener el grupo \"file:item:read\" dentro de los hijos de Cotizacion,\nAPI Platform solo traer\u00e1 la informaci\u00f3n superficial de la versi\u00f3n,\nevitando descargar el itinerario completo.",
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Cotizacion.multipart-file.read_file.item.read_timestamp.read"
@@ -11090,6 +12561,10 @@
                                 "type": "string"
                             }
                         ]
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -11174,6 +12649,85 @@
                     }
                 }
             },
+            "CotizacionSegmento": {
+                "type": "object",
+                "properties": {
+                    "cotservicio": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "orden": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "fechaAbsoluta": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenidoSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "imagenesSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cotcomponentes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    }
+                }
+            },
             "CotizacionSegmento-cotizacion.read_timestamp.read": {
                 "type": "object",
                 "properties": {
@@ -11188,6 +12742,12 @@
                     "fechaAbsoluta": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "contenidoSnapshot": {
                         "type": "array",
@@ -11240,6 +12800,12 @@
                         "type": "string",
                         "format": "date-time"
                     },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "contenidoSnapshot": {
                         "type": "array",
                         "items": {
@@ -11262,6 +12828,89 @@
                                 "type": "string"
                             }
                         ]
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
+                    }
+                }
+            },
+            "CotizacionSegmento.html": {
+                "type": "object",
+                "properties": {
+                    "cotservicio": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "dia": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "orden": {
+                        "default": 1,
+                        "type": "integer"
+                    },
+                    "fechaAbsoluta": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contenidoSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "imagenesSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "cotcomponentes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "id": {
+                        "allOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -11280,6 +12929,12 @@
                         "type": "string",
                         "format": "date-time"
                     },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "contenidoSnapshot": {
                         "type": "array",
                         "items": {
@@ -11316,9 +12971,164 @@
                     }
                 }
             },
+            "CotizacionSegmento.jsonld": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "cotservicio": {
+                                "type": "string",
+                                "format": "iri-reference",
+                                "example": "https://example.com/"
+                            },
+                            "dia": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "orden": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "fechaAbsoluta": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "nombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "contenidoSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "imagenesSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "cotcomponentes": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "format": "iri-reference",
+                                    "example": "https://example.com/"
+                                }
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "ejecutarTraduccion": {
+                                "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                                "default": true,
+                                "type": "boolean"
+                            },
+                            "sobreescribirTraduccion": {
+                                "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                ]
+            },
             "CotizacionSegmento.jsonld-cotizacion.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "dia": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "orden": {
+                                "default": 1,
+                                "type": "integer"
+                            },
+                            "fechaAbsoluta": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "nombreSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "contenidoSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "imagenesSnapshot": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "id": {
+                                "allOf": [
+                                    {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                ]
+            },
+            "CotizacionSegmento.multipart": {
                 "type": "object",
                 "properties": {
+                    "cotservicio": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
                     "dia": {
                         "default": 1,
                         "type": "integer"
@@ -11331,6 +13141,12 @@
                         "type": "string",
                         "format": "date-time"
                     },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "contenidoSnapshot": {
                         "type": "array",
                         "items": {
@@ -11341,6 +13157,14 @@
                         "type": "array",
                         "items": {
                             "type": "string"
+                        }
+                    },
+                    "cotcomponentes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "id": {
@@ -11364,6 +13188,15 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "ejecutarTraduccion": {
+                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "sobreescribirTraduccion": {
+                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -11381,6 +13214,12 @@
                     "fechaAbsoluta": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "nombreSnapshot": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "contenidoSnapshot": {
                         "type": "array",
@@ -19852,8 +21691,24 @@
             "description": "Resource 'Cotizacion' operations."
         },
         {
+            "name": "CotizacionCotcomponente",
+            "description": "Log\u00edstica inmutable. Congela los \u00edtems biling\u00fces, su estado y horarios precisos."
+        },
+        {
+            "name": "CotizacionCotservicio",
+            "description": "Resource 'CotizacionCotservicio' operations."
+        },
+        {
+            "name": "CotizacionCottarifa",
+            "description": "Resource 'CotizacionCottarifa' operations."
+        },
+        {
             "name": "CotizacionFile",
             "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo."
+        },
+        {
+            "name": "CotizacionSegmento",
+            "description": "Resource 'CotizacionSegmento' operations."
         },
         {
             "name": "UiI18n",

@@ -25,40 +25,31 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo.
  */
 #[ApiResource(
-    shortName: 'CotizacionFile', // 🔥 Ajusta esto al nombre real de tu clase si es diferente (ej. 'Expediente')
+    shortName: 'CotizacionFile',
     operations: [
-        // Genera: GET /sales/cotizacion_files
         new GetCollection(
             normalizationContext: ['groups' => ['file:read', 'timestamp:read']],
             security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
         ),
-
-        // Genera: GET /sales/cotizacion_files/{id}
         new Get(
             normalizationContext: ['groups' => ['file:read', 'file:item:read', 'timestamp:read']],
             security: "is_granted('" . Roles::RESERVAS_SHOW . "')"
         ),
-
-        // Genera: POST /sales/cotizacion_files
         new Post(
             denormalizationContext: ['groups' => ['file:write']],
             securityPostDenormalize: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityPostDenormalizeMessage: 'No tienes permiso para crear expedientes.'
         ),
-
-        // Genera: PUT /sales/cotizacion_files/{id}
         new Put(
             denormalizationContext: ['groups' => ['file:write']],
             security: "is_granted('" . Roles::RESERVAS_WRITE . "')",
             securityMessage: 'No tienes permiso para editar expedientes.'
         ),
-
-        // Genera: DELETE /sales/cotizacion_files/{id}
         new Delete(
             security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
             securityMessage: 'No tienes permiso para eliminar expedientes.'
         )
-    ],       // 🔥 Agrupa las rutas bajo el módulo de ventas/reservas
+    ],
     routePrefix: '/sales'
 )]
 #[ORM\Entity]
@@ -74,7 +65,6 @@ class CotizacionFile
     #[ORM\Column(type: 'string', length: 150)]
     private ?string $nombreGrupo = null;
 
-    // TODO: En el futuro esto será una relación ManyToOne hacia NameList o Cliente
     #[Groups(['file:read', 'file:item:read', 'file:write'])]
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $pasajeroPrincipal = null;
@@ -102,11 +92,6 @@ class CotizacionFile
     private string $estado = 'abierto';
 
     /**
-     * En el detalle del File, vemos la colección de cotizaciones, pero al no
-     * tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
-     * API Platform solo traerá la información superficial de la versión,
-     * evitando descargar el itinerario completo.
-     *
      * @var Collection<int, Cotizacion>
      */
     #[Groups(['file:item:read'])]
@@ -126,92 +111,28 @@ class CotizacionFile
         return $this->nombreGrupo ?? 'File sin nombre';
     }
 
-    // --- GETTERS Y SETTERS COMPLEJOS (RELACIONES) ---
+    public function getPais(): ?MaestroPais { return $this->pais; }
+    public function setPais(?MaestroPais $pais): self { $this->pais = $pais; return $this; }
 
-    public function getPais(): ?MaestroPais
-    {
-        return $this->pais;
-    }
+    public function getIdioma(): ?MaestroIdioma { return $this->idioma; }
+    public function setIdioma(?MaestroIdioma $idioma): self { $this->idioma = $idioma; return $this; }
 
-    public function setPais(?MaestroPais $pais): self
-    {
-        $this->pais = $pais;
-        return $this;
-    }
+    public function getNombreGrupo(): ?string { return $this->nombreGrupo; }
+    public function setNombreGrupo(string $nombreGrupo): self { $this->nombreGrupo = $nombreGrupo; return $this; }
 
-    public function getIdioma(): ?MaestroIdioma
-    {
-        return $this->idioma;
-    }
+    public function getPasajeroPrincipal(): ?string { return $this->pasajeroPrincipal; }
+    public function setPasajeroPrincipal(?string $pasajeroPrincipal): self { $this->pasajeroPrincipal = $pasajeroPrincipal; return $this; }
 
-    public function setIdioma(?MaestroIdioma $idioma): self
-    {
-        $this->idioma = $idioma;
-        return $this;
-    }
+    public function getEmail(): ?string { return $this->email; }
+    public function setEmail(?string $email): self { $this->email = $email; return $this; }
 
-    // --- GETTERS Y SETTERS BÁSICOS ---
+    public function getTelefono(): ?string { return $this->telefono; }
+    public function setTelefono(?string $telefono): self { $this->telefono = $telefono; return $this; }
 
-    public function getNombreGrupo(): ?string
-    {
-        return $this->nombreGrupo;
-    }
+    public function getEstado(): string { return $this->estado; }
+    public function setEstado(string $estado): self { $this->estado = $estado; return $this; }
 
-    public function setNombreGrupo(string $nombreGrupo): self
-    {
-        $this->nombreGrupo = $nombreGrupo;
-        return $this;
-    }
-
-    public function getPasajeroPrincipal(): ?string
-    {
-        return $this->pasajeroPrincipal;
-    }
-
-    public function setPasajeroPrincipal(?string $pasajeroPrincipal): self
-    {
-        $this->pasajeroPrincipal = $pasajeroPrincipal;
-        return $this;
-    }
-
-    public function getEmail(): ?string
-    {
-        return $this->email;
-    }
-
-    public function setEmail(?string $email): self
-    {
-        $this->email = $email;
-        return $this;
-    }
-
-    public function getTelefono(): ?string
-    {
-        return $this->telefono;
-    }
-
-    public function setTelefono(?string $telefono): self
-    {
-        $this->telefono = $telefono;
-        return $this;
-    }
-
-    public function getEstado(): string
-    {
-        return $this->estado;
-    }
-
-    public function setEstado(string $estado): self
-    {
-        $this->estado = $estado;
-        return $this;
-    }
-
-    public function getCotizaciones(): Collection
-    {
-        return $this->cotizaciones;
-    }
-
+    public function getCotizaciones(): Collection { return $this->cotizaciones; }
     public function addCotizacion(Cotizacion $cotizacion): self
     {
         if (!$this->cotizaciones->contains($cotizacion)) {
@@ -220,13 +141,10 @@ class CotizacionFile
         }
         return $this;
     }
-
     public function removeCotizacion(Cotizacion $cotizacion): self
     {
         if ($this->cotizaciones->removeElement($cotizacion)) {
-            if ($cotizacion->getFile() === $this) {
-                $cotizacion->setFile(null);
-            }
+            if ($cotizacion->getFile() === $this) { $cotizacion->setFile(null); }
         }
         return $this;
     }

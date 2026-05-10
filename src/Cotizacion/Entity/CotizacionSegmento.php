@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use App\Attribute\AutoTranslate;
+use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use DateTimeImmutable;
@@ -12,8 +16,6 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
 
 #[ApiResource(operations: [new Get()], routePrefix: '/sales')]
 #[ORM\Entity]
@@ -23,6 +25,7 @@ class CotizacionSegmento
 {
     use IdTrait;
     use TimestampTrait;
+    use AutoTranslateControlTrait;
 
     #[ORM\ManyToOne(targetEntity: CotizacionCotservicio::class, inversedBy: 'cotsegmentos')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -41,6 +44,12 @@ class CotizacionSegmento
     private ?DateTimeImmutable $fechaAbsoluta = null;
 
     #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
+    #[ORM\Column(type: 'json')]
+    private array $nombreSnapshot = [];
+
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'cotizacion:write'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
     private array $contenidoSnapshot = [];
 
@@ -67,6 +76,20 @@ class CotizacionSegmento
         return $this;
     }
 
+    // --- MÉTODOS SOBRESCRITOS PARA EXPONER EL FLAG A API PLATFORM ---
+    #[Groups(['cotizacion:write'])]
+    public function getSobreescribirTraduccion(): bool
+    {
+        return $this->sobreescribirTraduccion;
+    }
+
+    #[Groups(['cotizacion:write'])]
+    public function setSobreescribirTraduccion(bool $sobreescribirTraduccion): self
+    {
+        $this->sobreescribirTraduccion = $sobreescribirTraduccion;
+        return $this;
+    }
+
     public function getCotservicio(): ?CotizacionCotservicio { return $this->cotservicio; }
     public function setCotservicio(?CotizacionCotservicio $cotservicio): self { $this->cotservicio = $cotservicio; return $this; }
 
@@ -78,6 +101,9 @@ class CotizacionSegmento
 
     public function getFechaAbsoluta(): ?DateTimeImmutable { return $this->fechaAbsoluta; }
     public function setFechaAbsoluta(DateTimeImmutable $fechaAbsoluta): self { $this->fechaAbsoluta = $fechaAbsoluta; return $this; }
+
+    public function getNombreSnapshot(): array { return $this->nombreSnapshot; }
+    public function setNombreSnapshot(array $nombreSnapshot): self { $this->nombreSnapshot = $nombreSnapshot; return $this; }
 
     public function getContenidoSnapshot(): array { return $this->contenidoSnapshot; }
     public function setContenidoSnapshot(array $contenidoSnapshot): self { $this->contenidoSnapshot = $contenidoSnapshot; return $this; }

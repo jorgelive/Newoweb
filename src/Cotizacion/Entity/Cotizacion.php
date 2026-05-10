@@ -11,7 +11,9 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
+use App\Attribute\AutoTranslate;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -41,6 +43,7 @@ class Cotizacion
 {
     use IdTrait;
     use TimestampTrait;
+    use AutoTranslateControlTrait;
 
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\ManyToOne(targetEntity: CotizacionFile::class, inversedBy: 'cotizaciones')]
@@ -76,6 +79,7 @@ class Cotizacion
     private bool $precioOculto = false;
 
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     #[ORM\Column(type: 'json')]
     private array $resumen = [];
 
@@ -137,6 +141,20 @@ class Cotizacion
     public function setId(Uuid|string $id): self
     {
         $this->id = is_string($id) ? Uuid::fromString($id) : $id;
+        return $this;
+    }
+
+    // --- MÉTODOS SOBRESCRITOS PARA EXPONER EL FLAG A API PLATFORM ---
+    #[Groups(['cotizacion:write'])]
+    public function getSobreescribirTraduccion(): bool
+    {
+        return $this->sobreescribirTraduccion;
+    }
+
+    #[Groups(['cotizacion:write'])]
+    public function setSobreescribirTraduccion(bool $sobreescribirTraduccion): self
+    {
+        $this->sobreescribirTraduccion = $sobreescribirTraduccion;
         return $this;
     }
 

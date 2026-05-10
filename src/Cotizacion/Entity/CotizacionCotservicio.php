@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use App\Attribute\AutoTranslate;
+use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
 use DateTimeImmutable;
@@ -11,8 +15,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
-use Symfony\Component\Uid\Uuid;use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
+use Symfony\Component\Uid\Uuid;
 
 #[ApiResource(operations: [new Get()], routePrefix: '/sales')]
 #[ORM\Entity]
@@ -22,16 +25,19 @@ class CotizacionCotservicio
 {
     use IdTrait;
     use TimestampTrait;
+    use AutoTranslateControlTrait;
 
     #[ORM\ManyToOne(targetEntity: Cotizacion::class, inversedBy: 'cotservicios')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Cotizacion $cotizacion = null;
 
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $nombreSnapshot = [];
 
     #[Groups(['cotizacion:read', 'cotizacion:write', 'cotizacion:item:read'])]
+    #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
     #[ORM\Column(type: 'json')]
     private array $itinerarioNombreSnapshot = [];
 
@@ -73,6 +79,20 @@ class CotizacionCotservicio
     public function setId(Uuid|string $id): self
     {
         $this->id = is_string($id) ? Uuid::fromString($id) : $id;
+        return $this;
+    }
+
+    // --- MÉTODOS SOBRESCRITOS PARA EXPONER EL FLAG A API PLATFORM ---
+    #[Groups(['cotizacion:write'])]
+    public function getSobreescribirTraduccion(): bool
+    {
+        return $this->sobreescribirTraduccion;
+    }
+
+    #[Groups(['cotizacion:write'])]
+    public function setSobreescribirTraduccion(bool $sobreescribirTraduccion): self
+    {
+        $this->sobreescribirTraduccion = $sobreescribirTraduccion;
         return $this;
     }
 

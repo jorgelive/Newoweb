@@ -172,6 +172,66 @@ export interface paths {
         patch: operations["api_salescotizacions_id_patch"];
         trace?: never;
     };
+    "/platform/sales/cotizacion_cotcomponentes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a CotizacionCotcomponente resource.
+         * @description Retrieves a CotizacionCotcomponente resource.
+         */
+        get: operations["api_salescotizacion_cotcomponentes_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacion_cotservicios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a CotizacionCotservicio resource.
+         * @description Retrieves a CotizacionCotservicio resource.
+         */
+        get: operations["api_salescotizacion_cotservicios_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacion_cottarifas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a CotizacionCottarifa resource.
+         * @description Retrieves a CotizacionCottarifa resource.
+         */
+        get: operations["api_salescotizacion_cottarifas_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/sales/cotizacion_files": {
         parameters: {
             query?: never;
@@ -219,6 +279,26 @@ export interface paths {
          * @description Removes the CotizacionFile resource.
          */
         delete: operations["api_salescotizacion_files_id_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacion_segmentos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a CotizacionSegmento resource.
+         * @description Retrieves a CotizacionSegmento resource.
+         */
+        get: operations["api_salescotizacion_segmentos_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1504,6 +1584,8 @@ export interface components {
             cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.write"][];
             cotnotas?: components["schemas"]["CotizacionNota-cotizacion.write"][];
             id?: string;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "Cotizacion-cotizacion.write.jsonMergePatch": {
             /**
@@ -1541,6 +1623,8 @@ export interface components {
             cotservicios?: components["schemas"]["CotizacionCotservicio-cotizacion.write"][];
             cotnotas?: components["schemas"]["CotizacionNota-cotizacion.write"][];
             id?: string;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "Cotizacion-file.read_file.item.read_timestamp.read": {
             /** @default 1 */
@@ -1709,6 +1793,51 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
+        CotizacionCotcomponente: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotservicio?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotsegmento?: string | null;
+            nombreSnapshot?: string[];
+            /** @default 1 */
+            cantidad: number;
+            /**
+             * @default Pendiente
+             * @enum {string}
+             */
+            estado: "Pendiente" | "Confirmado" | "Reconfirmado" | "Cancelado";
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
+            /** Format: date-time */
+            fechaHoraInicio?: string | null;
+            /** Format: date-time */
+            fechaHoraFin?: string | null;
+            snapshotItems?: string[];
+            cottarifas?: string[];
+            componenteMaestroId?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
         "CotizacionCotcomponente-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"] | null;
             nombreSnapshot?: string[];
@@ -1760,6 +1889,53 @@ export interface components {
             cottarifas?: components["schemas"]["CotizacionCottarifa-cotizacion.write"][];
             componenteMaestroId?: string | null;
             id?: string;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
+        "CotizacionCotcomponente.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotservicio?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotsegmento?: string | null;
+            nombreSnapshot?: string[];
+            /** @default 1 */
+            cantidad: number;
+            /**
+             * @default Pendiente
+             * @enum {string}
+             */
+            estado: "Pendiente" | "Confirmado" | "Reconfirmado" | "Cancelado";
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
+            /** Format: date-time */
+            fechaHoraInicio?: string | null;
+            /** Format: date-time */
+            fechaHoraFin?: string | null;
+            snapshotItems?: string[];
+            cottarifas?: string[];
+            componenteMaestroId?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCotcomponente.html-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"] | null;
@@ -1789,7 +1965,53 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": {
+        /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
+        "CotizacionCotcomponente.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotservicio?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotsegmento?: string | null;
+            nombreSnapshot?: string[];
+            /** @default 1 */
+            cantidad: number;
+            /**
+             * @default Pendiente
+             * @enum {string}
+             */
+            estado: "Pendiente" | "Confirmado" | "Reconfirmado" | "Cancelado";
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
+            /** Format: date-time */
+            fechaHoraInicio?: string | null;
+            /** Format: date-time */
+            fechaHoraFin?: string | null;
+            snapshotItems?: string[];
+            cottarifas?: string[];
+            componenteMaestroId?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
+        "CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             cotsegmento?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"] | null;
             nombreSnapshot?: string[];
             /** @default 1 */
@@ -1816,6 +2038,51 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        /** @description Logística inmutable. Congela los ítems bilingües, su estado y horarios precisos. */
+        "CotizacionCotcomponente.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotservicio?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotsegmento?: string | null;
+            nombreSnapshot?: string[];
+            /** @default 1 */
+            cantidad: number;
+            /**
+             * @default Pendiente
+             * @enum {string}
+             */
+            estado: "Pendiente" | "Confirmado" | "Reconfirmado" | "Cancelado";
+            /**
+             * @default incluido
+             * @enum {string}
+             */
+            modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
+            /** Format: date-time */
+            fechaHoraInicio?: string | null;
+            /** Format: date-time */
+            fechaHoraFin?: string | null;
+            snapshotItems?: string[];
+            cottarifas?: string[];
+            componenteMaestroId?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read": {
             cotsegmento?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"] | null;
@@ -1845,6 +2112,32 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        CotizacionCotservicio: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotizacion?: string;
+            nombreSnapshot?: string[];
+            itinerarioNombreSnapshot?: string[];
+            /** Format: date-time */
+            fechaInicioAbsoluta?: string | null;
+            cotcomponentes?: string[];
+            cotsegmentos?: string[];
+            servicioMaestroId?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
         "CotizacionCotservicio-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
@@ -1868,6 +2161,34 @@ export interface components {
             cotsegmentos?: components["schemas"]["CotizacionSegmento-cotizacion.write"][];
             servicioMaestroId?: string | null;
             id?: string;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionCotservicio.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotizacion?: string;
+            nombreSnapshot?: string[];
+            itinerarioNombreSnapshot?: string[];
+            /** Format: date-time */
+            fechaInicioAbsoluta?: string | null;
+            cotcomponentes?: string[];
+            cotsegmentos?: string[];
+            servicioMaestroId?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCotservicio.html-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
@@ -1883,7 +2204,33 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": {
+        "CotizacionCotservicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotizacion?: string;
+            nombreSnapshot?: string[];
+            itinerarioNombreSnapshot?: string[];
+            /** Format: date-time */
+            fechaInicioAbsoluta?: string | null;
+            cotcomponentes?: string[];
+            cotsegmentos?: string[];
+            servicioMaestroId?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionCotservicio.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreSnapshot?: string[];
             itinerarioNombreSnapshot?: string[];
             /** Format: date-time */
@@ -1896,6 +2243,32 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        "CotizacionCotservicio.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotizacion?: string;
+            nombreSnapshot?: string[];
+            itinerarioNombreSnapshot?: string[];
+            /** Format: date-time */
+            fechaInicioAbsoluta?: string | null;
+            cotcomponentes?: string[];
+            cotsegmentos?: string[];
+            servicioMaestroId?: string | null;
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCotservicio.multipart-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
@@ -1910,6 +2283,37 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        CotizacionCottarifa: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotcomponente?: string;
+            nombreSnapshot?: string[];
+            /** @default 1 */
+            cantidad: number;
+            /** @default 0.00 */
+            montoCosto: string;
+            /** @default USD */
+            moneda: string;
+            tarifaMaestraId?: string | null;
+            proveedorNombreSnapshot?: string | null;
+            tipoModalidadSnapshot?: string | null;
+            esGrupal?: boolean;
+            detallesOperativos?: string[];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
@@ -1944,6 +2348,39 @@ export interface components {
             esGrupal?: boolean;
             detallesOperativos?: string[];
             id?: string;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionCottarifa.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotcomponente?: string;
+            nombreSnapshot?: string[];
+            /** @default 1 */
+            cantidad: number;
+            /** @default 0.00 */
+            montoCosto: string;
+            /** @default USD */
+            moneda: string;
+            tarifaMaestraId?: string | null;
+            proveedorNombreSnapshot?: string | null;
+            tipoModalidadSnapshot?: string | null;
+            esGrupal?: boolean;
+            detallesOperativos?: string[];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa.html-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
@@ -1964,7 +2401,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read": {
+        "CotizacionCottarifa.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotcomponente?: string;
             nombreSnapshot?: string[];
             /** @default 1 */
             cantidad: number;
@@ -1982,6 +2424,63 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionCottarifa.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreSnapshot?: string[];
+            /** @default 1 */
+            cantidad: number;
+            /** @default 0.00 */
+            montoCosto: string;
+            /** @default USD */
+            moneda: string;
+            tarifaMaestraId?: string | null;
+            proveedorNombreSnapshot?: string | null;
+            tipoModalidadSnapshot?: string | null;
+            esGrupal?: boolean;
+            detallesOperativos?: string[];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionCottarifa.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotcomponente?: string;
+            nombreSnapshot?: string[];
+            /** @default 1 */
+            cantidad: number;
+            /** @default 0.00 */
+            montoCosto: string;
+            /** @default USD */
+            moneda: string;
+            tarifaMaestraId?: string | null;
+            proveedorNombreSnapshot?: string | null;
+            tipoModalidadSnapshot?: string | null;
+            esGrupal?: boolean;
+            detallesOperativos?: string[];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionCottarifa.multipart-cotizacion.read_timestamp.read": {
             nombreSnapshot?: string[];
@@ -2020,12 +2519,6 @@ export interface components {
             idioma?: string | null;
             /** @default abierto */
             estado: string;
-            /**
-             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
-             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
-             *     API Platform solo traerá la información superficial de la versión,
-             *     evitando descargar el itinerario completo.
-             */
             cotizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -2051,12 +2544,6 @@ export interface components {
             idioma?: components["schemas"]["Idioma-file.read_file.item.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
-            /**
-             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
-             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
-             *     API Platform solo traerá la información superficial de la versión,
-             *     evitando descargar el itinerario completo.
-             */
             cotizaciones?: components["schemas"]["Cotizacion-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
@@ -2115,12 +2602,6 @@ export interface components {
             idioma?: string | null;
             /** @default abierto */
             estado: string;
-            /**
-             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
-             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
-             *     API Platform solo traerá la información superficial de la versión,
-             *     evitando descargar el itinerario completo.
-             */
             cotizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -2146,12 +2627,6 @@ export interface components {
             idioma?: components["schemas"]["Idioma.html-file.read_file.item.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
-            /**
-             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
-             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
-             *     API Platform solo traerá la información superficial de la versión,
-             *     evitando descargar el itinerario completo.
-             */
             cotizaciones?: components["schemas"]["Cotizacion.html-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
@@ -2191,12 +2666,6 @@ export interface components {
             idioma?: string | null;
             /** @default abierto */
             estado: string;
-            /**
-             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
-             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
-             *     API Platform solo traerá la información superficial de la versión,
-             *     evitando descargar el itinerario completo.
-             */
             cotizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -2223,12 +2692,6 @@ export interface components {
             idioma?: components["schemas"]["Idioma.jsonld-file.read_file.item.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
-            /**
-             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
-             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
-             *     API Platform solo traerá la información superficial de la versión,
-             *     evitando descargar el itinerario completo.
-             */
             cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
@@ -2268,12 +2731,6 @@ export interface components {
             idioma?: string | null;
             /** @default abierto */
             estado: string;
-            /**
-             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
-             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
-             *     API Platform solo traerá la información superficial de la versión,
-             *     evitando descargar el itinerario completo.
-             */
             cotizaciones?: string[];
             /** Format: uuid */
             readonly id?: string | null;
@@ -2299,12 +2756,6 @@ export interface components {
             idioma?: components["schemas"]["Idioma.multipart-file.read_file.item.read_timestamp.read"] | null;
             /** @default abierto */
             estado: string;
-            /**
-             * @description En el detalle del File, vemos la colección de cotizaciones, pero al no
-             *     tener el grupo "file:item:read" dentro de los hijos de Cotizacion,
-             *     API Platform solo traerá la información superficial de la versión,
-             *     evitando descargar el itinerario completo.
-             */
             cotizaciones?: components["schemas"]["Cotizacion.multipart-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
@@ -2342,6 +2793,8 @@ export interface components {
             tituloSnapshot?: string[];
             contenidoSnapshot?: string[];
             id?: string;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionNota.html-cotizacion.read_timestamp.read": {
             id?: string;
@@ -2364,6 +2817,35 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
+        CotizacionSegmento: {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotservicio?: string;
+            /** @default 1 */
+            dia: number;
+            /** @default 1 */
+            orden: number;
+            /** Format: date-time */
+            fechaAbsoluta?: string;
+            nombreSnapshot?: string[];
+            contenidoSnapshot?: string[];
+            imagenesSnapshot?: string[];
+            cotcomponentes?: string[];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
         "CotizacionSegmento-cotizacion.read_timestamp.read": {
             /** @default 1 */
             dia: number;
@@ -2371,6 +2853,7 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
             id?: string;
@@ -2386,9 +2869,41 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
             id?: string;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionSegmento.html": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotservicio?: string;
+            /** @default 1 */
+            dia: number;
+            /** @default 1 */
+            orden: number;
+            /** Format: date-time */
+            fechaAbsoluta?: string;
+            nombreSnapshot?: string[];
+            contenidoSnapshot?: string[];
+            imagenesSnapshot?: string[];
+            cotcomponentes?: string[];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionSegmento.html-cotizacion.read_timestamp.read": {
             /** @default 1 */
@@ -2397,6 +2912,7 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
             id?: string;
@@ -2405,13 +2921,43 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
         };
-        "CotizacionSegmento.jsonld-cotizacion.read_timestamp.read": {
+        "CotizacionSegmento.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotservicio?: string;
             /** @default 1 */
             dia: number;
             /** @default 1 */
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            nombreSnapshot?: string[];
+            contenidoSnapshot?: string[];
+            imagenesSnapshot?: string[];
+            cotcomponentes?: string[];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
+        };
+        "CotizacionSegmento.jsonld-cotizacion.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @default 1 */
+            dia: number;
+            /** @default 1 */
+            orden: number;
+            /** Format: date-time */
+            fechaAbsoluta?: string;
+            nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
             id?: string;
@@ -2419,6 +2965,35 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        "CotizacionSegmento.multipart": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            cotservicio?: string;
+            /** @default 1 */
+            dia: number;
+            /** @default 1 */
+            orden: number;
+            /** Format: date-time */
+            fechaAbsoluta?: string;
+            nombreSnapshot?: string[];
+            contenidoSnapshot?: string[];
+            imagenesSnapshot?: string[];
+            cotcomponentes?: string[];
+            id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /**
+             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
+             * @default true
+             */
+            ejecutarTraduccion: boolean;
+            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
+            sobreescribirTraduccion?: boolean;
         };
         "CotizacionSegmento.multipart-cotizacion.read_timestamp.read": {
             /** @default 1 */
@@ -2427,6 +3002,7 @@ export interface components {
             orden: number;
             /** Format: date-time */
             fechaAbsoluta?: string;
+            nombreSnapshot?: string[];
             contenidoSnapshot?: string[];
             imagenesSnapshot?: string[];
             id?: string;
@@ -6166,6 +6742,117 @@ export interface operations {
             };
         };
     };
+    api_salescotizacion_cotcomponentes_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionCotcomponente identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionCotcomponente resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionCotcomponente.jsonld"];
+                    "application/json": components["schemas"]["CotizacionCotcomponente"];
+                    "text/html": components["schemas"]["CotizacionCotcomponente.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionCotcomponente.multipart"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_cotservicios_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionCotservicio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionCotservicio resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionCotservicio.jsonld"];
+                    "application/json": components["schemas"]["CotizacionCotservicio"];
+                    "text/html": components["schemas"]["CotizacionCotservicio.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionCotservicio.multipart"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_cottarifas_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionCottarifa identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionCottarifa resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionCottarifa.jsonld"];
+                    "application/json": components["schemas"]["CotizacionCottarifa"];
+                    "text/html": components["schemas"]["CotizacionCottarifa.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionCottarifa.multipart"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     api_salescotizacion_files_get_collection: {
         parameters: {
             query?: {
@@ -6412,6 +7099,43 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_segmentos_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionSegmento identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionSegmento resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionSegmento.jsonld"];
+                    "application/json": components["schemas"]["CotizacionSegmento"];
+                    "text/html": components["schemas"]["CotizacionSegmento.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionSegmento.multipart"];
                 };
             };
             /** @description Not found */

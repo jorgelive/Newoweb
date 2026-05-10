@@ -115,7 +115,6 @@ const isComponenteSoloItems = (componente: any) => {
 
 const extractIdStrView = (val: any) => val ? String(val).split('/').pop() : '';
 
-// 🔥 FIX: Error de TypeScript "undefined" solucionado (Validación estricta de string)
 const getNombreMaestroRef = (comp: any) => {
   if (!comp || !comp.componenteMaestroId) return 'Insumo sin seleccionar';
   const targetId = extractIdStrView(comp.componenteMaestroId);
@@ -125,7 +124,6 @@ const getNombreMaestroRef = (comp: any) => {
 
   if (c && c.nombreInterno !== 'Sincronizando...') return c.nombreInterno || c.nombre || 'Insumo Genérico';
 
-  // Si no está en memoria local, enviamos a buscarlo al backend sin interrumpir la vista
   store.fetchComponenteMaestroSilencioso(targetId as string);
 
   const snapshotName = store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es');
@@ -333,7 +331,14 @@ const getNombreMaestroRef = (comp: any) => {
               </div>
             </div>
             <div>
-              <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Resumen PDF ({{ store.cotizacion.idiomaEdicion.toUpperCase() }})</label>
+              <div class="flex items-center justify-between mb-1.5 ml-1">
+                <label class="block text-[10px] font-black text-slate-500 uppercase">Resumen PDF ({{ store.cotizacion.idiomaEdicion.toUpperCase() }})</label>
+                <button @click="store.cotizacion.sobreescribirTraduccion = !store.cotizacion.sobreescribirTraduccion"
+                        :class="store.cotizacion.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                        class="p-1 px-2 border rounded-lg transition-colors shadow-sm text-[10px] font-bold flex items-center gap-1" title="Traducir automáticamente a otros idiomas al guardar">
+                  <i class="fas fa-language"></i> <span v-if="store.cotizacion.sobreescribirTraduccion">Auto-Traducir ACTIVO</span>
+                </button>
+              </div>
               <WysiwygEditor
                   :model-value="store.getI18nText(store.cotizacion.resumenI18n, store.cotizacion.idiomaEdicion)"
                   @update:model-value="store.setI18nText(store.cotizacion.resumenI18n, store.cotizacion.idiomaEdicion, $event)"
@@ -378,9 +383,17 @@ const getNombreMaestroRef = (comp: any) => {
               </div>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
-                <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                       @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
-                       type="text" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
+                <div class="flex gap-2">
+                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
+                         @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                         type="text" class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
+
+                  <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
+                          :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                          class="px-3 border rounded-lg transition-colors shadow-sm" title="Forzar traducción de este título al guardar">
+                    <i class="fas fa-language"></i>
+                  </button>
+                </div>
               </div>
               <div>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1"><i class="far fa-calendar-alt mr-1"></i> Fecha Ejecución (Milestone)</label>
@@ -475,10 +488,17 @@ const getNombreMaestroRef = (comp: any) => {
               <div class="col-span-2">
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
 
-                <input v-if="!isComponenteSoloItems(store.dataActiva)"
-                       :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                       @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
-                       type="text" class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
+                <div class="flex gap-2" v-if="!isComponenteSoloItems(store.dataActiva)">
+                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
+                         @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                         type="text" class="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
+
+                  <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
+                          :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                          class="px-4 border rounded-xl transition-colors shadow-sm" title="Forzar traducción de este componente">
+                    <i class="fas fa-language"></i>
+                  </button>
+                </div>
 
                 <div v-else class="relative">
                   <input value="Componente Contenedor (Solo ítems)"
@@ -542,6 +562,12 @@ const getNombreMaestroRef = (comp: any) => {
 
                     <span v-if="item.modo === 'opcional'" class="text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">Opcional</span>
                     <span v-if="item.tieneUpsell" class="text-[8px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase flex-shrink-0 whitespace-nowrap"><i class="fas fa-arrow-up"></i> Upsell</span>
+
+                    <button @click="item.sobreescribirTraduccion = !item.sobreescribirTraduccion"
+                            class="transition-colors px-1"
+                            :class="item.sobreescribirTraduccion ? 'text-orange-500' : 'text-slate-300 hover:text-slate-500'" title="Forzar traducción del ítem">
+                      <i class="fas fa-language text-sm"></i>
+                    </button>
 
                     <button @click="store.eliminarSnapshotItem(store.dataActiva.id, item.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1">
                       <i class="fas fa-times text-sm"></i>
@@ -611,9 +637,17 @@ const getNombreMaestroRef = (comp: any) => {
             <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2">
                 <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Nombre en Recibo *</label>
-                <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                       @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
-                       type="text" class="w-full bg-slate-800 border border-slate-600 text-white rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none">
+                <div class="flex gap-2">
+                  <input :value="store.getI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion)"
+                         @input="e => store.setI18nText(store.dataActiva.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                         type="text" class="flex-1 bg-slate-800 border border-slate-600 text-white rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none">
+
+                  <button @click="store.dataActiva.sobreescribirTraduccion = !store.dataActiva.sobreescribirTraduccion"
+                          :class="store.dataActiva.sobreescribirTraduccion ? 'bg-orange-500/20 text-orange-400 border-orange-500/50' : 'bg-slate-800 text-slate-500 border-slate-600 hover:text-slate-300'"
+                          class="px-4 border rounded-xl transition-colors" title="Forzar traducción">
+                    <i class="fas fa-language"></i>
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -714,12 +748,18 @@ const getNombreMaestroRef = (comp: any) => {
                   <div v-for="(cotSeg, idx) in store.dataActiva.cotsegmentos" :key="cotSeg.id" class="relative z-10 flex gap-4 items-start group">
                     <div class="w-8 h-8 rounded-full bg-white border-4 border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-sm flex-shrink-0 mt-1">{{ idx + 1 }}</div>
                     <div class="flex-1 bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
-                      <div class="bg-slate-50 px-4 py-2 border-b border-slate-100 flex justify-between items-center">
+                      <div class="bg-slate-50 px-4 py-2 border-b border-slate-100 flex justify-between items-center gap-2">
                         <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion)"
                                @input="e => store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
-                               class="bg-transparent text-xs font-black text-slate-700 uppercase outline-none w-full" placeholder="Título..." />
+                               class="bg-transparent text-xs font-black text-slate-700 uppercase outline-none flex-1" placeholder="Título..." />
 
-                        <button @click="store.removerCotSegmento(cotSeg.id)" class="text-slate-400 hover:text-red-500 transition-colors ml-4 p-1">
+                        <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
+                                class="transition-colors px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1"
+                                :class="cotSeg.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'text-slate-400 border-slate-200 hover:bg-slate-200'" title="Forzar traducción del párrafo al guardar">
+                          <i class="fas fa-language"></i> <span class="hidden md:inline" v-if="cotSeg.sobreescribirTraduccion">Auto-Traducir</span>
+                        </button>
+
+                        <button @click="store.removerCotSegmento(cotSeg.id)" class="text-slate-400 hover:text-red-500 transition-colors ml-2 p-1">
                           <i class="fas fa-trash-alt text-base"></i>
                         </button>
                       </div>
