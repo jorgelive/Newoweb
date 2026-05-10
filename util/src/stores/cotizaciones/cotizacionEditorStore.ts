@@ -389,22 +389,24 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     // 🔥 EL GUARDADO LIMPIO Y DIRECTO
-    // 🔥 EL GUARDADO ROBUSTO (DOS FASES PARA OFFLINE-FIRST)
-    // 🔥 EL GUARDADO ROBUSTO (DOS FASES CON DETECCIÓN INTELIGENTE)
     const guardarCotizacion = async (): Promise<void> => {
         isLoading.value = true;
         try {
             const isUpdate = !!cotizacion.value.createdAt;
-            const endpoint = isUpdate ? `/platform/sales/cotizacions/${cotizacion.value.id}` : `/platform/sales/cotizacions`;
+            const endpoint = isUpdate
+                ? `/platform/sales/cotizacions/${cotizacion.value.id}`
+                : `/platform/sales/cotizacions`;
 
             const payload = JSON.parse(JSON.stringify(cotizacion.value));
 
+            // --- Normalizar file ---
             if (payload.file && typeof payload.file === 'object') {
                 payload.file = payload.file['@id'] || payload.file.id;
             } else if (payload.file && !payload.file.includes('/platform/')) {
                 payload.file = `/platform/sales/cotizacion_files/${payload.file}`;
             }
 
+            // --- Campos raíz ---
             payload.comision = String(payload.comision || '0');
             payload.adelanto = String(payload.adelanto || '0');
             payload.totalCosto = String(resumenFinanciero.value?.totalCostoNeto || '0');
@@ -413,17 +415,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             payload.clasificacionFinanciera = resumenFinanciero.value?.desglosePorMoneda || {};
             delete payload.idiomaEdicion;
 
-            // 🔥 EL MAPA INFALIBLE: Coordenadas para la Fase 2
-            let conexionesPendientes: { srvIdx: number, compIdx: number, segIdx: number }[] = [];
-
+            // --- Normalizar servicios ---
             if (payload.cotservicios && Array.isArray(payload.cotservicios)) {
-                payload.cotservicios.forEach((servicio: any, srvIdx: number) => {
+                payload.cotservicios.forEach((servicio: any) => {
 
-                    if (servicio.servicioMaestroId) servicio.servicioMaestroId = extractIdStr(servicio.servicioMaestroId);
+                    if (servicio.servicioMaestroId) {
+                        servicio.servicioMaestroId = extractIdStr(servicio.servicioMaestroId);
+                    }
 
-                    if (!servicio.fechaInicioAbsoluta) servicio.fechaInicioAbsoluta = new Date().toISOString().split('T')[0];
-                    if (servicio.fechaInicioAbsoluta.length === 10) servicio.fechaInicioAbsoluta += 'T00:00:00';
+                    if (!servicio.fechaInicioAbsoluta) {
+                        servicio.fechaInicioAbsoluta = new Date().toISOString().split('T')[0];
+                    }
+                    if (servicio.fechaInicioAbsoluta.length === 10) {
+                        servicio.fechaInicioAbsoluta += 'T00:00:00';
+                    }
 
+                    // Segmentos: solo normalizamos fechas
                     if (servicio.cotsegmentos && Array.isArray(servicio.cotsegmentos)) {
                         servicio.cotsegmentos.forEach((seg: any) => {
                             if (!seg.fechaAbsoluta) seg.fechaAbsoluta = servicio.fechaInicioAbsoluta;
@@ -431,43 +438,35 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         });
                     }
 
+                    // Componentes: el backend resuelve la referencia al segmento
                     if (servicio.cotcomponentes && Array.isArray(servicio.cotcomponentes)) {
-                        servicio.cotcomponentes.forEach((componente: any, compIdx: number) => {
+                        servicio.cotcomponentes.forEach((componente: any) => {
                             componente.cantidad = parseInt(componente.cantidad) || 1;
-                            if (componente.componenteMaestroId) componente.componenteMaestroId = extractIdStr(componente.componenteMaestroId);
 
-                            // 🕵️ LÓGICA ANTI-FANTASMAS (Evita el Error 400)
-                            if (componente.cotsegmentoId || componente.cotsegmento) {
-                                let targetId = extractIdStr(componente.cotsegmentoId || componente.cotsegmento);
-
-                                let segIdx = -1;
-                                if (servicio.cotsegmentos) {
-                                    segIdx = servicio.cotsegmentos.findIndex((s: any) => extractIdStr(s.id) === targetId || extractIdStr(s['@id']) === targetId);
-                                }
-
-                                if (segIdx !== -1) {
-                                    const segmentoObj = servicio.cotsegmentos[segIdx];
-                                    if (!segmentoObj.createdAt) {
-                                        // ⚠️ Es un segmento nuevo. Ocultamos la conexión en la Fase 1.
-                                        conexionesPendientes.push({ srvIdx, compIdx, segIdx });
-                                        componente.cotsegmento = null;
-                                    } else {
-                                        // ✅ El segmento ya existe en la BD, conectamos de forma segura.
-                                        componente.cotsegmento = `/platform/sales/cotizacion_segmentos/${targetId}`;
-                                    }
-                                } else {
-                                    componente.cotsegmento = null;
-                                }
-                            } else {
-                                componente.cotsegmento = null;
+                            if (componente.componenteMaestroId) {
+                                componente.componenteMaestroId = extractIdStr(componente.componenteMaestroId);
                             }
+
+                            // Siempre enviamos el IRI del segmento si existe — el processor lo resuelve
+                            const segId = componente.cotsegmentoId || (
+                                typeof componente.cotsegmento === 'string'
+                                    ? extractIdStr(componente.cotsegmento)
+                                    : extractIdStr(componente.cotsegmento?.id || componente.cotsegmento?.['@id'])
+                            );
+
+                            componente.cotsegmento = segId
+                                ? `/platform/sales/cotizacion_segmentos/${segId}`
+                                : null;
+
                             delete componente.cotsegmentoId;
 
                             if (componente.cottarifas && Array.isArray(componente.cottarifas)) {
                                 componente.cottarifas.forEach((tarifa: any) => {
                                     tarifa.cantidad = parseInt(tarifa.cantidad) || 1;
                                     tarifa.montoCosto = String(tarifa.montoCosto || '0');
-                                    if (tarifa.tarifaMaestraId) tarifa.tarifaMaestraId = extractIdStr(tarifa.tarifaMaestraId);
+                                    if (tarifa.tarifaMaestraId) {
+                                        tarifa.tarifaMaestraId = extractIdStr(tarifa.tarifaMaestraId);
+                                    }
                                 });
                             }
                         });
@@ -475,74 +474,40 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 });
             }
 
-            // 🔥 FASE 1: Guardar el grafo principal
-            let response = await (isUpdate ? apiClient.put : apiClient.post)(endpoint, payload);
+            // --- Un solo request, sin fases ---
+            const response = await (isUpdate ? apiClient.put : apiClient.post)(endpoint, payload);
             let savedData = response.data;
 
-            // 🔥 FASE 2: Conectar las piezas que faltaban
-            if (conexionesPendientes.length > 0) {
-                const payloadFase2 = JSON.parse(JSON.stringify(savedData));
-
-                if (payloadFase2.file && typeof payloadFase2.file === 'object') {
-                    payloadFase2.file = payloadFase2.file['@id'] || payloadFase2.file.id;
-                }
-
-                let changes = false;
-                conexionesPendientes.forEach(({ srvIdx, compIdx, segIdx }) => {
-                    const servicioF2 = payloadFase2.cotservicios[srvIdx];
-                    if (servicioF2 && servicioF2.cotsegmentos && servicioF2.cotcomponentes) {
-                        const segF2 = servicioF2.cotsegmentos[segIdx];
-                        const compF2 = servicioF2.cotcomponentes[compIdx];
-
-                        if (segF2 && compF2) {
-                            // Extraemos el ID final devuelto por el servidor
-                            const realSegId = extractIdStr(segF2.id || segF2['@id']);
-                            compF2.cotsegmento = `/platform/sales/cotizacion_segmentos/${realSegId}`;
-                            changes = true;
-                        }
-                    }
-                });
-
-                if (changes) {
-                    // Restauramos las T en las fechas para que el PUT de la fase 2 no falle
-                    payloadFase2.cotservicios.forEach((s: any) => {
-                        if (s.fechaInicioAbsoluta && s.fechaInicioAbsoluta.length === 10) s.fechaInicioAbsoluta += 'T00:00:00';
-                        if (s.cotsegmentos) {
-                            s.cotsegmentos.forEach((seg: any) => {
-                                if (seg.fechaAbsoluta && seg.fechaAbsoluta.length === 10) seg.fechaAbsoluta += 'T00:00:00';
-                            });
-                        }
-                    });
-
-                    response = await apiClient.put(`/platform/sales/cotizacions/${savedData.id}`, payloadFase2);
-                    savedData = response.data;
-                }
-            }
-
-            // LIMPIEZA VISUAL (Para la UI de Vue)
+            // --- Limpieza visual post-save ---
             if (!savedData.cotservicios) savedData.cotservicios = [];
             savedData.idiomaEdicion = 'es';
 
             savedData.cotservicios.forEach((s: any) => {
                 s.sobreescribirTraduccion = false;
-                if (s.fechaInicioAbsoluta && s.fechaInicioAbsoluta.includes('T')) s.fechaInicioAbsoluta = s.fechaInicioAbsoluta.split('T')[0];
 
-                if (s.cotsegmentos) {
-                    s.cotsegmentos.forEach((seg: any) => {
-                        seg.sobreescribirTraduccion = false;
-                        if (seg.fechaAbsoluta && seg.fechaAbsoluta.includes('T')) seg.fechaAbsoluta = seg.fechaAbsoluta.split('T')[0];
-                    });
+                if (s.fechaInicioAbsoluta?.includes('T')) {
+                    s.fechaInicioAbsoluta = s.fechaInicioAbsoluta.split('T')[0];
                 }
 
-                if (s.cotcomponentes) {
-                    s.cotcomponentes.forEach((c: any) => {
-                        c.sobreescribirTraduccion = false;
-                        if (c.snapshotItems) c.snapshotItems.forEach((i: any) => i.sobreescribirTraduccion = false);
-                        if (c.cottarifas) c.cottarifas.forEach((t: any) => t.sobreescribirTraduccion = false);
+                s.cotsegmentos?.forEach((seg: any) => {
+                    seg.sobreescribirTraduccion = false;
+                    if (seg.fechaAbsoluta?.includes('T')) {
+                        seg.fechaAbsoluta = seg.fechaAbsoluta.split('T')[0];
+                    }
+                });
 
-                        if (c.cotsegmento && !c.cotsegmentoId) c.cotsegmentoId = typeof c.cotsegmento === 'string' ? extractIdStr(c.cotsegmento) : extractIdStr(c.cotsegmento.id || c.cotsegmento['@id']);
-                    });
-                }
+                s.cotcomponentes?.forEach((c: any) => {
+                    c.sobreescribirTraduccion = false;
+                    c.snapshotItems?.forEach((i: any) => i.sobreescribirTraduccion = false);
+                    c.cottarifas?.forEach((t: any) => t.sobreescribirTraduccion = false);
+
+                    // Reconstruir cotsegmentoId desde la respuesta
+                    if (c.cotsegmento) {
+                        c.cotsegmentoId = typeof c.cotsegmento === 'string'
+                            ? extractIdStr(c.cotsegmento)
+                            : extractIdStr(c.cotsegmento.id || c.cotsegmento['@id']);
+                    }
+                });
             });
 
             cotizacion.value = savedData;

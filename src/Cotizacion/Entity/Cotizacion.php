@@ -63,8 +63,8 @@ class Cotizacion
     private int $numPax = 1;
 
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
-    #[ORM\Column(type: 'decimal', precision: 5, scale: 2, options: ['default' => '0.00'])]
-    private string $comision = '0.00';
+    #[ORM\Column(type: 'decimal', precision: 5, scale: 2, options: ['default' => '20.00'])]
+    private string $comision = '20.00';
 
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
@@ -102,6 +102,11 @@ class Cotizacion
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, options: ['default' => '0.00'])]
     private string $totalVenta = '0.00';
+
+    // 🔥 EL NUEVO CAMPO DE TIPO DE CAMBIO
+    #[Groups(['cotizacion:read', 'cotizacion:write'])]
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 4, options: ['default' => '1.0000'])]
+    private string $tipoCambio = '1.0000';
 
     #[Groups(['cotizacion:read', 'cotizacion:write'])]
     #[ORM\Column(type: 'json', nullable: true)]
@@ -144,7 +149,6 @@ class Cotizacion
         return $this;
     }
 
-    // --- MÉTODOS SOBRESCRITOS PARA EXPONER EL FLAG A API PLATFORM ---
     #[Groups(['cotizacion:write'])]
     public function getSobreescribirTraduccion(): bool
     {
@@ -178,6 +182,9 @@ class Cotizacion
 
     public function getTotalVenta(): string { return $this->totalVenta; }
     public function setTotalVenta(string $totalVenta): self { $this->totalVenta = $totalVenta; return $this; }
+
+    public function getTipoCambio(): string { return $this->tipoCambio; }
+    public function setTipoCambio(string $tipoCambio): self { $this->tipoCambio = $tipoCambio; return $this; }
 
     public function getClasificacionFinanciera(): ?array { return $this->clasificacionFinanciera; }
     public function setClasificacionFinanciera(?array $clasificacionFinanciera): self { $this->clasificacionFinanciera = $clasificacionFinanciera; return $this; }
