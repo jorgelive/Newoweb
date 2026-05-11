@@ -28,19 +28,17 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
 
     public function configureFields(string $pageName): iterable
     {
-        // 1. El Componente que se cobra
         yield AssociationField::new('componente', 'Componente Logístico')
             ->setColumns('col-12 col-md-6')
             ->setFormTypeOption('choice_label', 'nombre');
 
-        // 2. El contexto
-        yield AssociationField::new('servicioContexto', 'Condicionado al Tour')
-            ->setHelp('Si se deja vacío, aplica a TODOS los tours.')
+        // 🔥 Se cambió de Servicio a Itinerario
+        yield AssociationField::new('itinerarioContexto', 'Condicionado a Plantilla')
+            ->setHelp('Si se deja vacío, se inyectará en TODOS los itinerarios que usen este párrafo.')
             ->setColumns('col-12 col-md-6')
             ->setFormTypeOption('choice_label', 'nombreInterno');
 
-        // 3. La Hora
-        yield TimeField::new('hora', 'Hora de Ejecución')
+        yield TimeField::new('hora', 'Hora Inicio')
             ->setFormat('HH:mm')
             ->setFormTypeOptions([
                 'widget' => 'single_text',
@@ -51,17 +49,44 @@ class TravelSegmentoComponenteCrudController extends BaseCrudController
                     'style'           => 'cursor: pointer;'
                 ],
             ])
-            ->setColumns('col-12 col-md-4');
+            ->setColumns('col-12 col-md-3');
 
-        // 4. 🔥 NUEVO: Modo de Inclusión (Enum)
+        // 🔥 NUEVO: Hora Fin
+        yield TimeField::new('horaFin', 'Hora Fin')
+            ->setFormat('HH:mm')
+            ->setHelp('Dejar vacío para usar la duración por defecto.')
+            ->setFormTypeOptions([
+                'widget' => 'single_text',
+                'html5'  => false,
+                'attr'   => [
+                    'data-controller' => 'panel--flatpickr-time',
+                    'class'           => 'form-control text-center fw-bold text-danger font-monospace',
+                    'style'           => 'cursor: pointer;'
+                ],
+            ])
+            ->setColumns('col-12 col-md-3');
+
         yield ChoiceField::new('modo', 'Modo Comercial')
-            ->setChoices(array_reduce(ComponenteItemModoEnum::cases(), static fn ($c, $e) => $c + [$e->name => $e], []))
+            ->setChoices(array_reduce(
+                ComponenteItemModoEnum::cases(),
+                static fn ($c, $e) => $c + [$e->name => $e],
+                []
+            ))
             ->formatValue(static fn ($value) => $value instanceof ComponenteItemModoEnum ? $value->value : $value)
-            ->setColumns('col-12 col-md-4');
+            ->setFormTypeOptions([
+                'placeholder' => false
+            ])
+            ->setColumns('col-12 col-md-3');
 
-        // 5. Orden
-        yield IntegerField::new('orden', 'Orden de Aparición')
-            ->setColumns('col-12 col-md-4')
+        yield IntegerField::new('orden', 'Orden')
+            ->setColumns('col-12 col-md-3')
+            ->setFormTypeOptions([
+                'empty_data' => '1',
+                'attr'       => [
+                    'placeholder'     => '1',
+                    'data-default'    => '1',
+                ],
+            ])
             ->hideOnIndex();
     }
 }

@@ -14,6 +14,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_itinerario_segmento_rel')]
+#[ORM\HasLifecycleCallbacks]
 class TravelItinerarioSegmentoRel
 {
     use IdTrait;

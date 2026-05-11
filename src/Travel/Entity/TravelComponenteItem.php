@@ -17,6 +17,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_componente_item')]
+#[ORM\HasLifecycleCallbacks]
 class TravelComponenteItem
 {
     use IdTrait;

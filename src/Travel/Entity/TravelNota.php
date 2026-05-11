@@ -63,6 +63,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_nota')]
+#[ORM\HasLifecycleCallbacks]
 class TravelNota
 {
     use IdTrait;

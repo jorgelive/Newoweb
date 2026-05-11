@@ -60,6 +60,7 @@ use Symfony\Component\Uid\Uuid;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_segmento')]
+#[ORM\HasLifecycleCallbacks]
 class TravelSegmento
 {
     use IdTrait;
@@ -225,5 +226,14 @@ class TravelSegmento
             }
         }
         return $this;
+    }
+    /**
+     * Campo virtual para EasyAdmin.
+     * Retorna un string vacío para engañar al validador estricto de TextField,
+     * permitiendo que el CRUD Controller inyecte el HTML personalizado sin colapsar.
+     */
+    public function getVirtualLogistica(): string
+    {
+        return '';
     }
 }

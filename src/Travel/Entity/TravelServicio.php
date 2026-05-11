@@ -64,6 +64,7 @@ use Symfony\Component\Uid\Uuid;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_servicio')]
+#[ORM\HasLifecycleCallbacks]
 class TravelServicio
 {
     use IdTrait;

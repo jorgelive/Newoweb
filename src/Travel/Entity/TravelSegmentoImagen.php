@@ -15,6 +15,7 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_segmento_imagen')]
 #[Vich\Uploadable]
+#[ORM\HasLifecycleCallbacks]
 class TravelSegmentoImagen
 {
     use IdTrait;

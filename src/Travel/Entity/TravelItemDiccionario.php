@@ -57,6 +57,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 )]
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_item_diccionario')]
+#[ORM\HasLifecycleCallbacks]
 class TravelItemDiccionario
 {
     use IdTrait;

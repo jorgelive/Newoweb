@@ -120,13 +120,6 @@ const dragStart = (e: DragEvent, segmentoMaestro: any) => {
   }
 };
 
-const dropSegmento = (e: DragEvent) => {
-  if (e.dataTransfer) {
-    const data = e.dataTransfer.getData('application/json');
-    if (data) store.agregarSegmentoIndividual(JSON.parse(data));
-  }
-};
-
 const plantillaSeleccionada = ref<string | null>(null);
 
 const isComponenteSoloItems = (componente: any) => {
@@ -149,6 +142,56 @@ const getNombreMaestroRef = (comp: any) => {
   const snapshotName = store.getI18nText(comp.nombreSnapshot, store.cotizacion?.idiomaEdicion || 'es');
   return snapshotName ? snapshotName : 'Sincronizando...';
 };
+
+// =========================================================
+// 🔥 LÓGICA DE FILTRADO Y MODAL DE INSERCIÓN TÁCTICA
+// =========================================================
+const filtroSegmentos = ref('');
+
+const poolFiltrado = computed(() => {
+  if (!filtroSegmentos.value) return store.catalogos.poolSegmentos;
+  const q = filtroSegmentos.value.toLowerCase();
+  return store.catalogos.poolSegmentos.filter((seg: any) => {
+    const code = (seg.nombreInterno || '').toLowerCase();
+    const title = store.getI18nText(seg.titulo, store.cotizacion?.idiomaEdicion || 'es').toLowerCase();
+    return code.includes(q) || title.includes(q);
+  });
+});
+
+const modalInsercion = ref({ isOpen: false, segmentoMaestro: null as any });
+const opcionInsercion = ref<'append'|'insert'|'replace'>('append');
+const targetSegmentoId = ref<string>('');
+
+const prepararInsercion = async (seg: any) => {
+  if (!store.dataActiva?.cotsegmentos?.length) {
+    await store.procesarInsercionSegmento(seg, plantillaSeleccionada.value, 'append');
+    return;
+  }
+  modalInsercion.value.segmentoMaestro = seg;
+  opcionInsercion.value = 'append';
+  targetSegmentoId.value = store.dataActiva.cotsegmentos[0].id;
+  modalInsercion.value.isOpen = true;
+};
+
+const confirmarInsercion = async () => {
+  if (modalInsercion.value.segmentoMaestro) {
+    await store.procesarInsercionSegmento(
+        modalInsercion.value.segmentoMaestro,
+        plantillaSeleccionada.value,
+        opcionInsercion.value,
+        targetSegmentoId.value
+    );
+  }
+  modalInsercion.value.isOpen = false;
+  modalInsercion.value.segmentoMaestro = null;
+};
+
+const dropSegmento = (e: DragEvent) => {
+  if (e.dataTransfer) {
+    const data = e.dataTransfer.getData('application/json');
+    if (data) prepararInsercion(JSON.parse(data));
+  }
+};
 </script>
 
 <template>
@@ -156,7 +199,7 @@ const getNombreMaestroRef = (comp: any) => {
 
     <header class="bg-slate-900 text-white px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-md flex-shrink-0">
       <div class="flex items-center gap-3">
-        <button @click="router.push(`/cotizaciones/${store.fileActual?.id || ''}`)" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
+        <button @click="router.push(`/cotizaciones/${store.fileActual?.id || ''}`)" class="w-8 h-8 md:w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
           <i class="fas fa-arrow-left text-sm"></i>
         </button>
         <div class="overflow-hidden">
@@ -777,34 +820,49 @@ const getNombreMaestroRef = (comp: any) => {
           </header>
 
           <div class="flex flex-1 overflow-hidden flex-col md:flex-row">
-            <aside class="w-full md:w-1/3 bg-white border-r border-slate-200 flex flex-col h-1/2 md:h-full shadow-sm z-10">
-              <div class="p-5 border-b border-slate-100 bg-slate-50">
-                <label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">1. Cargar Plantilla Completa</label>
+            <aside class="w-full md:w-1/3 bg-white border-b md:border-r border-slate-200 flex flex-col h-[40vh] md:h-full shadow-sm z-10 flex-shrink-0">
+
+              <div class="p-3 md:p-5 border-b border-slate-100 bg-slate-50">
+                <label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">1. Cargar Plantilla</label>
                 <div class="flex gap-2">
                   <SearchableSelect
                       v-model="plantillaSeleccionada"
                       :options="opcionesPlantillas"
                       placeholder="Elegir itinerario..."
                   />
-                  <button @click="plantillaSeleccionada && store.aplicarPlantilla(plantillaSeleccionada)" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors shadow-sm">Aplicar</button>
+                  <button @click="plantillaSeleccionada && store.aplicarPlantilla(plantillaSeleccionada)" class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors shadow-sm">Aplicar</button>
                 </div>
               </div>
-              <div class="p-5 flex-1 overflow-y-auto bg-white">
-                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">2. Pool de Segmentos (Arrastra o haz Click)</label>
-                <div class="space-y-3">
-                  <div v-for="seg in store.catalogos.poolSegmentos" :key="seg.id" draggable="true" @dragstart="dragStart($event, seg)"
-                       class="bg-white border-2 border-dashed border-slate-200 p-3 rounded-xl cursor-grab hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm">
-                    <i class="fas fa-grip-vertical text-slate-300 mt-1"></i>
-                    <div class="flex-1">
-                      <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1">{{ store.getI18nText(seg.titulo, store.cotizacion.idiomaEdicion) || seg.nombreInterno }}</h4>
-                      <div class="text-[10px] text-slate-500 line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido, store.cotizacion.idiomaEdicion)"></div>
+
+              <div class="p-3 md:p-5 flex-1 overflow-y-auto bg-white flex flex-col">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 md:mb-3">2. Pool de Segmentos Libres</label>
+
+                <div class="mb-3 md:mb-4 flex-shrink-0">
+                  <input v-model="filtroSegmentos" type="text" placeholder="🔍 Buscar por ID o Título..."
+                         class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner">
+                </div>
+
+                <div class="space-y-2 md:space-y-3 overflow-y-auto flex-1 pb-2">
+                  <div v-for="seg in poolFiltrado" :key="seg.id" draggable="true" @dragstart="dragStart($event, seg)"
+                       class="bg-white border-2 border-dashed border-slate-200 p-2 md:p-3 rounded-xl cursor-grab hover:border-indigo-300 hover:bg-indigo-50 transition-all flex gap-3 shadow-sm group items-center md:items-start">
+
+                    <i class="fas fa-grip-vertical text-slate-300 mt-1 hidden md:block"></i>
+
+                    <div class="flex-1 min-w-0">
+                      <div class="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-0.5 truncate">{{ seg.nombreInterno || 'SIN CÓDIGO' }}</div>
+                      <h4 class="text-xs font-bold text-slate-700 leading-tight mb-1 truncate md:whitespace-normal">{{ store.getI18nText(seg.titulo, store.cotizacion.idiomaEdicion) }}</h4>
+                      <div class="text-[10px] text-slate-500 line-clamp-1 md:line-clamp-2 prose-sm prose-p:my-0" v-html="store.getI18nText(seg.contenido, store.cotizacion.idiomaEdicion)"></div>
                     </div>
-                    <button @click="store.agregarSegmentoIndividual(seg)" class="text-indigo-600 hover:bg-indigo-100 p-2 rounded-lg transition-colors flex-shrink-0"><i class="fas fa-plus"></i></button>
+
+                    <button @click="prepararInsercion(seg)" class="text-indigo-600 hover:bg-indigo-200 bg-indigo-50 md:bg-transparent md:hover:bg-indigo-50 px-3 md:px-2 py-2 md:py-1 h-fit rounded-lg transition-colors flex-shrink-0 md:opacity-0 group-hover:opacity-100 border md:border-none border-indigo-100"><i class="fas fa-plus"></i></button>
+                  </div>
+
+                  <div v-if="poolFiltrado.length === 0" class="text-center text-slate-400 py-6 text-xs font-bold uppercase tracking-widest">
+                    No se encontraron resultados
                   </div>
                 </div>
               </div>
             </aside>
-
             <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-[#F8FAFC]" @dragover.prevent @dragenter.prevent @drop="dropSegmento">
               <div class="max-w-3xl mx-auto space-y-6 pb-20">
                 <h3 class="text-sm font-black text-slate-700 uppercase tracking-widest"><i class="fas fa-stream mr-2"></i> Párrafos en la Cotización</h3>
@@ -819,22 +877,39 @@ const getNombreMaestroRef = (comp: any) => {
                   <div class="absolute left-[15px] top-4 bottom-4 w-0.5 bg-slate-200 z-0"></div>
                   <div v-for="(cotSeg, idx) in store.dataActiva.cotsegmentos" :key="cotSeg.id" class="relative z-10 flex gap-4 items-start group">
                     <div class="w-8 h-8 rounded-full bg-white border-4 border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-sm flex-shrink-0 mt-1">{{ idx + 1 }}</div>
+
                     <div class="flex-1 bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
-                      <div class="bg-slate-50 px-4 py-2 border-b border-slate-100 flex justify-between items-center gap-2">
-                        <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion)"
-                               @input="e => store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
-                               class="bg-transparent text-xs font-black text-slate-700 uppercase outline-none flex-1" placeholder="Título..." />
 
-                        <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
-                                class="transition-colors px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1"
-                                :class="cotSeg.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'text-slate-400 border-slate-200 hover:bg-slate-200'" title="Forzar traducción del párrafo al guardar">
-                          <i class="fas fa-language"></i> <span class="hidden md:inline" v-if="cotSeg.sobreescribirTraduccion">Auto-Traducir</span>
-                        </button>
+                      <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                        <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
+                          <label class="text-[10px] font-black text-indigo-600 uppercase tracking-widest whitespace-nowrap">Día Relativo</label>
+                          <input type="number" min="1"
+                                 v-model="cotSeg.dia"
+                                 @change="store.onSegmentoDiaChange(store.dataActiva.id, cotSeg.id, cotSeg.dia)"
+                                 class="w-12 md:w-16 bg-slate-50 border border-slate-300 rounded px-1 md:px-2 py-1 text-xs md:text-sm font-black text-center outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800">
+                          <div class="flex flex-col border-l border-slate-200 pl-2">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase leading-none">Fecha Real</span>
+                            <span class="text-[11px] text-indigo-500 font-black tracking-tight leading-none mt-0.5">{{ formatFecha(cotSeg.fechaAbsoluta) }}</span>
+                          </div>
+                        </div>
 
-                        <button @click="store.removerCotSegmento(cotSeg.id)" class="text-slate-400 hover:text-red-500 transition-colors ml-2 p-1">
-                          <i class="fas fa-trash-alt text-base"></i>
-                        </button>
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                          <input :value="store.getI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion)"
+                                 @input="e => store.setI18nText(cotSeg.nombreSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value)"
+                                 class="bg-transparent text-xs font-black text-slate-700 uppercase outline-none flex-1 min-w-[150px]" placeholder="Título..." />
+
+                          <button @click="cotSeg.sobreescribirTraduccion = !cotSeg.sobreescribirTraduccion"
+                                  class="transition-colors px-2 py-1.5 rounded text-[10px] font-bold border flex items-center gap-1 shadow-sm"
+                                  :class="cotSeg.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'" title="Forzar traducción del párrafo al guardar">
+                            <i class="fas fa-language"></i> <span class="hidden md:inline" v-if="cotSeg.sobreescribirTraduccion">Auto-Traducir</span>
+                          </button>
+
+                          <button @click="store.removerCotSegmento(cotSeg.id)" class="bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors ml-1 p-1.5 rounded shadow-sm">
+                            <i class="fas fa-trash-alt text-sm"></i>
+                          </button>
+                        </div>
                       </div>
+
                       <div class="p-4 bg-white">
                         <WysiwygEditor
                             :model-value="store.getI18nText(cotSeg.contenidoSnapshot, store.cotizacion.idiomaEdicion)"
@@ -846,6 +921,64 @@ const getNombreMaestroRef = (comp: any) => {
                 </div>
               </div>
             </main>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="fade-scale">
+      <div v-if="modalInsercion.isOpen" class="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
+          <div class="bg-indigo-600 px-5 py-4 text-white flex justify-between items-center">
+            <h3 class="font-black text-sm uppercase tracking-widest"><i class="fas fa-layer-group mr-2"></i> Inyectar Párrafo</h3>
+            <button @click="modalInsercion.isOpen = false" class="text-indigo-200 hover:text-white"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="p-5 space-y-4">
+
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
+              <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest block">{{ modalInsercion.segmentoMaestro?.nombreInterno || 'SIN CÓDIGO' }}</span>
+              <span class="text-xs font-bold text-slate-700">{{ store.getI18nText(modalInsercion.segmentoMaestro?.titulo, store.cotizacion.idiomaEdicion) }}</span>
+            </div>
+
+            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">¿Dónde deseas colocarlo?</p>
+
+            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'append' ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border-slate-200'">
+              <input type="radio" v-model="opcionInsercion" value="append" class="text-indigo-600 focus:ring-indigo-500">
+              <div class="flex-1 text-sm font-bold text-slate-700">Añadir al final del documento</div>
+            </label>
+
+            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'insert' ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border-slate-200'">
+              <input type="radio" v-model="opcionInsercion" value="insert" class="text-indigo-600 focus:ring-indigo-500">
+              <div class="flex-1 text-sm font-bold text-slate-700">Insertar en una posición (Desplaza abajo)</div>
+            </label>
+
+            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" :class="opcionInsercion === 'replace' ? 'border-orange-500 bg-orange-50/50 shadow-sm' : 'border-slate-200'">
+              <input type="radio" v-model="opcionInsercion" value="replace" class="text-orange-500 focus:ring-orange-500">
+              <div class="flex-1 text-sm font-bold text-slate-700">Reemplazar un párrafo (Purga la logística)</div>
+            </label>
+
+            <Transition name="fade-scale">
+              <div v-if="opcionInsercion !== 'append'" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-2">
+                <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                  Selecciona el segmento objetivo:
+                </label>
+                <select v-model="targetSegmentoId" class="w-full bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                  <option v-for="(seg, idx) in store.dataActiva?.cotsegmentos" :key="seg.id" :value="seg.id">
+                    Posición #{{ idx + 1 }} - {{ store.getI18nText(seg.nombreSnapshot, store.cotizacion.idiomaEdicion) }}
+                  </option>
+                </select>
+                <p v-if="opcionInsercion === 'replace'" class="text-[9px] font-bold text-orange-500 mt-2 flex items-center gap-1">
+                  <i class="fas fa-exclamation-triangle"></i> ¡Cuidado! Los trenes y guías del Párrafo #{{ store.dataActiva?.cotsegmentos?.findIndex(s => s.id === targetSegmentoId) + 1 }} serán reemplazados.
+                </p>
+              </div>
+            </Transition>
+
+          </div>
+          <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-end gap-3">
+            <button @click="modalInsercion.isOpen = false" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-300 rounded-lg shadow-sm transition-colors">Cancelar</button>
+            <button @click="confirmarInsercion" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2">
+              <i class="fas fa-check"></i> Ejecutar
+            </button>
           </div>
         </div>
       </div>

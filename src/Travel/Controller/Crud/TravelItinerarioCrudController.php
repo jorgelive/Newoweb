@@ -7,6 +7,7 @@ namespace App\Travel\Controller\Crud;
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelItinerario;
+use App\Travel\Entity\TravelItinerarioSegmentoRel;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
@@ -16,10 +17,28 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class TravelItinerarioCrudController extends BaseCrudController
 {
+    /**
+     * @param string $apiUrl URL base de la API inyectada desde las variables de entorno (.env).
+     * @param AdminUrlGenerator $adminUrlGenerator Inyectado para el BaseCrudController
+     * @param RequestStack $requestStack Inyectado para el BaseCrudController
+     */
+    public function __construct(
+        #[Autowire('%env(API_HOST_URL)%')] private string $apiUrl,
+        AdminUrlGenerator $adminUrlGenerator,
+        RequestStack $requestStack
+    ) {
+        // Inicializamos el constructor blindado del padre
+        parent::__construct($adminUrlGenerator, $requestStack);
+    }
+
     public static function getEntityFqcn(): string
     {
         return TravelItinerario::class;
@@ -33,6 +52,20 @@ class TravelItinerarioCrudController extends BaseCrudController
             ->setEntityLabelInPlural('Plantillas Comerciales')
             ->setSearchFields(['id', 'nombreInterno'])
             ->setDefaultSort(['createdAt' => 'DESC']);
+    }
+
+    /**
+     * Inyecta los assets y variables de entorno necesarios para el funcionamiento
+     * de los componentes anidados (como el modal de logística operado por Stimulus).
+     *
+     * @param Assets $assets Contenedor de configuración de assets de EasyAdmin.
+     * @return Assets
+     */
+    public function configureAssets(Assets $assets): Assets
+    {
+        return parent::configureAssets($assets)
+            ->addAssetMapperEntry('panel')
+            ->addHtmlContentToHead(sprintf('<meta name="api-url" content="%s">', $this->apiUrl));
     }
 
     public function configureActions(Actions $actions): Actions
@@ -71,8 +104,12 @@ class TravelItinerarioCrudController extends BaseCrudController
         yield FormField::addPanel('Estructura del Itinerario (Narrativa)')->setIcon('fa fa-stream');
 
         yield CollectionField::new('itinerarioSegmentos', 'Pasos del Itinerario')
-            ->useEntryCrudForm(TravelItinerarioSegmentoRelCrudController::class) // Pivot que ya tienes
-            ->setFormTypeOption('by_reference', false)
+            ->useEntryCrudForm(TravelItinerarioSegmentoRelCrudController::class)
+            ->setFormTypeOptions([
+                'by_reference' => false,
+                'prototype'    => true,
+            ])
+            ->setFormTypeOption('prototype_data', new TravelItinerarioSegmentoRel())
             ->setColumns(12)
             ->setHelp('Selecciona los segmentos del pool del servicio y ordénalos por día.');
 
