@@ -18,11 +18,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         tarifas: [] as any[], plantillasItinerario: [] as any[], poolSegmentos: [] as any[]
     });
 
+    const todasLasTarifasMaestras = ref<any[]>([]);
+
     const cotizacion = ref<any>(null);
     const fileActual = ref<any>(null);
 
     // ============================================================================
-    // 🔥 HELPERS Y LÓGICA DE TIEMPO (BLINDADOS)
+    // 🔥 HELPERS Y LÓGICA DE TIEMPO
     // ============================================================================
 
     const getFechaLimpia = (val: any): string => {
@@ -37,18 +39,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return match ? `${match[1]}:${match[2]}` : null;
     };
 
-    /**
-     * Cambia la fecha de un string ISO pero respeta estrictamente su hora original
-     */
     const replaceDateKeepTime = (isoDateTime: string, newDate: string): string => {
         if (!isoDateTime) return `${newDate}T08:00`;
         const timePart = isoDateTime.includes('T') ? isoDateTime.split('T')[1] : '08:00';
         return `${newDate}T${timePart}`;
     };
 
-    /**
-     * Calcula el día relativo (1, 2, 3...) entre dos fechas absolutas
-     */
     const calcularDiaRelativo = (fechaBase: string, fechaObjetivo: string): number => {
         const d1 = new Date(fechaBase + 'T12:00:00Z');
         const d2 = new Date(fechaObjetivo + 'T12:00:00Z');
@@ -149,7 +145,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         let tieneGrupal = false;
 
         componente.cottarifas.forEach((t: any) => {
-            const maestro = catalogos.value.tarifas.find((cat: any) => cat.id === t.tarifaMaestraId || cat['@id'] === t.tarifaMaestraId);
+            const maestro = todasLasTarifasMaestras.value.find((cat: any) => extractIdStr(cat.id || cat['@id']) === extractIdStr(t.tarifaMaestraId));
             const tarifaEsGrupal = t.esGrupal !== undefined ? t.esGrupal : (maestro?.costoPorGrupo || false);
             if (tarifaEsGrupal) tieneGrupal = true;
             else paxAsignados += parseInt(t.cantidad) || 0;
@@ -174,40 +170,218 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     // ============================================================================
-    // 🔥 CLASIFICADOR Y MOTOR DINÁMICO
+    // 🔥 CLASIFICADOR FINANCIERO EXACTO CON RASTREADOR DE CONFLICTOS
     // ============================================================================
 
     const resumenFinanciero = computed(() => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return null;
-        let totalCostoNeto = 0;
-        let totalVentaBruta = 0;
-        const desglosePorMoneda: Record<string, { neto: number, venta: number }> = {};
+
+        const numPaxGlobal = Math.max(parseInt(cotizacion.value.numPax) || 1, 1);
         const markup = (parseFloat(cotizacion.value.comision) || 0) / 100;
         const adelantoPct = (parseFloat(cotizacion.value.adelanto) || 0) / 100;
+        const tcPromedio = parseFloat(cotizacion.value.tipoCambio) || tipoCambioSugerido.value || 1;
+
+        const todosLosComponentes: any[] = [];
+        let mejorPuntaje = -1;
+        let maestroTarifas: any[] = [];
+        let globalCostoNetoDolares = 0;
 
         cotizacion.value.cotservicios.forEach((servicio: any) => {
-            if (!servicio.cotcomponentes) return;
-            servicio.cotcomponentes.forEach((componente: any) => {
-                if (componente.modo === 'incluido' && componente.estado !== 'Cancelado') {
-                    if (!componente.cottarifas) return;
-                    componente.cottarifas.forEach((tarifa: any) => {
-                        const moneda = tarifa.moneda || 'USD';
-                        const costo = (parseFloat(tarifa.montoCosto) || 0) * (parseInt(tarifa.cantidad) || 1);
-                        const venta = costo * (1 + markup);
-                        totalCostoNeto += costo;
-                        totalVentaBruta += venta;
-                        if (!desglosePorMoneda[moneda]) desglosePorMoneda[moneda] = { neto: 0, venta: 0 };
-                        desglosePorMoneda[moneda].neto += costo;
-                        desglosePorMoneda[moneda].venta += venta;
+            servicio.cotcomponentes?.forEach((componente: any) => {
+                if (componente.modo !== 'incluido' || componente.estado === 'Cancelado') return;
+
+                let cantPasajerosEnComponente = 0;
+                const compTarifas: any[] = [];
+                const cCant = parseInt(componente.cantidad) || 1;
+
+                componente.cottarifas?.forEach((t: any) => {
+                    const maestroT = todasLasTarifasMaestras.value.find((cat: any) => extractIdStr(cat.id || cat['@id']) === extractIdStr(t.tarifaMaestraId));
+                    const esGrupal = t.esGrupal !== undefined ? t.esGrupal : (maestroT?.costoPorGrupo || false);
+
+                    const tCant = parseInt(t.cantidad) || 1;
+                    const montoBase = parseFloat(t.montoCosto) || 0;
+
+                    const monedaRaw = typeof t.moneda === 'object' ? (t.moneda?.id || t.moneda?.codigo) : (t.moneda || 'USD');
+                    const isPen = String(monedaRaw).includes('2') || String(monedaRaw).toUpperCase() === 'PEN';
+
+                    const costoTotalLinea = montoBase * tCant * cCant;
+                    const costoTotalDolares = isPen ? (costoTotalLinea / tcPromedio) : costoTotalLinea;
+
+                    globalCostoNetoDolares += costoTotalDolares;
+
+                    const cantidadParaVoter = esGrupal ? numPaxGlobal : tCant;
+                    const montoPorPaxDolares = costoTotalDolares / cantidadParaVoter;
+
+                    if (!esGrupal) cantPasajerosEnComponente += tCant;
+
+                    const procedenciaRaw = maestroT?.procedencia || '0';
+                    const tipoPaxId = extractIdStr(maestroT?.tipoPax?.id || maestroT?.tipoPax || procedenciaRaw);
+
+                    let tipoPaxNombre = 'Cualquier Nacionalidad';
+                    if (maestroT?.tipoPax?.nombre) {
+                        tipoPaxNombre = maestroT.tipoPax.nombre;
+                    } else if (procedenciaRaw !== '0') {
+                        tipoPaxNombre = procedenciaRaw === 'nacional' ? 'Nacional / Peruano' : (procedenciaRaw === 'extranjero' ? 'Extranjero' : procedenciaRaw);
+                    }
+
+                    const edadMin = parseInt(maestroT?.edadMinima ?? 0);
+                    const edadMax = parseInt(maestroT?.edadMaxima ?? 120);
+
+                    compTarifas.push({
+                        esGrupal,
+                        cantidad: cantidadParaVoter,
+                        montoPorPaxDolares,
+                        tipoPaxId,
+                        tipoPaxNombre,
+                        edadMin,
+                        edadMax,
+                        tipo: `r${edadMin}-${edadMax}t${tipoPaxId}`,
+                        origenServicio: getI18nText(servicio.nombreSnapshot, cotizacion.value.idiomaEdicion) || 'Servicio',
+                        origenComponente: getI18nText(componente.nombreSnapshot, cotizacion.value.idiomaEdicion) || 'Insumo',
+                        origenTarifa: getI18nText(t.nombreSnapshot, cotizacion.value.idiomaEdicion) || 'Tarifa'
                     });
+                });
+
+                todosLosComponentes.push(compTarifas);
+
+                if (cantPasajerosEnComponente === numPaxGlobal) {
+                    let score = 0;
+                    compTarifas.forEach(t => {
+                        if (t.tipoPaxId !== '0') score += 100;
+                        score += (120 - (t.edadMax - t.edadMin));
+                    });
+                    if (score > mejorPuntaje) {
+                        mejorPuntaje = score;
+                        maestroTarifas = compTarifas;
+                    }
                 }
             });
         });
 
+        const clases: any[] = [];
+        if (maestroTarifas.length === 0) {
+            clases.push({
+                tipo: 'r0-120t0', tipoPaxNombre: 'Cualquier Nacionalidad',
+                cantidad: numPaxGlobal, cantidadRestante: numPaxGlobal,
+                edadMin: 0, edadMax: 120, tipoPaxId: '0', acumuladoDolares: 0,
+                isReal: true,
+                conflictos: []
+            });
+        } else {
+            maestroTarifas.forEach(t => {
+                if (t.esGrupal) return;
+                let clase = clases.find(c => c.tipo === t.tipo);
+                if (!clase) {
+                    clase = {
+                        tipo: t.tipo, tipoPaxNombre: t.tipoPaxNombre, cantidad: 0, cantidadRestante: 0,
+                        edadMin: t.edadMin, edadMax: t.edadMax, tipoPaxId: t.tipoPaxId, acumuladoDolares: 0,
+                        isReal: true,
+                        conflictos: []
+                    };
+                    clases.push(clase);
+                }
+                clase.cantidad += t.cantidad;
+                clase.cantidadRestante += t.cantidad;
+            });
+        }
+
+        const asignarAlVoter = (tarifa: any, cantidadPendiente: number, recursividad = 0) => {
+            if (recursividad > 10 || cantidadPendiente <= 0) return;
+
+            let bestIdx = -1;
+            let maxScore = 0;
+
+            clases.forEach((c, idx) => {
+                if (c.cantidadRestante > 0 &&
+                    (tarifa.tipoPaxId === c.tipoPaxId || tarifa.tipoPaxId === '0' || c.tipoPaxId === '0') &&
+                    tarifa.edadMin <= c.edadMax && tarifa.edadMax >= c.edadMin) {
+
+                    let s = 0.1;
+                    if (tarifa.tipoPaxId === c.tipoPaxId && c.tipoPaxId !== '0') s += 10;
+                    if (tarifa.edadMin === c.edadMin) s += 2;
+                    if (tarifa.edadMax === c.edadMax) s += 2;
+                    if (c.cantidadRestante === cantidadPendiente) s += 5;
+
+                    if (s > maxScore) { maxScore = s; bestIdx = idx; }
+                }
+            });
+
+            if (bestIdx === -1) {
+                let anomalo = clases.find(c => c.tipo === 'anomalo_' + tarifa.tipo);
+                if (!anomalo) {
+                    anomalo = {
+                        tipo: 'anomalo_' + tarifa.tipo,
+                        tipoPaxNombre: '⚠️ CONFLICTO: ' + tarifa.tipoPaxNombre,
+                        cantidad: 0,
+                        cantidadRestante: 0,
+                        edadMin: tarifa.edadMin,
+                        edadMax: tarifa.edadMax,
+                        tipoPaxId: tarifa.tipoPaxId,
+                        acumuladoDolares: 0,
+                        isReal: false,
+                        conflictos: []
+                    };
+                    clases.push(anomalo);
+                }
+                anomalo.cantidad += cantidadPendiente;
+                anomalo.acumuladoDolares += (tarifa.montoPorPaxDolares * cantidadPendiente);
+
+                const rutaConflicto = `${tarifa.origenServicio} ➔ ${tarifa.origenComponente} (${tarifa.origenTarifa})`;
+                if (!anomalo.conflictos.includes(rutaConflicto)) {
+                    anomalo.conflictos.push(rutaConflicto);
+                }
+                return;
+            }
+
+            const asignarAhora = Math.min(clases[bestIdx].cantidadRestante, cantidadPendiente);
+            clases[bestIdx].cantidadRestante -= asignarAhora;
+            clases[bestIdx].acumuladoDolares += (tarifa.montoPorPaxDolares * asignarAhora);
+
+            if (cantidadPendiente > asignarAhora) {
+                asignarAlVoter(tarifa, cantidadPendiente - asignarAhora, recursividad + 1);
+            }
+        };
+
+        todosLosComponentes.forEach(compTarifas => {
+            compTarifas.forEach((t: any) => {
+                if (t.esGrupal) {
+                    clases.forEach(c => {
+                        if (c.isReal) {
+                            c.acumuladoDolares += (t.montoPorPaxDolares * c.cantidad);
+                        }
+                    });
+                } else {
+                    asignarAlVoter(t, t.cantidad);
+                }
+            });
+            clases.forEach(c => c.cantidadRestante = c.cantidad);
+        });
+
+        const clasesFinales = clases.map(c => {
+            const ventaDolares = c.acumuladoDolares * (1 + markup);
+            return {
+                tipo: c.tipo,
+                tipoPaxNombre: c.tipoPaxNombre,
+                cantidad: c.cantidad,
+                edadMin: c.edadMin,
+                edadMax: c.edadMax,
+                conflictos: c.conflictos || [],
+                resumen: {
+                    montoDolares: c.acumuladoDolares,
+                    ventaDolares: ventaDolares,
+                    gananciaDolares: ventaDolares - c.acumuladoDolares
+                }
+            };
+        });
+
+        const ventaTotalGlobal = globalCostoNetoDolares * (1 + markup);
+
         return {
-            totalCostoNeto, totalVentaBruta, ganancia: totalVentaBruta - totalCostoNeto,
-            montoAdelanto: totalVentaBruta * adelantoPct, desglosePorMoneda,
-            clasificacionJSON: JSON.stringify(desglosePorMoneda)
+            totalCostoNeto: globalCostoNetoDolares,
+            totalVentaBruta: ventaTotalGlobal,
+            ganancia: ventaTotalGlobal - globalCostoNetoDolares,
+            montoAdelanto: ventaTotalGlobal * adelantoPct,
+            clasesPasajeros: clasesFinales.sort((a, b) => b.edadMin - a.edadMin)
         };
     });
 
@@ -249,7 +423,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     });
 
     // ============================================================================
-    // INICIALIZACIÓN Y PERSISTENCIA
+    // INICIALIZACIÓN Y HIDRATACIÓN PROFUNDA PARALELIZADA
     // ============================================================================
 
     const inicializarEditor = async (fileId: string, cotizacionId: string) => {
@@ -362,6 +536,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             catalogos.value.tarifas = await hydrateRelations(fetchedComp.tarifas || []);
 
+            catalogos.value.tarifas.forEach((t: any) => {
+                const tId = extractIdStr(t.id || t['@id']);
+                if (!todasLasTarifasMaestras.value.some((pt: any) => extractIdStr(pt.id || pt['@id']) === tId)) {
+                    todasLasTarifasMaestras.value.push(t);
+                }
+            });
+
             if (dataActiva.value && inspectorActivo.value === 'componente') {
                 const itemsRaw = fetchedComp.componenteItems || [];
 
@@ -403,6 +584,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             if (!data.cotservicios) data.cotservicios = [];
 
+            const tarifasToFetch = new Set<string>();
+            const componentesToFetch = new Set<string>();
+
             data.cotservicios.forEach((s: any) => {
                 s.fechaInicioAbsoluta = getFechaLimpia(s.fechaInicioAbsoluta);
 
@@ -415,16 +599,70 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 if (s.cotcomponentes && Array.isArray(s.cotcomponentes)) {
                     s.cotcomponentes.forEach((c: any) => {
                         if (c.cotsegmento && !c.cotsegmentoId) {
-                            c.cotsegmentoId = typeof c.cotsegmento === 'string' ? extractIdStr(c.cotsegmento) : extractIdStr(c.cotsegmento.id || c.cotsegmento['@id']);
+                            c.cotsegmentoId = typeof c.cotsegmento === 'string'
+                                ? extractIdStr(c.cotsegmento)
+                                : extractIdStr(c.cotsegmento.id || c.cotsegmento['@id']);
+                        }
+
+                        // Agendar Insumos Faltantes (Previene el Network Spam en la UI)
+                        const cId = extractIdStr(c.componenteMaestroId);
+                        if (cId && cId.length === 36 && !catalogos.value.allComponentes.some((catC: any) => extractIdStr(catC.id || catC['@id']) === cId)) {
+                            componentesToFetch.add(cId);
+                        }
+
+                        // Agendar Tarifas Faltantes
+                        if (c.cottarifas && Array.isArray(c.cottarifas)) {
+                            c.cottarifas.forEach((t: any) => {
+                                const tId = extractIdStr(t.tarifaMaestraId);
+                                if (tId && tId.length === 36 && !todasLasTarifasMaestras.value.some((catT: any) => extractIdStr(catT.id || catT['@id']) === tId)) {
+                                    tarifasToFetch.add(tId);
+                                }
+                            });
                         }
                     });
                     ordenarComponentesCronologicamente(s.cotcomponentes);
                 }
             });
 
+            // 🔥 DISPARO PARALELO DE PETICIONES DE HIDRATACIÓN
+            const fetchPromises: Promise<any>[] = [];
+
+            if (componentesToFetch.size > 0) {
+                Array.from(componentesToFetch).forEach(cId => {
+                    fetchPromises.push(
+                        apiClient.get(`/platform/travel/componentes/${cId}`)
+                            .then(res => {
+                                if (!catalogos.value.allComponentes.some((exist: any) => extractIdStr(exist.id || exist['@id']) === cId)) {
+                                    catalogos.value.allComponentes.push(res.data);
+                                }
+                            }).catch(() => null)
+                    );
+                });
+            }
+
+            if (tarifasToFetch.size > 0) {
+                Array.from(tarifasToFetch).forEach(tId => {
+                    fetchPromises.push(
+                        apiClient.get(`/platform/travel/tarifas/${tId}`)
+                            .then(res => {
+                                if (!todasLasTarifasMaestras.value.some((exist: any) => extractIdStr(exist.id || exist['@id']) === tId)) {
+                                    catalogos.value.tarifas.push(res.data);
+                                    todasLasTarifasMaestras.value.push(res.data);
+                                }
+                            }).catch(() => null)
+                    );
+                });
+            }
+
+            // Esperar a que toda la base de conocimientos esté descargada
+            await Promise.all(fetchPromises);
+
             cotizacion.value = data;
             cotizacion.value.idiomaEdicion = 'es';
-        } catch (e) { throw new Error("No se encontró la cotización"); }
+
+        } catch (e) {
+            throw new Error("No se encontró la cotización o falló la hidratación.");
+        }
     };
 
     const crearCotizacionVacia = (fileId: string) => {
@@ -469,7 +707,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             payload.totalVenta = String(resumenFinanciero.value?.totalVentaBruta || '0');
             payload.numPax = parseInt(payload.numPax) || 1;
             payload.tipoCambio = String(payload.tipoCambio || tipoCambioSugerido.value || 1);
-            payload.clasificacionFinanciera = resumenFinanciero.value?.desglosePorMoneda || {};
+            delete payload.clasificacionFinanciera;
             delete payload.idiomaEdicion;
 
             if (payload.cotservicios && Array.isArray(payload.cotservicios)) {
@@ -830,7 +1068,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 let paxAsignados = 0;
                 const tarifas = componente.cottarifas || [];
                 tarifas.forEach((t: any) => {
-                    const maestro = catalogos.value.tarifas.find((cat: any) => cat.id === t.tarifaMaestraId || cat['@id'] === t.tarifaMaestraId);
+                    const maestro = todasLasTarifasMaestras.value.find((cat: any) => extractIdStr(cat.id || cat['@id']) === extractIdStr(t.tarifaMaestraId));
                     const esGrupal = t.esGrupal !== undefined ? t.esGrupal : (maestro?.costoPorGrupo || false);
                     if (!esGrupal) paxAsignados += parseInt(t.cantidad) || 0;
                 });
@@ -1198,7 +1436,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
-    // 🔥 NUEVO: Vinculación estricta Segmento -> Componentes
     const onSegmentoDiaChange = (servicioId: string, segmentoId: string, nuevoDiaStr: string | number) => {
         const nuevoDia = parseInt(String(nuevoDiaStr)) || 1;
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
@@ -1211,13 +1448,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         segmento.dia = nuevoDia;
 
-        // 1. Recalcular la nueva fecha absoluta del segmento
         const dateObj = new Date(`${getFechaLimpia(servicio.fechaInicioAbsoluta)}T12:00:00Z`);
         dateObj.setUTCDate(dateObj.getUTCDate() + (nuevoDia - 1));
         const nuevaFechaAbs = dateObj.toISOString().split('T')[0];
         segmento.fechaAbsoluta = nuevaFechaAbs;
 
-        // 2. Empujar la nueva fecha a todos los componentes "hijos", respetando sus horas
         if(servicio.cotcomponentes) {
             servicio.cotcomponentes.forEach((comp: any) => {
                 const segId = comp.cotsegmentoId || (comp.cotsegmento ? extractIdStr(comp.cotsegmento.id || comp.cotsegmento['@id'] || comp.cotsegmento) : null);
@@ -1226,7 +1461,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if(comp.fechaHoraInicio) comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, nuevaFechaAbs);
                     if(comp.fechaHoraFin) comp.fechaHoraFin = replaceDateKeepTime(comp.fechaHoraFin, nuevaFechaAbs);
 
-                    // Recalculamos la duración correcta por si cruzaba medianoche
                     const targetId = extractIdStr(comp.componenteMaestroId);
                     const maestro = catalogos.value.allComponentes.find((c: any) => extractIdStr(c.id) === targetId || extractIdStr(c['@id']) === targetId);
                     const duracion = maestro?.duracion !== undefined ? parseFloat(maestro.duracion) : 1;
@@ -1237,11 +1471,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
-    // 🔥 ACTUALIZADA: Vinculación estricta Componente -> Segmento Padre -> Hermanos
     const onComponenteFechasChange = (esCambioInicio: boolean = true): void => {
         if (!dataActiva.value) return;
 
-        // 1. Lógica base: Ajustar la duración del fin respecto al inicio
         if (esCambioInicio && dataActiva.value.fechaHoraInicio) {
             const targetId = extractIdStr(dataActiva.value.componenteMaestroId);
             const maestro = catalogos.value.allComponentes.find((c: any) => extractIdStr(c.id) === targetId || extractIdStr(c['@id']) === targetId);
@@ -1255,7 +1487,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         const servicio = findServicioByComponenteId(dataActiva.value.id);
 
-        // 2. LA MAGIA INVERSA: Si cambia la fecha del insumo, actualizar al Padre y a los Hermanos
         if (servicio && dataActiva.value.fechaHoraInicio) {
             const nuevaFechaDateStr = dataActiva.value.fechaHoraInicio.split('T')[0];
             const currentSegId = dataActiva.value.cotsegmentoId || (dataActiva.value.cotsegmento ? extractIdStr(dataActiva.value.cotsegmento.id || dataActiva.value.cotsegmento['@id'] || dataActiva.value.cotsegmento) : null);
@@ -1264,11 +1495,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const segmentoPadre = servicio.cotsegmentos?.find((s: any) => s.id === currentSegId);
 
                 if (segmentoPadre && segmentoPadre.fechaAbsoluta !== nuevaFechaDateStr) {
-                    // 2.a. Actualizar el Párrafo (Segmento)
                     segmentoPadre.fechaAbsoluta = nuevaFechaDateStr;
                     segmentoPadre.dia = calcularDiaRelativo(getFechaLimpia(servicio.fechaInicioAbsoluta), nuevaFechaDateStr);
 
-                    // 2.b. Actualizar a los Componentes "Hermanos" (Manteniendo sus horas)
                     servicio.cotcomponentes.forEach((comp: any) => {
                         const hermanoSegId = comp.cotsegmentoId || (comp.cotsegmento ? extractIdStr(comp.cotsegmento.id || comp.cotsegmento['@id'] || comp.cotsegmento) : null);
 
@@ -1290,6 +1519,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const onTarifaMaestraChange = (val: string): void => {
         const targetId = extractIdStr(val);
         const maestro = catalogos.value.tarifas.find(t => extractIdStr(t.id) === targetId || extractIdStr(t['@id']) === targetId);
+
         if (maestro && dataActiva.value) {
             dataActiva.value.nombreSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
 
@@ -1310,9 +1540,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     return {
         catalogos, cotizacion, fileActual, idiomasDisponibles, isLoading, inspectorActivo, dataActiva,
-        isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido,
+        isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,
         resumenFinanciero, itinerarioDinamico, totalCostoNeto, ventaSugerida,
-        isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel,
+        isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, extractIdStr,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,
         updateNumPaxGlobal, agregarServicio, eliminarServicio, agregarComponente, eliminarComponente,
         agregarSnapshotItem, eliminarSnapshotItem, toggleUpsellComponent,

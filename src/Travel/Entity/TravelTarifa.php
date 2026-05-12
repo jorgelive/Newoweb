@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Travel\Entity;
 
 use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
 use App\Attribute\AutoTranslate;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Entity\Trait\AutoTranslateControlTrait;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\TimestampTrait;
+use App\Security\Roles;
 use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
 use Doctrine\ORM\Mapping as ORM;
@@ -18,6 +22,19 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Entity]
 #[ORM\Table(name: 'travel_tarifa')]
 #[ORM\HasLifecycleCallbacks]
+#[ApiResource(
+    shortName: 'Tarifa',
+    operations: [
+        new Get(
+            normalizationContext: ['groups' => ['componente:item:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
+        ),
+        new GetCollection(normalizationContext: ['groups' => ['componente:item:read']],
+            security: "is_granted('" . Roles::MAESTROS_SHOW . "')"
+        )
+    ],
+    routePrefix: '/travel'
+)]
 class TravelTarifa
 {
     use IdTrait;
@@ -82,18 +99,15 @@ class TravelTarifa
 
     /**
      * 🔥 Obligatorio para el Deep Clone de la entidad Padre.
-     * Al usar clone desde el padre, este método garantiza que la tarifa
-     * nazca como un registro 100% nuevo en la base de datos.
      */
     public function __clone()
     {
         $this->resetId();
         $this->resetTimestamps();
     }
+
     /**
      * Representación en texto para EasyAdmin y depuración.
-     * Genera una etiqueta visual que resume el costo, la moneda y las reglas de negocio.
-     * Ejemplos: "🏷️ Adulto | USD 84.00 👤 [Por Pax]" o "🏷️ Van Privada | PEN 150.00 👥 [Por Grupo]"
      */
     public function __toString(): string
     {
@@ -101,20 +115,18 @@ class TravelTarifa
             return '✨ Nueva Tarifa';
         }
 
-        $monedaStr = $this->moneda ? (string) $this->moneda : '';
+        // 🔥 CORRECCIÓN: Extraemos el ID o Nombre de forma segura para evitar Crash en el Profiler
+        $monedaStr = $this->moneda ? $this->moneda->getId() : '';
         $montoStr = $this->monto !== null ? $this->monto : '0.00';
 
-        // Etiqueta base
         $etiqueta = sprintf('🏷️ %s | %s %s', $this->nombreInterno, $monedaStr, $montoStr);
 
-        // Indicador visual de la matemática (cómo se cobra)
         if ($this->costoPorGrupo) {
             $etiqueta .= ' 👥 [Por Grupo]';
         } else {
             $etiqueta .= ' 👤 [Por Pax]';
         }
 
-        // Indicador visual de restricciones de edad (para evitar errores operativos)
         if ($this->edadMinima !== null || $this->edadMaxima !== null) {
             $min = $this->edadMinima ?? '0';
             $max = $this->edadMaxima ?? '∞';
@@ -124,7 +136,6 @@ class TravelTarifa
         return $etiqueta;
     }
 
-    // ... (Getters y Setters respetando tipado estricto)
     public function getMonto(): ?string
     {
         return $this->monto;
@@ -240,17 +251,11 @@ class TravelTarifa
         $this->capacidadMaxima = $capacidadMaxima;
     }
 
-    /**
-     * Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero.
-     */
     public function isCostoPorGrupo(): bool
     {
         return $this->costoPorGrupo;
     }
 
-    /**
-     * Establece si la tarifa se cobra por bloque/grupo.
-     */
     public function setCostoPorGrupo(bool $costoPorGrupo): self
     {
         $this->costoPorGrupo = $costoPorGrupo;
