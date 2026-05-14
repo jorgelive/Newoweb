@@ -44,3 +44,5 @@ parameters:
     pms.path.galeria_images: '/carga/pms/pms_guia_item_galeria/images'
     pms.path.unidad_images: '/carga/pms/pms_unidad/images'
     message.path.message_attachments: '/carga/message/message_attachment/file'
+    travel.path.segmento_imagenes: '/carga/travel/segmentos'
+    cotizacion.path.file_documentos: '/carga/cotizaciones/documentos'

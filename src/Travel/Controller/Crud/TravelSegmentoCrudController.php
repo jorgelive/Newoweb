@@ -9,6 +9,7 @@ use App\Panel\Form\Type\TranslationHtmlType;
 use App\Panel\Form\Type\TranslationTextType;
 use App\Travel\Entity\TravelSegmento;
 use App\Travel\Entity\TravelSegmentoComponente;
+use App\Travel\Entity\TravelSegmentoImagen;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -139,6 +140,11 @@ class TravelSegmentoCrudController extends BaseCrudController
             ->renderAsHtml();
         yield CollectionField::new('imagenes', 'Galería de Fotos')
             ->useEntryCrudForm(TravelSegmentoImagenCrudController::class)
+            ->setFormTypeOptions([
+                'by_reference' => false,
+                'prototype'    => true,
+            ])
+            ->setFormTypeOption('prototype_data', new TravelSegmentoImagen())
             ->setColumns(12);
     }
 }

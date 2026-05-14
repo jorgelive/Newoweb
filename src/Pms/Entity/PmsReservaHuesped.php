@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Pms\Entity;
 
-use App\Entity\Maestro\MaestroDocumentoTipo;
 use App\Entity\Maestro\MaestroPais;
+use App\Enum\DocumentoTipoEnum;
 use App\Entity\Trait\IdTrait;
 use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
@@ -22,7 +22,7 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
 /**
  * Entidad PmsReservaHuesped.
  * Gestiona la información de huéspedes, documentos y firmas.
- * IDs: UUID (Negocio), String 2 (País/Documento).
+ * IDs: UUID (Negocio), String 2 (País).
  */
 #[ORM\Entity(repositoryClass: PmsReservaHuespedRepository::class)]
 #[ORM\Table(name: 'pms_reserva_huesped')]
@@ -76,12 +76,11 @@ class PmsReservaHuesped
     private ?MaestroPais $pais = null;
 
     /**
-     * Tipo de Documento: ID Natural (String 2 - SUNAT)
-     * SE ELIMINA BINARY(16)
+     * Tipo de Documento: Enum String
+     * SE ELIMINA BINARY(16) Y RELACIÓN CON TABLA MAESTRA
      */
-    #[ORM\ManyToOne(targetEntity: MaestroDocumentoTipo::class)]
-    #[ORM\JoinColumn(name: 'tipo_documento_id', referencedColumnName: 'id', nullable: true)]
-    private ?MaestroDocumentoTipo $tipoDocumento = null;
+    #[ORM\Column(type: 'string', length: 20, enumType: DocumentoTipoEnum::class, nullable: true)]
+    private ?DocumentoTipoEnum $tipoDocumento = null;
 
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $documentoNumero = null;
@@ -185,8 +184,8 @@ class PmsReservaHuesped
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $pais): self { $this->pais = $pais; return $this; }
 
-    public function getTipoDocumento(): ?MaestroDocumentoTipo { return $this->tipoDocumento; }
-    public function setTipoDocumento(?MaestroDocumentoTipo $tipoDocumento): self { $this->tipoDocumento = $tipoDocumento; return $this; }
+    public function getTipoDocumento(): ?DocumentoTipoEnum { return $this->tipoDocumento; }
+    public function setTipoDocumento(?DocumentoTipoEnum $tipoDocumento): self { $this->tipoDocumento = $tipoDocumento; return $this; }
 
     public function getDocumentoNumero(): ?string { return $this->documentoNumero; }
     public function setDocumentoNumero(?string $documentoNumero): self { $this->documentoNumero = $documentoNumero; return $this; }

@@ -284,6 +284,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/sales/cotizacion_filedocumentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a CotizacionFiledocumento resource.
+         * @description Creates a CotizacionFiledocumento resource.
+         */
+        post: operations["api_salescotizacion_filedocumentos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacion_filedocumentos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Removes the CotizacionFiledocumento resource.
+         * @description Removes the CotizacionFiledocumento resource.
+         */
+        delete: operations["api_salescotizacion_filedocumentos_id_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacion_filepasajeros": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a CotizacionFilepasajero resource.
+         * @description Creates a CotizacionFilepasajero resource.
+         */
+        post: operations["api_salescotizacion_filepasajeros_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacion_filepasajeros/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replaces the CotizacionFilepasajero resource.
+         * @description Replaces the CotizacionFilepasajero resource.
+         */
+        put: operations["api_salescotizacion_filepasajeros_id_put"];
+        post?: never;
+        /**
+         * Removes the CotizacionFilepasajero resource.
+         * @description Removes the CotizacionFilepasajero resource.
+         */
+        delete: operations["api_salescotizacion_filepasajeros_id_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/sales/cotizacion_segmentos/{id}": {
         parameters: {
             query?: never;
@@ -748,6 +832,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/travel/tarifas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of Tarifa resources.
+         * @description Retrieves the collection of Tarifa resources.
+         */
+        get: operations["api_traveltarifas_get_collection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/travel/tarifas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a Tarifa resource.
+         * @description Retrieves a Tarifa resource.
+         */
+        get: operations["api_traveltarifas_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/message/templates": {
         parameters: {
             query?: never;
@@ -875,7 +999,7 @@ export interface components {
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem"][];
             /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa"][];
+            tarifas?: string[];
             /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
             servicios?: string[];
             /** Format: uuid */
@@ -911,7 +1035,7 @@ export interface components {
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.item.read"][];
             /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa-componente.item.read"][];
+            tarifas?: components["schemas"]["Tarifa-componente.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -953,7 +1077,7 @@ export interface components {
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem-componente.write"][];
             /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa-componente.write"][];
+            tarifas?: components["schemas"]["Tarifa-componente.write"][];
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         "Componente-servicio.item.read": {
@@ -993,7 +1117,7 @@ export interface components {
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.html"][];
             /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.html"][];
+            tarifas?: string[];
             /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
             servicios?: string[];
             /** Format: uuid */
@@ -1029,7 +1153,7 @@ export interface components {
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.html-componente.item.read"][];
             /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.html-componente.item.read"][];
+            tarifas?: components["schemas"]["Tarifa.html-componente.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -1090,7 +1214,7 @@ export interface components {
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld"][];
             /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.jsonld"][];
+            tarifas?: string[];
             /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
             servicios?: string[];
             /** Format: uuid */
@@ -1126,7 +1250,7 @@ export interface components {
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.jsonld-componente.item.read"][];
             /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.jsonld-componente.item.read"][];
+            tarifas?: components["schemas"]["Tarifa.jsonld-componente.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -1187,7 +1311,7 @@ export interface components {
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart"][];
             /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.multipart"][];
+            tarifas?: string[];
             /** @description 🚫 CORTE CIRCULAR: No tiene grupos de lectura profunda, solo IRIs */
             servicios?: string[];
             /** Format: uuid */
@@ -1223,7 +1347,7 @@ export interface components {
             /** @description 👇 CASCADA HACIA ABAJO (Items descriptivos) */
             componenteItems?: components["schemas"]["TravelComponenteItem.multipart-componente.item.read"][];
             /** @description 👇 CASCADA HACIA ABAJO (Tarifas) */
-            tarifas?: components["schemas"]["TravelTarifa.multipart-componente.item.read"][];
+            tarifas?: components["schemas"]["Tarifa.multipart-componente.item.read"][];
             /** Format: uuid */
             readonly id?: string | null;
         };
@@ -2532,6 +2656,8 @@ export interface components {
             /** @default abierto */
             estado: string;
             cotizaciones?: string[];
+            filepasajeros?: string[];
+            filedocumentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -2557,6 +2683,8 @@ export interface components {
             /** @default abierto */
             estado: string;
             cotizaciones?: components["schemas"]["Cotizacion-file.read_file.item.read_timestamp.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"][];
+            filedocumentos?: components["schemas"]["CotizacionFiledocumento-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2615,6 +2743,8 @@ export interface components {
             /** @default abierto */
             estado: string;
             cotizaciones?: string[];
+            filepasajeros?: string[];
+            filedocumentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -2640,6 +2770,8 @@ export interface components {
             /** @default abierto */
             estado: string;
             cotizaciones?: components["schemas"]["Cotizacion.html-file.read_file.item.read_timestamp.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"][];
+            filedocumentos?: components["schemas"]["CotizacionFiledocumento.html-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2679,6 +2811,8 @@ export interface components {
             /** @default abierto */
             estado: string;
             cotizaciones?: string[];
+            filepasajeros?: string[];
+            filedocumentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -2695,7 +2829,14 @@ export interface components {
             updatedAt?: string | null;
         };
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
-        "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+        "CotizacionFile.jsonld-file.read_file.item.read_timestamp.read": {
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"][];
+            filedocumentos?: components["schemas"]["CotizacionFiledocumento.jsonld-file.read_file.item.read_timestamp.read"][];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        } & (components["schemas"]["HydraItemBaseSchema"] & {
             nombreGrupo?: string;
             pasajeroPrincipal?: string | null;
             email?: string | null;
@@ -2705,11 +2846,7 @@ export interface components {
             /** @default abierto */
             estado: string;
             cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.read_file.item.read_timestamp.read"][];
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
+        });
         /** @description El Expediente raíz. Agrupa todas las propuestas comerciales de un cliente o grupo. */
         "CotizacionFile.jsonld-file.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreGrupo?: string;
@@ -2744,6 +2881,8 @@ export interface components {
             /** @default abierto */
             estado: string;
             cotizaciones?: string[];
+            filepasajeros?: string[];
+            filedocumentos?: string[];
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
@@ -2769,6 +2908,8 @@ export interface components {
             /** @default abierto */
             estado: string;
             cotizaciones?: components["schemas"]["Cotizacion.multipart-file.read_file.item.read_timestamp.read"][];
+            filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"][];
+            filedocumentos?: components["schemas"]["CotizacionFiledocumento.multipart-file.read_file.item.read_timestamp.read"][];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2788,6 +2929,452 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        CotizacionFiledocumento: {
+            /** Format: date-time */
+            vencimiento?: string | null;
+            /** @enum {string} */
+            tipodocumento?: "BOLETO" | "FACTURA" | "RESERVA" | "OTROS";
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            /** @description Propiedad virtual para exponer la URL pública. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "CotizacionFiledocumento-file.read_file.item.read_timestamp.read": {
+            /** Format: date-time */
+            vencimiento?: string | null;
+            /** @enum {string} */
+            tipodocumento?: "BOLETO" | "FACTURA" | "RESERVA" | "OTROS";
+            file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
+            imageName?: string | null;
+            imageSize?: number | null;
+            /** @description Propiedad virtual para exponer la URL pública. */
+            imageUrl?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionFiledocumento-file.write": {
+            /** Format: date-time */
+            vencimiento?: string | null;
+            /** @enum {string} */
+            tipodocumento?: "BOLETO" | "FACTURA" | "RESERVA" | "OTROS";
+            file?: components["schemas"]["CotizacionFile-file.write"];
+            imageName?: string | null;
+            imageSize?: number | null;
+        };
+        "CotizacionFiledocumento.html": {
+            /** Format: date-time */
+            vencimiento?: string | null;
+            /** @enum {string} */
+            tipodocumento?: "BOLETO" | "FACTURA" | "RESERVA" | "OTROS";
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            /** @description Propiedad virtual para exponer la URL pública. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "CotizacionFiledocumento.html-file.read_file.item.read_timestamp.read": {
+            /** Format: date-time */
+            vencimiento?: string | null;
+            /** @enum {string} */
+            tipodocumento?: "BOLETO" | "FACTURA" | "RESERVA" | "OTROS";
+            file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
+            imageName?: string | null;
+            imageSize?: number | null;
+            /** @description Propiedad virtual para exponer la URL pública. */
+            imageUrl?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionFiledocumento.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            vencimiento?: string | null;
+            /** @enum {string} */
+            tipodocumento?: "BOLETO" | "FACTURA" | "RESERVA" | "OTROS";
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            /** @description Propiedad virtual para exponer la URL pública. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "CotizacionFiledocumento.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** Format: date-time */
+            vencimiento?: string | null;
+            /** @enum {string} */
+            tipodocumento?: "BOLETO" | "FACTURA" | "RESERVA" | "OTROS";
+            file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
+            imageName?: string | null;
+            imageSize?: number | null;
+            /** @description Propiedad virtual para exponer la URL pública. */
+            imageUrl?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        "CotizacionFiledocumento.multipart": {
+            /** Format: date-time */
+            vencimiento?: string | null;
+            /** @enum {string} */
+            tipodocumento?: "BOLETO" | "FACTURA" | "RESERVA" | "OTROS";
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** Format: binary */
+            imageFile?: string | null;
+            imageName?: string | null;
+            imageSize?: number | null;
+            /** @description Propiedad virtual para exponer la URL pública. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
+        };
+        "CotizacionFiledocumento.multipart-file.read_file.item.read_timestamp.read": {
+            /** Format: date-time */
+            vencimiento?: string | null;
+            /** @enum {string} */
+            tipodocumento?: "BOLETO" | "FACTURA" | "RESERVA" | "OTROS";
+            file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
+            imageName?: string | null;
+            imageSize?: number | null;
+            /** @description Propiedad virtual para exponer la URL pública. */
+            imageUrl?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        CotizacionFilepasajero: {
+            nombre?: string;
+            apellido?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string;
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+        };
+        "CotizacionFilepasajero-file.read_file.item.read_timestamp.read": {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais-file.read_file.item.read_timestamp.read"];
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+            file?: components["schemas"]["CotizacionFile-file.read_file.item.read_timestamp.read"];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+        };
+        "CotizacionFilepasajero-file.write": {
+            nombre?: string;
+            apellido?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string;
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+            file?: components["schemas"]["CotizacionFile-file.write"];
+        };
+        "CotizacionFilepasajero.html": {
+            nombre?: string;
+            apellido?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string;
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+        };
+        "CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read": {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais.html-file.read_file.item.read_timestamp.read"];
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+            file?: components["schemas"]["CotizacionFile.html-file.read_file.item.read_timestamp.read"];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+        };
+        "CotizacionFilepasajero.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string;
+            apellido?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string;
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+        };
+        "CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais.jsonld-file.read_file.item.read_timestamp.read"];
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+            file?: components["schemas"]["CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+        };
+        "CotizacionFilepasajero.multipart": {
+            nombre?: string;
+            apellido?: string;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            pais?: string;
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            file?: string;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
+        };
+        "CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read": {
+            nombre?: string;
+            apellido?: string;
+            pais?: components["schemas"]["Pais.multipart-file.read_file.item.read_timestamp.read"];
+            /** @enum {string} */
+            sexo?: "M" | "F";
+            /** @enum {string} */
+            tipodocumento?: "DNI" | "CE" | "RUC" | "PASAPORTE" | "CI";
+            /** Format: date-time */
+            fechanacimiento?: string | null;
+            numerodocumento?: string | null;
+            file?: components["schemas"]["CotizacionFile.multipart-file.read_file.item.read_timestamp.read"];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Obtiene el primer bloque del apellido. */
+            readonly apellidoPaterno?: string | null;
+            /** @description Obtiene el segundo bloque del apellido. */
+            readonly apellidoMaterno?: string | null;
+            /** @description Calcula la edad actual basada en la fecha de nacimiento. */
+            readonly edad?: number | null;
+            /** @description Devuelve el código de tipo de pasajero según las reglas de PeruRail. */
+            readonly tipopaxperurail?: number | null;
+            /** @description Devuelve la categoría tarifaria según la Dirección Desconcentrada de Cultura (DDC). */
+            readonly categoriaddc?: number | null;
         };
         "CotizacionNota-cotizacion.read_timestamp.read": {
             id?: string;
@@ -3592,45 +4179,18 @@ export interface components {
         };
         "MaestroMoneda-componente.write": Record<string, never>;
         "MaestroMoneda-tipocambio.read": Record<string, never>;
-        "MaestroMoneda.html": {
-            id?: string;
-            nombre?: string;
-            simbolo?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
         "MaestroMoneda.html-componente.item.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
         };
         "MaestroMoneda.html-tipocambio.read": Record<string, never>;
-        "MaestroMoneda.jsonld": {
-            id?: string;
-            nombre?: string;
-            simbolo?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
         "MaestroMoneda.jsonld-componente.item.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
         };
         "MaestroMoneda.jsonld-tipocambio.read": Record<string, never>;
-        "MaestroMoneda.multipart": {
-            id?: string;
-            nombre?: string;
-            simbolo?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-        };
         "MaestroMoneda.multipart-componente.item.read": {
             id?: string;
             nombre?: string;
@@ -4462,6 +5022,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Campo virtual para EasyAdmin. */
+            readonly virtualLogistica?: string;
         };
         "Segmento-segmento.item.read": {
             nombreInterno?: string;
@@ -4514,6 +5076,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Campo virtual para EasyAdmin. */
+            readonly virtualLogistica?: string;
         };
         "Segmento.html-segmento.item.read": {
             nombreInterno?: string;
@@ -4559,6 +5123,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Campo virtual para EasyAdmin. */
+            readonly virtualLogistica?: string;
         };
         "Segmento.jsonld-segmento.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
@@ -4604,6 +5170,8 @@ export interface components {
             ejecutarTraduccion: boolean;
             /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
             sobreescribirTraduccion?: boolean;
+            /** @description Campo virtual para EasyAdmin. */
+            readonly virtualLogistica?: string;
         };
         "Segmento.multipart-segmento.item.read": {
             nombreInterno?: string;
@@ -4867,6 +5435,86 @@ export interface components {
             titulo?: string[];
             /** Format: uuid */
             readonly id?: string | null;
+        };
+        "Tarifa-componente.item.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 0.00 */
+            monto: string;
+            moneda?: components["schemas"]["MaestroMoneda-componente.item.read"];
+            /** @enum {string|null} */
+            modalidad?: "privado" | "compartido" | null;
+            /** @enum {string|null} */
+            procedencia?: "nacional" | "extranjero" | "can" | null;
+            edadMinima?: number | null;
+            edadMaxima?: number | null;
+            capacidadMinima?: number | null;
+            capacidadMaxima?: number | null;
+            costoPorGrupo?: boolean;
+        };
+        "Tarifa-componente.write": {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 0.00 */
+            monto: string;
+            moneda?: components["schemas"]["MaestroMoneda-componente.write"];
+            /** @enum {string|null} */
+            modalidad?: "privado" | "compartido" | null;
+            /** @enum {string|null} */
+            procedencia?: "nacional" | "extranjero" | "can" | null;
+            edadMinima?: number | null;
+            edadMaxima?: number | null;
+            capacidadMinima?: number | null;
+            capacidadMaxima?: number | null;
+            costoPorGrupo?: boolean;
+        };
+        "Tarifa.html-componente.item.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 0.00 */
+            monto: string;
+            moneda?: components["schemas"]["MaestroMoneda.html-componente.item.read"];
+            /** @enum {string|null} */
+            modalidad?: "privado" | "compartido" | null;
+            /** @enum {string|null} */
+            procedencia?: "nacional" | "extranjero" | "can" | null;
+            edadMinima?: number | null;
+            edadMaxima?: number | null;
+            capacidadMinima?: number | null;
+            capacidadMaxima?: number | null;
+            costoPorGrupo?: boolean;
+        };
+        "Tarifa.jsonld-componente.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 0.00 */
+            monto: string;
+            moneda?: components["schemas"]["MaestroMoneda.jsonld-componente.item.read"];
+            /** @enum {string|null} */
+            modalidad?: "privado" | "compartido" | null;
+            /** @enum {string|null} */
+            procedencia?: "nacional" | "extranjero" | "can" | null;
+            edadMinima?: number | null;
+            edadMaxima?: number | null;
+            capacidadMinima?: number | null;
+            capacidadMaxima?: number | null;
+            costoPorGrupo?: boolean;
+        };
+        "Tarifa.multipart-componente.item.read": {
+            nombreInterno?: string;
+            titulo?: string[];
+            /** @default 0.00 */
+            monto: string;
+            moneda?: components["schemas"]["MaestroMoneda.multipart-componente.item.read"];
+            /** @enum {string|null} */
+            modalidad?: "privado" | "compartido" | null;
+            /** @enum {string|null} */
+            procedencia?: "nacional" | "extranjero" | "can" | null;
+            edadMinima?: number | null;
+            edadMaxima?: number | null;
+            capacidadMinima?: number | null;
+            capacidadMaxima?: number | null;
+            costoPorGrupo?: boolean;
         };
         "Template-template.read": {
             code: string;
@@ -5422,29 +6070,43 @@ export interface components {
         TravelSegmentoComponente: {
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento narrativo padre.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El componente logístico que será inyectado.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
-             * @description El contexto de uso. Igual que el componente, solo IRI.
+             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
+             *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
              */
-            servicioContexto?: string | null;
-            /** Format: date-time */
+            itinerarioContexto?: string | null;
+            /**
+             * Format: date-time
+             * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
+             */
             hora?: string | null;
             /**
+             * Format: date-time
+             * @description Hora exacta a la que finaliza la operativa.
+             */
+            horaFin?: string | null;
+            /**
+             * @description Define si el componente suma al costo, no incluye, o es opcional.
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
-            /** @default 1 */
+            /**
+             * @description Orden en el que se lista dentro del segmento.
+             * @default 1
+             */
             orden: number;
             /** Format: uuid */
             readonly id?: string | null;
@@ -5452,76 +6114,116 @@ export interface components {
         "TravelSegmentoComponente-segmento.item.read": {
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El componente logístico que será inyectado.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
-             * @description El contexto de uso. Igual que el componente, solo IRI.
+             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
+             *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
              */
-            servicioContexto?: string | null;
-            /** Format: date-time */
+            itinerarioContexto?: string | null;
+            /**
+             * Format: date-time
+             * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
+             */
             hora?: string | null;
             /**
+             * Format: date-time
+             * @description Hora exacta a la que finaliza la operativa.
+             */
+            horaFin?: string | null;
+            /**
+             * @description Define si el componente suma al costo, no incluye, o es opcional.
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
-            /** @default 1 */
+            /**
+             * @description Orden en el que se lista dentro del segmento.
+             * @default 1
+             */
             orden: number;
         };
         "TravelSegmentoComponente-segmento.write": {
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El componente logístico que será inyectado.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
-             * @description El contexto de uso. Igual que el componente, solo IRI.
+             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
+             *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
              */
-            servicioContexto?: string | null;
-            /** Format: date-time */
+            itinerarioContexto?: string | null;
+            /**
+             * Format: date-time
+             * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
+             */
             hora?: string | null;
             /**
+             * Format: date-time
+             * @description Hora exacta a la que finaliza la operativa.
+             */
+            horaFin?: string | null;
+            /**
+             * @description Define si el componente suma al costo, no incluye, o es opcional.
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
-            /** @default 1 */
+            /**
+             * @description Orden en el que se lista dentro del segmento.
+             * @default 1
+             */
             orden: number;
         };
         "TravelSegmentoComponente-servicio.item.read": Record<string, never>;
         "TravelSegmentoComponente.html": {
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento narrativo padre.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El componente logístico que será inyectado.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
-             * @description El contexto de uso. Igual que el componente, solo IRI.
+             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
+             *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
              */
-            servicioContexto?: string | null;
-            /** Format: date-time */
+            itinerarioContexto?: string | null;
+            /**
+             * Format: date-time
+             * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
+             */
             hora?: string | null;
             /**
+             * Format: date-time
+             * @description Hora exacta a la que finaliza la operativa.
+             */
+            horaFin?: string | null;
+            /**
+             * @description Define si el componente suma al costo, no incluye, o es opcional.
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
-            /** @default 1 */
+            /**
+             * @description Orden en el que se lista dentro del segmento.
+             * @default 1
+             */
             orden: number;
             /** Format: uuid */
             readonly id?: string | null;
@@ -5529,53 +6231,80 @@ export interface components {
         "TravelSegmentoComponente.html-segmento.item.read": {
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El componente logístico que será inyectado.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
-             * @description El contexto de uso. Igual que el componente, solo IRI.
+             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
+             *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
              */
-            servicioContexto?: string | null;
-            /** Format: date-time */
+            itinerarioContexto?: string | null;
+            /**
+             * Format: date-time
+             * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
+             */
             hora?: string | null;
             /**
+             * Format: date-time
+             * @description Hora exacta a la que finaliza la operativa.
+             */
+            horaFin?: string | null;
+            /**
+             * @description Define si el componente suma al costo, no incluye, o es opcional.
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
-            /** @default 1 */
+            /**
+             * @description Orden en el que se lista dentro del segmento.
+             * @default 1
+             */
             orden: number;
         };
         "TravelSegmentoComponente.html-servicio.item.read": Record<string, never>;
         "TravelSegmentoComponente.jsonld": {
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento narrativo padre.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El componente logístico que será inyectado.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
-             * @description El contexto de uso. Igual que el componente, solo IRI.
+             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
+             *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
              */
-            servicioContexto?: string | null;
-            /** Format: date-time */
+            itinerarioContexto?: string | null;
+            /**
+             * Format: date-time
+             * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
+             */
             hora?: string | null;
             /**
+             * Format: date-time
+             * @description Hora exacta a la que finaliza la operativa.
+             */
+            horaFin?: string | null;
+            /**
+             * @description Define si el componente suma al costo, no incluye, o es opcional.
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
-            /** @default 1 */
+            /**
+             * @description Orden en el que se lista dentro del segmento.
+             * @default 1
+             */
             orden: number;
             /** Format: uuid */
             readonly id?: string | null;
@@ -5583,53 +6312,80 @@ export interface components {
         "TravelSegmentoComponente.jsonld-segmento.item.read": {
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El componente logístico que será inyectado.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
-             * @description El contexto de uso. Igual que el componente, solo IRI.
+             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
+             *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
              */
-            servicioContexto?: string | null;
-            /** Format: date-time */
+            itinerarioContexto?: string | null;
+            /**
+             * Format: date-time
+             * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
+             */
             hora?: string | null;
             /**
+             * Format: date-time
+             * @description Hora exacta a la que finaliza la operativa.
+             */
+            horaFin?: string | null;
+            /**
+             * @description Define si el componente suma al costo, no incluye, o es opcional.
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
-            /** @default 1 */
+            /**
+             * @description Orden en el que se lista dentro del segmento.
+             * @default 1
+             */
             orden: number;
         };
         "TravelSegmentoComponente.jsonld-servicio.item.read": Record<string, never>;
         "TravelSegmentoComponente.multipart": {
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento narrativo padre.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El componente logístico que será inyectado.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
-             * @description El contexto de uso. Igual que el componente, solo IRI.
+             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
+             *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
              */
-            servicioContexto?: string | null;
-            /** Format: date-time */
+            itinerarioContexto?: string | null;
+            /**
+             * Format: date-time
+             * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
+             */
             hora?: string | null;
             /**
+             * Format: date-time
+             * @description Hora exacta a la que finaliza la operativa.
+             */
+            horaFin?: string | null;
+            /**
+             * @description Define si el componente suma al costo, no incluye, o es opcional.
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
-            /** @default 1 */
+            /**
+             * @description Orden en el que se lista dentro del segmento.
+             * @default 1
+             */
             orden: number;
             /** Format: uuid */
             readonly id?: string | null;
@@ -5637,351 +6393,225 @@ export interface components {
         "TravelSegmentoComponente.multipart-segmento.item.read": {
             /**
              * Format: iri-reference
-             * @description 🔥 TRUCO API PLATFORM: readableLink false.
+             * @description El componente logístico que será inyectado.
              * @example https://example.com/
              */
             componente?: string;
             /**
              * Format: iri-reference
-             * @description El contexto de uso. Igual que el componente, solo IRI.
+             * @description El Cerebro del Timeline: Define en qué plantilla específica de itinerario
+             *     debe inyectarse este componente. Si es null, se inyecta siempre.
              * @example https://example.com/
              */
-            servicioContexto?: string | null;
-            /** Format: date-time */
+            itinerarioContexto?: string | null;
+            /**
+             * Format: date-time
+             * @description Hora exacta a la que inicia la operativa de este componente en el itinerario.
+             */
             hora?: string | null;
             /**
+             * Format: date-time
+             * @description Hora exacta a la que finaliza la operativa.
+             */
+            horaFin?: string | null;
+            /**
+             * @description Define si el componente suma al costo, no incluye, o es opcional.
              * @default incluido
              * @enum {string}
              */
             modo: "incluido" | "opcional" | "no_incluido" | "cortesia";
-            /** @default 1 */
+            /**
+             * @description Orden en el que se lista dentro del segmento.
+             * @default 1
+             */
             orden: number;
         };
         "TravelSegmentoComponente.multipart-servicio.item.read": Record<string, never>;
         TravelSegmentoImagen: {
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento de viaje asociado a la imagen.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: binary
-             * @description Requerido por VichUploader para forzar la actualización en la base de datos al cambiar archivo.
+             * @description Obtiene el archivo subido en memoria.
              */
             imageFile?: string | null;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
             imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
         };
         "TravelSegmentoImagen-segmento.item.read": {
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
             imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
         };
         "TravelSegmentoImagen-segmento.write": {
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
             imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
         };
         "TravelSegmentoImagen.html": {
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento de viaje asociado a la imagen.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: binary
-             * @description Requerido por VichUploader para forzar la actualización en la base de datos al cambiar archivo.
+             * @description Obtiene el archivo subido en memoria.
              */
             imageFile?: string | null;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
             imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
         };
         "TravelSegmentoImagen.html-segmento.item.read": {
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
             imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
         };
         "TravelSegmentoImagen.jsonld": {
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento de viaje asociado a la imagen.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: binary
-             * @description Requerido por VichUploader para forzar la actualización en la base de datos al cambiar archivo.
+             * @description Obtiene el archivo subido en memoria.
              */
             imageFile?: string | null;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
             imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
         };
         "TravelSegmentoImagen.jsonld-segmento.item.read": {
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
             imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
         };
         "TravelSegmentoImagen.multipart": {
             /**
              * Format: iri-reference
+             * @description Obtiene el segmento de viaje asociado a la imagen.
              * @example https://example.com/
              */
             segmento?: string;
             /**
              * Format: binary
-             * @description Requerido por VichUploader para forzar la actualización en la base de datos al cambiar archivo.
+             * @description Obtiene el archivo subido en memoria.
              */
             imageFile?: string | null;
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
             imageSize?: number | null;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            readonly token?: string | null;
+            /** @description Determina si el archivo es compatible con LiipImagine. */
+            readonly image?: boolean;
         };
         "TravelSegmentoImagen.multipart-segmento.item.read": {
+            /** @description Obtiene el nombre físico del archivo guardado en el servidor. */
             imageName?: string | null;
+            /** @description Obtiene el tamaño de la imagen en bytes. */
             imageSize?: number | null;
-        };
-        TravelTarifa: {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            componente?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 0.00 */
-            monto: string;
-            moneda?: components["schemas"]["MaestroMoneda"];
-            /** @enum {string|null} */
-            modalidad?: "privado" | "compartido" | null;
-            /** @enum {string|null} */
-            procedencia?: "nacional" | "extranjero" | "can" | null;
-            edadMinima?: number | null;
-            edadMaxima?: number | null;
-            capacidadMinima?: number | null;
-            capacidadMaxima?: number | null;
-            /** @description Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero. */
-            costoPorGrupo?: boolean;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelTarifa-componente.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 0.00 */
-            monto: string;
-            moneda?: components["schemas"]["MaestroMoneda-componente.item.read"];
-            /** @enum {string|null} */
-            modalidad?: "privado" | "compartido" | null;
-            /** @enum {string|null} */
-            procedencia?: "nacional" | "extranjero" | "can" | null;
-            edadMinima?: number | null;
-            edadMaxima?: number | null;
-            capacidadMinima?: number | null;
-            capacidadMaxima?: number | null;
-            /** @description Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero. */
-            costoPorGrupo?: boolean;
-        };
-        "TravelTarifa-componente.write": {
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 0.00 */
-            monto: string;
-            moneda?: components["schemas"]["MaestroMoneda-componente.write"];
-            /** @enum {string|null} */
-            modalidad?: "privado" | "compartido" | null;
-            /** @enum {string|null} */
-            procedencia?: "nacional" | "extranjero" | "can" | null;
-            edadMinima?: number | null;
-            edadMaxima?: number | null;
-            capacidadMinima?: number | null;
-            capacidadMaxima?: number | null;
-            /** @description Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero. */
-            costoPorGrupo?: boolean;
-        };
-        "TravelTarifa.html": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            componente?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 0.00 */
-            monto: string;
-            moneda?: components["schemas"]["MaestroMoneda.html"];
-            /** @enum {string|null} */
-            modalidad?: "privado" | "compartido" | null;
-            /** @enum {string|null} */
-            procedencia?: "nacional" | "extranjero" | "can" | null;
-            edadMinima?: number | null;
-            edadMaxima?: number | null;
-            capacidadMinima?: number | null;
-            capacidadMaxima?: number | null;
-            /** @description Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero. */
-            costoPorGrupo?: boolean;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelTarifa.html-componente.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 0.00 */
-            monto: string;
-            moneda?: components["schemas"]["MaestroMoneda.html-componente.item.read"];
-            /** @enum {string|null} */
-            modalidad?: "privado" | "compartido" | null;
-            /** @enum {string|null} */
-            procedencia?: "nacional" | "extranjero" | "can" | null;
-            edadMinima?: number | null;
-            edadMaxima?: number | null;
-            capacidadMinima?: number | null;
-            capacidadMaxima?: number | null;
-            /** @description Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero. */
-            costoPorGrupo?: boolean;
-        };
-        "TravelTarifa.jsonld": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            componente?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 0.00 */
-            monto: string;
-            moneda?: components["schemas"]["MaestroMoneda.jsonld"];
-            /** @enum {string|null} */
-            modalidad?: "privado" | "compartido" | null;
-            /** @enum {string|null} */
-            procedencia?: "nacional" | "extranjero" | "can" | null;
-            edadMinima?: number | null;
-            edadMaxima?: number | null;
-            capacidadMinima?: number | null;
-            capacidadMaxima?: number | null;
-            /** @description Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero. */
-            costoPorGrupo?: boolean;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelTarifa.jsonld-componente.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 0.00 */
-            monto: string;
-            moneda?: components["schemas"]["MaestroMoneda.jsonld-componente.item.read"];
-            /** @enum {string|null} */
-            modalidad?: "privado" | "compartido" | null;
-            /** @enum {string|null} */
-            procedencia?: "nacional" | "extranjero" | "can" | null;
-            edadMinima?: number | null;
-            edadMaxima?: number | null;
-            capacidadMinima?: number | null;
-            capacidadMaxima?: number | null;
-            /** @description Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero. */
-            costoPorGrupo?: boolean;
-        };
-        "TravelTarifa.multipart": {
-            /**
-             * Format: iri-reference
-             * @example https://example.com/
-             */
-            componente?: string;
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 0.00 */
-            monto: string;
-            moneda?: components["schemas"]["MaestroMoneda.multipart"];
-            /** @enum {string|null} */
-            modalidad?: "privado" | "compartido" | null;
-            /** @enum {string|null} */
-            procedencia?: "nacional" | "extranjero" | "can" | null;
-            edadMinima?: number | null;
-            edadMaxima?: number | null;
-            capacidadMinima?: number | null;
-            capacidadMaxima?: number | null;
-            /** @description Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero. */
-            costoPorGrupo?: boolean;
-            /** Format: uuid */
-            readonly id?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            /**
-             * @description Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecución.
-             * @default true
-             */
-            ejecutarTraduccion: boolean;
-            /** @description Flag físico (mapeado en BD) para controlar la sobreescritura y "despertar" a Doctrine. */
-            sobreescribirTraduccion?: boolean;
-        };
-        "TravelTarifa.multipart-componente.item.read": {
-            nombreInterno?: string;
-            titulo?: string[];
-            /** @default 0.00 */
-            monto: string;
-            moneda?: components["schemas"]["MaestroMoneda.multipart-componente.item.read"];
-            /** @enum {string|null} */
-            modalidad?: "privado" | "compartido" | null;
-            /** @enum {string|null} */
-            procedencia?: "nacional" | "extranjero" | "can" | null;
-            edadMinima?: number | null;
-            edadMaxima?: number | null;
-            capacidadMinima?: number | null;
-            capacidadMaxima?: number | null;
-            /** @description Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero. */
-            costoPorGrupo?: boolean;
+            /** @description Obtiene el orden de visualización de la imagen. */
+            orden?: number;
+            /** @description Indica si esta imagen es la portada principal del segmento. */
+            isPortada?: boolean;
+            /** @description Propiedad virtual para exponer la URL completa de la imagen. */
+            imageUrl?: string | null;
         };
         "UiI18n-pax.read": {
             /** @description Natural Key: El identificador único de la traducción (ej: 'res_checkin') */
@@ -7112,6 +7742,241 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
                 };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_filedocumentos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new CotizacionFiledocumento resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["CotizacionFiledocumento-file.write"];
+                "multipart/form-data": components["schemas"]["CotizacionFiledocumento-file.write"];
+            };
+        };
+        responses: {
+            /** @description CotizacionFiledocumento resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionFiledocumento.jsonld"];
+                    "application/json": components["schemas"]["CotizacionFiledocumento"];
+                    "text/html": components["schemas"]["CotizacionFiledocumento.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionFiledocumento.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_filedocumentos_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionFiledocumento identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionFiledocumento resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_filepasajeros_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new CotizacionFilepasajero resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["CotizacionFilepasajero-file.write"];
+                "application/json": components["schemas"]["CotizacionFilepasajero-file.write"];
+                "text/html": components["schemas"]["CotizacionFilepasajero-file.write"];
+                "multipart/form-data": components["schemas"]["CotizacionFilepasajero-file.write"];
+            };
+        };
+        responses: {
+            /** @description CotizacionFilepasajero resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionFilepasajero.jsonld"];
+                    "application/json": components["schemas"]["CotizacionFilepasajero"];
+                    "text/html": components["schemas"]["CotizacionFilepasajero.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_filepasajeros_id_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionFilepasajero identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated CotizacionFilepasajero resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["CotizacionFilepasajero-file.write"];
+                "application/json": components["schemas"]["CotizacionFilepasajero-file.write"];
+                "text/html": components["schemas"]["CotizacionFilepasajero-file.write"];
+                "multipart/form-data": components["schemas"]["CotizacionFilepasajero-file.write"];
+            };
+        };
+        responses: {
+            /** @description CotizacionFilepasajero resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionFilepasajero.jsonld"];
+                    "application/json": components["schemas"]["CotizacionFilepasajero"];
+                    "text/html": components["schemas"]["CotizacionFilepasajero.html"];
+                    "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_filepasajeros_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionFilepasajero identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionFilepasajero resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Not found */
             404: {
@@ -8842,6 +9707,93 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_traveltarifas_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tarifa collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["Tarifa.jsonld-componente.item.read"][];
+                    };
+                    "application/json": components["schemas"]["Tarifa-componente.item.read"][];
+                    "text/html": components["schemas"]["Tarifa.html-componente.item.read"][];
+                    "multipart/form-data": components["schemas"]["Tarifa.multipart-componente.item.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_traveltarifas_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tarifa identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tarifa resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Tarifa.jsonld-componente.item.read"];
+                    "application/json": components["schemas"]["Tarifa-componente.item.read"];
+                    "text/html": components["schemas"]["Tarifa.html-componente.item.read"];
+                    "multipart/form-data": components["schemas"]["Tarifa.multipart-componente.item.read"];
+                };
             };
             /** @description Forbidden */
             403: {

@@ -60,10 +60,29 @@ vich_uploader:
             delete_on_update: true
             delete_on_remove: true
 
-
         message_attachments:
             uri_prefix: '%message.path.message_attachments%'
             upload_destination: '%app.public_dir%%message.path.message_attachments%'
+            namer: App\Panel\Naming\MediaTokenNamer
+
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
+
+        travel_segmento_imagenes:
+            uri_prefix: '%travel.path.segmento_imagenes%'
+            upload_destination: '%app.public_dir%%travel.path.segmento_imagenes%'
+            namer: App\Panel\Naming\MediaTokenNamer
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
+
+        cotizacion_file_documentos:
+            # Puedes usar un parámetro en services.yaml o escribir la ruta directamente
+            uri_prefix: '%cotizacion.path.file_documentos%'
+            upload_destination: '%app.public_dir%%cotizacion.path.file_documentos%'
+
+            # Universal: Usa el token del MediaTrait (TOKEN_nombre.ext)
             namer: App\Panel\Naming\MediaTokenNamer
 
             inject_on_load: false

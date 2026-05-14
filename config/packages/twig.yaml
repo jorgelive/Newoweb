@@ -4,6 +4,7 @@ twig:
 
         pax_host_url: '%pax_host_url%'
         pax_book_guide_url: '%pax_book_guide_url%'
+        travel_segmento_imagenes_path: '%travel.path.segmento_imagenes%' #como ejemplo
 
 
         numero_default: "%numero_default%"

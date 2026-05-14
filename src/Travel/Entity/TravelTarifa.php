@@ -19,9 +19,10 @@ use App\Travel\Enum\TarifaProcedenciaEnum;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
-#[ORM\Entity]
-#[ORM\Table(name: 'travel_tarifa')]
-#[ORM\HasLifecycleCallbacks]
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+
+#[ApiFilter(SearchFilter::class, properties: ['id' => 'exact'])]
 #[ApiResource(
     shortName: 'Tarifa',
     operations: [
@@ -35,6 +36,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
     ],
     routePrefix: '/travel'
 )]
+#[ORM\Entity]
+#[ORM\Table(name: 'travel_tarifa')]
+#[ORM\HasLifecycleCallbacks]
 class TravelTarifa
 {
     use IdTrait;

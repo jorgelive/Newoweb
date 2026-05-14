@@ -45,6 +45,16 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return `${newDate}T${timePart}`;
     };
 
+    // 🔥 NUEVO: Función que calcula la distancia exacta entre el inicio y el fin
+    const getDuracionMs = (inicioIso: string, finIso: string, defaultHoras = 1): number => {
+        if (inicioIso && finIso) {
+            const oS = new Date(inicioIso).getTime();
+            const oE = new Date(finIso).getTime();
+            if (!isNaN(oS) && !isNaN(oE) && oE >= oS) return oE - oS;
+        }
+        return defaultHoras * 60 * 60 * 1000;
+    };
+
     const calcularDiaRelativo = (fechaBase: string, fechaObjetivo: string): number => {
         const d1 = new Date(fechaBase + 'T12:00:00Z');
         const d2 = new Date(fechaObjetivo + 'T12:00:00Z');
@@ -170,7 +180,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     };
 
     // ============================================================================
-    // 🔥 CLASIFICADOR FINANCIERO EXACTO CON RASTREADOR DE CONFLICTOS
+    // 🔥 CLASIFICADOR FINANCIERO EXACTO
     // ============================================================================
 
     const resumenFinanciero = computed(() => {
@@ -423,7 +433,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     });
 
     // ============================================================================
-    // INICIALIZACIÓN Y HIDRATACIÓN PROFUNDA PARALELIZADA
+    // INICIALIZACIÓN
     // ============================================================================
 
     const inicializarEditor = async (fileId: string, cotizacionId: string) => {
@@ -604,13 +614,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                                 : extractIdStr(c.cotsegmento.id || c.cotsegmento['@id']);
                         }
 
-                        // Agendar Insumos Faltantes (Previene el Network Spam en la UI)
                         const cId = extractIdStr(c.componenteMaestroId);
                         if (cId && cId.length === 36 && !catalogos.value.allComponentes.some((catC: any) => extractIdStr(catC.id || catC['@id']) === cId)) {
                             componentesToFetch.add(cId);
                         }
 
-                        // Agendar Tarifas Faltantes
                         if (c.cottarifas && Array.isArray(c.cottarifas)) {
                             c.cottarifas.forEach((t: any) => {
                                 const tId = extractIdStr(t.tarifaMaestraId);
@@ -624,7 +632,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 }
             });
 
-            // 🔥 DISPARO PARALELO DE PETICIONES DE HIDRATACIÓN
             const fetchPromises: Promise<any>[] = [];
 
             if (componentesToFetch.size > 0) {
@@ -654,7 +661,6 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 });
             }
 
-            // Esperar a que toda la base de conocimientos esté descargada
             await Promise.all(fetchPromises);
 
             cotizacion.value = data;
@@ -1380,6 +1386,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    // 🔥 BLINDAJE 1: Cuando cambia la fecha de TODO el servicio
     const onServicioFechaChange = (): void => {
         if (!dataActiva.value || !dataActiva.value.fechaInicioAbsoluta) return;
         const nuevaFechaBase = getFechaLimpia(dataActiva.value.fechaInicioAbsoluta);
@@ -1387,12 +1394,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         if (dataActiva.value.cotcomponentes && Array.isArray(dataActiva.value.cotcomponentes)) {
             dataActiva.value.cotcomponentes.forEach((comp: any) => {
                 if (comp.fechaHoraInicio) {
+                    const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
+
                     const horaActual = comp.fechaHoraInicio.split('T')[1] || '08:00';
                     comp.fechaHoraInicio = `${nuevaFechaBase}T${horaActual}`;
-                    const targetId = extractIdStr(comp.componenteMaestroId);
-                    const cMaestro = catalogos.value.allComponentes.find(c => extractIdStr(c.id) === targetId || extractIdStr(c['@id']) === targetId);
-                    const duracion = cMaestro?.duracion !== undefined ? parseFloat(cMaestro.duracion) : 1;
-                    comp.fechaHoraFin = addDurationToDate(comp.fechaHoraInicio, duracion);
+
+                    const nS = new Date(comp.fechaHoraInicio).getTime();
+                    const nE = new Date(nS + duracionMs);
+                    const offH = nE.getTimezoneOffset() * 60000;
+                    comp.fechaHoraFin = (new Date(nE.getTime() - offH)).toISOString().slice(0, 16);
                 }
             });
         }
@@ -1436,6 +1446,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
     };
 
+    // 🔥 BLINDAJE 2: Cuando cambias el "Día" de un párrafo de Storytelling
     const onSegmentoDiaChange = (servicioId: string, segmentoId: string, nuevoDiaStr: string | number) => {
         const nuevoDia = parseInt(String(nuevoDiaStr)) || 1;
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
@@ -1458,28 +1469,41 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 const segId = comp.cotsegmentoId || (comp.cotsegmento ? extractIdStr(comp.cotsegmento.id || comp.cotsegmento['@id'] || comp.cotsegmento) : null);
 
                 if(segId === segmentoId) {
-                    if(comp.fechaHoraInicio) comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, nuevaFechaAbs);
-                    if(comp.fechaHoraFin) comp.fechaHoraFin = replaceDateKeepTime(comp.fechaHoraFin, nuevaFechaAbs);
+                    const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
 
-                    const targetId = extractIdStr(comp.componenteMaestroId);
-                    const maestro = catalogos.value.allComponentes.find((c: any) => extractIdStr(c.id) === targetId || extractIdStr(c['@id']) === targetId);
-                    const duracion = maestro?.duracion !== undefined ? parseFloat(maestro.duracion) : 1;
-                    comp.fechaHoraFin = addDurationToDate(comp.fechaHoraInicio, duracion);
+                    if(comp.fechaHoraInicio) comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, nuevaFechaAbs);
+
+                    if(comp.fechaHoraInicio) {
+                        const nS = new Date(comp.fechaHoraInicio).getTime();
+                        const nE = new Date(nS + duracionMs);
+                        const off = nE.getTimezoneOffset() * 60000;
+                        comp.fechaHoraFin = (new Date(nE.getTime() - off)).toISOString().slice(0, 16);
+                    }
                 }
             });
             ordenarComponentesCronologicamente(servicio.cotcomponentes);
         }
     };
 
+    // 🔥 BLINDAJE 3: La nueva función para el input manual de la vista
+    const actualizarInicioManteniendoRango = (nuevoInicioStr: string): void => {
+        if (!dataActiva.value || !nuevoInicioStr) return;
+
+        const duracionMs = getDuracionMs(dataActiva.value.fechaHoraInicio, dataActiva.value.fechaHoraFin);
+
+        dataActiva.value.fechaHoraInicio = nuevoInicioStr;
+
+        const newStartMs = new Date(nuevoInicioStr).getTime();
+        const newEndObj = new Date(newStartMs + duracionMs);
+        const offset = newEndObj.getTimezoneOffset() * 60000;
+        dataActiva.value.fechaHoraFin = (new Date(newEndObj.getTime() - offset)).toISOString().slice(0, 16);
+
+        onComponenteFechasChange(false);
+    };
+
+    // 🔥 BLINDAJE 4: Cuando se propagan los tiempos a los "Insumos hermanos"
     const onComponenteFechasChange = (esCambioInicio: boolean = true): void => {
         if (!dataActiva.value) return;
-
-        if (esCambioInicio && dataActiva.value.fechaHoraInicio) {
-            const targetId = extractIdStr(dataActiva.value.componenteMaestroId);
-            const maestro = catalogos.value.allComponentes.find((c: any) => extractIdStr(c.id) === targetId || extractIdStr(c['@id']) === targetId);
-            const duracion = maestro?.duracion !== undefined ? parseFloat(maestro.duracion) : 1;
-            dataActiva.value.fechaHoraFin = addDurationToDate(dataActiva.value.fechaHoraInicio, duracion);
-        }
 
         if (dataActiva.value.fechaHoraInicio && dataActiva.value.fechaHoraFin) {
             dataActiva.value.cantidad = calcularPernoctes(dataActiva.value.fechaHoraInicio, dataActiva.value.fechaHoraFin);
@@ -1502,12 +1526,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         const hermanoSegId = comp.cotsegmentoId || (comp.cotsegmento ? extractIdStr(comp.cotsegmento.id || comp.cotsegmento['@id'] || comp.cotsegmento) : null);
 
                         if (hermanoSegId === segmentoPadre.id && comp.id !== dataActiva.value.id) {
+                            const duracionMs = getDuracionMs(comp.fechaHoraInicio, comp.fechaHoraFin);
+
                             comp.fechaHoraInicio = replaceDateKeepTime(comp.fechaHoraInicio, nuevaFechaDateStr);
 
-                            const targetIdH = extractIdStr(comp.componenteMaestroId);
-                            const maestroH = catalogos.value.allComponentes.find((c: any) => extractIdStr(c.id) === targetIdH || extractIdStr(c['@id']) === targetIdH);
-                            const duracionH = maestroH?.duracion !== undefined ? parseFloat(maestroH.duracion) : 1;
-                            comp.fechaHoraFin = addDurationToDate(comp.fechaHoraInicio, duracionH);
+                            const nS = new Date(comp.fechaHoraInicio).getTime();
+                            const nE = new Date(nS + duracionMs);
+                            const offH = nE.getTimezoneOffset() * 60000;
+                            comp.fechaHoraFin = (new Date(nE.getTime() - offH)).toISOString().slice(0, 16);
                         }
                     });
                 }
@@ -1550,6 +1576,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         abrirEditorSegmentos, cerrarEditorSegmentos, aplicarPlantilla,
         agregarSegmentoIndividual, procesarInsercionSegmento, removerCotSegmento,
         onServicioMaestroChange, onServicioFechaChange, onComponenteMaestroChange,
-        onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange
+        onComponenteFechasChange, onSegmentoDiaChange, onTarifaMaestraChange,
+        actualizarInicioManteniendoRango
     };
 });

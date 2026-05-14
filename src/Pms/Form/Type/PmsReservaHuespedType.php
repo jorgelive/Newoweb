@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Pms\Form\Type;
 
 use App\Entity\Maestro\MaestroPais;
-use App\Entity\Maestro\MaestroDocumentoTipo;
+use App\Enum\DocumentoTipoEnum;
 use App\Pms\Entity\PmsReservaHuesped;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -61,16 +62,13 @@ class PmsReservaHuespedType extends AbstractType
                         ->orderBy('p.nombre', 'ASC');
                 },
             ])
-            ->add('tipoDocumento', EntityType::class, [
+            // 🔥 ACTUALIZADO: Ahora usa EnumType en lugar de EntityType
+            ->add('tipoDocumento', EnumType::class, [
                 'label'         => 'Tipo Doc.',
-                'class'         => MaestroDocumentoTipo::class,
-                'choice_label'  => 'nombre',
+                'class'         => DocumentoTipoEnum::class,
+                'choice_label'  => fn(DocumentoTipoEnum $choice) => $choice->getLabel(),
                 'placeholder'   => 'Seleccione...',
                 'attr'          => ['class' => 'form-select'],
-                'query_builder' => function (EntityRepository $er) {
-                    return $er->createQueryBuilder('td')
-                        ->orderBy('td.nombre', 'ASC');
-                },
             ])
             ->add('documentoNumero', TextType::class, [
                 'label' => 'Nº Documento',

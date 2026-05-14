@@ -2225,6 +2225,449 @@
                 ]
             }
         },
+        "/platform/sales/cotizacion_filedocumentos": {
+            "post": {
+                "operationId": "api_salescotizacion_filedocumentos_post",
+                "tags": [
+                    "CotizacionFiledocumento"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "CotizacionFiledocumento resource created",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFiledocumento.jsonld"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFiledocumento"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFiledocumento.html"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFiledocumento.multipart"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Creates a CotizacionFiledocumento resource.",
+                "description": "Creates a CotizacionFiledocumento resource.",
+                "parameters": [],
+                "requestBody": {
+                    "description": "The new CotizacionFiledocumento resource",
+                    "content": {
+                        "application/ld+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFiledocumento-file.write"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFiledocumento-file.write"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            }
+        },
+        "/platform/sales/cotizacion_filedocumentos/{id}": {
+            "delete": {
+                "operationId": "api_salescotizacion_filedocumentos_id_delete",
+                "tags": [
+                    "CotizacionFiledocumento"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "CotizacionFiledocumento resource deleted"
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Removes the CotizacionFiledocumento resource.",
+                "description": "Removes the CotizacionFiledocumento resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "CotizacionFiledocumento identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
+        "/platform/sales/cotizacion_filepasajeros": {
+            "post": {
+                "operationId": "api_salescotizacion_filepasajeros_post",
+                "tags": [
+                    "CotizacionFilepasajero"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "CotizacionFilepasajero resource created",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero.jsonld"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero.html"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero.multipart"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Creates a CotizacionFilepasajero resource.",
+                "description": "Creates a CotizacionFilepasajero resource.",
+                "parameters": [],
+                "requestBody": {
+                    "description": "The new CotizacionFilepasajero resource",
+                    "content": {
+                        "application/ld+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFilepasajero-file.write"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFilepasajero-file.write"
+                            }
+                        },
+                        "text/html": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFilepasajero-file.write"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFilepasajero-file.write"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            }
+        },
+        "/platform/sales/cotizacion_filepasajeros/{id}": {
+            "put": {
+                "operationId": "api_salescotizacion_filepasajeros_id_put",
+                "tags": [
+                    "CotizacionFilepasajero"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CotizacionFilepasajero resource updated",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero.jsonld"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero.html"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CotizacionFilepasajero.multipart"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "422": {
+                        "description": "An error occurred",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConstraintViolation"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Replaces the CotizacionFilepasajero resource.",
+                "description": "Replaces the CotizacionFilepasajero resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "CotizacionFilepasajero identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ],
+                "requestBody": {
+                    "description": "The updated CotizacionFilepasajero resource",
+                    "content": {
+                        "application/ld+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFilepasajero-file.write"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFilepasajero-file.write"
+                            }
+                        },
+                        "text/html": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFilepasajero-file.write"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CotizacionFilepasajero-file.write"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            },
+            "delete": {
+                "operationId": "api_salescotizacion_filepasajeros_id_delete",
+                "tags": [
+                    "CotizacionFilepasajero"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "CotizacionFilepasajero resource deleted"
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Removes the CotizacionFilepasajero resource.",
+                "description": "Removes the CotizacionFilepasajero resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "CotizacionFilepasajero identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
         "/platform/sales/cotizacion_segmentos/{id}": {
             "get": {
                 "operationId": "api_salescotizacion_segmentos_id_get",
@@ -5897,6 +6340,201 @@
                 ]
             }
         },
+        "/platform/travel/tarifas": {
+            "get": {
+                "operationId": "api_traveltarifas_get_collection",
+                "tags": [
+                    "Tarifa"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tarifa collection",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "description": "Tarifa.jsonld-componente.item.read collection.",
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/HydraCollectionBaseSchema"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "member"
+                                            ],
+                                            "properties": {
+                                                "member": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/Tarifa.jsonld-componente.item.read"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Tarifa-componente.item.read"
+                                    }
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Tarifa.html-componente.item.read"
+                                    }
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Tarifa.multipart-componente.item.read"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves the collection of Tarifa resources.",
+                "description": "Retrieves the collection of Tarifa resources.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "The collection page number",
+                        "required": false,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        },
+                        "style": "form",
+                        "explode": false
+                    }
+                ]
+            }
+        },
+        "/platform/travel/tarifas/{id}": {
+            "get": {
+                "operationId": "api_traveltarifas_id_get",
+                "tags": [
+                    "Tarifa"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tarifa resource",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Tarifa.jsonld-componente.item.read"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Tarifa-componente.item.read"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Tarifa.html-componente.item.read"
+                                }
+                            },
+                            "multipart/form-data": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Tarifa.multipart-componente.item.read"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/ld+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error.jsonld"
+                                }
+                            },
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "links": {}
+                    }
+                },
+                "summary": "Retrieves a Tarifa resource.",
+                "description": "Retrieves a Tarifa resource.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Tarifa identifier",
+                        "required": true,
+                        "deprecated": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "style": "simple",
+                        "explode": false
+                    }
+                ]
+            }
+        },
         "/platform/message/templates": {
             "get": {
                 "operationId": "api_messagetemplates_get_collection",
@@ -6350,7 +6988,9 @@
                         "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/TravelTarifa"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "servicios": {
@@ -6451,7 +7091,7 @@
                         "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/TravelTarifa-componente.item.read"
+                            "$ref": "#/components/schemas/Tarifa-componente.item.read"
                         }
                     },
                     "id": {
@@ -6581,7 +7221,7 @@
                         "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/TravelTarifa-componente.write"
+                            "$ref": "#/components/schemas/Tarifa-componente.write"
                         }
                     }
                 }
@@ -6703,7 +7343,9 @@
                         "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/TravelTarifa.html"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "servicios": {
@@ -6804,7 +7446,7 @@
                         "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/TravelTarifa.html-componente.item.read"
+                            "$ref": "#/components/schemas/Tarifa.html-componente.item.read"
                         }
                     },
                     "id": {
@@ -6996,7 +7638,9 @@
                                 "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/components/schemas/TravelTarifa.jsonld"
+                                    "type": "string",
+                                    "format": "iri-reference",
+                                    "example": "https://example.com/"
                                 }
                             },
                             "servicios": {
@@ -7104,7 +7748,7 @@
                                 "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/components/schemas/TravelTarifa.jsonld-componente.item.read"
+                                    "$ref": "#/components/schemas/Tarifa.jsonld-componente.item.read"
                                 }
                             },
                             "id": {
@@ -7309,7 +7953,9 @@
                         "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/TravelTarifa.multipart"
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
                         }
                     },
                     "servicios": {
@@ -7410,7 +8056,7 @@
                         "description": "\ud83d\udc47 CASCADA HACIA ABAJO (Tarifas)",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/TravelTarifa.multipart-componente.item.read"
+                            "$ref": "#/components/schemas/Tarifa.multipart-componente.item.read"
                         }
                     },
                     "id": {
@@ -11607,6 +12253,22 @@
                             "example": "https://example.com/"
                         }
                     },
+                    "filepasajeros": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "filedocumentos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -11700,6 +12362,18 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Cotizacion-file.read_file.item.read_timestamp.read"
+                        }
+                    },
+                    "filepasajeros": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionFilepasajero-file.read_file.item.read_timestamp.read"
+                        }
+                    },
+                    "filedocumentos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionFiledocumento-file.read_file.item.read_timestamp.read"
                         }
                     },
                     "createdAt": {
@@ -11877,6 +12551,22 @@
                             "example": "https://example.com/"
                         }
                     },
+                    "filepasajeros": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "filedocumentos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -11970,6 +12660,18 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/Cotizacion.html-file.read_file.item.read_timestamp.read"
+                        }
+                    },
+                    "filepasajeros": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"
+                        }
+                    },
+                    "filedocumentos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionFiledocumento.html-file.read_file.item.read_timestamp.read"
                         }
                     },
                     "createdAt": {
@@ -12104,6 +12806,22 @@
                                     "example": "https://example.com/"
                                 }
                             },
+                            "filepasajeros": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "format": "iri-reference",
+                                    "example": "https://example.com/"
+                                }
+                            },
+                            "filedocumentos": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "format": "iri-reference",
+                                    "example": "https://example.com/"
+                                }
+                            },
                             "id": {
                                 "readOnly": true,
                                 "type": [
@@ -12213,22 +12931,36 @@
                                 "items": {
                                     "$ref": "#/components/schemas/Cotizacion.jsonld-file.read_file.item.read_timestamp.read"
                                 }
-                            },
-                            "createdAt": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updatedAt": {
-                                "type": [
-                                    "string",
-                                    "null"
-                                ],
-                                "format": "date-time"
                             }
                         }
                     }
                 ],
-                "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo."
+                "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo.",
+                "properties": {
+                    "filepasajeros": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"
+                        }
+                    },
+                    "filedocumentos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionFiledocumento.jsonld-file.read_file.item.read_timestamp.read"
+                        }
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
             },
             "CotizacionFile.jsonld-file.read_timestamp.read": {
                 "allOf": [
@@ -12352,6 +13084,22 @@
                             "example": "https://example.com/"
                         }
                     },
+                    "filepasajeros": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
+                    "filedocumentos": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "iri-reference",
+                            "example": "https://example.com/"
+                        }
+                    },
                     "id": {
                         "readOnly": true,
                         "type": [
@@ -12447,6 +13195,18 @@
                             "$ref": "#/components/schemas/Cotizacion.multipart-file.read_file.item.read_timestamp.read"
                         }
                     },
+                    "filepasajeros": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"
+                        }
+                    },
+                    "filedocumentos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CotizacionFiledocumento.multipart-file.read_file.item.read_timestamp.read"
+                        }
+                    },
                     "createdAt": {
                         "type": "string",
                         "format": "date-time"
@@ -12519,6 +13279,1499 @@
                             "null"
                         ],
                         "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionFiledocumento": {
+                "type": "object",
+                "properties": {
+                    "vencimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "BOLETO",
+                            "FACTURA",
+                            "RESERVA",
+                            "OTROS"
+                        ]
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "imageFile": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "binary"
+                    },
+                    "imageName": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL p\u00fablica.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "token": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "image": {
+                        "readOnly": true,
+                        "description": "Determina si el archivo es compatible con LiipImagine.",
+                        "type": "boolean"
+                    }
+                }
+            },
+            "CotizacionFiledocumento-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "vencimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "BOLETO",
+                            "FACTURA",
+                            "RESERVA",
+                            "OTROS"
+                        ]
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/CotizacionFile-file.read_file.item.read_timestamp.read"
+                    },
+                    "imageName": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL p\u00fablica.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionFiledocumento-file.write": {
+                "type": "object",
+                "properties": {
+                    "vencimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "BOLETO",
+                            "FACTURA",
+                            "RESERVA",
+                            "OTROS"
+                        ]
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/CotizacionFile-file.write"
+                    },
+                    "imageName": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "CotizacionFiledocumento.html": {
+                "type": "object",
+                "properties": {
+                    "vencimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "BOLETO",
+                            "FACTURA",
+                            "RESERVA",
+                            "OTROS"
+                        ]
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "imageFile": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "binary"
+                    },
+                    "imageName": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL p\u00fablica.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "token": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "image": {
+                        "readOnly": true,
+                        "description": "Determina si el archivo es compatible con LiipImagine.",
+                        "type": "boolean"
+                    }
+                }
+            },
+            "CotizacionFiledocumento.html-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "vencimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "BOLETO",
+                            "FACTURA",
+                            "RESERVA",
+                            "OTROS"
+                        ]
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/CotizacionFile.html-file.read_file.item.read_timestamp.read"
+                    },
+                    "imageName": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL p\u00fablica.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionFiledocumento.jsonld": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "vencimiento": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "tipodocumento": {
+                                "type": "string",
+                                "enum": [
+                                    "BOLETO",
+                                    "FACTURA",
+                                    "RESERVA",
+                                    "OTROS"
+                                ]
+                            },
+                            "file": {
+                                "type": "string",
+                                "format": "iri-reference",
+                                "example": "https://example.com/"
+                            },
+                            "imageFile": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "binary"
+                            },
+                            "imageName": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "imageSize": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "imageUrl": {
+                                "description": "Propiedad virtual para exponer la URL p\u00fablica.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "id": {
+                                "readOnly": true,
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "uuid"
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "token": {
+                                "readOnly": true,
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "image": {
+                                "readOnly": true,
+                                "description": "Determina si el archivo es compatible con LiipImagine.",
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                ]
+            },
+            "CotizacionFiledocumento.jsonld-file.read_file.item.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "vencimiento": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "tipodocumento": {
+                                "type": "string",
+                                "enum": [
+                                    "BOLETO",
+                                    "FACTURA",
+                                    "RESERVA",
+                                    "OTROS"
+                                ]
+                            },
+                            "file": {
+                                "$ref": "#/components/schemas/CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"
+                            },
+                            "imageName": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "imageSize": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "imageUrl": {
+                                "description": "Propiedad virtual para exponer la URL p\u00fablica.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                ]
+            },
+            "CotizacionFiledocumento.multipart": {
+                "type": "object",
+                "properties": {
+                    "vencimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "BOLETO",
+                            "FACTURA",
+                            "RESERVA",
+                            "OTROS"
+                        ]
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "imageFile": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "binary"
+                    },
+                    "imageName": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL p\u00fablica.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "token": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "image": {
+                        "readOnly": true,
+                        "description": "Determina si el archivo es compatible con LiipImagine.",
+                        "type": "boolean"
+                    }
+                }
+            },
+            "CotizacionFiledocumento.multipart-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "vencimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "BOLETO",
+                            "FACTURA",
+                            "RESERVA",
+                            "OTROS"
+                        ]
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/CotizacionFile.multipart-file.read_file.item.read_timestamp.read"
+                    },
+                    "imageName": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "imageSize": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL p\u00fablica.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CotizacionFilepasajero": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "apellido": {
+                        "type": "string"
+                    },
+                    "pais": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "sexo": {
+                        "type": "string",
+                        "enum": [
+                            "M",
+                            "F"
+                        ]
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "DNI",
+                            "CE",
+                            "RUC",
+                            "PASAPORTE",
+                            "CI"
+                        ]
+                    },
+                    "fechanacimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "numerodocumento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "apellidoPaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el primer bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "apellidoMaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el segundo bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "edad": {
+                        "readOnly": true,
+                        "description": "Calcula la edad actual basada en la fecha de nacimiento.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "tipopaxperurail": {
+                        "readOnly": true,
+                        "description": "Devuelve el c\u00f3digo de tipo de pasajero seg\u00fan las reglas de PeruRail.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "categoriaddc": {
+                        "readOnly": true,
+                        "description": "Devuelve la categor\u00eda tarifaria seg\u00fan la Direcci\u00f3n Desconcentrada de Cultura (DDC).",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "CotizacionFilepasajero-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "apellido": {
+                        "type": "string"
+                    },
+                    "pais": {
+                        "$ref": "#/components/schemas/Pais-file.read_file.item.read_timestamp.read"
+                    },
+                    "sexo": {
+                        "type": "string",
+                        "enum": [
+                            "M",
+                            "F"
+                        ]
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "DNI",
+                            "CE",
+                            "RUC",
+                            "PASAPORTE",
+                            "CI"
+                        ]
+                    },
+                    "fechanacimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "numerodocumento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/CotizacionFile-file.read_file.item.read_timestamp.read"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "apellidoPaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el primer bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "apellidoMaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el segundo bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "edad": {
+                        "readOnly": true,
+                        "description": "Calcula la edad actual basada en la fecha de nacimiento.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "tipopaxperurail": {
+                        "readOnly": true,
+                        "description": "Devuelve el c\u00f3digo de tipo de pasajero seg\u00fan las reglas de PeruRail.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "categoriaddc": {
+                        "readOnly": true,
+                        "description": "Devuelve la categor\u00eda tarifaria seg\u00fan la Direcci\u00f3n Desconcentrada de Cultura (DDC).",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "CotizacionFilepasajero-file.write": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "apellido": {
+                        "type": "string"
+                    },
+                    "pais": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "sexo": {
+                        "type": "string",
+                        "enum": [
+                            "M",
+                            "F"
+                        ]
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "DNI",
+                            "CE",
+                            "RUC",
+                            "PASAPORTE",
+                            "CI"
+                        ]
+                    },
+                    "fechanacimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "numerodocumento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/CotizacionFile-file.write"
+                    }
+                }
+            },
+            "CotizacionFilepasajero.html": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "apellido": {
+                        "type": "string"
+                    },
+                    "pais": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "sexo": {
+                        "type": "string",
+                        "enum": [
+                            "M",
+                            "F"
+                        ]
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "DNI",
+                            "CE",
+                            "RUC",
+                            "PASAPORTE",
+                            "CI"
+                        ]
+                    },
+                    "fechanacimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "numerodocumento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "apellidoPaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el primer bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "apellidoMaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el segundo bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "edad": {
+                        "readOnly": true,
+                        "description": "Calcula la edad actual basada en la fecha de nacimiento.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "tipopaxperurail": {
+                        "readOnly": true,
+                        "description": "Devuelve el c\u00f3digo de tipo de pasajero seg\u00fan las reglas de PeruRail.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "categoriaddc": {
+                        "readOnly": true,
+                        "description": "Devuelve la categor\u00eda tarifaria seg\u00fan la Direcci\u00f3n Desconcentrada de Cultura (DDC).",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "apellido": {
+                        "type": "string"
+                    },
+                    "pais": {
+                        "$ref": "#/components/schemas/Pais.html-file.read_file.item.read_timestamp.read"
+                    },
+                    "sexo": {
+                        "type": "string",
+                        "enum": [
+                            "M",
+                            "F"
+                        ]
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "DNI",
+                            "CE",
+                            "RUC",
+                            "PASAPORTE",
+                            "CI"
+                        ]
+                    },
+                    "fechanacimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "numerodocumento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/CotizacionFile.html-file.read_file.item.read_timestamp.read"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "apellidoPaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el primer bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "apellidoMaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el segundo bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "edad": {
+                        "readOnly": true,
+                        "description": "Calcula la edad actual basada en la fecha de nacimiento.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "tipopaxperurail": {
+                        "readOnly": true,
+                        "description": "Devuelve el c\u00f3digo de tipo de pasajero seg\u00fan las reglas de PeruRail.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "categoriaddc": {
+                        "readOnly": true,
+                        "description": "Devuelve la categor\u00eda tarifaria seg\u00fan la Direcci\u00f3n Desconcentrada de Cultura (DDC).",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "CotizacionFilepasajero.jsonld": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombre": {
+                                "type": "string"
+                            },
+                            "apellido": {
+                                "type": "string"
+                            },
+                            "pais": {
+                                "type": "string",
+                                "format": "iri-reference",
+                                "example": "https://example.com/"
+                            },
+                            "sexo": {
+                                "type": "string",
+                                "enum": [
+                                    "M",
+                                    "F"
+                                ]
+                            },
+                            "tipodocumento": {
+                                "type": "string",
+                                "enum": [
+                                    "DNI",
+                                    "CE",
+                                    "RUC",
+                                    "PASAPORTE",
+                                    "CI"
+                                ]
+                            },
+                            "fechanacimiento": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "numerodocumento": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "file": {
+                                "type": "string",
+                                "format": "iri-reference",
+                                "example": "https://example.com/"
+                            },
+                            "id": {
+                                "readOnly": true,
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "uuid"
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "apellidoPaterno": {
+                                "readOnly": true,
+                                "description": "Obtiene el primer bloque del apellido.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "apellidoMaterno": {
+                                "readOnly": true,
+                                "description": "Obtiene el segundo bloque del apellido.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "edad": {
+                                "readOnly": true,
+                                "description": "Calcula la edad actual basada en la fecha de nacimiento.",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "tipopaxperurail": {
+                                "readOnly": true,
+                                "description": "Devuelve el c\u00f3digo de tipo de pasajero seg\u00fan las reglas de PeruRail.",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "categoriaddc": {
+                                "readOnly": true,
+                                "description": "Devuelve la categor\u00eda tarifaria seg\u00fan la Direcci\u00f3n Desconcentrada de Cultura (DDC).",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                ]
+            },
+            "CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombre": {
+                                "type": "string"
+                            },
+                            "apellido": {
+                                "type": "string"
+                            },
+                            "pais": {
+                                "$ref": "#/components/schemas/Pais.jsonld-file.read_file.item.read_timestamp.read"
+                            },
+                            "sexo": {
+                                "type": "string",
+                                "enum": [
+                                    "M",
+                                    "F"
+                                ]
+                            },
+                            "tipodocumento": {
+                                "type": "string",
+                                "enum": [
+                                    "DNI",
+                                    "CE",
+                                    "RUC",
+                                    "PASAPORTE",
+                                    "CI"
+                                ]
+                            },
+                            "fechanacimiento": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "numerodocumento": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "file": {
+                                "$ref": "#/components/schemas/CotizacionFile.jsonld-file.read_file.item.read_timestamp.read"
+                            },
+                            "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updatedAt": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "date-time"
+                            },
+                            "apellidoPaterno": {
+                                "readOnly": true,
+                                "description": "Obtiene el primer bloque del apellido.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "apellidoMaterno": {
+                                "readOnly": true,
+                                "description": "Obtiene el segundo bloque del apellido.",
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "edad": {
+                                "readOnly": true,
+                                "description": "Calcula la edad actual basada en la fecha de nacimiento.",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "tipopaxperurail": {
+                                "readOnly": true,
+                                "description": "Devuelve el c\u00f3digo de tipo de pasajero seg\u00fan las reglas de PeruRail.",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "categoriaddc": {
+                                "readOnly": true,
+                                "description": "Devuelve la categor\u00eda tarifaria seg\u00fan la Direcci\u00f3n Desconcentrada de Cultura (DDC).",
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                ]
+            },
+            "CotizacionFilepasajero.multipart": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "apellido": {
+                        "type": "string"
+                    },
+                    "pais": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "sexo": {
+                        "type": "string",
+                        "enum": [
+                            "M",
+                            "F"
+                        ]
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "DNI",
+                            "CE",
+                            "RUC",
+                            "PASAPORTE",
+                            "CI"
+                        ]
+                    },
+                    "fechanacimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "numerodocumento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "iri-reference",
+                        "example": "https://example.com/"
+                    },
+                    "id": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "apellidoPaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el primer bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "apellidoMaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el segundo bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "edad": {
+                        "readOnly": true,
+                        "description": "Calcula la edad actual basada en la fecha de nacimiento.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "tipopaxperurail": {
+                        "readOnly": true,
+                        "description": "Devuelve el c\u00f3digo de tipo de pasajero seg\u00fan las reglas de PeruRail.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "categoriaddc": {
+                        "readOnly": true,
+                        "description": "Devuelve la categor\u00eda tarifaria seg\u00fan la Direcci\u00f3n Desconcentrada de Cultura (DDC).",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string"
+                    },
+                    "apellido": {
+                        "type": "string"
+                    },
+                    "pais": {
+                        "$ref": "#/components/schemas/Pais.multipart-file.read_file.item.read_timestamp.read"
+                    },
+                    "sexo": {
+                        "type": "string",
+                        "enum": [
+                            "M",
+                            "F"
+                        ]
+                    },
+                    "tipodocumento": {
+                        "type": "string",
+                        "enum": [
+                            "DNI",
+                            "CE",
+                            "RUC",
+                            "PASAPORTE",
+                            "CI"
+                        ]
+                    },
+                    "fechanacimiento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "numerodocumento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/CotizacionFile.multipart-file.read_file.item.read_timestamp.read"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "apellidoPaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el primer bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "apellidoMaterno": {
+                        "readOnly": true,
+                        "description": "Obtiene el segundo bloque del apellido.",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "edad": {
+                        "readOnly": true,
+                        "description": "Calcula la edad actual basada en la fecha de nacimiento.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "tipopaxperurail": {
+                        "readOnly": true,
+                        "description": "Devuelve el c\u00f3digo de tipo de pasajero seg\u00fan las reglas de PeruRail.",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "categoriaddc": {
+                        "readOnly": true,
+                        "description": "Devuelve la categor\u00eda tarifaria seg\u00fan la Direcci\u00f3n Desconcentrada de Cultura (DDC).",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -14955,31 +17208,6 @@
             "MaestroMoneda-tipocambio.read": {
                 "type": "object"
             },
-            "MaestroMoneda.html": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "nombre": {
-                        "type": "string"
-                    },
-                    "simbolo": {
-                        "type": "string"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    }
-                }
-            },
             "MaestroMoneda.html-componente.item.read": {
                 "type": "object",
                 "properties": {
@@ -14997,31 +17225,6 @@
             "MaestroMoneda.html-tipocambio.read": {
                 "type": "object"
             },
-            "MaestroMoneda.jsonld": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "nombre": {
-                        "type": "string"
-                    },
-                    "simbolo": {
-                        "type": "string"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    }
-                }
-            },
             "MaestroMoneda.jsonld-componente.item.read": {
                 "type": "object",
                 "properties": {
@@ -15038,31 +17241,6 @@
             },
             "MaestroMoneda.jsonld-tipocambio.read": {
                 "type": "object"
-            },
-            "MaestroMoneda.multipart": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "nombre": {
-                        "type": "string"
-                    },
-                    "simbolo": {
-                        "type": "string"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    }
-                }
             },
             "MaestroMoneda.multipart-componente.item.read": {
                 "type": "object",
@@ -17563,6 +19741,11 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualLogistica": {
+                        "readOnly": true,
+                        "description": "Campo virtual para EasyAdmin.",
+                        "type": "string"
                     }
                 }
             },
@@ -17765,6 +19948,11 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualLogistica": {
+                        "readOnly": true,
+                        "description": "Campo virtual para EasyAdmin.",
+                        "type": "string"
                     }
                 }
             },
@@ -17940,6 +20128,11 @@
                             "sobreescribirTraduccion": {
                                 "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                                 "type": "boolean"
+                            },
+                            "virtualLogistica": {
+                                "readOnly": true,
+                                "description": "Campo virtual para EasyAdmin.",
+                                "type": "string"
                             }
                         }
                     }
@@ -18133,6 +20326,11 @@
                     "sobreescribirTraduccion": {
                         "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
                         "type": "boolean"
+                    },
+                    "virtualLogistica": {
+                        "readOnly": true,
+                        "description": "Campo virtual para EasyAdmin.",
+                        "type": "string"
                     }
                 }
             },
@@ -18924,6 +21122,368 @@
                             "null"
                         ],
                         "format": "uuid"
+                    }
+                }
+            },
+            "Tarifa-componente.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "monto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "moneda": {
+                        "$ref": "#/components/schemas/MaestroMoneda-componente.item.read"
+                    },
+                    "modalidad": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "privado",
+                            "compartido",
+                            null
+                        ]
+                    },
+                    "procedencia": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "nacional",
+                            "extranjero",
+                            "can",
+                            null
+                        ]
+                    },
+                    "edadMinima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "edadMaxima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "capacidadMinima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "capacidadMaxima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "costoPorGrupo": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "Tarifa-componente.write": {
+                "type": "object",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "monto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "moneda": {
+                        "$ref": "#/components/schemas/MaestroMoneda-componente.write"
+                    },
+                    "modalidad": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "privado",
+                            "compartido",
+                            null
+                        ]
+                    },
+                    "procedencia": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "nacional",
+                            "extranjero",
+                            "can",
+                            null
+                        ]
+                    },
+                    "edadMinima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "edadMaxima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "capacidadMinima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "capacidadMaxima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "costoPorGrupo": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "Tarifa.html-componente.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "monto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "moneda": {
+                        "$ref": "#/components/schemas/MaestroMoneda.html-componente.item.read"
+                    },
+                    "modalidad": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "privado",
+                            "compartido",
+                            null
+                        ]
+                    },
+                    "procedencia": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "nacional",
+                            "extranjero",
+                            "can",
+                            null
+                        ]
+                    },
+                    "edadMinima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "edadMaxima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "capacidadMinima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "capacidadMaxima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "costoPorGrupo": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "Tarifa.jsonld-componente.item.read": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/HydraItemBaseSchema"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "nombreInterno": {
+                                "type": "string"
+                            },
+                            "titulo": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "monto": {
+                                "default": "0.00",
+                                "type": "string"
+                            },
+                            "moneda": {
+                                "$ref": "#/components/schemas/MaestroMoneda.jsonld-componente.item.read"
+                            },
+                            "modalidad": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "enum": [
+                                    "privado",
+                                    "compartido",
+                                    null
+                                ]
+                            },
+                            "procedencia": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "enum": [
+                                    "nacional",
+                                    "extranjero",
+                                    "can",
+                                    null
+                                ]
+                            },
+                            "edadMinima": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "edadMaxima": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "capacidadMinima": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "capacidadMaxima": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "costoPorGrupo": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                ]
+            },
+            "Tarifa.multipart-componente.item.read": {
+                "type": "object",
+                "properties": {
+                    "nombreInterno": {
+                        "type": "string"
+                    },
+                    "titulo": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "monto": {
+                        "default": "0.00",
+                        "type": "string"
+                    },
+                    "moneda": {
+                        "$ref": "#/components/schemas/MaestroMoneda.multipart-componente.item.read"
+                    },
+                    "modalidad": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "privado",
+                            "compartido",
+                            null
+                        ]
+                    },
+                    "procedencia": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "nacional",
+                            "extranjero",
+                            "can",
+                            null
+                        ]
+                    },
+                    "edadMinima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "edadMaxima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "capacidadMinima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "capacidadMaxima": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "costoPorGrupo": {
+                        "type": "boolean"
                     }
                 }
             },
@@ -20043,18 +22603,19 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
+                        "description": "Obtiene el segmento narrativo padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "componente": {
-                        "description": "\ud83d\udd25 TRUCO API PLATFORM: readableLink false.",
+                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "servicioContexto": {
-                        "description": "El contexto de uso. Igual que el componente, solo IRI.",
+                    "itinerarioContexto": {
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
@@ -20063,6 +22624,15 @@
                         "example": "https://example.com/"
                     },
                     "hora": {
+                        "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "horaFin": {
+                        "description": "Hora exacta a la que finaliza la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -20070,6 +22640,7 @@
                         "format": "date-time"
                     },
                     "modo": {
+                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -20080,6 +22651,7 @@
                         ]
                     },
                     "orden": {
+                        "description": "Orden en el que se lista dentro del segmento.",
                         "default": 1,
                         "type": "integer"
                     },
@@ -20097,13 +22669,13 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "\ud83d\udd25 TRUCO API PLATFORM: readableLink false.",
+                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "servicioContexto": {
-                        "description": "El contexto de uso. Igual que el componente, solo IRI.",
+                    "itinerarioContexto": {
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
@@ -20112,6 +22684,15 @@
                         "example": "https://example.com/"
                     },
                     "hora": {
+                        "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "horaFin": {
+                        "description": "Hora exacta a la que finaliza la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -20119,6 +22700,7 @@
                         "format": "date-time"
                     },
                     "modo": {
+                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -20129,6 +22711,7 @@
                         ]
                     },
                     "orden": {
+                        "description": "Orden en el que se lista dentro del segmento.",
                         "default": 1,
                         "type": "integer"
                     }
@@ -20138,13 +22721,13 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "\ud83d\udd25 TRUCO API PLATFORM: readableLink false.",
+                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "servicioContexto": {
-                        "description": "El contexto de uso. Igual que el componente, solo IRI.",
+                    "itinerarioContexto": {
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
@@ -20153,6 +22736,15 @@
                         "example": "https://example.com/"
                     },
                     "hora": {
+                        "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "horaFin": {
+                        "description": "Hora exacta a la que finaliza la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -20160,6 +22752,7 @@
                         "format": "date-time"
                     },
                     "modo": {
+                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -20170,6 +22763,7 @@
                         ]
                     },
                     "orden": {
+                        "description": "Orden en el que se lista dentro del segmento.",
                         "default": 1,
                         "type": "integer"
                     }
@@ -20182,18 +22776,19 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
+                        "description": "Obtiene el segmento narrativo padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "componente": {
-                        "description": "\ud83d\udd25 TRUCO API PLATFORM: readableLink false.",
+                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "servicioContexto": {
-                        "description": "El contexto de uso. Igual que el componente, solo IRI.",
+                    "itinerarioContexto": {
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
@@ -20202,6 +22797,15 @@
                         "example": "https://example.com/"
                     },
                     "hora": {
+                        "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "horaFin": {
+                        "description": "Hora exacta a la que finaliza la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -20209,6 +22813,7 @@
                         "format": "date-time"
                     },
                     "modo": {
+                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -20219,6 +22824,7 @@
                         ]
                     },
                     "orden": {
+                        "description": "Orden en el que se lista dentro del segmento.",
                         "default": 1,
                         "type": "integer"
                     },
@@ -20236,13 +22842,13 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "\ud83d\udd25 TRUCO API PLATFORM: readableLink false.",
+                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "servicioContexto": {
-                        "description": "El contexto de uso. Igual que el componente, solo IRI.",
+                    "itinerarioContexto": {
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
@@ -20251,6 +22857,15 @@
                         "example": "https://example.com/"
                     },
                     "hora": {
+                        "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "horaFin": {
+                        "description": "Hora exacta a la que finaliza la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -20258,6 +22873,7 @@
                         "format": "date-time"
                     },
                     "modo": {
+                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -20268,6 +22884,7 @@
                         ]
                     },
                     "orden": {
+                        "description": "Orden en el que se lista dentro del segmento.",
                         "default": 1,
                         "type": "integer"
                     }
@@ -20280,18 +22897,19 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
+                        "description": "Obtiene el segmento narrativo padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "componente": {
-                        "description": "\ud83d\udd25 TRUCO API PLATFORM: readableLink false.",
+                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "servicioContexto": {
-                        "description": "El contexto de uso. Igual que el componente, solo IRI.",
+                    "itinerarioContexto": {
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
@@ -20300,6 +22918,15 @@
                         "example": "https://example.com/"
                     },
                     "hora": {
+                        "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "horaFin": {
+                        "description": "Hora exacta a la que finaliza la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -20307,6 +22934,7 @@
                         "format": "date-time"
                     },
                     "modo": {
+                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -20317,6 +22945,7 @@
                         ]
                     },
                     "orden": {
+                        "description": "Orden en el que se lista dentro del segmento.",
                         "default": 1,
                         "type": "integer"
                     },
@@ -20334,13 +22963,13 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "\ud83d\udd25 TRUCO API PLATFORM: readableLink false.",
+                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "servicioContexto": {
-                        "description": "El contexto de uso. Igual que el componente, solo IRI.",
+                    "itinerarioContexto": {
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
@@ -20349,6 +22978,15 @@
                         "example": "https://example.com/"
                     },
                     "hora": {
+                        "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "horaFin": {
+                        "description": "Hora exacta a la que finaliza la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -20356,6 +22994,7 @@
                         "format": "date-time"
                     },
                     "modo": {
+                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -20366,6 +23005,7 @@
                         ]
                     },
                     "orden": {
+                        "description": "Orden en el que se lista dentro del segmento.",
                         "default": 1,
                         "type": "integer"
                     }
@@ -20378,18 +23018,19 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
+                        "description": "Obtiene el segmento narrativo padre.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "componente": {
-                        "description": "\ud83d\udd25 TRUCO API PLATFORM: readableLink false.",
+                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "servicioContexto": {
-                        "description": "El contexto de uso. Igual que el componente, solo IRI.",
+                    "itinerarioContexto": {
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
@@ -20398,6 +23039,15 @@
                         "example": "https://example.com/"
                     },
                     "hora": {
+                        "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "horaFin": {
+                        "description": "Hora exacta a la que finaliza la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -20405,6 +23055,7 @@
                         "format": "date-time"
                     },
                     "modo": {
+                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -20415,6 +23066,7 @@
                         ]
                     },
                     "orden": {
+                        "description": "Orden en el que se lista dentro del segmento.",
                         "default": 1,
                         "type": "integer"
                     },
@@ -20432,13 +23084,13 @@
                 "type": "object",
                 "properties": {
                     "componente": {
-                        "description": "\ud83d\udd25 TRUCO API PLATFORM: readableLink false.",
+                        "description": "El componente log\u00edstico que ser\u00e1 inyectado.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
-                    "servicioContexto": {
-                        "description": "El contexto de uso. Igual que el componente, solo IRI.",
+                    "itinerarioContexto": {
+                        "description": "El Cerebro del Timeline: Define en qu\u00e9 plantilla espec\u00edfica de itinerario\ndebe inyectarse este componente. Si es null, se inyecta siempre.",
                         "type": [
                             "string",
                             "null"
@@ -20447,6 +23099,15 @@
                         "example": "https://example.com/"
                     },
                     "hora": {
+                        "description": "Hora exacta a la que inicia la operativa de este componente en el itinerario.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "horaFin": {
+                        "description": "Hora exacta a la que finaliza la operativa.",
                         "type": [
                             "string",
                             "null"
@@ -20454,6 +23115,7 @@
                         "format": "date-time"
                     },
                     "modo": {
+                        "description": "Define si el componente suma al costo, no incluye, o es opcional.",
                         "default": "incluido",
                         "type": "string",
                         "enum": [
@@ -20464,6 +23126,7 @@
                         ]
                     },
                     "orden": {
+                        "description": "Orden en el que se lista dentro del segmento.",
                         "default": 1,
                         "type": "integer"
                     }
@@ -20476,12 +23139,13 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
+                        "description": "Obtiene el segmento de viaje asociado a la imagen.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "imageFile": {
-                        "description": "Requerido por VichUploader para forzar la actualizaci\u00f3n en la base de datos al cambiar archivo.",
+                        "description": "Obtiene el archivo subido en memoria.",
                         "type": [
                             "string",
                             "null"
@@ -20489,14 +23153,31 @@
                         "format": "binary"
                     },
                     "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "imageSize": {
+                        "description": "Obtiene el tama\u00f1o de la imagen en bytes.",
                         "type": [
                             "integer",
+                            "null"
+                        ]
+                    },
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del segmento.",
+                        "type": "boolean"
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL completa de la imagen.",
+                        "type": [
+                            "string",
                             "null"
                         ]
                     },
@@ -20518,6 +23199,18 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "token": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "image": {
+                        "readOnly": true,
+                        "description": "Determina si el archivo es compatible con LiipImagine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -20525,14 +23218,31 @@
                 "type": "object",
                 "properties": {
                     "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "imageSize": {
+                        "description": "Obtiene el tama\u00f1o de la imagen en bytes.",
                         "type": [
                             "integer",
+                            "null"
+                        ]
+                    },
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del segmento.",
+                        "type": "boolean"
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL completa de la imagen.",
+                        "type": [
+                            "string",
                             "null"
                         ]
                     }
@@ -20542,16 +23252,26 @@
                 "type": "object",
                 "properties": {
                     "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "imageSize": {
+                        "description": "Obtiene el tama\u00f1o de la imagen en bytes.",
                         "type": [
                             "integer",
                             "null"
                         ]
+                    },
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del segmento.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -20559,12 +23279,13 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
+                        "description": "Obtiene el segmento de viaje asociado a la imagen.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "imageFile": {
-                        "description": "Requerido por VichUploader para forzar la actualizaci\u00f3n en la base de datos al cambiar archivo.",
+                        "description": "Obtiene el archivo subido en memoria.",
                         "type": [
                             "string",
                             "null"
@@ -20572,14 +23293,31 @@
                         "format": "binary"
                     },
                     "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "imageSize": {
+                        "description": "Obtiene el tama\u00f1o de la imagen en bytes.",
                         "type": [
                             "integer",
+                            "null"
+                        ]
+                    },
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del segmento.",
+                        "type": "boolean"
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL completa de la imagen.",
+                        "type": [
+                            "string",
                             "null"
                         ]
                     },
@@ -20601,6 +23339,18 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "token": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "image": {
+                        "readOnly": true,
+                        "description": "Determina si el archivo es compatible con LiipImagine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -20608,14 +23358,31 @@
                 "type": "object",
                 "properties": {
                     "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "imageSize": {
+                        "description": "Obtiene el tama\u00f1o de la imagen en bytes.",
                         "type": [
                             "integer",
+                            "null"
+                        ]
+                    },
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del segmento.",
+                        "type": "boolean"
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL completa de la imagen.",
+                        "type": [
+                            "string",
                             "null"
                         ]
                     }
@@ -20625,12 +23392,13 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
+                        "description": "Obtiene el segmento de viaje asociado a la imagen.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "imageFile": {
-                        "description": "Requerido por VichUploader para forzar la actualizaci\u00f3n en la base de datos al cambiar archivo.",
+                        "description": "Obtiene el archivo subido en memoria.",
                         "type": [
                             "string",
                             "null"
@@ -20638,14 +23406,31 @@
                         "format": "binary"
                     },
                     "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "imageSize": {
+                        "description": "Obtiene el tama\u00f1o de la imagen en bytes.",
                         "type": [
                             "integer",
+                            "null"
+                        ]
+                    },
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del segmento.",
+                        "type": "boolean"
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL completa de la imagen.",
+                        "type": [
+                            "string",
                             "null"
                         ]
                     },
@@ -20667,6 +23452,18 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "token": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "image": {
+                        "readOnly": true,
+                        "description": "Determina si el archivo es compatible con LiipImagine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -20674,14 +23471,31 @@
                 "type": "object",
                 "properties": {
                     "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "imageSize": {
+                        "description": "Obtiene el tama\u00f1o de la imagen en bytes.",
                         "type": [
                             "integer",
+                            "null"
+                        ]
+                    },
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del segmento.",
+                        "type": "boolean"
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL completa de la imagen.",
+                        "type": [
+                            "string",
                             "null"
                         ]
                     }
@@ -20691,12 +23505,13 @@
                 "type": "object",
                 "properties": {
                     "segmento": {
+                        "description": "Obtiene el segmento de viaje asociado a la imagen.",
                         "type": "string",
                         "format": "iri-reference",
                         "example": "https://example.com/"
                     },
                     "imageFile": {
-                        "description": "Requerido por VichUploader para forzar la actualizaci\u00f3n en la base de datos al cambiar archivo.",
+                        "description": "Obtiene el archivo subido en memoria.",
                         "type": [
                             "string",
                             "null"
@@ -20704,14 +23519,31 @@
                         "format": "binary"
                     },
                     "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "imageSize": {
+                        "description": "Obtiene el tama\u00f1o de la imagen en bytes.",
                         "type": [
                             "integer",
+                            "null"
+                        ]
+                    },
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
+                    },
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del segmento.",
+                        "type": "boolean"
+                    },
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL completa de la imagen.",
+                        "type": [
+                            "string",
                             "null"
                         ]
                     },
@@ -20733,6 +23565,18 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "token": {
+                        "readOnly": true,
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "image": {
+                        "readOnly": true,
+                        "description": "Determina si el archivo es compatible con LiipImagine.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -20740,796 +23584,33 @@
                 "type": "object",
                 "properties": {
                     "imageName": {
+                        "description": "Obtiene el nombre f\u00edsico del archivo guardado en el servidor.",
                         "type": [
                             "string",
                             "null"
                         ]
                     },
                     "imageSize": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    }
-                }
-            },
-            "TravelTarifa": {
-                "type": "object",
-                "properties": {
-                    "componente": {
-                        "type": "string",
-                        "format": "iri-reference",
-                        "example": "https://example.com/"
-                    },
-                    "nombreInterno": {
-                        "type": "string"
-                    },
-                    "titulo": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "monto": {
-                        "default": "0.00",
-                        "type": "string"
-                    },
-                    "moneda": {
-                        "$ref": "#/components/schemas/MaestroMoneda"
-                    },
-                    "modalidad": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "privado",
-                            "compartido",
-                            null
-                        ]
-                    },
-                    "procedencia": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "nacional",
-                            "extranjero",
-                            "can",
-                            null
-                        ]
-                    },
-                    "edadMinima": {
+                        "description": "Obtiene el tama\u00f1o de la imagen en bytes.",
                         "type": [
                             "integer",
                             "null"
                         ]
                     },
-                    "edadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
+                    "orden": {
+                        "description": "Obtiene el orden de visualizaci\u00f3n de la imagen.",
+                        "type": "integer"
                     },
-                    "capacidadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "costoPorGrupo": {
-                        "description": "Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero.",
+                    "isPortada": {
+                        "description": "Indica si esta imagen es la portada principal del segmento.",
                         "type": "boolean"
                     },
-                    "id": {
-                        "readOnly": true,
+                    "imageUrl": {
+                        "description": "Propiedad virtual para exponer la URL completa de la imagen.",
                         "type": [
                             "string",
                             "null"
-                        ],
-                        "format": "uuid"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "ejecutarTraduccion": {
-                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
-                        "default": true,
-                        "type": "boolean"
-                    },
-                    "sobreescribirTraduccion": {
-                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
-                        "type": "boolean"
-                    }
-                }
-            },
-            "TravelTarifa-componente.item.read": {
-                "type": "object",
-                "properties": {
-                    "nombreInterno": {
-                        "type": "string"
-                    },
-                    "titulo": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "monto": {
-                        "default": "0.00",
-                        "type": "string"
-                    },
-                    "moneda": {
-                        "$ref": "#/components/schemas/MaestroMoneda-componente.item.read"
-                    },
-                    "modalidad": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "privado",
-                            "compartido",
-                            null
                         ]
-                    },
-                    "procedencia": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "nacional",
-                            "extranjero",
-                            "can",
-                            null
-                        ]
-                    },
-                    "edadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "edadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "costoPorGrupo": {
-                        "description": "Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero.",
-                        "type": "boolean"
-                    }
-                }
-            },
-            "TravelTarifa-componente.write": {
-                "type": "object",
-                "properties": {
-                    "nombreInterno": {
-                        "type": "string"
-                    },
-                    "titulo": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "monto": {
-                        "default": "0.00",
-                        "type": "string"
-                    },
-                    "moneda": {
-                        "$ref": "#/components/schemas/MaestroMoneda-componente.write"
-                    },
-                    "modalidad": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "privado",
-                            "compartido",
-                            null
-                        ]
-                    },
-                    "procedencia": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "nacional",
-                            "extranjero",
-                            "can",
-                            null
-                        ]
-                    },
-                    "edadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "edadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "costoPorGrupo": {
-                        "description": "Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero.",
-                        "type": "boolean"
-                    }
-                }
-            },
-            "TravelTarifa.html": {
-                "type": "object",
-                "properties": {
-                    "componente": {
-                        "type": "string",
-                        "format": "iri-reference",
-                        "example": "https://example.com/"
-                    },
-                    "nombreInterno": {
-                        "type": "string"
-                    },
-                    "titulo": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "monto": {
-                        "default": "0.00",
-                        "type": "string"
-                    },
-                    "moneda": {
-                        "$ref": "#/components/schemas/MaestroMoneda.html"
-                    },
-                    "modalidad": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "privado",
-                            "compartido",
-                            null
-                        ]
-                    },
-                    "procedencia": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "nacional",
-                            "extranjero",
-                            "can",
-                            null
-                        ]
-                    },
-                    "edadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "edadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "costoPorGrupo": {
-                        "description": "Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero.",
-                        "type": "boolean"
-                    },
-                    "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "ejecutarTraduccion": {
-                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
-                        "default": true,
-                        "type": "boolean"
-                    },
-                    "sobreescribirTraduccion": {
-                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
-                        "type": "boolean"
-                    }
-                }
-            },
-            "TravelTarifa.html-componente.item.read": {
-                "type": "object",
-                "properties": {
-                    "nombreInterno": {
-                        "type": "string"
-                    },
-                    "titulo": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "monto": {
-                        "default": "0.00",
-                        "type": "string"
-                    },
-                    "moneda": {
-                        "$ref": "#/components/schemas/MaestroMoneda.html-componente.item.read"
-                    },
-                    "modalidad": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "privado",
-                            "compartido",
-                            null
-                        ]
-                    },
-                    "procedencia": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "nacional",
-                            "extranjero",
-                            "can",
-                            null
-                        ]
-                    },
-                    "edadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "edadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "costoPorGrupo": {
-                        "description": "Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero.",
-                        "type": "boolean"
-                    }
-                }
-            },
-            "TravelTarifa.jsonld": {
-                "type": "object",
-                "properties": {
-                    "componente": {
-                        "type": "string",
-                        "format": "iri-reference",
-                        "example": "https://example.com/"
-                    },
-                    "nombreInterno": {
-                        "type": "string"
-                    },
-                    "titulo": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "monto": {
-                        "default": "0.00",
-                        "type": "string"
-                    },
-                    "moneda": {
-                        "$ref": "#/components/schemas/MaestroMoneda.jsonld"
-                    },
-                    "modalidad": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "privado",
-                            "compartido",
-                            null
-                        ]
-                    },
-                    "procedencia": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "nacional",
-                            "extranjero",
-                            "can",
-                            null
-                        ]
-                    },
-                    "edadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "edadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "costoPorGrupo": {
-                        "description": "Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero.",
-                        "type": "boolean"
-                    },
-                    "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "ejecutarTraduccion": {
-                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
-                        "default": true,
-                        "type": "boolean"
-                    },
-                    "sobreescribirTraduccion": {
-                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
-                        "type": "boolean"
-                    }
-                }
-            },
-            "TravelTarifa.jsonld-componente.item.read": {
-                "type": "object",
-                "properties": {
-                    "nombreInterno": {
-                        "type": "string"
-                    },
-                    "titulo": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "monto": {
-                        "default": "0.00",
-                        "type": "string"
-                    },
-                    "moneda": {
-                        "$ref": "#/components/schemas/MaestroMoneda.jsonld-componente.item.read"
-                    },
-                    "modalidad": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "privado",
-                            "compartido",
-                            null
-                        ]
-                    },
-                    "procedencia": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "nacional",
-                            "extranjero",
-                            "can",
-                            null
-                        ]
-                    },
-                    "edadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "edadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "costoPorGrupo": {
-                        "description": "Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero.",
-                        "type": "boolean"
-                    }
-                }
-            },
-            "TravelTarifa.multipart": {
-                "type": "object",
-                "properties": {
-                    "componente": {
-                        "type": "string",
-                        "format": "iri-reference",
-                        "example": "https://example.com/"
-                    },
-                    "nombreInterno": {
-                        "type": "string"
-                    },
-                    "titulo": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "monto": {
-                        "default": "0.00",
-                        "type": "string"
-                    },
-                    "moneda": {
-                        "$ref": "#/components/schemas/MaestroMoneda.multipart"
-                    },
-                    "modalidad": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "privado",
-                            "compartido",
-                            null
-                        ]
-                    },
-                    "procedencia": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "nacional",
-                            "extranjero",
-                            "can",
-                            null
-                        ]
-                    },
-                    "edadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "edadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "costoPorGrupo": {
-                        "description": "Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero.",
-                        "type": "boolean"
-                    },
-                    "id": {
-                        "readOnly": true,
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "uuid"
-                    },
-                    "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updatedAt": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "ejecutarTraduccion": {
-                        "description": "Flag virtual (no mapeado en base de datos) para activar/desactivar el proceso en tiempo de ejecuci\u00f3n.",
-                        "default": true,
-                        "type": "boolean"
-                    },
-                    "sobreescribirTraduccion": {
-                        "description": "Flag f\u00edsico (mapeado en BD) para controlar la sobreescritura y \"despertar\" a Doctrine.",
-                        "type": "boolean"
-                    }
-                }
-            },
-            "TravelTarifa.multipart-componente.item.read": {
-                "type": "object",
-                "properties": {
-                    "nombreInterno": {
-                        "type": "string"
-                    },
-                    "titulo": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "monto": {
-                        "default": "0.00",
-                        "type": "string"
-                    },
-                    "moneda": {
-                        "$ref": "#/components/schemas/MaestroMoneda.multipart-componente.item.read"
-                    },
-                    "modalidad": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "privado",
-                            "compartido",
-                            null
-                        ]
-                    },
-                    "procedencia": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "enum": [
-                            "nacional",
-                            "extranjero",
-                            "can",
-                            null
-                        ]
-                    },
-                    "edadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "edadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMinima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "capacidadMaxima": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "costoPorGrupo": {
-                        "description": "Verifica si la tarifa se cobra por bloque/grupo en lugar de por pasajero.",
-                        "type": "boolean"
                     }
                 }
             },
@@ -21731,6 +23812,14 @@
             "description": "El Expediente ra\u00edz. Agrupa todas las propuestas comerciales de un cliente o grupo."
         },
         {
+            "name": "CotizacionFiledocumento",
+            "description": "Resource 'CotizacionFiledocumento' operations."
+        },
+        {
+            "name": "CotizacionFilepasajero",
+            "description": "Resource 'CotizacionFilepasajero' operations."
+        },
+        {
             "name": "CotizacionSegmento",
             "description": "Resource 'CotizacionSegmento' operations."
         },
@@ -21761,6 +23850,10 @@
         {
             "name": "Servicio",
             "description": "Act\u00faa como una bolsa/pool que agrupa componentes log\u00edsticos y segmentos narrativos\npara que luego las plantillas de itinerario y las cotizaciones los utilicen."
+        },
+        {
+            "name": "Tarifa",
+            "description": "Resource 'Tarifa' operations."
         },
         {
             "name": "Idioma",

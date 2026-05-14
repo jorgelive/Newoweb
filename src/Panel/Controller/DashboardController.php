@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Panel\Controller;
 
 use App\Security\Roles;
+use App\Travel\Controller\Crud\TravelSegmentoImagenCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
@@ -29,7 +30,6 @@ use App\Message\Controller\Crud\MessageRuleCrudController;
 use App\Message\Controller\Crud\MessageTemplateCrudController;
 use App\Message\Controller\Crud\MetaWebhookAuditCrudController;
 use App\Message\Controller\Crud\WhatsappMetaSendQueueCrudController;
-use App\Panel\Controller\Crud\MaestroDocumentoTipoCrudController;
 use App\Panel\Controller\Crud\MaestroIdiomaCrudController;
 use App\Panel\Controller\Crud\MaestroMonedaCrudController;
 use App\Panel\Controller\Crud\MaestroPaisCrudController;
@@ -160,6 +160,7 @@ class DashboardController extends AbstractDashboardController
             ->setSubItems([
                 MenuItem::linkTo(TravelServicioCrudController::class, 'Servicios / Tours', 'fa fa-route'),
                 MenuItem::linkTo(TravelSegmentoCrudController::class, 'Segmentos Narrativos', 'fa fa-paragraph'),
+                MenuItem::linkTo(TravelSegmentoImagenCrudController::class, 'Galería de Segmentos', 'fa fa-images'),
                 MenuItem::linkTo(TravelItinerarioCrudController::class, 'Plantillas de Itinerario', 'fa fa-book-open'),
                 MenuItem::linkTo(TravelNotaCrudController::class, 'Notas y Políticas', 'fa fa-file-alt'), // <-- NUEVO
             ])
@@ -223,7 +224,6 @@ class DashboardController extends AbstractDashboardController
             ->setSubItems([
                 MenuItem::linkTo(MaestroIdiomaCrudController::class, 'Idiomas', 'fa fa-language'),
                 MenuItem::linkTo(MaestroPaisCrudController::class, 'Países', 'fa fa-flag'),
-                MenuItem::linkTo(MaestroDocumentoTipoCrudController::class, 'Tipos Documento', 'fa fa-id-card'),
                 MenuItem::linkTo(MaestroMonedaCrudController::class, 'Monedas', 'fa fa-coins'),
                 MenuItem::linkTo(MaestroTipocambioCrudController::class, 'Tipos de Cambio', 'fa fa-money-bill-transfer'),
                 MenuItem::linkTo(UiI18nCrudController::class, 'Traducciones UI', 'fa fa-spell-check')

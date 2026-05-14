@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Crud;
 
-// ✅ Jerarquía de herencia restaurada
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Pms\Entity\PmsBookingsPullQueue;
 use App\Pms\Factory\PmsBookingsPullQueueFactory;

@@ -21,10 +21,14 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 
 /**
  * Entidad base para la logística pura (El insumo financiero).
  */
+
+#[ApiFilter(SearchFilter::class, properties: ['id' => 'exact'])]
 #[ApiResource(
     shortName: 'Componente', // 🔥 Define el recurso base para generar '/componentes'
     operations: [

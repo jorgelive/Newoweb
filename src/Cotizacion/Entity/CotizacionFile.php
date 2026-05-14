@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -94,22 +95,45 @@ class CotizacionFile
     /**
      * @var Collection<int, Cotizacion>
      */
+    #[ApiProperty(fetchEager: false)]
     #[Groups(['file:item:read'])]
     #[ORM\OneToMany(mappedBy: 'file', targetEntity: Cotizacion::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['version' => 'DESC'])]
     private Collection $cotizaciones;
+
+    /**
+     * @var Collection<int, CotizacionFilepasajero>
+     */
+    #[ApiProperty(fetchEager: false)]
+    #[Groups(['file:item:read'])]
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFilepasajero::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $filepasajeros;
+
+    /**
+     * @var Collection<int, CotizacionFiledocumento>
+     */
+    #[ApiProperty(fetchEager: false)]
+    #[Groups(['file:item:read'])]
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionFiledocumento::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $filedocumentos;
 
     public function __construct()
     {
         $this->initializeId();
         $this->initializeLocator();
         $this->cotizaciones = new ArrayCollection();
+        $this->filepasajeros = new ArrayCollection();
+        $this->filedocumentos = new ArrayCollection();
     }
 
     public function __toString(): string
     {
         return $this->nombreGrupo ?? 'File sin nombre';
     }
+
+    /* ======================================================
+     * GETTERS Y SETTERS
+     * ====================================================== */
 
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $pais): self { $this->pais = $pais; return $this; }
@@ -145,6 +169,40 @@ class CotizacionFile
     {
         if ($this->cotizaciones->removeElement($cotizacion)) {
             if ($cotizacion->getFile() === $this) { $cotizacion->setFile(null); }
+        }
+        return $this;
+    }
+
+    public function getFilepasajeros(): Collection { return $this->filepasajeros; }
+    public function addFilepasajero(CotizacionFilepasajero $filepasajero): self
+    {
+        if (!$this->filepasajeros->contains($filepasajero)) {
+            $this->filepasajeros->add($filepasajero);
+            $filepasajero->setFile($this);
+        }
+        return $this;
+    }
+    public function removeFilepasajero(CotizacionFilepasajero $filepasajero): self
+    {
+        if ($this->filepasajeros->removeElement($filepasajero)) {
+            if ($filepasajero->getFile() === $this) { $filepasajero->setFile(null); }
+        }
+        return $this;
+    }
+
+    public function getFiledocumentos(): Collection { return $this->filedocumentos; }
+    public function addFiledocumento(CotizacionFiledocumento $filedocumento): self
+    {
+        if (!$this->filedocumentos->contains($filedocumento)) {
+            $this->filedocumentos->add($filedocumento);
+            $filedocumento->setFile($this);
+        }
+        return $this;
+    }
+    public function removeFiledocumento(CotizacionFiledocumento $filedocumento): self
+    {
+        if ($this->filedocumentos->removeElement($filedocumento)) {
+            if ($filedocumento->getFile() === $this) { $filedocumento->setFile(null); }
         }
         return $this;
     }
