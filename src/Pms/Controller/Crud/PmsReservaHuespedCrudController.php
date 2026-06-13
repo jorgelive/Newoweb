@@ -14,11 +14,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField; // ✅ Importado ChoiceField
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter; // ✅ Importado ChoiceFilter
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Vich\UploaderBundle\Form\Type\VichImageType;
@@ -77,7 +79,7 @@ class PmsReservaHuespedCrudController extends BaseCrudController
     {
         return $filters
             ->add('pais')
-            ->add('tipoDocumento')
+            ->add(ChoiceFilter::new('tipoDocumento')) // ✅ Cambiado para soportar Enum
             ->add('esPrincipal')
             ->add('fechaNacimiento');
     }
@@ -119,7 +121,10 @@ class PmsReservaHuespedCrudController extends BaseCrudController
         yield TextField::new('apellido')->setColumns(6);
         yield DateField::new('fechaNacimiento', 'F. Nacimiento')->setColumns(4);
         yield AssociationField::new('pais', 'Nacionalidad')->setColumns(4);
-        yield AssociationField::new('tipoDocumento', 'Tipo Doc.')->setColumns(4);
+
+        // ✅ Cambiado a ChoiceField. EasyAdmin extraerá automáticamente los casos del Enum.
+        yield ChoiceField::new('tipoDocumento', 'Tipo Doc.')->setColumns(4);
+
         yield TextField::new('documentoNumero', 'Número Documento')->setColumns(4);
 
         // ---------------------------------------------------------------------
